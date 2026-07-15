@@ -60,14 +60,67 @@ class UserRequestNormalizer:
     """Normalize free-form operator text into deterministic delivery signals."""
 
     IMPLEMENT_TERMS = {
-        "implement": ("implement", "build", "create", "make", "apply", "publish", "save", "реализ", "сделай", "примени"),
-        "fix": ("fix", "repair", "исправ", "почини"),
-        "enhance": ("enhance", "improve", "extend", "доработ", "улучш"),
+        "implement": (
+            "implement",
+            "build",
+            "create",
+            "make",
+            "apply",
+            "publish",
+            "save",
+            "реализ",
+            "сделай",
+            "созд",
+            "примени",
+            "сохран",
+            "опублику",
+            "добав",
+        ),
+        "fix": ("fix", "repair", "исправ", "почин", "устран"),
+        "enhance": ("enhance", "improve", "extend", "доработ", "улучш", "расшир"),
         "redesign": ("redesign", "переработ", "редизайн"),
-        "update": ("update", "change", "modify", "обнов", "измени"),
+        "update": ("update", "change", "modify", "обнов", "измени", "изменить", "замени", "поменяй", "настрой"),
     }
-    REVIEW_TERMS = ("review", "audit", "inspect", "diagnose", "посмотри", "проверь", "оцени")
-    PLAN_TERMS = ("plan", "план", "dry run", "dry_run", "без изменений", "только план")
+    REVIEW_TERMS = (
+        "review",
+        "audit",
+        "inspect",
+        "diagnose",
+        "посмотри",
+        "проверь",
+        "оцени",
+        "аудит",
+        "диагност",
+        "проанализ",
+    )
+    PLAN_TERMS = ("plan", "план", "спланируй", "dry run", "dry_run", "без изменений", "только план")
+    NEGATED_MUTATION_PATTERNS = (
+        re.compile(
+            r"\b(?:do\s+not|don't|never)\s+"
+            r"(?:implement\w*|build\w*|create\w*|make|apply\w*|publish\w*|save\w*|fix\w*|repair\w*|"
+            r"enhance\w*|improve\w*|extend\w*|redesign\w*|update\w*|change\w*|modify\w*)"
+            r"(?:\s+(?:or|and)\s+"
+            r"(?:implement\w*|build\w*|create\w*|make|apply\w*|publish\w*|save\w*|fix\w*|repair\w*|"
+            r"enhance\w*|improve\w*|extend\w*|redesign\w*|update\w*|change\w*|modify\w*))*",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\b(?:nothing\s+should\s+be|nothing\s+is\s+to\s+be)\s+"
+            r"(?:saved|published|changed|created|updated|modified|fixed)\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"(?<!\w)(?:не|никогда\s+не|ничего\s+не)\s+"
+            r"(?:созда\w*|сдела\w*|реализ\w*|примен\w*|сохран\w*|опубли\w*|добав\w*|исправ\w*|"
+            r"почин\w*|устран\w*|доработ\w*|улучш\w*|расшир\w*|переработ\w*|обнов\w*|измени\w*|"
+            r"замен\w*|помен\w*|настро\w*)"
+            r"(?:\s+и\s+не\s+"
+            r"(?:созда\w*|сдела\w*|реализ\w*|примен\w*|сохран\w*|опубли\w*|добав\w*|исправ\w*|"
+            r"почин\w*|устран\w*|доработ\w*|улучш\w*|расшир\w*|переработ\w*|обнов\w*|измени\w*|"
+            r"замен\w*|помен\w*|настро\w*))*",
+            re.IGNORECASE,
+        ),
+    )
     ROUTE_TERMS: dict[RouteIntent, tuple[str, ...]] = {
         "ql_explicit": ("ql chart", "ql-чарт", "через ql", "route=ql_explicit", "createqlchart", "updateqlchart"),
         "js": (" js", "javascript", "editor js", "на js", "через js"),
@@ -78,18 +131,123 @@ class UserRequestNormalizer:
         "wizard_map_native": ("map", "geo", "карта", "гео", "latitude", "longitude", "geopoint", "geopolygon"),
     }
     OVERRIDES: dict[PublishOverride, tuple[str, ...]] = {
-        "plan_only": ("plan only", "только план", "без изменений"),
+        "plan_only": (
+            "plan only",
+            "plan-only",
+            "plan_only",
+            "только план",
+            "составь план",
+            "подготовь план",
+            "спланируй",
+            "без изменений",
+            "без записи",
+            "не меняй",
+            "ничего не меняй",
+            "не сохраняй",
+            "ничего не сохраняй",
+            "do not save",
+            "don't save",
+            "do not create",
+            "don't create",
+            "do not change",
+            "don't change",
+            "make no changes",
+            "nothing should be saved",
+            "не создавай",
+            "ничего не создавай",
+            "не исправляй",
+            "не обновляй",
+            "не изменяй",
+        ),
         "dry_run": ("dry run", "dry-run", "dry_run", "пробный"),
         "draft": ("draft", "черновик"),
-        "save_only": ("save only", "only save", "только save", "только сохранить"),
-        "no_publish": ("no publish", "do not publish", "don't publish", "не публикуй", "без publish"),
+        "save_only": ("save only", "save-only", "save_only", "only save", "только save", "только сохранить", "только сохрани"),
+        "no_publish": (
+            "no publish",
+            "no-publish",
+            "no_publish",
+            "do not publish",
+            "don't publish",
+            "without publishing",
+            "without publish",
+            "не публикуй",
+            "ничего не публикуй",
+            "не опубликовывай",
+            "без публикации",
+            "без publish",
+        ),
     }
     DESTRUCTIVE_TERMS = {
-        "delete": ("delete", "remove object", "удали", "удалить"),
+        "delete": ("delete", "remove", "удали", "удалить"),
         "move": ("move", "перемести"),
         "permissions_change": ("permission", "access binding", "доступ", "права"),
         "credential_change": ("credential", "token", "password", "iam token", "секрет", "пароль"),
     }
+    PARTIAL_CONTENT_TERMS = (
+        "legend",
+        "column",
+        "field",
+        "filter",
+        "widget",
+        "selector",
+        "tab",
+        "series",
+        "label",
+        "title",
+        "axis",
+        "measure",
+        "metric",
+        "dimension",
+        "sort",
+        "format",
+        "color",
+        "row",
+        "точк",
+        "заголов",
+        "ось",
+        "метрик",
+        "измерен",
+        "сортиров",
+        "формат",
+        "цвет",
+        "строк",
+        "легенд",
+        "колон",
+        "столб",
+        "поле",
+        "фильтр",
+        "виджет",
+        "селектор",
+        "вклад",
+        "сери",
+        "подпис",
+    )
+    WHOLE_OBJECT_DELETE_TERMS = (
+        "delete object",
+        "remove object",
+        "delete dashboard",
+        "delete chart",
+        "remove chart",
+        "delete dataset",
+        "remove dataset",
+        "delete connection",
+        "remove connection",
+        "delete workbook",
+        "remove workbook",
+        "remove dashboard",
+        "удали объект",
+        "удалить объект",
+        "удали дашборд",
+        "удалить дашборд",
+        "удали чарт",
+        "удалить чарт",
+        "удали датасет",
+        "удалить датасет",
+        "удали подключение",
+        "удалить подключение",
+        "удали воркбук",
+        "удалить воркбук",
+    )
     APPROVAL_SOURCES = {
         "goal_objective_file": ("goal objective", "goal-objective", "цель из файла"),
         "codex_tool_approval": ("codex tool approval", "tool approval", "approved tool", "разрешение codex"),
@@ -118,11 +276,9 @@ class UserRequestNormalizer:
         route_intent = self._route_intent(lowered)
         target_url = self._target_url(raw)
         extracted = self._extract_targets(raw, target_url=target_url)
-        destructive = [
-            action
-            for action, terms in self.DESTRUCTIVE_TERMS.items()
-            if any(term in lowered for term in terms)
-        ]
+        destructive = self._destructive_actions(lowered)
+        if task_intent == "unknown" and self._is_partial_content_update(lowered) and "delete" not in destructive:
+            task_intent = "update"
         sources = ["current_user_request"]
         for source, terms in self.APPROVAL_SOURCES.items():
             if any(term in lowered for term in terms):
@@ -145,15 +301,49 @@ class UserRequestNormalizer:
             evidence=extracted.get("evidence", []),
         )
 
+    def _destructive_actions(self, lowered: str) -> list[str]:
+        destructive = [
+            action
+            for action, terms in self.DESTRUCTIVE_TERMS.items()
+            if any(self._matches_destructive_term(lowered, term) for term in terms)
+        ]
+        if "delete" not in destructive:
+            return destructive
+        partial_content_update = self._is_partial_content_update(lowered)
+        if partial_content_update:
+            destructive.remove("delete")
+        return destructive
+
+    @staticmethod
+    def _matches_destructive_term(lowered: str, term: str) -> bool:
+        # ``move`` must be a standalone word; a substring check also matches
+        # the ordinary update verb ``remove``.
+        if term == "move":
+            return re.search(r"(?<![a-z0-9_])move(?![a-z0-9_])", lowered) is not None
+        return term in lowered
+
+    def _is_partial_content_update(self, lowered: str) -> bool:
+        has_removal_verb = any(term in lowered for term in self.DESTRUCTIVE_TERMS["delete"])
+        return bool(has_removal_verb and any(term in lowered for term in self.PARTIAL_CONTENT_TERMS))
+
     def _task_intent(self, lowered: str) -> TaskIntent:
+        positive_text = lowered
+        for pattern in self.NEGATED_MUTATION_PATTERNS:
+            positive_text = pattern.sub(" ", positive_text)
         for intent, terms in self.IMPLEMENT_TERMS.items():
-            if any(term in lowered for term in terms):
+            if any(self._matches_intent_term(positive_text, term) for term in terms):
                 return intent  # type: ignore[return-value]
         if any(term in lowered for term in self.REVIEW_TERMS):
             return "review"
         if any(term in lowered for term in self.PLAN_TERMS):
             return "plan"
         return "unknown"
+
+    @staticmethod
+    def _matches_intent_term(text: str, term: str) -> bool:
+        if term.isascii() and re.fullmatch(r"[a-z]+", term):
+            return re.search(rf"(?<![a-z0-9_]){re.escape(term)}(?![a-z0-9_])", text) is not None
+        return term in text
 
     def _publish_override(self, lowered: str) -> PublishOverride:
         for override, terms in self.OVERRIDES.items():

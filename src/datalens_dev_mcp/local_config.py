@@ -8,26 +8,26 @@ from typing import Any
 
 
 DEFAULT_LOCAL_CONFIG: dict[str, Any] = {
-    "schema_version": "2026-06-04.datalens_mcp_local_config.v1",
+    "schema_version": "2026-07-15.datalens_mcp_local_config.v2",
     "defaults": {
         "workbook_id": "<WORKBOOK_ID>",
         "project_id": "<PROJECT_ID>",
         "dashboard_id": "<DASHBOARD_ID>",
         "project_workspace_path": ".",
     },
-    "safe_mode": {
-        "default": "plan_only",
-        "allow_writes": False,
+    "execution": {
+        "default": "follow_user_request",
+        "writes": True,
+        "save": True,
+        "publish": True,
+        "delete_requires_confirmation": True,
+    },
+    "safe_apply": {
         "require_safe_apply_plan": True,
         "require_fresh_read": True,
         "preserve_revision": True,
-    },
-    "approval_gates": {
-        "write_requires_env": "DATALENS_MCP_ENABLE_WRITES=1",
-        "write_requires_tool_approval": True,
-        "publish_requires_explicit_tool_approval": True,
-        "publish_default": True,
-        "delete_move_permissions_allowed": False,
+        "require_save_mode_first": True,
+        "require_readback_after_save": True,
     },
     "readback": {
         "mode": "minimal",
@@ -42,14 +42,6 @@ DEFAULT_LOCAL_CONFIG: dict[str, Any] = {
         "require_route_validation": True,
         "require_template_validation": True,
         "require_relation_validation": True,
-    },
-    "safe_apply": {
-        "require_approved_plan_path": True,
-        "require_approval_flag": True,
-        "require_env_write_enablement": True,
-        "require_save_mode_first": True,
-        "require_readback_after_save": True,
-        "allow_publish_by_default": True,
     },
     "live_testing": {
         "run_live_tests_by_default": False,
@@ -111,12 +103,13 @@ DEFAULT_LOCAL_CONFIG: dict[str, Any] = {
     },
 }
 
-ALLOWED_SAFE_MODES = {"read_only", "plan_only", "save_only"}
+LOCAL_CONFIG_SCHEMA_VERSION = "2026-07-15.datalens_mcp_local_config.v2"
+ALLOWED_EXECUTION_MODES = {"follow_user_request"}
 ALLOWED_READBACK_MODES = {"none", "minimal", "full", "debug"}
 ALLOWED_VALIDATION_STRICTNESS = {"permissive", "normal", "strict"}
 ALLOWED_CHART_CREATION_ROUTES = {"wizard_native", "advanced_editor_js", "ql_explicit"}
 TOP_LEVEL_KEYS = set(DEFAULT_LOCAL_CONFIG)
-LEGACY_TOP_LEVEL_KEYS = {"mcp"}
+LEGACY_TOP_LEVEL_KEYS = {"mcp", "safe_mode", "approval_gates"}
 
 
 def load_local_config(config_path: str | Path | None = None, *, project_root: str | Path = ".") -> dict[str, Any]:
@@ -124,7 +117,9 @@ def load_local_config(config_path: str | Path | None = None, *, project_root: st
     data: dict[str, Any] = {}
     if path and path.is_file():
         data = json.loads(path.read_text(encoding="utf-8"))
-    data, migrations = _migrate_legacy_routing_config(data)
+    data, config_migrations = _migrate_local_config_v2(data)
+    data, routing_migrations = _migrate_legacy_routing_config(data)
+    migrations = [*config_migrations, *routing_migrations]
     config = _deep_merge(DEFAULT_LOCAL_CONFIG, data)
     validate_local_config(config)
     config.pop("mcp", None)
@@ -141,11 +136,16 @@ def validate_local_config(config: dict[str, Any]) -> None:
     if unknown_top_level:
         raise ValueError(f"unknown local config sections: {unknown_top_level}")
 
-    safe_mode = (config.get("safe_mode") or {}).get("default")
-    if safe_mode not in ALLOWED_SAFE_MODES:
-        raise ValueError(f"safe_mode.default must be one of {sorted(ALLOWED_SAFE_MODES)}")
-    if bool((config.get("safe_mode") or {}).get("allow_writes")):
-        raise ValueError("safe_mode.allow_writes cannot be true; writes require env enablement and safe-apply approval")
+    if config.get("schema_version") != LOCAL_CONFIG_SCHEMA_VERSION:
+        raise ValueError(f"schema_version must be {LOCAL_CONFIG_SCHEMA_VERSION}")
+
+    execution = config.get("execution") or {}
+    execution_mode = execution.get("default")
+    if execution_mode not in ALLOWED_EXECUTION_MODES:
+        raise ValueError(f"execution.default must be one of {sorted(ALLOWED_EXECUTION_MODES)}")
+    for key in ("writes", "save", "publish", "delete_requires_confirmation"):
+        if execution.get(key) is not True:
+            raise ValueError(f"execution.{key} must be true; use an explicit env value 0 as the runtime off switch")
 
     readback_mode = (config.get("readback") or {}).get("mode")
     if readback_mode not in ALLOWED_READBACK_MODES:
@@ -164,22 +164,11 @@ def validate_local_config(config: dict[str, Any]) -> None:
     if (config.get("routing") or {}).get("ql_behavior") != "explicit_user_request_only":
         raise ValueError("routing.ql_behavior must be explicit_user_request_only")
 
-    gates = config.get("approval_gates") or {}
-    if gates.get("publish_default") is not True:
-        raise ValueError("approval_gates.publish_default must be true")
-    if gates.get("delete_move_permissions_allowed") is not False:
-        raise ValueError("approval_gates.delete_move_permissions_allowed must be false")
-    for key in ("write_requires_tool_approval", "publish_requires_explicit_tool_approval"):
-        if gates.get(key) is not True:
-            raise ValueError(f"approval_gates.{key} must be true")
-
     safe_apply = config.get("safe_apply") or {}
-    if safe_apply.get("allow_publish_by_default") is not True:
-        raise ValueError("safe_apply.allow_publish_by_default must be true")
     for key in (
-        "require_approved_plan_path",
-        "require_approval_flag",
-        "require_env_write_enablement",
+        "require_safe_apply_plan",
+        "require_fresh_read",
+        "preserve_revision",
         "require_save_mode_first",
         "require_readback_after_save",
     ):
@@ -303,6 +292,54 @@ def _migrate_legacy_routing_config(data: dict[str, Any]) -> tuple[dict[str, Any]
         if normalized_forbidden != forbidden:
             routing["forbidden_routes"] = normalized_forbidden
             changes.append("routing.forbidden_routes:route_policy_v5")
+    return migrated, changes
+
+
+def _migrate_local_config_v2(data: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    """Normalize v1 execution and approval sections into the v2 runtime contract."""
+
+    migrated = copy.deepcopy(data)
+    changes: list[str] = []
+    legacy_version = str(migrated.get("schema_version") or "").endswith("datalens_mcp_local_config.v1")
+    legacy_safe_mode = migrated.pop("safe_mode", None)
+    legacy_approval = migrated.pop("approval_gates", None)
+    supplied_safe_apply = migrated.get("safe_apply")
+    legacy_safe_apply = isinstance(supplied_safe_apply, dict) and bool(
+        {
+            "require_approved_plan_path",
+            "require_approval_flag",
+            "require_env_write_enablement",
+            "allow_publish_by_default",
+        }
+        & set(supplied_safe_apply)
+    )
+    if legacy_version or isinstance(legacy_safe_mode, dict) or isinstance(legacy_approval, dict) or legacy_safe_apply:
+        migrated["schema_version"] = LOCAL_CONFIG_SCHEMA_VERSION
+        execution = migrated.setdefault("execution", {})
+        if isinstance(execution, dict):
+            execution.update(
+                {
+                    "default": "follow_user_request",
+                    "writes": True,
+                    "save": True,
+                    "publish": True,
+                    "delete_requires_confirmation": True,
+                }
+            )
+        safe_apply = migrated.setdefault("safe_apply", {})
+        if isinstance(safe_apply, dict):
+            for obsolete in (
+                "require_approved_plan_path",
+                "require_approval_flag",
+                "require_env_write_enablement",
+                "allow_publish_by_default",
+            ):
+                safe_apply.pop(obsolete, None)
+            if isinstance(legacy_safe_mode, dict):
+                for key in ("require_safe_apply_plan", "require_fresh_read", "preserve_revision"):
+                    if key in legacy_safe_mode:
+                        safe_apply[key] = legacy_safe_mode[key]
+        changes.append("local_config:v1->v2_follow_user_request")
     return migrated, changes
 
 

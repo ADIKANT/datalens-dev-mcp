@@ -1,21 +1,49 @@
-# Local-Only Safety Model
+# Модель безопасности
 
-`datalens-dev-mcp` is a local-only MCP stdio server. It may operate on local project paths, real DataLens object IDs supplied by the operator, read-only diagnostic evidence, and local dashboard artifacts.
+**Русский** · [English](local-only-safety-model_en.md) · [Главная](../README.md) · [Safe Apply](safe-apply.md)
 
-Hard exclusions:
+`datalens-dev-mcp` работает локально через stdio и наследует права пользователя и MCP-клиента. Сервер открывает исходящие соединения только к настроенному DataLens API и не запускает сетевой listener.
 
-- IAM tokens and OAuth/IAM credential values
-- env files such as `.env`, `.env.local`, `.datalens.env`, `datalens_token.env`
-- `Authorization` headers with live bearer values
-- passwords, private keys, key stores, and certificate private material
-- hidden destructive DataLens operations in normal workflows
+## Учётные данные
 
-Raw source materials stay outside the tracked repo or under ignored local material paths. Only distilled rules, manifests, configs, schemas, templates, examples, and tests should be committed.
+IAM-токен и ID организации хранятся в отдельном `DATALENS_ENV_FILE` с правами `0600`. Сервер очищает ответы, отчёты и сообщения об ошибках от токенов, заголовков авторизации, паролей и закрытых ключей.
 
-The secret scanner is secret-only by design. It allows local paths and placeholder IDs, but fails on real-looking token/private-key/header leakage.
+Файлы `.env`, `.env.local`, `.datalens.env`, `datalens_token.env`, закрытые ключи и выгрузки с приватными данными не следует добавлять в Git. Подробная настройка: [доступ к DataLens](access.md).
 
-Deletion is allowed only as an explicit retire lifecycle when the user asks to
-remove named unnecessary objects. `retire_legacy_objects` requires exact object
-ids/types, workbook id, reason, user request quote or decision id, relation
-graph proof, saved and published no-reference proof, dry-run retire plan,
-approval provenance, execution summary, and post-retire readback.
+## Выбор операции
+
+Стандартный режим следует запросу пользователя:
+
+- аудит, проверка и диагностика читают данные;
+- plan-only готовит план;
+- save-only сохраняет и выполняет контрольное чтение;
+- create/fix/update/enhance/redesign сохраняет, проверяет saved-версию, публикует её и проверяет published-версию.
+
+Сервер не просит повторного подтверждения перед обычным сохранением или публикацией. Значение `0` в write/save/publish-переменной жёстко блокирует соответствующую возможность.
+
+## Защита записи
+
+Перед каждым запросом записи сервер:
+
+1. проверяет точный тип и ID цели;
+2. повторно читает актуальную сохранённую версию;
+3. сверяет ревизию и ожидаемые поля;
+4. накладывает только запрошенные изменения, сохраняя остальные поля;
+5. проверяет payload по схеме и правилам объекта;
+6. после save читает saved-версию;
+7. строит publish только из проверенной saved-версии;
+8. после publish читает published-версию.
+
+При конфликте ревизии, блокировке объекта, нарушении уникальности или неопределённом результате записи цикл останавливается для сверки состояния.
+
+## Удаление
+
+Удаление целого объекта требует отдельного подтверждения. Первый вызов возвращает тип, точный ID, связи и hash плана. Второй вызов должен передать `confirm_delete=true` для того же плана. Изменившийся план подтверждается заново.
+
+Удаление элемента внутри объекта — легенды, фильтра, колонки, вкладки или виджета — относится к обновлению объекта. Перемещение объектов, изменение прав доступа и изменение учётных данных сервером не поддерживаются.
+
+## Локальные файлы
+
+Инструменты создают планы, снимки и отчёты внутри выбранного `--project-root` или по явно указанному пути. Передавайте серверу отдельную рабочую папку и проверяйте права доступа к ней.
+
+Подробнее о последовательности записи: [Safe Apply](safe-apply.md).

@@ -2,7 +2,7 @@
 
 `templates/datalens/standard_chart_templates.json` is the active template
 registry. `generate_editor_bundle(..., family=...)` resolves the requested
-family through the approved taxonomy and then loads the matching MCP-native
+family through the supported taxonomy and then loads the matching MCP-native
 template before falling back to older gallery examples.
 
 ## Source Basis

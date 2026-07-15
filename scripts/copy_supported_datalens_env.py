@@ -30,12 +30,12 @@ SUPPORTED_KEYS = (
     "DATALENS_MCP_EXPERT_ALLOW_UNSAFE_INTERNAL_NAMES",
 )
 
-SAFETY_DEFAULTS = {
-    "DATALENS_MCP_ENABLE_WRITES": "0",
+RUNTIME_DEFAULTS = {
+    "DATALENS_MCP_ENABLE_WRITES": "1",
     "DATALENS_MCP_ENABLE_EXPERT_RPC": "0",
-    "DATALENS_MCP_LIVE_ALLOW_SAVE": "0",
-    "DATALENS_MCP_LIVE_ALLOW_PUBLISH": "0",
-    "DATALENS_ENABLE_TOKEN_REFRESH_ON_401": "0",
+    "DATALENS_MCP_LIVE_ALLOW_SAVE": "1",
+    "DATALENS_MCP_LIVE_ALLOW_PUBLISH": "1",
+    "DATALENS_ENABLE_TOKEN_REFRESH_ON_401": "1",
 }
 
 
@@ -86,11 +86,11 @@ def write_atomic(target: Path, lines: list[str]) -> None:
 def copy_supported(source: Path, target: Path) -> dict[str, object]:
     source_values = read_env(source)
     supported = {key: source_values[key] for key in SUPPORTED_KEYS if source_values.get(key, "").strip()}
-    safety_defaults_written: list[str] = []
-    for key, value in SAFETY_DEFAULTS.items():
+    runtime_defaults_written: list[str] = []
+    for key, value in RUNTIME_DEFAULTS.items():
         if key not in supported:
             supported[key] = value
-            safety_defaults_written.append(key)
+            runtime_defaults_written.append(key)
 
     token_key_present = bool(supported.get("DATALENS_IAM_TOKEN") or supported.get("YC_IAM_TOKEN"))
     org_key_present = bool(supported.get("DATALENS_ORG_ID"))
@@ -120,7 +120,7 @@ def copy_supported(source: Path, target: Path) -> dict[str, object]:
         "backup_path": backup_path,
         "mode_octal": oct(target.stat().st_mode & 0o777),
         "keys_written": [key for key in SUPPORTED_KEYS if key in supported],
-        "safety_defaults_written": sorted(safety_defaults_written),
+        "runtime_defaults_written": sorted(runtime_defaults_written),
         "unsupported_keys_skipped": sorted(key for key in source_values if key not in SUPPORTED_KEYS),
         "token_key_present": token_key_present,
         "org_key_present": org_key_present,

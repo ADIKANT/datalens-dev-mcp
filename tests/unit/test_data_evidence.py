@@ -73,7 +73,7 @@ class DataEvidenceTests(unittest.TestCase):
         self.assertNotIn("y0_syntheticplaceholderwithmanycharacters", dumped)
         self.assertIn("<redacted>", dumped)
 
-    def test_tool_registration_and_docs(self):
+    def test_internal_data_evidence_helpers_are_not_in_public_docs(self):
         from datalens_dev_mcp.server import list_tools
 
         tool_names = {tool["name"] for tool in list_tools("dq")}
@@ -86,7 +86,7 @@ class DataEvidenceTests(unittest.TestCase):
             "dl_evaluate_data_evidence",
         ]:
             self.assertIn(name, tool_names)
-            self.assertIn(name, docs)
+            self.assertNotIn(name, docs)
             self.assertNotIn(name, default_names)
 
 

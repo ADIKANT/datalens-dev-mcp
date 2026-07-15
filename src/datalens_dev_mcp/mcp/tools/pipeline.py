@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 from copy import deepcopy
 from pathlib import Path
@@ -70,6 +71,7 @@ from datalens_dev_mcp.pipeline.source_availability import (
     validate_source_availability_consumers,
 )
 from datalens_dev_mcp.pipeline.target_lock import create_target_lock, validate_readback_target_lock
+from datalens_dev_mcp.pipeline.user_request import normalize_user_request
 from datalens_dev_mcp.pipeline.validation_evidence import build_validation_evidence_report
 from datalens_dev_mcp.pipeline.visual_quality import validate_visual_quality_contract
 from datalens_dev_mcp.pipeline.visual_decisions import decide_chart
@@ -112,6 +114,22 @@ def _looks_like_known_target(*values: Any) -> bool:
         if text and text.lower() not in PLACEHOLDER_TARGETS:
             return True
     return False
+
+
+def _request_authorizes_standard_write(
+    delivery_intent_text: str,
+    *,
+    legacy_approved: bool | None = None,
+    default_text: str = "implement",
+) -> bool:
+    if legacy_approved is not None:
+        return bool(legacy_approved)
+    normalized = normalize_user_request(delivery_intent_text or default_text)
+    return bool(
+        normalized.task_intent in {"implement", "fix", "enhance", "redesign", "update"}
+        and normalized.publish_override not in {"plan_only", "dry_run"}
+        and not normalized.destructive_actions
+    )
 
 
 def _delivery_intent_decision(
@@ -880,6 +898,21 @@ def dl_build_payload_plan(
                 "validation": wizard_plan.get("validation") or {},
             }
         )
+    planned_object_key = (
+        "planned_set:"
+        + serialized_metadata(
+            [
+                {
+                    "widget_id": str(item.get("widget_id") or ""),
+                    "method": str(item.get("method") or ""),
+                    "payload_path": str(item.get("payload_path") or ""),
+                }
+                for item in payloads
+            ]
+        )["sha256"]
+        if payloads
+        else ""
+    )
     target_lock = create_target_lock(
         delivery_intent_text,
         target_source="user_url" if target_url else "manual",
@@ -887,6 +920,8 @@ def dl_build_payload_plan(
         target_dashboard_id=target_dashboard_id,
         target_chart_id=target_chart_id,
         target_url=target_url,
+        target_object_type="planned_object_set" if planned_object_key else "",
+        target_object_key=planned_object_key,
     )
     delivery_decision = _delivery_intent_decision(
         delivery_intent_text,
@@ -933,14 +968,14 @@ def dl_list_project_live_workflows(project_root: str = ".") -> dict[str, Any]:
 
 def dl_plan_project_manifest(
     project_root: str = ".",
-    approved: bool = False,
+    write_manifest: bool = False,
     overwrite_existing: bool = False,
     target_workbook_id: str = "",
     dashboard_id: str = "",
 ) -> dict[str, Any]:
     return plan_project_manifest(
         project_root,
-        approved=approved,
+        write_manifest=write_manifest,
         overwrite_existing=overwrite_existing,
         target_workbook_id=target_workbook_id,
         dashboard_id=dashboard_id,
@@ -1007,17 +1042,76 @@ def dl_run_project_live_apply(
     project_root: str = ".",
     workflow_name: str = "",
     execute_now: bool = False,
-    approved: bool = False,
     publish: bool = False,
     action: str = "apply",
     timeout_sec: int = 120,
     delivery_intent_text: str = "",
+    confirm_delete: bool = False,
 ) -> dict[str, Any]:
+    normalized_action = str(action or "apply").strip().lower().replace("-", "_")
+    delete_confirmation: dict[str, Any] = {}
+    preview: dict[str, Any] | None = None
+    if execute_now and normalized_action == "retire_legacy_objects":
+        preview = plan_project_live_workflow(
+            project_root,
+            workflow_name=workflow_name,
+            action=normalized_action,
+            publish=publish,
+        )
+        if not preview.get("ok"):
+            return {**preview, "executed": False}
+        delete_confirmation = _project_live_delete_confirmation(
+            project_root=project_root,
+            workflow_name=workflow_name,
+            preview=preview,
+            confirm_delete=confirm_delete,
+        )
+        if not delete_confirmation.get("confirmed"):
+            return {
+                **preview,
+                "ok": False,
+                "executed": False,
+                "status": "delete_confirmation_required",
+                "blocked_reasons": ["delete_confirmation_required"],
+                "delete_confirmation_required": True,
+                "delete_targets": delete_confirmation["delete_targets"],
+                "delete_plan_hash": delete_confirmation["plan_hash"],
+                "confirmation": delete_confirmation,
+            }
+    effective_authorized = _request_authorizes_standard_write(
+        delivery_intent_text or action,
+        default_text="implement",
+    )
+    if execute_now and normalized_action != "retire_legacy_objects":
+        preview = preview or plan_project_live_workflow(
+            project_root,
+            workflow_name=workflow_name,
+            action=normalized_action,
+            publish=publish,
+        )
+        if not preview.get("ok"):
+            return {**preview, "executed": False}
+        pre_execution_decision = _project_live_delivery_decision(
+            preview,
+            delivery_intent_text,
+            publish=publish,
+            approved=effective_authorized,
+            after_saved=False,
+        )
+        if pre_execution_decision.get("state") in {"read_only", "plan_only", "blocked"}:
+            return {
+                **preview,
+                "executed": False,
+                "status": str(pre_execution_decision.get("state") or "blocked"),
+                "blocked_reasons": list(pre_execution_decision.get("blocked_reasons") or []),
+                "delivery_intent_decision": pre_execution_decision,
+            }
     result = run_project_live_apply(
         project_root,
         workflow_name=workflow_name,
         execute_now=execute_now,
-        approved=approved,
+        approved=effective_authorized,
+        confirm_delete=bool(delete_confirmation.get("confirmed")),
         publish=publish,
         action=action,
         timeout_sec=timeout_sec,
@@ -1031,7 +1125,7 @@ def dl_run_project_live_apply(
         result,
         delivery_intent_text,
         publish=publish,
-        approved=approved,
+        approved=effective_authorized,
         after_saved=False,
     )
     result["delivery_intent_decision"] = delivery_decision
@@ -1040,12 +1134,70 @@ def dl_run_project_live_apply(
             project_root=project_root,
             workflow_name=workflow_name,
             action=action,
-            approved=approved,
+            approved=effective_authorized,
             timeout_sec=timeout_sec,
             delivery_intent_text=delivery_intent_text,
             apply_result=result,
         )
+    elif (
+        execute_now
+        and result.get("executed")
+        and delivery_decision.get("state") == "save_only"
+        and delivery_decision.get("publish_expected")
+        and "publish_enabled" in (delivery_decision.get("blocked_reasons") or [])
+    ):
+        result["status"] = "saved_not_published"
+        result["publish_blocked_reasons"] = ["publish_enabled"]
+    if delete_confirmation.get("confirmed"):
+        result["delete_confirmation"] = delete_confirmation
     return result
+
+
+def _project_live_delete_confirmation(
+    *,
+    project_root: str,
+    workflow_name: str,
+    preview: dict[str, Any],
+    confirm_delete: bool,
+) -> dict[str, Any]:
+    lifecycle = preview.get("retire_lifecycle") if isinstance(preview.get("retire_lifecycle"), dict) else {}
+    targets = [
+        {
+            "id": str(item.get("id") or item.get("object_id") or item.get("entry_id") or ""),
+            "type": str(item.get("type") or item.get("object_type") or ""),
+        }
+        for item in lifecycle.get("objects") or []
+        if isinstance(item, dict)
+    ]
+    binding = {
+        "action": "retire_legacy_objects",
+        "workflow_name": workflow_name or str(preview.get("workflow_name") or ""),
+        "manifest_path": str(preview.get("manifest_path") or ""),
+        "workbook_id": str(lifecycle.get("workbook_id") or preview.get("workbook_id") or ""),
+        "delete_targets": targets,
+        "command": preview.get("command") or [],
+        "required_proof_paths": lifecycle.get("required_proof_paths") or {},
+    }
+    plan_hash = serialized_metadata(binding)["sha256"]
+    root = ensure_project_dirs(project_root)
+    pending_path = root / "artifacts" / "delivery" / "delete_confirmation.json"
+    pending = read_json(pending_path, default={})
+    matched = bool(
+        confirm_delete
+        and str(pending.get("plan_hash") or "") == plan_hash
+        and pending.get("delete_targets") == targets
+    )
+    confirmation = {
+        "schema_version": "datalens.delete_confirmation.v1",
+        "confirmed": matched,
+        "confirm_delete": bool(confirm_delete),
+        "plan_hash": plan_hash,
+        "delete_targets": targets,
+        "pending_path": str(pending_path),
+        "same_plan": bool(str(pending.get("plan_hash") or "") == plan_hash),
+    }
+    write_json(pending_path, {**binding, **confirmation})
+    return confirmation
 
 
 def _project_live_delivery_decision(
@@ -1230,7 +1382,6 @@ def dl_run_live_maintenance_update(
     target_object_ids: list[str] | None = None,
     intent: str = "fix_existing",
     maintenance_mode: str = "quick_visible_patch",
-    approved: bool = False,
     publish: bool = True,
     browser_runtime_required: bool = True,
     non_rendering_exemption: str = "",
@@ -1255,6 +1406,10 @@ def dl_run_live_maintenance_update(
     proposed_dashboard: dict[str, Any] | None = None,
     target_url: str = "",
 ) -> dict[str, Any]:
+    effective_authorized = _request_authorizes_standard_write(
+        intent,
+        default_text="fix existing dashboard",
+    )
     return run_live_maintenance_update(
         project_root=project_root,
         workbook_id=workbook_id,
@@ -1263,7 +1418,7 @@ def dl_run_live_maintenance_update(
         target_object_ids=target_object_ids,
         intent=intent,
         maintenance_mode=maintenance_mode,
-        approved=approved,
+        approved=effective_authorized,
         publish=publish,
         browser_runtime_required=browser_runtime_required,
         non_rendering_exemption=non_rendering_exemption,
@@ -1331,21 +1486,26 @@ def dl_plan_source_availability_patch(
 
 def dl_create_safe_apply_plan(
     project_root: str = ".",
-    approved: bool = False,
     readback_mode: str = "minimal",
     entries_payload: dict[str, Any] | None = None,
     existing_update_actions: list[dict[str, Any]] | None = None,
     delivery_intent_text: str = "",
     target_known: bool = False,
+    target_workbook_id: str = "",
     target_dashboard_id: str = "",
     target_chart_id: str = "",
     target_url: str = "",
 ) -> dict[str, Any]:
+    effective_authorized = _request_authorizes_standard_write(
+        delivery_intent_text,
+        default_text="implement",
+    )
     root_path = Path(project_root)
     adapter = detect_project_adapter(root_path)
     early_target_lock = create_target_lock(
         delivery_intent_text,
         target_source="user_url" if target_url else "manual",
+        target_workbook_id=target_workbook_id,
         target_dashboard_id=target_dashboard_id,
         target_chart_id=target_chart_id,
         target_url=target_url,
@@ -1353,7 +1513,7 @@ def dl_create_safe_apply_plan(
     if existing_update_actions:
         return _create_existing_object_update_safe_apply_plan(
             project_root=project_root,
-            approved=approved,
+            approved=effective_authorized,
             readback_mode=readback_mode,
             existing_update_actions=existing_update_actions,
             delivery_intent_text=delivery_intent_text,
@@ -1374,7 +1534,7 @@ def dl_create_safe_apply_plan(
             "delivery_intent_decision": _delivery_intent_decision(
                 delivery_intent_text,
                 target_known=target_known,
-                approved=approved,
+                approved=effective_authorized,
                 target_lock=early_target_lock.to_dict(),
             ),
         }
@@ -1384,10 +1544,15 @@ def dl_create_safe_apply_plan(
     target_lock = create_target_lock(
         delivery_intent_text,
         target_source="user_url" if target_url else str(existing_target_lock.get("target_source") or "manual"),
-        target_workbook_id=str(payload_plan.get("workbook_id") or existing_target_lock.get("target_workbook_id") or ""),
+        target_workbook_id=(
+            target_workbook_id
+            or str(payload_plan.get("workbook_id") or existing_target_lock.get("target_workbook_id") or "")
+        ),
         target_dashboard_id=target_dashboard_id or str(existing_target_lock.get("target_dashboard_id") or ""),
         target_chart_id=target_chart_id or str(existing_target_lock.get("target_chart_id") or ""),
         target_url=target_url or str(existing_target_lock.get("target_url") or ""),
+        target_object_type=str(existing_target_lock.get("target_object_type") or ""),
+        target_object_key=str(existing_target_lock.get("target_object_key") or ""),
     )
     delivery_target_known = target_known or target_lock.known or _looks_like_known_target(payload_plan.get("workbook_id"))
     normalized_readback_mode = normalize_readback_mode(readback_mode)
@@ -1457,7 +1622,7 @@ def dl_create_safe_apply_plan(
             "delivery_intent_decision": _delivery_intent_decision(
                 delivery_intent_text,
                 target_known=delivery_target_known,
-                approved=approved,
+                approved=effective_authorized,
                 target_lock=target_lock.to_dict(),
                 proof_path=str(root / "artifacts" / "safe_apply_plan.json"),
             ),
@@ -1486,7 +1651,7 @@ def dl_create_safe_apply_plan(
                 "delivery_intent_decision": _delivery_intent_decision(
                     delivery_intent_text,
                     target_known=delivery_target_known,
-                    approved=approved,
+                    approved=effective_authorized,
                     target_lock=target_lock.to_dict(),
                     proof_path=str(root / "artifacts" / "safe_apply_plan.json"),
                 ),
@@ -1514,19 +1679,24 @@ def dl_create_safe_apply_plan(
                 "delivery_intent_decision": _delivery_intent_decision(
                     delivery_intent_text,
                     target_known=delivery_target_known,
-                    approved=approved,
+                    approved=effective_authorized,
                     target_lock=target_lock.to_dict(),
                     proof_path=str(root / "artifacts" / "safe_apply_plan.json"),
                 ),
             }
-    plan = create_safe_apply_plan(project_root=str(root), actions=actions, approved=approved)
+    plan = create_safe_apply_plan(
+        project_root=str(root),
+        actions=actions,
+        approved=effective_authorized,
+        user_request_text=delivery_intent_text,
+    )
     plan["ok"] = True
     plan["adapter"] = adapter
     plan["target_lock"] = target_lock.to_dict()
     plan["delivery_intent_decision"] = _delivery_intent_decision(
         delivery_intent_text,
         target_known=delivery_target_known,
-        approved=approved,
+        approved=effective_authorized,
         fresh_readback_available=False,
         revision_preservation_available=any(action.get("requires_fresh_read") for action in actions),
         saved_readback_available=False,
@@ -1545,8 +1715,8 @@ def dl_create_safe_apply_plan(
             "heading": "Current State",
             "entry_id": "datalens-safe-apply-plan",
             "content": (
-                "A DataLens safe-apply plan exists; execution remains gated by approval, "
-                "fresh read, save-first semantics, and readback."
+                "A DataLens safe-apply plan exists; execution follows the user request and remains gated by "
+                "runtime switches, target lock, fresh read, save-first semantics, and readback."
             ),
         }
     ]
@@ -1601,7 +1771,12 @@ def _create_existing_object_update_safe_apply_plan(
         }
         write_json(root / "artifacts" / "safe_apply_plan.json", result)
         return result
-    safe_plan = create_safe_apply_plan(project_root=str(root), actions=actions, approved=approved)
+    safe_plan = create_safe_apply_plan(
+        project_root=str(root),
+        actions=actions,
+        approved=approved,
+        user_request_text=delivery_intent_text,
+    )
     safe_plan["ok"] = True
     safe_plan["status"] = "existing_object_update_plan_created"
     safe_plan["existing_object_update_plan"] = update_plan
@@ -1727,25 +1902,48 @@ def _inject_revision(payload: dict[str, Any], revision: str) -> None:
 
 def dl_execute_safe_apply(
     project_root: str = ".",
-    approved_plan_path: str = "",
+    plan_path: str = "",
     delivery_intent_text: str = "",
 ) -> dict[str, Any]:
     from datalens_dev_mcp.config import DataLensConfig
 
     root = ensure_project_dirs(project_root)
-    plan_path = Path(approved_plan_path) if approved_plan_path else root / "artifacts" / "safe_apply_plan.json"
-    plan = read_json(plan_path, default={})
+    resolved_plan_path = Path(plan_path) if plan_path else root / "artifacts" / "safe_apply_plan.json"
+    plan = read_json(resolved_plan_path, default={})
+    stored_intent_text = _stored_plan_intent_text(plan)
+    effective_intent_text = delivery_intent_text or stored_intent_text or "plan only"
+    if delivery_intent_text:
+        request_authorized = _request_authorizes_standard_write(
+            delivery_intent_text,
+            default_text="plan only",
+        )
+    elif isinstance(plan.get("request_intent"), dict):
+        request_authorized = _stored_plan_request_authorized(plan)
+    else:
+        request_authorized = bool(plan.get("approved"))
+    if request_authorized and not plan.get("approved"):
+        plan = _authorize_safe_apply_plan_from_request(plan, effective_intent_text)
     config = DataLensConfig.from_env()
+    target_lock = plan.get("target_lock") if isinstance(plan.get("target_lock"), dict) else {}
+    target_known = (
+        str(target_lock.get("status") or "") == "locked"
+        if isinstance(plan.get("request_intent"), dict)
+        else bool(plan.get("actions"))
+    )
     delivery_decision = _delivery_intent_decision(
-        delivery_intent_text,
-        target_known=bool(plan.get("actions")),
-        approved=bool(plan.get("approved")),
+        effective_intent_text,
+        target_known=target_known,
+        approved=request_authorized,
         fresh_readback_available=False,
         revision_preservation_available=any(action.get("requires_fresh_read") for action in plan.get("actions", [])),
         saved_readback_available=False,
         proof_path=str(root / "artifacts" / "safe_apply_result.json"),
-        target_lock=plan.get("target_lock") if isinstance(plan.get("target_lock"), dict) else None,
+        target_lock=target_lock,
     )
+    if delivery_decision.get("state") in {"read_only", "plan_only", "blocked"}:
+        result = _nonexecuted_safe_apply_result(plan, delivery_decision)
+        write_json(root / "artifacts" / "safe_apply_result.json", result)
+        return result
     result = execute_safe_apply(plan, config=config)
     result["delivery_intent_decision"] = delivery_decision
     if delivery_decision.get("state") == "save_then_publish":
@@ -1754,28 +1952,127 @@ def dl_execute_safe_apply(
             plan=plan,
             save_result=result,
             config=config,
-            delivery_intent_text=delivery_intent_text,
-            plan_path=plan_path,
+            delivery_intent_text=effective_intent_text,
+            plan_path=resolved_plan_path,
         )
     else:
+        saved_readbacks = _persist_result_readbacks(
+            root=root,
+            plan=plan,
+            result=result,
+            branch="saved",
+        ) if result.get("executed") else {"items": [], "errors": []}
+        saved_items = list(saved_readbacks.get("items") or [])
+        saved_paths = [str(item["path"]) for item in saved_items]
+        saved_errors = [str(error) for error in (saved_readbacks.get("errors") or [])]
+        publish_disabled = bool(
+            result.get("executed")
+            and delivery_decision.get("state") == "save_only"
+            and delivery_decision.get("publish_expected")
+            and "publish_enabled" in (delivery_decision.get("blocked_reasons") or [])
+        )
+        publish_blockers = ["publish_enabled"] if publish_disabled else []
         result["delivery_result"] = _delivery_result_summary(
             state=delivery_decision.get("state", ""),
             save_result=dict(result),
             publish_results=[],
-            saved_readbacks=[],
+            saved_readbacks=saved_items,
             published_readbacks=[],
-            publish_blockers=[],
+            publish_blockers=publish_blockers,
             approval_reuse=False,
         )
+        result["saved_readback_paths"] = saved_paths
+        result["saved_readback_errors"] = saved_errors
         result["delivery_intent_decision"] = _decision_with_stage_evidence(
             result.get("delivery_intent_decision") if isinstance(result.get("delivery_intent_decision"), dict) else {},
             save_status=result.get("status", ""),
-            publish_status="not_requested",
-            saved_paths=[],
+            publish_status="blocked" if publish_disabled else "not_requested",
+            saved_paths=saved_paths,
             published_paths=[],
         )
+        if publish_disabled:
+            result["status"] = "saved_not_published"
+            result["publish_blocked_reasons"] = ["publish_enabled"]
     write_json(root / "artifacts" / "safe_apply_result.json", result)
     return result
+
+
+def _authorize_safe_apply_plan_from_request(plan: dict[str, Any], delivery_intent_text: str) -> dict[str, Any]:
+    authorized = deepcopy(plan)
+    raw_text = str(delivery_intent_text or "")
+    normalized = normalize_user_request(raw_text or "implement")
+    request_digest = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
+    created_at = str(authorized.get("created_at") or "request_authorized")
+    provenance = {
+        "approved": True,
+        "approval_source": "current_user_request",
+        "approval_note": "",
+        "approved_at": created_at,
+        "request_digest": request_digest,
+    }
+    authorized["approved"] = True
+    authorized["approval_provenance"] = provenance
+    authorized["request_intent"] = {
+        "normalized_intent": normalized.task_intent,
+        "publish_override": normalized.publish_override,
+        "request_sha256": request_digest,
+        "request_text_present": bool(raw_text),
+        "authorization_source": "current_user_request" if raw_text else "tool_call_intent",
+        "authorizes_standard_mutation": True,
+    }
+    for action in authorized.get("actions") or []:
+        if isinstance(action, dict):
+            action["approval_provenance"] = dict(provenance)
+    return authorized
+
+
+def _stored_plan_request_authorized(plan: dict[str, Any]) -> bool:
+    intent = plan.get("request_intent") if isinstance(plan.get("request_intent"), dict) else {}
+    return bool(
+        intent.get("authorizes_standard_mutation")
+        and str(intent.get("normalized_intent") or "") in {"implement", "fix", "enhance", "redesign", "update"}
+        and str(intent.get("publish_override") or "none") not in {"plan_only", "dry_run"}
+    )
+
+
+def _stored_plan_intent_text(plan: dict[str, Any]) -> str:
+    intent = plan.get("request_intent") if isinstance(plan.get("request_intent"), dict) else {}
+    normalized = str(intent.get("normalized_intent") or "").strip()
+    if not normalized:
+        return ""
+    publish_override = str(intent.get("publish_override") or "none").strip()
+    suffix = {
+        "plan_only": " plan only",
+        "dry_run": " dry run",
+        "draft": " draft",
+        "save_only": " save only",
+        "no_publish": " no publish",
+    }.get(publish_override, "")
+    return normalized + suffix
+
+
+def _nonexecuted_safe_apply_result(plan: dict[str, Any], decision: dict[str, Any]) -> dict[str, Any]:
+    state = str(decision.get("state") or "blocked")
+    return {
+        "executed": False,
+        "status": state,
+        "proof_level": "source_static",
+        "proof_levels": ["source_static"],
+        "completed_action_count": 0,
+        "completed_action_indices": [],
+        "failed_action_index": None,
+        "failed_action_indices": [],
+        "skipped_action_indices": list(range(len(plan.get("actions") or []))),
+        "blocked_reasons": list(decision.get("blocked_reasons") or []),
+        "actions": [],
+        "publish_allowed": False,
+        "delivery_intent_decision": decision,
+        "delivery_result": {
+            "state": state,
+            "save": {"executed": False, "status": "not_started"},
+            "publish": {"executed": False, "status": "not_started"},
+        },
+    }
 
 
 def _execute_publish_after_save(
@@ -1813,7 +2110,17 @@ def _execute_publish_after_save(
             saved_readback_path=item["path"],
             approved=bool(plan.get("approved")),
             readback_mode=item.get("readback_mode", "minimal"),
+            user_request_text=delivery_intent_text,
         )
+        if isinstance(plan.get("request_intent"), dict):
+            inherited_intent = deepcopy(plan["request_intent"])
+            publish_plan["request_intent"] = inherited_intent
+            request_digest = str(inherited_intent.get("request_sha256") or "")
+            if isinstance(publish_plan.get("approval_provenance"), dict):
+                publish_plan["approval_provenance"]["request_digest"] = request_digest
+            for publish_action in publish_plan.get("actions") or []:
+                if isinstance(publish_action, dict) and isinstance(publish_action.get("approval_provenance"), dict):
+                    publish_action["approval_provenance"]["request_digest"] = request_digest
         publish_plan["approval_reuse_for_publish"] = approval_reuse
         publish_plan["approval_reuse"] = {
             "reused_from_plan_path": str(plan_path),
@@ -2071,13 +2378,16 @@ def dl_create_publish_from_saved_plan(
     object_id: str = "",
     object_ids: list[str] | None = None,
     saved_readback_path: str = "",
-    approved: bool = False,
     readback_mode: str = "minimal",
     delivery_intent_text: str = "",
     target_dashboard_id: str = "",
     target_chart_id: str = "",
     target_url: str = "",
 ) -> dict[str, Any]:
+    effective_authorized = _request_authorizes_standard_write(
+        delivery_intent_text,
+        default_text="implement",
+    )
     plan = create_publish_safe_apply_plan(
         project_root=project_root,
         target=target,
@@ -2085,14 +2395,15 @@ def dl_create_publish_from_saved_plan(
         object_id=object_id,
         object_ids=object_ids,
         saved_readback_path=saved_readback_path,
-        approved=approved,
+        approved=effective_authorized,
         readback_mode=readback_mode,
+        user_request_text=delivery_intent_text,
     )
     plan["delivery_intent_decision"] = _delivery_intent_decision(
         delivery_intent_text,
         default_text="implement",
         target_known=_looks_like_known_target(object_id, object_ids or [], saved_readback_path),
-        approved=approved,
+        approved=effective_authorized,
         fresh_readback_available=True,
         revision_preservation_available=True,
         saved_readback_available=bool(saved_readback_path),
@@ -2118,7 +2429,7 @@ def dl_create_publish_from_saved_plan(
             delivery_intent_text,
             default_text="implement",
             target_known=True,
-            approved=approved,
+            approved=effective_authorized,
             fresh_readback_available=True,
             revision_preservation_available=True,
             saved_readback_available=True,

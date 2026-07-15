@@ -6,11 +6,11 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from datalens_dev_mcp.api.auth import classify_auth_probe_failure
 from datalens_dev_mcp.api.client import DataLensApiClient
 from datalens_dev_mcp.api.methods import compiled_api_version, openapi_lock_summary
-from datalens_dev_mcp.config import DataLensConfig, env_flag
+from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.local_config import load_local_config
-from datalens_dev_mcp.mcp.tool_registry_policy import tool_registry_env_status
 from datalens_dev_mcp.knowledge.reference import build_reference_response
 from datalens_dev_mcp.runtime_resources import declared_resource_manifest, resource_manifest
 from datalens_dev_mcp.validators.advanced_editor_validator import validate_editor_runtime_contract
@@ -28,20 +28,19 @@ def dl_runtime_status(project_root: str = ".", local_config_path: str = "") -> d
     api_lock = openapi_lock_summary()
     declared_resources = _resource_status()
     api_version_status = _api_version_status(cfg)
-    tool_registry = tool_registry_env_status(initial_env)
     diagnostics = _runtime_diagnostics(
         cfg=cfg,
         yc_binary_path=yc_binary_path,
         config_defaults=config_defaults,
         refresh_available=refresh_available,
-        tool_registry=tool_registry,
         api_version_status=api_version_status,
     )
     return {
         "ok": True,
         "allow_writes": cfg.write_enabled,
-        "allow_save": env_flag("DATALENS_MCP_LIVE_ALLOW_SAVE", False),
-        "allow_publish": env_flag("DATALENS_MCP_LIVE_ALLOW_PUBLISH", False),
+        "allow_save": cfg.save_enabled,
+        "allow_publish": cfg.publish_enabled,
+        "delete_requires_confirmation": cfg.delete_requires_confirmation,
         "expert_rpc_enabled": cfg.expert_rpc_enabled,
         "token_present": bool(cfg.iam_token),
         "token_refresh_on_401": cfg.token_refresh_enabled,
@@ -61,8 +60,9 @@ def dl_runtime_status(project_root: str = ".", local_config_path: str = "") -> d
         "runtime_env": {
             "write_flags": {
                 "allow_writes": cfg.write_enabled,
-                "allow_save": env_flag("DATALENS_MCP_LIVE_ALLOW_SAVE", False),
-                "allow_publish": env_flag("DATALENS_MCP_LIVE_ALLOW_PUBLISH", False),
+                "allow_save": cfg.save_enabled,
+                "allow_publish": cfg.publish_enabled,
+                "delete_requires_confirmation": cfg.delete_requires_confirmation,
                 "expert_rpc_enabled": cfg.expert_rpc_enabled,
             },
             "auth": {
@@ -99,7 +99,6 @@ def dl_runtime_status(project_root: str = ".", local_config_path: str = "") -> d
                 "configured": bool(os.getenv("DATALENS_ENV_FILE")),
                 "source": _env_source("DATALENS_ENV_FILE", initial_env, default_label="none"),
             },
-            "tool_registry": tool_registry,
         },
         "config_defaults": config_defaults,
         "diagnostics": diagnostics,
@@ -124,11 +123,12 @@ def dl_runtime_status(project_root: str = ".", local_config_path: str = "") -> d
                 "regular_editor_chart",
                 "gravity_ui_charts",
                 "runtime_route_fallback_after_transport_failure",
-                "hidden_delete_move_permission_operations_in_normal_workflows",
+                "whole_object_delete_requires_confirmation",
+                "move_permission_credential_mutations_unsupported",
                 "blind_writes",
                 "blind_publish_without_evidence",
             ],
-            "explicit_retire_lifecycle": "retire_legacy_objects",
+            "whole_object_delete_confirmation": "confirm_delete",
         },
 }
 
@@ -148,33 +148,40 @@ def _resource_status() -> dict[str, Any]:
 def dl_auth_probe(client: Any | None = None) -> dict[str, Any]:
     cfg = DataLensConfig.from_env()
     active_client = client or DataLensApiClient(cfg)
-    refresh_available = _token_refresh_available(cfg, active_client)
     try:
         response = active_client.rpc("getWorkbooksList", {"page": 1, "pageSize": 1})
+        effective_cfg = getattr(active_client, "config", cfg)
         return {
             "ok": True,
             "method": "getWorkbooksList",
-            "auth_mode": cfg.credential_source,
-            "refresh_on_401": cfg.token_refresh_enabled,
-            "token_refresh_available": refresh_available,
-            "selected_api_version": getattr(active_client, "_selected_api_version", "") or cfg.api_version,
+            "auth_mode": effective_cfg.credential_source,
+            "refresh_on_401": effective_cfg.token_refresh_enabled,
+            "token_refresh_available": _token_refresh_available(effective_cfg, active_client),
+            "initial_token_bootstrapped": bool(not cfg.iam_token and effective_cfg.iam_token),
+            "selected_api_version": getattr(active_client, "_selected_api_version", "") or effective_cfg.api_version,
             "api_version_selection_reason": getattr(active_client, "_api_version_selection_reason", ""),
             "openapi_lock": openapi_lock_summary(),
-            "credential": cfg.credential_report(),
+            "credential": effective_cfg.credential_report(),
             "response_keys": sorted(response) if isinstance(response, dict) else [],
         }
     except Exception as exc:  # noqa: BLE001
+        effective_cfg = getattr(active_client, "config", cfg)
+        classified = classify_auth_probe_failure(exc)
         return {
             "ok": False,
             "method": "getWorkbooksList",
-            "auth_mode": cfg.credential_source,
-            "refresh_on_401": cfg.token_refresh_enabled,
-            "token_refresh_available": refresh_available,
-            "selected_api_version": getattr(active_client, "_selected_api_version", "") or cfg.api_version,
+            "auth_mode": effective_cfg.credential_source,
+            "refresh_on_401": effective_cfg.token_refresh_enabled,
+            "token_refresh_available": _token_refresh_available(effective_cfg, active_client),
+            "initial_token_bootstrapped": False,
+            "selected_api_version": getattr(active_client, "_selected_api_version", "") or effective_cfg.api_version,
             "api_version_selection_reason": getattr(active_client, "_api_version_selection_reason", ""),
             "openapi_lock": openapi_lock_summary(),
-            "credential": cfg.credential_report(),
-            "error": {"category": "auth_failure", "message": _sanitize_runtime_error(str(exc) or exc.__class__.__name__)},
+            "credential": effective_cfg.credential_report(),
+            "error": {
+                **classified,
+                "message": _sanitize_runtime_error(str(exc) or exc.__class__.__name__),
+            },
         }
 
 
@@ -280,20 +287,22 @@ def _safe_load_local_config(*, project_root: str, local_config_path: str) -> dic
 
 def _config_defaults(local_config: dict[str, Any]) -> dict[str, Any]:
     meta = local_config.get("_meta") or {}
-    safe_mode = local_config.get("safe_mode") or {}
-    approval = local_config.get("approval_gates") or {}
+    execution = local_config.get("execution") or {}
+    safe_apply = local_config.get("safe_apply") or {}
     readback = local_config.get("readback") or {}
     routing = local_config.get("routing") or {}
     return {
         "loaded_from_file": bool(meta.get("loaded_from_file")),
         "config_path": str(meta.get("config_path") or ""),
         "load_error": str(meta.get("load_error") or ""),
-        "safe_mode_default": str(safe_mode.get("default") or ""),
-        "safe_mode_allow_writes": bool(safe_mode.get("allow_writes", False)),
-        "publish_default": bool(approval.get("publish_default", False)),
-        "require_safe_apply_plan": bool(safe_mode.get("require_safe_apply_plan", True)),
-        "require_fresh_read": bool(safe_mode.get("require_fresh_read", True)),
-        "preserve_revision": bool(safe_mode.get("preserve_revision", True)),
+        "execution_default": str(execution.get("default") or ""),
+        "writes_default": bool(execution.get("writes", True)),
+        "save_default": bool(execution.get("save", True)),
+        "publish_default": bool(execution.get("publish", True)),
+        "delete_requires_confirmation": bool(execution.get("delete_requires_confirmation", True)),
+        "require_safe_apply_plan": bool(safe_apply.get("require_safe_apply_plan", True)),
+        "require_fresh_read": bool(safe_apply.get("require_fresh_read", True)),
+        "preserve_revision": bool(safe_apply.get("preserve_revision", True)),
         "readback_mode": str(readback.get("mode") or ""),
         "chart_creation_routes": list(routing.get("chart_creation_routes") or []),
         "ql_behavior": str(routing.get("ql_behavior") or ""),
@@ -306,7 +315,6 @@ def _runtime_diagnostics(
     yc_binary_path: str,
     config_defaults: dict[str, Any],
     refresh_available: bool,
-    tool_registry: dict[str, object],
     api_version_status: dict[str, Any],
 ) -> list[dict[str, str]]:
     diagnostics: list[dict[str, str]] = []
@@ -319,13 +327,15 @@ def _runtime_diagnostics(
                 "suggested_action": "Fix the local config JSON or pass a valid local_config_path.",
             }
         )
-    if cfg.write_enabled and not config_defaults.get("safe_mode_allow_writes", False):
+    if not (cfg.write_enabled and cfg.save_enabled and cfg.publish_enabled):
         diagnostics.append(
             {
                 "severity": "info",
-                "category": "runtime_env_overrides_plan_only_config",
-                "message": "Runtime env allows writes while local config defaults remain plan-only/read-only.",
-                "suggested_action": "Treat env flags as the live execution gate; keep using approved safe apply before writes.",
+                "category": "runtime_write_switch_disabled",
+                "message": "At least one write, save, or publish switch is disabled for this process.",
+                "suggested_action": (
+                    "Keep the switch disabled for read-only work, or set it to 1 in the canonical env file."
+                ),
             }
         )
     if api_version_status.get("explicit_version_mismatch"):
@@ -341,42 +351,6 @@ def _runtime_diagnostics(
                     "Set DATALENS_API_VERSION=auto or "
                     f"DATALENS_API_VERSION={api_version_status['compiled_api_version']}, then restart the MCP server."
                 ),
-            }
-        )
-    if tool_registry.get("hidden_tool_calls_enabled"):
-        diagnostics.append(
-            {
-                "severity": "warning",
-                "category": "test_only_hidden_tool_calls_enabled",
-                "message": "Hidden/internal compatibility tools are callable in this process.",
-                "suggested_action": "Use this only in tests; unset hidden-tool env flags for normal Codex runtime.",
-            }
-        )
-    elif tool_registry.get("hidden_tool_calls_env_ignored"):
-        diagnostics.append(
-            {
-                "severity": "warning",
-                "category": "hidden_tool_calls_env_ignored",
-                "message": "A hidden-tool env flag is present but ignored because the test-only registry marker is absent.",
-                "suggested_action": "Remove the hidden-tool env flag from normal runtime configuration.",
-            }
-        )
-    if tool_registry.get("test_only_registry_enabled") and not tool_registry.get("hidden_tool_calls_enabled"):
-        diagnostics.append(
-            {
-                "severity": "warning",
-                "category": "test_only_registry_marker_enabled",
-                "message": "The test-only registry marker is present in this process.",
-                "suggested_action": "Unset the marker for normal Codex runtime.",
-            }
-        )
-    if tool_registry.get("internal_profile_env_vars_present"):
-        diagnostics.append(
-            {
-                "severity": "warning",
-                "category": "internal_tool_profile_env_ignored",
-                "message": "Legacy tool profile env vars are present; normal runtime still uses the standard surface.",
-                "suggested_action": "Remove profile env vars from user-facing runtime configuration.",
             }
         )
     if cfg.token_refresh_enabled and not refresh_available:

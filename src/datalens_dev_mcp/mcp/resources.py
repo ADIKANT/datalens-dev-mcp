@@ -63,7 +63,8 @@ def list_resources() -> list[dict[str, str]]:
 def read_resource(uri: str, *, project_root: str | Path = ".") -> dict[str, Any]:
     root = Path(project_root)
     if uri in STATIC_RESOURCES:
-        text = read_text(root / STATIC_RESOURCES[uri], default="")
+        relative = Path(STATIC_RESOURCES[uri])
+        text = read_text(_path_within(root, relative.parent, relative.name), default="")
         return {"uri": uri, "mimeType": "text/markdown", "text": text}
     if uri == "datalens://routes/contract":
         return {"uri": uri, "mimeType": "text/markdown", "text": route_contract_document()}
@@ -72,17 +73,32 @@ def read_resource(uri: str, *, project_root: str | Path = ".") -> dict[str, Any]
         return {"uri": uri, "mimeType": "application/json", "text": json.dumps(payload, indent=2)}
     if uri.startswith("datalens://artifacts/"):
         name = uri.removeprefix("datalens://artifacts/")
-        path = root / "artifacts" / name
+        path = _path_within(root, Path("artifacts"), name)
         return {"uri": uri, "mimeType": "text/plain", "text": read_text(path, default="")}
     if uri.startswith("datalens://dashboard/") and uri.endswith("/baseline"):
         dashboard_id = uri.removeprefix("datalens://dashboard/").removesuffix("/baseline")
-        path = root / "artifacts" / "baselines" / f"{dashboard_id}.json"
+        path = _path_within(root, Path("artifacts/baselines"), f"{dashboard_id}.json")
         return {"uri": uri, "mimeType": "application/json", "text": read_text(path, default="{}")}
     if uri.startswith("datalens://dashboard/") and uri.endswith("/readback/latest"):
         dashboard_id = uri.removeprefix("datalens://dashboard/").removesuffix("/readback/latest")
-        path = root / "artifacts" / "readback" / f"{dashboard_id}.saved.latest.json"
+        path = _path_within(root, Path("artifacts/readback"), f"{dashboard_id}.saved.latest.json")
         return {"uri": uri, "mimeType": "application/json", "text": read_text(path, default="{}")}
     if uri.startswith("datalens://api/methods/"):
         name = uri.rsplit("/", 1)[-1]
         return {"uri": uri, "mimeType": "application/json", "text": json.dumps(get_method_schema(name), indent=2)}
     raise KeyError(f"Unknown resource {uri}")
+
+
+def _path_within(project_root: Path, declared_directory: Path, relative_path: str) -> Path:
+    root = project_root.expanduser().resolve()
+    base = (root / declared_directory).resolve()
+    try:
+        base.relative_to(root)
+    except ValueError as exc:
+        raise KeyError("Resource directory must remain inside the configured project root") from exc
+    candidate = (base / relative_path).resolve()
+    try:
+        candidate.relative_to(base)
+    except ValueError as exc:
+        raise KeyError("Resource path must remain inside its declared artifact directory") from exc
+    return candidate

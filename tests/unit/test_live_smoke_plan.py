@@ -39,12 +39,13 @@ class LiveSmokePlanTests(unittest.TestCase):
     def test_live_testing_doc_records_gates(self):
         text = (ROOT / "docs" / "live_testing_local.md").read_text(encoding="utf-8")
         for phrase in (
-            "DATALENS_MCP_RUN_LIVE_TESTS=1",
-            "DATALENS_MCP_ENABLE_WRITES=1",
-            "DATALENS_MCP_LIVE_ALLOW_SAVE=1",
-            "DATALENS_MCP_LIVE_ALLOW_PUBLISH=1",
-            "not a production workbook",
-            "never part of the read-only smoke",
+            "dl_runtime_status",
+            "dl_auth_probe",
+            "Save-only",
+            "Save and publish",
+            "delete_confirmation_required",
+            "confirm_delete=true",
+            "production-объекты",
         ):
             self.assertIn(phrase, text)
 

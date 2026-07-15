@@ -24,8 +24,8 @@ The validator blocks:
   project contract;
 - stale `NO TABLE` style defaults when availability evidence says the source is
   available;
-- missing hidden selector/filter fields when the payload declares dependencies;
-- unsafe DataLens internal technical names.
+- missing selector/filter fields when the payload declares dependencies;
+- unsafe DataLens technical identifiers.
 
 Generated MCP payloads can call
 `rewrite_duplicate_nested_tab_ids(payload)` before validation. Externally
@@ -40,7 +40,7 @@ Object id namespaces stay separate:
 - Chart id identifies the Editor/Wizard object placed in a widget.
 - Selector/control id identifies a dashboard control and should not be reused
   by charts or widgets.
-- Display title/hint are visible metadata and are separate from internal
+- Display title/hint are visible metadata and are separate from technical
   technical names.
-- Visible titles may keep human-readable punctuation such as `/`; internal
+- Visible titles may keep human-readable punctuation such as `/`; technical
   `entry.name` and `data.name` values must use sanitized technical names.

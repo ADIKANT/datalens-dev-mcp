@@ -9,7 +9,7 @@ Budget rules:
 
 - `tools/list` standard surface: at most 40 tools and under the tested JSON
   response budget. Tool schemas are generated through the cached runtime
-  registry so repeated startup/list calls do not rebuild compatibility schemas.
+  registry so repeated startup/list calls do not rebuild previous-version schemas.
 - Project context is supplied as `project_context_ref.v1` by Project Memory
   Bank; DataLens does not duplicate startup-file reads in its responses.
 - `dl_reference`: bounded inline response with `summary`, at most five `rules`,

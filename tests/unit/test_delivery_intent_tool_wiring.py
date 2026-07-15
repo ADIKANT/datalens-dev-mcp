@@ -36,14 +36,13 @@ class DeliveryIntentToolWiringTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            plan = dl_create_safe_apply_plan(str(root), approved=True, delivery_intent_text="fix this chart")
+            plan = dl_create_safe_apply_plan(str(root), delivery_intent_text="fix this chart")
 
         decision = plan["delivery_intent_decision"]
         self.assertEqual(decision["intent"], "save_and_publish_delivery")
         self.assertEqual(decision["state"], "save_then_publish")
         self.assertTrue(decision["publish_expected"])
         self.assertEqual(decision["target_branch"], "published")
-        self.assertTrue(decision["approval_reuse_for_publish"])
         self.assertIn("Create publish-from-saved plan.", decision["next_actions"])
         for key in ("state", "reason", "required_gates", "satisfied_gates", "next_action", "proof_path"):
             self.assertIn(key, decision)
@@ -88,7 +87,7 @@ class DeliveryIntentToolWiringTests(unittest.TestCase):
             target_lock = create_target_lock("fix chart", target_chart_id="chart_publish").to_dict()
             plan = create_safe_apply_plan(
                 project_root=tmp,
-                approved=True,
+                approved=False,
                 actions=[
                     {
                         "action": "update_editor_chart",
@@ -117,9 +116,7 @@ class DeliveryIntentToolWiringTests(unittest.TestCase):
 
         self.assertTrue(result["executed"], result)
         self.assertEqual(result["status"], "completed")
-        self.assertTrue(result["approval_reuse_for_publish"])
         self.assertEqual(result["delivery_intent_decision"]["state"], "save_then_publish")
-        self.assertTrue(result["delivery_intent_decision"]["approval_reuse_for_publish"])
         self.assertEqual(result["delivery_intent_decision"]["save_stage_status"], "completed")
         self.assertEqual(result["delivery_intent_decision"]["publish_stage_status"], "completed")
         self.assertEqual(result["delivery_result"]["publish_blocked_reasons"], [])
@@ -166,7 +163,7 @@ class DeliveryIntentToolWiringTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            draft_plan = dl_create_safe_apply_plan(str(root), approved=True, delivery_intent_text="draft save-only")
+            draft_plan = dl_create_safe_apply_plan(str(root), delivery_intent_text="fix this chart, save only")
 
         self.assertEqual(review_plan["delivery_intent_decision"]["intent"], "read_only_review")
         self.assertEqual(review_plan["delivery_intent_decision"]["state"], "read_only")
@@ -174,6 +171,10 @@ class DeliveryIntentToolWiringTests(unittest.TestCase):
         self.assertEqual(draft_plan["delivery_intent_decision"]["intent"], "save_only_draft")
         self.assertEqual(draft_plan["delivery_intent_decision"]["state"], "save_only")
         self.assertFalse(draft_plan["delivery_intent_decision"]["publish_expected"])
+        self.assertNotIn(
+            "approv",
+            json.dumps(draft_plan.get("suggested_records") or [], ensure_ascii=False).lower(),
+        )
 
     def test_publish_plan_requires_saved_readback_but_still_reports_delivery_decision(self):
         from datalens_dev_mcp.mcp.tools.pipeline import dl_create_publish_from_saved_plan
@@ -197,7 +198,6 @@ class DeliveryIntentToolWiringTests(unittest.TestCase):
                 target="dashboard",
                 object_type="dashboard",
                 saved_readback_path=str(published_path),
-                approved=True,
                 delivery_intent_text="implement the dashboard fix",
             )
 
@@ -222,7 +222,6 @@ class DeliveryIntentToolWiringTests(unittest.TestCase):
                 payload,
                 source_adapter="canonical_object_payload",
                 delivery_intent_text="enhance this dashboard",
-                approved=True,
             )
 
         self.assertTrue(plan["ok"], plan)

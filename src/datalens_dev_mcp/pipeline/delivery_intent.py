@@ -4,7 +4,7 @@ from dataclasses import asdict, dataclass, field
 from functools import lru_cache
 from typing import Any, Literal
 
-from datalens_dev_mcp.config import DataLensConfig, env_flag
+from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.pipeline.target_lock import TargetLock
 from datalens_dev_mcp.pipeline.user_request import NormalizedUserRequest, normalize_user_request
 from datalens_dev_mcp.runtime_resources import resource_json
@@ -93,7 +93,18 @@ class DeliveryIntentInputs:
 
     @property
     def has_approval(self) -> bool:
-        return bool(self.safe_apply_approved and self.approval_source)
+        # The current implementation request is the authorization for ordinary
+        # create/update/save/publish delivery.  ``safe_apply_approved`` remains
+        # accepted for plans created by older clients, but it is no longer a
+        # separate public gate.
+        return bool(
+            self.approval_source
+            and (
+                self.safe_apply_approved
+                or self.approval_source == "current_user_request"
+                or "current_user_request" in self.approval_sources
+            )
+        )
 
 
 @dataclass(frozen=True)
@@ -104,7 +115,7 @@ class DeliveryIntentDecision:
     satisfied_gates: list[str] = field(default_factory=list)
     next_action: str = ""
     proof_path: str = ""
-    policy: str = "2026-07-01.delivery_intent_state_machine.v2"
+    policy: str = "2026-07-15.delivery_intent_state_machine.v3"
     task_intent: str = "unknown"
     approval_source: str = ""
     target_lock_status: str = ""
@@ -159,14 +170,14 @@ class DeliveryIntentDecision:
         if self.state == "save_then_publish":
             return [
                 "Create save-mode safe apply.",
-                "Execute approved save.",
+                "Execute guarded save.",
                 "Run saved readback.",
                 "Create publish-from-saved plan.",
-                "Execute approved publish.",
+                "Execute guarded publish.",
                 "Run published readback.",
             ]
         if self.state == "publish_from_saved":
-            return ["Create publish-from-saved plan.", "Execute approved publish.", "Run published readback."]
+            return ["Create publish-from-saved plan.", "Execute guarded publish.", "Run published readback."]
         missing = [gate for gate in self.required_gates if gate not in self.satisfied_gates]
         return [f"Satisfy gate: {gate}" for gate in missing] or ["Stop until required gates are satisfied."]
 
@@ -185,15 +196,29 @@ class DeliveryIntentPolicy:
         normalized = _normalized_request(request, context)
         inputs = _inputs_from_request(normalized, context)
 
-        if inputs.destructive_operation:
+        if normalized.destructive_actions:
+            unsupported = [
+                action
+                for action in normalized.destructive_actions
+                if action in {"move", "permissions_change", "credential_change"}
+            ]
+            if unsupported:
+                return _decision(
+                    state="blocked",
+                    intent="blocked_manual_review",
+                    inputs=inputs,
+                    reason="Move, permission, and credential mutations are not supported.",
+                    blocked_reasons=[f"unsupported_operation:{action}" for action in unsupported],
+                    next_action="Stop; this operation is outside the supported write surface.",
+                )
             return _decision(
                 state="blocked",
                 intent="blocked_manual_review",
                 inputs=inputs,
-                reason="Destructive, move, permission, or credential operation requires separate manual review.",
-                required_gates=["explicit_extra_confirmation"],
-                blocked_reasons=["destructive_operation"],
-                next_action="Stop and request separate approval for the destructive operation.",
+                reason="Deleting whole DataLens objects requires the dedicated two-step confirmation flow.",
+                required_gates=["confirm_delete"],
+                blocked_reasons=["delete_confirmation_required"],
+                next_action="Use the deletion lane and repeat the unchanged plan with confirm_delete=true.",
             )
 
         if inputs.publish_override in PLAN_OVERRIDES or inputs.task_intent == "plan":
@@ -229,7 +254,7 @@ class DeliveryIntentPolicy:
         )
 
     def _save_only(self, inputs: DeliveryIntentInputs) -> DeliveryIntentDecision:
-        required = ["target_lock", "writes_enabled", "save_enabled", "safe_apply_session_approval"]
+        required = ["target_lock", "writes_enabled", "save_enabled", "user_request_authorization"]
         satisfied = _satisfied_gates(inputs, include_publish=False)
         missing = [gate for gate in required if gate not in satisfied]
         if missing:
@@ -237,7 +262,7 @@ class DeliveryIntentPolicy:
                 state="blocked",
                 intent="blocked_missing_write_gates" if inputs.target_known else "blocked_missing_target",
                 inputs=inputs,
-                reason="Save-only delivery is blocked until target, runtime write/save flags, and tool approval are present.",
+                reason="Save-only delivery is blocked until target, runtime write/save flags, and request authorization are present.",
                 required_gates=required,
                 satisfied_gates=satisfied,
                 blocked_reasons=missing,
@@ -259,15 +284,31 @@ class DeliveryIntentPolicy:
         )
 
     def _save_then_publish(self, inputs: DeliveryIntentInputs) -> DeliveryIntentDecision:
-        required = [
+        save_required = [
             "target_lock",
             "writes_enabled",
             "save_enabled",
-            "publish_enabled",
-            "safe_apply_session_approval",
+            "user_request_authorization",
         ]
+        required = [*save_required, "publish_enabled"]
         satisfied = _satisfied_gates(inputs, include_publish=True)
         missing = [gate for gate in required if gate not in satisfied]
+        # A disabled publish gate must not discard an otherwise valid save.
+        # The caller reports this terminal state as ``saved_not_published``.
+        if missing == ["publish_enabled"]:
+            return _decision(
+                state="save_only",
+                intent="save_and_publish_delivery",
+                inputs=inputs,
+                reason="The requested change may be saved, but runtime publication is disabled.",
+                required_gates=required,
+                satisfied_gates=satisfied,
+                blocked_reasons=["publish_enabled"],
+                publish_expected=True,
+                writes_expected=True,
+                default_delivery=["save", "saved_readback"],
+                next_action="Execute save and saved readback; stop before publish.",
+            )
         if missing:
             return _decision(
                 state="blocked",
@@ -275,7 +316,7 @@ class DeliveryIntentPolicy:
                 inputs=inputs,
                 reason=(
                     "Implementation/fix/enhance/redesign delivery is blocked until target, runtime "
-                    "write/save/publish flags, and Codex/tool approval are present."
+                    "write/save/publish flags and request authorization are present."
                 ),
                 required_gates=required,
                 satisfied_gates=satisfied,
@@ -321,7 +362,7 @@ class DeliveryIntentPolicy:
             intent="save_and_publish_delivery",
             inputs=inputs,
             reason=(
-                "Implementation/fix/enhance/redesign with known target and Codex/tool approval proceeds "
+                "Implementation/fix/enhance/redesign with a known target proceeds "
                 "save -> saved readback -> publish from saved readback -> published readback."
             ),
             required_gates=[
@@ -369,13 +410,11 @@ def delivery_context_from_env(
     target_chart_id: str = "",
 ) -> DeliveryContext:
     config = DataLensConfig.from_env()
-    publish_enabled = env_flag("DATALENS_MCP_LIVE_ALLOW_PUBLISH", False)
-    save_enabled = env_flag("DATALENS_MCP_LIVE_ALLOW_SAVE", False)
     return DeliveryContext(
         target_known=target_known or _target_lock_known(target_lock),
         writes_enabled=bool(config.write_enabled),
-        save_enabled=save_enabled,
-        publish_enabled=publish_enabled,
+        save_enabled=bool(config.save_enabled),
+        publish_enabled=bool(config.publish_enabled),
         safe_apply_approved=approved,
         approval_source=_default_approval_source(approved, approval_source, approval_sources or []),
         approval_sources=approval_sources or [],
@@ -384,7 +423,7 @@ def delivery_context_from_env(
         saved_readback_available=saved_readback_available,
         saved_readback_fresh=saved_readback_fresh,
         destructive_operation=destructive_operation,
-        publish_disabled_by_policy=not publish_enabled,
+        publish_disabled_by_policy=not config.publish_enabled,
         proof_path=proof_path,
         target_lock_status=_target_lock_value(target_lock, "status"),
         target_lock_hash=_target_lock_value(target_lock, "lock_hash"),
@@ -540,7 +579,7 @@ def _satisfied_gates(inputs: DeliveryIntentInputs, *, include_publish: bool) -> 
         "target_lock": inputs.target_known,
         "writes_enabled": inputs.writes_enabled,
         "save_enabled": inputs.save_enabled,
-        "safe_apply_session_approval": inputs.has_approval,
+        "user_request_authorization": inputs.has_approval,
         "fresh_readback": inputs.fresh_readback_available,
         "revision_preservation": inputs.revision_preservation_available,
         "saved_readback": inputs.saved_readback_available,

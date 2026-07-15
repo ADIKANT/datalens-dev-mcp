@@ -12,7 +12,7 @@ The repository must not contain:
 
 - credentials, environment files, authentication headers, private keys, or
   production identifiers;
-- private dashboard exports, operator logs, internal reports, or local project
+- private dashboard exports, operator logs, confidential reports, or local project
   state;
 - raw document mirrors, screenshots, page images, copied chapters, or extracted
   source corpora;

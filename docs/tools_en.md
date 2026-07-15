@@ -1,96 +1,92 @@
-# Public MCP tools
+# MCP tools
 
-[Русский](tools.md) · **English** · [Documentation](README_en.md) · [Flow](usage-flow_en.md) · [Sources](sources_en.md)
+[Русский](tools.md) · **English** · [Project home](../README_en.md)
 
-Normal `tools/list` returns one standard surface of **38 tools**. Every tool is described exactly once below. Compatibility/test-only helpers are intentionally excluded: they are not a user profile and must not appear in normal workflows.
+[Quick start](../README_en.md#quick-start) · [DataLens access](access_en.md) · [Connect](codex_setup_en.md) · **Tools** · [Workflows](usage-flow_en.md) · [Sources](sources_en.md) · [Safety](local-only-safety-model_en.md) · [Русский](tools.md)
+
+The standard `tools/list` contains **38 tools**. Each exact JSON schema is available to the MCP client and summarized in the [technical catalog](mcp/tools.md). Common response shapes are documented in [response contracts](mcp/response_contracts.md).
 
 Operation classes:
 
-- `local` — operates on configuration, supplied evidence, or files inside `--project-root`; it does not mutate DataLens;
-- `read-only API` — performs reads through the DataLens Public API only;
-- `guarded write` — can cause a live mutation only with approval, enabled gates, a fresh read, and readback;
-- `local command` — runs only a command declared in a project-live manifest.
-
-For exact JSON inputs and response shapes, see the [technical catalog](mcp/tools.md) and [response contracts](mcp/response_contracts.md).
+- `local` — works with configuration, supplied data, or files inside `--project-root`;
+- `read-only API` — reads data through the DataLens Public API;
+- `guarded write` — can save or publish after target, revision, and request checks;
+- `local command` — runs a command declared in the project manifest.
 
 ## Setup and runtime
 
-| Tool | Purpose | When to use | Main input | Result and class | Basis |
+| Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
-| `dl_get_local_config` | Return merged local configuration without secret values | Check project root, defaults, and policy overrides | Optional config path/project root | Sanitized effective config · `local` | [Local configuration](configuration.md) |
-| `dl_runtime_status` | Show API version, auth presence, route policy, and mutation gates | First call in every session and for unexpected blocks | No required input | Secret-safe runtime status · `local` | [Safety model](local-only-safety-model.md) |
-| `dl_auth_probe` | Run a minimal `getWorkbooksList` probe | Before any live read | Credentials from the external env file | Auth success or sanitized blocker · `read-only API` | [Public API/auth](sources_en.md#public-api-contracts) |
+| `dl_get_local_config` | Return effective local configuration without secret values | Check the workspace and execution settings | Optional config path and project root | Sanitized configuration · `local` | [Configuration](configuration_en.md) |
+| `dl_runtime_status` | Show API, credential, write, save, publish, and token-refresh state | At session start and when an operation is blocked | Optional project root and local config | Diagnostic report without secret values · `local` | [Access](access_en.md#7-check-configuration-and-access) |
+| `dl_auth_probe` | Run a minimal `getWorkbooksList` and refresh the token when needed | Before the first DataLens object read | Settings from `DATALENS_ENV_FILE` | Authentication result or precise error category · `read-only API` | [Public API](https://yandex.cloud/ru/docs/datalens/operations/api-start) |
 
-## Read and discovery
+## Object reads
 
-| Tool | Purpose | When to use | Main input | Result and class | Basis |
+| Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
-| `dl_list_workbooks` | List workbooks available to the account | After a successful auth probe | Pagination/filter options | Compact workbook list · `read-only API` | `getWorkbooksList` in the [API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbooksList) |
-| `dl_get_workbook_entries` | Read entries in one workbook | Inventory charts, datasets, connections, and dashboards | `workbook_id`, response mode | Compact entries or artifact-backed full data · `read-only API` | `getWorkbookEntries` in the [API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookEntries) |
-| `dl_get_entries_relations` | Return the relation graph for entries | Before changing related objects or using the retire lifecycle | Entry IDs | Sanitized dependency graph · `read-only API` | `getEntriesRelations` in the [API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/getEntriesRelations) |
-| `dl_read_object` | Read a supported object through one high-level interface | When a concrete object type and ID are known | `object_type`, `object_id`, branch/response mode | Compact object contract or artifact · `read-only API` | [API method map](sources_en.md#public-api-contracts) |
-| `dl_snapshot_dashboard` | Store a full dashboard graph snapshot and related objects | Before an audit, fix, redesign, or backup | `dashboard_id`, branch/readback options | Sanitized snapshot artifacts and manifest · `read-only API + local` | Dashboard/object reads in the [API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
+| `dl_list_workbooks` | List available workbooks | After a successful access check | Optional pagination | Workbook list · `read-only API` | [`getWorkbooksList`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbooksList) |
+| `dl_get_workbook_entries` | Read objects in one workbook | Find dashboards, charts, datasets, and connections | `workbook_id`, optional response mode | Entry list or a full-data artifact · `read-only API` | [`getWorkbookEntries`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookEntries) |
+| `dl_get_entries_relations` | Read relations between entries | Before changing or deleting related objects | `entry_ids` | Dependency graph · `read-only API` | [`getEntriesRelations`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getEntriesRelations) |
+| `dl_read_object` | Read a known object type by ID | Get current saved or published state | `object_type`, `object_id`, optional branch | Object data or a full-response artifact · `read-only API` | [API method reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
+| `dl_snapshot_dashboard` | Store a dashboard and its related objects | Before an audit, change, redesign, or backup | `dashboard_id`, optional `workbook_id` and branch | Snapshot files and manifest · `read-only API` + `local` | [Dashboard model](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) |
 
 ## Reference and diagnostics
 
-| Tool | Purpose | When to use | Main input | Result and class | Basis |
+| Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
-| `dl_validate_editor_runtime_contract` | Validate Advanced Editor HTML/JS and allowed `Editor.*` methods | Before payload planning and saving an Editor object | Hydrated/generated Editor sections | Findings with rule/path/line · `local` | [Editor tabs and methods](sources_en.md#primary-official-pages) |
-| `dl_classify_source_error` | Separate auth, connection, SQL, renderer, and sanitizer failures | When DataLens returns a sanitized error payload | `error_payload` | Stage/category/remediation · `local` | [DataLens docs + local classifier](sources_en.md#three-layers-of-truth) |
-| `dl_diagnose` | Analyze SQL, grain, semantic graph, performance, and optimization evidence | Locate a cause or risk before apply | `mode` and bounded supplied evidence | Compact findings + artifact paths · `local` | [Local diagnostics contract](mcp/response_contracts.md#sql-and-performance-diagnostics) |
-| `dl_reference` | Find bounded source-traced rules, recipes, formulas, and API policy | Resolve a route, capability, error, or source trace | `mode`, query/name, char budget | Up to five rules, next tools, and source metadata · `local` | [Packaged docs provenance](sources_en.md#documentation-snapshot) |
+| `dl_validate_editor_runtime_contract` | Check Editor JavaScript sections and methods | Before saving an Editor object | Object or sections/source | Findings with paths and lines · `local` | [Editor tabs](https://yandex.cloud/ru/docs/datalens/charts/editor/tabs) and [methods](https://yandex.cloud/ru/docs/datalens/charts/editor/methods) |
+| `dl_classify_source_error` | Identify the stage and type of a data-source error | DataLens returned a sanitized error | `error_payload` | Category, stage, and remediation · `local` | [DataLens documentation](https://yandex.cloud/ru/docs/datalens/) and project rules |
+| `dl_diagnose` | Analyze SQL, grain, relations, and performance from supplied data | Locate a cause or risk before writing | `mode`, evidence, optional project root | Concise findings and report paths · `local` | [Diagnostic contracts](mcp/response_contracts.md#diagnostics) |
+| `dl_reference` | Search rules, recipes, formulas, and API method information | Resolve a capability, route, error, or source | `mode`, query or name, response limit | Up to five relevant records with sources · `local` | [Official sources](sources_en.md) |
 
-## Validation and object lifecycle planning
+## Change planning and validation
 
-| Tool | Purpose | When to use | Main input | Result and class | Basis |
+| Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
-| `dl_validate_project` | Validate routes, bundles, payloads, SQL, privacy, and dashboard contracts | Before building a live payload plan | `project_root` and validation options | Pass/blocking report · `local` | [Local policy](sources_en.md#three-layers-of-truth) |
-| `dl_build_payload_plan` | Compile validated artifacts into a dry-run DataLens payload plan | After project/object validation | Project artifacts and target metadata | Intended methods/targets/files, no write · `local` | [API contracts + Safe Apply](safe-apply.md) |
-| `dl_build_validation_evidence_report` | Separate static, API, save, publish, and browser evidence | Before handoff and after a controlled run | Evidence/artifact paths | Proof-level report · `local` | [Proof levels](safe-apply.md#proof-levels) |
-| `dl_validate_object` | Validate an object payload against compiled schemas and safety policy | Before a create/update planner | `object_type`, payload | Schema/policy findings, no mutation · `local` | [Compiled API contracts](sources_en.md#public-api-contracts) |
-| `dl_plan_object_create` | Build a guarded create plan for a supported object type | Create a dashboard/chart/dataset/connection with a known location | `object_type`, named source adapter/payload | Method, compiled payload, blockers · `local` | Create methods in the [API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
-| `dl_plan_object_update` | Build an update plan from fresh saved readback | Change an existing object | `object_type`, fresh object and desired overlay | Revision-preserving update plan · `local` | Update methods + [Safe Apply](safe-apply.md) |
-| `dl_plan_guarded_dataset_update` | Plan `getDataset` → `validateDataset` → `updateDataset` → saved readback | Change dataset fields or model | Dataset ID, current/proposed dataset, affected chart refs | GUID preservation and blocking report · `local` | Dataset methods in the [API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/validateDataset) |
-| `dl_plan_dashboard_tab_update` | Append or replace one tab while preserving the rest of the dashboard | Make a bounded tab change | Fresh dashboard, tab, replace/append intent | Minimal dashboard overlay plan · `local` | [Dashboard model](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) |
-| `dl_reconcile_partial_creates` | Match planned creates with entries that already appeared | Before retrying an uncertain or partial create | Workbook ID, planned objects, optional entries payload | Reuse/create/manual-review decisions · `read-only API + local` | Workbook inventory + [Safe Apply](safe-apply.md) |
-| `dl_compile_guarded_rpc_request` | Record method, target, base revision, payload hash, and readback contract | Before an update enters safe apply | Method, payload, fresh-read and branch metadata | Guarded RPC request artifact · `local` | [Compiled API contracts](sources_en.md#public-api-contracts) |
+| `dl_validate_project` | Check project files, requests, SQL, relations, and secrets | Before building an apply plan | Project root and optional context references | Findings and warnings · `local` | [Architecture](architecture.md) |
+| `dl_build_payload_plan` | Compile validated materials into a DataLens request plan | After project and object validation | Project root, target, and request text | Methods, targets, and payloads without writing · `local` | [Safe apply](safe-apply_en.md) |
+| `dl_build_validation_evidence_report` | Collect validation results by stage | Before handoff and after apply | Project root and report paths | Unified evidence report · `local` | [Response contracts](mcp/response_contracts.md) |
+| `dl_validate_object` | Check an object against DataLens API schemas and safety rules | Before a create or update plan | `object_type`, `payload`, operation | Schema and policy findings without writing · `local` | [API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
+| `dl_plan_object_create` | Build a create plan for a supported object | Create a dashboard, chart, dataset, or connection | `object_type`, `payload`, object location | Selected method, compiled payload, and blockers · `local` | [API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
+| `dl_plan_object_update` | Build an update over current saved state | Change an existing object | `object_type`, current object, desired changes | Revision-preserving update plan · `local` | [Safe apply](safe-apply_en.md) |
+| `dl_plan_guarded_dataset_update` | Plan dataset-model validation and update | Change fields, relations, or the dataset model | ID, current/proposed datasets, affected charts | GUID and chart-impact checks · `local` | [`validateDataset`](https://yandex.cloud/ru/docs/datalens/openapi-ref/validateDataset) |
+| `dl_plan_dashboard_tab_update` | Prepare a bounded update to one dashboard tab | Append or replace a tab while preserving the rest | Current dashboard, tab, operation | Minimal dashboard update · `local` | [Dashboards](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) |
+| `dl_reconcile_partial_creates` | Match a create plan with entries that already appeared | After an interrupted or uncertain create result | `workbook_id`, planned objects, optional entries | Reuse, create, or manual-review decision · `read-only API` + `local` | [Safe apply](safe-apply_en.md) |
+| `dl_compile_guarded_rpc_request` | Compile a guarded request to one API method | Before an update enters the apply plan | Method, payload, ID, revision, and current readback | Request with a locked target and expected readback · `local` | [API contracts](sources_en.md#public-api-contracts) |
 
-## Safe apply, save, and publish
+## Save and publish
 
-| Tool | Purpose | When to use | Main input | Result and class | Basis |
+| Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
-| `dl_create_safe_apply_plan` | Create an unapproved save-first plan | After validation and payload planning | Project root, targets/actions, readback mode | Guarded plan with blockers and approval state · `local` | [Safe Apply](safe-apply.md) |
-| `dl_execute_safe_apply` | Execute approved actions with fresh read and revision preservation | Only after review and enabling required gates | Approved plan, runtime/tool approval | Save/publish action results and artifacts · `guarded write` | [Safe Apply](safe-apply.md) |
-| `dl_create_publish_from_saved_plan` | Create a publish action from saved readback only | After successful save and saved runtime gate when intent permits publish | Saved readback artifact, target/type | Plan with expected `revId`/`savedId` · `local` | [Explicit publish lane](safe-apply.md#explicit-publish-lane) |
-| `dl_readback_and_report` | Read saved/published state and create a deployment report | After save, publish, or offline dry run | Targets, branch, execution/readback artifacts | Compact proof + deployment report · `read-only API + local` | [Response contract](mcp/response_contracts.md#safe-apply-savepublishreadback-plan) |
+| `dl_create_safe_apply_plan` | Create a save plan with target, request hash, and checks | After validation and payload planning | Project root, actions, target, and request text | Executable plan or blockers · `local` | [Safe apply](safe-apply_en.md) |
+| `dl_execute_safe_apply` | Execute plan actions with a fresh read and revision check | The request requires save or publish | `plan_path` and original request text | Request results and report artifacts · `guarded write` | [Normal change](usage-flow_en.md#normal-save-and-publish-change) |
+| `dl_create_publish_from_saved_plan` | Build publishing from verified saved state | After save when the request requires publish | Project root, target, object type, saved readback | Plan with expected IDs and revision · `local` | [Publishing](safe-apply_en.md#publish-from-saved-state) |
+| `dl_readback_and_report` | Read saved or published state and create a report | After save, publish, or a read-only check | Targets, branch, and execution result paths | Readback and report · `read-only API` + `local` | [Response contracts](mcp/response_contracts.md) |
 
-## Project-live manifest workflow
+## Manifest-backed projects
 
-| Tool | Purpose | When to use | Main input | Result and class | Basis |
+| Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
-| `dl_detect_project_live_workflows` | Find an allowlisted project manifest or request an adapter | Work in a downstream repository with its own scripts | `project_root` | Detected workflows or `adapter_required` · `local` | [Project workflow](project_workflow.md) |
-| `dl_plan_project_manifest` | Preview a manifest and optionally perform an approved local write | A project has no manifest | `project_root`, approval/write flag | Proposed manifest or approved file · `local` | [Project workflow](project_workflow.md) |
-| `dl_plan_project_live_workflow` | Parse a declared action without running it | Before dry-run/apply/retire | Project root, workflow/action | Exact argv, targets, env names, evidence checks · `local` | [Project workflow](project_workflow.md) |
-| `dl_run_project_live_dry_run` | Run only a manifest-declared dry-run in an allowlisted environment | After reviewing the plan and setting `execute_now=true` | Project/action, manifest permissions | Redacted stdout/stderr and summary pointers · `local command` | [Project-live policy](policy_vocabulary.md) |
-| `dl_run_project_live_apply` | Run an approved manifest apply/publish action behind live gates | A project already has a guarded executor | Project/action, approval and runtime gates | Execution summary/evidence · `guarded write + local command` | [Project-live policy](project_workflow.md) |
-| `dl_read_project_live_summary` | Normalize declared JSON summary and validate evidence coverage | After dry-run/apply or during an audit | Project root, action/summary path | Changed counts, branch state, blockers · `local` | [Manifest summary](policy_vocabulary.md) |
+| `dl_detect_project_live_workflows` | Find the project's command manifest | A project already owns validation and apply commands | `project_root` | Available workflows or a manifest request · `local` | [Project workflow](project_workflow.md) |
+| `dl_plan_project_manifest` | Prepare or write the project manifest | No manifest exists | `project_root`, `write_manifest`, optional target IDs | Preview or written manifest · `local` | [Project workflow](project_workflow.md) |
+| `dl_plan_project_live_workflow` | Resolve one declared action without running it | Before dry-run or apply | Project root, workflow, action, and request | Command, targets, environment, reports, and blockers · `local` | [Project workflow](project_workflow.md) |
+| `dl_run_project_live_dry_run` | Run the declared validation command | After inspecting the plan | Project root, workflow, and `execute_now` | Sanitized output and report paths · `local command` | [Project workflow](project_workflow.md) |
+| `dl_run_project_live_apply` | Run the declared save or publish action | The request requires applying a change | Project root, workflow, action, and request | Execution summary and reports · `guarded write` + `local command` | [Project workflow](project_workflow.md) |
+| `dl_read_project_live_summary` | Read and validate the project's JSON summary | After dry-run, save, or publish | Project root, action, or summary path | Changed objects, state, and errors · `local` | [Project workflow](project_workflow.md) |
 
 ## Maintenance and source availability
 
-| Tool | Purpose | When to use | Main input | Result and class | Basis |
+| Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
-| `dl_run_live_maintenance_update` | Plan and validate runtime-first maintenance from supplied evidence | Make a bounded fix to a known live target | Target/intent, guarded execution and runtime evidence | Delivery stage/final handoff artifact; no direct write · `local` | [Delta v8](safe-apply.md#delta-v8-runtime-first-default) |
-| `dl_build_dashboard_source_availability_matrix` | Build one availability matrix from supplied evidence | Tabs/charts depend on different source states | Source/environment/consumer evidence | `OK`/`NO_DATA`/`NO_TABLE`/`ERROR`/`UNKNOWN` rows · `local` | [Source evidence contract](mcp/response_contracts.md#sql-and-performance-diagnostics) |
-| `dl_validate_source_availability_consumers` | Validate consumers against one availability truth | Before a source-related publish | Matrix and consumer requirements | Conflicts and publish blockers · `local` | [Local maintenance policy](safe-apply.md) |
-| `dl_plan_source_availability_patch` | Plan a bounded correction without querying systems itself | After validating the availability matrix | Matrix, target, and desired correction | No-write patch plan · `local` | [Local maintenance policy](safe-apply.md) |
+| `dl_run_live_maintenance_update` | Coordinate a bounded fix from supplied validation results | Fix a known chart or tab | Target, request, current/proposed data, reports | Delivery stage and handoff report · `local` | [Safe apply](safe-apply_en.md) |
+| `dl_build_dashboard_source_availability_matrix` | Build source state for dashboard consumers | Objects depend on different tables or environments | Dashboard snapshot and source-check results | `OK`/`NO_DATA`/`NO_TABLE`/`ERROR`/`UNKNOWN` matrix · `local` | [Diagnostic contracts](mcp/response_contracts.md#diagnostics) |
+| `dl_validate_source_availability_consumers` | Validate consumers against one source matrix | Before a source-dependent change | Matrix and consumer requirements | Conflicts and stopping reasons · `local` | [Diagnostic contracts](mcp/response_contracts.md#diagnostics) |
+| `dl_plan_source_availability_patch` | Plan a bounded correction from the source matrix | After validating the matrix | Matrix, target, and desired correction | Plan without querying source systems · `local` | [Safe apply](safe-apply_en.md) |
 
 ## API catalog
 
-| Tool | Purpose | When to use | Main input | Result and class | Basis |
+| Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
-| `dl_list_api_methods` | List curated DataLens methods and support status | Check whether an operation exists and is allowed | Optional tag/status filters | Compact method catalog · `local` | [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
-| `dl_get_api_method_schema` | Return a bounded schema for one method | Before lifecycle planning or when input is unclear | Method name | Request fields, support policy, and doc URL · `local` | [Compiled API contracts](sources_en.md#public-api-contracts) |
-
-## What is not a public tool
-
-Raw RPC, granular route/template builders, standalone requirements helpers, and DQ/data-evidence compatibility tools may exist in code for tests and internal flows, but they are absent from normal `tools/list`. Do not put test-only environment flags in user configuration or build public instructions around hidden calls.
+| `dl_list_api_methods` | List known DataLens methods and support status | Check which operation is available | Optional filters and limit | Compact method catalog · `local` | [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
+| `dl_get_api_method_schema` | Return one method schema | Inspect required fields before planning | `method` | Request fields, usage policy, and documentation URL · `local` | [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |

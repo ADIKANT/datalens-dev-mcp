@@ -1,29 +1,33 @@
-# MCP client examples
+# Примеры MCP-клиентов
 
-These files describe the same local stdio process for different MCP clients. Replace every `/absolute/path/...` value before use.
+[Документация](../../docs/README.md) · [Доступ к DataLens](../../docs/access.md) · [Настройка Codex](../../docs/codex_setup.md)
 
-The executable path points to a source checkout installed in its own virtual environment:
+Все файлы запускают один локальный stdio-процесс. Замените каждый `/absolute/path/...` и передайте абсолютный путь к защищённому `DATALENS_ENV_FILE`.
 
-```text
-/absolute/path/to/datalens-dev-mcp/.venv/bin/datalens-dev-mcp
-```
-
-The `--project-root` value is the local dashboard workspace used for inputs and generated artifacts. It does not identify a DataLens workbook or dashboard.
+`--project-root` — локальная папка для входных файлов, снимков, планов и отчётов. Live ID воркбука, дашборда и других объектов передаются в задаче отдельно.
 
 ## Codex
 
-Copy [`codex.toml`](codex.toml) into `~/.codex/config.toml`, or merge its server block with the existing file. The equivalent CLI command is:
+Добавьте [`codex.toml`](codex.toml) в `~/.codex/config.toml` или объедините блок сервера с существующим файлом. Параметр `default_tools_approval_mode = "approve"` нужен, чтобы Codex не задавал отдельный вопрос перед обычным save/publish.
+
+CLI-регистрация:
 
 ```bash
-codex mcp add datalens-dev \
+codex mcp add datalens_dev \
   --env DATALENS_ENV_FILE=/absolute/path/to/home/.config/datalens-dev-mcp/env \
   -- /absolute/path/to/datalens-dev-mcp/.venv/bin/datalens-dev-mcp \
   stdio --project-root /absolute/path/to/your/dashboard-project
 ```
 
-## Claude Code
+После команды откройте созданный блок `[mcp_servers.datalens_dev]` и добавьте:
 
-Run from the dashboard project directory:
+```toml
+default_tools_approval_mode = "approve"
+```
+
+Перезапустите Codex, проверьте `codex mcp list` и `/mcp`.
+
+## Claude Code
 
 ```bash
 claude mcp add --transport stdio --scope local \
@@ -33,16 +37,18 @@ claude mcp add --transport stdio --scope local \
   stdio --project-root /absolute/path/to/your/dashboard-project
 ```
 
-Verify with `claude mcp list`.
+Проверьте `claude mcp list`.
 
 ## Claude Desktop
 
-Merge the `mcpServers` entry from [`claude-desktop.json`](claude-desktop.json) into `claude_desktop_config.json`, then restart the application. The default config location is `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS and `%APPDATA%\Claude\claude_desktop_config.json` on Windows.
+Добавьте объект из [`claude-desktop.json`](claude-desktop.json) в `claude_desktop_config.json` и перезапустите приложение.
 
-## Other clients
+## Другие клиенты
 
-Use [`generic-stdio.json`](generic-stdio.json) when a client asks separately for an executable, argument list, and environment map. It is a process definition rather than an HTTP endpoint.
+[`generic-stdio.json`](generic-stdio.json) содержит отдельные `command`, `args` и `env`. Это описание локального процесса, а не HTTP endpoint.
 
-## Safe first call
+## Первая проверка
 
-Keep all write flags set to `0`, restart the MCP client, and ask it to call `dl_runtime_status`. Confirm `allow_writes`, `allow_save`, and `allow_publish` are `false` before live reads.
+> Вызови `dl_runtime_status` и `dl_auth_probe` через DataLens MCP. Покажи доступность write/save/publish и результат авторизации без значений учётных данных. На этом шаге ничего не изменяй.
+
+Стандартный env-файл включает write/save/publish. Формулировка задачи определяет операцию: аудит не пишет, plan-only только планирует, save-only не публикует, а явное изменение проходит save и publish. Удаление целого объекта подтверждается отдельно.

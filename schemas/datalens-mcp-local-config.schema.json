@@ -5,8 +5,7 @@
   "required": [
     "schema_version",
     "defaults",
-    "safe_mode",
-    "approval_gates",
+    "execution",
     "readback",
     "validation",
     "safe_apply",
@@ -18,7 +17,7 @@
     "selectors"
   ],
   "properties": {
-    "schema_version": {"type": "string"},
+    "schema_version": {"const": "2026-07-15.datalens_mcp_local_config.v2"},
     "defaults": {
       "type": "object",
       "required": ["workbook_id", "project_id", "dashboard_id", "project_workspace_path"],
@@ -30,33 +29,15 @@
       },
       "additionalProperties": false
     },
-    "safe_mode": {
+    "execution": {
       "type": "object",
-      "required": ["default", "allow_writes", "require_safe_apply_plan", "require_fresh_read", "preserve_revision"],
+      "required": ["default", "writes", "save", "publish", "delete_requires_confirmation"],
       "properties": {
-        "default": {"type": "string", "enum": ["read_only", "plan_only", "save_only"]},
-        "allow_writes": {"const": false},
-        "require_safe_apply_plan": {"const": true},
-        "require_fresh_read": {"const": true},
-        "preserve_revision": {"const": true}
-      },
-      "additionalProperties": false
-    },
-    "approval_gates": {
-      "type": "object",
-      "required": [
-        "write_requires_env",
-        "write_requires_tool_approval",
-        "publish_requires_explicit_tool_approval",
-        "publish_default",
-        "delete_move_permissions_allowed"
-      ],
-      "properties": {
-        "write_requires_env": {"type": "string", "const": "DATALENS_MCP_ENABLE_WRITES=1"},
-        "write_requires_tool_approval": {"const": true},
-        "publish_requires_explicit_tool_approval": {"const": true},
-        "publish_default": {"const": true},
-        "delete_move_permissions_allowed": {"const": false}
+        "default": {"const": "follow_user_request"},
+        "writes": {"const": true},
+        "save": {"const": true},
+        "publish": {"const": true},
+        "delete_requires_confirmation": {"const": true}
       },
       "additionalProperties": false
     },
@@ -90,20 +71,18 @@
     "safe_apply": {
       "type": "object",
       "required": [
-        "require_approved_plan_path",
-        "require_approval_flag",
-        "require_env_write_enablement",
+        "require_safe_apply_plan",
+        "require_fresh_read",
+        "preserve_revision",
         "require_save_mode_first",
-        "require_readback_after_save",
-        "allow_publish_by_default"
+        "require_readback_after_save"
       ],
       "properties": {
-        "require_approved_plan_path": {"const": true},
-        "require_approval_flag": {"const": true},
-        "require_env_write_enablement": {"const": true},
+        "require_safe_apply_plan": {"const": true},
+        "require_fresh_read": {"const": true},
+        "preserve_revision": {"const": true},
         "require_save_mode_first": {"const": true},
-        "require_readback_after_save": {"const": true},
-        "allow_publish_by_default": {"const": true}
+        "require_readback_after_save": {"const": true}
       },
       "additionalProperties": false
     },

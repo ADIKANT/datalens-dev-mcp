@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,7 @@ from datalens_dev_mcp.mcp.response_projection import (
 from datalens_dev_mcp.pipeline.safe_apply import create_safe_apply_plan
 from datalens_dev_mcp.pipeline.baseline_preservation import create_necessity_proof
 from datalens_dev_mcp.pipeline.delivery_intent import resolve_delivery_intent_from_env
+from datalens_dev_mcp.pipeline.user_request import normalize_user_request
 from datalens_dev_mcp.pipeline.sql_performance import validate_payload_sql_performance
 from datalens_dev_mcp.pipeline.sql_runtime_reality import build_sql_runtime_reality_check
 from datalens_dev_mcp.pipeline.object_routing import validate_field_availability
@@ -290,8 +292,6 @@ def dl_plan_object_create(
     payload: dict[str, Any] | None = None,
     source_adapter: str = "",
     delivery_intent_text: str = "",
-    approved: bool = False,
-    approval_provenance: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return _guarded_write_plan(
         object_type,
@@ -299,8 +299,7 @@ def dl_plan_object_create(
         payload,
         source_adapter=source_adapter,
         delivery_intent_text=delivery_intent_text,
-        approved=approved,
-        approval_provenance=approval_provenance,
+        approved=None,
     )
 
 
@@ -311,8 +310,6 @@ def dl_plan_object_update(
     source_adapter: str = "",
     lifecycle_operation: str = "update",
     delivery_intent_text: str = "",
-    approved: bool = False,
-    approval_provenance: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return _guarded_write_plan(
         object_type,
@@ -321,8 +318,7 @@ def dl_plan_object_update(
         mode=mode,
         source_adapter=source_adapter,
         delivery_intent_text=delivery_intent_text,
-        approved=approved,
-        approval_provenance=approval_provenance,
+        approved=None,
     )
 
 
@@ -332,7 +328,6 @@ def dl_validate_object(
     operation: str = "update",
     source_adapter: str = "",
     execute_validation: bool = False,
-    approval_provenance: dict[str, Any] | None = None,
     client: Any | None = None,
 ) -> dict[str, Any]:
     normalized = _normalize_object_type(object_type)
@@ -343,7 +338,7 @@ def dl_validate_object(
         payload,
         mode="save",
         source_adapter=source_adapter,
-        approval_provenance=approval_provenance,
+        approval_provenance=None,
     )
     if not plan.get("ok"):
         return plan
@@ -407,7 +402,6 @@ def dl_compile_guarded_rpc_request(
     expected_readback_branch: str = "",
     publish_source_artifact: str = "",
     changed_sections: list[str] | None = None,
-    approval_provenance: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not method:
         return _error("missing_input", "method is required")
@@ -426,7 +420,7 @@ def dl_compile_guarded_rpc_request(
         expected_readback_branch=expected_readback_branch,
         publish_source_artifact=publish_source_artifact,
         changed_sections=changed_sections,
-        approval_provenance=approval_provenance,
+        approval_provenance=None,
     )
 
 
@@ -605,15 +599,18 @@ def dl_plan_guarded_dataset_update(
     proposed_dataset: dict[str, Any] | None = None,
     workbook_id: str = "",
     affected_chart_payloads: list[dict[str, Any]] | None = None,
-    approved: bool = False,
     validate_only: bool = True,
-    approve_guid_changes: bool = False,
+    allow_guid_changes: bool = False,
     execute_validation: bool = False,
     delivery_intent_text: str = "",
     project_root: str = ".",
     client: Any | None = None,
 ) -> dict[str, Any]:
     """Plan a guarded validateDataset/updateDataset workflow without execution."""
+    effective_authorized = _request_authorizes_standard_write(
+        delivery_intent_text,
+        default_text="implement" if not validate_only else "plan only",
+    )
     if not dataset_id:
         return _error("missing_input", "dataset_id is required")
     if not isinstance(current_dataset, dict) or not current_dataset:
@@ -645,7 +642,7 @@ def dl_plan_guarded_dataset_update(
         current_dataset,
         proposed_dataset,
         affected_chart_payloads or [],
-        approve_guid_changes=approve_guid_changes,
+        allow_guid_changes=allow_guid_changes,
     )
     blocked_reasons = list(guid_report["blocked_reasons"])
     calculated_field_report = _dataset_calculated_field_report(proposed_dataset)
@@ -673,9 +670,8 @@ def dl_plan_guarded_dataset_update(
         result="not_run",
     )
     blocked_reasons.extend(f"sql/performance preflight {issue}" for issue in semantic_preflight["issues"])
-    if not validate_only and not approved:
-        blocked_reasons.append("approved=true is required before planning updateDataset apply")
-
+    if not validate_only and not effective_authorized:
+        blocked_reasons.append("request intent does not authorize updateDataset execution")
     mode = "validate_only" if validate_only else "save"
     action_sequence = [
         {"step": "fresh_read", "method": "getDataset", "dataset_id": dataset_id},
@@ -719,10 +715,11 @@ def dl_plan_guarded_dataset_update(
             blocked_reasons.append("validateDataset failed")
 
     safe_apply_plan = None
-    if not validate_only and approved and not blocked_reasons:
+    if not validate_only and effective_authorized and not blocked_reasons:
         safe_apply_plan = create_safe_apply_plan(
             project_root=project_root,
-            approved=approved,
+            approved=effective_authorized,
+            user_request_text=delivery_intent_text,
             actions=[
                 {
                     "action": "update_dataset",
@@ -756,13 +753,13 @@ def dl_plan_guarded_dataset_update(
         "dataset_id": dataset_id,
         "mode": mode,
         "validate_only": validate_only,
-        "approved": approved,
+        "request_authorized": effective_authorized,
         "execute_now": False,
         "safe_apply_required": True,
         "fresh_read_required": True,
         "preserve_revision": True,
         "preserve_unknown_fields": True,
-        "preserve_field_guids": not approve_guid_changes,
+        "preserve_field_guids": not allow_guid_changes,
         "publish_separate": True,
         "validate_method": "validateDataset",
         "update_method": "updateDataset",
@@ -793,7 +790,7 @@ def dl_plan_guarded_dataset_update(
             delivery_intent_text,
             default_text="plan only" if validate_only else "implement",
             target_known=_known_target(dataset_id),
-            approved=approved,
+            approved=effective_authorized,
             fresh_readback_available=bool(current_dataset),
             revision_preservation_available=True,
             saved_readback_available=False,
@@ -875,9 +872,19 @@ def _guarded_write_plan(
     mode: str = "save",
     source_adapter: str = "",
     delivery_intent_text: str = "",
-    approved: bool = False,
+    approved: bool | None = None,
     approval_provenance: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    effective_authorized = _request_authorizes_standard_write(
+        delivery_intent_text,
+        legacy_approved=approved,
+        default_text="implement",
+    )
+    effective_provenance = _request_approval_provenance(
+        delivery_intent_text,
+        supplied=approval_provenance,
+        authorized=effective_authorized,
+    )
     normalized = _normalize_object_type(object_type)
     if not normalized:
         return _error("missing_input", "object_type is required")
@@ -904,7 +911,7 @@ def _guarded_write_plan(
             entry,
             operation=operation,
             source_adapter=source_adapter,
-            approval_provenance=approval_provenance,
+            approval_provenance=effective_provenance,
         )
         if unsupported:
             return unsupported
@@ -969,7 +976,7 @@ def _guarded_write_plan(
             delivery_intent_text,
             default_text="implement" if mode == "publish" else "plan only",
             target_known=_object_target_known(normalized, operation, payload),
-            approved=approved,
+            approved=effective_authorized,
             fresh_readback_available=operation != "create",
             revision_preservation_available=operation != "create",
             saved_readback_available=mode == "publish",
@@ -978,7 +985,7 @@ def _guarded_write_plan(
             target_dashboard_id=str(payload.get("dashboardId") or payload.get("dashboard_id") or ""),
             target_chart_id=str(payload.get("chartId") or payload.get("chart_id") or payload.get("entryId") or ""),
         ),
-        "approval_provenance": _sanitize_approval_provenance(approval_provenance),
+        "approval_provenance": _sanitize_approval_provenance(effective_provenance),
     }
     if operation == "create":
         result["creation_necessity_proof"] = create_necessity_proof(
@@ -1036,9 +1043,54 @@ def _known_target(*values: Any) -> bool:
     return False
 
 
+def _request_authorizes_standard_write(
+    delivery_intent_text: str,
+    *,
+    legacy_approved: bool | None = None,
+    default_text: str = "implement",
+) -> bool:
+    if legacy_approved is not None:
+        return bool(legacy_approved)
+    normalized = normalize_user_request(delivery_intent_text or default_text)
+    return bool(
+        normalized.task_intent in {"implement", "fix", "enhance", "redesign", "update"}
+        and normalized.publish_override not in {"plan_only", "dry_run"}
+        and not normalized.destructive_actions
+    )
+
+
+def _request_approval_provenance(
+    delivery_intent_text: str,
+    *,
+    supplied: dict[str, Any] | None,
+    authorized: bool,
+) -> dict[str, Any]:
+    if isinstance(supplied, dict) and supplied:
+        return supplied
+    raw_text = str(delivery_intent_text or "")
+    normalized = normalize_user_request(raw_text or "implement")
+    return {
+        "selection_origin": "explicit_user_request" if normalized.route_intent == "ql_explicit" else "current_user_request",
+        "selection_reason": normalized.route_intent,
+        "request_digest": hashlib.sha256(raw_text.encode("utf-8")).hexdigest(),
+        "approval_sources": ["current_user_request"] if authorized else [],
+    }
+
+
 def _object_target_known(object_type: str, operation: str, payload: dict[str, Any]) -> bool:
     if operation == "create":
-        return _known_target(payload.get("workbookId"), payload.get("parentId"), payload.get("collectionId"))
+        location_known = _known_target(payload.get("workbookId"), payload.get("parentId"), payload.get("collectionId"))
+        entry = payload.get("entry") if isinstance(payload.get("entry"), dict) else {}
+        data = entry.get("data") if isinstance(entry.get("data"), dict) else {}
+        planned_identity_known = _known_target(
+            payload.get("name"),
+            payload.get("title"),
+            payload.get("key"),
+            entry.get("name"),
+            data.get("name"),
+            data.get("title"),
+        )
+        return location_known and planned_identity_known
     entry = payload.get("entry") if isinstance(payload.get("entry"), dict) else {}
     object_id = _object_id_for_payload(object_type, payload)
     return _known_target(object_id, entry.get("entryId"), entry.get("chartId"), entry.get("dashboardId"), entry.get("id"))
@@ -1795,7 +1847,7 @@ def _dataset_guid_report(
     proposed_dataset: dict[str, Any],
     affected_chart_payloads: list[dict[str, Any]],
     *,
-    approve_guid_changes: bool,
+    allow_guid_changes: bool,
 ) -> dict[str, Any]:
     current_guid_by_name = _field_guid_map(current_dataset)
     proposed_guid_by_name = _field_guid_map(proposed_dataset)
@@ -1816,8 +1868,8 @@ def _dataset_guid_report(
         reference for reference in chart_references if reference["guid"] and reference["guid"] not in proposed_guids
     ]
     blocked_reasons: list[str] = []
-    if (changed_field_guids or missing_field_guids) and not approve_guid_changes:
-        blocked_reasons.append("dataset field GUIDs changed or disappeared without approve_guid_changes=true")
+    if (changed_field_guids or missing_field_guids) and not allow_guid_changes:
+        blocked_reasons.append("dataset field GUIDs changed or disappeared while allow_guid_changes=false")
     if broken_chart_guid_references:
         blocked_reasons.append("affected chart payloads reference dataset field GUIDs missing from proposed_dataset")
 
@@ -1828,7 +1880,7 @@ def _dataset_guid_report(
         "missing_field_guids": missing_field_guids,
         "affected_chart_guid_references": chart_references,
         "broken_chart_guid_references": broken_chart_guid_references,
-        "approve_guid_changes": approve_guid_changes,
+        "allow_guid_changes": allow_guid_changes,
         "blocked_reasons": blocked_reasons,
     }
 

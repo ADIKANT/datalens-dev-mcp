@@ -37,7 +37,7 @@ class OnePromptPipelineTests(unittest.TestCase):
                 encoding="utf-8",
             )
             validation = dl_validate_project(str(root))
-            safe_apply = dl_create_safe_apply_plan(str(root))
+            safe_apply = dl_create_safe_apply_plan(str(root), delivery_intent_text="plan only")
             report = dl_readback_and_report(str(root), target="dashboard_local")
 
             self.assertEqual(brief["chart_decisions"][0]["route"], "wizard_native")
@@ -48,7 +48,7 @@ class OnePromptPipelineTests(unittest.TestCase):
             self.assertTrue(bundle["validation"]["ok"])
             self.assertEqual(validation["status"], "pass")
             self.assertEqual(payload_plan["payloads"][0]["method"], "createWizardChart")
-            self.assertFalse(safe_apply["approved"])
+            self.assertEqual(safe_apply["delivery_intent_decision"]["state"], "plan_only")
             self.assertFalse(report["deployment_report"]["write_executed"])
             self.assertTrue((root / "artifacts" / "deployment_report.json").is_file())
             self.assertFalse((root / "AGENTS.md").exists())

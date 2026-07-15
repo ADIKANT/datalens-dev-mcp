@@ -29,7 +29,7 @@ DataLens visualization reference, and the registered templates.
 - Executable creation routes are `wizard_native`, the four registered Editor
   routes, and direct-request-only `ql_explicit`.
 - Wizard is the default for standard chart semantics; `wizard_map_native` is a
-  `geolayer` compatibility alias.
+  `geolayer` input normalized to `wizard_native`.
 - JavaScript and QL are selected before transport, never as runtime fallbacks.
-- Unsupported chart requests are normalized to approved alternatives or held for manual review.
+- Unsupported chart requests are normalized to supported alternatives or held for manual review.
 - Chart titles and hints belong to native DataLens metadata unless the user explicitly asks for in-body text.

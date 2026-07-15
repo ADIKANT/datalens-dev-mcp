@@ -303,17 +303,15 @@ class ToolSchemaTests(unittest.TestCase):
         self.assertEqual(body["workbook_id"], "wb_test")
         self.assertEqual(body["run_id"], "run_test")
 
-    def test_runtime_status_warns_for_hidden_and_internal_registry_env(self):
+    def test_runtime_status_does_not_expose_registry_test_controls(self):
         with patch.dict(
             os.environ,
             {HIDDEN_TOOL_CALLS_ENV: "1", TEST_ONLY_REGISTRY_ENV: "", LEGACY_TOOL_PROFILE_ENV: "expert"},
             clear=False,
         ):
             env_only = dl_runtime_status(project_root=".")
-        env_only_categories = {item["category"] for item in env_only["diagnostics"]}
-        self.assertIn("hidden_tool_calls_env_ignored", env_only_categories)
-        self.assertIn("internal_tool_profile_env_ignored", env_only_categories)
-        self.assertFalse(env_only["runtime_env"]["tool_registry"]["hidden_tool_calls_enabled"])
+        self.assertNotIn("tool_registry", env_only["runtime_env"])
+        self.assertNotIn("hidden_tool", json.dumps(env_only, ensure_ascii=False))
 
         with patch.dict(
             os.environ,
@@ -321,9 +319,8 @@ class ToolSchemaTests(unittest.TestCase):
             clear=False,
         ):
             enabled = dl_runtime_status(project_root=".")
-        enabled_categories = {item["category"] for item in enabled["diagnostics"]}
-        self.assertIn("test_only_hidden_tool_calls_enabled", enabled_categories)
-        self.assertTrue(enabled["runtime_env"]["tool_registry"]["hidden_tool_calls_enabled"])
+        self.assertNotIn("tool_registry", enabled["runtime_env"])
+        self.assertNotIn("hidden_tool", json.dumps(enabled, ensure_ascii=False))
 
     def test_missing_live_credentials_are_structured_auth_block(self):
         env = os.environ.copy()

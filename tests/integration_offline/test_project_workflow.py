@@ -62,7 +62,11 @@ class ProjectWorkflowTests(unittest.TestCase):
                 encoding="utf-8",
             )
             validation = dl_validate_project(str(root))
-            safe_apply = dl_create_safe_apply_plan(str(root), approved=False, readback_mode="minimal")
+            safe_apply = dl_create_safe_apply_plan(
+                str(root),
+                readback_mode="minimal",
+                delivery_intent_text="plan only",
+            )
             report = dl_readback_and_report(str(root), target="dashboard_placeholder")
 
             self.assertTrue(Path(workspace["requirements_root"]).is_dir())
@@ -82,7 +86,7 @@ class ProjectWorkflowTests(unittest.TestCase):
             self.assertEqual(bundle["route"], "wizard_native")
             self.assertEqual(validation["status"], "pass")
             self.assertTrue(payload_plan["payloads"])
-            self.assertFalse(safe_apply["approved"])
+            self.assertEqual(safe_apply["delivery_intent_decision"]["state"], "plan_only")
             self.assertFalse(report["deployment_report"]["write_executed"])
 
             expected_files = [

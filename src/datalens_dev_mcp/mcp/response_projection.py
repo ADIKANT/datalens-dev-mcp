@@ -8,13 +8,77 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from datalens_dev_mcp.validators.redaction import sanitize_value
+from datalens_dev_mcp.validators.redaction import REDACTED, is_sensitive_key, redact_text
 
 
 DEFAULT_INLINE_CHAR_BUDGET = 20_000
 WORKBOOK_ENTRY_PREVIEW_LIMIT = 12
 RESPONSE_MODES = ("summary", "structure", "full", "artifact")
 _MCP_RUN_ARTIFACT_DIR_VALUE = Path(os.environ.get("DATALENS_MCP_RUN_ARTIFACT_DIR", "artifacts/runtime/mcp_runs"))
+
+# Older internal workflow artifacts still use approval-oriented field names.
+# Keep those files readable for compatibility, but translate the MCP boundary to
+# the public follow-user-request vocabulary.  The standard client contract never
+# asks the user to approve save or publish a second time.
+_PUBLIC_KEY_RENAMES = {
+    "approved": "request_authorized",
+    "approved_at": "authorized_at",
+    "approved_plan_path": "plan_path",
+    "approved_safe_apply": "authorized_safe_apply",
+    "approval": "request_binding",
+    "approval_intent_decision": "execution_intent_decision",
+    "approval_note": "request_note",
+    "approval_path": "request_evidence_path",
+    "approval_provenance": "request_binding",
+    "approval_provenance_path": "request_evidence_path",
+    "approval_provenance_paths": "request_evidence_paths",
+    "approval_reuse": "request_binding_reused",
+    "approval_reuse_for_publish": "request_binding_reused_for_publish",
+    "approval_source": "request_source",
+    "approval_sources": "request_sources",
+    "approve_guid_changes": "allow_guid_changes",
+    "safe_apply_approved": "safe_apply_authorized",
+    "source_approval": "source_request_binding",
+    "authorization_source": "request_source",
+    "authorization_sources": "request_sources",
+    "hidden_destructive_semantics_policy": "destructive_semantics_policy",
+}
+_PUBLIC_DROP_KEYS = {"expert_rpc_requires_env", "read_only_default", "write_requires_env"}
+_NONPUBLIC_TOOL_PATTERN = re.compile(r"\bdl_[a-z0-9_]+\b")
+_PUBLIC_TOOL_ALIASES = {
+    "dl_get_dataset_schema": "dl_read_object",
+}
+_OPAQUE_DATA_KEYS = {
+    "chart",
+    "connection",
+    "current_dashboard",
+    "current_object",
+    "dashboard",
+    "data",
+    "dataset",
+    "desired_overlay",
+    "desired_payload",
+    "entry",
+    "fresh_object",
+    "object",
+    "object_payload",
+    "payload",
+    "payloads",
+    "proposed_dashboard",
+    "proposed_object",
+    "published_readback",
+    "readback",
+    "response",
+    "responses",
+    "saved_readback",
+}
+_PUBLIC_WORDING_REPLACEMENTS = (
+    (re.compile(r"\bunapproved\b", re.IGNORECASE), "not authorized"),
+    (re.compile(r"\bnot[ _-]+approved\b", re.IGNORECASE), "not authorized"),
+    (re.compile(r"\bapproved\b", re.IGNORECASE), "authorized"),
+    (re.compile(r"\bapproval\b", re.IGNORECASE), "request authorization"),
+    (re.compile(r"\bapprove\b", re.IGNORECASE), "authorize"),
+)
 
 
 def stable_json_text(value: Any) -> str:
@@ -35,7 +99,235 @@ def serialized_metadata(value: Any) -> dict[str, Any]:
 
 
 def sanitize_response(value: Any) -> Any:
-    return sanitize_value(value)
+    return _sanitize_response_value(value)
+
+
+def _sanitize_response_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        sanitized: dict[Any, Any] = {}
+        for key, item in value.items():
+            if is_sensitive_key(key) and not _safe_sensitive_metadata(key, item):
+                sanitized[key] = REDACTED
+            else:
+                sanitized[key] = _sanitize_response_value(item)
+        return sanitized
+    if isinstance(value, list):
+        return [_sanitize_response_value(item) for item in value]
+    if isinstance(value, tuple):
+        return [_sanitize_response_value(item) for item in value]
+    if isinstance(value, str):
+        return redact_text(value)
+    return value
+
+
+def _safe_sensitive_metadata(key: Any, value: Any) -> bool:
+    """Keep status metadata while still redacting all credential material."""
+
+    normalized = str(key).strip().lower().replace("-", "_").replace(".", "_")
+    if isinstance(value, bool):
+        return normalized.endswith(("_present", "_available", "_enabled", "_bootstrapped", "_expired")) or any(
+            marker in normalized for marker in ("refresh", "token", "authorization")
+        )
+    if isinstance(value, int | float):
+        return normalized.endswith(("_timeout_sec", "_expires_in", "_count"))
+    if normalized in {"token_source", "authorization_source"} and isinstance(value, str):
+        return value in {
+            "canonical_env_file",
+            "current_user_request",
+            "env_file",
+            "local_config",
+            "missing",
+            "process_env",
+            "token_refresh",
+            "tool_call_intent",
+            "yc_cli",
+            "yc_cli_bootstrap",
+        }
+    return False
+
+
+def project_public_response(
+    value: Any,
+    *,
+    allowed_tool_names: set[str] | frozenset[str] | None = None,
+) -> Any:
+    """Return the client-facing form of an internal workflow value.
+
+    Internal artifact formats retain legacy field names so an existing plan can
+    still be resumed.  This projection is deliberately applied only at the MCP
+    boundary; it does not rewrite stored plans or DataLens objects.
+    """
+
+    allowed = frozenset(allowed_tool_names or ())
+    return _project_public_value(
+        value,
+        allowed_tool_names=allowed,
+        filter_tool_names=False,
+        rewrite_control_words=False,
+        opaque=False,
+    )
+
+
+def project_public_resource_text(
+    text: str,
+    *,
+    allowed_tool_names: set[str] | frozenset[str] | None = None,
+) -> str:
+    """Project JSON or plain-text artifact content before MCP resource readback."""
+
+    allowed = frozenset(allowed_tool_names or ())
+    try:
+        value = json.loads(text)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        projected_lines = [
+            _project_public_string(
+                line,
+                allowed_tool_names=allowed,
+                filter_tool_names=True,
+                rewrite_control_words=False,
+            )
+            for line in str(text).splitlines()
+        ]
+        return redact_text("\n".join(line for line in projected_lines if line.strip()))
+    projected = _project_public_value(
+        value,
+        allowed_tool_names=allowed,
+        filter_tool_names=False,
+        rewrite_control_words=False,
+        opaque=False,
+    )
+    return json.dumps(projected, ensure_ascii=False, indent=2, sort_keys=True)
+
+
+def _project_public_value(
+    value: Any,
+    *,
+    allowed_tool_names: frozenset[str],
+    filter_tool_names: bool,
+    rewrite_control_words: bool,
+    opaque: bool,
+) -> Any:
+    if isinstance(value, dict):
+        projected: dict[str, Any] = {}
+        for raw_key, item in value.items():
+            key = str(raw_key)
+            if not opaque and key in _PUBLIC_DROP_KEYS:
+                continue
+            public_key = key if opaque else _PUBLIC_KEY_RENAMES.get(key, key)
+            child_opaque = opaque or public_key in _OPAQUE_DATA_KEYS
+            public_item = _project_public_value(
+                item,
+                allowed_tool_names=allowed_tool_names,
+                filter_tool_names=False if child_opaque else filter_tool_names or _is_guidance_key(public_key),
+                rewrite_control_words=(
+                    False
+                    if child_opaque
+                    else rewrite_control_words or key in _PUBLIC_KEY_RENAMES or _is_guidance_key(public_key)
+                ),
+                opaque=child_opaque,
+            )
+            if not opaque and isinstance(item, str) and not str(public_item).strip():
+                continue
+            projected[public_key] = public_item
+        return projected
+    if isinstance(value, list):
+        projected_items = [
+            _project_public_value(
+                item,
+                allowed_tool_names=allowed_tool_names,
+                filter_tool_names=filter_tool_names,
+                rewrite_control_words=rewrite_control_words,
+                opaque=opaque,
+            )
+            for item in value
+        ]
+        return [item for item in projected_items if not isinstance(item, str) or item.strip()]
+    if isinstance(value, tuple):
+        return [
+            _project_public_value(
+                item,
+                allowed_tool_names=allowed_tool_names,
+                filter_tool_names=filter_tool_names,
+                rewrite_control_words=rewrite_control_words,
+                opaque=opaque,
+            )
+            for item in value
+        ]
+    if isinstance(value, str):
+        return _project_public_string(
+            value,
+            allowed_tool_names=allowed_tool_names,
+            filter_tool_names=filter_tool_names,
+            rewrite_control_words=rewrite_control_words,
+        )
+    return value
+
+
+def _project_public_string(
+    value: str,
+    *,
+    allowed_tool_names: frozenset[str],
+    filter_tool_names: bool,
+    rewrite_control_words: bool,
+) -> str:
+    projected = value
+    if rewrite_control_words:
+        for pattern, replacement in _PUBLIC_WORDING_REPLACEMENTS:
+            projected = pattern.sub(replacement, projected)
+        projected = projected.replace("approval_", "request_")
+        projected = projected.replace("_approval", "_request_binding")
+        projected = projected.replace("authorization_", "request_")
+        projected = projected.replace("_authorization", "_request_binding")
+        projected = projected.replace("approved_", "authorized_")
+        projected = projected.replace("_approved", "_authorized")
+    if filter_tool_names:
+        matches = _NONPUBLIC_TOOL_PATTERN.findall(projected)
+        retained_tool = False
+        removed_tool = False
+
+        def public_tool_name(match: re.Match[str]) -> str:
+            nonlocal retained_tool, removed_tool
+            name = match.group(0)
+            if name in allowed_tool_names:
+                retained_tool = True
+                return name
+            alias = _PUBLIC_TOOL_ALIASES.get(name, "")
+            if alias and alias in allowed_tool_names:
+                retained_tool = True
+                return alias
+            removed_tool = True
+            return ""
+
+        projected = _NONPUBLIC_TOOL_PATTERN.sub(public_tool_name, projected)
+        if matches and removed_tool and not retained_tool:
+            return ""
+        projected = re.sub(r"\s*/\s*(?:/\s*)+", " / ", projected)
+        projected = re.sub(r"\s{2,}", " ", projected).strip(" \t/,:;-")
+    return projected
+
+
+def _is_guidance_key(key: str) -> bool:
+    normalized = key.lower()
+    return any(
+        marker in normalized
+        for marker in (
+            "action",
+            "blocked",
+            "error",
+            "gate",
+            "guidance",
+            "instruction",
+            "message",
+            "next",
+            "policy",
+            "probe",
+            "reason",
+            "recommend",
+            "status",
+            "suggest",
+            "tool",
+        )
+    )
 
 
 def project_dashboard_response(

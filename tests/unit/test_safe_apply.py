@@ -35,7 +35,10 @@ class SafeApplyTests(unittest.TestCase):
         self.assertEqual(plan["default_mode"], "save")
         self.assertTrue(plan["read_only_default"])
 
-        result = execute_safe_apply(plan, config=DataLensConfig())
+        result = execute_safe_apply(
+            plan,
+            config=DataLensConfig(write_enabled=False, save_enabled=False, publish_enabled=False),
+        )
 
         self.assertFalse(result["executed"])
         self.assertIn("write mode is disabled", result["blocked_reasons"][0])

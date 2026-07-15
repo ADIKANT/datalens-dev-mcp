@@ -10,10 +10,10 @@ not registered there.
 
 Runtime routing also reads `config/datalens_chart_param_matrix.json`. The matrix
 defines route, data shape, required parameters, visual rules, ask-user triggers,
-and fallback family for every approved family. A family is not generation-ready
+and fallback family for every supported family. A family is not generation-ready
 unless both the taxonomy and matrix cover it.
 
-## Approved standard charts
+## Supported standard charts
 
 | Family | Route | Use |
 |---|---|---|
@@ -50,9 +50,9 @@ unless both the taxonomy and matrix cover it.
 
 Native maps are represented as `native_map_geo_widget` in the parameter matrix
 and route to `wizard_native/geolayer`. `wizard_map_native` remains an input
-compatibility alias only.
+accepted input normalized to the canonical route.
 
-## Approved but needing template improvement
+## Supported but needing template improvement
 
 These families remain reachable, but templates must follow the shared chart
 contract: every chart has a hint; x-axis grain supports day/week/month where

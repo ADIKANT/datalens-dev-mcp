@@ -1,27 +1,17 @@
-# Local Configuration
+# Локальная конфигурация
 
-`datalens-dev-mcp` loads config in this order:
+**Русский** · [English](configuration_en.md) · [Доступ к DataLens](access.md) · [Безопасность](local-only-safety-model.md)
 
-1. Explicit `--local-config <path>` passed to the server.
-2. `DATALENS_MCP_LOCAL_CONFIG`.
-3. `config/datalens_mcp.local.json` when it exists in the repo root.
-4. Built-in safe defaults.
+## Порядок загрузки
 
-`config/datalens_mcp.local.json` is gitignored. Use it for local project
-workspace paths and placeholder workbook/dashboard defaults that should not be
-shared in committed files.
+Сервер ищет локальную конфигурацию в следующем порядке:
 
-Credential values come from a canonical env file when `DATALENS_ENV_FILE` is
-set or an env-file path is passed to `DataLensConfig.from_env(...)`. For
-credentials, that canonical file takes precedence over stale process env values.
-Runtime reports only source location and reload state; it never reports token
-values, prefixes, lengths, or token-derived metadata. On HTTP 401, the client
-runs a minimal auth probe, reloads the canonical env file, and retries once.
-If refresh-on-401 is explicitly enabled, the approved refresh command persists
-the new token atomically to the canonical env file, reloads it, and retries
-once.
+1. путь из `--local-config`;
+2. путь из `DATALENS_MCP_LOCAL_CONFIG`;
+3. `config/datalens_mcp.local.json` в корне репозитория;
+4. настройки, встроенные в пакет.
 
-Start from the example:
+Файл `config/datalens_mcp.local.json` исключён из Git. Начните с примера:
 
 ```bash
 cp config/datalens_mcp.local.example.json config/datalens_mcp.local.json
@@ -29,65 +19,86 @@ python3 scripts/validate_schemas.py
 python3 scripts/smoke_mcp_stdio.py
 ```
 
-## Supported Sections
+## Режим выполнения
 
-- `defaults`: project workspace path plus optional workbook, project, and
-  dashboard placeholders.
-- `safe_mode`: read-only/plan-only defaults. `allow_writes` must stay `false`.
-- `approval_gates`: env and tool approval requirements for write and publish
-  flows. Launcher defaults keep guarded write/save/publish flags off; an
-  approved mutation run must enable each required gate explicitly. Then
-  delivery intent still decides whether a known live implementation/fix/enhance
-  target continues from saved readback to publish and published readback after
-  all gates.
-- `readback`: `none`, `minimal`, `full`, or `debug`. `none` requires a
-  justification.
-- `validation`: strictness and route/template/relation/secret scan gates.
-- `safe_apply`: required approved plan path, approval flag, env write
-  enablement, save-first behavior, and readback after save.
-- `live_testing`: live tests are off by default and require
-  `DATALENS_MCP_RUN_LIVE_TESTS=1`.
-- `api_defaults`: request interval, retry count, and timeout defaults.
-- `routing`: Wizard-first standard chart mapping, registered JavaScript
-  capability gaps, the `wizard_map_native` compatibility alias, and
-  explicit-user-request-only QL behavior.
-- `style`: style guide, chart design rule, and theme token paths.
-- `naming`: native dashboard title/hint metadata policy.
-- `selectors`: left labels, percentage widths, 96% row width, and binding
-  requirements.
+Local config v2 содержит раздел:
 
-## Effective Config Tool
+```json
+{
+  "execution": {
+    "default": "follow_user_request",
+    "writes": true,
+    "save": true,
+    "publish": true,
+    "delete_requires_confirmation": true
+  }
+}
+```
 
-Codex can call:
+`follow_user_request` выбирает действие по формулировке задачи:
+
+- аудит, проверка и диагностика работают только на чтение;
+- `plan-only` создаёт план;
+- `save-only` и `no-publish` сохраняют без публикации;
+- создание, исправление, обновление и переработка проходят через save и publish;
+- удаление целого объекта требует `confirm_delete=true` для неизменившегося плана.
+
+Конфигурация старого формата автоматически приводится к v2 при загрузке. Итоговые настройки можно проверить через `dl_get_local_config`.
+
+## Основной env-файл
+
+Учётные данные и жёсткие выключатели хранятся вне репозитория:
+
+```dotenv
+DATALENS_ORG_ID=<ID_ОРГАНИЗАЦИИ>
+DATALENS_IAM_TOKEN=<IAM_ТОКЕН>
+DATALENS_API_BASE_URL=https://api.datalens.tech
+DATALENS_API_VERSION=auto
+DATALENS_MCP_ENABLE_WRITES=1
+DATALENS_MCP_LIVE_ALLOW_SAVE=1
+DATALENS_MCP_LIVE_ALLOW_PUBLISH=1
+DATALENS_ENABLE_TOKEN_REFRESH_ON_401=1
+DATALENS_MCP_ENABLE_EXPERT_RPC=0
+# DATALENS_YC_BINARY=/absolute/path/to/yc
+```
+
+Передайте абсолютный путь к файлу в `DATALENS_ENV_FILE`. Основной env-файл перечитывается при проверке доступа и перед операциями записи. Для write/save/publish значение `0` в файле или в окружении процесса всегда имеет приоритет над значением `1`.
+
+Если `yc` отсутствует в `PATH` MCP-процесса, задайте `DATALENS_YC_BINARY`. `dl_runtime_status` показывает `refresh_available`, не раскрывая путь к токену или его значение.
+
+## Жёсткие выключатели
+
+Значение `0` в основном env-файле или в окружении MCP-процесса всегда запрещает соответствующее действие:
+
+| Переменная | Результат при `0` |
+| --- | --- |
+| `DATALENS_MCP_ENABLE_WRITES` | Все запросы записи блокируются |
+| `DATALENS_MCP_LIVE_ALLOW_SAVE` | Save-запросы блокируются |
+| `DATALENS_MCP_LIVE_ALLOW_PUBLISH` | Разрешённое сохранение завершается состоянием `saved_not_published` |
+| `DATALENS_ENABLE_TOKEN_REFRESH_ON_401` | Токен обновляется пользователем вручную |
+
+Изменения write/save/publish и IAM-токена в основном env-файле применяются перед следующим RPC без перезапуска. Для изменения переменной, заданной непосредственно при запуске процесса, перезапустите MCP-клиент.
+
+## Разделы конфигурации
+
+- `defaults` — рабочая папка и необязательные ID проекта, воркбука и дашборда;
+- `execution` — режим по запросу пользователя и доступность write/save/publish;
+- `safe_apply` — актуальное чтение, сохранение ревизии, save-first и контрольное чтение;
+- `readback` — объём контрольного чтения;
+- `validation` — строгость, проверка маршрута, связей, шаблонов и секретов;
+- `live_testing` — запуск проверок на специально выбранных объектах;
+- `api_defaults` — интервалы, повторные попытки и timeout;
+- `routing` — выбор Wizard, Editor и QL;
+- `style`, `naming`, `selectors` — оформление и компоновка объектов.
+
+## Проверка итоговой конфигурации
+
+Вызовите:
 
 ```json
 {"name": "dl_get_local_config", "arguments": {}}
 ```
 
-The tool returns the merged effective config and metadata about the source path.
-Output is sanitized recursively for accidental token, authorization, password,
-or secret keys.
+Ответ содержит объединённые настройки и источник файла. Поля с именами token, authorization, password и secret очищаются рекурсивно.
 
-## Safety Rules
-
-- Config cannot enable writes by itself.
-- Config cannot make QL automatic, add a runtime fallback between Wizard,
-  JavaScript, and QL, or override fresh-read technology preservation.
-- Config cannot bypass the delivery-intent state machine or runtime publish
-  gates.
-- Config cannot allow hidden delete/move/permission operations in normal
-  workflows. Explicit removal requires a project manifest
-  `retire_legacy_objects` action with object IDs, user decision provenance,
-  no-reference proof, approval, execution summary, and post-retire readback.
-- Config and normal env vars cannot select a user tool profile. Legacy `mcp`
-  config keys and `DATALENS_MCP_TOOL_PROFILE` are ignored by normal runtime and
-  reported as internal/profile diagnostics when present.
-- Hidden/internal compatibility tools require both
-  `DATALENS_MCP_TEST_ONLY_REGISTRY=1` and
-  `DATALENS_MCP_ALLOW_HIDDEN_TOOL_CALLS=1`; the hidden-call flag alone is
-  ignored.
-- Safe apply still requires env enablement, Codex/tool approval, fresh read,
-  revision preservation, save mode first, and readback.
-- `tools/list` always returns the standard DataLens tool surface. Legacy `mcp`
-  keys in ignored local configs are tolerated but ignored and are not returned
-  by `dl_get_local_config`.
+Затем используйте `dl_runtime_status`, чтобы проверить реальные возможности процесса. Полный путь настройки доступа приведён в [`access.md`](access.md).

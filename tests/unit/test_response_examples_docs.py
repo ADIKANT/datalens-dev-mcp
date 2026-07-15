@@ -18,14 +18,14 @@ class ResponseExamplesDocsTests(unittest.TestCase):
         for phrase in [
             "Requirements Ingestion",
             "Dashboard Planning",
-            "Wizard Chart Create Plan",
-            "Advanced Editor Chart Create Plan",
-            "Dataset, Connector, And Field Plan",
+            "Wizard Standard Chart",
+            "Advanced Editor JS",
+            "Dataset/Connector/Field",
             "Selector Relation",
-            "Safe-Apply",
+            "Safe Apply plan",
             "Missing Input",
             "BLOCKED_LIVE_CREDENTIALS",
-            "reference_only",
+            "source_static",
         ]:
             self.assertIn(phrase, combined)
 

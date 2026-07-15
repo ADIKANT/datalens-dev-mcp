@@ -2,71 +2,59 @@
 
 [Русский](README.md) · **English** · [Project home](../README_en.md)
 
-[Install](codex_setup_en.md) · [Tools](tools_en.md) · [Usage flow](usage-flow_en.md) · [Official sources](sources_en.md) · [Safety](local-only-safety-model.md)
+[Quick start](../README_en.md#quick-start) · [DataLens access](access_en.md) · [Connect](codex_setup_en.md) · [Tools](tools_en.md) · [Workflows](usage-flow_en.md) · [Sources](sources_en.md) · [Safety](local-only-safety-model_en.md) · [Русский](README.md)
 
-This section explains the public surface of the local MCP server: how to connect it, which problems its 38 standard tools solve, how work proceeds from a read-only check to guarded publishing, and which official DataLens materials underpin the API contracts and packaged reference registries.
+These guides cover installation, DataLens access, and the complete workflow from reading objects to saving and publishing changes.
 
 ## Start here
 
-| I want to… | Open |
+| Goal | Guide |
 | --- | --- |
-| Install the server and connect Codex | [Codex setup](codex_setup_en.md) |
-| Connect Claude or another stdio client | [README: connect an MCP client](../README_en.md#connect-an-mcp-client) |
-| Understand a particular tool | [Guide to the 38 public tools](tools_en.md) |
-| Run a read-only dashboard audit | [Flow: read-only audit](usage-flow_en.md#2-read-only-audit) |
-| Plan a change without writing | [Flow: plan-only](usage-flow_en.md#3-plan-only) |
-| Save and publish safely | [Flow: guarded save and publish](usage-flow_en.md#4-guarded-save-and-publish) |
-| Trace a capability to its basis | [Official source map](sources_en.md) |
-| Understand a write block | [Safe Apply](safe-apply.md) |
-| Inspect exact MCP inputs and outputs | [Technical tool catalog](mcp/tools.md) and [response contracts](mcp/response_contracts.md) |
+| Install the server | [Quick start](../README_en.md#quick-start) |
+| Prepare an IAM token, organization ID, and roles | [DataLens access](access_en.md) |
+| Connect Codex | [Codex setup](codex_setup_en.md) |
+| Connect Claude or another stdio client | [Client examples](../examples/clients/README.md) |
+| Find the right tool | [Guide to all 38 tools](tools_en.md) |
+| Audit without writing | [Read-only audit](usage-flow_en.md#read-only-audit) |
+| Build a plan without applying it | [Plan without writing](usage-flow_en.md#plan-without-writing) |
+| Save without publishing | [Save without publishing](usage-flow_en.md#save-without-publishing) |
+| Apply and publish a change | [Normal save-and-publish change](usage-flow_en.md#normal-save-and-publish-change) |
+| Trace packaged reference data | [Official sources](sources_en.md) |
 
-## Primary user path
+## Normal change flow
 
 ```text
-MCP client
-  -> dl_runtime_status / dl_auth_probe
-  -> workbook and object reads
-  -> dashboard snapshot and relation evidence
-  -> route, object, and project validation
-  -> payload plan and safe-apply plan
-  -> guarded save
-  -> saved readback
-  -> publish-from-saved when allowed
-  -> published readback and runtime/browser QA
+connect the client
+  -> dl_runtime_status and dl_auth_probe
+  -> find the workbook and target object
+  -> read current state and relations
+  -> plan and validate the request
+  -> save
+  -> read saved state
+  -> publish from saved state
+  -> read published state
+  -> verify the result in DataLens
 ```
 
-The DataLens runtime starts read-only. Local tools can create plans and reports inside `--project-root`, but a live mutation requires independent write/save/publish gates, approval, a fresh read, and readback.
+The user request selects the mode. Audits and diagnostics do not mutate DataLens. `plan-only` stops after planning, and `save-only` stops after saved readback. Create, fix, update, enhance, and redesign requests for a known target run through the complete flow without another prompt before save or publish. Deleting a complete object requires a separate confirmation with its ID.
 
-## Documentation by topic
+## Main guides
 
-### User guides
+- [DataLens access](access_en.md) — Yandex Cloud CLI, organization, IAM token, roles, env file, and access checks.
+- [Codex setup](codex_setup_en.md) — `config.toml`, `codex mcp add`, `/mcp`, and connection verification.
+- [Tool guide](tools_en.md) — purpose and operation class of all 38 calls.
+- [Workflows](usage-flow_en.md) — copyable sequences and prompts.
+- [Configuration](configuration_en.md) — local settings and hard-off switches.
+- [Safety](local-only-safety-model_en.md) — credential, revision, and deletion safeguards.
+- [Chart route policy](route-policy_en.md) — Wizard, Editor, and QL.
+- [Safe apply](safe-apply_en.md) — save, readback, and publishing.
 
-- [Tools](tools_en.md) — what every public tool does and when to use it.
-- [Usage flow](usage-flow_en.md) — end-to-end scenarios and copyable prompts.
-- [Codex setup](codex_setup_en.md) — app, CLI, `config.toml`, `/mcp`, and troubleshooting.
-- [Official sources](sources_en.md) — DataLens docs, Public API, Editor, and provenance.
-
-### Policy and safety
-
-- [Configuration](configuration.md)
-- [Local-only safety model](local-only-safety-model.md)
-- [Route policy](route-policy.md)
-- [Safe apply](safe-apply.md)
-- [Policy vocabulary](policy_vocabulary.md)
-
-### Technical reference
+## Technical documentation
 
 - [Architecture](architecture.md)
-- [MCP tools](mcp/tools.md)
+- [Exact MCP catalog](mcp/tools.md)
 - [Response contracts](mcp/response_contracts.md)
-- [Tool-selection policy](mcp/tool_selection_policy.md)
-- [API contract coverage](datalens/api_contract_coverage.md)
-- [Source provenance](source_provenance.md)
+- [DataLens API coverage](datalens/api_contract_coverage.md)
+- [Reference-data provenance](source_provenance.md)
 
-## Boundaries
-
-- Normal `tools/list` returns one standard surface of 38 tools.
-- Compatibility/test-only tools are not a user profile and do not belong in the recommended flow.
-- Wizard is the default route for new standard charts; JavaScript requires a direct request or capability gap; QL requires a direct request.
-- Delete, move, and permission mutations are closed in normal workflows. Named removal uses the separate `retire_legacy_objects` lifecycle only.
-- Raw documentation pages, books, courses, private exports, and credentials are not stored in the repository.
+The standard `tools/list` contains 38 tools. Exact JSON schemas for the installed version are available directly through the MCP client and are summarized in the [technical catalog](mcp/tools.md).

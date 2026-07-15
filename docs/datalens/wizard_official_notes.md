@@ -12,7 +12,7 @@ request schemas, and `docs/route-policy.md`.
 
 ## Native Map Contract
 
-- Route id: `wizard_native`; `wizard_map_native` is a compatibility alias for `geolayer`.
+- Route id: `wizard_native`; `wizard_map_native` is normalized to `wizard_native/geolayer`.
 - Required inputs: workbook context, dataset reference, map question, geo field/evidence (`geopoint`, `geopolygon`, or lat/lon), measures, grouping dimension where needed, filters, selector bindings, tooltip fields, color role, and native dashboard/widget title/hint metadata.
 - Missing geo evidence returns a targeted question instead of inventing a map payload.
 - If a user explicitly requests JavaScript map rendering, return a blocked-route diagnostic: Advanced Editor map creation is closed by route policy; native Wizard map is the supported lane.
@@ -20,7 +20,7 @@ request schemas, and `docs/route-policy.md`.
 ## Dashboard Integration
 
 - Wizard widgets must be represented in dashboard object relations with selector targets and source dataset/connection dependencies.
-- Titles and hints stay in dashboard/widget metadata (`hideTitle=false`, `enableHint=true`) unless a source requirement explicitly asks for an internal chart label.
+- Titles and hints stay in dashboard/widget metadata (`hideTitle=false`, `enableHint=true`) unless a source requirement explicitly asks for an in-chart label.
 - Native maps should inherit dashboard theme tokens and filter behavior; avoid duplicating controls inside a map body.
 
 ## Native Boundary

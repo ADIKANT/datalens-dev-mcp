@@ -1,70 +1,53 @@
-# Route Policy
+# Выбор технологии чарта
 
-The versioned source of truth is
-`config/route_selection_policy_v5.json`. Request classification, object routing,
-the chart parameter matrix, Wizard templates, and the golden gallery consume
-that registry instead of maintaining independent route defaults.
+**Русский** · [English](route-policy_en.md) · [Инструменты](tools.md) · [Источники](sources.md)
 
-## Deterministic Selection
+Официальное описание технологий: [Wizard, QL и Editor](https://yandex.cloud/ru/docs/datalens/concepts/chart/). Версионированные правила сервера находятся в `config/route_selection_policy_v5.json`.
 
-1. For update, preserve the technology and visualization ID from fresh saved
-   readback.
-2. For create, honor an explicit Wizard, JavaScript, or QL request.
-3. Select JavaScript only for a registered capability gap.
-4. Otherwise select Wizard before any transport call.
-5. Never retry a failed route through another technology.
+## Правила выбора
 
-Every route decision returns `route`, `visualization_id`, `selection_origin`,
-`selection_reason`, and, for JavaScript, `capability_gap`.
+1. При обновлении сохраняется технология и `visualization_id` из актуальной saved-версии.
+2. При создании учитывается прямое указание пользователя на Wizard, Editor или QL.
+3. Editor используется для явно запрошенного JavaScript или возможностей, которых нет у подходящего Wizard-чарта.
+4. Для стандартных визуализаций выбирается Wizard.
+5. Ошибка API не приводит к автоматической смене технологии.
 
-## Creation Routes
+Решение содержит route, `visualization_id` и объяснение выбора.
 
-- `wizard_native`: standard native chart creation and update through
-  `createWizardChart` / `updateWizardChart`.
-- `wizard_map_native`: compatibility alias accepted only as
-  `wizard_native` + `visualization_id=geolayer`.
-- `editor_advanced`: explicit JavaScript or a registered visual capability gap.
-- `editor_table`: specialized grouped/pinned JavaScript table semantics;
-  ordinary flat and pivot tables use Wizard.
-- `editor_markdown`: dedicated Markdown objects.
-- `editor_js_control`: dedicated JavaScript controls.
-- `ql_explicit`: QL read/create/update after a direct user request; never an
-  automatic route or fallback.
+## Стандартные визуализации Wizard
 
-| Standard semantics | Wizard visualization ID |
+| Вид чарта | `visualization_id` |
 | --- | --- |
-| KPI and KPI with delta | `metric` |
-| Flat table | `flatTable` |
-| Pivot | `pivotTable` |
-| Line and multiline | `line` |
-| Area | `area`, `area100p` |
-| Vertical/time columns | `column`, `column100p` |
-| Horizontal bars | `bar`, `bar100p` |
-| Combined time chart | `combined-chart` |
-| Pie/donut | `pie`, `donut` |
-| Scatter/bubble | `scatter` |
+| Показатель и показатель с дельтой | `metric` |
+| Плоская таблица | `flatTable` |
+| Сводная таблица | `pivotTable` |
+| Линия | `line` |
+| Область | `area`, `area100p` |
+| Вертикальные столбцы | `column`, `column100p` |
+| Горизонтальные столбцы | `bar`, `bar100p` |
+| Комбинированный чарт | `combined-chart` |
+| Круговая и кольцевая диаграмма | `pie`, `donut` |
+| Точечная и пузырьковая диаграмма | `scatter` |
 | Treemap | `treemap` |
-| Map | `geolayer` |
+| Карта | `geolayer` |
 
-Bubble requires a size role. Maps require geo evidence. A create with an
-unknown visualization ID is blocked. An update may preserve an unknown ID only
-from fresh saved readback; internal tokens are never guessed.
+Для пузырьковой диаграммы требуется поле размера, для карты — подтверждённые геоданные. `wizard_map_native` нормализуется в `wizard_native` с `visualization_id=geolayer`.
 
-Wizard create prefers a fresh saved seed of the same visualization ID. The
-seed must come from the saved branch and carry a fresh revision. Entry,
-revision, and location identities are removed before create; unknown `data`
-fields are preserved and dataset/field GUIDs are rebound. When no seed exists,
-the committed canonical template is used. Canonical fixtures do not claim live
-verification.
+## Editor
 
-QL create/update requires `route=ql_explicit`, approval provenance with
-`selection_origin=explicit_user_request`, and either an explicit payload or a
-fresh saved QL seed. General prompt-to-QL generation and QL delete are closed.
+- `editor_advanced` — JavaScript-чарт общего назначения;
+- `editor_table` — специализированная JavaScript-таблица;
+- `editor_markdown` — Markdown-объект;
+- `editor_js_control` — JavaScript-контрол.
 
-High-level non-chart routes remain `connector_operation`, `dataset_operation`,
-and `dashboard_relation_operation`. Also closed are `d3_node`, regular Editor
-Chart, Gravity UI Charts, automatic QL selection, runtime route fallback,
-guessed IDs, hidden destructive/permission writes, and blind writes. Explicit
-removal of named legacy objects uses the separate `retire_legacy_objects`
-project-live lifecycle. Publish remains governed by delivery intent and
-safe-apply readback gates, not by route selection.
+Перед сохранением Editor-объект проходит `dl_validate_editor_runtime_contract` по официальным [вкладкам](https://yandex.cloud/ru/docs/datalens/charts/editor/tabs) и [методам](https://yandex.cloud/ru/docs/datalens/charts/editor/methods).
+
+## QL
+
+`ql_explicit` выбирается только по прямому запросу пользователя на QL. Создание и обновление используют явный payload или актуальную saved-версию QL-объекта. Сервер не генерирует QL по общему запросу и не выбирает его после ошибки Wizard или Editor.
+
+## Создание и обновление
+
+Для нового Wizard-чарта сервер предпочитает актуальный saved-образец с тем же `visualization_id`, удаляет идентификаторы исходного объекта и привязывает поля целевого датасета. При отсутствии образца используется встроенный канонический шаблон.
+
+При update технология, визуализация, неизвестные поля и ревизия берутся из актуального чтения. Публикация регулируется [Safe Apply](safe-apply.md), независимо от выбранной технологии.

@@ -88,7 +88,11 @@ class PublicSmokeReadinessTests(unittest.TestCase):
                 encoding="utf-8",
             )
             validation = dl_validate_project(tmp)
-            safe_apply = dl_create_safe_apply_plan(tmp, approved=False, readback_mode="minimal")
+            safe_apply = dl_create_safe_apply_plan(
+                tmp,
+                readback_mode="minimal",
+                delivery_intent_text="plan only",
+            )
             dashboard_entry = {
                 "entryId": "dashboard_placeholder",
                 "revId": "rev_placeholder",
@@ -107,7 +111,7 @@ class PublicSmokeReadinessTests(unittest.TestCase):
             self.assertIn("requirements_context", editor_bundle)
             self.assertEqual(validation["status"], "pass", validation)
             self.assertEqual(len(payload_plan["payloads"]), 1)
-            self.assertFalse(safe_apply["approved"])
+            self.assertEqual(safe_apply["delivery_intent_decision"]["state"], "plan_only")
             self.assertEqual(save_plan["payload"]["mode"], "save")
             self.assertEqual(publish_plan["payload"]["mode"], "publish")
             self.assertFalse(readback["readback"]["live_readback"])

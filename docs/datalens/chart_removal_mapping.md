@@ -1,6 +1,6 @@
 # Chart removal mapping
 
-| Removed chart | Reason | Approved alternative | Files changed | Notes |
+| Removed chart | Reason | Supported alternative | Files changed | Notes |
 |---|---|---|---|---|
 | `g02_kpi_status_blocked` | Standalone KPI status cards are not required. | `kpi_value_sparkline` | `src/datalens_dev_mcp/pipeline/chart_taxonomy.py`, `src/datalens_dev_mcp/editor/bundle.py` | Status is state/formatting inside KPI cards, not a family. |
 | `g05_kpi_no_data` | No-data is a state, not a chart type. | `kpi_value_sparkline` | `src/datalens_dev_mcp/pipeline/chart_taxonomy.py` | Existing KPI templates must handle empty data. |
@@ -22,4 +22,4 @@
 | `g62_registry_table` | Registry table is covered by `table_node`. | `table_node` | `src/datalens_dev_mcp/pipeline/chart_taxonomy.py` | Use config/title/sort on the table route. |
 | `g63_summary_rows_table` | Summary rows are table configuration. | `table_node` | `src/datalens_dev_mcp/pipeline/chart_taxonomy.py` | Not a separate family. |
 | `g64_status_heat_table` | Status heat tables are table configuration. | `table_node` | `src/datalens_dev_mcp/pipeline/chart_taxonomy.py` | Use heatmap only for real matrix intensity. |
-| `g65_table_sparkline` | Table sparklines are not generated standard families. | `table_node` | `src/datalens_dev_mcp/pipeline/chart_taxonomy.py`, `examples/gallery/editor-table-registry/config.js`, `examples/gallery/editor-table-registry/prepare.js` | Trend belongs in chart/KPI unless a rare table exception is approved. |
+| `g65_table_sparkline` | Table sparklines are not generated standard families. | `table_node` | `src/datalens_dev_mcp/pipeline/chart_taxonomy.py`, `examples/gallery/editor-table-registry/config.js`, `examples/gallery/editor-table-registry/prepare.js` | Trend belongs in chart/KPI unless a rare table exception is explicitly requested. |

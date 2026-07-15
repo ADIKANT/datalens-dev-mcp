@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-07-01.delivery_intent_state_machine.v2",
+  "schema_version": "2026-07-15.delivery_intent_state_machine.v3",
   "states": [
     "read_only",
     "plan_only",
@@ -14,23 +14,18 @@
     "delivery": ["implement", "fix", "enhance", "redesign", "update"]
   },
   "user_opt_out_overrides": ["draft", "save_only", "no_publish", "plan_only", "dry_run"],
-  "approval_sources": {
-    "sufficient_for_guarded_delivery": [
-      "current_user_request",
-      "goal_objective_file",
-      "codex_tool_approval",
-      "project_manifest_operator_approval",
-      "explicit_chat_approval",
-      "safe_apply_session_approval"
-    ],
-    "must_not_require": ["literal_chat_phrase_i_approve"]
+  "request_authorization": {
+    "standard_mutations": ["create", "update", "save", "publish_from_saved"],
+    "source": "current_user_request",
+    "delete_confirmation_parameter": "confirm_delete",
+    "unsupported_mutations": ["move", "permissions", "credentials"]
   },
   "required_gates": {
     "save_only": [
       "target_lock",
       "writes_enabled",
       "save_enabled",
-      "safe_apply_session_approval",
+      "user_request_authorization",
       "fresh_readback",
       "revision_preservation",
       "saved_readback"
@@ -40,7 +35,7 @@
       "writes_enabled",
       "save_enabled",
       "publish_enabled",
-      "safe_apply_session_approval",
+      "user_request_authorization",
       "fresh_readback",
       "revision_preservation",
       "saved_readback_fresh",
@@ -51,7 +46,7 @@
       "writes_enabled",
       "save_enabled",
       "publish_enabled",
-      "safe_apply_session_approval",
+      "user_request_authorization",
       "fresh_readback",
       "revision_preservation",
       "saved_readback_fresh",
@@ -62,5 +57,5 @@
     "save_then_publish": ["save", "saved_readback", "publish_from_saved", "published_readback"],
     "publish_source": "fresh_saved_branch_readback"
   },
-  "policy_text": "For live implementation, fix, or enhance requests with known target IDs, explicit write gates, approved safe apply, saved readback, and no draft/no-publish instruction, delivery proceeds through save, saved readback, publish from saved readback, and published readback."
+  "policy_text": "A live implementation, fix, enhance, redesign, or update request authorizes guarded save and publish for a locked target. The server performs fresh read, revision-preserving save, saved readback, publish from saved readback, and published readback without another confirmation. Only deletion of whole DataLens objects uses the confirm_delete flow."
 }

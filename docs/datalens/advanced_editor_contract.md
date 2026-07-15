@@ -82,7 +82,7 @@ These parts must not be wrapped:
 ## Native Titles And Hints
 
 - Dashboard/widget metadata is the standard surface for chart titles and hints.
-- Advanced chart bodies must not draw dashboard-level titles unless a source requirement explicitly asks for an internal annotation.
+- Advanced chart bodies must not draw dashboard-level titles unless a source requirement explicitly asks for an in-chart annotation.
 - Template `README.md`, `meta.json`, and example inputs should expose title/hint metadata separately from rendered chart body content.
 
 ## Historical Mistakes And Prevention
@@ -124,7 +124,7 @@ the contract by construction.
 
 If a requested chart cannot be generated safely:
 
-1. Resolve the family through the approved taxonomy.
+1. Resolve the family through the supported taxonomy.
 2. Use the registered standard template if available.
 3. If no safe template exists, generate a simple governed Advanced fallback with
    the canonical `args: [model]` / `fn: function(options, data)` shape.

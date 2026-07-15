@@ -17,6 +17,7 @@ from datalens_dev_mcp.pipeline.readback import normalize_readback_mode
 from datalens_dev_mcp.pipeline.baseline_preservation import build_baseline_diff_contract, create_necessity_proof
 from datalens_dev_mcp.pipeline.sql_performance import validate_payload_sql_performance
 from datalens_dev_mcp.pipeline.target_lock import create_target_lock
+from datalens_dev_mcp.pipeline.user_request import normalize_user_request
 from datalens_dev_mcp.pipeline.wizard_contracts import (
     validate_wizard_field_binding_against_dataset_readback,
     validate_wizard_visual_dataset_contract,
@@ -61,9 +62,18 @@ def create_safe_apply_plan(
     actions: list[dict[str, Any]],
     approved: bool = False,
     approval_note: str = "",
+    user_request_text: str = "",
 ) -> dict[str, Any]:
     normalized_actions = []
     created_at = now_utc()
+    request_intent = _request_intent_binding(user_request_text, approved=approved)
+    approval_source = (
+        "current_user_request"
+        if approved and user_request_text
+        else "legacy_approved_plan"
+        if approved
+        else "not_authorized"
+    )
     default_target_lock = create_target_lock("", target_source="manual").to_dict()
     for action in actions:
         item = dict(action)
@@ -101,6 +111,8 @@ def create_safe_apply_plan(
             approved=approved,
             approval_note=approval_note,
             approved_at=created_at,
+            approval_source=approval_source,
+            request_digest=request_intent["request_sha256"],
         )
         item["revision_preservation"] = {
             "requires_fresh_read": bool(item.get("requires_fresh_read")),
@@ -124,7 +136,10 @@ def create_safe_apply_plan(
             approved=approved,
             approval_note=approval_note,
             approved_at=created_at,
+            approval_source=approval_source,
+            request_digest=request_intent["request_sha256"],
         ),
+        "request_intent": request_intent,
         "target_lock": default_target_lock,
         "branch_semantics": {
             "default_write_mode": "save",
@@ -203,6 +218,7 @@ def create_publish_safe_apply_plan(
     saved_readback_path: str = "",
     approved: bool = False,
     readback_mode: str = "minimal",
+    user_request_text: str = "",
 ) -> dict[str, Any]:
     root = Path(project_root)
     normalized_type = _normalize_publish_object_type(object_type)
@@ -254,7 +270,12 @@ def create_publish_safe_apply_plan(
         actions.append(built["action"])
         publish_sources.append(built["publish_source"])
 
-    plan = create_safe_apply_plan(project_root=str(root), actions=actions, approved=approved)
+    plan = create_safe_apply_plan(
+        project_root=str(root),
+        actions=actions,
+        approved=approved,
+        user_request_text=user_request_text,
+    )
     plan["ok"] = True
     plan["status"] = "publish_plan_created"
     plan["publish_sources"] = publish_sources
@@ -510,10 +531,14 @@ def execute_safe_apply(
     config: DataLensConfig | None = None,
     client: Any | None = None,
 ) -> dict[str, Any]:
-    cfg = config or DataLensConfig.from_env()
+    cfg = (config or DataLensConfig.from_env()).reload_canonical_env(
+        reload_state="reloaded_before_safe_apply"
+    )
     blocked: list[str] = []
-    if not cfg.write_enabled:
-        blocked.append("write mode is disabled; set DATALENS_MCP_ENABLE_WRITES=1 for guarded execution")
+    for action in plan.get("actions") or []:
+        if isinstance(action, dict):
+            blocked.extend(_runtime_write_gate_issues(cfg, _payload_for_action(action)))
+    blocked = list(dict.fromkeys(blocked))
     preflight = validate_safe_apply_plan_exhaustive(plan)
     blocked.extend(preflight["issues"])
     if blocked:
@@ -625,6 +650,16 @@ def execute_safe_apply(
                         action_result["error"] = dashboard_error
                         results.append(action_result)
                         break
+            cfg = cfg.reload_canonical_env(reload_state="reloaded_immediately_before_write")
+            runtime_gate_issues = _runtime_write_gate_issues(cfg, write_payload)
+            if runtime_gate_issues:
+                action_result["status"] = "failed"
+                action_result["error"] = {
+                    "category": "runtime_write_disabled",
+                    "message": "; ".join(runtime_gate_issues),
+                }
+                results.append(action_result)
+                break
             action_result["write_attempted"] = True
             write_result = client.rpc(action["method"], write_payload)
             action_result["artifacts"]["write_result"] = _write_safe_apply_envelope(
@@ -769,7 +804,7 @@ def safe_apply_run_id(plan: dict[str, Any]) -> str:
 
 
 def safe_apply_run_binding(plan: dict[str, Any]) -> dict[str, Any]:
-    """Return the canonical, replay-resistant binding for one approved plan."""
+    """Return the canonical, replay-resistant binding for one guarded plan."""
 
     actions = [item for item in plan.get("actions") or [] if isinstance(item, dict)]
     approval = plan.get("approval_provenance") if isinstance(plan.get("approval_provenance"), dict) else {}
@@ -782,6 +817,7 @@ def safe_apply_run_binding(plan: dict[str, Any]) -> dict[str, Any]:
             "approval_source": str(approval.get("approval_source") or ""),
             "approval_note": str(approval.get("approval_note") or plan.get("approval_note") or ""),
         },
+        "request_intent": plan.get("request_intent") if isinstance(plan.get("request_intent"), dict) else {},
         "target_lock_hash": str(target_lock.get("lock_hash") or ""),
         "action_count": len(actions),
         "actions": [
@@ -1689,13 +1725,47 @@ def _branch_semantics(action: dict[str, Any], payload: dict[str, Any]) -> dict[s
     }
 
 
-def _approval_provenance(*, approved: bool, approval_note: str, approved_at: str) -> dict[str, Any]:
+def _approval_provenance(
+    *,
+    approved: bool,
+    approval_note: str,
+    approved_at: str,
+    approval_source: str = "",
+    request_digest: str = "",
+) -> dict[str, Any]:
     return {
         "approved": bool(approved),
-        "approval_source": "codex_tool_or_plan_approval" if approved else "not_approved",
+        "approval_source": approval_source or ("legacy_approved_plan" if approved else "not_authorized"),
         "approval_note": str(approval_note or ""),
         "approved_at": approved_at if approved else "",
+        "request_digest": request_digest,
     }
+
+
+def _request_intent_binding(user_request_text: str, *, approved: bool) -> dict[str, Any]:
+    raw_text = str(user_request_text or "")
+    normalized = normalize_user_request(raw_text or "implement")
+    return {
+        "normalized_intent": normalized.task_intent,
+        "publish_override": normalized.publish_override,
+        "request_sha256": hashlib.sha256(raw_text.encode("utf-8")).hexdigest(),
+        "request_text_present": bool(raw_text),
+        "authorization_source": "current_user_request" if raw_text else "tool_call_intent",
+        "authorizes_standard_mutation": bool(approved),
+    }
+
+
+def _runtime_write_gate_issues(config: DataLensConfig, payload: dict[str, Any]) -> list[str]:
+    issues: list[str] = []
+    if not config.write_enabled:
+        issues.append("write mode is disabled; set DATALENS_MCP_ENABLE_WRITES=1")
+    if not config.save_enabled:
+        issues.append("save execution is disabled; set DATALENS_MCP_LIVE_ALLOW_SAVE=1")
+    mode = str(payload.get("mode") or "save").strip().lower()
+    if mode == "publish":
+        if not config.publish_enabled:
+            issues.append("publish execution is disabled; set DATALENS_MCP_LIVE_ALLOW_PUBLISH=1")
+    return issues
 
 
 def _action_type(action: dict[str, Any], payload: dict[str, Any]) -> str:

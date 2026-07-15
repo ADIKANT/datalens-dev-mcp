@@ -1,3 +1,3 @@
 # Safe Apply Plan
 
-No approved write plan yet. Dry-run payload review is required before any guarded write.
+No write plan yet. The user request determines whether the next validated plan stays plan-only, saves without publishing, or continues through save and publish.

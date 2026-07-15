@@ -1,3 +1,5 @@
+import json
+import re
 import tempfile
 import unittest
 
@@ -14,7 +16,6 @@ class ReferenceBoundednessTests(unittest.TestCase):
             "dashboard_system_type",
             "negative_requirements",
             "delivery_intent",
-            "delivery_approval",
             "target_lock",
             "object_granularity",
             "selector_layout",
@@ -41,6 +42,25 @@ class ReferenceBoundednessTests(unittest.TestCase):
                     self.assertLessEqual(len(response["rules"]), 5)
                     self.assertEqual(response["reference_date"], "2026-06-30")
                     self.assertNotIn("spilled", response)
+                    rendered = json.dumps(response, ensure_ascii=False).lower()
+                    self.assertNotRegex(rendered, r"\bapprov(?:al|e|ed|ing)\b")
+                    self.assertNotRegex(rendered, r"\btest[- ]only\b")
+                    self.assertNotIn("hidden compatibility", rendered)
+                    self.assertNotIn("raw rpc", rendered)
+
+    def test_legacy_delivery_approval_alias_resolves_to_public_delivery_intent(self):
+        from datalens_dev_mcp.knowledge.reference import build_reference_response
+
+        with tempfile.TemporaryDirectory() as tmp:
+            response = build_reference_response(
+                mode="delivery_approval",
+                query="save and publish",
+                max_chars=6000,
+                project_root=tmp,
+            )
+
+        self.assertTrue(response["ok"])
+        self.assertEqual(response["mode"], "delivery_intent")
 
     def test_project_context_compatibility_path_never_reads_or_spills(self):
         from datalens_dev_mcp.mcp.tools.pipeline import dl_load_project_context, dl_start_pipeline

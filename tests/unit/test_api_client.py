@@ -56,19 +56,108 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(urlopen.call_count, 1)
         self.assertEqual(urlopen.call_args.kwargs, {"timeout": 4.25})
 
-    def test_config_env_defaults_writes_off_and_loads_request_timeout(self):
+    def test_config_env_defaults_execution_on_and_explicit_zero_is_hard_off(self):
         from datalens_dev_mcp.config import DataLensConfig
 
         with patch.dict(os.environ, {"DATALENS_REQUEST_TIMEOUT_SEC": "8.5"}, clear=True):
             config = DataLensConfig.from_env()
 
-        self.assertFalse(config.write_enabled)
+        self.assertTrue(config.write_enabled)
+        self.assertTrue(config.save_enabled)
+        self.assertTrue(config.publish_enabled)
         self.assertEqual(config.request_timeout_sec, 8.5)
 
-        with patch.dict(os.environ, {"DATALENS_MCP_ENABLE_WRITES": "1"}, clear=True):
-            explicitly_enabled = DataLensConfig.from_env()
+        with patch.dict(
+            os.environ,
+            {
+                "DATALENS_MCP_ENABLE_WRITES": "0",
+                "DATALENS_MCP_LIVE_ALLOW_SAVE": "0",
+                "DATALENS_MCP_LIVE_ALLOW_PUBLISH": "0",
+            },
+            clear=True,
+        ):
+            explicitly_disabled = DataLensConfig.from_env()
 
-        self.assertTrue(explicitly_enabled.write_enabled)
+        self.assertFalse(explicitly_disabled.write_enabled)
+        self.assertFalse(explicitly_disabled.save_enabled)
+        self.assertFalse(explicitly_disabled.publish_enabled)
+
+    def test_process_zero_is_hard_off_even_when_canonical_env_file_enables_execution(self):
+        from datalens_dev_mcp.config import DataLensConfig
+
+        with tempfile.TemporaryDirectory() as tmp:
+            env_file = Path(tmp) / "env"
+            env_file.write_text(
+                "DATALENS_MCP_ENABLE_WRITES=1\n"
+                "DATALENS_MCP_LIVE_ALLOW_SAVE=1\n"
+                "DATALENS_MCP_LIVE_ALLOW_PUBLISH=1\n",
+                encoding="utf-8",
+            )
+            with patch.dict(
+                os.environ,
+                {
+                    "DATALENS_ENV_FILE": str(env_file),
+                    "DATALENS_MCP_ENABLE_WRITES": "0",
+                    "DATALENS_MCP_LIVE_ALLOW_SAVE": "0",
+                    "DATALENS_MCP_LIVE_ALLOW_PUBLISH": "0",
+                },
+                clear=True,
+            ):
+                config = DataLensConfig.from_env()
+
+        self.assertFalse(config.write_enabled)
+        self.assertFalse(config.save_enabled)
+        self.assertFalse(config.publish_enabled)
+
+    def test_missing_initial_token_is_bootstrapped_and_persisted_0600(self):
+        from datalens_dev_mcp.api.client import DataLensApiClient
+        from datalens_dev_mcp.config import DataLensConfig
+
+        transport = FakeTransport([{"workbooks": []}])
+        with tempfile.TemporaryDirectory() as tmp:
+            env_file = Path(tmp) / "env"
+            env_file.write_text(
+                "DATALENS_ORG_ID=org_synthetic\nDATALENS_ENABLE_TOKEN_REFRESH_ON_401=1\n",
+                encoding="utf-8",
+            )
+            config = DataLensConfig.from_env(env_file)
+            client = DataLensApiClient(config, transport=transport, token_refresher=lambda: "fresh-token-placeholder")
+
+            result = client.rpc("getWorkbooksList", {"page": 1, "pageSize": 1})
+            file_text = env_file.read_text(encoding="utf-8")
+            file_mode = stat.S_IMODE(env_file.stat().st_mode)
+
+        self.assertEqual(result, {"workbooks": []})
+        self.assertEqual(len(transport.requests), 1)
+        self.assertIn("fresh-token-placeholder", transport.requests[0][2]["Authorization"])
+        self.assertIn("DATALENS_IAM_TOKEN=fresh-token-placeholder", file_text)
+        self.assertEqual(file_mode, 0o600)
+        self.assertEqual(client.config.env_file_reload_state, "bootstrapped_with_yc")
+
+    def test_canonical_env_reload_updates_all_execution_switches(self):
+        from datalens_dev_mcp.config import DataLensConfig
+
+        with tempfile.TemporaryDirectory() as tmp:
+            env_file = Path(tmp) / "env"
+            env_file.write_text(
+                "DATALENS_MCP_ENABLE_WRITES=1\n"
+                "DATALENS_MCP_LIVE_ALLOW_SAVE=1\n"
+                "DATALENS_MCP_LIVE_ALLOW_PUBLISH=1\n",
+                encoding="utf-8",
+            )
+            config = DataLensConfig.from_env(env_file)
+            env_file.write_text(
+                "DATALENS_MCP_ENABLE_WRITES=0\n"
+                "DATALENS_MCP_LIVE_ALLOW_SAVE=0\n"
+                "DATALENS_MCP_LIVE_ALLOW_PUBLISH=0\n",
+                encoding="utf-8",
+            )
+            reloaded = config.reload_canonical_env(reload_state="test_reload")
+
+        self.assertFalse(reloaded.write_enabled)
+        self.assertFalse(reloaded.save_enabled)
+        self.assertFalse(reloaded.publish_enabled)
+        self.assertEqual(reloaded.env_file_reload_state, "test_reload")
 
     def test_headers_and_write_payload_compaction_preserves_empty_values(self):
         from datalens_dev_mcp.api.client import DataLensApiClient

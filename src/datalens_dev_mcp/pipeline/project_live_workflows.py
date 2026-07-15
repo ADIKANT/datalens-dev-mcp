@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from datalens_dev_mcp.api.auth import refresh_iam_token_with_yc
-from datalens_dev_mcp.config import DataLensConfig, env_flag
+from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.pipeline.project_adapters import (
     MIGRATION_SUMMARY_REQUIRED_FIELDS,
@@ -356,7 +356,8 @@ def detect_project_live_workflows(project_root: str | Path = ".") -> dict[str, A
 def plan_project_manifest(
     project_root: str | Path = ".",
     *,
-    approved: bool = False,
+    write_manifest: bool = False,
+    approved: bool | None = None,
     overwrite_existing: bool = False,
     target_workbook_id: str = "",
     dashboard_id: str = "",
@@ -396,9 +397,10 @@ def plan_project_manifest(
     }
     blocked: list[str] = []
     if existing.get("ok") and not overwrite_existing:
-        blocked.append("manifest already exists; set overwrite_existing=true and approved=true to replace it")
+        blocked.append("manifest already exists; set overwrite_existing=true and write_manifest=true to replace it")
     written = False
-    if approved and not blocked:
+    should_write = bool(write_manifest or approved is True)
+    if should_write and not blocked:
         manifest_path.write_text(json.dumps(proposed, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         written = True
     return {
@@ -406,6 +408,7 @@ def plan_project_manifest(
         "status": "written" if written else ("blocked" if blocked else "preview"),
         "project_root": str(root),
         "manifest_path": str(manifest_path),
+        "write_manifest": should_write,
         "approved": approved,
         "overwrite_existing": overwrite_existing,
         "written": written,
@@ -498,7 +501,8 @@ def run_project_live_apply(
     *,
     workflow_name: str = "",
     execute_now: bool = False,
-    approved: bool = False,
+    approved: bool | None = None,
+    confirm_delete: bool = False,
     publish: bool = False,
     action: str = "apply",
     timeout_sec: int = 120,
@@ -510,6 +514,7 @@ def run_project_live_apply(
         execute_now=execute_now,
         timeout_sec=timeout_sec,
         approved=approved,
+        confirm_delete=confirm_delete,
         publish=publish,
     )
 
@@ -559,7 +564,8 @@ def _run_project_live_action(
     action: str,
     execute_now: bool,
     timeout_sec: int,
-    approved: bool,
+    approved: bool | None,
+    confirm_delete: bool = False,
     publish: bool,
 ) -> dict[str, Any]:
     root = Path(project_root).resolve()
@@ -573,7 +579,13 @@ def _run_project_live_action(
     workflow = _select_workflow(manifest, workflow_name)
     normalized_action = _normalize_action(action)
     action_spec = _action_spec(workflow, normalized_action, publish=publish)
-    blocked = _runtime_blocks(workflow=workflow, action=action, approved=approved, publish=publish)
+    blocked = _runtime_blocks(
+        workflow=workflow,
+        action=action,
+        approved=approved,
+        confirm_delete=confirm_delete,
+        publish=publish,
+    )
     if blocked:
         return {**plan, "executed": False, "status": "blocked", "blocked_reasons": blocked}
     command = plan["command"]
@@ -1115,25 +1127,32 @@ def _retire_declared_paths(
     return _unique_strings(paths)
 
 
-def _runtime_blocks(*, workflow: dict[str, Any], action: str, approved: bool, publish: bool) -> list[str]:
-    cfg = DataLensConfig.from_env()
+def _runtime_blocks(
+    *,
+    workflow: dict[str, Any],
+    action: str,
+    approved: bool | None,
+    confirm_delete: bool,
+    publish: bool,
+) -> list[str]:
+    cfg = DataLensConfig.from_env().reload_canonical_env(reload_state="reloaded_before_project_live_write")
     normalized_action = _normalize_action(action)
     blocked: list[str] = []
     if not workflow.get("may_execute_command", workflow.get("may_execute", False)):
         blocked.append("workflow manifest does not allow command execution")
     if normalized_action in {"apply", RETIRE_ACTION}:
-        if not approved:
-            blocked.append(f"{normalized_action} requires approved=true")
+        if normalized_action == RETIRE_ACTION and not confirm_delete:
+            blocked.append("delete confirmation is required; repeat with confirm_delete=true for the unchanged plan")
         if not cfg.write_enabled:
             blocked.append("write mode is disabled; set DATALENS_MCP_ENABLE_WRITES=1")
-        if not env_flag("DATALENS_MCP_LIVE_ALLOW_SAVE", False):
+        if not cfg.save_enabled:
             blocked.append("save execution is disabled; set DATALENS_MCP_LIVE_ALLOW_SAVE=1")
     if normalized_action == RETIRE_ACTION and publish:
         blocked.append(f"{RETIRE_ACTION} does not use publish=true; publish no-reference proof is evidence, not a publish request")
     if publish:
         if not workflow.get("allow_publish", False):
             blocked.append("workflow manifest does not allow publish")
-        if not env_flag("DATALENS_MCP_LIVE_ALLOW_PUBLISH", False):
+        if not cfg.publish_enabled:
             blocked.append("publish execution is disabled; set DATALENS_MCP_LIVE_ALLOW_PUBLISH=1")
     return blocked
 

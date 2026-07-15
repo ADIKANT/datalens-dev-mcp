@@ -61,12 +61,12 @@ Expected response summary:
 ## Missing Credentials
 
 - Status: `BLOCKED_LIVE_CREDENTIALS`.
-- Retry: set credentials and run `dl_probe_auth`, then read-only discovery tools.
+- Retry: set credentials and run `dl_auth_probe`, then use the read-only discovery tools.
 
 ## Explicit QL Creation
 
 - Route: `ql_explicit`.
 - Status: guarded plan-only.
-- Behavior: only a direct user QL request with approval provenance and an
-  explicit payload or fresh saved QL seed can produce create/update planning.
+- Behavior: only a direct user QL request with an explicit payload or fresh
+  saved QL seed can produce create/update planning.
   Vague SQL/chart requests never select QL and QL delete remains closed.

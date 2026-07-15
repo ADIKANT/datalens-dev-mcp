@@ -25,8 +25,13 @@ class InstructionModelTests(unittest.TestCase):
             "no legacy cache sync",
         ):
             self.assertIn(phrase, model_text)
-        self.assertIn("Avoid duplicate tests", testing_text)
-        self.assertIn("Default readback is `minimal`", testing_text)
+        for phrase in (
+            "python3 scripts/run_offline_acceptance.py",
+            "38 инструментов",
+            "save-only",
+            "confirm_delete",
+        ):
+            self.assertIn(phrase, testing_text)
 
     def test_runtime_prompts_use_compact_shared_directive(self):
         for name, prompt in PROMPTS.items():

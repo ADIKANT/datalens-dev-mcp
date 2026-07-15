@@ -1,7 +1,6 @@
 # Current DataLens Docs Reconciliation
 
-Source update report: `reports/update_report.md` generated at `2026-07-13T13:37:44.377945Z`.
-Applied delta report: `reports/update_report_delta_2026-07-13.md` generated at `2026-07-13T13:26:50.349248Z`.
+Machine-readable source and delta information is stored in the packaged provenance files described in [`docs/sources.md`](../sources.md).
 
 This file is a distilled policy matrix. It does not copy raw documentation pages into the repository.
 
@@ -39,15 +38,15 @@ This file is a distilled policy matrix. It does not copy raw documentation pages
 | `dashboard_contents` | `guarded_plan_only` | dashboard layout validation | Treat contents widgets as dashboard structure; preserve through readback and safe apply. |
 | `dashboard_ai_widget` | `unsupported_explicit` | reference and preservation only | Do not create AI widgets from MCP; preserve unknown AI widget payloads on fresh-read update. |
 | `dashboard_ai_reference_tab` | `unsupported_explicit` | reference and preservation only | Do not create AI/reference tabs from MCP; preserve existing fields when updating other tabs. |
-| `workbook_access_basic` | `guarded_plan_only` | access binding planners | Workbook access changes require guarded plans and explicit approval. |
-| `workbook_access_advanced` | `guarded_plan_only` | access binding planners | Advanced workbook access is policy-aware but still guarded. |
+| `workbook_access_basic` | `unsupported_explicit` | reference only | Use DataLens or Yandex Cloud access management for workbook permission changes. |
+| `workbook_access_advanced` | `unsupported_explicit` | reference only | Advanced access changes are outside this MCP server. |
 | `embedded_objects` | `read_only` | dl_reference and object reads | Embedding docs are retained as reference; create/update embed routes are unsupported unless separately implemented. |
 | `roles` | `read_only` | dl_reference | Roles are used for operator guidance and sanitized diagnostics. |
 | `editor_methods` | `supported` | Advanced Editor validator and bundle generator | Supported methods feed the Editor runtime allowlist. |
 | `editor_tabs` | `supported` | Advanced Editor bundle generator | Generated payloads use current tab contracts for sources, params, prepare, and config. |
 | `editor_sources` | `supported` | Editor source validators and SQL diagnostics | Generated source SQL is statically linted and tied to source artifacts. |
 | `editor_code_helper` | `read_only` | dl_reference | AI helper docs are reference-only for authoring guidance. |
-| `editor_widgets_advanced` | `supported` | editor_advanced route | Advanced widgets are the primary approved custom chart route. |
+| `editor_widgets_advanced` | `supported` | editor_advanced route | Advanced widgets use the primary supported custom chart route. |
 | `editor_widgets_gravity_ui` | `unsupported_explicit` | dl_reference | Gravity UI Charts remain documented-reference only under local route policy. |
 | `editor_cross_filtration` | `guarded_plan_only` | selector and relation planning | Cross-filtration informs selector wiring and relation validation. |
 | `editor_notifications` | `supported` | Advanced Editor validator | Notification APIs are allowed only where current Editor runtime allows them. |
@@ -73,7 +72,7 @@ This file is a distilled policy matrix. It does not copy raw documentation pages
 
 ## Unsupported Or Reference-Only Decisions
 
-- `release_notes_2605`: StarRocks, mailings, shared objects, roles, cache invalidation, and hidden tabs do not enable guessed mutations.
+- `release_notes_2605`: StarRocks, mailings, shared objects, roles, cache invalidation, and non-visible tabs do not enable guessed mutations.
 - `dashboard_ai_widget`: Unsupported route returns explicit policy instead of a guessed payload.
 - `dashboard_ai_reference_tab`: Unsupported route remains explicit and tested.
 - `embedded_objects`: No embedding secret or embed write route is exposed by default.

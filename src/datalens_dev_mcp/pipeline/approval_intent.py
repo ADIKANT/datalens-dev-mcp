@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from typing import Any, Literal
 
 from datalens_dev_mcp.pipeline.target_lock import TargetLock, create_target_lock
@@ -104,6 +104,14 @@ class ApprovalIntentResolver:
         lock = target_lock if isinstance(target_lock, TargetLock) else create_target_lock(normalized, **(target_lock or {}))
         gates = safe_gates if isinstance(safe_gates, SafeGates) else SafeGates(**(safe_gates or {}))
         approval_source = self._approval_source(sources)
+        if (
+            not gates.safe_apply_approved
+            and normalized.task_intent in self.IMPLEMENTING_INTENTS
+            and "current_user_request" in sources
+        ):
+            # Ordinary delivery is authorized by the implementation request
+            # itself. The legacy bit remains readable for older callers.
+            gates = replace(gates, safe_apply_approved=True)
         delivery_decision = resolve_delivery_intent(
             normalized,
             DeliveryContext(
@@ -128,6 +136,24 @@ class ApprovalIntentResolver:
         )
 
         if normalized.destructive_actions:
+            unsupported = [
+                action
+                for action in normalized.destructive_actions
+                if action in {"move", "permissions_change", "credential_change"}
+            ]
+            if unsupported:
+                return ApprovalIntentDecision(
+                    status="blocked",
+                    approved=False,
+                    approval_source=approval_source,
+                    target_lock_hash=lock.lock_hash,
+                    default_delivery=[],
+                    publish_expected=False,
+                    save_expected=False,
+                    blocked_reasons=[f"unsupported_operation:{action}" for action in unsupported],
+                    delivery_state=delivery_decision.state,
+                    delivery_reason=delivery_decision.reason,
+                )
             return ApprovalIntentDecision(
                 status="extra_confirmation_required",
                 approved=False,
@@ -137,7 +163,7 @@ class ApprovalIntentResolver:
                 publish_expected=False,
                 save_expected=False,
                 extra_confirmation_reasons=normalized.destructive_actions,
-                required_next_gates=["explicit_extra_confirmation"],
+                required_next_gates=["confirm_delete"],
                 delivery_state=delivery_decision.state,
                 delivery_reason=delivery_decision.reason,
             )

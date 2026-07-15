@@ -13,7 +13,7 @@ DataLens visualization reference.
 5. Choose route from `config/route_selection_policy_v5.json`: standard charts
    use `wizard_native`; registered gaps use Editor; direct QL requests use
    `ql_explicit`.
-6. Choose approved chart family and registered template.
+6. Choose a supported chart family and registered template.
 7. Persist chart, metric, selector, and object relations before payload planning.
 8. Ask a precise fallback question when critical evidence is missing.
 

@@ -24,13 +24,13 @@ compiled request/response schemas tracked by this project.
 - Use `dl_plan_guarded_dataset_update` for dataset updates. It requires a
   fresh current dataset payload, validates the proposed payload first, preserves
   field GUIDs by default, and checks affected chart payloads for broken GUID
-  references before any approved update plan is allowed.
+  references before it builds an executable update plan.
 
 ## Safe Apply Rules
 
 - Create/update plans must preserve unknown fields from fresh readback when updating existing objects.
 - Dataset and connection update plans must name the official method, schema ref, and support status from `config/datalens_api_methods.json`.
-- Saving a dataset, chart, or dashboard remains a separate internal operation
-  from publishing; approved implementation/fix/enhance delivery publishes only
-  through a publish-from-saved plan and published readback.
+- Saving a dataset, chart, or dashboard is followed by saved readback.
+  Implementation/fix/enhance delivery publishes through a publish-from-saved
+  plan and then verifies published readback.
 - Do not log or commit credential-like connection payloads, env files, or token material.

@@ -4,16 +4,16 @@ from unittest.mock import patch
 
 
 class DeliveryIntentPolicyTests(unittest.TestCase):
-    def test_environment_context_defaults_save_and_publish_off(self):
+    def test_environment_context_defaults_save_and_publish_on(self):
         from datalens_dev_mcp.pipeline.delivery_intent import delivery_context_from_env
 
         with patch.dict(os.environ, {}, clear=True):
             context = delivery_context_from_env(target_known=True, approved=True)
 
-        self.assertFalse(context.writes_enabled)
-        self.assertFalse(context.save_enabled)
-        self.assertFalse(context.publish_enabled)
-        self.assertTrue(context.publish_disabled_by_policy)
+        self.assertTrue(context.writes_enabled)
+        self.assertTrue(context.save_enabled)
+        self.assertTrue(context.publish_enabled)
+        self.assertFalse(context.publish_disabled_by_policy)
 
     def test_review_is_read_only_and_unknown_target_blocks_delivery(self):
         from datalens_dev_mcp.pipeline.delivery_intent import resolve_delivery_intent
@@ -41,7 +41,7 @@ class DeliveryIntentPolicyTests(unittest.TestCase):
         self.assertTrue(decision.publish_expected)
         self.assertIn("saved_readback_fresh", decision.required_gates)
         self.assertIn("published_readback", decision.required_gates)
-        self.assertIn("safe_apply_session_approval", decision.satisfied_gates)
+        self.assertIn("user_request_authorization", decision.satisfied_gates)
 
     def test_draft_and_destructive_intents_are_separate(self):
         from datalens_dev_mcp.pipeline.delivery_intent import DeliveryContext, resolve_delivery_intent

@@ -1,24 +1,24 @@
 {
-  "schema_version": "2026-06-04.datalens_mcp_local_config.v1",
+  "schema_version": "2026-07-15.datalens_mcp_local_config.v2",
   "defaults": {
     "workbook_id": "<WORKBOOK_ID>",
     "project_id": "<PROJECT_ID>",
     "dashboard_id": "<DASHBOARD_ID>",
     "project_workspace_path": "."
   },
-  "safe_mode": {
-    "default": "plan_only",
-    "allow_writes": false,
+  "execution": {
+    "default": "follow_user_request",
+    "writes": true,
+    "save": true,
+    "publish": true,
+    "delete_requires_confirmation": true
+  },
+  "safe_apply": {
     "require_safe_apply_plan": true,
     "require_fresh_read": true,
-    "preserve_revision": true
-  },
-  "approval_gates": {
-    "write_requires_env": "DATALENS_MCP_ENABLE_WRITES=1",
-    "write_requires_tool_approval": true,
-    "publish_requires_explicit_tool_approval": true,
-    "publish_default": true,
-    "delete_move_permissions_allowed": false
+    "preserve_revision": true,
+    "require_save_mode_first": true,
+    "require_readback_after_save": true
   },
   "readback": {
     "mode": "minimal",
@@ -30,14 +30,6 @@
     "require_route_validation": true,
     "require_template_validation": true,
     "require_relation_validation": true
-  },
-  "safe_apply": {
-    "require_approved_plan_path": true,
-    "require_approval_flag": true,
-    "require_env_write_enablement": true,
-    "require_save_mode_first": true,
-    "require_readback_after_save": true,
-    "allow_publish_by_default": true
   },
   "live_testing": {
     "run_live_tests_by_default": false,

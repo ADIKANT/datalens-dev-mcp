@@ -129,7 +129,7 @@
     {
       "fixture_path": "tests/fixtures/api_contracts/createConnection.json",
       "http_method": "POST",
-      "live_probe_policy": "offline_fixture_required_live_write_optional_approval_gated",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
       "method_name": "createConnection",
       "operation_id": "createConnection",
       "owning_mcp_tool": "dl_create_connector_plan",
@@ -187,7 +187,7 @@
     {
       "fixture_path": "tests/fixtures/api_contracts/createDashboard.json",
       "http_method": "POST",
-      "live_probe_policy": "offline_fixture_required_live_write_optional_approval_gated",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
       "method_name": "createDashboard",
       "operation_id": "createDashboard",
       "owning_mcp_tool": "dl_create_dashboard_plan",
@@ -224,7 +224,7 @@
     {
       "fixture_path": "tests/fixtures/api_contracts/createDataset.json",
       "http_method": "POST",
-      "live_probe_policy": "offline_fixture_required_live_write_optional_approval_gated",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
       "method_name": "createDataset",
       "operation_id": "createDataset",
       "owning_mcp_tool": "dl_create_dataset_plan",
@@ -465,7 +465,7 @@
     {
       "fixture_path": "tests/fixtures/api_contracts/createEditorChart.json",
       "http_method": "POST",
-      "live_probe_policy": "offline_fixture_required_live_write_optional_approval_gated",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
       "method_name": "createEditorChart",
       "operation_id": "createEditorChart",
       "owning_mcp_tool": "dl_create_editor_chart_plan",
@@ -597,7 +597,7 @@
     {
       "fixture_path": "tests/fixtures/api_contracts/createQLChart.json",
       "http_method": "POST",
-      "live_probe_policy": "offline_fixture_required_live_write_optional_approval_gated",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
       "method_name": "createQLChart",
       "operation_id": "createQLChart",
       "owning_mcp_tool": "dl_plan_object_create",
@@ -665,7 +665,7 @@
     {
       "fixture_path": "tests/fixtures/api_contracts/createWizardChart.json",
       "http_method": "POST",
-      "live_probe_policy": "offline_fixture_required_live_write_optional_approval_gated",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
       "method_name": "createWizardChart",
       "operation_id": "createWizardChart",
       "owning_mcp_tool": "dl_create_wizard_chart_plan",
@@ -696,7 +696,7 @@
     {
       "fixture_path": "tests/fixtures/api_contracts/createWorkbook.json",
       "http_method": "POST",
-      "live_probe_policy": "offline_fixture_required_live_write_optional_approval_gated",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
       "method_name": "createWorkbook",
       "operation_id": "createWorkbook",
       "owning_mcp_tool": "guarded_write",
@@ -2625,7 +2625,7 @@
     {
       "fixture_path": "tests/fixtures/api_contracts/startWorkbookExport.json",
       "http_method": "POST",
-      "live_probe_policy": "offline_fixture_required_live_write_optional_approval_gated",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
       "method_name": "startWorkbookExport",
       "operation_id": "startWorkbookExport",
       "owning_mcp_tool": "guarded_write",
@@ -2654,7 +2654,7 @@
     {
       "fixture_path": "tests/fixtures/api_contracts/startWorkbookImport.json",
       "http_method": "POST",
-      "live_probe_policy": "offline_fixture_required_live_write_optional_approval_gated",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
       "method_name": "startWorkbookImport",
       "operation_id": "startWorkbookImport",
       "owning_mcp_tool": "guarded_write",
@@ -2712,7 +2712,7 @@
     {
       "fixture_path": "tests/fixtures/api_contracts/updateCollectionAccessBindings.json",
       "http_method": "POST",
-      "live_probe_policy": "offline_fixture_required_live_write_optional_approval_gated",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
       "method_name": "updateCollectionAccessBindings",
       "operation_id": "updateCollectionAccessBindings",
       "owning_mcp_tool": "guarded_write",
@@ -2744,7 +2744,7 @@
     {
       "fixture_path": "tests/fixtures/api_contracts/updateConnection.json",
       "http_method": "POST",
-      "live_probe_policy": "offline_fixture_required_live_write_optional_approval_gated",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
       "method_name": "updateConnection",
       "operation_id": "updateConnection",
       "owning_mcp_tool": "dl_update_connector_plan",
@@ -2801,7 +2801,7 @@
     {
       "fixture_path": "tests/fixtures/api_contracts/updateDashboard.json",
       "http_method": "POST",
-      "live_probe_policy": "offline_fixture_required_live_write_optional_approval_gated",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
       "method_name": "updateDashboard",
       "operation_id": "updateDashboard",
       "owning_mcp_tool": "dl_update_dashboard_plan / dl_save_object_plan / dl_publish_object_plan",
@@ -2838,7 +2838,7 @@
     {
       "fixture_path": "tests/fixtures/api_contracts/updateDataset.json",
       "http_method": "POST",
-      "live_probe_policy": "offline_fixture_required_live_write_optional_approval_gated",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
       "method_name": "updateDataset",
       "operation_id": "updateDataset",
       "owning_mcp_tool": "dl_update_dataset_plan",
@@ -3080,7 +3080,7 @@
     {
       "fixture_path": "tests/fixtures/api_contracts/updateEditorChart.json",
       "http_method": "POST",
-      "live_probe_policy": "offline_fixture_required_live_write_optional_approval_gated",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
       "method_name": "updateEditorChart",
       "operation_id": "updateEditorChart",
       "owning_mcp_tool": "dl_update_editor_chart_plan",
@@ -3152,7 +3152,7 @@
     {
       "fixture_path": "tests/fixtures/api_contracts/updateQLChart.json",
       "http_method": "POST",
-      "live_probe_policy": "offline_fixture_required_live_write_optional_approval_gated",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
       "method_name": "updateQLChart",
       "operation_id": "updateQLChart",
       "owning_mcp_tool": "dl_plan_object_update",
@@ -3219,7 +3219,7 @@
     {
       "fixture_path": "tests/fixtures/api_contracts/updateWizardChart.json",
       "http_method": "POST",
-      "live_probe_policy": "offline_fixture_required_live_write_optional_approval_gated",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
       "method_name": "updateWizardChart",
       "operation_id": "updateWizardChart",
       "owning_mcp_tool": "dl_update_wizard_chart_plan",
@@ -3250,7 +3250,7 @@
     {
       "fixture_path": "tests/fixtures/api_contracts/updateWorkbook.json",
       "http_method": "POST",
-      "live_probe_policy": "offline_fixture_required_live_write_optional_approval_gated",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
       "method_name": "updateWorkbook",
       "operation_id": "updateWorkbook",
       "owning_mcp_tool": "guarded_write",
@@ -3279,7 +3279,7 @@
     {
       "fixture_path": "tests/fixtures/api_contracts/updateWorkbookAccessBindings.json",
       "http_method": "POST",
-      "live_probe_policy": "offline_fixture_required_live_write_optional_approval_gated",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
       "method_name": "updateWorkbookAccessBindings",
       "operation_id": "updateWorkbookAccessBindings",
       "owning_mcp_tool": "guarded_write",

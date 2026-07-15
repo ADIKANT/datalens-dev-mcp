@@ -18,10 +18,11 @@ PROMPTS: dict[str, dict[str, str]] = {
         "description": "One-prompt lane for a new governed dashboard from requirements and data evidence.",
         "text": _core(
             "Develop dashboards from the user's requirements. "
-            "Use project-memory-bank context_ref, then dl_reference; for known targets "
+            "Use context_ref and dl_reference; for known targets "
             "use dl_snapshot_dashboard or dl_read_object. Then call dl_build_payload_plan, "
             "dl_validate_project, dl_plan_object_create or dl_plan_object_update, and "
-            "dl_create_safe_apply_plan. Execute only with enablement and approval. After save, use "
+            "dl_create_safe_apply_plan. For an explicit implementation request, continue through guarded save without "
+            "asking again. After save, use "
             "dl_readback_and_report and dl_create_publish_from_saved_plan, then runtime evidence."
         ),
     },
@@ -30,8 +31,8 @@ PROMPTS: dict[str, dict[str, str]] = {
         "text": _core(
             "Redesign the existing DataLens dashboard. Use supplied context_ref and remote baseline, "
             "preserve unknown fields, build governed chart decisions, generate Editor bundles, validate, "
-            "produce dry-run payloads and a safe-apply review plan. Publish only when delivery intent and "
-            "all guarded save-plus-publish gates are explicit."
+            "produce dry-run payloads and a safe-apply plan. An explicit redesign request continues through save and "
+            "publish; plan-only, save-only, and no-publish wording limits that flow."
         ),
     },
     "datalens.enhance_existing": {
@@ -52,7 +53,7 @@ PROMPTS: dict[str, dict[str, str]] = {
     "datalens.safe_apply_review": {
         "description": "Review a dry-run payload and safe-apply plan before any guarded write.",
         "text": _core(
-            "Review the safe-apply plan. Confirm write mode is explicitly enabled, plan is approved, "
+            "Review the safe-apply plan. Check that runtime writes are enabled and the plan is bound to the current request, "
             "fresh reads preserve revisions and unknown fields, mode is save, no delete/move exists, "
             "publish actions use saved-readback source, and saved plus published readback reports will be produced."
         ),
@@ -70,8 +71,8 @@ PROMPTS: dict[str, dict[str, str]] = {
         "text": _core(
             "Use the local route contract, implementation rules, and safe-apply context. Preserve existing technology, "
             "route standard creates to Wizard, and keep Markdown/selectors on their dedicated Editor surfaces. Generate "
-            "real tabs from gallery/templates, validate, dry-run, "
-            "and stop before guarded writes unless explicitly approved."
+            "real tabs from gallery/templates, validate, and honor the user's delivery intent: implementation continues "
+            "through guarded save/publish, while review or plan-only remains read-only."
         ),
     },
     "datalens.live_diagnostics": {

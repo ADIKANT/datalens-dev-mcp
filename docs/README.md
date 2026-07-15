@@ -2,71 +2,59 @@
 
 **Русский** · [English](README_en.md) · [Главная](../README.md)
 
-[Установка](codex_setup.md) · [Инструменты](tools.md) · [Flow использования](usage-flow.md) · [Официальные источники](sources.md) · [Безопасность](local-only-safety-model.md)
+[Быстрый старт](../README.md#быстрый-старт) · [Доступ к DataLens](access.md) · [Подключение](codex_setup.md) · [Инструменты](tools.md) · [Сценарии](usage-flow.md) · [Источники](sources.md) · [Безопасность](local-only-safety-model.md) · [English](README_en.md)
 
-Этот раздел объясняет публичную поверхность локального MCP-сервера: как его подключить, какие задачи решают 38 стандартных инструментов, как проходит работа от read-only проверки до guarded publish и какие официальные материалы DataLens лежат в основе API-контрактов и справочных registries.
+Здесь собраны руководства по установке локального MCP-сервера, настройке доступа к DataLens и полному циклу работы — от чтения объектов до сохранения и публикации изменений.
 
-## Начните отсюда
+## С чего начать
 
-| Я хочу… | Откройте |
+| Задача | Руководство |
 | --- | --- |
-| Установить сервер и подключить Codex | [Настройка Codex](codex_setup.md) |
-| Подключить Claude или другой stdio-клиент | [README: подключение MCP-клиента](../README.md#подключение-mcp-клиента) |
-| Понять назначение конкретного инструмента | [Справочник 38 публичных инструментов](tools.md) |
-| Провести read-only аудит дашборда | [Flow: чтение и snapshot](usage-flow.md#2-read-only-аудит) |
-| Спланировать изменение без записи | [Flow: plan-only](usage-flow.md#3-plan-only) |
-| Безопасно сохранить и опубликовать изменение | [Flow: guarded-save-и-publish](usage-flow.md#4-guarded-save-и-publish) |
-| Проверить, на чем основана функция | [Карта официальных источников](sources.md) |
-| Разобраться в блокировке записи | [Safe Apply](safe-apply.md) |
-| Увидеть точные MCP inputs/outputs | [Технический tool catalog](mcp/tools.md) и [response contracts](mcp/response_contracts.md) |
+| Установить сервер | [Быстрый старт](../README.md#быстрый-старт) |
+| Подготовить IAM-токен, ID организации и права | [Доступ к DataLens](access.md) |
+| Подключить Codex | [Настройка Codex](codex_setup.md) |
+| Подключить Claude или другой stdio-клиент | [Примеры конфигурации](../examples/clients/README.md) |
+| Найти нужный инструмент | [Справочник 38 инструментов](tools.md) |
+| Провести аудит без записи | [Сценарий аудита](usage-flow.md#аудит-без-записи) |
+| Составить план без применения | [Планирование](usage-flow.md#планирование-без-записи) |
+| Сохранить без публикации | [Сохранение без публикации](usage-flow.md#сохранение-без-публикации) |
+| Внести и опубликовать изменение | [Обычное изменение](usage-flow.md#обычное-изменение-с-сохранением-и-публикацией) |
+| Проверить происхождение справочных данных | [Официальные источники](sources.md) |
 
-## Основной пользовательский путь
+## Как проходит обычное изменение
 
 ```text
-MCP client
-  -> dl_runtime_status / dl_auth_probe
-  -> workbook and object reads
-  -> dashboard snapshot and relation evidence
-  -> route, object, and project validation
-  -> payload plan and safe-apply plan
-  -> guarded save
-  -> saved readback
-  -> publish-from-saved when allowed
-  -> published readback and runtime/browser QA
+подключение клиента
+  -> dl_runtime_status и dl_auth_probe
+  -> поиск воркбука и целевого объекта
+  -> актуальное чтение объекта и его связей
+  -> планирование и проверка запроса
+  -> сохранение
+  -> чтение сохранённой версии
+  -> публикация из сохранённой версии
+  -> чтение опубликованной версии
+  -> проверка результата в DataLens
 ```
 
-DataLens runtime по умолчанию read-only. Локальные tools могут создавать планы и отчеты внутри `--project-root`, но live mutation требует независимых write/save/publish gates, approval, fresh read и readback.
+Запрос пользователя определяет режим. Аудит и диагностика не меняют DataLens. `plan-only` останавливается после плана, `save-only` — после чтения сохранённой версии. Команды создать, исправить, обновить или переработать известный объект проходят полный цикл без повторного вопроса перед сохранением и публикацией. Удаление целого объекта требует отдельного подтверждения с его ID.
 
-## Документация по темам
+## Основные руководства
 
-### Для пользователя
+- [Доступ к DataLens](access.md) — Yandex Cloud CLI, организация, IAM-токен, роли, env-файл и проверка доступа.
+- [Настройка Codex](codex_setup.md) — `config.toml`, `codex mcp add`, `/mcp` и проверка подключения.
+- [Справочник инструментов](tools.md) — назначение и класс операции каждого из 38 вызовов.
+- [Сценарии](usage-flow.md) — готовые последовательности и промпты.
+- [Конфигурация](configuration.md) — локальные настройки и выключатели записи.
+- [Безопасность](local-only-safety-model.md) — защита учётных данных, ревизий и удаления.
+- [Выбор технологии чарта](route-policy.md) — Wizard, Editor и QL.
+- [Защищённое применение](safe-apply.md) — сохранение, контрольные чтения и публикация.
 
-- [Инструменты](tools.md) — что делает каждый публичный tool и когда его вызывать.
-- [Flow использования](usage-flow.md) — end-to-end сценарии и готовые prompts.
-- [Настройка Codex](codex_setup.md) — app, CLI, `config.toml`, `/mcp` и troubleshooting.
-- [Официальные источники](sources.md) — DataLens docs, Public API, Editor и provenance.
-
-### Политика и безопасность
-
-- [Конфигурация](configuration.md)
-- [Local-only safety model](local-only-safety-model.md)
-- [Route policy](route-policy.md)
-- [Safe apply](safe-apply.md)
-- [Policy vocabulary](policy_vocabulary.md)
-
-### Техническая справка
+## Техническая документация
 
 - [Архитектура](architecture.md)
-- [MCP tools](mcp/tools.md)
-- [Response contracts](mcp/response_contracts.md)
-- [Tool-selection policy](mcp/tool_selection_policy.md)
-- [API contract coverage](datalens/api_contract_coverage.md)
-- [Source provenance](source_provenance.md)
+- [Точный каталог MCP](mcp/tools.md)
+- [Контракты ответов](mcp/response_contracts.md)
+- [Покрытие DataLens API](datalens/api_contract_coverage.md)
+- [Происхождение справочных данных](source_provenance.md)
 
-## Границы
-
-- Обычный `tools/list` возвращает один стандартный набор из 38 инструментов.
-- Compatibility/test-only tools не являются пользовательским профилем и не входят в рекомендуемый Flow.
-- Wizard — default route для новых стандартных чартов; JavaScript используется по прямому запросу или capability gap; QL — только по прямому запросу.
-- Delete, move и permission mutations закрыты для обычного workflow. Именованное удаление возможно только через отдельный `retire_legacy_objects` lifecycle.
-- Сырые страницы документации, книги, курсы, private exports и credentials в репозитории не хранятся.
+Стандартный `tools/list` содержит 38 инструментов. Точные JSON-схемы текущей установленной версии доступны непосредственно через MCP-клиент и описаны в [техническом каталоге](mcp/tools.md).

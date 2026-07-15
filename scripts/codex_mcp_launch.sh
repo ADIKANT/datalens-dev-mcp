@@ -18,11 +18,11 @@ export PYTHONPATH="$REPO_ROOT/src"
 export DATALENS_ENV_FILE="${DATALENS_ENV_FILE:-$HOME/.config/datalens-dev-mcp/env}"
 export DATALENS_API_BASE_URL="${DATALENS_API_BASE_URL:-https://api.datalens.tech}"
 export DATALENS_API_VERSION="${DATALENS_API_VERSION:-auto}"
-export DATALENS_ENABLE_TOKEN_REFRESH_ON_401="${DATALENS_ENABLE_TOKEN_REFRESH_ON_401:-0}"
-export DATALENS_MCP_ENABLE_WRITES="${DATALENS_MCP_ENABLE_WRITES:-0}"
+export DATALENS_ENABLE_TOKEN_REFRESH_ON_401="${DATALENS_ENABLE_TOKEN_REFRESH_ON_401:-1}"
+export DATALENS_MCP_ENABLE_WRITES="${DATALENS_MCP_ENABLE_WRITES:-1}"
 export DATALENS_MCP_ENABLE_EXPERT_RPC="${DATALENS_MCP_ENABLE_EXPERT_RPC:-0}"
-export DATALENS_MCP_LIVE_ALLOW_SAVE="${DATALENS_MCP_LIVE_ALLOW_SAVE:-0}"
-export DATALENS_MCP_LIVE_ALLOW_PUBLISH="${DATALENS_MCP_LIVE_ALLOW_PUBLISH:-0}"
+export DATALENS_MCP_LIVE_ALLOW_SAVE="${DATALENS_MCP_LIVE_ALLOW_SAVE:-1}"
+export DATALENS_MCP_LIVE_ALLOW_PUBLISH="${DATALENS_MCP_LIVE_ALLOW_PUBLISH:-1}"
 
 case "${DATALENS_MCP_TEST_ONLY_REGISTRY:-}" in
   1|true|TRUE|yes|YES|on|ON)
@@ -41,14 +41,12 @@ if [[ "${DATALENS_ENABLE_TOKEN_REFRESH_ON_401}" == "1" || "${DATALENS_ENABLE_TOK
     YC_BIN="$(command -v yc || true)"
   fi
   if [[ -z "${YC_BIN:-}" ]]; then
-    echo "datalens-dev-mcp launcher: token refresh requested but yc was not found. Set DATALENS_YC_BINARY or disable DATALENS_ENABLE_TOKEN_REFRESH_ON_401." >&2
-    exit 127
+    echo "datalens-dev-mcp launcher: yc was not found; the server will start and dl_runtime_status will report refresh unavailable." >&2
+  elif [[ "$YC_BIN" == */* && ! -x "$YC_BIN" ]]; then
+    echo "datalens-dev-mcp launcher: configured yc is not executable; the server will start and dl_runtime_status will report refresh unavailable." >&2
+  else
+    export DATALENS_YC_BINARY="$YC_BIN"
   fi
-  if [[ "$YC_BIN" == */* && ! -x "$YC_BIN" ]]; then
-    echo "datalens-dev-mcp launcher: yc binary is not executable at DATALENS_YC_BINARY." >&2
-    exit 127
-  fi
-  export DATALENS_YC_BINARY="$YC_BIN"
 fi
 
 CONFIG_PATH="$REPO_ROOT/config/datalens_mcp.local.json"

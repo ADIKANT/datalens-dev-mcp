@@ -66,8 +66,9 @@ def build_reference_response(
         result = _delivery_intent(term, limit)
         normalized = "delivery_intent"
     elif normalized in {"delivery_approval", "approval_intent", "approval_policy_v3"}:
-        result = _runtime_quality_reference("delivery_approval", term)
-        normalized = "delivery_approval"
+        # Backward-compatible aliases resolve to the current public intent contract.
+        result = _delivery_intent(term, limit)
+        normalized = "delivery_intent"
     elif normalized in {"target_lock", "target_delivery", "target_delivery_lock"}:
         result = _runtime_quality_reference("target_lock", term)
         normalized = "target_lock"
@@ -196,19 +197,19 @@ def _reference_envelope(mode: str, term: str, result: dict[str, Any]) -> dict[st
         "delivery_intent": [
             "Read-only review stays read-only.",
             "Draft/save-only language plans saved-branch writes without publish.",
-            "Save-plus-publish requires known target, enabled writes, explicit approval, fresh read, and saved readback.",
+            (
+                "Save-plus-publish requires a known target, enabled runtime switches, "
+                "the current user request, fresh read, and saved readback."
+            ),
             "Never guess workbook, dashboard, chart, dataset, or connection ids.",
             "Keep saved and published readback as separate proof classes.",
         ],
         "delivery_approval": [
-            "Normal implement/fix/enhance/redesign/update with a locked target does not require a literal I approve phrase.",
-            (
-                "Current user request, goal objective file, Codex tool approval, manifest approval, "
-                "or explicit chat approval are valid approval sources."
-            ),
-            "Destructive, credential, permission, move, delete, and ambiguous-target work still requires extra confirmation.",
+            "A normal implement/fix/enhance/redesign/update request authorizes guarded delivery for its locked target.",
+            "The same request carries through save, saved readback, publish from saved, and published readback.",
+            "Whole-object deletion requires confirm_delete; credential, permission, and move operations are unsupported.",
             "Draft/save-only/no-publish/plan-only text overrides publish.",
-            "Approved live delivery uses save, saved readback, publish, and published readback after safe gates.",
+            "Runtime switches, target lock, fresh read, revision preservation, and readback remain mandatory.",
         ],
         "target_lock": [
             "Parse workbook, dashboard, and chart ids from user URL, manifest, workbook entry, or explicit text.",
@@ -256,7 +257,7 @@ def _reference_envelope(mode: str, term: str, result: dict[str, Any]) -> dict[st
             "Existing dataset ids and discovered workbook datasets take precedence over embedded JS data.",
             "Existing connections require a dataset plan before chart payloads.",
             "Unsupported local file upload becomes a manual upload handoff, not an embedded final dashboard.",
-            "Embedded static mode requires explicit approval and bounded data size.",
+            "Embedded static mode requires a direct user request and bounded data size.",
             "Deployment reports record source mode and dataset/schema readback evidence.",
         ],
         "visual_quality": [
@@ -271,7 +272,7 @@ def _reference_envelope(mode: str, term: str, result: dict[str, Any]) -> dict[st
             "Publish plans include per-tab widgets, heavy sources, duplicate SQL fingerprints, JS size, embedded data size, and warnings.",
             "Duplicated heavy source SQL without cache/reuse is blocked.",
             "Unbounded detail queries, CROSS JOIN totals, broad OR after JOIN, and heavy client transforms are blocked.",
-            "Large embedded data requires explicit static/embedded approval.",
+            "Large embedded data requires a direct static/embedded request.",
         ],
         "repo_size": [
             "Tracked source excluding .git must stay under the configured repository budget.",
@@ -284,7 +285,7 @@ def _reference_envelope(mode: str, term: str, result: dict[str, Any]) -> dict[st
             "Use the current OpenAPI-derived operation policy as the method index.",
             "Supported tools use guarded adapters; unsupported methods return structured unavailable responses.",
             "QL read/create/update is explicit-only; it is never selected automatically and delete remains closed.",
-            "Delete, move, permission, and blind-write operations stay unsupported unless explicitly guarded.",
+            "Whole-object deletion uses confirm_delete; move, permission, credential, and blind-write operations remain unsupported.",
             "Fixture hashes must match request and response schema references.",
         ],
         "current_docs_delta": [
@@ -296,10 +297,10 @@ def _reference_envelope(mode: str, term: str, result: dict[str, Any]) -> dict[st
         ],
         "tool_selection": [
             "Use one standard tools/list surface for normal Codex workflows.",
-            "Start with runtime/auth status and a project_context_ref.v1 supplied by Project Memory Bank.",
+            "Start with runtime/auth status and use compact project context when it is available.",
             "Use dl_reference for bounded policy lookup instead of reading long docs repeatedly.",
             "Use read/snapshot tools before planning writes.",
-            "Safe apply and publish tools require approval gates and readback artifacts.",
+            "Safe apply and publish follow the current user request, runtime gates, and readback artifacts.",
         ],
     }
     tools_by_mode = {
@@ -521,7 +522,7 @@ def _runtime_quality_reference(mode: str, term: str) -> dict[str, Any]:
         "source_route": {
             "summary": (
                 "SourceRouteResolver prefers existing datasets and connections, returns manual upload handoff where needed, "
-                "and only permits embedded static data with explicit approval."
+                "and only permits embedded static data after a direct user request."
             ),
             "implementation": "src/datalens_dev_mcp/pipeline/source_route_resolver.py",
         },
@@ -535,7 +536,7 @@ def _runtime_quality_reference(mode: str, term: str) -> dict[str, Any]:
         "performance_budget": {
             "summary": (
                 "PerformanceBudget blocks publish for slow tabs, duplicated heavy SQL, unbounded detail queries, "
-                "heavy generated JS, and large embedded data without explicit static approval."
+                "heavy generated JS, and large embedded data without a direct static-data request."
             ),
             "implementation": "src/datalens_dev_mcp/pipeline/performance_budget.py",
         },
@@ -728,7 +729,7 @@ def _authoring_guidance(term: str, limit: int) -> dict[str, Any]:
         },
         "unsupported_parts": unsupported_parts,
         "validation_checklist": selected.get("validation_checklist") or [],
-        "expected_lifecycle": "plan_only_until_safe_apply_approval; no DataLens mutation in this milestone",
+        "expected_lifecycle": "follow_user_request: review and plan remain read-only; implementation uses guarded save and publish",
         "exact_source_traces": selected.get("source_traces") or [],
         "implementation_evidence_state": (selected.get("executable_bundle") or {}).get("status")
         or selected.get("implementation_status")
@@ -803,7 +804,7 @@ def _chart_selection(term: str, limit: int) -> dict[str, Any]:
                 "analytical task",
                 "data shape and metric semantics",
                 "negative requirements",
-                "approved family and route",
+                "supported family and route",
                 "renderer visual spec",
             ],
             "kpi_policy": "Use kpi_value_sparkline or kpi_value_only by default; delta variants require an explicit comparator.",
@@ -953,8 +954,8 @@ def _delivery_intent(term: str, limit: int) -> dict[str, Any]:
         "guidance": {
             "default": "Review/audit language stays read-only.",
             "delivery": (
-                "Known target plus enabled writes plus approved safe apply can plan "
-                "save+publish delivery with explicit readback gates."
+                "A current implementation request for a known target plus enabled runtime switches starts "
+                "guarded save+publish delivery with explicit readback gates."
             ),
             "never_guess": "Unknown target IDs block writes instead of guessing workbook or dashboard IDs.",
         },
@@ -1047,7 +1048,7 @@ def _tool_selection(term: str, limit: int) -> dict[str, Any]:
         {
             "stage": "startup",
             "tools": ["dl_runtime_status", "dl_auth_probe"],
-            "rule": "Confirm local mode and auth readiness; Project Memory Bank supplies compact project context.",
+            "rule": "Confirm local mode and auth readiness; use compact project context when it is available.",
         },
         {
             "stage": "reference",
@@ -1073,7 +1074,7 @@ def _tool_selection(term: str, limit: int) -> dict[str, Any]:
                 "dl_create_publish_from_saved_plan",
                 "dl_readback_and_report",
             ],
-            "rule": "Plan, approve, save, read back, publish from saved, then read back published proof separately.",
+            "rule": "Plan, save, read back, publish from saved, then read back published proof separately.",
         },
     ]
     ranked = _rank(stages, term, fields=("stage", "tools", "rule")) or stages
@@ -1081,7 +1082,6 @@ def _tool_selection(term: str, limit: int) -> dict[str, Any]:
         "result_count": len(ranked),
         "results": ranked[:limit],
         "standard_surface": "tools/list",
-        "duplicate_workflows": "hidden compatibility tools are excluded from the standard surface",
     }
 
 

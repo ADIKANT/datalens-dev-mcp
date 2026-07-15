@@ -27,6 +27,65 @@ def is_missing_credentials(exc: Exception) -> bool:
     )
 
 
+def classify_auth_probe_failure(exc: Exception) -> dict[str, str]:
+    """Classify a failed minimal auth probe without returning credential data."""
+
+    text = str(exc).lower()
+    if is_missing_credentials(exc):
+        category = "missing_credentials"
+        next_action = (
+            "Configure DATALENS_ORG_ID and an IAM token, or enable yc token refresh, "
+            "then retry dl_auth_probe."
+        )
+    elif any(
+        marker in text
+        for marker in (
+            "initial_token_bootstrap_failed",
+            "yc iam create-token failed",
+            "yc iam create-token could not be started",
+            "yc iam create-token timed out",
+            "token_refresh_failed",
+        )
+    ):
+        category = "yc_reauthentication_required"
+        next_action = "Restore an authenticated yc CLI profile, then retry dl_auth_probe."
+    elif any(marker in text for marker in ("http 401", "auth_invalid_or_expired", "unauthenticated")):
+        category = "expired_token"
+        next_action = "Refresh the IAM token or enable yc refresh, then retry dl_auth_probe."
+    elif any(
+        marker in text
+        for marker in (
+            "http 403",
+            "permission_denied",
+            "permission denied",
+            "access denied",
+            "forbidden",
+            "organization access",
+        )
+    ):
+        category = "organization_access_denied"
+        next_action = "Check DATALENS_ORG_ID and the DataLens roles granted to the active Yandex Cloud identity."
+    elif any(
+        marker in text
+        for marker in (
+            "failed before http response",
+            "connection refused",
+            "connection reset",
+            "name or service not known",
+            "temporary failure",
+            "timed out",
+            "timeout",
+            "network is unreachable",
+        )
+    ):
+        category = "transport_failure"
+        next_action = "Check network, proxy, DNS, API base URL, and request timeout, then retry dl_auth_probe."
+    else:
+        category = "api_failure"
+        next_action = "Check the sanitized API error and DataLens API status, then retry dl_auth_probe."
+    return {"category": category, "next_action": next_action}
+
+
 def request_with_auth_refresh(
     operation: Callable[[], Any],
     *,

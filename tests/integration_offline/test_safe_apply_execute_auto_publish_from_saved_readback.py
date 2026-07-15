@@ -87,7 +87,6 @@ class SafeApplyExecuteAutoPublishFromSavedReadbackTests(unittest.TestCase):
         self.assertEqual(result["status"], "completed")
         self.assertTrue(result["delivery_result"]["saved"]["passed"])
         self.assertTrue(result["delivery_result"]["published"]["passed"])
-        self.assertTrue(result["approval_reuse_for_publish"])
         self.assertEqual(len(result["saved_readback_paths"]), 1)
         self.assertEqual(len(result["published_readback_paths"]), 1)
         self.assertTrue(result["delivery_intent_decision"]["saved_readback_path"])

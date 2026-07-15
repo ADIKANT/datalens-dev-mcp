@@ -1,58 +1,66 @@
-# Codex Prompt Examples
+# Примеры промптов для Codex
 
-Use these prompts from a Codex thread that has the `datalens-dev` MCP server
-connected.
+Используйте их в задаче, где подключён `datalens-dev` MCP. Замените значения в угловых скобках.
 
-## New Dashboard From Requirements
+## Проверка подключения
 
 ```text
-Use the datalens-dev MCP for <PROJECT_ROOT>/<project>.
-Initialize the project workspace, ingest these dashboard requirements, build
-the dashboard map/canvas, plan connectors/datasets/fields, choose allowed chart
-routes, generate templates, validate the project, and stop after a dry-run
-payload and safe-apply plan. Do not execute writes.
-
-Requirements:
-<paste compact requirements or S2T notes>
+Вызови dl_runtime_status и dl_auth_probe через DataLens MCP. Покажи project
+root, наличие учётных данных без их значений, доступность write/save/publish
+и результат реального getWorkbooksList. Ничего не изменяй.
 ```
 
-## Improve Existing Dashboard
+## Аудит без записи
 
 ```text
-Use the datalens-dev MCP for <PROJECT_ROOT>/<project>.
-Load the existing project context and requirements workspace, ingest these user
-comments, update the dashboard map/canvas and chart plan, regenerate only the
-affected template bundle, validate, and produce a safe-apply save plan. Keep
-publish out of scope.
-
-User comments:
-<paste comments>
+Проведи аудит дашборда <DASHBOARD_ID> в воркбуке <WORKBOOK_ID>. Прочитай
+актуальную saved-версию, создай снимок со связанными объектами, проверь связи
+и перечисли риски. Верни краткий вывод и пути к отчётам. Ничего не сохраняй
+и не публикуй.
 ```
 
-## Explain Workbook Object Relations
+## План нового дашборда
 
 ```text
-Use the datalens-dev MCP in read-only mode. Read workbook <WORKBOOK_ID>, list
-entries, explain dashboard/chart/dataset/connection relations, and identify
-missing selector targets or object-relation risks. Do not write or publish.
+Используй DataLens MCP для <PROJECT_ROOT>. По требованиям ниже составь карту
+дашборда, выбери подходящие Wizard/Editor routes, подготовь объекты, проверь
+проект и создай payload plan и Safe Apply plan. Режим plan-only: не сохраняй
+и не публикуй.
+
+Требования:
+<ТРЕБОВАНИЯ>
 ```
 
-## Preserve Or Explicitly Migrate A Wizard Widget
+## Сохранение без публикации
 
 ```text
-Use the datalens-dev MCP for <PROJECT_ROOT>/<project>.
-Inspect the widget requirements and current route evidence. If the widget is a
-Wizard chart, preserve its technology and visualization ID from fresh saved
-readback. Plan Advanced Editor JavaScript only if I explicitly request the
-migration and the capability gap is registered. Generate only a dry-run bundle
-and validation report.
+Обнови <OBJECT_TYPE> <OBJECT_ID> в воркбуке <WORKBOOK_ID>: <ТРЕБОВАНИЕ>.
+Прочитай актуальную saved-версию и связи, проверь изменение, сохрани его и
+выполни saved readback. Режим save-only: не публикуй.
 ```
 
-## Dry-Run Payload Plan Only
+## Исправление с публикацией
 
 ```text
-Use the datalens-dev MCP for <PROJECT_ROOT>/<project>.
-Do not call live write tools. Build or refresh the payload plan and safe-apply
-plan from existing project artifacts, then report the exact files and blocked
-write gates.
+Исправь <OBJECT_TYPE> <OBJECT_ID> в воркбуке <WORKBOOK_ID>: <ТРЕБОВАНИЕ>.
+Прочитай актуальную saved-версию и связи, составь и проверь план, сохрани
+изменение, выполни saved readback, опубликуй из сохранённой версии и проверь
+published readback. Проверь изменённую область в DataLens. Не запрашивай
+отдельное подтверждение перед save или publish.
+```
+
+## Обновление Wizard-чарта
+
+```text
+Обнови Wizard-чарт <CHART_ID>: <ТРЕБОВАНИЕ>. Сохрани технологию и
+visualization_id из актуальной saved-версии, проверь поля датасета, выполни
+save, saved readback, publish-from-saved и published readback.
+```
+
+## Удаление целого объекта
+
+```text
+Удали целиком <OBJECT_TYPE> <OBJECT_ID>. Сначала покажи точный объект, связи
+и hash плана. Выполни удаление только после моего отдельного подтверждения
+этого неизменившегося плана.
 ```

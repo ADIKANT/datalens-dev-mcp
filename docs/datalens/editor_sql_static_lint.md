@@ -19,7 +19,7 @@ Rules with `error` severity:
   source fields can be mixed Int/String; matching supplied field-type evidence
   suppresses the warning.
 - `raw_payload_default_visible`: flags raw JSON payload fields such as
-  `event_payload_json` unless they are hidden/debug-only.
+  `event_payload_json` unless they are explicitly limited to diagnostics.
 - `availability_default_regression`: flags availability fields that default to
   `0` when local rules say DEV/test runtime availability should remain true.
 - `correlated_subquery_unsupported`: flags correlated subquery shapes that can
@@ -65,5 +65,5 @@ with generated-query inspection, save/publish acceptance, object readback, and
 manual UI smoke.
 
 Static lint is evidence level `STATIC_SQL_LINT`. It is not runtime execution.
-Use `dl_build_data_evidence_probe_plan` and recorded read-only provider output
-for `ENGINE_SCHEMA_PROBE` or `ENGINE_STAGE_PROBE`.
+Use recorded read-only provider output with `dl_diagnose` for
+`ENGINE_SCHEMA_PROBE` or `ENGINE_STAGE_PROBE` evidence.

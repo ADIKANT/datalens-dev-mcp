@@ -2,55 +2,39 @@
 
 ## Supported versions
 
-Security fixes are applied to the latest published release and to the `main`
-branch. Older releases may not receive backports while the project remains in
-alpha.
+Security fixes are applied to the latest published release and to `main`. Older alpha releases may not receive backports.
 
-## Reporting a vulnerability
+## Report a vulnerability
 
-Use GitHub's private vulnerability reporting flow:
+Use GitHub private vulnerability reporting:
 
 <https://github.com/ADIKANT/datalens-dev-mcp/security/advisories/new>
 
-Do not open a public issue for a suspected vulnerability. Include a minimal
-reproduction, affected version, impact, and suggested mitigation when known.
-Use synthetic values only: never attach a working IAM token, authorization
-header, private workbook export, customer data, or private key.
+Include a minimal reproduction, affected version, impact, and suggested mitigation when known. Use synthetic values. Never attach a working IAM token, authorization header, private workbook export, customer data, or private key.
 
-The maintainer will acknowledge reports and coordinate remediation on a
-best-effort basis. Please allow time for a fix and release before public
-disclosure.
+If a real credential was exposed, revoke or rotate it immediately. Removing it from a message or commit does not invalidate it.
 
-If a real credential was exposed, revoke or rotate it with the credential
-issuer immediately. Removing it from a message or commit does not invalidate
-the credential.
+## Runtime security model
 
-## Security model
+`datalens-dev-mcp` is a local stdio server. It inherits the permissions of the local user and the MCP client. It does not provide a network listener or hosted service.
 
-`datalens-dev-mcp` is a local stdio server. It inherits the permissions of the
-local account and the MCP client that launches it. It is not a sandbox and
-must not be exposed directly as a network service.
+The standard runtime is ready for write, save, and publish. The user request selects the operation:
 
-The intended defaults are:
+- audit, review, diagnose, and plan-only requests do not write;
+- save-only and no-publish stop after saved readback;
+- create, fix, update, enhance, and redesign requests continue through save, saved readback, publish from saved state, and published readback;
+- deleting a complete DataLens object requires a separate confirmation with exact IDs and an unchanged plan.
 
-- no hosted listener or inbound network port;
-- no live DataLens calls in CI;
-- write mode disabled unless `DATALENS_MCP_ENABLE_WRITES=1` is explicitly set;
-- expert RPC disabled unless `DATALENS_MCP_ENABLE_EXPERT_RPC=1` is explicitly
-  set;
-- mutations governed by planning, fresh-read, revision, save, readback, and
-  delivery-intent gates;
-- secrets loaded from the local environment or an ignored environment file,
-  never from tracked configuration.
+Before each write, the server checks the target, reads current saved state, preserves revision and unknown fields, validates the payload, and reads the result. Publishing is built only from verified saved state. Removing content inside an object is an update; object moves, permission changes, and credential mutations are unsupported.
 
-Operators are responsible for restricting filesystem access to token files,
-reviewing enabled tools in their MCP client, and using least-privilege Yandex
-Cloud credentials. Debug logs and bug reports must not print token values,
-token prefixes, authorization headers, org IDs, or private object payloads.
+Set `DATALENS_MCP_ENABLE_WRITES`, `DATALENS_MCP_LIVE_ALLOW_SAVE`, or `DATALENS_MCP_LIVE_ALLOW_PUBLISH` to `0` to hard-disable that capability. Keep `DATALENS_MCP_ENABLE_EXPERT_RPC=0` in user configuration.
 
-## Scope boundaries
+## Credential handling
 
-This policy covers vulnerabilities in this repository. Account compromise,
-Yandex Cloud service incidents, credential recovery, and DataLens product
-support must be handled through the applicable upstream support channel. This
-independent project is not affiliated with or supported by Yandex LLC.
+Store IAM tokens in a separate `DATALENS_ENV_FILE` with `0600` permissions. The server sanitizes responses, artifacts, and errors for token, authorization, password, and private-key material. Debug logs and public reports must not contain token values, token prefixes, authorization headers, organization IDs, or private object payloads.
+
+The server can use an initialized `yc` CLI to obtain or refresh an IAM token. New tokens are atomically written to the canonical env file. Restrict filesystem access to that file and grant the account only the DataLens roles it needs.
+
+## Scope
+
+This policy covers vulnerabilities in this repository. Account compromise, Yandex Cloud incidents, credential recovery, and DataLens product support belong to their respective upstream support channels. The project is independent of Yandex.

@@ -1,12 +1,12 @@
 # Настройка Codex
 
-**Русский** · [English](codex_setup_en.md) · [Документация](README.md) · [Полный Flow](usage-flow.md)
+**Русский** · [English](codex_setup_en.md) · [Главная](../README.md)
 
-Codex запускает `datalens-dev-mcp` как локальный stdio MCP server. Codex app, CLI и IDE extension используют одну конфигурацию на одном host. Официальная справка: [Model Context Protocol in Codex](https://learn.chatgpt.com/docs/extend/mcp).
+[Быстрый старт](../README.md#быстрый-старт) · [Доступ к DataLens](access.md) · **Подключение** · [Инструменты](tools.md) · [Сценарии](usage-flow.md) · [Источники](sources.md) · [Безопасность](local-only-safety-model.md) · [English](codex_setup_en.md)
+
+Codex запускает `datalens-dev-mcp` как локальный stdio-сервер. Codex app, CLI и расширение IDE используют один формат `config.toml`. Актуальные параметры MCP описаны в [официальной документации Codex](https://learn.chatgpt.com/docs/extend/mcp).
 
 ## 1. Установите сервер
-
-Требуется Python 3.11 или новее:
 
 ```bash
 git clone https://github.com/ADIKANT/datalens-dev-mcp.git
@@ -18,54 +18,23 @@ python3 -m venv .venv
 python3 scripts/smoke_mcp_stdio.py
 ```
 
-Smoke test работает offline, проверяет MCP initialization/tools/prompts/resources и не обращается к DataLens.
+Последняя команда проверяет MCP-протокол локально и не обращается к DataLens.
 
-## 2. Выберите project root
+## 2. Подготовьте рабочую папку и доступ
+
+Создайте папку, где сервер сможет хранить планы, снимки и отчёты:
 
 ```bash
 mkdir -p /absolute/path/to/your/dashboard-project
 ```
 
-`--project-root` определяет локальную директорию для requirements, plans, validation outputs и deployment artifacts. Он не выбирает live workbook или dashboard; object IDs передаются tools отдельно.
+`--project-root` указывает на эту папку. Он не выбирает воркбук или дашборд в DataLens.
 
-Read-only относится к DataLens mutations. Локальные planners могут записывать artifacts внутрь project root.
+Затем выполните инструкцию [«Доступ к DataLens»](access.md): установите `yc`, получите ID организации, проверьте роли и создайте защищённый env-файл.
 
-## 3. Создайте внешний env-файл
+## 3. Добавьте сервер в `config.toml`
 
-Offline tools работают без credentials. Для live reads:
-
-```bash
-mkdir -p ~/.config/datalens-dev-mcp
-touch ~/.config/datalens-dev-mcp/env
-chmod 600 ~/.config/datalens-dev-mcp/env
-```
-
-```dotenv
-DATALENS_ORG_ID=<YOUR_ORG_ID>
-DATALENS_IAM_TOKEN=<YOUR_IAM_TOKEN>
-DATALENS_API_BASE_URL=https://api.datalens.tech
-DATALENS_API_VERSION=auto
-
-DATALENS_MCP_ENABLE_WRITES=0
-DATALENS_MCP_LIVE_ALLOW_SAVE=0
-DATALENS_MCP_LIVE_ALLOW_PUBLISH=0
-DATALENS_MCP_ENABLE_EXPERT_RPC=0
-```
-
-`YC_IAM_TOKEN` может заменить `DATALENS_IAM_TOKEN`. Храните файл вне checkout и передавайте Codex только абсолютный путь.
-
-## 4. Зарегистрируйте MCP server
-
-### В Codex app
-
-1. Откройте **Settings** → **MCP servers**.
-2. Нажмите **Add server**.
-3. Выберите **STDIO** и задайте command/arguments из примера ниже.
-4. Сохраните server и нажмите **Restart**.
-
-### Через `config.toml`
-
-Глобальная конфигурация находится в `~/.codex/config.toml`. Для trusted project можно использовать `.codex/config.toml` в project root.
+Глобальный файл Codex находится в `~/.codex/config.toml`. Для доверенного проекта можно использовать `.codex/config.toml` в его корне.
 
 ```toml
 [mcp_servers.datalens_dev]
@@ -73,74 +42,72 @@ command = "/absolute/path/to/datalens-dev-mcp/.venv/bin/datalens-dev-mcp"
 args = ["stdio", "--project-root", "/absolute/path/to/your/dashboard-project"]
 cwd = "/absolute/path/to/your/dashboard-project"
 env = { DATALENS_ENV_FILE = "/absolute/path/to/home/.config/datalens-dev-mcp/env" }
+default_tools_approval_mode = "approve"
 startup_timeout_sec = 20
 tool_timeout_sec = 120
 ```
 
-Готовый шаблон: [`examples/clients/codex.toml`](../examples/clients/codex.toml).
+Используйте абсолютные пути. Параметр `default_tools_approval_mode = "approve"` разрешает обычные вызовы этого сервера без отдельного вопроса Codex перед сохранением или публикацией. Сервер всё равно попросит подтвердить удаление целого объекта DataLens.
 
-### Через CLI
+Готовый файл: [`examples/clients/codex.toml`](../examples/clients/codex.toml).
+
+## 4. Альтернатива: зарегистрируйте сервер через CLI
 
 ```bash
-codex mcp add datalens-dev \
+codex mcp add datalens_dev \
   --env DATALENS_ENV_FILE=/absolute/path/to/home/.config/datalens-dev-mcp/env \
   -- /absolute/path/to/datalens-dev-mcp/.venv/bin/datalens-dev-mcp \
   stdio --project-root /absolute/path/to/your/dashboard-project
+```
+
+Команда создаёт запись сервера. После неё откройте `~/.codex/config.toml` и добавьте в таблицу `[mcp_servers.datalens_dev]`:
+
+```toml
+default_tools_approval_mode = "approve"
+startup_timeout_sec = 20
+tool_timeout_sec = 120
 ```
 
 Проверьте регистрацию:
 
 ```bash
 codex mcp list
-codex mcp --help
 ```
 
-После добавления или изменения server перезапустите Codex. В interactive composer используйте `/mcp`, чтобы увидеть активные servers и tools.
+## 5. Перезапустите Codex
 
-## 5. Проверьте безопасный runtime
+После установки пакета или изменения `config.toml` перезапустите Codex app, CLI-сессию или расширение IDE. В новой задаче откройте `/mcp` и убедитесь, что сервер `datalens_dev` подключён и показывает 38 инструментов.
 
-Prompt:
+## 6. Проверьте конфигурацию и доступ
 
-> Вызови `dl_runtime_status` через DataLens MCP. Покажи project root, API version, auth presence и mutation gates. Убедись, что `allow_writes`, `allow_save`, `allow_publish` и `expert_rpc_enabled` выключены. Не вызывай mutation tools.
+Отправьте промпт:
 
-Проверьте:
+> Используй DataLens MCP. Вызови `dl_runtime_status` и покажи выбранный project root, версию API, наличие ID организации и токена без их значений, доступность записи, сохранения, публикации и обновления токена. Затем вызови `dl_auth_probe`. На этом шаге ничего не изменяй.
 
-- reported project root совпадает с выбранным;
-- `allow_writes`, `allow_save`, `allow_publish` равны `false`;
-- `expert_rpc_enabled` равен `false`;
-- credential presence показан без значения, prefix или length токена;
-- standard tool surface содержит 38 tools.
+Ожидаемый результат:
 
-## 6. Проверьте live read
+- `project_root` совпадает с указанной папкой;
+- запись, сохранение и публикация доступны;
+- основной env-файл найден;
+- `dl_auth_probe` успешно выполняет минимальный `getWorkbooksList`.
 
-Prompt:
+Успешная проверка списка воркбуков подтверждает общую авторизацию. Права на конкретный чарт, датасет или дашборд проверяются при чтении и изменении этого объекта.
 
-> Выполни `dl_auth_probe`, затем `dl_list_workbooks`. Это read-only проверка. Ничего не сохраняй, не публикуй и не изменяй.
+## 7. Начните работу
 
-`dl_auth_probe` выполняет минимальный `getWorkbooksList`. При `BLOCKED_LIVE_CREDENTIALS` исправьте внешний env-файл и перезапустите MCP process. Не передавайте token в chat для диагностики.
+Аудит без записи:
 
-После успешного probe используйте `dl_get_workbook_entries`, `dl_snapshot_dashboard`, `dl_read_object` и `dl_get_entries_relations`.
+> Проведи аудит дашборда `<DASHBOARD_ID>` в воркбуке `<WORKBOOK_ID>`. Прочитай актуальную сохранённую версию, связанные объекты и связи между ними. Покажи найденные проблемы и пути к созданным отчётам. Ничего не сохраняй и не публикуй.
 
-## 7. Начните реальную работу
+Обычное изменение:
 
-Для существующего dashboard рекомендуемый Codex Flow:
+> Исправь `<OBJECT_TYPE>` `<OBJECT_ID>` в воркбуке `<WORKBOOK_ID>`: `<ТРЕБОВАНИЕ>`. Прочитай актуальную сохранённую версию и связи, проверь план и запрос, сохрани изменение, выполни контрольное чтение, опубликуй сохранённую версию и проверь опубликованный результат. Не запрашивай отдельное подтверждение перед сохранением или публикацией.
 
-1. runtime/auth preflight;
-2. workbook inventory;
-3. fresh dashboard snapshot и relation graph;
-4. object/route/API planning;
-5. object и project validation;
-6. payload и unapproved safe-apply plan;
-7. guarded save при approval и включенных gates;
-8. saved readback;
-9. publish-from-saved только когда delivery intent разрешает;
-10. published readback и browser/runtime QA.
+Дополнительные варианты: [сценарии использования](usage-flow.md).
 
-Готовые prompts для read-only, plan-only, save-only и publish: [Flow использования](usage-flow.md).
+## 8. Обновление и диагностика
 
-## 8. Обновление и удаление регистрации
-
-После обновления checkout переустановите package и перезапустите Codex:
+После обновления репозитория переустановите пакет и перезапустите Codex:
 
 ```bash
 cd /absolute/path/to/datalens-dev-mcp
@@ -149,15 +116,14 @@ python3 scripts/smoke_mcp_stdio.py
 codex mcp list
 ```
 
-Для удаления или других management actions используйте команды из `codex mcp --help`. Source of truth — выбранный global или project `config.toml`.
+| Проблема | Проверка |
+| --- | --- |
+| Сервер не запускается | Выполните `--version`, проверьте абсолютные пути и запустите `scripts/smoke_mcp_stdio.py` |
+| В `/mcp` старый список | Переустановите пакет и полностью перезапустите Codex |
+| Неверная рабочая папка | Исправьте `args` и `cwd` в `config.toml` |
+| Нет доступа к DataLens | Следуйте таблице ошибок в [руководстве по доступу](access.md#диагностика-ошибок-доступа) |
+| Codex спрашивает перед каждым инструментом | Проверьте `default_tools_approval_mode = "approve"` внутри таблицы этого сервера и перезапустите Codex |
+| Изменение не сохраняется | Проверьте через `dl_runtime_status`, что write и save доступны, затем изучите точную причину блокировки |
+| Сохраняется, но не публикуется | Проверьте publish в `dl_runtime_status` и отсутствие `save-only` или `no-publish` в задаче |
 
-## Troubleshooting
-
-- **Server не стартует:** проверьте executable `--version`, абсолютные paths и `python3 scripts/smoke_mcp_stdio.py`.
-- **Codex показывает старый tools list:** переустановите package и выполните restart app/extension.
-- **Неверный project root:** исправьте `args` и `cwd`, затем restart.
-- **Auth перестал работать:** IAM token мог истечь; обновите только внешний env-файл и restart process.
-- **Unexpected write block:** сначала проверьте, что block корректен; write/save/publish, approval, fresh read и readback — независимые gates.
-- **Protocol parse error/stdout pollution:** запустите smoke test; stdout зарезервирован для MCP JSON-RPC, diagnostics должны идти в stderr.
-
-Краткий технический reference: [`docs/mcp/codex_connection.md`](mcp/codex_connection.md). Transport contract: [`docs/mcp/local_stdio_contract.md`](mcp/local_stdio_contract.md).
+Транспортный контракт: [`docs/mcp/local_stdio_contract.md`](mcp/local_stdio_contract.md).

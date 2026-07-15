@@ -7,9 +7,9 @@
       "sha256": "b6f74ed25d916b4b6f7b0cddd68f56a5d335df17e5fc5e2c69361c4f9815138e"
     },
     {
-      "bytes": 154439,
+      "bytes": 154457,
       "path": "config/datalens_api_operation_policy.json",
-      "sha256": "4dbf947a4b10713537ea1dccdd31ee6c316a0a22f9214390c1fa3a306d315e76"
+      "sha256": "e783df51f053e8ff63dfa195e04e0bb19160dca7e353ea699ee3e3aa18e9837a"
     },
     {
       "bytes": 3895,
@@ -37,9 +37,9 @@
       "sha256": "98fc85d83586d3844f23a34e99ead75c7f89b4fe6f4f9cc277bd792f47febdde"
     },
     {
-      "bytes": 2089,
+      "bytes": 2102,
       "path": "config/datalens_delivery_policy.json",
-      "sha256": "89b4fc378a519d8dc588877bcd5b5948188502e955de1679d0be47ecd36e7e55"
+      "sha256": "f03d6d3382ec10401ebf7ee1d1282d48e13f1a492c879cbece4c7099ebcc8513"
     },
     {
       "bytes": 24270,
@@ -47,9 +47,9 @@
       "sha256": "d2c67a5c070bb6d212b708d4098726dd29229249b8e9256ec61956027a07d3a2"
     },
     {
-      "bytes": 3472,
+      "bytes": 3147,
       "path": "config/datalens_mcp.local.example.json",
-      "sha256": "fb2ecb82c7e59ec8ad071d43fa507e6567b151a52f9d5e15ce6ad669384fdf3c"
+      "sha256": "bcd1a80b73613ef06eeacc6d7c73a8c10ab745dc1835ffcdcfebe6fdbc90efc0"
     },
     {
       "bytes": 1764,
@@ -67,14 +67,14 @@
       "sha256": "2511ecf9dcd1923948fd3676ad901e3864594a89b9d8ee632a3dc553ec32ef65"
     },
     {
-      "bytes": 198263,
+      "bytes": 199562,
       "path": "config/golden_runtime_gallery_contracts.json",
-      "sha256": "e74899b1a5bf9f9cd1182a348eca876c00d6dd9de8ccf9f0674cc61afbcc87a8"
+      "sha256": "b240ffb62de37ad99580335c0838557e8aee4e860b5d15bfd6f7e5c5a9bfe6f2"
     },
     {
-      "bytes": 25171,
+      "bytes": 25183,
       "path": "config/golden_runtime_gallery_inventory.json",
-      "sha256": "a1c364cfcdba3d9041bea43bf43a0140fa0cd212fe8ce555b4680811c3b9962c"
+      "sha256": "1a60d6d439516f526d40c2d3fee737e397aeab367583a0b1455cc0dc97da860f"
     },
     {
       "bytes": 295,
@@ -262,9 +262,9 @@
       "sha256": "d3f3b5cea9c1a60729927de5701ce4205ec90fcfc7002302278d982e88072577"
     },
     {
-      "bytes": 8840,
+      "bytes": 7982,
       "path": "schemas/datalens-mcp-local-config.schema.json",
-      "sha256": "9cd304f1aadb2f8368050279d6fa017309a267bc48fab0d82078dafb3c8f5e81"
+      "sha256": "92ecaa62627ae432a2d98f7cc639a1925e9857db2a867119ab5bab2550189edc"
     },
     {
       "bytes": 957,
@@ -887,84 +887,84 @@
       "sha256": "c87300e19f4ca107f7978f6aa436001bb0bf4ef3474375d241eaa79706e0be6a"
     },
     {
-      "bytes": 2241,
+      "bytes": 2257,
       "path": "templates/datalens/recipes/advanced_dom_d3.json",
-      "sha256": "effaa3fbb1752585292cb0c467611998ca3fd20bc15cc7a941fd516b6643d562"
+      "sha256": "3839a6ba6c093d43f32f56f1e165e2f0be76ed1a247994e0542b445f5bc1e398"
     },
     {
-      "bytes": 2138,
+      "bytes": 2154,
       "path": "templates/datalens/recipes/control_dynamic.json",
-      "sha256": "bec310bb42d2a95da58e62f495bcdb58cc63bf4d5fe2e7c526f721f9078f6a9f"
+      "sha256": "aa20e14fa01889a1c4e863627a959d98bfc461b491a28d2d2e4683b6ec5fa826"
     },
     {
-      "bytes": 1699,
+      "bytes": 1715,
       "path": "templates/datalens/recipes/control_static.json",
-      "sha256": "76fb5f60b77b5d95f10fb64a34745c5f6b0d8842ffe8e9be37ac8c10dd5ee623"
+      "sha256": "33a305883e4e521f8a06edca0e2eb2a41b3196b73d420747a66d8a75e95a5d3d"
     },
     {
-      "bytes": 1737,
+      "bytes": 1753,
       "path": "templates/datalens/recipes/cross_filter.json",
-      "sha256": "a39640acf594ea29aa7a5a2773e39d377947daa484f2fd44debfc364e3bee817"
+      "sha256": "1292e85b2cbcca56220743d7af44311597bd59df124e1306ad679881dff45510"
     },
     {
-      "bytes": 1835,
+      "bytes": 1851,
       "path": "templates/datalens/recipes/gravity_chart.json",
-      "sha256": "19db20873cb195e8f05765d6442f552af62afaba59213efce8a4826671efbbdd"
+      "sha256": "e2452cc2ae7acff4f92090dd6e06f33c6e364db21ed32ba42b2c5f3a9442574e"
     },
     {
-      "bytes": 1754,
+      "bytes": 1770,
       "path": "templates/datalens/recipes/links.json",
-      "sha256": "3aee2996629b731520d5d720199c36638ef42623cefa2dcaf3c0628f75e51ee8"
+      "sha256": "ec04d29b73a52850fd4409adc3f893b7a2cc43a4a0e12510ca1fda01f17f8816"
     },
     {
-      "bytes": 1614,
+      "bytes": 1630,
       "path": "templates/datalens/recipes/markdown.json",
-      "sha256": "e8e1501034ac8871c568d2b4edcd114117c7aab1c8bd356dcbdb8881588323a1"
+      "sha256": "c7574fc0e1f404ccfb470f3a5fdaa3788673cc9618fda5c369013e2592e16b8e"
     },
     {
-      "bytes": 2042,
+      "bytes": 2058,
       "path": "templates/datalens/recipes/notifications.json",
-      "sha256": "f7ea72e45188f6c33c0192141d377ecd936afaf94bcb0e9de4f25a7f4a01bfb0"
+      "sha256": "6330caf81608e1f7cfe4b7b1cbc479bb84b79111169cfb4ecd77901876fc6d3c"
     },
     {
-      "bytes": 35949,
+      "bytes": 36189,
       "path": "templates/datalens/recipes/recipe-registry.json",
-      "sha256": "327f624029714b00df15f3245f431181bfed0cd94061b57c79f6798bdecbb9c9"
+      "sha256": "25fe80c47506b0fba27fc7ef3b12524034a6ff34590e9f3c6dae215f2961e7e6"
     },
     {
-      "bytes": 2463,
+      "bytes": 2479,
       "path": "templates/datalens/recipes/resource_schedule_exception.json",
-      "sha256": "786d137567b87db421e59808206621ad297240be20a4643514325bdf1490a99b"
+      "sha256": "a5581199724e826c20bc987914cf15c75c6966651a62e43183beb6c5470efe13"
     },
     {
-      "bytes": 2226,
+      "bytes": 2242,
       "path": "templates/datalens/recipes/table_flat_api_connector.json",
-      "sha256": "97d03106388751784b101f57f9f167862b46ad31d3da87a5d8cb2eb7c907979f"
+      "sha256": "5a9d74282ddc7a636eab6576ddb2a8877ef606b307a0d6646843706c280fba34"
     },
     {
-      "bytes": 2246,
+      "bytes": 2262,
       "path": "templates/datalens/recipes/table_flat_dataset.json",
-      "sha256": "18a86d12855bb4cf560fa68cafbe36d68ad018ce745963cbbca8408493e3b80e"
+      "sha256": "9e55aa8806d774fc8d6bbd87d4e82466aa75673ce2462909a14f66acd1ccfe3c"
     },
     {
-      "bytes": 2271,
+      "bytes": 2287,
       "path": "templates/datalens/recipes/table_flat_sql.json",
-      "sha256": "e9bb4509ecbdd56115834bf28199f35c131a4773c3ec7878a710731e19b539f7"
+      "sha256": "9bba573bdb08850f1bb6a5707b1d7e48017b8abfa31ea48f786e36b26c0efaf1"
     },
     {
-      "bytes": 2258,
+      "bytes": 2274,
       "path": "templates/datalens/recipes/table_pivot_advanced_exception.json",
-      "sha256": "cbdc4621cd80bc79454c32fc2244405224ee65639f5d437b30dd300223404327"
+      "sha256": "28246f95ab7c15d9f6fac332f053fc0c845597c151e2334fecec9a6d599b5efe"
     },
     {
-      "bytes": 2788,
+      "bytes": 2804,
       "path": "templates/datalens/recipes/table_pivot_js.json",
-      "sha256": "bdb49d66ff05912d9a2cbaf3c7aad3bf05858ad9811c92ae984d1b661d401363"
+      "sha256": "51da7e414e17955d2cc9f07e3cb1df8df7a577a38a0c84b30c4314c8638ca048"
     },
     {
-      "bytes": 2396,
+      "bytes": 2412,
       "path": "templates/datalens/recipes/table_rich.json",
-      "sha256": "5dfe56672093cb860ca2b34b8486de52704dc24a27c815e98d7c4ef1b4084bba"
+      "sha256": "c071b23872ba99357cf175148b65fe3d4d5feb923aaefd6eb94ef01b9f9237dc"
     },
     {
       "bytes": 27313,
@@ -977,9 +977,9 @@
       "sha256": "f8672c77624ddeed7d296715a09510edb582f9fd6ba3b8dab47113d903d6ed20"
     },
     {
-      "bytes": 825,
+      "bytes": 843,
       "path": "templates/datalens/wizard/native_map/README.md",
-      "sha256": "76c27b229efa850cabc0833c4e79d0940b334f3aef64cb951931c5e6c6ee9124"
+      "sha256": "ee3d458ee674cb387545464356c78013135152da87ff967154b0df9594ee16b2"
     },
     {
       "bytes": 1780,
@@ -1087,9 +1087,9 @@
       "sha256": "faf94a668445c73df7902578883e5795ad2c628152a8f0b6aeeccc7d6c18d8b3"
     },
     {
-      "bytes": 1812,
+      "bytes": 1824,
       "path": "templates/project/AGENTS.md",
-      "sha256": "3065fd94ebad867dd9afd2ab7e425a3a12c77bc665ab9b8fb1787e0f5f8ff701"
+      "sha256": "262daecb7f322675ed6ec2e99143a15b2c5ec875a2f790f39f7d5bb132d93c8e"
     },
     {
       "bytes": 60,
@@ -1132,9 +1132,9 @@
       "sha256": "eba6a42db94a44951e0fe9a0ee1e7c94572f801d404c59ddb63d34f1ec83bb2c"
     },
     {
-      "bytes": 108,
+      "bytes": 180,
       "path": "templates/project/memory-bank/safe_apply_plan.md",
-      "sha256": "06caea2027f1850ea76c031cdfab647f7bb1d798e3dae96f3bfca88e0320a0ca"
+      "sha256": "06322c55109f373bc00c7ac7d01cce560eb618ca760c1f3b03b4945f677a08eb"
     },
     {
       "bytes": 1876,
@@ -1167,9 +1167,9 @@
       "sha256": "6c71cf35516f7b5ca555419b94459a2ddf2f98a5a45230b2b9a8b07df13c9210"
     },
     {
-      "bytes": 280,
+      "bytes": 415,
       "path": "templates/requirements/README.md",
-      "sha256": "4a8994b95f08766655bca5daafd85982291f6cb9799e2906e3b65d3bcc939e42"
+      "sha256": "a36c5724d835a01a68432844ac6052f8efeb66649e10df9f78a51f093b1a6168"
     },
     {
       "bytes": 47,
@@ -1257,9 +1257,9 @@
       "sha256": "a25cd0eea723a953ad54acfebd8258639ae46dc3313eceda29a23af1dd7f4a05"
     },
     {
-      "bytes": 67,
+      "bytes": 101,
       "path": "templates/requirements/user_decisions.md",
-      "sha256": "0e77f6b1de465f75fce7da534231e77125bd83fec1a61df3d0f6927e6229143b"
+      "sha256": "62f7fa77147b5482c65ba96074fe2d329d2f0f847e3e7ddae1907707362776b3"
     },
     {
       "bytes": 374,

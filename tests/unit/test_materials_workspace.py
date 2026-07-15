@@ -30,8 +30,8 @@ class MaterialsWorkspaceTests(unittest.TestCase):
         self.assertIn("third-party books, paid courses", policy)
         self.assertIn("external build input", policy)
         self.assertIn("never required at runtime", policy)
-        self.assertIn("does not read a private document collection", provenance)
-        self.assertIn("raw site mirror or its images", provenance)
+        self.assertIn("Полный корпус документации используется только", provenance)
+        self.assertIn("Обычная установка и работа сервера используют готовые компактные индексы", provenance)
         self.assertIn("must not depend on ignored materials at runtime", sanitization)
 
 

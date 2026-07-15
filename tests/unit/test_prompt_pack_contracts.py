@@ -172,7 +172,6 @@ class PromptPackPlanningContractsTests(unittest.TestCase):
             ):
                 result = dl_create_safe_apply_plan(
                     tmp,
-                    approved=True,
                     delivery_intent_text="fix the shared selector",
                     existing_update_actions=[
                         {
@@ -242,7 +241,7 @@ class PromptPackPlanningContractsTests(unittest.TestCase):
                 },
                 clear=True,
             ):
-                result = dl_run_project_live_apply(str(root), workflow_name="layout", execute_now=True, approved=True)
+                result = dl_run_project_live_apply(str(root), workflow_name="layout", execute_now=True)
 
         self.assertEqual(result["status"], "completed")
         self.assertEqual(result["delivery_intent_decision"]["state"], "save_then_publish")

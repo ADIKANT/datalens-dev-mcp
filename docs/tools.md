@@ -1,96 +1,92 @@
-# Публичные инструменты MCP
+# Инструменты MCP
 
-**Русский** · [English](tools_en.md) · [Документация](README.md) · [Flow](usage-flow.md) · [Источники](sources.md)
+**Русский** · [English](tools_en.md) · [Главная](../README.md)
 
-Обычный `tools/list` возвращает один стандартный набор из **38 инструментов**. Ниже каждый инструмент описан ровно один раз. Compatibility/test-only helpers намеренно не включены: они не являются пользовательским профилем и не должны появляться в нормальном Flow.
+[Быстрый старт](../README.md#быстрый-старт) · [Доступ к DataLens](access.md) · [Подключение](codex_setup.md) · **Инструменты** · [Сценарии](usage-flow.md) · [Источники](sources.md) · [Безопасность](local-only-safety-model.md) · [English](tools_en.md)
+
+Стандартный `tools/list` содержит **38 инструментов**. Точная JSON-схема каждого вызова доступна MCP-клиенту и приведена в [техническом каталоге](mcp/tools.md). Контракты общих ответов описаны в [response contracts](mcp/response_contracts.md).
 
 Классы операций:
 
-- `local` — работает с config, supplied evidence или файлами внутри `--project-root`; DataLens не изменяет;
-- `read-only API` — выполняет только чтение через DataLens Public API;
-- `guarded write` — может привести к live mutation только при approval, включенных gates, fresh read и readback;
-- `local command` — запускает только команду, заранее объявленную project-live manifest.
+- `локальная` — работает с конфигурацией, переданными данными или файлами внутри `--project-root`;
+- `чтение API` — получает данные через DataLens Public API;
+- `защищённая запись` — может сохранить или опубликовать изменение после проверок цели, ревизии и запроса;
+- `локальная команда` — запускает команду, заранее объявленную в manifest проекта.
 
-Точные JSON inputs и response contracts: [технический catalog](mcp/tools.md) и [response contracts](mcp/response_contracts.md).
+## Подключение и состояние сервера
 
-## Подключение и runtime
-
-| Инструмент | Назначение | Когда использовать | Основной input | Результат и класс | Основание |
+| Инструмент | Назначение | Когда использовать | Необходимые данные | Результат и класс | Источник |
 | --- | --- | --- | --- | --- | --- |
-| `dl_get_local_config` | Возвращает merged local config без secret values | Проверить project root, defaults и policy overrides | Optional config path/project root | Sanitized effective config · `local` | [Local configuration](configuration.md) |
-| `dl_runtime_status` | Показывает API version, auth presence, route policy и mutation gates | Первым вызовом каждой сессии и при неожиданной блокировке | Нет обязательных inputs | Secret-safe runtime status · `local` | [Safety model](local-only-safety-model.md) |
-| `dl_auth_probe` | Делает минимальный `getWorkbooksList` probe | Перед любым live read | Credentials из external env file | Auth success или sanitized blocker · `read-only API` | [Public API/auth](sources.md#public-api-contracts) |
+| `dl_get_local_config` | Возвращает итоговую локальную конфигурацию без секретов | Проверить рабочую папку и настройки выполнения | При необходимости путь к config и project root | Очищенная конфигурация · `локальная` | [Конфигурация](configuration.md) |
+| `dl_runtime_status` | Показывает состояние API, учётных данных, записи, сохранения, публикации и обновления токена | В начале сессии и при блокировке операции | При необходимости project root и local config | Диагностический отчёт без значений секретов · `локальная` | [Доступ](access.md#7-проверьте-настройки-и-доступ) |
+| `dl_auth_probe` | Выполняет минимальный `getWorkbooksList` и при необходимости обновляет токен | Перед первым обращением к объектам DataLens | Настройки из `DATALENS_ENV_FILE` | Результат авторизации или точная категория ошибки · `чтение API` | [Public API](https://yandex.cloud/ru/docs/datalens/operations/api-start) |
 
-## Чтение и discovery
+## Чтение объектов
 
-| Инструмент | Назначение | Когда использовать | Основной input | Результат и класс | Основание |
+| Инструмент | Назначение | Когда использовать | Необходимые данные | Результат и класс | Источник |
 | --- | --- | --- | --- | --- | --- |
-| `dl_list_workbooks` | Перечисляет доступные workbooks | После успешного auth probe | Pagination/filter options | Compact workbook list · `read-only API` | `getWorkbooksList` в [API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbooksList) |
-| `dl_get_workbook_entries` | Читает entries выбранного workbook | Для инвентаризации charts, datasets, connections и dashboards | `workbook_id`, response mode | Compact entries или artifact-backed full data · `read-only API` | `getWorkbookEntries` в [API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookEntries) |
-| `dl_get_entries_relations` | Возвращает relation graph для entries | Перед изменением связанных объектов и retire lifecycle | Entry IDs | Sanitized dependency graph · `read-only API` | `getEntriesRelations` в [API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/getEntriesRelations) |
-| `dl_read_object` | Унифицированно читает поддерживаемый object type | Когда известны type и ID конкретного объекта | `object_type`, `object_id`, branch/response mode | Compact object contract или artifact · `read-only API` | [API method map](sources.md#public-api-contracts) |
-| `dl_snapshot_dashboard` | Сохраняет полный graph snapshot дашборда и связанных объектов | Перед audit, fix, redesign или backup | `dashboard_id`, branch/readback options | Sanitized snapshot artifacts и manifest · `read-only API + local` | Dashboard/object reads в [API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
+| `dl_list_workbooks` | Перечисляет доступные воркбуки | После успешной проверки доступа | Параметры страницы при необходимости | Список воркбуков · `чтение API` | [`getWorkbooksList`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbooksList) |
+| `dl_get_workbook_entries` | Читает объекты выбранного воркбука | Найти дашборды, чарты, датасеты и подключения | `workbook_id`, при необходимости режим ответа | Список объектов или файл с полными данными · `чтение API` | [`getWorkbookEntries`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookEntries) |
+| `dl_get_entries_relations` | Читает связи между объектами | Перед изменением или удалением связанных объектов | `entry_ids` | Граф зависимостей · `чтение API` | [`getEntriesRelations`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getEntriesRelations) |
+| `dl_read_object` | Читает объект известного типа по ID | Получить актуальную сохранённую или опубликованную версию | `object_type`, `object_id`, при необходимости branch | Объект или путь к файлу с полным ответом · `чтение API` | [Справочник методов API](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
+| `dl_snapshot_dashboard` | Сохраняет дашборд и связанные с ним объекты | Перед аудитом, изменением, переработкой или резервным копированием | `dashboard_id`, при необходимости `workbook_id` и branch | Набор файлов и manifest снимка · `чтение API` + `локальная` | [Модель дашборда](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) |
 
 ## Справка и диагностика
 
-| Инструмент | Назначение | Когда использовать | Основной input | Результат и класс | Основание |
+| Инструмент | Назначение | Когда использовать | Необходимые данные | Результат и класс | Источник |
 | --- | --- | --- | --- | --- | --- |
-| `dl_validate_editor_runtime_contract` | Проверяет Advanced Editor HTML/JS и allowed `Editor.*` methods | Перед payload plan и save Editor object | Hydrated/generated Editor sections | Findings с rule/path/line · `local` | [Editor tabs и methods](sources.md#основные-официальные-страницы) |
-| `dl_classify_source_error` | Разделяет auth, connection, SQL, renderer и sanitizer failures | Когда DataLens вернул sanitized error payload | `error_payload` | Stage/category/remediation · `local` | [DataLens docs + local classifier](sources.md#три-слоя-истины) |
-| `dl_diagnose` | Анализирует SQL, grain, semantic graph, performance и optimization evidence | Для локализации причины ошибки или риска до apply | `mode` и bounded supplied evidence | Compact findings + artifact paths · `local` | [Local diagnostics policy](mcp/response_contracts.md#sql-and-performance-diagnostics) |
-| `dl_reference` | Ищет bounded source-traced rules, recipes, formulas и API policy | Когда нужен точный route, capability, error или source trace | `mode`, query/name, char budget | До пяти rules, next tools и source metadata · `local` | [Packaged docs provenance](sources.md#документационный-snapshot) |
+| `dl_validate_editor_runtime_contract` | Проверяет разделы и методы JavaScript-чарта Editor | Перед сохранением объекта Editor | Объект или его sections/source | Ошибки с путём и строкой · `локальная` | [Вкладки](https://yandex.cloud/ru/docs/datalens/charts/editor/tabs) и [методы Editor](https://yandex.cloud/ru/docs/datalens/charts/editor/methods) |
+| `dl_classify_source_error` | Определяет этап и тип ошибки источника данных | Когда DataLens вернул очищенное сообщение об ошибке | `error_payload` | Категория, этап и рекомендация · `локальная` | [Документация DataLens](https://yandex.cloud/ru/docs/datalens/) и правила проекта |
+| `dl_diagnose` | Анализирует SQL, уровень детализации, связи и производительность по переданным данным | Найти причину ошибки или риска до записи | `mode`, данные проверки, при необходимости project root | Краткие выводы и пути к отчётам · `локальная` | [Контракты диагностики](mcp/response_contracts.md#диагностика) |
+| `dl_reference` | Ищет правила, рецепты, формулы и сведения о методах API | Уточнить возможность, маршрут, ошибку или источник | `mode`, запрос или имя, лимит ответа | До пяти релевантных записей со ссылками · `локальная` | [Официальные источники](sources.md) |
 
-## Валидация и object lifecycle planning
+## Планирование и проверка изменений
 
-| Инструмент | Назначение | Когда использовать | Основной input | Результат и класс | Основание |
+| Инструмент | Назначение | Когда использовать | Необходимые данные | Результат и класс | Источник |
 | --- | --- | --- | --- | --- | --- |
-| `dl_validate_project` | Проверяет route, bundles, payloads, SQL, privacy и dashboard contracts | До сборки live payload plan | `project_root` и validation options | Pass/blocking report · `local` | [Local policy](sources.md#три-слоя-истины) |
-| `dl_build_payload_plan` | Компилирует validated artifacts в dry-run DataLens payload plan | После project/object validation | Project artifacts и target metadata | Intended methods/targets/files, без write · `local` | [API contracts + Safe Apply](safe-apply.md) |
-| `dl_build_validation_evidence_report` | Разделяет static, API, save, publish и browser evidence | Перед handoff и после controlled run | Evidence/artifact paths | Proof-level report · `local` | [Proof levels](safe-apply.md#proof-levels) |
-| `dl_validate_object` | Проверяет object payload по compiled API schema и safety policy | Перед create/update planner | `object_type`, payload | Schema/policy findings, без mutation · `local` | [Compiled API contracts](sources.md#public-api-contracts) |
-| `dl_plan_object_create` | Строит guarded create plan для поддерживаемого object type | Для нового dashboard/chart/dataset/connection с известным location | `object_type`, named source adapter/payload | Method, compiled payload, blockers · `local` | Create methods в [API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
-| `dl_plan_object_update` | Строит update plan из fresh saved readback | Для изменения существующего объекта | `object_type`, fresh object и desired overlay | Revision-preserving update plan · `local` | Update methods + [Safe Apply](safe-apply.md) |
-| `dl_plan_guarded_dataset_update` | Планирует `getDataset` → `validateDataset` → `updateDataset` → saved readback | При изменении dataset fields/model | Dataset ID, current/proposed dataset, affected chart refs | GUID preservation и blocking report · `local` | Dataset methods в [API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/validateDataset) |
-| `dl_plan_dashboard_tab_update` | Добавляет или заменяет одну tab, сохраняя остальной dashboard | Для bounded tab change | Fresh dashboard, tab, replace/append intent | Minimal dashboard overlay plan · `local` | [Dashboard model](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) |
-| `dl_reconcile_partial_creates` | Сопоставляет planned creates с уже появившимися entries | После uncertain/partial create перед retry | Workbook ID, planned objects, optional entries payload | Reuse/create/manual-review decisions · `read-only API + local` | Workbook inventory + [Safe Apply](safe-apply.md) |
-| `dl_compile_guarded_rpc_request` | Фиксирует method, target, base revision, payload hash и readback contract | Перед передачей update в safe apply | Method, payload, fresh-read and branch metadata | Guarded RPC request artifact · `local` | [Compiled API contracts](sources.md#public-api-contracts) |
+| `dl_validate_project` | Проверяет проектные файлы, запросы, SQL, связи и секреты | Перед сборкой плана применения | Project root и при необходимости ссылки на контекст | Отчёт с ошибками и предупреждениями · `локальная` | [Архитектура](architecture.md) |
+| `dl_build_payload_plan` | Собирает проверенные материалы в план запросов DataLens | После проектной и объектной проверки | Project root, цель и формулировка задачи | Методы, цели и данные запросов без записи · `локальная` | [Защищённое применение](safe-apply.md) |
+| `dl_build_validation_evidence_report` | Собирает результаты проверок по этапам | Перед передачей результата и после применения | Project root и пути к отчётам | Единый отчёт о подтверждённых этапах · `локальная` | [Контракты ответов](mcp/response_contracts.md) |
+| `dl_validate_object` | Проверяет объект по схеме DataLens API и правилам безопасности | Перед планом создания или обновления | `object_type`, `payload`, тип операции | Ошибки схемы и правил без записи · `локальная` | [API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
+| `dl_plan_object_create` | Строит план создания поддерживаемого объекта | Для нового дашборда, чарта, датасета или подключения | `object_type`, `payload`, расположение объекта | Выбранный метод, подготовленный payload и блокировки · `локальная` | [API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
+| `dl_plan_object_update` | Строит обновление поверх актуальной сохранённой версии | Для изменения существующего объекта | `object_type`, актуальный объект и желаемые изменения | План с сохранением ревизии и остальных полей · `локальная` | [Защищённое применение](safe-apply.md) |
+| `dl_plan_guarded_dataset_update` | Планирует проверку и обновление модели датасета | При изменении полей, связей или модели датасета | ID, текущая и предлагаемая версии, связанные чарты | План с проверкой GUID и влияния на чарты · `локальная` | [`validateDataset`](https://yandex.cloud/ru/docs/datalens/openapi-ref/validateDataset) |
+| `dl_plan_dashboard_tab_update` | Готовит точечное изменение одной вкладки дашборда | Добавить или заменить вкладку с сохранением остального содержимого | Актуальный дашборд, вкладка и тип операции | Минимальное обновление дашборда · `локальная` | [Дашборды](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) |
+| `dl_reconcile_partial_creates` | Сопоставляет план создания с уже появившимися объектами | После прерванного или неопределённого результата создания | `workbook_id`, planned objects, при необходимости entries | Решение: использовать существующий объект, создать или проверить вручную · `чтение API` + `локальная` | [Защищённое применение](safe-apply.md) |
+| `dl_compile_guarded_rpc_request` | Формирует защищённый запрос к конкретному методу API | Перед передачей обновления в план применения | Метод, payload, ID, ревизия и данные актуального чтения | Запрос с зафиксированной целью и ожидаемым чтением · `локальная` | [Контракты API](sources.md#контракты-public-api) |
 
-## Safe apply, save и publish
+## Сохранение и публикация
 
-| Инструмент | Назначение | Когда использовать | Основной input | Результат и класс | Основание |
+| Инструмент | Назначение | Когда использовать | Необходимые данные | Результат и класс | Источник |
 | --- | --- | --- | --- | --- | --- |
-| `dl_create_safe_apply_plan` | Создает unapproved save-first plan | После validation и payload planning | Project root, targets/actions, readback mode | Guarded plan с blockers и approval state · `local` | [Safe Apply](safe-apply.md) |
-| `dl_execute_safe_apply` | Выполняет approved actions с fresh read и revision preservation | Только после review и включения требуемых gates | Approved plan, runtime/tool approval | Save/publish action results и artifacts · `guarded write` | [Safe Apply](safe-apply.md) |
-| `dl_create_publish_from_saved_plan` | Создает publish action только из saved readback | После успешного save и saved runtime gate, если intent допускает publish | Saved readback artifact, target/type | Plan с expected `revId`/`savedId` · `local` | [Explicit publish lane](safe-apply.md#explicit-publish-lane) |
-| `dl_readback_and_report` | Читает saved/published state и создает deployment report | После save, publish или offline dry run | Targets, branch, execution/readback artifacts | Compact proof + deployment report · `read-only API + local` | [Response contract](mcp/response_contracts.md#safe-apply-savepublishreadback-plan) |
+| `dl_create_safe_apply_plan` | Создаёт план сохранения с целью, hash запроса и проверками | После валидации и подготовки payload | Project root, действия, target и формулировка задачи | План для выполнения или список блокировок · `локальная` | [Защищённое применение](safe-apply.md) |
+| `dl_execute_safe_apply` | Выполняет действия плана с актуальным чтением и проверкой ревизии | Когда задача требует сохранения или публикации | `plan_path` и исходная формулировка задачи | Результаты запросов и созданные отчёты · `защищённая запись` | [Сценарий изменения](usage-flow.md#обычное-изменение-с-сохранением-и-публикацией) |
+| `dl_create_publish_from_saved_plan` | Строит публикацию из проверенной сохранённой версии | После успешного сохранения, если задача требует публикации | Project root, цель, тип объекта и saved readback | План с ожидаемыми ID и ревизией · `локальная` | [Публикация](safe-apply.md#публикация-из-сохранённой-версии) |
+| `dl_readback_and_report` | Читает saved или published состояние и создаёт отчёт | После сохранения, публикации или проверки без записи | Цели, branch и пути к результатам выполнения | Контрольное чтение и отчёт · `чтение API` + `локальная` | [Контракты ответов](mcp/response_contracts.md) |
 
-## Project-live manifest workflow
+## Проекты с собственным manifest
 
-| Инструмент | Назначение | Когда использовать | Основной input | Результат и класс | Основание |
+| Инструмент | Назначение | Когда использовать | Необходимые данные | Результат и класс | Источник |
 | --- | --- | --- | --- | --- | --- |
-| `dl_detect_project_live_workflows` | Находит allowlisted project manifest или просит adapter | Для downstream repo с собственными scripts | `project_root` | Detected workflows или `adapter_required` · `local` | [Project workflow](project_workflow.md) |
-| `dl_plan_project_manifest` | Preview manifest и optional approved local write | Когда manifest отсутствует | `project_root`, approval/write flag | Proposed manifest или записанный approved file · `local` | [Project workflow](project_workflow.md) |
-| `dl_plan_project_live_workflow` | Разбирает объявленный action без выполнения | Перед dry-run/apply/retire | Project root, workflow/action | Exact argv, targets, env names, evidence checks · `local` | [Project workflow](project_workflow.md) |
-| `dl_run_project_live_dry_run` | Запускает только manifest-declared dry-run в allowlisted env | После review плана и `execute_now=true` | Project/action, manifest permissions | Redacted stdout/stderr и summary pointers · `local command` | [Project-live policy](policy_vocabulary.md) |
-| `dl_run_project_live_apply` | Запускает approved manifest apply/publish action за live gates | Для проекта с существующим guarded executor | Project/action, approval и runtime gates | Execution summary/evidence · `guarded write + local command` | [Project-live policy](project_workflow.md) |
-| `dl_read_project_live_summary` | Нормализует declared JSON summary и проверяет evidence coverage | После dry-run/apply или для audit | Project root, action/summary path | Changed counts, branch state, blockers · `local` | [Manifest summary](policy_vocabulary.md) |
+| `dl_detect_project_live_workflows` | Находит manifest с командами проекта | Когда проект уже умеет проверять и применять изменения | `project_root` | Список найденных процессов или запрос на создание manifest · `локальная` | [Проектный процесс](project_workflow.md) |
+| `dl_plan_project_manifest` | Готовит или записывает manifest проекта | Когда manifest отсутствует | `project_root`, `write_manifest`, IDs целей при наличии | Предпросмотр или записанный manifest · `локальная` | [Проектный процесс](project_workflow.md) |
+| `dl_plan_project_live_workflow` | Разбирает выбранное действие без запуска | Перед dry-run или применением | Project root, workflow, action и задача | Команда, цели, окружение, отчёты и блокировки · `локальная` | [Проектный процесс](project_workflow.md) |
+| `dl_run_project_live_dry_run` | Запускает объявленную команду проверки | После просмотра плана | Project root, workflow и `execute_now` | Очищенный вывод и пути к отчётам · `локальная команда` | [Проектный процесс](project_workflow.md) |
+| `dl_run_project_live_apply` | Запускает объявленное сохранение или публикацию | Когда формулировка задачи требует применения | Project root, workflow, action и задача | Итог выполнения и отчёты · `защищённая запись` + `локальная команда` | [Проектный процесс](project_workflow.md) |
+| `dl_read_project_live_summary` | Читает и проверяет итоговый JSON-отчёт проекта | После dry-run, сохранения или публикации | Project root, action или путь к summary | Изменённые объекты, состояние и ошибки · `локальная` | [Проектный процесс](project_workflow.md) |
 
-## Maintenance и source availability
+## Обслуживание и доступность источников
 
-| Инструмент | Назначение | Когда использовать | Основной input | Результат и класс | Основание |
+| Инструмент | Назначение | Когда использовать | Необходимые данные | Результат и класс | Источник |
 | --- | --- | --- | --- | --- | --- |
-| `dl_run_live_maintenance_update` | Планирует и валидирует runtime-first maintenance по supplied evidence | Для bounded fix известного live target | Target/intent, guarded execution and runtime evidence | Delivery stage/final handoff artifact; сам не пишет · `local` | [Delta v8](safe-apply.md#delta-v8-runtime-first-default) |
-| `dl_build_dashboard_source_availability_matrix` | Собирает единую матрицу availability по supplied evidence | Когда tabs/charts зависят от разных source states | Source/environment/consumer evidence | `OK`/`NO_DATA`/`NO_TABLE`/`ERROR`/`UNKNOWN` rows · `local` | [Source evidence contract](mcp/response_contracts.md#sql-and-performance-diagnostics) |
-| `dl_validate_source_availability_consumers` | Проверяет consumers против одной availability truth | Перед source-related publish | Matrix и consumer requirements | Conflicts и publish blockers · `local` | [Local maintenance policy](safe-apply.md) |
-| `dl_plan_source_availability_patch` | Планирует bounded correction без самостоятельного query | После валидированной availability matrix | Matrix, target and desired correction | No-write patch plan · `local` | [Local maintenance policy](safe-apply.md) |
+| `dl_run_live_maintenance_update` | Координирует точечное исправление известного объекта по переданным результатам проверок | Для небольшого исправления чарта или вкладки | Цель, задача, текущие и предлагаемые данные, отчёты | Стадия выполнения и итоговый отчёт · `локальная` | [Защищённое применение](safe-apply.md) |
+| `dl_build_dashboard_source_availability_matrix` | Собирает состояние источников для потребителей дашборда | Когда объекты зависят от разных таблиц или окружений | Снимок дашборда и результаты проверки источников | Матрица `OK`/`NO_DATA`/`NO_TABLE`/`ERROR`/`UNKNOWN` · `локальная` | [Контракты диагностики](mcp/response_contracts.md#диагностика) |
+| `dl_validate_source_availability_consumers` | Проверяет потребителей по единой матрице источников | Перед изменением, зависящим от доступности данных | Matrix и требования consumers | Конфликты и причины остановки · `локальная` | [Контракты диагностики](mcp/response_contracts.md#диагностика) |
+| `dl_plan_source_availability_patch` | Планирует точечное исправление по матрице источников | После проверки матрицы | Matrix, target и желаемая корректировка | План без самостоятельного обращения к источникам · `локальная` | [Защищённое применение](safe-apply.md) |
 
-## API catalog
+## Каталог API
 
-| Инструмент | Назначение | Когда использовать | Основной input | Результат и класс | Основание |
+| Инструмент | Назначение | Когда использовать | Необходимые данные | Результат и класс | Источник |
 | --- | --- | --- | --- | --- | --- |
-| `dl_list_api_methods` | Перечисляет curated DataLens methods и support status | Чтобы проверить наличие и policy операции | Optional tag/status filters | Compact method catalog · `local` | [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
-| `dl_get_api_method_schema` | Возвращает bounded schema конкретного method | Перед lifecycle planning или при missing input | Method name | Request fields, support policy и doc URL · `local` | [Compiled API contracts](sources.md#public-api-contracts) |
-
-## Что не является публичным инструментом
-
-Raw RPC, granular route/template builders, standalone requirements helpers и DQ/data-evidence compatibility tools могут существовать в коде для tests и внутренних flows, но отсутствуют в нормальном `tools/list`. Не включайте test-only environment flags в пользовательскую конфигурацию и не стройте публичные инструкции вокруг hidden calls.
+| `dl_list_api_methods` | Перечисляет известные методы DataLens и статус их поддержки | Проверить, какая операция доступна | Фильтры и лимит при необходимости | Компактный каталог методов · `локальная` | [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
+| `dl_get_api_method_schema` | Возвращает схему одного метода | Уточнить обязательные поля перед планированием | `method` | Поля запроса, правила использования и ссылка на документацию · `локальная` | [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |

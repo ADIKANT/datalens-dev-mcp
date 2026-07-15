@@ -22,7 +22,7 @@ The gallery is a regression fixture and runtime-proof ledger, not a reusable bus
 - Browser render proof unavailable: `39`
 
 Saved readback, published readback, and browser screenshots remain `unavailable` in the checked-in
-static contracts because no disposable workbook, guarded write approval, rendered URL, or authenticated
+static contracts because no disposable workbook, implementation target, rendered URL, or authenticated
 browser evidence was supplied for this static release snapshot.
 
 ## Contract Files

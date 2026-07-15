@@ -39,6 +39,8 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             manifest = {
                 "schema_version": "2026-06-05.project_live_workflow_manifest.v1",
                 "project_name": "synthetic_project",
+                "workbook_id": "workbook_synthetic",
+                "dashboard_ids": ["dashboard_synthetic"],
                 "workbook_id": "workbook_1",
                 "dashboard_ids": ["dashboard_1"],
                 "required_env_names": ["DATALENS_ORG_ID"],
@@ -87,7 +89,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
         self.assertFalse(result["executed"])
         self.assertFalse(sentinel.exists())
 
-    def test_manifest_apply_refuses_unapproved_writes(self):
+    def test_manifest_apply_respects_save_kill_switch_without_approval_prompt(self):
         from datalens_dev_mcp.mcp.tools.pipeline import dl_run_project_live_apply
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -96,6 +98,8 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             manifest = {
                 "schema_version": "2026-06-11.project_live_workflow_manifest.v2",
                 "project_name": "synthetic_project",
+                "workbook_id": "workbook_synthetic",
+                "dashboard_ids": ["dashboard_synthetic"],
                 "workflows": [
                     {
                         "name": "apply_layout",
@@ -115,13 +119,12 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             (root / ".datalens-mcp.json").write_text(json.dumps(manifest), encoding="utf-8")
             (root / "scripts" / "apply.py").write_text("raise SystemExit('should not run')\n", encoding="utf-8")
 
-            with patched_env({}, clear=True):
-                result = dl_run_project_live_apply(str(root), workflow_name="apply_layout", execute_now=True, approved=False)
+            with patched_env({"DATALENS_MCP_LIVE_ALLOW_SAVE": "0"}, clear=True):
+                result = dl_run_project_live_apply(str(root), workflow_name="apply_layout", execute_now=True)
 
         self.assertFalse(result["executed"])
         self.assertEqual(result["status"], "blocked")
-        self.assertIn("apply requires approved=true", result["blocked_reasons"])
-        self.assertIn("save execution is disabled; set DATALENS_MCP_LIVE_ALLOW_SAVE=1", result["blocked_reasons"])
+        self.assertIn("save_enabled", result["blocked_reasons"])
 
     def test_unknown_custom_layout_returns_adapter_required(self):
         from datalens_dev_mcp.mcp.tools.pipeline import dl_detect_project_adapter, dl_detect_project_live_workflows
@@ -143,7 +146,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
         self.assertIn(".datalens-mcp.json", json.dumps(result["suggested_manifest"], ensure_ascii=False))
         self.assertTrue(result["detected_script_patterns"])
 
-    def test_project_manifest_generator_previews_and_writes_only_with_approval(self):
+    def test_project_manifest_generator_previews_and_writes_when_requested(self):
         from datalens_dev_mcp.mcp.tools.pipeline import dl_plan_project_manifest
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -161,7 +164,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             manifest_path = root / ".datalens-mcp.json"
             written = dl_plan_project_manifest(
                 str(root),
-                approved=True,
+                write_manifest=True,
                 target_workbook_id="workbook_quality",
                 dashboard_id="dashboard_quality",
             )
@@ -201,6 +204,8 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             manifest = {
                 "schema_version": "2026-06-05.project_live_workflow_manifest.v1",
                 "project_name": "synthetic_project",
+                "workbook_id": "workbook_synthetic",
+                "dashboard_ids": ["dashboard_synthetic"],
                 "workbook_id": "workbook_1",
                 "dashboard_ids": ["dashboard_1"],
                 "workflows": [
@@ -404,6 +409,8 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             manifest = {
                 "schema_version": "2026-06-25.project_live_workflow_manifest.v3",
                 "project_name": "summary_actions",
+                "workbook_id": "workbook_summary",
+                "dashboard_ids": ["dashboard_summary"],
                 "workflows": [
                     {
                         "name": "apply_layout",
@@ -435,7 +442,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
                     str(root),
                     workflow_name="apply_layout",
                     execute_now=True,
-                    approved=True,
+                    delivery_intent_text="save only",
                 )
                 dry_summary = dl_read_project_live_summary(str(root), workflow_name="apply_layout", action="dry_run")
                 apply_summary = dl_read_project_live_summary(str(root), workflow_name="apply_layout", action="apply")
@@ -469,6 +476,8 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             manifest = {
                 "schema_version": "2026-06-25.project_live_workflow_manifest.v3",
                 "project_name": "summary_actions",
+                "workbook_id": "workbook_summary",
+                "dashboard_ids": ["dashboard_summary"],
                 "workflows": [
                     {
                         "name": "publish_layout",
@@ -508,7 +517,6 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
                     str(root),
                     workflow_name="publish_layout",
                     execute_now=True,
-                    approved=True,
                     publish=True,
                 )
 
@@ -564,7 +572,6 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
                     str(root),
                     workflow_name="layout",
                     execute_now=True,
-                    approved=True,
                     delivery_intent_text="fix this dashboard",
                 )
 
@@ -611,7 +618,6 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
                     str(root),
                     workflow_name="layout",
                     execute_now=True,
-                    approved=True,
                     delivery_intent_text="fix this dashboard",
                 )
 
@@ -631,6 +637,8 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             manifest = {
                 "schema_version": "2026-06-25.project_live_workflow_manifest.v3",
                 "project_name": "summary_actions",
+                "workbook_id": "workbook_summary",
+                "dashboard_ids": ["dashboard_summary"],
                 "workflows": [
                     {
                         "name": "apply_layout",
@@ -655,7 +663,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
                     str(root),
                     workflow_name="apply_layout",
                     execute_now=True,
-                    approved=True,
+                    delivery_intent_text="save only",
                 )
 
         self.assertEqual(result["status"], "completed")

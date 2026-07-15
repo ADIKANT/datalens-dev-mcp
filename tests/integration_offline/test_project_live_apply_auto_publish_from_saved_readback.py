@@ -55,7 +55,6 @@ class ProjectLiveApplyAutoPublishFromSavedReadbackTests(unittest.TestCase):
                 str(root),
                 workflow_name="layout",
                 execute_now=True,
-                approved=True,
                 delivery_intent_text="fix this dashboard",
             )
 
@@ -64,7 +63,6 @@ class ProjectLiveApplyAutoPublishFromSavedReadbackTests(unittest.TestCase):
         self.assertEqual(result["delivery_intent_decision"]["publish_stage_status"], "completed")
         self.assertTrue(result["project_live_delivery"]["saved"]["passed"])
         self.assertTrue(result["project_live_delivery"]["published"]["passed"])
-        self.assertTrue(result["approval_reuse_for_publish"])
         self.assertEqual(result["publish_blocked_reasons"], [])
 
 

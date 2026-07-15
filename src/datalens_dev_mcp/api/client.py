@@ -154,6 +154,8 @@ class DataLensApiClient:
         }
 
     def rpc(self, method: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        self._reload_canonical_env_file("reloaded_before_rpc", require_token=False)
+        self._bootstrap_missing_token()
         compacted_payload = compact_rpc_payload(payload or {}, method=method) or {}
         selected_api_version = self._resolve_api_version(method)
         try:
@@ -281,6 +283,24 @@ class DataLensApiClient:
     def _can_refresh_token(self) -> bool:
         return self.token_refresher is not None or self.config.token_refresh_enabled
 
+    def _bootstrap_missing_token(self) -> bool:
+        """Mint and persist the initial IAM token when refresh is configured."""
+
+        if self.config.iam_token:
+            return False
+        if not self.config.org_id or not self._can_refresh_token():
+            return False
+        try:
+            refreshed = self._refresh_token_once()
+            if not refreshed:
+                raise DataLensApiError("yc iam create-token returned an empty token")
+            self._persist_refreshed_token(refreshed)
+            if self.config.env_file_path:
+                self._reload_canonical_env_file("bootstrapped_with_yc", require_token=True)
+            return True
+        except Exception as exc:  # noqa: BLE001
+            raise DataLensApiError(f"initial_token_bootstrap_failed: {_safe_auth_error(exc)}") from exc
+
     def _resolve_api_version(self, method: str) -> str:
         configured = str(self.config.api_version or "auto").strip().lower()
         if configured and configured != "auto":
@@ -324,7 +344,7 @@ class DataLensApiClient:
             return ""
         refreshed = refresher()
         if refreshed:
-            self.config = replace(self.config, iam_token=refreshed)
+            self.config = replace(self.config, iam_token=refreshed, credential_source="token_refresh")
         return refreshed
 
     def _minimal_auth_probe(self) -> dict[str, Any]:
@@ -337,14 +357,14 @@ class DataLensApiClient:
         except Exception as exc:  # noqa: BLE001
             return {"ok": False, "error": _safe_auth_error(exc)}
 
-    def _reload_canonical_env_file(self, reload_state: str) -> bool:
+    def _reload_canonical_env_file(self, reload_state: str, *, require_token: bool = True) -> bool:
         if not self.config.env_file_path:
             return False
-        reloaded = DataLensConfig.from_env(self.config.env_file_path, reload_state=reload_state)
-        if not reloaded.iam_token:
+        reloaded = self.config.reload_canonical_env(reload_state=reload_state)
+        if require_token and not reloaded.iam_token:
             return False
         self.config = reloaded
-        return True
+        return reloaded.env_file_loaded
 
     def _persist_refreshed_token(self, token: str) -> None:
         if not token or not self.config.env_file_path:

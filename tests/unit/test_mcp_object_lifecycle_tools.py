@@ -101,10 +101,6 @@ class McpObjectLifecycleToolTests(unittest.TestCase):
     def test_explicit_ql_create_and_update_use_generic_lifecycle(self):
         from datalens_dev_mcp.mcp.tools.object_lifecycle import dl_plan_object_create, dl_plan_object_update
 
-        provenance = {
-            "selection_origin": "explicit_user_request",
-            "request_digest": "sha256:fixture",
-        }
         create = dl_plan_object_create(
             "ql_chart",
             {
@@ -113,7 +109,7 @@ class McpObjectLifecycleToolTests(unittest.TestCase):
                 "template": "ql",
                 "data": {"query": "SELECT 1"},
             },
-            approval_provenance=provenance,
+            delivery_intent_text="create this QL chart",
         )
         update = dl_plan_object_update(
             "ql_chart",
@@ -126,7 +122,7 @@ class McpObjectLifecycleToolTests(unittest.TestCase):
                 "data": {"query": "SELECT 2"},
             },
             source_adapter="saved_entry",
-            approval_provenance=provenance,
+            delivery_intent_text="update this QL chart",
         )
 
         self.assertTrue(create["ok"], create)
@@ -312,8 +308,8 @@ class McpObjectLifecycleToolTests(unittest.TestCase):
             current,
             proposed,
             affected_chart_payloads=chart_payloads,
-            approved=True,
             validate_only=False,
+            delivery_intent_text="update this dataset",
         )
 
         self.assertTrue(plan["ok"])
@@ -326,8 +322,8 @@ class McpObjectLifecycleToolTests(unittest.TestCase):
             current,
             {"fields": [{"name": "linked_issue", "guid": "different_guid"}]},
             affected_chart_payloads=chart_payloads,
-            approved=True,
             validate_only=False,
+            delivery_intent_text="update this dataset",
         )
 
         self.assertFalse(broken["ok"])

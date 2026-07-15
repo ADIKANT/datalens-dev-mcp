@@ -3,26 +3,26 @@
 This gate keeps chart creation template-based and route-bounded. It applies to
 the local MCP runtime, generated project artifacts, and committed examples.
 
-## Approved Creation Routes
+## Supported Creation Routes
 
 Chart creation is limited to `wizard_native`, registered Editor routes, and
 explicit-only `ql_explicit`. Standard charts use Wizard. Advanced Editor is
 used by direct request or a capability gap; `editor_table`, `editor_markdown`,
 and `editor_js_control` keep their specialized contracts.
 
-QL create/update may appear only with direct-request approval provenance and an
-explicit payload or fresh saved seed. Automatic QL selection, QL prompt
+QL create/update may appear only after a direct QL request with an explicit
+payload or fresh saved seed. Automatic QL selection, QL prompt
 generation, and `deleteQLChart` remain forbidden.
 
 ## Template Coverage
 
-- Every family in `APPROVED_CHARTS` must be present in
+- Every family in the supported chart registry must be present in
   `templates/datalens/standard_chart_templates.json`.
 - Every registered family must point to an existing template directory with
   `README.md`, `schema.json`, `example_input.json`, and all route-required JS
   files.
 - Every removed family in `REMOVED_CHARTS` must be absent from the registry.
-  Removed requests route to an approved alternative or a targeted question.
+  Removed requests route to a supported alternative or a targeted question.
 - Unknown chart requests return a structured question/fallback. They do not
   invent a chart family or generate ad hoc JS.
 

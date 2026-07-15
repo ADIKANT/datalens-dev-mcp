@@ -305,7 +305,10 @@ def _expected_golden_inventory(policy: dict[str, Any]) -> dict[str, Any]:
             {"route": "automatic_ql_selection", "reason": "QL is explicit-only."},
             {"route": "runtime_route_fallback", "reason": "Route selection is deterministic before transport."},
             {"route": "guessed_id_write", "reason": "Writes to guessed IDs are blocked."},
-            {"route": "blind_write_or_publish", "reason": "Fresh readback and approval are required."},
+            {
+                "route": "blind_write_or_publish",
+                "reason": "Fresh readback and the runtime write gates are required.",
+            },
             {"route": "production_workbook_mutation", "reason": "Golden gallery is static and never mutates production."},
         ],
     }

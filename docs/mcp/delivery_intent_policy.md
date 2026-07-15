@@ -1,39 +1,21 @@
-# Delivery Intent Policy
+# Режим выполнения задачи
 
-The MCP server uses one delivery state machine for pipeline planning,
-project-live workflow planning, safe apply, and publish-from-saved planning.
-Delivery language is intent, not permission. Runtime writes still require
-enablement, approved safe apply, fresh read/revision preservation, save
-semantics, readback, and a deployment report.
+Один классификатор режима используется при планировании payload, Safe Apply, project-manifest flow и publish-from-saved.
 
-States:
+## Состояния
 
-- `read_only`: review, audit, diagnose, inspect, check, and unknown intents.
-- `plan_only`: plan-only and dry-run requests.
-- `save_only`: draft, save-only, and no-publish requests after save gates.
-- `save_then_publish`: implementation, fix, enhance, redesign, or update
-  requests with known target IDs, Codex/tool approval, write/save/publish gates,
-  and no draft/no-publish instruction.
-- `publish_from_saved`: the guarded publish operation built from fresh
-  saved-branch readback.
-- `blocked`: missing target lock, missing runtime gates, missing approval,
-  stale saved readback, or destructive/move/permission-like operations.
+- `read_only` — audit, review, diagnose, inspect, check;
+- `plan_only` — plan-only и dry-run;
+- `save_only` — save-only, no-publish и draft;
+- `save_then_publish` — create, fix, update, enhance и redesign для известной цели;
+- `publish_from_saved` — публикация из свежего saved readback;
+- `delete` — удаление целого объекта после отдельного подтверждения;
+- `blocked` — неизвестная цель, жёстко выключенная возможность, устаревшая ревизия, отсутствующий saved readback или неподдерживаемая операция.
 
-Every production plan that resolves delivery intent returns
-`delivery_intent_decision` with `state`, `reason`, `required_gates`,
-`satisfied_gates`, `next_action`, and `proof_path`. Compatibility fields such
-as `intent`, `publish_expected`, `target_branch`, and `next_actions` may also be
-present.
+План содержит `delivery_intent_decision` с состоянием, причиной, требуемыми проверками, следующим действием и путём подтверждения результата. Исходный пользовательский запрос сохраняется как нормализованный intent и SHA-256.
 
-For live implementation, fix, or enhance requests with known target IDs,
-explicit write gates, approved safe apply, saved readback, and no
-draft/no-publish instruction, delivery proceeds through save, saved readback,
-publish from saved readback, and published readback. The original user request
-plus Codex/tool approval is sufficient operator approval; no additional literal
-chat phrase such as `I approve` is required.
+Команда пользователя создать, исправить, обновить, улучшить или переработать известный объект запускает save, saved readback, publish-from-saved и published readback. Дополнительная фраза подтверждения перед save или publish не требуется.
 
-Publish and save remain separate internal operations. Publish must be built from
-a fresh saved-branch artifact, preserve expected `revId` and `savedId`, and
-prove published readback after execution. Draft, review, plan-only, save-only,
-and no-publish instructions block publish. Unknown target IDs block writes; do
-not guess workbook, dashboard, chart, dataset, or connection IDs.
+`save-only` и `no-publish` блокируют publish. Неизвестные ID блокируют write. Publish-plan всегда ссылается на saved readback и сохраняет ожидаемые `revId` и `savedId`.
+
+Для удаления целого объекта первый вызов возвращает `delete_confirmation_required`, точные ID и hash плана. Выполнение требует `confirm_delete=true` для того же плана.

@@ -102,7 +102,7 @@
         "route": "guessed_id_write"
       },
       {
-        "reason": "Fresh readback and approval are required.",
+        "reason": "Fresh readback and the runtime write gates are required.",
         "route": "blind_write_or_publish"
       },
       {
@@ -862,13 +862,12 @@
     }
   ],
   "write_policy": {
-    "approved_test_workbook_env": "DATALENS_MCP_GOLDEN_TEST_WORKBOOK_ID",
     "default_mode": "read_only_static_validation",
     "live_create_requires": [
       "disposable test workbook id",
-      "explicit guarded write approval",
+      "implementation request for the disposable target",
       "fresh saved-object readback before publish",
-      "separate explicit publish approval before published readback",
+      "publish-enabled runtime before published readback",
       "browser authentication and rendered URL before screenshot proof"
     ],
     "never_touch": [
@@ -884,6 +883,7 @@
       "production": [
         "<PRODUCTION_WORKBOOK_ID>"
       ]
-    }
+    },
+    "test_workbook_env": "DATALENS_MCP_GOLDEN_TEST_WORKBOOK_ID"
   }
 }

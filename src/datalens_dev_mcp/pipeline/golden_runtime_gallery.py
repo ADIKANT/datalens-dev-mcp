@@ -160,12 +160,12 @@ def _build_family_contract(
         "saved_readback": _unavailable_readback(
             stage="saved_readback",
             route=route,
-            reason="No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+            reason="No disposable workbook or live execution target was configured for this static fixture.",
         ),
         "published_readback": _unavailable_readback(
             stage="published_readback",
             route=route,
-            reason="Publish proof requires saved readback plus separate explicit publish approval.",
+            reason="Published proof requires a successful saved readback and publish-enabled runtime.",
         ),
         "browser_proof": {
             "browser_rendered": "unavailable",
@@ -347,7 +347,7 @@ def _unavailable_readback(*, stage: str, route: str, reason: str) -> dict[str, A
         "reason": reason,
         "required_configuration": [
             "disposable test workbook id",
-            "explicit guarded write approval",
+            "implementation request for the disposable target",
             "fresh saved-object readback",
         ],
         "must_not_claim_passed": True,

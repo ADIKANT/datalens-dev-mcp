@@ -77,11 +77,11 @@ class LauncherHardeningTests(unittest.TestCase):
         self.assertIn("TOKEN_PRESENT=", result.stdout)
         self.assertIn("YC_TOKEN_PRESENT=", result.stdout)
         self.assertIn("ENV_FILE=", result.stdout)
-        self.assertIn("WRITES=0", result.stdout)
+        self.assertIn("WRITES=1", result.stdout)
         self.assertIn("EXPERT=0", result.stdout)
-        self.assertIn("SAVE=0", result.stdout)
-        self.assertIn("PUBLISH=0", result.stdout)
-        self.assertIn("REFRESH=0", result.stdout)
+        self.assertIn("SAVE=1", result.stdout)
+        self.assertIn("PUBLISH=1", result.stdout)
+        self.assertIn("REFRESH=1", result.stdout)
         self.assertIn(f"--project-root {REPO_ROOT}", result.stdout)
         self.assertIn("BASE=https://api.datalens.tech", result.stdout)
         self.assertIn("VERSION=auto", result.stdout)
@@ -119,21 +119,68 @@ class LauncherHardeningTests(unittest.TestCase):
 
 
 class RuntimeDiagnosticsTests(unittest.TestCase):
-    def test_runtime_status_defaults_all_mutation_gates_off(self):
+    def test_auth_probe_failure_categories_are_actionable(self):
+        from datalens_dev_mcp.api.auth import classify_auth_probe_failure
+
+        cases = {
+            "BLOCKED_LIVE_CREDENTIALS: Missing DATALENS_ORG_ID": "missing_credentials",
+            "getWorkbooksList failed with HTTP 401: auth_invalid_or_expired": "expired_token",
+            "getWorkbooksList failed with HTTP 403: permission denied": "organization_access_denied",
+            "getWorkbooksList failed before HTTP response: connection refused": "transport_failure",
+            "getWorkbooksList failed with HTTP 500": "api_failure",
+            "initial_token_bootstrap_failed: yc iam create-token failed": "yc_reauthentication_required",
+        }
+        for message, expected in cases.items():
+            with self.subTest(message=message):
+                result = classify_auth_probe_failure(RuntimeError(message))
+                self.assertEqual(result["category"], expected)
+                self.assertTrue(result["next_action"])
+
+    def test_auth_probe_missing_credentials_is_classified_without_network(self):
+        from datalens_dev_mcp.mcp.tools.runtime import dl_auth_probe
+
+        with patched_env({}, clear=True):
+            result = dl_auth_probe()
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["category"], "missing_credentials")
+        self.assertFalse(result["credential"]["token_present"])
+        self.assertFalse(result["credential"]["org_id_set"])
+
+    def test_runtime_status_defaults_normal_execution_on(self):
         from datalens_dev_mcp.mcp.tools.runtime import dl_runtime_status
 
         with patched_env({}, clear=True):
             result = dl_runtime_status(project_root="/tmp/project", local_config_path="")
 
+        self.assertTrue(result["allow_writes"])
+        self.assertTrue(result["allow_save"])
+        self.assertTrue(result["allow_publish"])
+        self.assertTrue(result["delete_requires_confirmation"])
+        self.assertTrue(result["runtime_env"]["write_flags"]["allow_writes"])
+        self.assertTrue(result["runtime_env"]["write_flags"]["allow_save"])
+        self.assertTrue(result["runtime_env"]["write_flags"]["allow_publish"])
+        self.assertEqual(result["runtime_env"]["api"]["request_timeout_sec"], 30.0)
+
+    def test_runtime_status_reports_explicit_execution_off_switches(self):
+        from datalens_dev_mcp.mcp.tools.runtime import dl_runtime_status
+
+        with patched_env(
+            {
+                "DATALENS_MCP_ENABLE_WRITES": "0",
+                "DATALENS_MCP_LIVE_ALLOW_SAVE": "0",
+                "DATALENS_MCP_LIVE_ALLOW_PUBLISH": "0",
+            },
+            clear=True,
+        ):
+            result = dl_runtime_status(project_root="/tmp/project", local_config_path="")
+
         self.assertFalse(result["allow_writes"])
         self.assertFalse(result["allow_save"])
         self.assertFalse(result["allow_publish"])
-        self.assertFalse(result["runtime_env"]["write_flags"]["allow_writes"])
-        self.assertFalse(result["runtime_env"]["write_flags"]["allow_save"])
-        self.assertFalse(result["runtime_env"]["write_flags"]["allow_publish"])
-        self.assertEqual(result["runtime_env"]["api"]["request_timeout_sec"], 30.0)
+        self.assertIn("runtime_write_switch_disabled", {item["category"] for item in result["diagnostics"]})
 
-    def test_server_loads_env_file_before_tool_calls_without_reporting_path(self):
+    def test_server_loads_credentials_but_preserves_process_execution_hard_off(self):
         from datalens_dev_mcp.server import JsonRpcServer
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -158,18 +205,61 @@ class RuntimeDiagnosticsTests(unittest.TestCase):
                 payload = json.loads(result["content"][0]["text"])
 
                 self.assertEqual(os.environ.get("DATALENS_ORG_ID"), "org_synthetic")
-                self.assertEqual(os.environ.get("DATALENS_MCP_LIVE_ALLOW_SAVE"), "1")
-                self.assertEqual(os.environ.get("DATALENS_MCP_LIVE_ALLOW_PUBLISH"), "1")
+                self.assertEqual(os.environ.get("DATALENS_MCP_LIVE_ALLOW_SAVE"), "0")
+                self.assertEqual(os.environ.get("DATALENS_MCP_LIVE_ALLOW_PUBLISH"), "0")
 
         dumped = json.dumps(payload, ensure_ascii=False)
         self.assertFalse(result["isError"])
         self.assertTrue(payload["token_present"])
         self.assertTrue(payload["org_id_set"])
-        self.assertTrue(payload["allow_save"])
-        self.assertTrue(payload["allow_publish"])
+        self.assertFalse(payload["allow_save"])
+        self.assertFalse(payload["allow_publish"])
         self.assertEqual(payload["runtime_env"]["auth"]["token_source"], "env_file")
         self.assertNotIn(str(env_file), dumped)
         self.assertNotIn("super-secret-token-value", dumped)
+
+    def test_runtime_status_rereads_canonical_env_without_process_restart(self):
+        from datalens_dev_mcp.server import JsonRpcServer
+
+        with tempfile.TemporaryDirectory() as tmp:
+            env_file = Path(tmp) / "datalens.env"
+            env_file.write_text(
+                "DATALENS_IAM_TOKEN=super-secret-token-value\n"
+                "DATALENS_ORG_ID=org_synthetic\n"
+                "DATALENS_MCP_ENABLE_WRITES=1\n"
+                "DATALENS_MCP_LIVE_ALLOW_SAVE=1\n"
+                "DATALENS_MCP_LIVE_ALLOW_PUBLISH=1\n",
+                encoding="utf-8",
+            )
+            with patched_env({"DATALENS_ENV_FILE": str(env_file)}, clear=True):
+                server = JsonRpcServer(project_root="/tmp/project")
+                env_file.write_text(
+                    "DATALENS_IAM_TOKEN=super-secret-token-value\n"
+                    "DATALENS_ORG_ID=org_synthetic\n"
+                    "DATALENS_MCP_ENABLE_WRITES=0\n"
+                    "DATALENS_MCP_LIVE_ALLOW_SAVE=0\n"
+                    "DATALENS_MCP_LIVE_ALLOW_PUBLISH=0\n",
+                    encoding="utf-8",
+                )
+                response = server._call_tool({"name": "dl_runtime_status", "arguments": {}})
+                payload = json.loads(response["content"][0]["text"])
+                env_file.write_text(
+                    "DATALENS_IAM_TOKEN=super-secret-token-value\n"
+                    "DATALENS_ORG_ID=org_synthetic\n"
+                    "DATALENS_MCP_ENABLE_WRITES=1\n"
+                    "DATALENS_MCP_LIVE_ALLOW_SAVE=1\n"
+                    "DATALENS_MCP_LIVE_ALLOW_PUBLISH=1\n",
+                    encoding="utf-8",
+                )
+                enabled_response = server._call_tool({"name": "dl_runtime_status", "arguments": {}})
+                enabled_payload = json.loads(enabled_response["content"][0]["text"])
+
+        self.assertFalse(payload["allow_writes"])
+        self.assertFalse(payload["allow_save"])
+        self.assertFalse(payload["allow_publish"])
+        self.assertTrue(enabled_payload["allow_writes"])
+        self.assertTrue(enabled_payload["allow_save"])
+        self.assertTrue(enabled_payload["allow_publish"])
 
     def test_runtime_status_masks_secrets_and_reports_write_flags(self):
         from datalens_dev_mcp.mcp.tools.runtime import dl_runtime_status
@@ -212,9 +302,10 @@ class RuntimeDiagnosticsTests(unittest.TestCase):
         self.assertIn("explicit_v1_readonly_compatibility_only", result["api_version_selection"]["write_block_reason"])
         self.assertFalse(result["write_compatible"])
         self.assertTrue(result["runtime_env"]["auth"]["refresh_available"])
-        self.assertEqual(result["config_defaults"]["safe_mode_default"], "plan_only")
-        self.assertFalse(result["config_defaults"]["safe_mode_allow_writes"])
-        self.assertIn("runtime_env_overrides_plan_only_config", {item["category"] for item in result["diagnostics"]})
+        self.assertEqual(result["config_defaults"]["execution_default"], "follow_user_request")
+        self.assertTrue(result["config_defaults"]["writes_default"])
+        self.assertTrue(result["config_defaults"]["save_default"])
+        self.assertTrue(result["config_defaults"]["publish_default"])
         self.assertIn("explicit_api_version_mismatch", {item["category"] for item in result["diagnostics"]})
         self.assertIn("standalone_script_env_mismatch", {item["category"] for item in result["diagnostics"]})
         self.assertIn("supported", result["route_policy"])
@@ -273,7 +364,47 @@ class RuntimeDiagnosticsTests(unittest.TestCase):
         self.assertTrue(ok["token_refresh_available"])
         self.assertFalse(failed["ok"])
         self.assertIn("error", failed)
+        self.assertEqual(failed["error"]["category"], "expired_token")
         self.assertNotIn("super-secret-token-value", json.dumps(failed))
+
+    def test_auth_probe_bootstraps_missing_token_with_yc_and_reports_no_secret(self):
+        from datalens_dev_mcp.api.client import DataLensApiClient
+        from datalens_dev_mcp.config import DataLensConfig
+        from datalens_dev_mcp.mcp.tools.runtime import dl_auth_probe
+
+        class ProbeTransport:
+            def __init__(self):
+                self.calls = 0
+
+            def post_json(self, url, body, headers):
+                self.calls += 1
+                return b'{"workbooks": []}'
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            env_file = tmp_path / "env"
+            fake_yc = tmp_path / "yc"
+            env_file.write_text(
+                "DATALENS_ORG_ID=org_synthetic\n"
+                "DATALENS_ENABLE_TOKEN_REFRESH_ON_401=1\n"
+                f"DATALENS_YC_BINARY={fake_yc}\n",
+                encoding="utf-8",
+            )
+            fake_yc.write_text("#!/bin/sh\nprintf 'fresh-token-placeholder\\n'\n", encoding="utf-8")
+            fake_yc.chmod(0o755)
+            transport = ProbeTransport()
+            with patched_env({"DATALENS_ENV_FILE": str(env_file)}, clear=True):
+                client = DataLensApiClient(DataLensConfig.from_env(), transport=transport)
+                result = dl_auth_probe(client=client)
+            persisted = env_file.read_text(encoding="utf-8")
+            mode = env_file.stat().st_mode & 0o777
+
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["initial_token_bootstrapped"])
+        self.assertEqual(transport.calls, 1)
+        self.assertEqual(mode, 0o600)
+        self.assertIn("DATALENS_IAM_TOKEN=fresh-token-placeholder", persisted)
+        self.assertNotIn("fresh-token-placeholder", json.dumps(result))
 
     def test_credential_report_omits_env_file_path(self):
         from datalens_dev_mcp.config import DataLensConfig
@@ -318,9 +449,10 @@ class RuntimeDiagnosticsTests(unittest.TestCase):
         dumped = json.dumps(result, ensure_ascii=False)
         self.assertTrue(result["ok"])
         self.assertEqual(result["mode_octal"], "0o600")
-        self.assertIn("DATALENS_MCP_ENABLE_WRITES=0", text)
-        self.assertIn("DATALENS_MCP_LIVE_ALLOW_SAVE=0", text)
-        self.assertIn("DATALENS_MCP_LIVE_ALLOW_PUBLISH=0", text)
+        self.assertIn("DATALENS_MCP_ENABLE_WRITES=1", text)
+        self.assertIn("DATALENS_MCP_LIVE_ALLOW_SAVE=1", text)
+        self.assertIn("DATALENS_MCP_LIVE_ALLOW_PUBLISH=1", text)
+        self.assertIn("DATALENS_ENABLE_TOKEN_REFRESH_ON_401=1", text)
         self.assertIn("DATALENS_REQUEST_TIMEOUT_SEC=12.5", text)
         self.assertNotIn("DATALENS_AUTH_MODE", text)
         self.assertIn("DATALENS_AUTH_MODE", result["unsupported_keys_skipped"])

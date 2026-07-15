@@ -1,49 +1,30 @@
-# Source Provenance
+# Происхождение справочных данных
 
-Public source maps: [Русский](sources.md) · [English](sources_en.md).
+[Карта источников на русском](sources.md) · [Source map in English](sources_en.md)
 
-## Project-authored surface
+## Материалы проекта
 
-The Python implementation, policies, schemas, templates, examples, and tests
-are maintained in this repository under Apache License 2.0. Runtime behavior is
-defined by those tracked artifacts; it does not read a private document
-collection.
+Python-код, правила, схемы, шаблоны, примеры и тесты поддерживаются в этом репозитории и распространяются по Apache License 2.0. Установленный сервер использует файлы, входящие в пакет.
 
-## Official Yandex Cloud documentation
+## Документация Yandex Cloud
 
-The compact registries under
-`src/datalens_dev_mcp/assets/schemas/datalens-knowledge/` are adapted from the
-official Yandex Cloud documentation:
+Компактные справочные индексы в `src/datalens_dev_mcp/assets/schemas/datalens-knowledge/` подготовлены на основе официальной документации:
 
-- source repository: <https://github.com/yandex-cloud/docs>
-- DataLens documentation: <https://yandex.cloud/ru/docs/datalens/>
-- machine-readable discovery index: <https://yandex.cloud/llms.txt>
-- upstream license: Creative Commons Attribution 4.0 International
+- [репозиторий yandex-cloud/docs](https://github.com/yandex-cloud/docs);
+- [документация DataLens](https://yandex.cloud/ru/docs/datalens/);
+- [индекс страниц llms.txt](https://yandex.cloud/llms.txt);
+- [лицензия CC BY 4.0](https://github.com/yandex-cloud/docs/blob/master/LICENSE).
 
-The documentation was parsed, normalized, indexed, excerpted, and compiled.
-Where applicable, registry records retain their source URL, source path,
-anchor, and content hash. The packaged registries do not contain the raw site
-mirror or its images.
+Страницы были разобраны, нормализованы, сокращены до применимых правил и снабжены исходными URL, путями и якорями. Полный сайт и изображения в пакет не входят.
 
-The exact attribution, copyright notice, license copy, snapshot metadata, and
-modification statement are recorded in `THIRD_PARTY_NOTICES.md`,
-`LICENSES/CC-BY-4.0.txt`, and the adjacent knowledge `PROVENANCE.json`.
+Атрибуция, текст лицензии и описание изменений находятся в `THIRD_PARTY_NOTICES.md`, `LICENSES/CC-BY-4.0.txt` и соседнем `PROVENANCE.json`.
 
-## DataLens API contracts
+## Контракты DataLens API
 
-API method names, request shapes, and validation schemas correspond to the
-official DataLens API reference stored under `en/datalens/openapi-ref/` and
-`md-docs/datalens/openapi-ref/` in the CC-BY-4.0-licensed Yandex Cloud docs
-repository. The public OpenAPI response is used only as a deterministic
-compiler input and is not distributed. Prose annotations are removed from the
-compiled validation bundles; source and modification details are retained in
-`schemas/datalens-api/source-trace.json`.
+Имена методов, формы запросов и схемы валидации соответствуют официальному [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/). Публичная OpenAPI-схема используется при компиляции и преобразуется в компактные контракты. Машинные сведения об источнике и преобразованиях хранятся в `schemas/datalens-api/source-trace.json`.
 
-## Regeneration
+## Обновление справочных данных
 
-The full documentation corpus is an external, optional compiler input. Set
-`DATALENS_DOCS_CORPUS_ROOT` to an explicitly obtained snapshot before running
-the compiler. Production runtime and installed distributions use only the
-tracked compact registries.
+Полный корпус документации используется только при явном запуске компилятора. Обычная установка и работа сервера используют готовые компактные индексы из Python-пакета.
 
-This project is independent of Yandex and is not endorsed by Yandex.
+Проект развивается независимо от Yandex.

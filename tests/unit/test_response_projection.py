@@ -9,6 +9,8 @@ from datalens_dev_mcp.mcp.response_projection import (
     project_dataset_response,
     project_dashboard_response,
     project_editor_chart_response,
+    project_public_resource_text,
+    project_public_response,
     project_workbook_entries_response,
     sanitize_response,
     stable_sha256,
@@ -263,6 +265,213 @@ class ResponseProjectionTests(unittest.TestCase):
         self.assertFalse(result["isError"])
         self.assertNotIn("\n", text)
         self.assertEqual(json.loads(text)["ok"], True)
+
+    def test_public_projection_translates_legacy_execution_metadata(self):
+        projected = project_public_response(
+            {
+                "approved": True,
+                "approval_provenance": {
+                    "approval_source": "current_user_request",
+                    "approved_at": "2026-07-15T00:00:00Z",
+                },
+                "safe_apply_approved": True,
+                "approval_reuse_for_publish": True,
+                "expert_rpc_requires_env": "DATALENS_MCP_ENABLE_EXPERT_RPC=1",
+                "hidden_destructive_semantics_policy": "delete requires confirmation",
+                "blocked_reasons": ["safe_apply_not_approved"],
+            }
+        )
+        serialized = json.dumps(projected, ensure_ascii=False, sort_keys=True)
+
+        self.assertTrue(projected["request_authorized"])
+        self.assertEqual(projected["request_binding"]["request_source"], "current_user_request")
+        self.assertTrue(projected["safe_apply_authorized"])
+        self.assertTrue(projected["request_binding_reused_for_publish"])
+        self.assertIn("destructive_semantics_policy", projected)
+        self.assertNotIn("approv", serialized.lower())
+        self.assertNotIn("EXPERT_RPC", serialized)
+
+    def test_public_guidance_uses_only_real_standard_tool_names(self):
+        projected = project_public_response(
+            {
+                "safe_diagnostic_probes": ["dl_get_dataset_schema", "dl_rpc_expert"],
+                "method_schema": {"mcp_tool": "dl_update_dashboard_plan / dl_plan_dashboard_tab_update"},
+            },
+            allowed_tool_names={"dl_read_object", "dl_plan_dashboard_tab_update"},
+        )
+        serialized = json.dumps(projected, ensure_ascii=False, sort_keys=True)
+
+        self.assertEqual(projected["safe_diagnostic_probes"], ["dl_read_object"])
+        self.assertEqual(projected["method_schema"]["mcp_tool"], "dl_plan_dashboard_tab_update")
+        self.assertNotIn("internal_workflow_step", serialized)
+        self.assertNotIn("dl_rpc_expert", serialized)
+        self.assertNotIn("dl_update_dashboard_plan", serialized)
+
+    def test_standard_tool_response_hides_legacy_execution_vocabulary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            server = JsonRpcServer(project_root=tmp)
+            result = server._call_tool(
+                {
+                    "name": "dl_create_safe_apply_plan",
+                    "arguments": {
+                        "project_root": tmp,
+                        "delivery_intent_text": "исправь чарт и опубликуй",
+                        "target_known": True,
+                        "target_chart_id": "chart_fixture",
+                        "existing_update_actions": [
+                            {
+                                "object_type": "wizard_chart",
+                                "object_id": "chart_fixture",
+                                "write_method": "updateWizardChart",
+                                "read_method": "getWizardChart",
+                                "payload": {"chartId": "chart_fixture", "revId": "rev_fixture"},
+                            }
+                        ],
+                    },
+                }
+            )
+        body = json.loads(result["content"][0]["text"])
+        serialized = json.dumps(body, ensure_ascii=False, sort_keys=True)
+
+        self.assertFalse(result["isError"], body)
+        self.assertTrue(body["request_authorized"])
+        self.assertEqual(body["request_intent"]["request_source"], "current_user_request")
+        self.assertNotIn("approv", serialized.lower())
+        self.assertNotIn("DATALENS_MCP_ENABLE_EXPERT_RPC", serialized)
+        self.assertNotIn("read_only_default", serialized)
+
+    def test_public_resource_read_projects_legacy_artifact_and_nonpublic_tool_name(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            artifact = root / "artifacts" / "legacy.json"
+            artifact.parent.mkdir(parents=True)
+            artifact.write_text(
+                json.dumps(
+                    {
+                        "approved": True,
+                        "approval_source": "current_user_request",
+                        "next_steps": ["Call dl_rpc_expert after approval."],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            response = JsonRpcServer(project_root=tmp).handle(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "resources/read",
+                    "params": {"uri": "datalens://artifacts/legacy.json"},
+                }
+            )
+
+        text = response["result"]["contents"][0]["text"]
+        body = json.loads(text)
+        self.assertTrue(body["request_authorized"])
+        self.assertEqual(body["request_source"], "current_user_request")
+        self.assertNotIn("approv", text.lower())
+        self.assertNotIn("dl_rpc_expert", text)
+        self.assertEqual(body["next_steps"], [])
+        self.assertNotIn("internal_workflow_step", text)
+
+    def test_plain_text_resource_projection_keeps_standard_tool_names(self):
+        text = project_public_resource_text(
+            "Use dl_runtime_status, never dl_rpc_expert.",
+            allowed_tool_names={"dl_runtime_status"},
+        )
+
+        self.assertIn("dl_runtime_status", text)
+        self.assertNotIn("dl_rpc_expert", text)
+        self.assertNotIn("internal_workflow_step", text)
+
+    def test_artifact_resource_rejects_path_traversal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            secret = Path(tmp) / "private.env"
+            secret.write_text("DATALENS_IAM_TOKEN=must-not-leak\n", encoding="utf-8")
+            response = JsonRpcServer(project_root=tmp).handle(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "resources/read",
+                    "params": {"uri": "datalens://artifacts/../private.env"},
+                }
+            )
+
+        serialized = json.dumps(response, ensure_ascii=False)
+        self.assertIn("error", response)
+        self.assertNotIn("must-not-leak", serialized)
+        self.assertIn("declared artifact directory", serialized)
+
+    def test_artifact_resource_cannot_override_configured_project_root(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            configured = base / "configured"
+            alternate = base / "alternate"
+            (configured / "artifacts").mkdir(parents=True)
+            (alternate / "artifacts").mkdir(parents=True)
+            (configured / "artifacts" / "status.txt").write_text("CONFIGURED", encoding="utf-8")
+            (alternate / "artifacts" / "status.txt").write_text("MUST_NOT_LEAK", encoding="utf-8")
+
+            response = JsonRpcServer(project_root=str(configured)).handle(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "resources/read",
+                    "params": {
+                        "uri": "datalens://artifacts/status.txt",
+                        "project_root": str(alternate),
+                    },
+                }
+            )
+
+        serialized = json.dumps(response, ensure_ascii=False)
+        self.assertIn("CONFIGURED", serialized)
+        self.assertNotIn("MUST_NOT_LEAK", serialized)
+
+    def test_artifact_resource_rejects_declared_directory_symlink_outside_project(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            project = base / "project"
+            outside = base / "outside"
+            project.mkdir()
+            outside.mkdir()
+            (outside / "secret.txt").write_text("MUST_NOT_LEAK", encoding="utf-8")
+            (project / "artifacts").symlink_to(outside, target_is_directory=True)
+
+            response = JsonRpcServer(project_root=str(project)).handle(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "resources/read",
+                    "params": {"uri": "datalens://artifacts/secret.txt"},
+                }
+            )
+
+        serialized = json.dumps(response, ensure_ascii=False)
+        self.assertIn("error", response)
+        self.assertNotIn("MUST_NOT_LEAK", serialized)
+        self.assertIn("configured project root", serialized)
+
+    def test_public_projection_preserves_datalens_business_content_exactly(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            response = JsonRpcServer(project_root=tmp)._call_tool(
+                {
+                    "name": "dl_plan_dashboard_tab_update",
+                    "arguments": {
+                        "current_dashboard": {
+                            "dashboardId": "dashboard_fixture",
+                            "revId": "revision_fixture",
+                            "data": {"tabs": [], "title": "Approval dashboard"},
+                        },
+                        "tab": {"id": "tab_fixture", "title": "Approved requests"},
+                        "tab_operation": "append",
+                    },
+                }
+            )
+        body = json.loads(response["content"][0]["text"])
+
+        self.assertFalse(response["isError"], body)
+        self.assertEqual(body["proposed_dashboard"]["data"]["title"], "Approval dashboard")
+        self.assertEqual(body["proposed_dashboard"]["data"]["tabs"][0]["title"], "Approved requests")
 
 
 if __name__ == "__main__":

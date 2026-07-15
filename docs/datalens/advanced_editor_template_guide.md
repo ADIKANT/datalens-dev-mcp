@@ -28,7 +28,7 @@ These labels are intentionally deterministic so reviews and tests can detect gen
 ## Parameterization
 
 - `schema.json` and `example_input.json` define accepted input shape for each template archetype.
-- `templates/datalens/standard_chart_templates.json` maps every approved Advanced Editor family to an archetype.
+- `templates/datalens/standard_chart_templates.json` maps every supported Advanced Editor family to an archetype.
 - `config/datalens_chart_param_matrix.json` adds family-level required parameters, optional parameters, sorting, label/axis/gridline behavior, color strategy, value formatting, interaction expectations, ask-user triggers, and fallback family.
 - `load_standard_template_bundle` attaches the matrix `parameter_spec` to generated bundles.
 

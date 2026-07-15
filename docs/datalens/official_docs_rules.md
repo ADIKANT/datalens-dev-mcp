@@ -16,21 +16,22 @@ See `docs/source_provenance.md` and `THIRD_PARTY_NOTICES.md`.
 - Use the entry relation graph as evidence for object dependencies instead of
   guessing them.
 - Dashboard widgets, selectors, parameters, tabs, links, and layout belong to
-  dashboard and relation payloads, not hidden chart-body code.
+  dashboard and relation payloads rather than opaque chart-body code.
 
 ## API And Authentication
 
 - Use the documented RPC method names and the compiled current API version.
 - Live calls require bearer IAM authentication and an organization identifier.
   Committed examples contain placeholders only.
-- Token refresh is an operator concern. Logs and reports must never reveal
-  tokens, authentication headers, or subject-token material.
+- An initialized `yc` CLI can obtain or refresh the IAM token. Logs and reports
+  must never reveal tokens, authentication headers, or subject-token material.
 - Authentication and permission failures stop the workflow unless an explicit
   configured refresh flow is available.
 
 ## Save, Publish, And Readback
 
-- Startup is read-only; write and publish gates are disabled by default.
+- Write, save, and publish capabilities are enabled in the standard runtime;
+  the user request selects read-only, plan-only, save-only, or save-and-publish.
 - An update begins from a fresh saved object, preserves its revision and unknown
   fields, changes only declared fields, and finishes with saved readback.
 - Publishing is a separate action built from saved readback and followed by
@@ -52,7 +53,7 @@ See `docs/source_provenance.md` and `THIRD_PARTY_NOTICES.md`.
 ## Datasets And Connections
 
 - Dataset and connection reads and validation may be executed when credentials
-  are configured. Writes remain guarded and plan-only by default.
+  are configured. Create/update requests use the normal Safe Apply flow.
 - Connection payloads are credential-sensitive and must pass redaction and
   sensitive-key validation.
 - Dataset fields, calculations, measures, joins, filters, and row-level security
@@ -60,7 +61,7 @@ See `docs/source_provenance.md` and `THIRD_PARTY_NOTICES.md`.
 
 ## Administrative Operations
 
-- Access-binding reads may be used as evidence; updates are admin-sensitive and
-  guarded.
-- Delete, move, rename, and license-management operations are documented for
-  awareness but are outside normal operator routing.
+- Access-binding reads may be used as evidence; permission updates are not
+  supported by this MCP server.
+- Deleting a complete supported object requires a separate confirmation with
+  exact IDs. Move, rename, and license-management operations are unsupported.

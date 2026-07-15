@@ -25,7 +25,7 @@ fixtures are offline evidence and have `live_verification=false`.
 
 Bubble requires `size`; geolayer requires validated geo evidence. Unknown
 visualization IDs block create. Update can preserve an unknown ID only from
-fresh saved readback. No internal token is guessed.
+fresh saved readback. No identifier token is guessed.
 
 JavaScript is not an error fallback. It is selected before transport only for
 an explicit request or a capability gap registered in the route policy.

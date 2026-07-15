@@ -48,10 +48,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -74,10 +74,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -194,10 +194,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -220,10 +220,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -338,10 +338,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -364,10 +364,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -500,10 +500,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -526,10 +526,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -662,10 +662,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -688,10 +688,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -806,10 +806,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -832,10 +832,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -950,10 +950,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -976,10 +976,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -1095,10 +1095,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -1121,10 +1121,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -1240,10 +1240,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -1266,10 +1266,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -1384,10 +1384,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -1410,10 +1410,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -1529,10 +1529,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -1555,10 +1555,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -1674,10 +1674,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -1700,10 +1700,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -1817,10 +1817,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -1843,10 +1843,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -1977,10 +1977,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -2003,10 +2003,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -2137,10 +2137,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -2163,10 +2163,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -2297,10 +2297,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -2323,10 +2323,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -2457,10 +2457,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -2483,10 +2483,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -2617,10 +2617,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -2643,10 +2643,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -2777,10 +2777,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -2803,10 +2803,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -2939,10 +2939,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -2965,10 +2965,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -3084,10 +3084,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -3110,10 +3110,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -3229,10 +3229,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -3255,10 +3255,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -3369,10 +3369,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -3395,10 +3395,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -3509,10 +3509,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -3535,10 +3535,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -3649,10 +3649,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -3675,10 +3675,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -3789,10 +3789,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -3815,10 +3815,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -3921,10 +3921,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -3947,10 +3947,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -4053,10 +4053,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -4079,10 +4079,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -4185,10 +4185,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -4211,10 +4211,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -4317,10 +4317,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -4343,10 +4343,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -4449,10 +4449,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -4475,10 +4475,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -4583,10 +4583,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -4609,10 +4609,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -4730,10 +4730,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -4756,10 +4756,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -4877,10 +4877,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -4903,10 +4903,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -5024,10 +5024,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -5050,10 +5050,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -5171,10 +5171,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -5197,10 +5197,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -5318,10 +5318,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -5344,10 +5344,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -5467,10 +5467,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -5493,10 +5493,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -5610,10 +5610,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "Publish proof requires saved readback plus separate explicit publish approval.",
+        "reason": "Published proof requires a successful saved readback and publish-enabled runtime.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -5636,10 +5636,10 @@
         "must_not_claim_passed": true,
         "object_id": null,
         "proof_level": "not_run",
-        "reason": "No explicitly configured disposable workbook and guarded live-write approval were supplied.",
+        "reason": "No disposable workbook or live execution target was configured for this static fixture.",
         "required_configuration": [
           "disposable test workbook id",
-          "explicit guarded write approval",
+          "implementation request for the disposable target",
           "fresh saved-object readback"
         ],
         "revision_id": null,
@@ -5702,7 +5702,7 @@
       "widget_kind": "visual"
     }
   ],
-  "inventory_digest": "d9d2726273149538debb16ac7d098b3daf19f42f8a39503f8f168c2e67de26f7",
+  "inventory_digest": "a12fe292c7620881369d20b62ddd282e87c826e1852a92495c59e2b7afaf371d",
   "inventory_schema_version": "2026-07-13.golden_runtime_gallery_inventory.v2",
   "route_inventory": {
     "banned": [
@@ -5730,7 +5730,7 @@
         "route": "guessed_id_write"
       },
       {
-        "reason": "Fresh readback and approval are required.",
+        "reason": "Fresh readback and the runtime write gates are required.",
         "route": "blind_write_or_publish"
       },
       {
@@ -5938,13 +5938,12 @@
     "validator_failures": []
   },
   "write_policy": {
-    "approved_test_workbook_env": "DATALENS_MCP_GOLDEN_TEST_WORKBOOK_ID",
     "default_mode": "read_only_static_validation",
     "live_create_requires": [
       "disposable test workbook id",
-      "explicit guarded write approval",
+      "implementation request for the disposable target",
       "fresh saved-object readback before publish",
-      "separate explicit publish approval before published readback",
+      "publish-enabled runtime before published readback",
       "browser authentication and rendered URL before screenshot proof"
     ],
     "never_touch": [
@@ -5960,6 +5959,7 @@
       "production": [
         "<PRODUCTION_WORKBOOK_ID>"
       ]
-    }
+    },
+    "test_workbook_env": "DATALENS_MCP_GOLDEN_TEST_WORKBOOK_ID"
   }
 }

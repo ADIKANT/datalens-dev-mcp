@@ -1,7 +1,7 @@
 # MCP Optimization Budget
 
 Canonical budget rules now live in
-`docs/mcp/token_and_response_budget.md`. This page is retained as a compatibility
+`docs/mcp/token_and_response_budget.md`. This page remains as a short redirect
 pointer for older references.
 
 Startup and default read responses must stay bounded. The standard tool list

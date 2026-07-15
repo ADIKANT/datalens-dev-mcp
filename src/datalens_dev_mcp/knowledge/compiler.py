@@ -1775,7 +1775,7 @@ def recipe(
             "source_trace_present",
             "required_tabs_present",
             "runtime_contract_valid",
-            "safe_apply_plan_only_until_approved",
+            "safe_apply_follows_user_request_with_runtime_guards",
         ],
         "source_traces": traces,
     }

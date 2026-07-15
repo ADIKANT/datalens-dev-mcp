@@ -1,46 +1,24 @@
-# Data Evidence Workflow
+# Проверка источников данных
 
-This workflow standardizes read-only schema and data evidence before dashboard
-planning, SQL changes, dataset updates, and DQ conclusions.
+Эта последовательность собирает read-only evidence перед изменением дашборда, SQL или датасета.
 
-Use neutral evidence wording in reports: `read-only metadata/data evidence
-provider`, `schema probe`, and `bounded data probe`. Do not name local helper
-implementations in user-facing docs or reports.
+## Статусы
 
-## Evidence Statuses
+- `AVAILABLE` — точечная проверка подтвердила источник;
+- `UNAVAILABLE_CONFIRMED` — точечный поиск подтвердил отсутствие;
+- `NOT_PROBED` — проверка не выполнялась;
+- `PROBE_BLOCKED` — проверка недоступна или небезопасна;
+- `INCONCLUSIVE_TRUNCATED` — усечённый результат не позволяет сделать вывод.
 
-- `AVAILABLE`: targeted evidence confirms the table/source exists.
-- `UNAVAILABLE_CONFIRMED`: targeted `table_discovery` evidence confirms absence.
-- `NOT_PROBED`: no targeted evidence has been collected.
-- `PROBE_BLOCKED`: the requested probe is unsafe, incomplete, or unavailable.
-- `INCONCLUSIVE_TRUNCATED`: an aggregate inventory is truncated and cannot prove
-  absence.
+## Процесс
 
-## Standard Probe Operations
+1. Подготовьте ограниченные результаты table discovery, column list, row count, sample или stage count через выбранный read-only provider.
+2. Передайте очищенные результаты в `dl_diagnose` с подходящим mode.
+3. Для нескольких источников и consumers используйте `dl_build_dashboard_source_availability_matrix`.
+4. Проверьте согласованность через `dl_validate_source_availability_consumers`.
+5. Постройте точечное исправление через `dl_plan_source_availability_patch`.
+6. Добавьте результат в `dl_build_validation_evidence_report`.
 
-- `table_discovery`: targeted `information_schema` or `system.tables` table
-  existence probe.
-- `column_list`: targeted column list probe.
-- `bounded_row_count`: row count with explicit bounds where applicable.
-- `bounded_sample`: sample with explicit columns and a maximum row limit.
-- `cte_stage_count`: count rows at a named CTE stage.
-- `link_direction`: classify source-side, target-side, and bidirectional graph
-  table evidence.
-- `source_freshness_availability`: row-count and max-timestamp evidence.
+Производственные probes перечисляют столбцы явно и используют ограничение строк. Усечённый aggregate inventory не подтверждает отсутствие таблицы; для этого нужен точечный table discovery.
 
-Production probes must not use `SELECT *`; enumerate columns explicitly. If the
-provider cannot execute the probe, record `PROBE_BLOCKED` with the missing
-capability and next step.
-
-## MCP Tools
-
-1. `dl_build_data_evidence_probe_plan` creates a read-only probe plan and SQL
-   contract. It does not execute queries.
-2. `dl_record_data_evidence` records sanitized provider output under the project
-   in `reports/data_evidence/` and appends a compact requirements note.
-3. `dl_evaluate_data_evidence` decides whether table availability can be stated.
-   A truncated aggregate inventory never proves absence; targeted
-   `table_discovery` evidence is required for `UNAVAILABLE_CONFIRMED`.
-
-Evidence artifacts belong inside the active project, not in raw material
-folders or global MCP documentation.
+Сохраняйте только очищенные агрегаты и схемы внутри active project root. Токены, headers и raw private rows в отчёты не входят.

@@ -106,8 +106,8 @@ class AuthoritativeHardeningEventsTests(unittest.TestCase):
             {"revId": "rev_dataset_1", "fields": [{"name": "vehicle_id", "guid": "vehicle_id_guid"}]},
             dataset_payload(),
             workbook_id="wb",
-            approved=True,
             validate_only=False,
+            delivery_intent_text="update this dataset",
         )
 
         self.assertTrue(plan["ok"])
@@ -148,9 +148,9 @@ class AuthoritativeHardeningEventsTests(unittest.TestCase):
                 {"revId": "rev_dataset_1", "fields": [{"name": "vehicle_id", "guid": "vehicle_id_guid"}]},
                 dataset_payload(),
                 workbook_id="wb",
-                approved=True,
                 validate_only=False,
                 execute_validation=True,
+                delivery_intent_text="update this dataset",
                 project_root=project_root,
                 client=client,
             )

@@ -49,5 +49,5 @@ Use placeholders by default:
 - `<NATIVE_HINT>`
 
 Store source DataLens object ids only when the user explicitly chooses
-local-only project state or live readback supplies them as part of an approved
+local-only project state or live readback supplies them as part of a validated
 workflow.

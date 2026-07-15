@@ -47,7 +47,6 @@ class DeliveryIntentMcpWorkflowTests(unittest.TestCase):
 
             safe_plan = dl_create_safe_apply_plan(
                 str(root),
-                approved=True,
                 delivery_intent_text="implement the requested dashboard fix",
             )
 
@@ -77,7 +76,6 @@ class DeliveryIntentMcpWorkflowTests(unittest.TestCase):
                 object_type="dashboard",
                 object_id="dash_1",
                 saved_readback_path=str(saved_path),
-                approved=True,
                 delivery_intent_text="implement the requested dashboard fix",
             )
 

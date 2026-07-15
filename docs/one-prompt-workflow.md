@@ -1,32 +1,23 @@
-# One-Prompt Workflow
+# Одна задача — полный цикл
 
-[Русский Flow](usage-flow.md) · [English flow](usage-flow_en.md) · [Public tools](tools_en.md)
+[Основные сценарии](usage-flow.md) · [Инструменты](tools.md)
 
-An MCP client may receive a broad request such as:
+Широкий запрос можно передать MCP-клиенту одной задачей:
 
 ```text
-разработай мне дашборд на основе требований и вот этих данных
+Разработай дашборд по этим требованиям и данным: <ТРЕБОВАНИЯ>.
 ```
 
-The agent should resolve it through the standard public surface:
+Клиент проходит стандартный цикл:
 
-1. Call `dl_runtime_status` and `dl_auth_probe`.
-2. When a live target exists, read workbook inventory, create a fresh dashboard
-   snapshot, and read exact objects and relations.
-3. Use `dl_reference` for bounded route/API guidance and `dl_diagnose` for
-   supplied SQL, grain, or performance evidence.
-4. Build generic create/update plans with `dl_plan_object_create` or
-   `dl_plan_object_update`; use the guarded dataset or dashboard-tab planner
-   only for those specialized changes.
-5. Run `dl_validate_object`, optional Editor runtime validation, and
-   `dl_validate_project`.
-6. Build `dl_build_payload_plan` and an unapproved
-   `dl_create_safe_apply_plan`.
-7. Stay read-only or plan-only unless the requested delivery intent, tool
-   approval, and runtime gates allow guarded execution.
-8. After any save, require saved readback. Publish only through
-   `dl_create_publish_from_saved_plan`, followed by published readback and
-   runtime/browser QA for visible changes.
+1. Проверяет `dl_runtime_status` и `dl_auth_probe`.
+2. Для существующей цели читает воркбук, снимок дашборда, точные объекты и связи.
+3. Использует `dl_reference` для справки и `dl_diagnose` для переданных SQL или данных о производительности.
+4. Строит create/update plan через `dl_plan_object_create` или `dl_plan_object_update`.
+5. Проверяет объект, Editor-код при наличии и project root.
+6. Собирает `dl_build_payload_plan` и `dl_create_safe_apply_plan`.
+7. Если запрос просит реализацию, выполняет save и saved readback.
+8. Строит publish только из saved readback, публикует и проверяет published-версию.
+9. Проверяет видимый результат в DataLens или явно сообщает об ограничении проверки.
 
-The prompt is not permission to guess object IDs, choose QL automatically,
-call hidden compatibility tools, or bypass write/save/publish gates.
+Для plan-only цикл останавливается после шага 6. Для save-only — после saved readback. Идентификаторы объектов берутся из запроса или актуального чтения и не угадываются. QL используется только после прямого запроса пользователя.

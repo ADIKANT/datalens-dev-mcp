@@ -22,6 +22,7 @@ class TargetLock:
     target_dashboard_id: str = ""
     target_chart_id: str = ""
     target_object_type: str = ""
+    target_object_key: str = ""
     evidence: list[str] = field(default_factory=list)
 
     @property
@@ -41,6 +42,7 @@ def create_target_lock(
     target_chart_id: str = "",
     target_url: str = "",
     target_object_type: str = "",
+    target_object_key: str = "",
 ) -> TargetLock:
     if isinstance(request, NormalizedUserRequest):
         normalized = request
@@ -53,6 +55,7 @@ def create_target_lock(
     dashboard_id = target_dashboard_id or normalized.target_dashboard_id
     chart_id = target_chart_id or normalized.target_chart_id
     object_type = target_object_type or normalized.target_object_type or ("dashboard" if dashboard_id else "chart" if chart_id else "")
+    object_key = str(target_object_key or "").strip()
     url = target_url or normalized.target_url
     source = _target_source(target_source, url=url, normalized=normalized)
     evidence = list(normalized.evidence)
@@ -62,7 +65,15 @@ def create_target_lock(
         evidence.append(f"target_dashboard_id:{dashboard_id}")
     if chart_id:
         evidence.append(f"target_chart_id:{chart_id}")
-    status = _target_status(workbook_id=workbook_id, dashboard_id=dashboard_id, chart_id=chart_id)
+    if object_key:
+        evidence.append(f"target_object_key:{object_key}")
+    status = _target_status(
+        workbook_id=workbook_id,
+        dashboard_id=dashboard_id,
+        chart_id=chart_id,
+        object_type=object_type,
+        object_key=object_key,
+    )
     payload = {
         "target_source": source,
         "target_url": url,
@@ -70,6 +81,7 @@ def create_target_lock(
         "target_dashboard_id": dashboard_id,
         "target_chart_id": chart_id,
         "target_object_type": object_type,
+        "target_object_key": object_key,
     }
     return TargetLock(
         target_source=source,
@@ -78,6 +90,7 @@ def create_target_lock(
         target_dashboard_id=dashboard_id,
         target_chart_id=chart_id,
         target_object_type=object_type,
+        target_object_key=object_key,
         lock_hash=_hash_payload(payload),
         status=status,
         evidence=sorted(dict.fromkeys(evidence)),
@@ -176,10 +189,17 @@ def _target_source(source: str, *, url: str, normalized: NormalizedUserRequest) 
     return "manual"
 
 
-def _target_status(*, workbook_id: str, dashboard_id: str, chart_id: str) -> TargetStatus:
+def _target_status(
+    *,
+    workbook_id: str,
+    dashboard_id: str,
+    chart_id: str,
+    object_type: str,
+    object_key: str,
+) -> TargetStatus:
     if dashboard_id and chart_id:
         return "ambiguous"
-    if not (dashboard_id or chart_id):
+    if not (dashboard_id or chart_id) and not (object_type and object_key):
         return "missing"
     if not workbook_id:
         return "missing"
@@ -207,6 +227,7 @@ def _lock_obj(lock: TargetLock | dict[str, Any]) -> TargetLock:
         "target_dashboard_id": str(lock.get("target_dashboard_id") or ""),
         "target_chart_id": str(lock.get("target_chart_id") or ""),
         "target_object_type": str(lock.get("target_object_type") or ""),
+        "target_object_key": str(lock.get("target_object_key") or ""),
     }
     return TargetLock(
         target_source=source,  # type: ignore[arg-type]
@@ -215,6 +236,7 @@ def _lock_obj(lock: TargetLock | dict[str, Any]) -> TargetLock:
         target_dashboard_id=payload["target_dashboard_id"],
         target_chart_id=payload["target_chart_id"],
         target_object_type=payload["target_object_type"],
+        target_object_key=payload["target_object_key"],
         lock_hash=str(lock.get("lock_hash") or _hash_payload(payload)),
         status=status,  # type: ignore[arg-type]
         evidence=list(lock.get("evidence") or []),

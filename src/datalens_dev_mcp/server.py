@@ -13,9 +13,14 @@ from typing import Any
 
 from datalens_dev_mcp import __version__
 from datalens_dev_mcp.api.errors import DataLensApiError, DataLensSafetyError
-from datalens_dev_mcp.config import load_env_file
+from datalens_dev_mcp.config import EXECUTION_SWITCH_ENV_NAMES, load_env_file
 from datalens_dev_mcp.local_config import apply_tool_defaults, load_local_config
 from datalens_dev_mcp.mcp.prompts import get_prompt, list_prompts
+from datalens_dev_mcp.mcp.response_projection import (
+    project_public_resource_text,
+    project_public_response,
+    sanitize_response,
+)
 from datalens_dev_mcp.mcp.resources import list_resources, read_resource
 from datalens_dev_mcp.mcp.tool_registry_policy import hidden_tool_calls_enabled
 from datalens_dev_mcp.pipeline.context_contracts import (
@@ -331,11 +336,12 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "branch": "DataLens branch to read.",
     "method": "Curated DataLens API method name.",
     "readback_mode": "Readback depth for saved/published verification.",
-    "approved": "Codex/tool approval flag for guarded safe apply. Defaults to false.",
-    "approved_plan_path": "Path to an approved safe-apply plan artifact.",
+    "plan_path": "Path to the guarded safe-apply plan artifact to execute.",
+    "write_manifest": "Write the generated local project manifest instead of returning a preview only.",
+    "confirm_delete": "Confirm deletion of the exact whole-object IDs and unchanged plan hash returned by the previous call.",
     "saved_readback_path": "Saved-branch readback artifact used as the only valid publish source.",
     "workflow_name": "Manifest workflow name.",
-    "overwrite_existing": "Allow an approved project manifest preview to replace an existing manifest.",
+    "overwrite_existing": "Allow the generated project manifest to replace an existing manifest.",
     "target_workbook_id": "Target workbook id to include in a generated project manifest.",
     "action": "Project-live action.",
     "execute_now": "Execute the declared command.",
@@ -364,7 +370,7 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "proposed_dataset": "Proposed dataset payload for validateDataset/updateDataset planning.",
     "affected_chart_payloads": "Saved chart payloads that depend on dataset field GUIDs.",
     "validate_only": "Plan validateDataset only without updateDataset.",
-    "approve_guid_changes": "Explicitly allow dataset field GUID changes after review.",
+    "allow_guid_changes": "Allow reviewed dataset field GUID changes; disabled by default.",
     "current_dashboard": "Fresh getDashboard payload before a guarded dashboard tab update.",
     "tab": "Dashboard tab payload to append or replace.",
     "tab_operation": "Dashboard tab operation.",
@@ -599,7 +605,6 @@ TOOL_PARAM_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
             "dashboard_system_type",
             "negative_requirements",
             "delivery_intent",
-            "delivery_approval",
             "target_lock",
             "object_granularity",
             "selector_layout",
@@ -719,10 +724,13 @@ def _all_tool_schemas() -> tuple[dict[str, Any], ...]:
         _tool_schema("dl_detect_project_adapter", "Detect standard bundle or unsupported custom project layout."),
         _tool_schema("dl_detect_project_live_workflows", "Detect manifest-backed project live workflows or request an adapter."),
         _tool_schema("dl_list_project_live_workflows", "List manifest-backed project live workflows."),
-        _tool_schema("dl_plan_project_manifest", "Preview or write an approved project workflow manifest."),
+        _tool_schema("dl_plan_project_manifest", "Preview or write a local project workflow manifest."),
         _tool_schema("dl_plan_project_live_workflow", "Plan a manifest-declared project live workflow without execution."),
         _tool_schema("dl_run_project_live_dry_run", "Run manifest dry-run command with secret-safe env."),
-        _tool_schema("dl_run_project_live_apply", "Run approved manifest apply/publish command behind live guards."),
+        _tool_schema(
+            "dl_run_project_live_apply",
+            "Run a manifest apply/publish command behind live guards; only whole-object deletion needs confirmation.",
+        ),
         _tool_schema("dl_read_project_live_summary", "Read and normalize a project live workflow summary JSON."),
         _tool_schema(
             "dl_run_live_maintenance_update",
@@ -731,8 +739,8 @@ def _all_tool_schemas() -> tuple[dict[str, Any], ...]:
         _tool_schema("dl_build_dashboard_source_availability_matrix", "Build Delta v7 supplied-evidence source availability matrix."),
         _tool_schema("dl_validate_source_availability_consumers", "Validate dashboard consumers against one source availability matrix."),
         _tool_schema("dl_plan_source_availability_patch", "Plan source availability corrections without querying source systems."),
-        _tool_schema("dl_create_safe_apply_plan", "Create guarded safe-apply plan; unapproved by default."),
-        _tool_schema("dl_execute_safe_apply", "Execute guarded safe apply only when enabled and approved."),
+        _tool_schema("dl_create_safe_apply_plan", "Create a target-locked guarded safe-apply plan from the user request."),
+        _tool_schema("dl_execute_safe_apply", "Execute target-locked guarded safe apply when runtime write gates are enabled."),
         _tool_schema("dl_create_publish_from_saved_plan", "Create publish plan only from a saved-branch readback artifact."),
         _tool_schema("dl_readback_and_report", "Create readback summary and deployment report."),
         _tool_schema("dl_snapshot_dashboard", "Snapshot dashboard graph and sanitized object artifacts."),
@@ -830,7 +838,14 @@ def _input_schema_for_tool(
     fn = TOOLS.get(name)
     if fn:
         for param_name, param in inspect.signature(fn).parameters.items():
-            if param_name == "client":
+            if param_name == "client" or param.kind in {inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD}:
+                continue
+            if name in STANDARD_TOOL_NAMES and param_name in {
+                "approved",
+                "approval_source",
+                "approved_plan_path",
+                "approval_provenance",
+            }:
                 continue
             schema_properties.setdefault(param_name, _schema_for_parameter(name, param_name, param))
         if name in PROJECT_CONTEXT_AWARE_TOOLS:
@@ -906,9 +921,35 @@ def _json_scalar(value: Any) -> bool:
     return isinstance(value, str | int | float | bool)
 
 
+def _translate_legacy_standard_tool_arguments(name: str, raw: dict[str, Any]) -> dict[str, Any]:
+    arguments = dict(raw)
+    legacy_plan_path = arguments.pop("approved_plan_path", None)
+    if legacy_plan_path and not arguments.get("plan_path"):
+        arguments["plan_path"] = legacy_plan_path
+    legacy_approved = arguments.pop("approved", None)
+    arguments.pop("approval_source", None)
+    arguments.pop("approval_provenance", None)
+    if name == "dl_plan_project_manifest" and legacy_approved is not None and "write_manifest" not in arguments:
+        arguments["write_manifest"] = bool(legacy_approved)
+    legacy_guid_changes = arguments.pop("approve_guid_changes", None)
+    if (
+        name == "dl_plan_guarded_dataset_update"
+        and legacy_guid_changes is not None
+        and "allow_guid_changes" not in arguments
+    ):
+        arguments["allow_guid_changes"] = bool(legacy_guid_changes)
+    return arguments
+
+
 class JsonRpcServer:
     def __init__(self, *, project_root: str = ".", local_config_path: str | None = None) -> None:
-        load_env_file(os.getenv("DATALENS_ENV_FILE"), override=True)
+        # Fill missing values from the canonical env file without replacing
+        # explicit process-level hard-off switches.
+        load_env_file(
+            os.getenv("DATALENS_ENV_FILE"),
+            override=False,
+            skip_keys=EXECUTION_SWITCH_ENV_NAMES,
+        )
         self.project_root = str(Path(project_root).expanduser().resolve())
         self.local_config = load_local_config(local_config_path, project_root=self.project_root)
 
@@ -927,9 +968,13 @@ class JsonRpcServer:
                     "instructions": (
                         f"DataLens MCP standard tool surface: {tool_count} tools. "
                         "Normal sequence: resolve target; snapshot/read; reference/diagnose; "
-                        "generate/validate locally; plan; approval; safe apply; saved readback; "
+                        "generate/validate locally; plan; safe apply; saved readback; "
                         "publish from saved readback; published readback and runtime check. "
-                        "Writes remain guarded by env enablement, Codex/tool approval, fresh reads, save semantics, and readback."
+                        "An explicit create/fix/update/redesign request authorizes guarded save and publish without another question. "
+                        "Review, audit, diagnose, plan-only, save-only, and no-publish wording limits execution accordingly. "
+                        "Only deletion of whole DataLens objects requires a second call with confirm_delete=true for the unchanged plan. "
+                        "Writes remain guarded by runtime enablement, target lock, fresh reads, "
+                        "revision preservation, save semantics, and readback."
                     ),
                 }
             elif method == "tools/list":
@@ -941,8 +986,12 @@ class JsonRpcServer:
                 result = {"resources": list_resources()}
             elif method == "resources/read":
                 uri = params["uri"]
-                resource = read_resource(uri, project_root=params.get("project_root", self.project_root))
-                result = {"contents": [{"uri": uri, "mimeType": resource["mimeType"], "text": resource["text"]}]}
+                resource = read_resource(uri, project_root=self.project_root)
+                public_text = project_public_resource_text(
+                    resource["text"],
+                    allowed_tool_names=STANDARD_TOOL_NAMES,
+                )
+                result = {"contents": [{"uri": uri, "mimeType": resource["mimeType"], "text": public_text}]}
             elif method == "prompts/list":
                 result = {"prompts": list_prompts()}
             elif method == "prompts/get":
@@ -961,9 +1010,10 @@ class JsonRpcServer:
             raise DataLensSafetyError(f"{name} is not exposed on the standard MCP tool surface")
         fn = TOOLS[name]
         signature = inspect.signature(fn)
+        raw_arguments = _translate_legacy_standard_tool_arguments(name, params.get("arguments") or {})
         arguments = apply_tool_defaults(
             name,
-            params.get("arguments") or {},
+            raw_arguments,
             self.local_config,
             project_root=self.project_root,
             supports_project_root="project_root" in signature.parameters,
@@ -993,12 +1043,18 @@ class JsonRpcServer:
                     consumed_evidence=normalized_evidence,
                 )
         except Exception as exc:  # noqa: BLE001
+            public_error = sanitize_response(
+                project_public_response(
+                    _structured_tool_error(name, exc),
+                    allowed_tool_names=STANDARD_TOOL_NAMES,
+                )
+            )
             return {
                 "content": [
                     {
                         "type": "text",
                         "text": json.dumps(
-                            _structured_tool_error(name, exc),
+                            public_error,
                             ensure_ascii=False,
                             separators=(",", ":"),
                             sort_keys=True,
@@ -1007,11 +1063,17 @@ class JsonRpcServer:
                 ],
                 "isError": True,
             }
+        public_output = sanitize_response(
+            project_public_response(
+                output,
+                allowed_tool_names=STANDARD_TOOL_NAMES,
+            )
+        )
         return {
             "content": [
                 {
                     "type": "text",
-                    "text": json.dumps(output, ensure_ascii=False, separators=(",", ":"), sort_keys=True),
+                    "text": json.dumps(public_output, ensure_ascii=False, separators=(",", ":"), sort_keys=True),
                 }
             ],
             "isError": False,

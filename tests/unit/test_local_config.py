@@ -31,13 +31,17 @@ class LocalConfigTests(unittest.TestCase):
         config = load_local_config(ROOT / "config" / "datalens_mcp.local.example.json", project_root=ROOT)
 
         self.assertEqual(config["defaults"]["workbook_id"], "<WORKBOOK_ID>")
-        self.assertEqual(config["safe_mode"]["default"], "plan_only")
-        self.assertFalse(config["safe_mode"]["allow_writes"])
+        self.assertEqual(config["schema_version"], "2026-07-15.datalens_mcp_local_config.v2")
+        self.assertEqual(config["execution"]["default"], "follow_user_request")
+        self.assertTrue(config["execution"]["writes"])
+        self.assertTrue(config["execution"]["save"])
+        self.assertTrue(config["execution"]["publish"])
+        self.assertTrue(config["execution"]["delete_requires_confirmation"])
         self.assertEqual(config["readback"]["mode"], "minimal")
         self.assertNotIn("mcp", config)
         self.assertEqual(config["validation"]["strictness"], "strict")
-        self.assertTrue(config["safe_apply"]["require_approved_plan_path"])
-        self.assertTrue(config["safe_apply"]["allow_publish_by_default"])
+        self.assertTrue(config["safe_apply"]["require_safe_apply_plan"])
+        self.assertTrue(config["safe_apply"]["require_readback_after_save"])
         self.assertFalse(config["live_testing"]["run_live_tests_by_default"])
         self.assertEqual(config["api_defaults"]["request_interval_sec"], 0.15)
         self.assertEqual(
@@ -111,9 +115,11 @@ class LocalConfigTests(unittest.TestCase):
         invalid_configs = [
             {"readback": {"mode": "invalid"}},
             {"readback": {"mode": "none", "justification": ""}},
-            {"safe_mode": {"allow_writes": True}},
-            {"approval_gates": {"publish_default": False}},
-            {"safe_apply": {"allow_publish_by_default": False}},
+            {"execution": {"writes": False}},
+            {"execution": {"save": False}},
+            {"execution": {"publish": False}},
+            {"execution": {"delete_requires_confirmation": False}},
+            {"safe_apply": {"require_fresh_read": False}},
             {"live_testing": {"run_live_tests_by_default": True}},
             {"selectors": {"row_width_percent": 95}},
         ]
@@ -134,7 +140,49 @@ class LocalConfigTests(unittest.TestCase):
 
         self.assertEqual(sanitized["accidental_token"], "<redacted>")
         self.assertEqual(sanitized["nested"]["password"], "<redacted>")
-        self.assertEqual(sanitized["safe_mode"]["allow_writes"], False)
+        self.assertEqual(sanitized["execution"]["writes"], True)
+
+    def test_v1_execution_and_approval_config_is_migrated_in_memory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / "legacy-v1.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "2026-06-04.datalens_mcp_local_config.v1",
+                        "safe_mode": {
+                            "default": "plan_only",
+                            "allow_writes": False,
+                            "require_safe_apply_plan": True,
+                            "require_fresh_read": True,
+                            "preserve_revision": True,
+                        },
+                        "approval_gates": {
+                            "write_requires_tool_approval": True,
+                            "publish_requires_explicit_tool_approval": True,
+                        },
+                        "safe_apply": {
+                            "require_approved_plan_path": True,
+                            "require_approval_flag": True,
+                            "require_env_write_enablement": True,
+                            "require_save_mode_first": True,
+                            "require_readback_after_save": True,
+                            "allow_publish_by_default": True,
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            config = load_local_config(config_path, project_root=ROOT)
+
+        self.assertEqual(config["schema_version"], "2026-07-15.datalens_mcp_local_config.v2")
+        self.assertEqual(config["execution"]["default"], "follow_user_request")
+        self.assertTrue(config["execution"]["writes"])
+        self.assertTrue(config["execution"]["save"])
+        self.assertTrue(config["execution"]["publish"])
+        self.assertNotIn("safe_mode", config)
+        self.assertNotIn("approval_gates", config)
+        self.assertNotIn("require_approved_plan_path", config["safe_apply"])
+        self.assertIn("local_config:v1->v2_follow_user_request", config["_meta"]["compatibility_migrations"])
 
     def test_legacy_mcp_profile_config_is_tolerated_but_removed_from_effective_config(self):
         with tempfile.TemporaryDirectory() as tmp:

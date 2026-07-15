@@ -6,6 +6,13 @@ from pathlib import Path
 from typing import Mapping
 
 DEFAULT_BASE_URL = "https://api.datalens.tech"
+EXECUTION_SWITCH_ENV_NAMES = frozenset(
+    {
+        "DATALENS_MCP_ENABLE_WRITES",
+        "DATALENS_MCP_LIVE_ALLOW_SAVE",
+        "DATALENS_MCP_LIVE_ALLOW_PUBLISH",
+    }
+)
 
 
 def env_flag(name: str, default: bool = False) -> bool:
@@ -15,7 +22,12 @@ def env_flag(name: str, default: bool = False) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
-def load_env_file(path: str | Path | None, *, override: bool = False) -> None:
+def load_env_file(
+    path: str | Path | None,
+    *,
+    override: bool = False,
+    skip_keys: frozenset[str] = frozenset(),
+) -> None:
     if not path:
         return
     env_path = Path(path).expanduser()
@@ -27,7 +39,7 @@ def load_env_file(path: str | Path | None, *, override: bool = False) -> None:
             continue
         key, value = stripped.split("=", 1)
         key = key.strip()
-        if not key or (key in os.environ and not override):
+        if not key or key in skip_keys or (key in os.environ and not override):
             continue
         os.environ[key] = value.strip().strip("'\"")
 
@@ -56,7 +68,10 @@ class DataLensConfig:
     org_id: str = ""
     base_url: str = DEFAULT_BASE_URL
     api_version: str = "auto"
-    write_enabled: bool = False
+    write_enabled: bool = True
+    save_enabled: bool = True
+    publish_enabled: bool = True
+    delete_requires_confirmation: bool = True
     expert_rpc_enabled: bool = False
     request_interval_sec: float = 0.15
     request_timeout_sec: float = 30.0
@@ -113,13 +128,28 @@ class DataLensConfig:
                 default="auto",
             )
             or "auto",
-            write_enabled=_config_flag(
+            write_enabled=_execution_flag(
                 "DATALENS_MCP_ENABLE_WRITES",
                 file_values=file_values,
                 process_values=process_values,
                 prefer_file=bool(env_file_path),
-                default=False,
+                default=True,
             ),
+            save_enabled=_execution_flag(
+                "DATALENS_MCP_LIVE_ALLOW_SAVE",
+                file_values=file_values,
+                process_values=process_values,
+                prefer_file=bool(env_file_path),
+                default=True,
+            ),
+            publish_enabled=_execution_flag(
+                "DATALENS_MCP_LIVE_ALLOW_PUBLISH",
+                file_values=file_values,
+                process_values=process_values,
+                prefer_file=bool(env_file_path),
+                default=True,
+            ),
+            delete_requires_confirmation=True,
             expert_rpc_enabled=_config_flag(
                 "DATALENS_MCP_ENABLE_EXPERT_RPC",
                 file_values=file_values,
@@ -203,6 +233,13 @@ class DataLensConfig:
             env_file_reload_state=reload_state,
         )
 
+    def reload_canonical_env(self, *, reload_state: str = "reloaded_from_canonical_env") -> "DataLensConfig":
+        """Reload the configured canonical env file without changing explicit in-memory configs."""
+
+        if not self.env_file_path:
+            return self
+        return type(self).from_env(self.env_file_path, reload_state=reload_state)
+
     def require_auth(self) -> None:
         from datalens_dev_mcp.api.errors import DataLensApiError
 
@@ -273,3 +310,29 @@ def _config_flag(
     if not raw:
         return default
     return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _execution_flag(
+    key: str,
+    *,
+    file_values: Mapping[str, str],
+    process_values: Mapping[str, str],
+    prefer_file: bool,
+    default: bool,
+) -> bool:
+    """Resolve an execution switch while making every explicit off value authoritative."""
+
+    false_values = {"0", "false", "no", "off"}
+    explicit_values = (
+        str(file_values.get(key, "")).strip().lower(),
+        str(process_values.get(key, "")).strip().lower(),
+    )
+    if any(value in false_values for value in explicit_values):
+        return False
+    return _config_flag(
+        key,
+        file_values=file_values,
+        process_values=process_values,
+        prefer_file=prefer_file,
+        default=default,
+    )
