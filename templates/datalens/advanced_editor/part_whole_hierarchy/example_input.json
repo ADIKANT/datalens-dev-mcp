@@ -1,0 +1,9 @@
+{
+  "title": "Priority Share",
+  "rows": [
+    {"label": "High", "value": 16},
+    {"label": "Medium", "value": 42},
+    {"label": "Low", "value": 28}
+  ],
+  "hint": "Part-to-whole with a small category set."
+}

@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.local/datalens-dev-mcp/negative_requirement.schema.json",
+  "title": "Negative Requirement",
+  "type": "object",
+  "required": ["requirement_id", "source_text", "scope", "status"],
+  "properties": {
+    "schema_version": {
+      "const": "2026-06-30.negative_requirement.v1"
+    },
+    "requirement_id": {
+      "type": "string"
+    },
+    "source_text": {
+      "type": "string"
+    },
+    "scope": {
+      "enum": ["project", "dashboard", "tab", "chart", "dataset", "workflow"]
+    },
+    "forbidden_concepts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "forbidden_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "forbidden_sql_tokens": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "forbidden_js_tokens": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "forbidden_chart_families": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "forbidden_output_columns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "forbidden_titles_hints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scan_surfaces": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "requirements_workspace",
+          "chart_decision_record",
+          "renderer_visual_spec",
+          "generated_js",
+          "generated_sql",
+          "generated_config",
+          "control_specs",
+          "payload_plan",
+          "dashboard_layout_titles_hints",
+          "readback_summary"
+        ]
+      }
+    },
+    "allowed_exceptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "severity": {
+      "enum": ["error", "warning"]
+    },
+    "replacement_policy": {
+      "type": "string"
+    },
+    "status": {
+      "enum": ["active", "superseded", "expired", "blocked"]
+    },
+    "created_from_user_decision": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

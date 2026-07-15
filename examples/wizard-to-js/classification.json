@@ -1,0 +1,21 @@
+{
+  "schema_version": "2026-07-13.wizard_classification.v2",
+  "widgets": [
+    {
+      "entry_id": "entry_synthetic_local_map",
+      "conversion_decision": "keep_native_map",
+      "approved_target_route": "wizard_native",
+      "visualization_id": "geolayer",
+      "selection_origin": "preserved_existing_saved_route",
+      "geo_evidence": {"status": "validated", "kind": "lat_lon"}
+    },
+    {
+      "entry_id": "entry_synthetic_local_trend",
+      "conversion_decision": "keep_native_wizard",
+      "approved_target_route": "wizard_native",
+      "approved_target_family": "line_chart",
+      "visualization_id": "line",
+      "selection_origin": "preserved_existing_saved_route"
+    }
+  ]
+}

@@ -1,0 +1,2795 @@
+from __future__ import annotations
+
+import csv
+import json
+from copy import deepcopy
+from pathlib import Path
+from typing import Any
+
+from datalens_dev_mcp.editor.bundle import generate_editor_bundle
+from datalens_dev_mcp.editor.payload_compiler import compile_editor_payload
+from datalens_dev_mcp.knowledge.recipes import compact_recipe_for_payload, select_authoring_recipe
+from datalens_dev_mcp.mcp.response_projection import (
+    project_connection_response,
+    project_dashboard_response,
+    project_dataset_response,
+    sanitize_response,
+    serialized_metadata,
+)
+from datalens_dev_mcp.pipeline.artifacts import ensure_project_dirs, read_json, read_text, write_json, write_text
+from datalens_dev_mcp.pipeline.dashboard_relations import (
+    build_default_dashboard_relations,
+    validate_dashboard_relations,
+)
+from datalens_dev_mcp.pipeline.deployment_report import build_deployment_report
+from datalens_dev_mcp.pipeline.delivery_intent import resolve_delivery_intent_from_env
+from datalens_dev_mcp.pipeline.evidence_mode import choose_evidence_mode
+from datalens_dev_mcp.pipeline.governance import build_governance_brief
+from datalens_dev_mcp.pipeline.governance_bundle import build_governance_bundle
+from datalens_dev_mcp.pipeline.implemented_charts_catalog import update_implemented_charts_catalog
+from datalens_dev_mcp.pipeline.live_maintenance import run_live_maintenance_update
+from datalens_dev_mcp.pipeline.negative_requirements import (
+    load_negative_requirement_ledger,
+    validate_no_negative_requirement_drift,
+)
+from datalens_dev_mcp.pipeline.project_adapters import detect_project_adapter, list_project_adapter_registry
+from datalens_dev_mcp.pipeline.project_live_workflows import (
+    detect_project_live_workflows,
+    plan_project_live_workflow,
+    plan_project_manifest,
+    read_project_live_summary,
+    run_project_live_apply,
+    run_project_live_dry_run,
+)
+from datalens_dev_mcp.pipeline.proof_levels import proof_level_for_readback_branch
+from datalens_dev_mcp.pipeline.readback import build_readback_summary, normalize_readback_mode
+from datalens_dev_mcp.pipeline.reconciliation import reconcile_partial_creates
+from datalens_dev_mcp.pipeline.requirements_workspace import (
+    build_dashboard_blueprint_plan,
+    initialize_requirements_workspace,
+    ingest_requirements_markdown,
+    populate_dashboard_map_canvas,
+    read_persisted_requirements_text,
+    select_dashboard_blueprint,
+    summarize_implementation_plan,
+    update_user_decision,
+    validate_chart_plan_against_requirements,
+)
+from datalens_dev_mcp.pipeline.safe_apply import (
+    create_publish_safe_apply_plan,
+    create_safe_apply_plan,
+    execute_safe_apply,
+    load_safe_apply_stage_value,
+    readback_artifact_path,
+)
+from datalens_dev_mcp.pipeline.scenarios import normalize_scenario
+from datalens_dev_mcp.pipeline.sql_performance import validate_project_sql_performance
+from datalens_dev_mcp.pipeline.source_availability import (
+    build_dashboard_source_availability_matrix,
+    plan_source_availability_patch,
+    validate_source_availability_consumers,
+)
+from datalens_dev_mcp.pipeline.target_lock import create_target_lock, validate_readback_target_lock
+from datalens_dev_mcp.pipeline.validation_evidence import build_validation_evidence_report
+from datalens_dev_mcp.pipeline.visual_quality import validate_visual_quality_contract
+from datalens_dev_mcp.pipeline.visual_decisions import decide_chart
+from datalens_dev_mcp.pipeline.wizard_templates import build_wizard_payload_plan, load_wizard_template_registry
+from datalens_dev_mcp.pipeline.route_registry import normalize_creation_route, visualization_for_family
+from datalens_dev_mcp.validators.dashboard_payload import validate_dashboard_payload
+from datalens_dev_mcp.validators.advanced_editor_validator import validate_editor_runtime_contract
+from datalens_dev_mcp.validators.editor_sql_lint import lint_project_editor_sql
+from datalens_dev_mcp.validators.route_validator import validate_route_payload
+from datalens_dev_mcp.validators.security_validator import scan_path
+
+PLACEHOLDER_TARGETS = {
+    "",
+    "id",
+    "target",
+    "target_id",
+    "workbook_id",
+    "dashboard_id",
+    "chart_id",
+    "dataset_id",
+    "connection_id",
+    "dashboard",
+    "<id>",
+    "<target_id>",
+    "<workbook_id>",
+    "<dashboard_id>",
+    "<chart_id>",
+    "<dataset_id>",
+    "<connection_id>",
+}
+
+
+def _looks_like_known_target(*values: Any) -> bool:
+    for value in values:
+        if isinstance(value, list):
+            if _looks_like_known_target(*value):
+                return True
+            continue
+        text = str(value or "").strip()
+        if text and text.lower() not in PLACEHOLDER_TARGETS:
+            return True
+    return False
+
+
+def _delivery_intent_decision(
+    delivery_intent_text: str = "",
+    *,
+    default_text: str = "plan only",
+    target_known: bool = False,
+    approved: bool = False,
+    approval_source: str = "",
+    approval_sources: list[str] | None = None,
+    fresh_readback_available: bool = False,
+    revision_preservation_available: bool = False,
+    saved_readback_available: bool = False,
+    saved_readback_fresh: bool | None = None,
+    destructive_operation: bool = False,
+    proof_path: str = "",
+    target_lock: dict[str, Any] | None = None,
+    target_workbook_id: str = "",
+    target_dashboard_id: str = "",
+    target_chart_id: str = "",
+) -> dict[str, Any]:
+    return resolve_delivery_intent_from_env(
+        delivery_intent_text,
+        default_text=default_text,
+        target_known=target_known,
+        approved=approved,
+        approval_source=approval_source,
+        approval_sources=approval_sources,
+        fresh_readback_available=fresh_readback_available,
+        revision_preservation_available=revision_preservation_available,
+        saved_readback_available=saved_readback_available,
+        saved_readback_fresh=saved_readback_fresh,
+        destructive_operation=destructive_operation,
+        proof_path=proof_path,
+        target_lock=target_lock,
+        target_workbook_id=target_workbook_id,
+        target_dashboard_id=target_dashboard_id,
+        target_chart_id=target_chart_id,
+    )
+
+
+def dl_start_pipeline(
+    project_root: str = ".",
+    scenario: str = "new_dashboard",
+    dashboard_name: str = "Synthetic Dashboard",
+) -> dict[str, Any]:
+    root = ensure_project_dirs(project_root)
+    selected = normalize_scenario(scenario)
+    initialize_requirements_workspace(root)
+    registry = {
+        "version": 1,
+        "dashboard_name": dashboard_name,
+        "scenario": selected,
+        "stage_batch": {"current_stage": "intake", "current_batch": "none"},
+        "chart_decisions": [],
+        "build_outcomes": [],
+    }
+    registry_path = root / "datalens_mapping" / "governance_memory_registry.json"
+    if not registry_path.exists():
+        write_json(registry_path, registry)
+    return {
+        "project_root": str(root),
+        "scenario": selected,
+        "created": ["requirements/", "datalens_mapping/governance_memory_registry.json"],
+        "memory_bank_owned_by": "project-memory-bank",
+    }
+
+
+def dl_load_project_context(
+    project_root: str = ".",
+    response_mode: str = "compact",
+    max_preview_chars: int = 900,
+) -> dict[str, Any]:
+    root = Path(project_root).resolve()
+    mode = (response_mode or "compact").strip().lower()
+    if mode not in {"compact", "artifact"}:
+        raise ValueError("response_mode must be compact or artifact")
+    del max_preview_chars
+    return {
+        "project_root": str(root),
+        "response_mode": mode,
+        "deprecated": True,
+        "internal_compatibility_only": True,
+        "replacement": "Call project-memory-bank memory_context, then pass its project_context_ref.v1 to DataLens tools.",
+    }
+
+
+def dl_update_project_memory(
+    project_root: str = ".",
+    path: str = "memory-bank/progress.md",
+    content: str = "",
+    append: bool = True,
+) -> dict[str, Any]:
+    del project_root
+    if not path.startswith("memory-bank/"):
+        raise ValueError("compatibility suggestions must target memory-bank modules")
+    return {
+        "deprecated": True,
+        "updated": False,
+        "replacement": "Pass this bounded operation to project-memory-bank memory_record.",
+        "suggested_records": [
+            {
+                "op": "upsert_entry" if append else "upsert_section",
+                "path": path,
+                "heading": "Current State",
+                "entry_id": "datalens-compatibility-update",
+                "content": content,
+            }
+        ],
+    }
+
+
+def _profile_csv(path: Path) -> dict[str, Any]:
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        fields = reader.fieldnames or []
+        rows = []
+        for index, row in enumerate(reader):
+            if index >= 100:
+                break
+            rows.append(row)
+    return {"fields": fields, "sample_rows": len(rows)}
+
+
+def _needs_source_route_decision(requirements_text: str, data_path: str) -> bool:
+    if data_path:
+        return True
+    lowered = requirements_text.lower()
+    return any(
+        token in lowered
+        for token in (
+            "excel",
+            "xlsx",
+            "csv",
+            "file upload",
+            "upload file",
+            "uploaded file",
+            "file connection",
+            "dataset-backed",
+            "dataset backed",
+            "datalens dataset",
+            "existing dataset",
+            "загруженный файл",
+            "датасет",
+        )
+    )
+
+
+def _write_source_route_artifacts(
+    root: Path,
+    requirements_text: str,
+    data_path: str,
+    data_profile: dict[str, Any],
+) -> dict[str, Any]:
+    from datalens_dev_mcp.pipeline.source_route_resolver import (
+        render_manual_upload_handoff,
+        validate_source_route_decision,
+    )
+
+    source_path = Path(data_path) if data_path else None
+    fields = [{"name": field, "type": "unknown"} for field in (data_profile.get("fields") or [])]
+    request = {
+        "requirements_text": requirements_text,
+        "source_file_name": source_path.name if source_path else "",
+        "source_file_path": str(source_path) if source_path else "",
+        "processed_file_path": str(source_path) if source_path else "",
+        "expected_schema": fields,
+        "source_mode": "dataset_backed",
+    }
+    decision = validate_source_route_decision(request)
+    write_json(root / "artifacts" / "source_route_decision.json", decision)
+    contract = (decision.get("decision") or {}).get("dataset_field_contract") or {}
+    if contract:
+        write_json(root / "requirements" / "dataset_field_contract.json", contract)
+    handoff = render_manual_upload_handoff(decision.get("decision") or {})
+    if handoff:
+        write_text(root / "reports" / "manual_upload_handoff.md", handoff)
+    return decision
+
+
+def _case_from_requirements(requirements_text: str, data_profile: dict[str, Any]) -> dict[str, Any]:
+    fields = data_profile.get("fields") or ["date_field", "dimension_1", "metric_1"]
+    lowered = requirements_text.lower()
+    explicit_kpi = any(
+        marker in lowered
+        for marker in ("chart visual: kpi", "visualization type: kpi", "kpi card", "kpi status", "metric card")
+    )
+    explicit_trend = any(
+        marker in lowered
+        for marker in ("chart visual: line", "chart visual: trend", "visualization type: line", "line chart")
+    )
+    if explicit_kpi:
+        family = "kpi_value_delta" if "delta" in lowered else "kpi_value_only"
+        task = "monitoring"
+    elif explicit_trend:
+        family = "line_chart"
+        task = "time_trend"
+    elif any(word in lowered for word in ("table", "registry", "lookup", "detail")):
+        family = "table_node"
+        task = "exact_lookup"
+    elif any(word in lowered for word in ("selector", "filter", "control")):
+        family = "single_select_dropdown"
+        task = "filtering"
+    elif any(word in lowered for word in ("markdown", "methodology", "owner", "note", "header")):
+        family = "md_methodology_block"
+        task = "metadata_methodology"
+    elif any(word in lowered for word in ("map", "geo", "latitude", "longitude")):
+        family = "native_map_geo_widget"
+        task = "geo"
+    elif any(word in lowered for word in ("trend", "time", "daily", "weekly", "month")):
+        family = "line_chart"
+        task = "time_trend"
+    elif any(word in lowered for word in ("rank", "top", "compare", "bar")):
+        family = "horizontal_bar"
+        task = "comparison"
+    else:
+        family = "kpi_value_only"
+        task = "monitoring"
+    return {
+        "schema_version": "2026-06-04.local_mcp_intake.case.v1",
+        "case_id": "mcp_intake",
+        "domain": "local_mcp_dashboard",
+        "source_manifest": [{"source_id": "REQ-001", "role": "customer_requirements", "short_evidence": requirements_text[:240]}],
+        "id_placeholder": {
+            "dashboard_name": _first_title(requirements_text),
+            "contact": "local_operator",
+            "process": "DataLens dashboard delivery",
+            "lifetime": "local_only",
+            "update_frequency": "unknown",
+            "objective": requirements_text[:500],
+            "background": "Generated from MCP requirements intake.",
+            "business_value": "Support governed DataLens dashboard delivery.",
+            "audience": ["business owner", "analyst"],
+            "decision_action": "Decide follow-up action from the requested dashboard evidence.",
+            "data_sources": ["user_supplied_or_local_source"],
+            "source_statuses": ["synthetic_or_user_supplied"],
+            "metrics": [
+                {
+                    "metric_id": "MET-001",
+                    "name": _first_title(requirements_text),
+                    "requirement_phrase": requirements_text[:240],
+                    "business_question": requirements_text[:240],
+                    "analytical_task": task,
+                    "required_fields": fields,
+                    "source_contract_ids": ["DATA-001"],
+                    "support_status": "supported_with_assumption",
+                    "expected_family": family,
+                    "metric_semantics": {
+                        "unit": "declared_or_pending",
+                        "grain": "declared_or_pending",
+                        "aggregation": "declared_or_pending",
+                        "numerator": fields[-1] if fields else "metric_1",
+                        "denominator": "not_applicable_or_pending",
+                        "additivity": "declared_or_pending",
+                        "time_grain": "declared_or_pending",
+                        "comparator": "declared_or_pending",
+                        "baseline": "declared_or_pending",
+                        "target": "declared_or_pending",
+                    },
+                    "assumptions": ["MCP intake used compact requirements text rather than full customer/S2T package."],
+                    "rejected_alternatives": ["ungoverned_native_fallback", "blind_api_write"],
+                }
+            ],
+            "open_questions": [],
+            "out_of_scope": [],
+        },
+        "data_contracts": [
+            {
+                "contract_id": "DATA-001",
+                "table_name": "table_1",
+                "domain": "local_mcp_dashboard",
+                "load_frequency": "unknown",
+                "load_type": "unknown",
+                "fields": [{"name": field, "type": "string", "flags": []} for field in fields],
+                "source_mappings": [],
+                "algorithms": [],
+                "available_datetime_fields": [field for field in fields if field.lower().endswith(("dt", "dttm", "date"))],
+                "supported_grains": [],
+                "supported_filters": fields[:2],
+                "dq_checks": [],
+            }
+        ],
+    }
+
+
+def dl_ingest_requirements(
+    project_root: str = ".",
+    requirements_text: str = "",
+    data_path: str = "",
+    source_name: str = "REQ-001",
+) -> dict[str, Any]:
+    root = ensure_project_dirs(project_root)
+    persisted = ingest_requirements_markdown(
+        root,
+        markdown_text=requirements_text or "Synthetic dashboard requirements.",
+        source_name=source_name,
+        role="dashboard",
+    )
+    data_profile: dict[str, Any] = {}
+    if data_path:
+        data_file = Path(data_path)
+        if data_file.suffix.lower() == ".csv" and data_file.is_file():
+            data_profile = _profile_csv(data_file)
+    source_route_decision: dict[str, Any] | None = None
+    if _needs_source_route_decision(requirements_text, data_path):
+        source_route_decision = _write_source_route_artifacts(root, requirements_text, data_path, data_profile)
+    case = _case_from_requirements(requirements_text or "Synthetic dashboard requirements.", data_profile)
+    bundle = build_governance_bundle(case)
+    brief = _brief_from_governance_bundle(bundle)
+    write_json(root / "artifacts" / "requirements_s2t_bundle.json", bundle)
+    write_json(root / "artifacts" / "dashboard_brief.json", brief)
+    write_json(root / "artifacts" / "data_contract.json", brief["data_contract"])
+    result = {
+        "dashboard_brief": brief,
+        "data_profile": data_profile,
+        "requirements_workspace": persisted,
+        "suggested_records": [
+            {
+                "op": "upsert_entry",
+                "path": "memory-bank/project.md",
+                "heading": "Current State",
+                "entry_id": "datalens-requirements",
+                "content": f"DataLens requirements source `{source_name}` was ingested into the governed requirements workspace.",
+            }
+        ],
+    }
+    if source_route_decision is not None:
+        result["source_route_decision"] = source_route_decision
+    return result
+
+
+def dl_build_governance_brief(project_root: str = ".", requirements_text: str = "") -> dict[str, Any]:
+    root = ensure_project_dirs(project_root)
+    existing = read_json(root / "artifacts" / "dashboard_brief.json", default=None)
+    if existing:
+        brief = existing
+    else:
+        # Route selection must use the controlling user/source input, not
+        # generated requirement templates whose headings (for example
+        # Methodology or Operational Lifecycle) can masquerade as chart intent.
+        persisted_text = read_text(root / "requirements" / "source_inputs.md") or read_persisted_requirements_text(root)
+        case = _case_from_requirements(requirements_text or persisted_text or "Synthetic dashboard requirements.", {})
+        brief = _brief_from_governance_bundle(build_governance_bundle(case))
+    write_json(root / "artifacts" / "dashboard_brief.json", brief)
+    write_json(root / "datalens_mapping" / "governance_memory_registry.json", {
+        "version": 1,
+        "source_documents": [{"source_id": "REQ-001", "role": "customer_requirements", "status": "parsed"}],
+        "dashboard_passport": {"dashboard_name": brief["dashboard_name"], "status": "parsed"},
+        "metric_registry": [{"metric_id": "MET-001", "name": brief["dashboard_name"], "status": "active"}],
+        "data_support_matrix": [{"metric_id": "MET-001", "data_support_status": "supported"}],
+        "chart_decisions": brief["chart_decisions"],
+        "assumptions": [],
+        "customer_visible_caveats": [],
+        "stage_batch": {"current_stage": "governance", "current_batch": "batch-001"},
+        "build_outcomes": [],
+    })
+    return brief
+
+
+def dl_init_requirements_workspace(project_root: str = ".") -> dict[str, Any]:
+    root = ensure_project_dirs(project_root)
+    return initialize_requirements_workspace(root)
+
+
+def dl_ingest_requirements_markdown(
+    project_root: str = ".",
+    markdown_text: str = "",
+    source_name: str = "user_input",
+    role: str = "dashboard",
+) -> dict[str, Any]:
+    root = ensure_project_dirs(project_root)
+    return ingest_requirements_markdown(root, markdown_text=markdown_text, source_name=source_name, role=role)
+
+
+def dl_select_dashboard_blueprint(requirements_text: str = "", data_profile: dict[str, Any] | None = None) -> dict[str, Any]:
+    return select_dashboard_blueprint(requirements_text, data_profile=data_profile)
+
+
+def dl_populate_dashboard_map_canvas(
+    project_root: str = ".",
+    source_text: str = "",
+    source_name: str = "user_input",
+    data_profile: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    root = ensure_project_dirs(project_root)
+    return populate_dashboard_map_canvas(root, source_text=source_text, source_name=source_name, data_profile=data_profile)
+
+
+def dl_build_wizard_payload_template(config: dict[str, Any] | None = None) -> dict[str, Any]:
+    return build_wizard_payload_plan(config)
+
+
+def dl_list_wizard_templates() -> dict[str, Any]:
+    return load_wizard_template_registry()
+
+
+def dl_build_dashboard_blueprint_plan(project_root: str = ".") -> dict[str, Any]:
+    root = ensure_project_dirs(project_root)
+    return build_dashboard_blueprint_plan(root)
+
+
+def dl_update_user_decision(project_root: str = ".", decision_text: str = "", decision_id: str = "") -> dict[str, Any]:
+    root = ensure_project_dirs(project_root)
+    return update_user_decision(root, decision_text=decision_text, decision_id=decision_id)
+
+
+def dl_summarize_implementation_plan(project_root: str = ".") -> dict[str, Any]:
+    root = ensure_project_dirs(project_root)
+    return summarize_implementation_plan(root)
+
+
+def dl_validate_chart_plan_against_requirements(project_root: str = ".", chart_plan: dict[str, Any] | None = None) -> dict[str, Any]:
+    root = ensure_project_dirs(project_root)
+    return validate_chart_plan_against_requirements(root, chart_plan=chart_plan or {})
+
+
+def dl_generate_editor_bundle(
+    project_root: str = ".",
+    widget_id: str = "widget_001",
+    route: str = "",
+    dataset_alias: str = "",
+    columns: list[str] | None = None,
+) -> dict[str, Any]:
+    root = ensure_project_dirs(project_root)
+    brief = read_json(root / "artifacts" / "dashboard_brief.json", default={})
+    if not brief:
+        brief = dl_build_governance_brief(str(root))
+    requirements_context = summarize_implementation_plan(root)
+    intent_text = str(requirements_context.get("summary") or "")
+    decision = (brief.get("chart_decisions") or [{}])[0]
+    decision_record = decision.get("chart_decision_record") if isinstance(decision.get("chart_decision_record"), dict) else {}
+    route_override = normalize_creation_route(route or decision.get("route") or "")
+    selected_route = route_override
+    requested_family = str(decision.get("family") or "")
+    if decision_record:
+        if requested_family and decision_record.get("selected_family") != requested_family:
+            decision_record = {}
+        elif selected_route and decision_record.get("selected_route") != selected_route:
+            decision_record = {}
+    if not decision_record:
+        negative_requirements = load_negative_requirement_ledger(root)
+        inferred = decide_chart(
+            chart_id=str(decision.get("decision_id") or widget_id),
+            business_question=intent_text or str((brief.get("requirements") or [{}])[0].get("text") or ""),
+            audience=list(brief.get("audience") or []),
+            dashboard_type=str(brief.get("dashboard_type") or "unknown"),
+            data_shape={"fields": (brief.get("data_contract") or {}).get("fields") or []},
+            negative_requirements=negative_requirements,
+            requested_family=requested_family,
+            source_evidence_refs=["dashboard_brief", "requirements_context"],
+        )
+        decision_record = inferred.to_dict()
+        if route_override:
+            decision_record["selected_route"] = route_override
+        decision["chart_decision_record"] = decision_record
+        decision["renderer_visual_spec"] = inferred.renderer_visual_spec.to_dict()
+    if not route_override:
+        selected_route = normalize_creation_route(
+            str(decision_record.get("selected_route") or decision.get("route") or "wizard_native")
+        )
+    requested_family = str(decision_record.get("selected_family") or requested_family or "table_node")
+    if selected_route == "ql_explicit":
+        return {
+            "ok": False,
+            "route": "ql_explicit",
+            "selection_origin": "explicit_user_request",
+            "status": "explicit_payload_required",
+            "error": {
+                "category": "explicit_payload_required",
+                "message": (
+                    "QL payloads are not generated from a general prompt; use generic lifecycle tools "
+                    "with an explicit payload or fresh saved QL seed."
+                ),
+            },
+        }
+    if selected_route == "wizard_native":
+        visualization_id = visualization_for_family(requested_family, semantic_text=intent_text) or "flatTable"
+        registry_spec = (load_wizard_template_registry().get("templates") or {}).get(visualization_id) or {}
+        data_contract = brief.get("data_contract") if isinstance(brief.get("data_contract"), dict) else {}
+        # ``columns`` is an explicit caller-owned binding surface. Requirements
+        # prose and inferred data-contract names are not DataLens field GUIDs
+        # and must never be promoted to internal tokens automatically.
+        raw_fields = list(columns) if columns is not None else [
+            field
+            for field in (data_contract.get("fields") or [])
+            if isinstance(field, dict) and str(field.get("guid") or field.get("field_guid") or "").strip()
+        ]
+        field_values: list[dict[str, Any]] = []
+        for index, field in enumerate(raw_fields):
+            if isinstance(field, dict):
+                guid = str(field.get("guid") or field.get("field_guid") or "").strip()
+                if guid:
+                    field_values.append({**field, "guid": guid})
+            elif str(field or "").strip():
+                # String values are accepted only from the explicit ``columns``
+                # argument, where the caller is responsible for supplying the
+                # saved dataset field GUIDs.
+                field_values.append({"guid": str(field).strip(), "title": str(field).strip()})
+        field_bindings: dict[str, Any] = {}
+        for index, role_name in enumerate(registry_spec.get("required_roles") or []):
+            if field_values:
+                field_bindings[str(role_name)] = field_values[min(index, len(field_values) - 1)]
+        if requested_family == "bubble" and field_values:
+            field_bindings["size"] = field_values[-1]
+        dataset_id = dataset_alias.strip() or str(data_contract.get("dataset_id") or "").strip()
+        plan = build_wizard_payload_plan(
+            {
+                "schema_version": "2026-07-13.wizard_chart_compiler_input.v1",
+                "widget_id": widget_id,
+                "route": "wizard_native",
+                "visualization_id": visualization_id,
+                "semantic_family": requested_family,
+                "dataset": dataset_id,
+                "field_bindings": field_bindings,
+                "geo": {"evidence_kind": "validated_map_payload"} if visualization_id == "geolayer" else {},
+                "options": {"title": brief.get("dashboard_name", "Native Wizard Chart")},
+            }
+        )
+        validation_errors = list((plan.get("validation") or {}).get("errors") or [])
+        missing_source = any(
+            error == "dataset is required" or error.startswith("field_bindings.")
+            for error in validation_errors
+        )
+        plan["generation_status"] = (
+            "ready" if plan.get("ok") else "blocked_missing_source" if missing_source else "blocked_invalid_template_config"
+        )
+        plan["chart_decision_record"] = decision_record
+        plan["renderer_visual_spec"] = (
+            decision_record.get("renderer_visual_spec") or decision.get("renderer_visual_spec") or {}
+        )
+        plan["source_template"] = f"templates/datalens/wizard/canonical_templates.json#{visualization_id}"
+        plan["source_gallery"] = plan["source_template"]
+        plan["requirements_context"] = {
+            "implementation_plan": requirements_context["path"],
+            "summary_preview": requirements_context["summary"][:1200],
+        }
+        write_json(root / "artifacts" / f"{widget_id}.wizard_payload_plan.json", plan)
+        write_json(root / "artifacts" / f"{widget_id}.chart_decision.json", decision_record)
+        relations = _write_dashboard_relations(
+            root=root,
+            brief=brief,
+            widget_id=widget_id,
+            selector_param=_selector_param_from_requirements(root, brief),
+        )
+        if plan.get("ok"):
+            update_implemented_charts_catalog(root, bundle=plan, relations=relations, brief=brief)
+        return plan
+    visual_spec = decision_record.get("renderer_visual_spec") or decision.get("renderer_visual_spec") or {}
+    data_contract = brief.get("data_contract") if isinstance(brief.get("data_contract"), dict) else {}
+    contract_columns: list[str] = []
+    for field in data_contract.get("fields") or []:
+        if isinstance(field, dict):
+            value = field.get("name") or field.get("field")
+        else:
+            value = field
+        if str(value or "").strip():
+            contract_columns.append(str(value).strip())
+    resolved_dataset_alias = dataset_alias.strip() or str(data_contract.get("dataset_alias") or "").strip()
+    resolved_columns = list(columns) if columns is not None else contract_columns
+    bundle = generate_editor_bundle(
+        widget_id=widget_id,
+        route=selected_route,
+        title=brief.get("dashboard_name", "Untitled Widget"),
+        dataset_alias=resolved_dataset_alias or None,
+        columns=resolved_columns,
+        markdown=intent_text or None,
+        param="segment",
+        options=["all", "new", "returning"],
+        family=decision_record.get("selected_family") or decision.get("family"),
+        visual_spec=visual_spec,
+        chart_decision_record=decision_record,
+    )
+    selected_recipe = select_authoring_recipe(
+        intent_text=intent_text,
+        route=selected_route,
+        source_type=str((brief.get("data_contract") or {}).get("source_type") or ""),
+    )
+    bundle["knowledge_recipe"] = compact_recipe_for_payload(selected_recipe["recipe"])
+    if selected_recipe["blocked_advanced_exception_reason"]:
+        bundle["advanced_exception_gate"] = {
+            "status": "blocked_without_evidence",
+            "reason": selected_recipe["blocked_advanced_exception_reason"],
+        }
+    bundle["requirements_context"] = {
+        "implementation_plan": requirements_context["path"],
+        "summary_preview": requirements_context["summary"][:1200],
+    }
+    bundle_dir = root / "dashboard" / widget_id
+    for tab, content in bundle["tabs"].items():
+        write_text(bundle_dir / tab, content)
+    write_json(bundle_dir / "bundle.json", bundle)
+    write_json(root / "artifacts" / f"{widget_id}.chart_decision.json", decision_record)
+    relations = _write_dashboard_relations(
+        root=root,
+        brief=brief,
+        widget_id=widget_id,
+        selector_param=_selector_param_from_requirements(root, brief),
+    )
+    update_implemented_charts_catalog(root, bundle=bundle, relations=relations, brief=brief)
+    return bundle
+
+
+def dl_validate_project(project_root: str = ".") -> dict[str, Any]:
+    root = Path(project_root)
+    issues: list[str] = []
+    bundle_paths = list(root.glob("dashboard/*/bundle.json"))
+    for bundle_path in bundle_paths:
+        bundle = read_json(bundle_path, default={})
+        generation_status = str(bundle.get("generation_status") or "")
+        if generation_status and generation_status != "ready":
+            blocking = bundle.get("blocking_issues") or (bundle.get("source_contract") or {}).get("issues") or []
+            if blocking:
+                for issue in blocking:
+                    message = issue.get("message") if isinstance(issue, dict) else str(issue)
+                    issues.append(f"{bundle_path}: generation blocked: {message}")
+            else:
+                issues.append(f"{bundle_path}: generation blocked: {generation_status}")
+        result = validate_route_payload(bundle)
+        issues.extend([f"{bundle_path}: {issue}" for issue in result.issues])
+    wizard_plan_paths = list(root.glob("artifacts/*.wizard_payload_plan.json"))
+    for wizard_plan_path in wizard_plan_paths:
+        wizard_plan = read_json(wizard_plan_path, default={})
+        generation_status = str(wizard_plan.get("generation_status") or "")
+        if not wizard_plan.get("ok") or generation_status != "ready":
+            validation_errors = list((wizard_plan.get("validation") or {}).get("errors") or [])
+            if validation_errors:
+                issues.extend(f"{wizard_plan_path}: generation blocked: {error}" for error in validation_errors)
+            else:
+                issues.append(f"{wizard_plan_path}: generation blocked: {generation_status or 'invalid Wizard plan'}")
+    relations_path = root / "artifacts" / "dashboard_object_relations.json"
+    if bundle_paths and not relations_path.is_file():
+        issues.append("artifacts/dashboard_object_relations.json is required when dashboard bundles exist")
+    elif relations_path.is_file():
+        relation_result = validate_dashboard_relations(read_json(relations_path, default={}))
+        issues.extend([f"{relations_path}: {issue}" for issue in relation_result.issues])
+    dashboard_preflight = _run_dashboard_payload_preflight(root)
+    for issue in dashboard_preflight["issues"]:
+        if issue.get("severity") == "error":
+            issues.append(f"{issue.get('path')}: {issue.get('rule')}: {issue.get('message')}")
+    visual_quality = _run_renderer_visual_quality_preflight(root, bundle_paths)
+    for issue in visual_quality["issues"]:
+        if issue.get("severity") == "error":
+            issues.append(f"{issue.get('path')}: {issue.get('rule')}: {issue.get('message')}")
+    sql_lint = lint_project_editor_sql(root)
+    sql_lint_report = sql_lint.to_dict()
+    write_json(root / "artifacts" / "editor_sql_lint.json", sql_lint_report)
+    for issue in sql_lint_report["issues"]:
+        if issue.get("severity") == "error":
+            issues.append(f"{issue.get('path')}: {issue.get('rule')}: {issue.get('message')}")
+    sql_performance = validate_project_sql_performance(root)
+    for issue in sql_performance["issues"]:
+        issues.append(f"sql_performance: {issue}")
+    negative_drift = validate_no_negative_requirement_drift(root)
+    for finding in negative_drift["findings"]:
+        issues.append(
+            "negative_requirement: "
+            f"{finding.get('path')}:{finding.get('line')}: "
+            f"{finding.get('requirement_id')} forbids {finding.get('token')}"
+        )
+    scan = scan_path(root)
+    issues.extend(scan.issues)
+    status = "pass" if not issues else "fail"
+    report = {
+        "status": status,
+        "issues": issues,
+        "checked": [
+            "routes",
+            "editor_bundles",
+            "wizard_payload_plans",
+            "dashboard_object_relations",
+            "dashboard_payload_preflight",
+            "renderer_visual_quality",
+            "editor_sql_static_lint",
+            "sql_performance_semantics",
+            "negative_requirement_drift",
+            "secrets",
+        ],
+        "dashboard_payload_preflight": dashboard_preflight,
+        "renderer_visual_quality": visual_quality,
+        "static_sql_lint": sql_lint_report,
+        "sql_performance_semantics": {
+            "ok": sql_performance["ok"],
+            "checked_sql_count": sql_performance["checked_sql_count"],
+            "issues": sql_performance["issues"],
+            "artifact": str(root / "artifacts" / "sql_performance" / "project_semantic_validation.json"),
+        },
+        "negative_requirement_drift": negative_drift,
+    }
+    write_json(root / "artifacts" / "validation_report.json", report)
+    return report
+
+
+def dl_build_payload_plan(
+    project_root: str = ".",
+    workbook_id: str = "workbook_id",
+    delivery_intent_text: str = "",
+    target_known: bool = False,
+    target_dashboard_id: str = "",
+    target_chart_id: str = "",
+    target_url: str = "",
+) -> dict[str, Any]:
+    root = ensure_project_dirs(project_root)
+    payloads = []
+    blocking_issues: list[dict[str, Any]] = []
+    for bundle_path in root.glob("dashboard/*/bundle.json"):
+        bundle = read_json(bundle_path, default={})
+        generation_status = str(bundle.get("generation_status") or "")
+        if generation_status and generation_status != "ready":
+            blocking_issues.append(
+                {
+                    "widget_id": bundle.get("widget_id") or bundle_path.parent.name,
+                    "status": generation_status,
+                    "issues": bundle.get("blocking_issues")
+                    or (bundle.get("source_contract") or {}).get("issues")
+                    or [],
+                    "action": "Supply dataset_alias and the required renderer output columns, then regenerate the bundle.",
+                }
+            )
+            continue
+        payload = compile_editor_payload(bundle, workbook_id=workbook_id)
+        out = root / "artifacts" / "payloads" / f"{bundle.get('widget_id', bundle_path.parent.name)}.payload.json"
+        write_json(out, payload)
+        recipe = bundle.get("knowledge_recipe") if isinstance(bundle.get("knowledge_recipe"), dict) else {}
+        payloads.append(
+            {
+                "widget_id": bundle.get("widget_id"),
+                "method": "createEditorChart",
+                "payload_path": str(out),
+                "recipe_id": recipe.get("recipe_id") or "",
+                "source_contract": recipe.get("source_contract") or "",
+                "required_tabs": recipe.get("required_tabs") or [],
+                "cardinality_limits": recipe.get("cardinality_limits") or {},
+                "algorithmic_bound": recipe.get("algorithmic_bound") or "",
+                "validation_checklist": recipe.get("validation_checklist") or [],
+                "source_traces": recipe.get("source_traces") or [],
+            }
+        )
+    for wizard_plan_path in root.glob("artifacts/*.wizard_payload_plan.json"):
+        wizard_plan = read_json(wizard_plan_path, default={})
+        generation_status = str(wizard_plan.get("generation_status") or "")
+        if not wizard_plan.get("ok") or generation_status != "ready":
+            blocking_issues.append(
+                {
+                    "widget_id": wizard_plan.get("widget_id") or wizard_plan_path.stem,
+                    "status": generation_status or str(wizard_plan.get("status") or "blocked_invalid_template_config"),
+                    "issues": list((wizard_plan.get("validation") or {}).get("errors") or []),
+                    "action": "Supply an explicit dataset id and saved dataset field GUID bindings, then regenerate the Wizard plan.",
+                }
+            )
+            continue
+        compiled_payload = deepcopy(wizard_plan.get("compiled_payload") or {})
+        if not any(compiled_payload.get(key) not in (None, "") for key in ("key", "workbookId")):
+            compiled_payload["workbookId"] = workbook_id
+            compiled_payload["name"] = str(wizard_plan.get("widget_id") or wizard_plan_path.stem)
+        out = root / "artifacts" / "payloads" / f"{wizard_plan.get('widget_id') or wizard_plan_path.stem}.payload.json"
+        write_json(out, compiled_payload)
+        payloads.append(
+            {
+                "widget_id": wizard_plan.get("widget_id") or wizard_plan_path.stem,
+                "method": "createWizardChart",
+                "route": "wizard_native",
+                "visualization_id": wizard_plan.get("visualization_id") or "",
+                "source_kind": wizard_plan.get("source_kind") or "",
+                "payload_path": str(out),
+                "compiled_payload_sha256": wizard_plan.get("compiled_payload_sha256") or "",
+                "validation": wizard_plan.get("validation") or {},
+            }
+        )
+    target_lock = create_target_lock(
+        delivery_intent_text,
+        target_source="user_url" if target_url else "manual",
+        target_workbook_id=workbook_id,
+        target_dashboard_id=target_dashboard_id,
+        target_chart_id=target_chart_id,
+        target_url=target_url,
+    )
+    delivery_decision = _delivery_intent_decision(
+        delivery_intent_text,
+        target_known=target_known or _looks_like_known_target(workbook_id, target_dashboard_id, target_chart_id),
+        target_lock=target_lock.to_dict(),
+        target_workbook_id=workbook_id,
+        target_dashboard_id=target_dashboard_id,
+        target_chart_id=target_chart_id,
+        proof_path=str(root / "artifacts" / "payload_plan.json"),
+    )
+    plan = {
+        "schema_version": "2026-05-25.payload_plan.v1",
+        "status": "blocked" if blocking_issues else "ready",
+        "workbook_id": workbook_id,
+        "target_lock": target_lock.to_dict(),
+        "payloads": payloads,
+        "blocking_issues": blocking_issues,
+        "delivery_intent_decision": delivery_decision,
+    }
+    write_json(root / "artifacts" / "payload_plan.json", plan)
+    write_json(root / "artifacts" / "delivery" / "target_lock.json", target_lock.to_dict())
+    _write_dashboard_preflight_candidate(root, workbook_id=workbook_id, payloads=payloads)
+    return plan
+
+
+def dl_detect_project_adapter(project_root: str = ".") -> dict[str, Any]:
+    return detect_project_adapter(project_root)
+
+
+def dl_detect_project_live_workflows(project_root: str = ".") -> dict[str, Any]:
+    return detect_project_live_workflows(project_root)
+
+
+def dl_list_project_live_workflows(project_root: str = ".") -> dict[str, Any]:
+    detected = detect_project_live_workflows(project_root)
+    if not detected.get("ok"):
+        return detected
+    return {
+        **detected,
+        "adapter_registry": list_project_adapter_registry()["adapters"],
+        "workflow_names": detected.get("workflows") or [],
+    }
+
+
+def dl_plan_project_manifest(
+    project_root: str = ".",
+    approved: bool = False,
+    overwrite_existing: bool = False,
+    target_workbook_id: str = "",
+    dashboard_id: str = "",
+) -> dict[str, Any]:
+    return plan_project_manifest(
+        project_root,
+        approved=approved,
+        overwrite_existing=overwrite_existing,
+        target_workbook_id=target_workbook_id,
+        dashboard_id=dashboard_id,
+    )
+
+
+def dl_plan_project_live_workflow(
+    project_root: str = ".",
+    workflow_name: str = "",
+    action: str = "dry_run",
+    publish: bool = False,
+    delivery_intent_text: str = "",
+) -> dict[str, Any]:
+    result = plan_project_live_workflow(project_root, workflow_name=workflow_name, action=action, publish=publish)
+    result["evidence_mode_decision"] = choose_evidence_mode(
+        delivery_intent_text or action,
+        changed_surfaces=[action, workflow_name],
+        metadata_fetch_artifacts=result.get("expected_artifacts") or [],
+    ).to_dict()
+    result["delivery_intent_decision"] = _delivery_intent_decision(
+        delivery_intent_text,
+        default_text="implement" if publish else action,
+        target_known=_looks_like_known_target(result.get("workbook_id"), result.get("dashboard_ids") or []),
+        approved=False,
+        fresh_readback_available=False,
+        revision_preservation_available=False,
+        saved_readback_available=False,
+        proof_path=(result.get("summary_candidates") or [""])[0] if result.get("summary_candidates") else "",
+        target_workbook_id=str(result.get("workbook_id") or ""),
+        target_dashboard_id=(result.get("dashboard_ids") or [""])[0] if result.get("dashboard_ids") else "",
+    )
+    return result
+
+
+def dl_run_project_live_dry_run(
+    project_root: str = ".",
+    workflow_name: str = "",
+    execute_now: bool = False,
+    timeout_sec: int = 120,
+) -> dict[str, Any]:
+    result = run_project_live_dry_run(
+        project_root,
+        workflow_name=workflow_name,
+        execute_now=execute_now,
+        timeout_sec=timeout_sec,
+    )
+    result["evidence_mode_decision"] = choose_evidence_mode(
+        "dry run",
+        changed_surfaces=[workflow_name],
+        metadata_fetch_artifacts=(result.get("expected_artifacts") or []),
+    ).to_dict()
+    result["delivery_intent_decision"] = _delivery_intent_decision(
+        "dry run",
+        default_text="dry run",
+        target_known=_looks_like_known_target(result.get("workbook_id"), result.get("dashboard_ids") or []),
+        proof_path=str((result.get("summary") or {}).get("summary_path") or ""),
+        target_workbook_id=str(result.get("workbook_id") or ""),
+        target_dashboard_id=(result.get("dashboard_ids") or [""])[0] if result.get("dashboard_ids") else "",
+    )
+    return result
+
+
+def dl_run_project_live_apply(
+    project_root: str = ".",
+    workflow_name: str = "",
+    execute_now: bool = False,
+    approved: bool = False,
+    publish: bool = False,
+    action: str = "apply",
+    timeout_sec: int = 120,
+    delivery_intent_text: str = "",
+) -> dict[str, Any]:
+    result = run_project_live_apply(
+        project_root,
+        workflow_name=workflow_name,
+        execute_now=execute_now,
+        approved=approved,
+        publish=publish,
+        action=action,
+        timeout_sec=timeout_sec,
+    )
+    result["evidence_mode_decision"] = choose_evidence_mode(
+        delivery_intent_text or action,
+        changed_surfaces=[action, workflow_name],
+        metadata_fetch_artifacts=(result.get("expected_artifacts") or []),
+    ).to_dict()
+    delivery_decision = _project_live_delivery_decision(
+        result,
+        delivery_intent_text,
+        publish=publish,
+        approved=approved,
+        after_saved=False,
+    )
+    result["delivery_intent_decision"] = delivery_decision
+    if delivery_decision.get("state") in {"save_then_publish", "publish_from_saved"} and not publish and execute_now:
+        result = _continue_project_live_publish(
+            project_root=project_root,
+            workflow_name=workflow_name,
+            action=action,
+            approved=approved,
+            timeout_sec=timeout_sec,
+            delivery_intent_text=delivery_intent_text,
+            apply_result=result,
+        )
+    return result
+
+
+def _project_live_delivery_decision(
+    result: dict[str, Any],
+    delivery_intent_text: str,
+    *,
+    publish: bool,
+    approved: bool,
+    after_saved: bool = False,
+) -> dict[str, Any]:
+    summary = result.get("summary") if isinstance(result.get("summary"), dict) else {}
+    saved_readback_available = bool(summary.get("saved") or result.get("saved_readback_path")) if after_saved else False
+    result_action = str(result.get("action") or "").strip().lower()
+    default_intent = "implement" if publish or result_action == "apply" else "save only"
+    return _delivery_intent_decision(
+        delivery_intent_text,
+        default_text=default_intent,
+        target_known=_looks_like_known_target(result.get("workbook_id"), result.get("dashboard_ids") or []),
+        approved=approved,
+        fresh_readback_available=False,
+        revision_preservation_available=bool(result.get("safe_constraints") or summary),
+        saved_readback_available=saved_readback_available,
+        saved_readback_fresh=saved_readback_available or None,
+        proof_path=str(summary.get("summary_path") or ""),
+        target_workbook_id=str(result.get("workbook_id") or ""),
+        target_dashboard_id=(result.get("dashboard_ids") or [""])[0] if result.get("dashboard_ids") else "",
+    )
+
+
+def _continue_project_live_publish(
+    *,
+    project_root: str,
+    workflow_name: str,
+    action: str,
+    approved: bool,
+    timeout_sec: int,
+    delivery_intent_text: str,
+    apply_result: dict[str, Any],
+) -> dict[str, Any]:
+    blockers: list[str] = []
+    if apply_result.get("status") != "completed" or not apply_result.get("executed"):
+        blockers.append("apply stage did not complete; publish was not attempted")
+    if "publish" not in (apply_result.get("workflow_modes") or []):
+        blockers.append("missing_publish_path_for_save_then_publish")
+    if blockers:
+        return _project_live_delivery_result(apply_result, None, blockers)
+    publish_result = run_project_live_apply(
+        project_root,
+        workflow_name=workflow_name,
+        execute_now=True,
+        approved=approved,
+        publish=True,
+        action=action,
+        timeout_sec=timeout_sec,
+    )
+    publish_result["delivery_intent_decision"] = _project_live_delivery_decision(
+        publish_result,
+        delivery_intent_text,
+        publish=True,
+        approved=approved,
+        after_saved=True,
+    )
+    if publish_result.get("status") != "completed" or not publish_result.get("executed"):
+        blockers.extend(publish_result.get("blocked_reasons") or ["publish stage did not complete"])
+    return _project_live_delivery_result(apply_result, publish_result, blockers)
+
+
+def _project_live_delivery_result(
+    apply_result: dict[str, Any],
+    publish_result: dict[str, Any] | None,
+    blockers: list[str],
+) -> dict[str, Any]:
+    summary = apply_result.get("summary") if isinstance(apply_result.get("summary"), dict) else {}
+    publish_summary = (
+        publish_result.get("summary")
+        if isinstance(publish_result, dict) and isinstance(publish_result.get("summary"), dict)
+        else {}
+    )
+    saved_paths = _project_live_readback_paths(summary, branch="saved")
+    published_paths = _project_live_readback_paths(publish_summary, branch="published")
+    if publish_result and publish_result.get("status") == "completed" and not blockers:
+        status = "completed"
+    elif apply_result.get("executed"):
+        status = "partial"
+    else:
+        status = "blocked"
+    decision = _decision_with_stage_evidence(
+        apply_result.get("delivery_intent_decision") if isinstance(apply_result.get("delivery_intent_decision"), dict) else {},
+        save_status=str(apply_result.get("status") or ""),
+        publish_status=str((publish_result or {}).get("status") or ("blocked" if blockers else "not_started")),
+        saved_paths=saved_paths,
+        published_paths=published_paths,
+    )
+    return {
+        **apply_result,
+        "status": status,
+        "executed": bool(publish_result and publish_result.get("executed") and not blockers),
+        "publish_blocked_reasons": blockers,
+        "publish_result": publish_result,
+        "approval_reuse_for_publish": bool((apply_result.get("delivery_intent_decision") or {}).get("approval_reuse_for_publish")),
+        "delivery_intent_decision": decision,
+        "project_live_delivery": {
+            "state": "save_then_publish",
+            "apply": _delivery_stage_snapshot(apply_result),
+            "publish": _delivery_stage_snapshot(publish_result or {}),
+            "saved": {
+                "passed": bool(apply_result.get("status") == "completed"),
+                "status": str(apply_result.get("status") or ""),
+                "readback_paths": saved_paths,
+            },
+            "published": {
+                "passed": bool(publish_result and publish_result.get("status") == "completed" and not blockers),
+                "status": str((publish_result or {}).get("status") or ("blocked" if blockers else "not_started")),
+                "readback_paths": published_paths,
+            },
+            "publish_blocked_reasons": blockers,
+            "approval_reuse_for_publish": bool((apply_result.get("delivery_intent_decision") or {}).get("approval_reuse_for_publish")),
+        },
+    }
+
+
+def _project_live_readback_paths(summary: dict[str, Any], *, branch: str) -> list[str]:
+    keys = (
+        [f"{branch}_readback_path", f"{branch}_readback_paths", "published_readback_path", "published_readback_paths"]
+        if branch == "published"
+        else [f"{branch}_readback_path", f"{branch}_readback_paths", "saved_readback_path", "saved_readback_paths"]
+    )
+    paths: list[str] = []
+    for key in keys:
+        value = summary.get(key)
+        if isinstance(value, str) and value:
+            paths.append(value)
+        elif isinstance(value, list):
+            paths.extend(str(item) for item in value if str(item))
+    return list(dict.fromkeys(paths))
+
+
+def dl_read_project_live_summary(
+    project_root: str = ".",
+    workflow_name: str = "",
+    action: str = "dry_run",
+    publish: bool = False,
+    summary_path: str = "",
+) -> dict[str, Any]:
+    result = read_project_live_summary(
+        project_root,
+        workflow_name=workflow_name,
+        action=action,
+        publish=publish,
+        summary_path=summary_path,
+    )
+    result["evidence_mode_decision"] = choose_evidence_mode(
+        "implement" if publish else action,
+        changed_surfaces=[action, workflow_name],
+        metadata_fetch_artifacts=(result.get("evidence_paths") or []),
+    ).to_dict()
+    result["delivery_intent_decision"] = _delivery_intent_decision(
+        "implement" if publish else action,
+        default_text="implement" if publish else action,
+        target_known=_looks_like_known_target(result.get("workbook_id"), result.get("dashboard_ids") or []),
+        approved=publish,
+        fresh_readback_available=bool(result.get("summary_path")),
+        revision_preservation_available=bool(result.get("saved")),
+        saved_readback_available=bool(result.get("saved")),
+        saved_readback_fresh=bool(result.get("saved")),
+        proof_path=str(result.get("summary_path") or ""),
+        target_workbook_id=str(result.get("workbook_id") or ""),
+        target_dashboard_id=(result.get("dashboard_ids") or [""])[0] if result.get("dashboard_ids") else "",
+    )
+    return result
+
+
+def dl_build_validation_evidence_report(project_root: str = ".") -> dict[str, Any]:
+    return build_validation_evidence_report(project_root)
+
+
+def dl_run_live_maintenance_update(
+    project_root: str = ".",
+    workbook_id: str = "",
+    dashboard_id: str = "",
+    target_tab_id: str = "",
+    target_object_ids: list[str] | None = None,
+    intent: str = "fix_existing",
+    maintenance_mode: str = "quick_visible_patch",
+    approved: bool = False,
+    publish: bool = True,
+    browser_runtime_required: bool = True,
+    non_rendering_exemption: str = "",
+    baseline_snapshot_path: str = "",
+    metadata_evidence_paths: list[str] | None = None,
+    source_availability_artifact: str = "",
+    changed_objects: list[dict[str, Any]] | None = None,
+    allow_create: bool = False,
+    create_necessity_proof: dict[str, Any] | None = None,
+    cleanup_mode: str = "plan_only",
+    safe_apply_actions: list[dict[str, Any]] | None = None,
+    guarded_requests: list[dict[str, Any]] | None = None,
+    source_budget_evidence: dict[str, Any] | list[dict[str, Any]] | None = None,
+    runtime_gate_evidence: dict[str, Any] | None = None,
+    saved_runtime_gate_evidence: dict[str, Any] | None = None,
+    published_runtime_gate_evidence: dict[str, Any] | None = None,
+    safe_apply_execution_evidence: dict[str, Any] | None = None,
+    saved_readback_evidence: dict[str, Any] | None = None,
+    publish_from_saved_evidence: dict[str, Any] | None = None,
+    published_readback_evidence: dict[str, Any] | None = None,
+    baseline_dashboard: dict[str, Any] | None = None,
+    proposed_dashboard: dict[str, Any] | None = None,
+    target_url: str = "",
+) -> dict[str, Any]:
+    return run_live_maintenance_update(
+        project_root=project_root,
+        workbook_id=workbook_id,
+        dashboard_id=dashboard_id,
+        target_tab_id=target_tab_id,
+        target_object_ids=target_object_ids,
+        intent=intent,
+        maintenance_mode=maintenance_mode,
+        approved=approved,
+        publish=publish,
+        browser_runtime_required=browser_runtime_required,
+        non_rendering_exemption=non_rendering_exemption,
+        baseline_snapshot_path=baseline_snapshot_path,
+        metadata_evidence_paths=metadata_evidence_paths,
+        source_availability_artifact=source_availability_artifact,
+        changed_objects=changed_objects,
+        allow_create=allow_create,
+        create_necessity_proof=create_necessity_proof,
+        cleanup_mode=cleanup_mode,
+        safe_apply_actions=safe_apply_actions,
+        guarded_requests=guarded_requests,
+        baseline_dashboard=baseline_dashboard,
+        proposed_dashboard=proposed_dashboard,
+        source_budget_evidence=source_budget_evidence,
+        runtime_gate_evidence=runtime_gate_evidence,
+        saved_runtime_gate_evidence=saved_runtime_gate_evidence,
+        published_runtime_gate_evidence=published_runtime_gate_evidence,
+        safe_apply_execution_evidence=safe_apply_execution_evidence,
+        saved_readback_evidence=saved_readback_evidence,
+        publish_from_saved_evidence=publish_from_saved_evidence,
+        published_readback_evidence=published_readback_evidence,
+        target_url=target_url,
+    )
+
+
+def dl_build_dashboard_source_availability_matrix(
+    dashboard_snapshot_path: str = "",
+    metadata_fetch_inventory_path: str = "",
+    data_health_readback_path: str = "",
+    source_catalog_path: str = "",
+    environments: list[str] | None = None,
+    dashboard_object_ids: list[str] | None = None,
+    strict_publish_gate: bool = True,
+) -> dict[str, Any]:
+    return build_dashboard_source_availability_matrix(
+        dashboard_snapshot_path=dashboard_snapshot_path,
+        metadata_fetch_inventory_path=metadata_fetch_inventory_path,
+        data_health_readback_path=data_health_readback_path,
+        source_catalog_path=source_catalog_path,
+        environments=environments,
+        dashboard_object_ids=dashboard_object_ids,
+        strict_publish_gate=strict_publish_gate,
+    )
+
+
+def dl_validate_source_availability_consumers(
+    matrix: dict[str, Any] | None = None,
+    consumers: list[dict[str, Any]] | None = None,
+    strict_publish_gate: bool = True,
+) -> dict[str, Any]:
+    return validate_source_availability_consumers(
+        matrix=matrix,
+        consumers=consumers,
+        strict_publish_gate=strict_publish_gate,
+    )
+
+
+def dl_plan_source_availability_patch(
+    matrix: dict[str, Any] | None = None,
+    strict_publish_gate: bool = True,
+) -> dict[str, Any]:
+    return plan_source_availability_patch(matrix=matrix, strict_publish_gate=strict_publish_gate)
+
+
+def dl_create_safe_apply_plan(
+    project_root: str = ".",
+    approved: bool = False,
+    readback_mode: str = "minimal",
+    entries_payload: dict[str, Any] | None = None,
+    existing_update_actions: list[dict[str, Any]] | None = None,
+    delivery_intent_text: str = "",
+    target_known: bool = False,
+    target_dashboard_id: str = "",
+    target_chart_id: str = "",
+    target_url: str = "",
+) -> dict[str, Any]:
+    root_path = Path(project_root)
+    adapter = detect_project_adapter(root_path)
+    early_target_lock = create_target_lock(
+        delivery_intent_text,
+        target_source="user_url" if target_url else "manual",
+        target_dashboard_id=target_dashboard_id,
+        target_chart_id=target_chart_id,
+        target_url=target_url,
+    )
+    if existing_update_actions:
+        return _create_existing_object_update_safe_apply_plan(
+            project_root=project_root,
+            approved=approved,
+            readback_mode=readback_mode,
+            existing_update_actions=existing_update_actions,
+            delivery_intent_text=delivery_intent_text,
+            target_known=target_known,
+            target_lock=early_target_lock.to_dict(),
+        )
+    if adapter["adapter"] != "standard_bundle" and not (root_path / "artifacts" / "payload_plan.json").is_file():
+        return {
+            "ok": False,
+            "status": "adapter_required",
+            "error": {
+                "category": "unsupported_custom_layout",
+                "message": "Generic safe-apply cannot plan writes for this custom project layout.",
+            },
+            "adapter": adapter,
+            "target_lock": early_target_lock.to_dict(),
+            "actions": [],
+            "delivery_intent_decision": _delivery_intent_decision(
+                delivery_intent_text,
+                target_known=target_known,
+                approved=approved,
+                target_lock=early_target_lock.to_dict(),
+            ),
+        }
+    root = ensure_project_dirs(project_root)
+    payload_plan = read_json(root / "artifacts" / "payload_plan.json", default={"payloads": []})
+    existing_target_lock = payload_plan.get("target_lock") if isinstance(payload_plan.get("target_lock"), dict) else {}
+    target_lock = create_target_lock(
+        delivery_intent_text,
+        target_source="user_url" if target_url else str(existing_target_lock.get("target_source") or "manual"),
+        target_workbook_id=str(payload_plan.get("workbook_id") or existing_target_lock.get("target_workbook_id") or ""),
+        target_dashboard_id=target_dashboard_id or str(existing_target_lock.get("target_dashboard_id") or ""),
+        target_chart_id=target_chart_id or str(existing_target_lock.get("target_chart_id") or ""),
+        target_url=target_url or str(existing_target_lock.get("target_url") or ""),
+    )
+    delivery_target_known = target_known or target_lock.known or _looks_like_known_target(payload_plan.get("workbook_id"))
+    normalized_readback_mode = normalize_readback_mode(readback_mode)
+    actions = []
+    planned_objects = []
+    for item in payload_plan.get("payloads", []):
+        payload_path = str(item["payload_path"])
+        payload = read_json(Path(payload_path), default={})
+        entry = payload.get("entry") if isinstance(payload, dict) else {}
+        data = entry.get("data") if isinstance(entry, dict) else {}
+        internal_name = ""
+        display_title = ""
+        if isinstance(entry, dict):
+            internal_name = str(entry.get("name") or "").strip()
+        if isinstance(data, dict):
+            internal_name = str(data.get("name") or internal_name).strip()
+            display_title = str(data.get("title") or "").strip()
+        planned_objects.append(
+            {
+                "display_title": display_title or internal_name or str(item.get("widget_id") or ""),
+                "internal_name": internal_name or str(item.get("widget_id") or ""),
+                "object_type": "editor_chart" if item.get("method") == "createEditorChart" else "unknown",
+            }
+        )
+        actions.append(
+            {
+                "action": "create_editor_chart",
+                "action_type": "create",
+                "creation_necessity_proof": {
+                    "schema_version": "datalens.object-creation-necessity.delta-v6",
+                    "status": "required",
+                    "update_insufficient_reason": (
+                        "Payload plan describes a new chart object; pass workbook entries_payload to reconcile and reuse "
+                        "existing matching objects before executing live create."
+                    ),
+                    "existing_readback_checked": entries_payload is not None,
+                    "preserve_existing_ids_default": True,
+                    "cleanup_report_required_if_created": True,
+                },
+                "method": item["method"],
+                "mode": "save",
+                "target_lock_hash": target_lock.lock_hash,
+                "requires_fresh_read": True,
+                "fresh_read_method": "getWorkbookEntries",
+                "fresh_read_payload": {"workbookId": str(payload_plan.get("workbook_id") or ""), "branch": "saved"},
+                "readback_mode": normalized_readback_mode,
+                "readback_required": normalized_readback_mode != "none",
+                "readback_method": "getWorkbookEntries",
+                "readback_payload": {"workbookId": str(payload_plan.get("workbook_id") or ""), "branch": "saved"},
+                "readback_justification": "offline create plan; readback disabled explicitly" if normalized_readback_mode == "none" else "",
+                "payload_path": payload_path,
+                "payload_sha256": serialized_metadata(payload)["sha256"],
+                "generator": "dl_build_payload_plan",
+                "source_path": payload_path,
+            }
+        )
+    if not actions:
+        return {
+            "ok": False,
+            "status": "no_changed_actions",
+            "error": {
+                "category": "empty_changed_actions",
+                "message": "Safe apply has no changed actions to execute.",
+            },
+            "adapter": adapter,
+            "actions": [],
+            "delivery_intent_decision": _delivery_intent_decision(
+                delivery_intent_text,
+                target_known=delivery_target_known,
+                approved=approved,
+                target_lock=target_lock.to_dict(),
+                proof_path=str(root / "artifacts" / "safe_apply_plan.json"),
+            ),
+        }
+    reconciliation = None
+    reused_existing_objects: list[dict[str, Any]] = []
+    if entries_payload is not None and planned_objects:
+        workbook_id = str(payload_plan.get("workbook_id") or "")
+        reconciliation = reconcile_partial_creates(
+            workbook_id=workbook_id,
+            planned_objects=planned_objects,
+            entries_payload=entries_payload,
+        )
+        if reconciliation["duplicates_detected"]:
+            return {
+                "ok": False,
+                "status": "manual_review",
+                "error": {
+                    "category": "duplicate_partial_create",
+                    "message": "Duplicate existing objects were found; safe apply will not create more objects.",
+                },
+                "adapter": adapter,
+                "reconciliation": reconciliation,
+                "target_lock": target_lock.to_dict(),
+                "actions": [],
+                "delivery_intent_decision": _delivery_intent_decision(
+                    delivery_intent_text,
+                    target_known=delivery_target_known,
+                    approved=approved,
+                    target_lock=target_lock.to_dict(),
+                    proof_path=str(root / "artifacts" / "safe_apply_plan.json"),
+                ),
+            }
+        filtered_actions = []
+        for action, item in zip(actions, reconciliation["objects"], strict=False):
+            if item["recommended_action"] == "reuse":
+                reused_existing_objects.append(item)
+                continue
+            filtered_actions.append(action)
+        actions = filtered_actions
+        if not actions:
+            return {
+                "ok": False,
+                "status": "no_changed_actions",
+                "error": {
+                    "category": "empty_changed_actions",
+                    "message": "All planned creates already exist and can be reused; no live update action remains.",
+                },
+                "adapter": adapter,
+                "reconciliation": reconciliation,
+                "reused_existing_objects": reused_existing_objects,
+                "target_lock": target_lock.to_dict(),
+                "actions": [],
+                "delivery_intent_decision": _delivery_intent_decision(
+                    delivery_intent_text,
+                    target_known=delivery_target_known,
+                    approved=approved,
+                    target_lock=target_lock.to_dict(),
+                    proof_path=str(root / "artifacts" / "safe_apply_plan.json"),
+                ),
+            }
+    plan = create_safe_apply_plan(project_root=str(root), actions=actions, approved=approved)
+    plan["ok"] = True
+    plan["adapter"] = adapter
+    plan["target_lock"] = target_lock.to_dict()
+    plan["delivery_intent_decision"] = _delivery_intent_decision(
+        delivery_intent_text,
+        target_known=delivery_target_known,
+        approved=approved,
+        fresh_readback_available=False,
+        revision_preservation_available=any(action.get("requires_fresh_read") for action in actions),
+        saved_readback_available=False,
+        target_lock=target_lock.to_dict(),
+        proof_path=str(root / "artifacts" / "safe_apply_plan.json"),
+    )
+    if reconciliation is not None:
+        plan["reconciliation"] = reconciliation
+        plan["reused_existing_objects"] = reused_existing_objects
+    write_json(root / "artifacts" / "safe_apply_plan.json", plan)
+    write_json(root / "artifacts" / "delivery" / "target_lock.json", target_lock.to_dict())
+    plan["suggested_records"] = [
+        {
+            "op": "upsert_entry",
+            "path": "memory-bank/project.md",
+            "heading": "Current State",
+            "entry_id": "datalens-safe-apply-plan",
+            "content": (
+                "A DataLens safe-apply plan exists; execution remains gated by approval, "
+                "fresh read, save-first semantics, and readback."
+            ),
+        }
+    ]
+    return plan
+
+
+def _create_existing_object_update_safe_apply_plan(
+    *,
+    project_root: str,
+    approved: bool,
+    readback_mode: str,
+    existing_update_actions: list[dict[str, Any]],
+    delivery_intent_text: str,
+    target_known: bool,
+    target_lock: dict[str, Any],
+) -> dict[str, Any]:
+    root = ensure_project_dirs(project_root)
+    normalized_readback_mode = normalize_readback_mode(readback_mode)
+    actions: list[dict[str, Any]] = []
+    plan_actions: list[dict[str, Any]] = []
+    blocked_reasons: list[str] = []
+    for index, item in enumerate(existing_update_actions):
+        built = _existing_update_action(item, index=index, readback_mode=normalized_readback_mode, target_lock=target_lock)
+        if built.get("blocked_reasons"):
+            blocked_reasons.extend(str(reason) for reason in built["blocked_reasons"])
+        if built.get("action"):
+            actions.append(built["action"])
+            plan_actions.append(built["plan_action"])
+    update_plan = {
+        "schema_version": "datalens.existing-object-update-plan.v1",
+        "project_root": str(root),
+        "actions": plan_actions,
+        "blocked_reasons": blocked_reasons,
+    }
+    write_json(root / "artifacts" / "existing_object_update_plan.json", update_plan)
+    if blocked_reasons or not actions:
+        result = {
+            "ok": False,
+            "status": "blocked",
+            "schema_version": "datalens.existing-object-update-plan.v1",
+            "project_root": str(root),
+            "existing_object_update_plan": update_plan,
+            "actions": actions,
+            "blocked_reasons": blocked_reasons or ["existing_update_actions_empty"],
+            "delivery_intent_decision": _delivery_intent_decision(
+                delivery_intent_text,
+                target_known=target_known or bool(actions),
+                approved=approved,
+                target_lock=target_lock,
+                proof_path=str(root / "artifacts" / "existing_object_update_plan.json"),
+            ),
+        }
+        write_json(root / "artifacts" / "safe_apply_plan.json", result)
+        return result
+    safe_plan = create_safe_apply_plan(project_root=str(root), actions=actions, approved=approved)
+    safe_plan["ok"] = True
+    safe_plan["status"] = "existing_object_update_plan_created"
+    safe_plan["existing_object_update_plan"] = update_plan
+    safe_plan["target_lock"] = target_lock
+    safe_plan["delivery_intent_decision"] = _delivery_intent_decision(
+        delivery_intent_text,
+        target_known=True,
+        approved=approved,
+        fresh_readback_available=True,
+        revision_preservation_available=True,
+        saved_readback_available=False,
+        target_lock=target_lock,
+        proof_path=str(root / "artifacts" / "safe_apply_plan.json"),
+    )
+    write_json(root / "artifacts" / "safe_apply_plan.json", safe_plan)
+    return safe_plan
+
+
+def _existing_update_action(
+    item: dict[str, Any],
+    *,
+    index: int,
+    readback_mode: str,
+    target_lock: dict[str, Any],
+) -> dict[str, Any]:
+    object_type = str(item.get("object_type") or item.get("type") or "").strip().lower()
+    method_spec = _existing_update_method_spec(object_type)
+    payload = dict(item.get("payload") or item.get("updated_payload") or item.get("readback_payload") or {})
+    envelope = item.get("readback") if isinstance(item.get("readback"), dict) else {}
+    if not payload and envelope:
+        payload = _payload_from_readback_envelope(envelope)
+    if not method_spec:
+        return {"blocked_reasons": [f"existing_update[{index}].unsupported_object_type:{object_type}"]}
+    object_id = str(item.get("object_id") or _object_id_from_update_payload(payload, method_spec["id_key"]) or "").strip()
+    base_revision = str(item.get("base_revision") or item.get("rev_id") or _revision_from_update_payload(payload) or "").strip()
+    blocked: list[str] = []
+    if not object_id:
+        blocked.append(f"existing_update[{index}].missing_object_id")
+    if not base_revision:
+        blocked.append(f"existing_update[{index}].missing_base_revision")
+    payload.setdefault("mode", "save")
+    payload.setdefault(method_spec["id_key"], object_id)
+    _inject_revision(payload, base_revision)
+    if method_spec["method"] == "updateEditorChart":
+        validation = validate_editor_runtime_contract(payload, source=f"existing_update[{index}]")
+        errors = [finding for finding in validation.get("findings") or [] if finding.get("severity") == "error"]
+        if errors and not item.get("validator_required_cleanup"):
+            blocked.append(f"existing_update[{index}].full_object_editor_validation_failed")
+    plan_action = {
+        "object_id": object_id,
+        "object_type": object_type,
+        "method": method_spec["method"],
+        "mode": "save",
+        "base_revision": base_revision,
+        "changed_sections": [str(section) for section in item.get("changed_sections") or []],
+        "validator_required_cleanup": [str(section) for section in item.get("validator_required_cleanup") or []],
+        "requires_saved_readback": True,
+        "requires_publish_readback": True,
+    }
+    action = {
+        "action": f"update_{object_type or 'object'}",
+        "action_type": "update",
+        "method": method_spec["method"],
+        "mode": "save",
+        "target_lock_hash": str(target_lock.get("lock_hash") or ""),
+        "requires_fresh_read": True,
+        "fresh_read_method": method_spec["read_method"],
+        "fresh_read_payload": {method_spec["id_key"]: object_id, "branch": "saved"},
+        "preserve_unknown_fields": True,
+        "readback_mode": readback_mode,
+        "readback_required": readback_mode != "none",
+        "readback_method": method_spec["read_method"],
+        "readback_payload": {method_spec["id_key"]: object_id, "branch": "saved"},
+        "payload": payload,
+        "changed_sections": plan_action["changed_sections"],
+        "base_revision": base_revision,
+        "validator_required_cleanup": plan_action["validator_required_cleanup"],
+    }
+    return {"action": action if not blocked else None, "plan_action": plan_action, "blocked_reasons": blocked}
+
+
+def _existing_update_method_spec(object_type: str) -> dict[str, str]:
+    specs = {
+        "dashboard": {"method": "updateDashboard", "read_method": "getDashboard", "id_key": "dashboardId"},
+        "editor_chart": {"method": "updateEditorChart", "read_method": "getEditorChart", "id_key": "chartId"},
+        "advanced_editor_chart": {"method": "updateEditorChart", "read_method": "getEditorChart", "id_key": "chartId"},
+        "control": {"method": "updateEditorChart", "read_method": "getEditorChart", "id_key": "chartId"},
+        "control_node": {"method": "updateEditorChart", "read_method": "getEditorChart", "id_key": "chartId"},
+        "wizard_chart": {"method": "updateWizardChart", "read_method": "getWizardChart", "id_key": "chartId"},
+    }
+    return specs.get(object_type, {})
+
+
+def _payload_from_readback_envelope(envelope: dict[str, Any]) -> dict[str, Any]:
+    for key in ("entry", "dashboard", "chart", "object"):
+        value = envelope.get(key)
+        if isinstance(value, dict):
+            nested = value.get("entry")
+            if isinstance(nested, dict):
+                return {"entry": nested}
+            return dict(value)
+    return dict(envelope)
+
+
+def _object_id_from_update_payload(payload: dict[str, Any], id_key: str) -> str:
+    entry = payload.get("entry") if isinstance(payload.get("entry"), dict) else {}
+    return str(payload.get(id_key) or payload.get("entryId") or payload.get("id") or entry.get("entryId") or entry.get("id") or "")
+
+
+def _revision_from_update_payload(payload: dict[str, Any]) -> str:
+    entry = payload.get("entry") if isinstance(payload.get("entry"), dict) else {}
+    return str(payload.get("revId") or payload.get("revision") or entry.get("revId") or entry.get("revision") or "")
+
+
+def _inject_revision(payload: dict[str, Any], revision: str) -> None:
+    if not revision:
+        return
+    if isinstance(payload.get("entry"), dict):
+        payload["entry"].setdefault("revId", revision)
+    else:
+        payload.setdefault("revId", revision)
+
+
+def dl_execute_safe_apply(
+    project_root: str = ".",
+    approved_plan_path: str = "",
+    delivery_intent_text: str = "",
+) -> dict[str, Any]:
+    from datalens_dev_mcp.config import DataLensConfig
+
+    root = ensure_project_dirs(project_root)
+    plan_path = Path(approved_plan_path) if approved_plan_path else root / "artifacts" / "safe_apply_plan.json"
+    plan = read_json(plan_path, default={})
+    config = DataLensConfig.from_env()
+    delivery_decision = _delivery_intent_decision(
+        delivery_intent_text,
+        target_known=bool(plan.get("actions")),
+        approved=bool(plan.get("approved")),
+        fresh_readback_available=False,
+        revision_preservation_available=any(action.get("requires_fresh_read") for action in plan.get("actions", [])),
+        saved_readback_available=False,
+        proof_path=str(root / "artifacts" / "safe_apply_result.json"),
+        target_lock=plan.get("target_lock") if isinstance(plan.get("target_lock"), dict) else None,
+    )
+    result = execute_safe_apply(plan, config=config)
+    result["delivery_intent_decision"] = delivery_decision
+    if delivery_decision.get("state") == "save_then_publish":
+        result = _execute_publish_after_save(
+            root=root,
+            plan=plan,
+            save_result=result,
+            config=config,
+            delivery_intent_text=delivery_intent_text,
+            plan_path=plan_path,
+        )
+    else:
+        result["delivery_result"] = _delivery_result_summary(
+            state=delivery_decision.get("state", ""),
+            save_result=dict(result),
+            publish_results=[],
+            saved_readbacks=[],
+            published_readbacks=[],
+            publish_blockers=[],
+            approval_reuse=False,
+        )
+        result["delivery_intent_decision"] = _decision_with_stage_evidence(
+            result.get("delivery_intent_decision") if isinstance(result.get("delivery_intent_decision"), dict) else {},
+            save_status=result.get("status", ""),
+            publish_status="not_requested",
+            saved_paths=[],
+            published_paths=[],
+        )
+    write_json(root / "artifacts" / "safe_apply_result.json", result)
+    return result
+
+
+def _execute_publish_after_save(
+    *,
+    root: Path,
+    plan: dict[str, Any],
+    save_result: dict[str, Any],
+    config: Any,
+    delivery_intent_text: str,
+    plan_path: Path,
+) -> dict[str, Any]:
+    saved_readbacks = _persist_result_readbacks(
+        root=root,
+        plan=plan,
+        result=save_result,
+        branch="saved",
+    )
+    publish_blockers = list(saved_readbacks.get("errors") or [])
+    publish_results: list[dict[str, Any]] = []
+    published_readbacks: list[dict[str, Any]] = []
+    approval_reuse = bool(plan.get("approved"))
+    if save_result.get("status") != "completed" or not save_result.get("executed"):
+        publish_blockers.append("save execution did not complete; publish was not attempted")
+    if not saved_readbacks.get("items"):
+        publish_blockers.append("saved readback artifact is required before publish")
+
+    for item in saved_readbacks.get("items") or []:
+        if publish_blockers:
+            break
+        publish_plan = create_publish_safe_apply_plan(
+            project_root=str(root),
+            target=item["target"],
+            object_type=item["object_type"],
+            object_id=item.get("object_id", ""),
+            saved_readback_path=item["path"],
+            approved=bool(plan.get("approved")),
+            readback_mode=item.get("readback_mode", "minimal"),
+        )
+        publish_plan["approval_reuse_for_publish"] = approval_reuse
+        publish_plan["approval_reuse"] = {
+            "reused_from_plan_path": str(plan_path),
+            "source_approval": (plan.get("approval_provenance") or {}),
+        }
+        for action in publish_plan.get("actions") or []:
+            if isinstance(action, dict):
+                action["approval_reuse_for_publish"] = approval_reuse
+                if isinstance(action.get("approval_provenance"), dict):
+                    action["approval_provenance"]["reused_for_publish"] = approval_reuse
+                    action["approval_provenance"]["source_plan_path"] = str(plan_path)
+        if not publish_plan.get("ok"):
+            publish_blockers.append(
+                f"publish plan blocked for {item.get('object_id') or item['path']}: "
+                f"{(publish_plan.get('error') or {}).get('message') or publish_plan.get('status')}"
+            )
+            publish_results.append({"plan": publish_plan, "result": None})
+            break
+        publish_result = execute_safe_apply(publish_plan, config=config)
+        publish_result["delivery_intent_decision"] = _delivery_intent_decision(
+            delivery_intent_text,
+            default_text="implement",
+            target_known=True,
+            approved=bool(plan.get("approved")),
+            fresh_readback_available=True,
+            revision_preservation_available=True,
+            saved_readback_available=True,
+            saved_readback_fresh=bool(publish_result.get("executed")),
+            proof_path=str(root / "artifacts" / "safe_apply_result.json"),
+            target_lock=plan.get("target_lock") if isinstance(plan.get("target_lock"), dict) else None,
+        )
+        publish_result["approval_reuse_for_publish"] = approval_reuse
+        publish_results.append({"plan": publish_plan, "result": publish_result})
+        published = _persist_result_readbacks(
+            root=root,
+            plan=publish_plan,
+            result=publish_result,
+            branch="published",
+        )
+        published_readbacks.extend(published.get("items") or [])
+        publish_blockers.extend(published.get("errors") or [])
+        if publish_result.get("status") != "completed" or not publish_result.get("executed"):
+            publish_blockers.append("publish execution did not complete")
+            break
+
+    aggregate = dict(save_result)
+    aggregate["delivery_result"] = _delivery_result_summary(
+        state="save_then_publish",
+        save_result=save_result,
+        publish_results=publish_results,
+        saved_readbacks=saved_readbacks.get("items") or [],
+        published_readbacks=published_readbacks,
+        publish_blockers=publish_blockers,
+        approval_reuse=approval_reuse,
+    )
+    aggregate["approval_reuse_for_publish"] = approval_reuse
+    aggregate["publish_results"] = publish_results
+    aggregate["saved_readback_paths"] = [item["path"] for item in saved_readbacks.get("items") or []]
+    aggregate["published_readback_paths"] = [item["path"] for item in published_readbacks]
+    aggregate["publish_blocked_reasons"] = publish_blockers
+    aggregate["proof_levels"] = _merge_proof_levels(save_result, *[item["result"] for item in publish_results if item.get("result")])
+    publish_status = _publish_stage_status(publish_results, publish_blockers)
+    aggregate["save_stage_status"] = str(save_result.get("status") or "")
+    aggregate["publish_stage_status"] = publish_status
+    aggregate["delivery_intent_decision"] = _decision_with_stage_evidence(
+        aggregate.get("delivery_intent_decision") if isinstance(aggregate.get("delivery_intent_decision"), dict) else {},
+        save_status=aggregate["save_stage_status"],
+        publish_status=publish_status,
+        saved_paths=aggregate["saved_readback_paths"],
+        published_paths=aggregate["published_readback_paths"],
+    )
+    if publish_blockers:
+        aggregate["executed"] = False
+        aggregate["status"] = "partial" if save_result.get("executed") else save_result.get("status", "blocked")
+    elif publish_results:
+        aggregate["executed"] = all(bool(item.get("result", {}).get("executed")) for item in publish_results)
+        aggregate["status"] = "completed" if aggregate["executed"] else "partial"
+    return aggregate
+
+
+def _persist_result_readbacks(
+    *,
+    root: Path,
+    plan: dict[str, Any],
+    result: dict[str, Any],
+    branch: str,
+) -> dict[str, Any]:
+    items: list[dict[str, Any]] = []
+    errors: list[str] = []
+    actions = plan.get("actions") if isinstance(plan.get("actions"), list) else []
+    result_actions = result.get("actions") if isinstance(result.get("actions"), list) else []
+    multiple = len(result_actions) > 1
+    for action_result in result_actions:
+        if not isinstance(action_result, dict) or not action_result.get("executed"):
+            continue
+        index = int(action_result.get("index") or 0)
+        plan_action = actions[index] if 0 <= index < len(actions) and isinstance(actions[index], dict) else {}
+        stage = load_safe_apply_stage_value(action_result, "readback", project_root=root)
+        if not stage.get("ok"):
+            errors.append(str((stage.get("error") or {}).get("message") or "readback stage is missing"))
+            continue
+        value = stage.get("value") if isinstance(stage.get("value"), dict) else {}
+        if not value:
+            errors.append(f"action {index} readback is empty")
+            continue
+        payload = dict(value)
+        payload["branch"] = branch
+        object_type = _publish_object_type_for_action(plan_action, action_result)
+        target = _publish_target_for_object_type(object_type)
+        object_id = _object_id_from_readback(payload) or str(action_result.get("object_id") or "")
+        artifact_target = _artifact_target_name(target, object_id=object_id, index=index, multiple=multiple)
+        path = readback_artifact_path(root, artifact_target, branch)
+        write_json(path, payload)
+        items.append(
+            {
+                "action_index": index,
+                "path": str(path),
+                "target": artifact_target,
+                "object_type": object_type,
+                "object_id": object_id,
+                "branch": branch,
+                "readback_mode": action_result.get("readback_mode") or plan_action.get("readback_mode") or "minimal",
+            }
+        )
+    return {"items": items, "errors": errors}
+
+
+def _publish_object_type_for_action(plan_action: dict[str, Any], action_result: dict[str, Any]) -> str:
+    method = str(plan_action.get("method") or action_result.get("method") or "")
+    if "Dashboard" in method:
+        return "dashboard"
+    if "WizardChart" in method:
+        return "wizard_chart"
+    return "editor_chart"
+
+
+def _publish_target_for_object_type(object_type: str) -> str:
+    return "dashboard" if object_type == "dashboard" else "chart"
+
+
+def _artifact_target_name(target: str, *, object_id: str, index: int, multiple: bool) -> str:
+    if not multiple:
+        return target
+    safe_id = "".join(ch if ch.isalnum() or ch in {"_", "-"} else "_" for ch in str(object_id or "")).strip("_")
+    return f"{target}_{safe_id or index}"
+
+
+def _object_id_from_readback(value: dict[str, Any]) -> str:
+    for key in ("entry", "dashboard", "chart", "object"):
+        candidate = value.get(key)
+        if isinstance(candidate, dict):
+            nested = candidate.get("entry")
+            if isinstance(nested, dict):
+                candidate = nested
+            object_id = _object_id_from_candidate(candidate)
+            if object_id:
+                return object_id
+    for key in ("entries", "charts"):
+        entries = value.get(key)
+        if isinstance(entries, list) and len(entries) == 1 and isinstance(entries[0], dict):
+            object_id = _object_id_from_candidate(entries[0])
+            if object_id:
+                return object_id
+    return _object_id_from_candidate(value)
+
+
+def _object_id_from_candidate(candidate: dict[str, Any]) -> str:
+    return str(
+        candidate.get("entryId")
+        or candidate.get("id")
+        or candidate.get("dashboardId")
+        or candidate.get("chartId")
+        or ""
+    ).strip()
+
+
+def _merge_proof_levels(*results: dict[str, Any]) -> list[str]:
+    levels: list[str] = ["source_static"]
+    for result in results:
+        for level in result.get("proof_levels") or []:
+            if level not in levels:
+                levels.append(str(level))
+    return levels
+
+
+def _delivery_result_summary(
+    *,
+    state: str,
+    save_result: dict[str, Any],
+    publish_results: list[dict[str, Any]],
+    saved_readbacks: list[dict[str, Any]],
+    published_readbacks: list[dict[str, Any]],
+    publish_blockers: list[str],
+    approval_reuse: bool,
+) -> dict[str, Any]:
+    return {
+        "state": state,
+        "save": _delivery_stage_snapshot(save_result),
+        "publish": [_delivery_stage_snapshot(item.get("result") or {}) for item in publish_results],
+        "publish_plans": [item.get("plan") for item in publish_results],
+        "saved": {
+            "passed": bool(save_result.get("executed") and saved_readbacks),
+            "status": str(save_result.get("status") or ""),
+            "readback_paths": [item["path"] for item in saved_readbacks],
+        },
+        "published": {
+            "passed": bool(publish_results and not publish_blockers and published_readbacks),
+            "status": _publish_stage_status(publish_results, publish_blockers),
+            "readback_paths": [item["path"] for item in published_readbacks],
+        },
+        "saved_readbacks": saved_readbacks,
+        "published_readbacks": published_readbacks,
+        "publish_blocked_reasons": publish_blockers,
+        "approval_reuse_for_publish": approval_reuse,
+    }
+
+
+def _delivery_stage_snapshot(result: dict[str, Any]) -> dict[str, Any]:
+    snapshot = dict(result)
+    snapshot.pop("delivery_result", None)
+    snapshot.pop("publish_results", None)
+    return snapshot
+
+
+def _publish_stage_status(publish_results: list[dict[str, Any]], publish_blockers: list[str]) -> str:
+    if publish_blockers:
+        return "blocked"
+    if not publish_results:
+        return "not_started"
+    if all(bool(item.get("result", {}).get("executed")) for item in publish_results):
+        return "completed"
+    return "partial"
+
+
+def _decision_with_stage_evidence(
+    decision: dict[str, Any],
+    *,
+    save_status: str,
+    publish_status: str,
+    saved_paths: list[str],
+    published_paths: list[str],
+) -> dict[str, Any]:
+    updated = dict(decision)
+    updated["save_stage_status"] = save_status
+    updated["publish_stage_status"] = publish_status
+    updated["saved_readback_path"] = saved_paths[0] if saved_paths else ""
+    updated["published_readback_path"] = published_paths[0] if published_paths else ""
+    return updated
+
+
+def dl_create_publish_from_saved_plan(
+    project_root: str = ".",
+    target: str = "dashboard",
+    object_type: str = "dashboard",
+    object_id: str = "",
+    object_ids: list[str] | None = None,
+    saved_readback_path: str = "",
+    approved: bool = False,
+    readback_mode: str = "minimal",
+    delivery_intent_text: str = "",
+    target_dashboard_id: str = "",
+    target_chart_id: str = "",
+    target_url: str = "",
+) -> dict[str, Any]:
+    plan = create_publish_safe_apply_plan(
+        project_root=project_root,
+        target=target,
+        object_type=object_type,
+        object_id=object_id,
+        object_ids=object_ids,
+        saved_readback_path=saved_readback_path,
+        approved=approved,
+        readback_mode=readback_mode,
+    )
+    plan["delivery_intent_decision"] = _delivery_intent_decision(
+        delivery_intent_text,
+        default_text="implement",
+        target_known=_looks_like_known_target(object_id, object_ids or [], saved_readback_path),
+        approved=approved,
+        fresh_readback_available=True,
+        revision_preservation_available=True,
+        saved_readback_available=bool(saved_readback_path),
+        saved_readback_fresh=bool(plan.get("ok")),
+        proof_path=str(Path(project_root) / "artifacts" / "publish_safe_apply_plan.json"),
+    )
+    if plan.get("ok"):
+        root = ensure_project_dirs(project_root)
+        existing_target_lock = read_json(root / "artifacts" / "delivery" / "target_lock.json", default={})
+        target_lock = create_target_lock(
+            delivery_intent_text,
+            target_source="user_url" if target_url else str(existing_target_lock.get("target_source") or "manual"),
+            target_workbook_id=str(existing_target_lock.get("target_workbook_id") or ""),
+            target_dashboard_id=target_dashboard_id or str(existing_target_lock.get("target_dashboard_id") or ""),
+            target_chart_id=target_chart_id or str(existing_target_lock.get("target_chart_id") or object_id or ""),
+            target_url=target_url or str(existing_target_lock.get("target_url") or ""),
+        )
+        plan["target_lock"] = target_lock.to_dict()
+        for action in plan.get("actions") or []:
+            if isinstance(action, dict):
+                action["target_lock_hash"] = target_lock.lock_hash
+        plan["delivery_intent_decision"] = _delivery_intent_decision(
+            delivery_intent_text,
+            default_text="implement",
+            target_known=True,
+            approved=approved,
+            fresh_readback_available=True,
+            revision_preservation_available=True,
+            saved_readback_available=True,
+            saved_readback_fresh=True,
+            proof_path=str(root / "artifacts" / "publish_safe_apply_plan.json"),
+            target_lock=target_lock.to_dict(),
+        )
+        write_json(root / "artifacts" / "publish_safe_apply_plan.json", plan)
+    return plan
+
+
+def dl_readback_and_report(
+    project_root: str = ".",
+    target: str = "dashboard",
+    dashboard_id: str = "",
+    chart_ids: list[str] | None = None,
+    dataset_id: str = "",
+    connection_id: str = "",
+    branch: str = "saved",
+    readback_mode: str = "minimal",
+    delivery_intent_text: str = "",
+    target_workbook_id: str = "",
+    target_url: str = "",
+    client: Any | None = None,
+) -> dict[str, Any]:
+    root = ensure_project_dirs(project_root)
+    normalized_readback_mode = normalize_readback_mode(readback_mode)
+    normalized_branch = str(branch or "").strip().lower()
+    if normalized_branch not in {"saved", "published"}:
+        return {"ok": False, "error": {"category": "invalid_branch", "message": "branch must be saved or published"}}
+    validation = read_json(root / "artifacts" / "validation_report.json", default={"status": "not_run"})
+    safe_result = read_json(root / "artifacts" / "safe_apply_result.json", default={"executed": False, "blocked_reasons": []})
+    existing_target_lock = read_json(root / "artifacts" / "delivery" / "target_lock.json", default={})
+    target_lock = create_target_lock(
+        delivery_intent_text,
+        target_source="user_url" if target_url else str(existing_target_lock.get("target_source") or "manual"),
+        target_workbook_id=target_workbook_id or str(existing_target_lock.get("target_workbook_id") or ""),
+        target_dashboard_id=dashboard_id or str(existing_target_lock.get("target_dashboard_id") or ""),
+        target_chart_id=(chart_ids or [""])[0] if chart_ids else str(existing_target_lock.get("target_chart_id") or ""),
+        target_url=target_url or str(existing_target_lock.get("target_url") or ""),
+    )
+    readback = _live_readback(
+        target=target,
+        dashboard_id=dashboard_id,
+        chart_ids=chart_ids or [],
+        dataset_id=dataset_id,
+        connection_id=connection_id,
+        branch=normalized_branch,
+        readback_mode=normalized_readback_mode,
+        client=client,
+    )
+    if dashboard_id and normalized_readback_mode in {"full", "debug"}:
+        from datalens_dev_mcp.mcp.tools.snapshot import dl_snapshot_dashboard
+
+        snapshot = dl_snapshot_dashboard(
+            project_root=project_root,
+            dashboard_id=dashboard_id,
+            snapshot_branch=normalized_branch,
+            include_dormant_summary=True,
+            artifact_retention="latest_only",
+            client=client,
+        )
+        readback.update(
+            {
+                "snapshot_manifest": snapshot.get("manifest"),
+                "compact_graph": snapshot.get("compact_graph"),
+                "counts_by_object_type": snapshot.get(
+                    "counts_by_object_type", readback.get("counts_by_object_type", {})
+                ),
+                "active_graph_edges": snapshot.get("active_graph_edges", []),
+                "branch_summary": snapshot.get("branch_summary", {}),
+                "branch_comparison": snapshot.get("branch_comparison", {}),
+                "errors": snapshot.get("errors", []),
+                "omissions": snapshot.get("omissions", []),
+                "object_artifact_count": snapshot.get("object_artifact_count", 0),
+            }
+        )
+    artifact_path = readback_artifact_path(root, target, normalized_branch)
+    readback["artifact_path"] = str(artifact_path)
+    readback.setdefault(
+        "proof_level",
+        proof_level_for_readback_branch(normalized_branch, live_readback=bool(readback.get("live_readback"))),
+    )
+    report = build_deployment_report(
+        safe_apply_result=safe_result,
+        validation=validation,
+        readback_mode=normalized_readback_mode,
+        readback_branch=normalized_branch,
+    )
+    relation_summary = _relation_report_summary(read_json(root / "artifacts" / "dashboard_object_relations.json", default={}))
+    readback["object_relations"] = relation_summary
+    readback["target_lock"] = target_lock.to_dict()
+    readback["target_lock_validation"] = validate_readback_target_lock(target_lock, readback)
+    report["object_relations"] = relation_summary
+    report["target_lock"] = target_lock.to_dict()
+    report["target_lock_validation"] = readback["target_lock_validation"]
+    report["readback_branch"] = normalized_branch
+    report["saved_readback_path"] = str(readback_artifact_path(root, target, "saved"))
+    report["published_readback_path"] = str(readback_artifact_path(root, target, "published"))
+    report["branch_artifact_path"] = str(artifact_path)
+    delivery_decision = _delivery_intent_decision(
+        delivery_intent_text,
+        default_text="implement" if normalized_branch == "published" else "save only",
+        target_known=_looks_like_known_target(dashboard_id, chart_ids or [], dataset_id, connection_id),
+        approved=True,
+        fresh_readback_available=normalized_readback_mode != "none",
+        revision_preservation_available=True,
+        saved_readback_available=normalized_branch == "saved"
+        or readback_artifact_path(root, target, "saved").is_file(),
+        saved_readback_fresh=normalized_branch == "saved"
+        or readback_artifact_path(root, target, "saved").is_file(),
+        proof_path=str(artifact_path),
+        target_lock=target_lock.to_dict(),
+    )
+    readback["delivery_intent_decision"] = delivery_decision
+    report["delivery_intent_decision"] = delivery_decision
+    canonical_readback = sanitize_response(readback)
+    deployment_report_path = root / "artifacts" / "deployment_report.json"
+    write_json(artifact_path, canonical_readback)
+    write_json(deployment_report_path, report)
+    inline_readback = _project_readback_inline(
+        canonical_readback,
+        project_root=project_root,
+        artifact_path=artifact_path,
+    )
+    inline_report = dict(report)
+    inline_report.pop("target_lock", None)
+    inline_report.pop("target_lock_validation", None)
+    inline_report.pop("delivery_intent_decision", None)
+    inline_report["canonical_artifact"] = {
+        "path": str(deployment_report_path),
+        **serialized_metadata(report),
+    }
+    return {"readback": inline_readback, "deployment_report": inline_report}
+
+
+def _write_dashboard_relations(*, root: Path, brief: dict[str, Any], widget_id: str, selector_param: str = "segment") -> dict[str, Any]:
+    relations = build_default_dashboard_relations(brief=brief, widget_id=widget_id, selector_param=selector_param)
+    write_json(root / "artifacts" / "dashboard_object_relations.json", relations)
+    return relations
+
+
+def _relation_report_summary(relations: dict[str, Any]) -> dict[str, Any]:
+    if not relations:
+        return {"available": False, "selector_count": 0, "chart_count": 0, "relation_targets": []}
+    targets: list[str] = []
+    for selector in relations.get("selectors") or []:
+        for target in selector.get("targets") or []:
+            target_id = target.get("target_id")
+            if target_id:
+                targets.append(str(target_id))
+    return {
+        "available": True,
+        "selector_count": len(relations.get("selectors") or []),
+        "chart_count": len(relations.get("charts") or []),
+        "relation_targets": sorted(set(targets)),
+    }
+
+
+def _selector_param_from_requirements(root: Path, brief: dict[str, Any]) -> str:
+    fields = [str(item) for item in (brief.get("data_contract") or {}).get("fields") or []]
+    selectors_text = read_text(root / "requirements" / "selectors.md", default="").lower()
+    for field in fields:
+        if field and field.lower() in selectors_text:
+            return field
+    return "segment"
+
+
+def _brief_from_governance_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
+    passport = bundle["dashboard_requirements_passport"]
+    contracts = bundle.get("data_contracts") or []
+    fields = []
+    for contract in contracts:
+        for field in contract.get("fields") or []:
+            name = field.get("name")
+            if name and name not in fields:
+                fields.append(name)
+    decisions = []
+    for decision in bundle.get("chart_decisions") or []:
+        family = decision.get("selected_family") or decision.get("family")
+        record = decide_chart(
+            chart_id=str(decision.get("decision_id") or decision.get("metric_id") or "CD-001"),
+            business_question=str(passport.get("objective", "")),
+            audience=list(passport.get("audience") or []),
+            data_shape={"fields": fields},
+            requested_family=str(family or ""),
+            source_evidence_refs=["governance_bundle"],
+        )
+        decisions.append(
+            {
+                "decision_id": decision.get("decision_id"),
+                "metric_id": decision.get("metric_id"),
+                "widget_id": decision.get("metric_id") or "widget_001",
+                "family": record.selected_family,
+                "route": record.selected_route,
+                "entry_type": decision.get("editor_entry_type"),
+                "status": decision.get("status"),
+                "governance_decision": {
+                    "chart_family_decided_by": "datalens-dataviz-governance",
+                    "approved": decision.get("status") in {"ready", "draft_with_assumptions"},
+                    "decision_id": decision.get("decision_id"),
+                    "selected_family": record.selected_family,
+                    "approved_route": record.selected_route,
+                },
+                "chart_decision_record": record.to_dict(),
+                "renderer_visual_spec": record.renderer_visual_spec.to_dict(),
+            }
+        )
+    return {
+        "schema_version": "2026-06-04.dashboard_brief.local.v1",
+        "dashboard_name": passport.get("dashboard_name", "Local Dashboard"),
+        "audience": passport.get("audience") or [],
+        "decision_action": passport.get("decision_action", "missing"),
+        "requirements": [{"requirement_id": "REQ-001", "text": passport.get("objective", "")}],
+        "data_contract": {"contract_id": "DATA-001", "fields": fields, "source_status": "local_mcp_intake"},
+        "chart_decisions": decisions or build_governance_brief(requirements_text=passport.get("objective", "")).get("chart_decisions", []),
+    }
+
+
+def _live_readback(
+    *,
+    target: str,
+    dashboard_id: str,
+    chart_ids: list[str],
+    dataset_id: str,
+    connection_id: str,
+    branch: str,
+    readback_mode: str,
+    client: Any | None,
+) -> dict[str, Any]:
+    normalized_mode = normalize_readback_mode(readback_mode)
+    if normalized_mode == "none":
+        readback = build_readback_summary(target=target, mode="none", skipped_reason="readback_mode none")
+        readback["live_readback"] = False
+        readback["proof_level"] = "source_static"
+        return readback
+    normalized_target = str(target or "").strip().lower().replace("-", "_")
+    if not dashboard_id and not chart_ids and not dataset_id and not connection_id:
+        readback = build_readback_summary(target=target, mode=normalized_mode)
+        readback["live_readback"] = False
+        readback["proof_level"] = "source_static"
+        return readback
+    if client is None:
+        from datalens_dev_mcp.api.client import DataLensApiClient
+        from datalens_dev_mcp.config import DataLensConfig
+
+        client = DataLensApiClient(DataLensConfig.from_env())
+    dashboard = client.rpc("getDashboard", {"dashboardId": dashboard_id, "branch": branch}) if dashboard_id else None
+    selected_chart_ids = chart_ids if normalized_mode in {"full", "debug"} else chart_ids[:1]
+    charts = [
+        client.rpc("getEditorChart", {"chartId": chart_id, "branch": branch})
+        for chart_id in selected_chart_ids
+    ]
+    dataset = None
+    connection = None
+    if normalized_target == "dataset" and dataset_id:
+        dataset = client.rpc("getDataset", {"datasetId": dataset_id})
+    if normalized_target in {"connection", "connector"} and connection_id:
+        connection = client.rpc("getConnection", {"connectionId": connection_id})
+    identity_rows = [
+        _readback_identity_row(value, fallback_id=fallback_id)
+        for value, fallback_id in [
+            (dashboard, dashboard_id),
+            *[(chart, chart_id) for chart, chart_id in zip(charts, selected_chart_ids)],
+            (dataset, dataset_id),
+            (connection, connection_id),
+        ]
+        if isinstance(value, dict) and value
+    ]
+    return {
+        "target": target,
+        "read_at": build_readback_summary(target=target, mode=normalized_mode)["read_at"],
+        "live_readback": True,
+        "mode": normalized_mode,
+        "branch": branch,
+        "proof_level": proof_level_for_readback_branch(branch),
+        "dashboard": dashboard,
+        "charts": charts,
+        "dataset": dataset,
+        "connection": connection,
+        "object_ids": [row["object_id"] for row in identity_rows if row["object_id"]],
+        "object_revisions": {
+            row["object_id"]: row["revision_id"]
+            for row in identity_rows
+            if row["object_id"] and row["revision_id"]
+        },
+        "counts_by_object_type": {
+            "dashboard": 1 if dashboard else 0,
+            "chart": len(charts),
+            "dataset": 1 if dataset else 0,
+            "connection": 1 if connection else 0,
+        },
+        "omitted_chart_ids": chart_ids[len(selected_chart_ids):],
+    }
+
+
+def _project_readback_inline(
+    readback: dict[str, Any],
+    *,
+    project_root: str,
+    artifact_path: Path,
+) -> dict[str, Any]:
+    """Keep full sanitized entries in the canonical artifact and return compact MCP summaries."""
+
+    projected = dict(readback)
+    dashboard = readback.get("dashboard")
+    if isinstance(dashboard, dict):
+        projected["dashboard"] = project_dashboard_response(
+            dashboard,
+            response_mode="summary",
+            project_root=project_root,
+        )
+    charts = readback.get("charts")
+    if isinstance(charts, list):
+        projected["charts"] = [
+            _project_chart_readback(chart, "summary")
+            for chart in charts
+            if isinstance(chart, dict)
+        ]
+    dataset = readback.get("dataset")
+    if isinstance(dataset, dict):
+        projected["dataset"] = project_dataset_response(
+            dataset,
+            response_mode="summary",
+            project_root=project_root,
+        )
+    connection = readback.get("connection")
+    if isinstance(connection, dict):
+        projected["connection"] = project_connection_response(
+            connection,
+            response_mode="summary",
+            project_root=project_root,
+        )
+    metadata = serialized_metadata(readback)
+    projected["canonical_artifact"] = {
+        "path": str(artifact_path),
+        **metadata,
+    }
+    return projected
+
+
+def _project_chart_readback(response: dict[str, Any], response_mode: str) -> dict[str, Any]:
+    from datalens_dev_mcp.mcp.response_projection import project_editor_chart_response, project_wizard_chart_response
+
+    entry = response.get("entry") if isinstance(response.get("entry"), dict) else response
+    scope = str(entry.get("scope") or entry.get("type") or "").lower()
+    if "wizard" in scope:
+        return project_wizard_chart_response(response, response_mode=response_mode)
+    return project_editor_chart_response(response, response_mode=response_mode)
+
+
+def _readback_identity_row(value: dict[str, Any], *, fallback_id: str = "") -> dict[str, str]:
+    candidates: list[dict[str, Any]] = []
+
+    def walk(item: Any) -> None:
+        if isinstance(item, dict):
+            identity = item.get("identity") if isinstance(item.get("identity"), dict) else {}
+            entry = item.get("entry") if isinstance(item.get("entry"), dict) else item
+            if identity:
+                candidates.append(identity)
+            if any(key in entry for key in ("entryId", "revId", "rev_id", "revisionId")):
+                candidates.append(entry)
+            for nested in item.values():
+                walk(nested)
+        elif isinstance(item, list):
+            for nested in item:
+                walk(nested)
+
+    walk(value)
+    chosen = next(
+        (
+            item
+            for item in candidates
+            if str(
+                item.get("rev_id")
+                or item.get("revId")
+                or item.get("revision_id")
+                or item.get("revisionId")
+                or ""
+            ).strip()
+        ),
+        candidates[0] if candidates else {},
+    )
+    return {
+        "object_id": str(
+            chosen.get("id") or chosen.get("object_id") or chosen.get("entryId") or fallback_id or ""
+        ).strip(),
+        "revision_id": str(
+            chosen.get("rev_id") or chosen.get("revId") or chosen.get("revision_id") or chosen.get("revisionId") or ""
+        ).strip(),
+    }
+
+
+def _first_title(text: str) -> str:
+    ignored = {
+        "source inputs",
+        "s2t",
+        "data architecture",
+        "datasets",
+        "connectors",
+        "fields",
+        "metrics",
+        "dashboard requirements",
+        "dashboard pages",
+        "charts",
+        "selectors",
+        "object relations",
+        "user decisions",
+        "implementation plan",
+        "change log",
+        "source of truth",
+    }
+    for line in text.splitlines():
+        if not line.startswith("# ") or line.startswith("## "):
+            continue
+        compact = line.strip("# -:\t ")
+        if compact and compact.lower() not in ignored:
+            return compact[:80]
+    for line in text.splitlines():
+        compact = line.strip("# -:\t ")
+        if compact and compact.lower() not in ignored and not compact.startswith("`requirements/"):
+            return compact[:80]
+    return "Local DataLens Dashboard"
+
+
+def _run_dashboard_payload_preflight(root: Path) -> dict[str, Any]:
+    checked_paths: list[str] = []
+    issues: list[dict[str, str]] = []
+    candidate_paths = sorted(root.glob("artifacts/**/*dashboard*payload*.json"))
+    payload_plan = root / "artifacts" / "payload_plan.json"
+    if payload_plan.is_file():
+        candidate_paths.append(payload_plan)
+    seen: set[Path] = set()
+    for path in candidate_paths:
+        if path in seen or not path.is_file():
+            continue
+        seen.add(path)
+        payload = read_json(path, default={})
+        if not _looks_like_dashboard_payload(payload, path):
+            continue
+        checked_paths.append(str(path))
+        result = validate_dashboard_payload(payload)
+        for issue in result.issues:
+            item = issue.to_dict()
+            item["path"] = f"{path}:{item['path']}"
+            issues.append(item)
+        issues.extend(_visual_payload_contract_issues(payload, path=path))
+    if not checked_paths:
+        issues.append(
+            {
+                "severity": "error",
+                "rule": "zero_dashboard_payload_preflight_coverage",
+                "path": str(root / "artifacts"),
+                "message": "Dashboard payload preflight checked zero paths; an empty fixture cannot produce a pass.",
+                "suggested_fix": (
+                    "Generate or provide at least one dashboard payload artifact before claiming "
+                    "dashboard preflight coverage."
+                ),
+            }
+        )
+    report = {
+        "ok": not any(issue["severity"] == "error" for issue in issues),
+        "checked_paths": checked_paths,
+        "issues": issues,
+    }
+    write_json(root / "artifacts" / "dashboard_payload_preflight.json", report)
+    return report
+
+
+def _run_renderer_visual_quality_preflight(root: Path, bundle_paths: list[Path]) -> dict[str, Any]:
+    checked_paths: list[str] = []
+    issues: list[dict[str, str]] = []
+    for path in bundle_paths + sorted(root.glob("artifacts/**/*chart_decision*.json")):
+        payload = read_json(path, default={})
+        for spec_path, spec in _iter_renderer_visual_specs(payload):
+            checked_paths.append(f"{path}:{spec_path}")
+            result = validate_visual_quality_contract(spec)
+            for finding in result.findings:
+                issues.append(
+                    {
+                        "severity": finding.severity,
+                        "rule": finding.rule,
+                        "path": f"{path}:{spec_path}{finding.path.removeprefix('$')}",
+                        "message": finding.message,
+                        "suggested_fix": "Add labels/axes/native metadata alternatives in renderer_visual_spec.",
+                    }
+                )
+    report = {
+        "ok": not any(issue["severity"] == "error" for issue in issues),
+        "checked_paths": checked_paths,
+        "issues": issues,
+    }
+    write_json(root / "artifacts" / "renderer_visual_quality.json", report)
+    return report
+
+
+def _visual_payload_contract_issues(payload: dict[str, Any], *, path: Path) -> list[dict[str, str]]:
+    issues: list[dict[str, str]] = []
+    if _has_object_granularity_manifest(payload):
+        from datalens_dev_mcp.pipeline.dashboard_object_granularity import validate_dashboard_object_granularity
+
+        result = validate_dashboard_object_granularity(payload)
+        issues.extend(_finding_issue_dicts(result.findings, path=path, source="dashboard_object_granularity"))
+    if _has_selector_contract(payload):
+        from datalens_dev_mcp.pipeline.selector_layout_contract import validate_selector_layout_contract
+
+        result = validate_selector_layout_contract(payload)
+        issues.extend(_finding_issue_dicts(result.findings, path=path, source="selector_layout_contract"))
+    body = _joined_strings(payload).lower()
+    if _has_kpi_contract(payload) or "kpi-card" in body or "metric-card" in body or "card-grid" in body:
+        from datalens_dev_mcp.pipeline.kpi_indicator_contract import validate_kpi_indicator_contract
+
+        result = validate_kpi_indicator_contract(payload)
+        issues.extend(_finding_issue_dicts(result.findings, path=path, source="kpi_indicator_contract"))
+    for index, table_payload in enumerate(_table_contract_payloads(payload)):
+        from datalens_dev_mcp.pipeline.native_table_contract import validate_native_table_contract
+
+        result = validate_native_table_contract(table_payload)
+        issues.extend(
+            _finding_issue_dicts(
+                result.findings,
+                path=path,
+                source="native_table_contract",
+                prefix=f"$.table_contracts[{index}]",
+            )
+        )
+    for spec_path, spec in _iter_renderer_visual_specs(payload):
+        result = validate_visual_quality_contract(spec)
+        issues.extend(
+            _finding_issue_dicts(
+                result.findings,
+                path=path,
+                source="renderer_visual_quality",
+                prefix=spec_path,
+            )
+        )
+    return issues
+
+
+def _finding_issue_dicts(
+    findings: Any,
+    *,
+    path: Path,
+    source: str,
+    prefix: str = "",
+) -> list[dict[str, str]]:
+    issues: list[dict[str, str]] = []
+    for finding in findings:
+        finding_path = str(getattr(finding, "path", "$"))
+        if prefix:
+            finding_path = prefix + finding_path.removeprefix("$")
+        issues.append(
+            {
+                "severity": str(getattr(finding, "severity", "error")),
+                "rule": str(getattr(finding, "rule", source)),
+                "path": f"{path}:{finding_path}",
+                "message": str(getattr(finding, "message", "")),
+                "suggested_fix": source,
+            }
+        )
+    return issues
+
+
+def _has_object_granularity_manifest(payload: dict[str, Any]) -> bool:
+    return any(key in payload for key in ("objects", "object_manifest", "expected_visual_count", "dashboard_like_advanced_editor"))
+
+
+def _has_selector_contract(payload: dict[str, Any]) -> bool:
+    return any(key in payload for key in ("selectors", "selector_rows", "controls", "selectorRows"))
+
+
+def _has_kpi_contract(payload: dict[str, Any]) -> bool:
+    return any(key in payload for key in ("kpis", "indicators", "expected_kpi_count"))
+
+
+def _table_contract_payloads(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    if _looks_like_table_contract(payload):
+        candidates.append(payload)
+    for key in ("tables", "table_payloads"):
+        raw = payload.get(key)
+        if isinstance(raw, list):
+            candidates.extend(item for item in raw if isinstance(item, dict) and _looks_like_table_contract(item))
+    objects = payload.get("objects") or payload.get("object_manifest") or []
+    if isinstance(objects, list):
+        for item in objects:
+            if isinstance(item, dict) and _looks_like_table_contract(item):
+                candidates.append(item)
+    return candidates
+
+
+def _looks_like_table_contract(value: dict[str, Any]) -> bool:
+    route = str(
+        value.get("route")
+        or value.get("selected_route")
+        or value.get("object_type")
+        or value.get("entry_type")
+        or value.get("type")
+        or ""
+    ).strip().lower()
+    if route not in {"table_node", "editor_table", "native_table"}:
+        return False
+    return bool(value.get("columns") or value.get("rows") or value.get("table_payload") or value.get("source") or value.get("row_count"))
+
+
+def _iter_renderer_visual_specs(value: Any, path: str = "$"):
+    if isinstance(value, dict):
+        spec = value.get("renderer_visual_spec")
+        if isinstance(spec, dict) and spec:
+            yield f"{path}.renderer_visual_spec", spec
+        elif _looks_like_renderer_visual_spec(value):
+            yield path, value
+        for key, item in value.items():
+            if key == "renderer_visual_spec":
+                continue
+            yield from _iter_renderer_visual_specs(item, f"{path}.{key}")
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            yield from _iter_renderer_visual_specs(item, f"{path}[{index}]")
+
+
+def _looks_like_renderer_visual_spec(value: dict[str, Any]) -> bool:
+    return bool(
+        (value.get("family") or value.get("selected_family"))
+        and any(key in value for key in ("labels", "label_spec", "axes", "axis_spec", "encoding", "analytical_task"))
+    )
+
+
+def _joined_strings(value: Any) -> str:
+    parts: list[str] = []
+    if isinstance(value, dict):
+        for item in value.values():
+            parts.append(_joined_strings(item))
+    elif isinstance(value, list):
+        for item in value:
+            parts.append(_joined_strings(item))
+    elif isinstance(value, str):
+        parts.append(value)
+    return "\n".join(parts)
+
+
+def _write_dashboard_preflight_candidate(root: Path, *, workbook_id: str, payloads: list[dict[str, Any]]) -> None:
+    if not payloads:
+        return
+    items = []
+    for index, payload in enumerate(payloads, start=1):
+        widget_id = str(payload.get("widget_id") or f"widget_{index:03d}")
+        items.append(
+            {
+                "id": f"{widget_id}_item",
+                "type": "chart",
+                "chartId": widget_id,
+                "title": widget_id.replace("_", " ").title(),
+            }
+        )
+    dashboard_payload = {
+        "schema_version": "2026-06-25.dashboard_preflight_candidate.v1",
+        "dashboardId": "local_dashboard_preflight",
+        "workbookId": workbook_id,
+        "tabs": [{"id": "main", "title": "Main", "items": [item["id"] for item in items]}],
+        "items": items,
+        "selector_rows": [],
+    }
+    write_json(root / "artifacts" / "dashboard_payloads" / "generated.dashboard.payload.json", dashboard_payload)
+
+
+def _looks_like_dashboard_payload(payload: Any, path: Path) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    lowered_path = str(path).lower()
+    if "dashboard" in lowered_path and "payload" in lowered_path:
+        return True
+    keys = {str(key) for key in payload}
+    return bool(keys & {"dashboardId", "dashboard_id", "dash", "blocks", "items", "widgets", "selector_rows"})

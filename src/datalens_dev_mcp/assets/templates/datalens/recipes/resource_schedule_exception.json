@@ -1,0 +1,77 @@
+{
+  "algorithmic_bound": "O(n log n)",
+  "aliases": [
+    "explicit resource schedule",
+    "explicit resource schedule exception",
+    "resource schedule exception"
+  ],
+  "cardinality_limits": {
+    "lanes_per_resource": 8,
+    "model_bytes": 120000,
+    "resources": 50,
+    "rows": 1000,
+    "span_days": 90
+  },
+  "executable_bundle": {
+    "behavior_test": "tests.unit.test_practical_authoring_hardening",
+    "bundle_files": [
+      "controls.js",
+      "expected_output.json",
+      "fixture_input.json",
+      "meta.json",
+      "params.js",
+      "prepare.js",
+      "sources.js"
+    ],
+    "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+    "status": "executable_fixture_tested"
+  },
+  "implementation_status": "implemented_tested_explicit_only",
+  "local_policy_status": "allowed_explicit_only",
+  "native_table_contract": false,
+  "observed_runtime_overrides": [],
+  "official_status": "documented",
+  "output_contract": [
+    "requires_explicit_resource_schedule_request",
+    "strict_offset_timestamps",
+    "injected_timezone_and_as_of",
+    "deterministic_lanes_and_conflicts",
+    "bounded_table_node_fallback",
+    "safe_link_or_plain_text"
+  ],
+  "recipe_id": "resource_schedule_exception",
+  "required_tabs": [
+    "Meta",
+    "Params",
+    "Sources",
+    "Controls",
+    "Prepare"
+  ],
+  "route": "editor_advanced",
+  "source_contract": "explicit_resource_schedule",
+  "source_traces": [
+    {
+      "anchor": "advanced-чарт",
+      "chunk_id": "datalens/charts/editor/widgets/advanced.md#advanced-чарт#1",
+      "mirror_path": "datalens/charts/editor/widgets/advanced.md",
+      "sha256": "27f4997092afdc4dbf164553f1458e9810fc256ffca76f06c2c989257553b425",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/advanced"
+    },
+    {
+      "anchor": "таблица",
+      "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+      "mirror_path": "datalens/charts/editor/widgets/table.md",
+      "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+    }
+  ],
+  "title": "Explicit resource schedule exception",
+  "uses_generate_html": true,
+  "validation_checklist": [
+    "source_trace_present",
+    "required_tabs_present",
+    "runtime_contract_valid",
+    "safe_apply_plan_only_until_approved"
+  ],
+  "widget_contract": "advanced-chart_node"
+}

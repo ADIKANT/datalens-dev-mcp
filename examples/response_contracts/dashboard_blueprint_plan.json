@@ -1,0 +1,90 @@
+{
+  "schema_version": "2026-07-13.requirements_dashboard_blueprint_plan.v2",
+  "dashboard_type": "self_service",
+  "confidence": "high",
+  "job_to_be_done": "Slice trusted data, inspect exact values, and reuse the same dashboard for many related questions.",
+  "recommended_layout": "selector band or side panel, summary strip, comparison/trend blocks, detail table with stable sort and source notes",
+  "acceptance_checklist": [
+    "filters_have_defaults_and_reset",
+    "detail_table_or_export_path_is_clear",
+    "users_can_answer_related_questions_without_new_dashboard",
+    "data_quality_caveats_are_visible",
+    "product_owner_and_support_channel_are_visible",
+    "usage_analytics_mode_is_declared",
+    "adoption_metric_and_review_cadence_are_declared",
+    "performance_error_and_freshness_thresholds_are_declared",
+    "promotion_deprecation_and_retirement_rule_is_declared",
+    "feedback_and_documentation_links_are_visible",
+    "last_review_date_is_visible",
+    "table_has_stable_sort_and_bounded_pagination",
+    "keyboard_focus_and_column_labels_are_tested",
+    "empty_loading_error_and_truncated_states_are_defined",
+    "multi_filter_reset_is_available",
+    "active_filter_and_cross_filter_state_are_visible",
+    "limitations_and_errors_are_readable"
+  ],
+  "operational_lifecycle": {
+    "required": true,
+    "triggered_by_dashboard_type": true,
+    "matched_keywords": ["self-service"],
+    "fields": [
+      "product_owner",
+      "support_and_feedback_channel",
+      "usage_analytics_mode",
+      "adoption_metric",
+      "review_cadence",
+      "performance_and_error_thresholds",
+      "data_freshness_slo",
+      "promotion_deprecation_and_retirement_rule",
+      "feedback_and_documentation_links",
+      "last_review_date"
+    ],
+    "required_questions": [
+      "Who owns the dashboard product and the support or feedback channel?",
+      "Is Usage Analytics enabled, disabled, or privacy-limited for this dashboard?",
+      "Which adoption metric is reviewed, and on what cadence?",
+      "Which performance, error, and data-freshness thresholds trigger action?",
+      "What are the promotion, deprecation, and retirement rules?"
+    ],
+    "acceptance_checklist": [
+      "product_owner_and_support_channel_are_visible",
+      "usage_analytics_mode_is_declared",
+      "adoption_metric_and_review_cadence_are_declared",
+      "performance_error_and_freshness_thresholds_are_declared",
+      "promotion_deprecation_and_retirement_rule_is_declared",
+      "feedback_and_documentation_links_are_visible",
+      "last_review_date_is_visible"
+    ]
+  },
+  "conditional_ux_acceptance": {
+    "required": true,
+    "conditions": [
+      {
+        "condition_id": "dense_table_or_export",
+        "matched_keywords": ["self-service", "detail table", "export"],
+        "acceptance_checklist": [
+          "table_has_stable_sort_and_bounded_pagination",
+          "keyboard_focus_and_column_labels_are_tested",
+          "empty_loading_error_and_truncated_states_are_defined",
+          "multi_filter_reset_is_available",
+          "active_filter_and_cross_filter_state_are_visible",
+          "limitations_and_errors_are_readable"
+        ]
+      }
+    ],
+    "acceptance_checklist": [
+      "table_has_stable_sort_and_bounded_pagination",
+      "keyboard_focus_and_column_labels_are_tested",
+      "empty_loading_error_and_truncated_states_are_defined",
+      "multi_filter_reset_is_available",
+      "active_filter_and_cross_filter_state_are_visible",
+      "limitations_and_errors_are_readable"
+    ]
+  },
+  "chart_plan": [
+    {"family": "table_node", "route": "editor_table", "intent": "table_detail_self_service"},
+    {"family": "horizontal_bar", "route": "editor_advanced", "intent": "comparison_ranking"},
+    {"family": "line_chart", "route": "editor_advanced", "intent": "time_series"}
+  ],
+  "critical_questions": []
+}

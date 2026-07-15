@@ -1,0 +1,58 @@
+{
+  "algorithmic_bound": "O(n)",
+  "aliases": [
+    "markdown",
+    "markdown widget",
+    "текстовый блок"
+  ],
+  "cardinality_limits": {},
+  "executable_bundle": {
+    "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+    "bundle_files": [
+      "expected_output.json",
+      "fixture_input.json",
+      "meta.json",
+      "params.js",
+      "prepare.js",
+      "sources.js"
+    ],
+    "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+    "status": "executable_fixture_tested"
+  },
+  "implementation_status": "implemented_tested",
+  "local_policy_status": "allowed",
+  "native_table_contract": false,
+  "observed_runtime_overrides": [],
+  "official_status": "documented",
+  "output_contract": [
+    "markdown_output",
+    "no_generateHtml"
+  ],
+  "recipe_id": "markdown",
+  "required_tabs": [
+    "Meta",
+    "Params",
+    "Sources",
+    "Prepare"
+  ],
+  "route": "editor_markdown",
+  "source_contract": "markdown",
+  "source_traces": [
+    {
+      "anchor": "markdown",
+      "chunk_id": "datalens/charts/editor/widgets/markdown.md#markdown#1",
+      "mirror_path": "datalens/charts/editor/widgets/markdown.md",
+      "sha256": "70fee83cc0165de5523b31a84c50a8553747bb85878cca99f0f0655497ccb534",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/markdown"
+    }
+  ],
+  "title": "Markdown widget",
+  "uses_generate_html": false,
+  "validation_checklist": [
+    "source_trace_present",
+    "required_tabs_present",
+    "runtime_contract_valid",
+    "safe_apply_plan_only_until_approved"
+  ],
+  "widget_contract": "markdown_node"
+}

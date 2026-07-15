@@ -1,0 +1,18 @@
+{
+  "schema_version": "2026-07-01.validation_artifact_manifest.v1",
+  "purpose": "Offline replay fixtures for validation profiles. These replace repeated live workbook inventory or dataset schema calls in tests.",
+  "artifacts": [
+    {
+      "path": "workbook_entries.fixture.json",
+      "method": "getWorkbookEntries",
+      "safe_reuse": true,
+      "reuse_scope": "offline_validation_fixture"
+    },
+    {
+      "path": "dataset_schema.fixture.json",
+      "method": "getDataset",
+      "safe_reuse": true,
+      "reuse_scope": "offline_validation_fixture"
+    }
+  ]
+}

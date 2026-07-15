@@ -1,0 +1,34 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "updateEditorChart",
+  "operation_id": "updateEditorChart",
+  "path": "/rpc/updateEditorChart",
+  "request_payload": {},
+  "request_schema_closure_hash": "c9a3c250668ba2151f0734828b7524559918adb5588a925f7fa11ada6dd66dc2",
+  "request_schema_closure_refs": [
+    "EntryAnnotationArg",
+    "EntryUpdateMode",
+    "UpdateEditorAdvancedChartNodeEntry",
+    "UpdateEditorChartArgs",
+    "UpdateEditorGravityChartsNodeEntry",
+    "UpdateEditorMarkdownNodeEntry",
+    "UpdateEditorSelectorNodeEntry",
+    "UpdateEditorTableNodeEntry"
+  ],
+  "request_schema_hash": "6ac81f254ed3de73901fb14bd9f6ecad97e547e31759db5822a0b871c3d1e03e",
+  "request_schema_ref": "UpdateEditorChartArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "39d7fd1af34881ab46e9d467dd530685da85ef1afbfcce096d0bebbc73334153",
+  "response_schema_closure_refs": [
+    "EditorAdvancedChartNode",
+    "EditorGravityChartsNode",
+    "EditorMarkdownNode",
+    "EditorSelectorNode",
+    "EditorTableNode",
+    "UpdateEditorChartResult"
+  ],
+  "response_schema_hash": "66bf7369e04819436cd30922f65b3f6f9a9fa3135da6a2789b6e4ddf89a769ad",
+  "response_schema_ref": "UpdateEditorChartResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "guarded_plan_only"
+}

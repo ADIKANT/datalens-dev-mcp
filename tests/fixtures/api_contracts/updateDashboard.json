@@ -1,0 +1,30 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "updateDashboard",
+  "operation_id": "updateDashboard",
+  "path": "/rpc/updateDashboard",
+  "request_payload": {},
+  "request_schema_closure_hash": "75fd0b3565d7a8d0481c874983e09a56f951809585511151dcc127c008ceb287",
+  "request_schema_closure_refs": [
+    "DashboardData",
+    "DashboardMeta",
+    "EntryAnnotationArg",
+    "EntryUpdateMode",
+    "UpdateDashboardV1Args"
+  ],
+  "request_schema_hash": "cd98dfb16280dd694ab280212e99ce18dc91616ecaf6ca1a88f1a248f55db8dc",
+  "request_schema_ref": "UpdateDashboardV1Args",
+  "response_payload": {},
+  "response_schema_closure_hash": "5b03631ca0bf09983d2bbcba15556d79942f72108a103ed6bb0b2e98bc9023f7",
+  "response_schema_closure_refs": [
+    "DashboardData",
+    "DashboardMeta",
+    "DashboardV1",
+    "EntryAnnotation",
+    "UpdateDashboardResponse"
+  ],
+  "response_schema_hash": "9df7fd3022dca784ba9650ddd7334addcdbea63cf337a30ba9506d761254c242",
+  "response_schema_ref": "UpdateDashboardResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "guarded_plan_only"
+}

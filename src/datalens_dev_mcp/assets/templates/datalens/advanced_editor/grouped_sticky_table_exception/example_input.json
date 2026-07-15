@@ -1,0 +1,6 @@
+{
+  "title": "Grouped Exception Table",
+  "columns": ["group", "metric", "value"],
+  "rows": [{"group": "Current", "metric": "Completed", "value": 42}],
+  "exception_reason": "Grouped sticky layout cannot be expressed by table_node."
+}

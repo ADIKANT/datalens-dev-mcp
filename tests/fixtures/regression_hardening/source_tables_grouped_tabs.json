@@ -1,0 +1,41 @@
+{
+  "dashboardId": "dashboard_synthetic",
+  "items": [
+    {
+      "id": "global_period",
+      "type": "selector",
+      "pinned": true,
+      "labelPlacement": "left",
+      "width": "24%"
+    },
+    {
+      "id": "source_tables_block",
+      "type": "widget",
+      "native_title": "Source Tables",
+      "native_hint": "Grouped source-table diagnostics.",
+      "tabs": [
+        {
+          "id": "source_tables_events",
+          "chartId": "chart_events",
+          "default": true
+        },
+        {
+          "id": "source_tables_metrics",
+          "chartId": "chart_metrics"
+        }
+      ]
+    }
+  ],
+  "selector_rows": [
+    [
+      {
+        "id": "global_period",
+        "width": "24%"
+      },
+      {
+        "id": "source_filter",
+        "width": "72%"
+      }
+    ]
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DataLens MCP Evidence Mode Decision",
+  "type": "object",
+  "required": [
+    "evidence_mode",
+    "why_this_mode",
+    "metadata_fetch_required"
+  ],
+  "properties": {
+    "evidence_mode": {
+      "enum": [
+        "api_only",
+        "targeted_data_evidence",
+        "source_matrix",
+        "full_dashboard_audit"
+      ]
+    },
+    "why_this_mode": {
+      "type": "string"
+    },
+    "metadata_fetch_required": {
+      "type": "boolean"
+    },
+    "metadata_fetch_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blocked_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

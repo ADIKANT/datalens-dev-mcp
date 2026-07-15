@@ -1,0 +1,618 @@
+{
+  "assignLicenses": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "AssignLicensesArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "AssignLicensesResponse",
+    "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+  },
+  "batchListMembers": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "AccessExtBatchListMembersArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "AccessExtBatchListMembersResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "cancelWorkbookExport": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CancelWorkbookExportArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CancelWorkbookExportResult",
+    "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+  },
+  "createCollection": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateCollectionArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CreateCollectionResult",
+    "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+  },
+  "createConnection": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "ConnectionCreate",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CreateConnectionResult",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
+  "createDashboard": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateDashboardV1Args",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "CreateDashboardResponse",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
+  "createDataset": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DatasetCreate",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DatasetRead",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
+  "createEditorChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateEditorChartArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CreateEditorChartResult",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
+  "createEmbed": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateEmbedArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "Embed",
+    "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+  },
+  "createEmbeddingSecret": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateEmbeddingSecretArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CreateEmbeddingSecretResult",
+    "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+  },
+  "createFolder": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateFolderArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CreateFolderResult",
+    "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+  },
+  "createQLChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateQLChartArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "CreateQLChartResponse",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
+  "createReport": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateReportV1Args",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CreateReportV1Result",
+    "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+  },
+  "createWizardChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateWizardChartArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "CreateWizardChartResponse",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
+  "createWorkbook": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateWorkbookArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CreateWorkbookResult",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
+  "deleteCollection": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteCollectionArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DeleteCollectionResult",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "deleteCollections": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteCollectionsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DeleteCollectionsResult",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "deleteConnection": {
+    "request_schema_kind": "inline",
+    "request_schema_ref": "DeleteConnectionRequest",
+    "response_schema_kind": "none",
+    "response_schema_ref": "",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "deleteDashboard": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteDashboardArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "DeleteDashboardResponse",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "deleteDataset": {
+    "request_schema_kind": "inline",
+    "request_schema_ref": "DeleteDatasetRequest",
+    "response_schema_kind": "none",
+    "response_schema_ref": "",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "deleteEditorChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteEditorChartArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "DeleteEditorChartResponse",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "deleteEmbed": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteEmbedArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DeleteEmbedResult",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "deleteEmbeddingSecret": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteEmbeddingSecretArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DeleteEmbeddingSecretResult",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "deleteFolder": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteFolderArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "DeleteFolderResponse",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "deleteQLChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteQLChartArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "DeleteQLChartResponse",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "deleteReport": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteReportArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "DeleteReportResponse",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "deleteWizardChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteWizardChartArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "DeleteWizardChartResponse",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "deleteWorkbook": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteWorkbookArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "Workbook",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "deleteWorkbooks": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteWorkbooksArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "DeleteWorkbooksResponse",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "dlsSuggest": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DlsSuggestArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DlsSuggestResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getAuditEntriesUpdates": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetAuditEntriesUpdatesArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetAuditEntriesUpdatesResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getAuditEntryPermissionsForUser": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetAuditEntryPermissionsForUserArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetAuditEntryPermissionsForUserResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getCollection": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetCollectionArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetCollectionResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getCollectionBreadcrumbs": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetCollectionBreadcrumbsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetCollectionBreadcrumbsResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getCollectionContent": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetStructureItemsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetStructureItemsResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getCollectionsByIds": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetCollectionsByIdsArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "GetCollectionsByIdsResponse",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getConnection": {
+    "request_schema_kind": "inline",
+    "request_schema_ref": "GetConnectionRequest",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "ConnectionRead",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getDashboard": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetDashboardV1Args",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetDashboardV1Result",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getDataset": {
+    "request_schema_kind": "inline",
+    "request_schema_ref": "GetDatasetRequest",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DatasetRead",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getEditorChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetEditorChartArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetEditorChartResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getEmbeddingSecret": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetEmbeddingSecretArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "EmbeddingSecret",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getEntries": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetEntriesV2Args",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetEntriesV2Result",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getEntriesPermissions": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetEntriesPermissionsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetEntriesPermissionsResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getEntriesRelations": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetEntriesRelationsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetEntriesRelationsResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getLicenses": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetLicensesArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetLicensesResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getLicensesLimit": {
+    "request_schema_kind": "none",
+    "request_schema_ref": "",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "LicenseLimits",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getPermissions": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetPermissionsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetPermissionsResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getPermissionsBulk": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetPermissionsBulkArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetPermissionsBulkResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getQLChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetQLChartArgs",
+    "response_schema_kind": "none",
+    "response_schema_ref": "",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getReport": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetReportV1Args",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetReportV1Result",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getRootCollectionPermissions": {
+    "request_schema_kind": "none",
+    "request_schema_ref": "",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetRootCollectionPermissionsResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getWizardChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetWizardChartArgs",
+    "response_schema_kind": "none",
+    "response_schema_ref": "",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getWorkbook": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetWorkbookArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetWorkbookResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getWorkbookEntries": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetWorkbookEntriesArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetWorkbookEntriesResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getWorkbookExportResult": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetWorkbookExportResultArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetWorkbookExportResultResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getWorkbookExportStatus": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetWorkbookExportStatusArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetWorkbookExportStatusResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getWorkbookImportStatus": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetWorkbookImportStatusArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetWorkbookImportStatusResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getWorkbooksByIds": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetWorkbooksByIdsArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "GetWorkbooksByIdsResponse",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getWorkbooksList": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetWorkbooksListArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetWorkbooksListResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "listCollectionAccessBindings": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "ListCollectionAccessBindingsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "ListIamAccessBindingsResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "listDirectory": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "ListDirectoryArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "ListDirectoryResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "listEmbeddingSecrets": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "ListEmbeddingSecretsArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "ListEmbeddingSecretsResponse",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "listEmbeds": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "ListEmbedsArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "ListEmbedsResponse",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "listSharedEntryAccessBindings": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "ListSharedEntryAccessBindingsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "ListIamAccessBindingsResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "listWorkbookAccessBindings": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "ListWorkbookAccessBindingsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "ListIamAccessBindingsResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "modifyPermissions": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "ModifyPermissionsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "ModifyPermissionsResult",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "moveCollection": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "MoveCollectionArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "Collection",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "moveCollections": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "MoveCollectionsArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "MoveCollectionsResponse",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "moveFolderEntry": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "MoveEntryArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "MoveEntryResult",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "moveWorkbook": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "MoveWorkbookArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "Workbook",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "moveWorkbooks": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "MoveWorkbooksArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "MoveWorkbooksResponse",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "renameEntry": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "RenameEntryArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "RenameEntryResult",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "setLicenseLimit": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "SetLicenseLimitArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "LicenseLimits",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "startWorkbookExport": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "StartWorkbookExportArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "StartWorkbookExportResult",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
+  "startWorkbookImport": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "StartWorkbookImportArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "StartWorkbookImportResult",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
+  "updateCollection": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateCollectionArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "Collection",
+    "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+  },
+  "updateCollectionAccessBindings": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateCollectionAccessBindingsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DatalensOperation",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
+  "updateConnection": {
+    "request_schema_kind": "inline",
+    "request_schema_ref": "UpdateConnectionRequest",
+    "response_schema_kind": "none",
+    "response_schema_ref": "",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
+  "updateDashboard": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateDashboardV1Args",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "UpdateDashboardResponse",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
+  "updateDataset": {
+    "request_schema_kind": "inline",
+    "request_schema_ref": "UpdateDatasetRequest",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DatasetRead",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
+  "updateEditorChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateEditorChartArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "UpdateEditorChartResult",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
+  "updateEmbed": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateEmbedArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "Embed",
+    "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+  },
+  "updateQLChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateQLChartArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "UpdateQLChartResponse",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
+  "updateReport": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateReportV1Args",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "UpdateReportV1Result",
+    "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+  },
+  "updateWizardChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateWizardChartArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "UpdateWizardChartResponse",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
+  "updateWorkbook": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateWorkbookArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "Workbook",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
+  "updateWorkbookAccessBindings": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateWorkbookAccessBindingsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DatalensOperation",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
+  "validateDataset": {
+    "request_schema_kind": "inline",
+    "request_schema_ref": "ValidateDatasetRequest",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DatasetRead",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  }
+}

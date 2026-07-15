@@ -1,0 +1,25 @@
+{
+  "dashboardId": "dashboard_synthetic",
+  "blocks": [
+    {
+      "id": "widget_event_logs",
+      "type": "widget",
+      "tabs": [
+        {
+          "id": "duplicate_tab",
+          "chartId": "chart_event_logs"
+        }
+      ]
+    },
+    {
+      "id": "widget_event_diagnostics",
+      "type": "widget",
+      "tabs": [
+        {
+          "id": "duplicate_tab",
+          "chartId": "chart_event_diagnostics"
+        }
+      ]
+    }
+  ]
+}

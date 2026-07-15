@@ -1,0 +1,23 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getAuditEntryPermissionsForUser",
+  "operation_id": "getAuditEntryPermissionsForUser",
+  "path": "/rpc/getAuditEntryPermissionsForUser",
+  "request_payload": {},
+  "request_schema_closure_hash": "b440e64d349301287a053884b298b715d511f715e36d27c73d95a54eafdd5442",
+  "request_schema_closure_refs": [
+    "GetAuditEntryPermissionsForUserArgs"
+  ],
+  "request_schema_hash": "5942b9d2fda786e7f5f17b729d6f4c186f394e3a7e1893ca9979bbfec69160f3",
+  "request_schema_ref": "GetAuditEntryPermissionsForUserArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "5a77f4a579bc68fd77020c2ed98ee61760054ce094675e9be40830cff79ea030",
+  "response_schema_closure_refs": [
+    "EntryPermissions",
+    "GetAuditEntryPermissionsForUserResult"
+  ],
+  "response_schema_hash": "f064bc6cccc95b460a967b1f950604d8fb2b6e3d372f22b86ffdb2bba682bae1",
+  "response_schema_ref": "GetAuditEntryPermissionsForUserResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

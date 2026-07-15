@@ -1,0 +1,30 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "createReport",
+  "operation_id": "createReport",
+  "path": "/rpc/createReport",
+  "request_payload": {},
+  "request_schema_closure_hash": "d40515412fd29c9c0275df0e066a5868073d6f44f1154a2fbc2f90057a4e6870",
+  "request_schema_closure_refs": [
+    "CreateReportV1Args",
+    "DashboardMeta",
+    "EntryAnnotationArg",
+    "EntryLocationIdentifiers",
+    "ReportData"
+  ],
+  "request_schema_hash": "21591e6c27d6876d7f5715bf59390422288edcc60f478d6f3aa239b0e5351e86",
+  "request_schema_ref": "CreateReportV1Args",
+  "response_payload": {},
+  "response_schema_closure_hash": "fba2b9101acd03af1f9170613dea36c43d37394541cb23052621486110f4a6c4",
+  "response_schema_closure_refs": [
+    "CreateReportV1Result",
+    "DashboardMeta",
+    "EntryAnnotation",
+    "ReportData",
+    "ReportV1"
+  ],
+  "response_schema_hash": "c42fe0fc6759c3c02c48ac30722da13e8d4ed2be34f29b118ac12300fa33bee7",
+  "response_schema_ref": "CreateReportV1Result",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "unsupported_explicit"
+}

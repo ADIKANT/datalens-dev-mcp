@@ -1,0 +1,8 @@
+{
+  "name": "hierarchy",
+  "route": "editor_advanced",
+  "entry_type": "advanced-chart_node",
+  "source_example": "hierarchy",
+  "local_safety": "local MCP-native fixture with placeholder IDs",
+  "source_template": "examples/gallery/hierarchy"
+}

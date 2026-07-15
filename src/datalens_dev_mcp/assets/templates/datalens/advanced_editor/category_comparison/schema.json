@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "required": ["title", "rows"],
+  "properties": {
+    "title": {"type": "string"},
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["label", "value"],
+        "properties": {"label": {"type": "string"}, "value": {"type": "number"}, "target": {"type": "number"}}
+      }
+    },
+    "hint": {"type": "string"}
+  }
+}

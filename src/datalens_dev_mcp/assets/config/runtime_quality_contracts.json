@@ -1,0 +1,96 @@
+{
+  "approval_policy": {
+    "default_delivery": [
+      "save",
+      "saved_readback",
+      "publish",
+      "published_readback"
+    ],
+    "must_not_require": [
+      "literal_chat_phrase_i_approve"
+    ],
+    "normal_live_task_intents": [
+      "implement",
+      "fix",
+      "enhance",
+      "redesign",
+      "update"
+    ],
+    "sufficient_approval_sources": [
+      "current_user_request",
+      "goal_objective_file",
+      "codex_tool_approval",
+      "project_manifest_operator_approval",
+      "explicit_chat_approval"
+    ]
+  },
+  "kpi_indicator": {
+    "previous_period_delta": "explicit_only",
+    "separate_objects": true,
+    "version": "2026-07-01.kpi_indicator_contract"
+  },
+  "native_table": {
+    "html_svg_div_tables": "blocked",
+    "required_route": "wizard_native",
+    "specialized_js_route": "editor_table",
+    "version": "2026-07-01.native_table_contract_v2",
+    "visualization_id": "flatTable"
+  },
+  "object_granularity": {
+    "advanced_editor_limit": "one_visual",
+    "contract": "DashboardObjectGraphContract",
+    "validator": "DashboardObjectGranularityValidator"
+  },
+  "performance_budget": {
+    "dashboard_first_useful_paint_seconds": 5,
+    "observed_20_second_tab": "hard_fail",
+    "tab_publish_block_seconds": 15,
+    "tab_warning_seconds": 10
+  },
+  "route_selection_policy": {
+    "advanced_editor_default": "registered_capability_gap_or_explicit_js",
+    "canonical_routes": {
+      "kpi": "wizard_native:metric",
+      "map": "wizard_native:geolayer",
+      "markdown": "editor_markdown",
+      "ordinary_table": "wizard_native:flatTable",
+      "pivot": "wizard_native:pivotTable",
+      "ql": "ql_explicit:explicit_user_request_only",
+      "selector": "editor_js_control",
+      "standard_chart": "wizard_native"
+    },
+    "forbidden_silent_fallbacks": [
+      "failed_wizard_request_to_js",
+      "automatic_ql_selection",
+      "table_to_html",
+      "selector_to_html",
+      "kpi_group_to_html_card_grid",
+      "dataset_to_embedded_js"
+    ],
+    "policy_artifact": "config/route_selection_policy_v5.json",
+    "version": "2026-07-13.route_selection_policy_v5"
+  },
+  "schema_version": "2026-07-01.final_runtime_quality_contracts",
+  "selector_layout": {
+    "native_object_type": "control_node",
+    "overflow": "new_row",
+    "row_width_sum_max_pct": 96
+  },
+  "source_route": {
+    "dataset_backed_before_embedded": true,
+    "embedded_requires_explicit_static_mode": true
+  },
+  "visual_quality": {
+    "bar_charts_require": [
+      "direct_labels_or_readable_axes",
+      "zero_baseline",
+      "proportional_width"
+    ],
+    "decorative_color": "forbidden",
+    "kpi_comparator": "explicit_only"
+  },
+  "visual_readback": {
+    "backend_pass_and_visual_pass_are_separate": true,
+    "visual_qa_unavailable_is_not_pass": true
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "schema_version": "2026-06-04.wizard_map_template_input.v2",
+  "template_name": "native_map",
+  "widget_id": "region_map",
+  "name": "Region Orders Map",
+  "route": "wizard_native",
+  "visualization_id": "geolayer",
+  "location": {"workbookId": "<WORKBOOK_ID>", "name": "region_orders_map"},
+  "chart_type": "symbol_map",
+  "dataset": "<DATASET_ID>",
+  "dataset_ref": "<DATASET_ID>",
+  "geo": {
+    "evidence_kind": "geopoint",
+    "field": "location"
+  },
+  "data_roles": {
+    "geo_role": "location",
+    "measure_role": "vehicle_cnt",
+    "color_role": "vehicle_cnt",
+    "label_role": "region",
+    "tooltip_roles": ["region", "vehicle_cnt", "environment"]
+  },
+  "field_bindings": {
+    "geo": "location",
+    "measures": "vehicle_cnt",
+    "colors": "vehicle_cnt",
+    "labels": "region"
+  },
+  "dimensions": ["region"],
+  "measures": ["vehicle_cnt"],
+  "filters": ["environment"],
+  "selector_bindings": [
+    {
+      "param": "environment",
+      "field": "environment",
+      "target_widget_id": "region_map",
+      "default": "all"
+    }
+  ],
+  "native_metadata": {
+    "title": "Vehicles By Region",
+    "hint": "Native map uses validated geopoint field and vehicle count measure.",
+    "hideTitle": false,
+    "enableHint": true
+  },
+  "style_theme": {
+    "palette": "semantic_neutral_first",
+    "map_layer": "symbols",
+    "color_strategy": "single_sequential_scale_with_accessible_contrast"
+  },
+  "sorting": {
+    "default": "measure_descending_in_tooltip_lists"
+  },
+  "labels": {
+    "show": "auto_for_focus_points",
+    "collision_policy": "native"
+  },
+  "legend": {
+    "show": true,
+    "position": "right",
+    "title": "Vehicle count"
+  },
+  "tooltip": {
+    "fields": ["region", "vehicle_cnt", "environment"],
+    "show_source_freshness": true
+  }
+}

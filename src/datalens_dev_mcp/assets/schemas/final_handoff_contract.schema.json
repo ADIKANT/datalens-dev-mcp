@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "datalens.final-handoff.delta-v6",
+  "title": "Final Handoff Contract",
+  "type": "object",
+  "required": ["status", "dashboard_id", "changed_objects", "verification"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "status": {"enum": ["done", "runtime_not_verified", "blocked", "rolled_back"]},
+    "dashboard_id": {"type": "string"},
+    "workbook_id": {"type": "string"},
+    "changed_objects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["object_id", "object_type"],
+        "properties": {
+          "object_id": {"type": "string"},
+          "object_type": {"type": "string"},
+          "saved_rev": {"type": "string"},
+          "published_rev": {"type": "string"}
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": ["saved_readback", "published_readback", "runtime_gate"],
+      "properties": {
+        "saved_readback": {"type": "string"},
+        "published_readback": {"type": "string"},
+        "runtime_gate": {"type": "string"},
+        "source_availability_matrix": {"type": "string"},
+        "cleanup_report": {"type": "string"}
+      }
+    },
+    "limitations": {"type": "array", "items": {"type": "string"}}
+  }
+}

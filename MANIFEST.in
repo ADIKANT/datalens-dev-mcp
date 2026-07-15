@@ -1,0 +1,35 @@
+include README.md
+include README_ru.md
+include CHANGELOG.md
+include CODE_OF_CONDUCT.md
+include CONTRIBUTING.md
+include LICENSE
+include NOTICE
+include SECURITY.md
+include SUPPORT.md
+include THIRD_PARTY_NOTICES.md
+recursive-include LICENSES *.txt
+recursive-include src/datalens_dev_mcp *.py *.json *.jsonl *.js *.md
+
+prune .metadata-fetch
+prune artifacts
+prune build
+prune dist
+prune docs
+prune examples
+prune materials
+prune memory-bank
+prune schemas
+prune scripts
+prune templates
+prune tests
+
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude .DS_Store
+global-exclude __MACOSX
+global-exclude *.env
+exclude .gitignore
+exclude AGENTS.md
+exclude datalens-dev-mcp-codex-prompts.md
+exclude datalens-dev-mcp-roadmap.md

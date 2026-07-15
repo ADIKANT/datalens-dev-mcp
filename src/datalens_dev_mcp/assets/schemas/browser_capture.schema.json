@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "datalens.browser_capture.schema.json",
+  "title": "Machine-readable DataLens browser capture",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "status",
+    "captured_at",
+    "target_url",
+    "tab_id",
+    "branch",
+    "object_revisions",
+    "changed_object_ids",
+    "checked_selectors",
+    "selector_interaction",
+    "scroll_check",
+    "visible_widget_titles",
+    "console_messages",
+    "dom_error_texts",
+    "console_error_count",
+    "image_artifact"
+  ],
+  "properties": {
+    "schema_version": {"const": "datalens.browser_capture.v1"},
+    "status": {"const": "passed"},
+    "captured_at": {"type": "string", "format": "date-time"},
+    "target_url": {"type": "string", "format": "uri", "minLength": 1},
+    "tab_id": {"type": "string", "minLength": 1},
+    "branch": {"enum": ["saved", "published"]},
+    "revision_id": {"type": "string", "minLength": 1},
+    "object_revisions": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"type": "string", "minLength": 1}
+    },
+    "changed_object_ids": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "checked_selectors": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/checkedSelector"}
+    },
+    "selector_interaction": {"$ref": "#/$defs/selectorInteraction"},
+    "scroll_check": {"$ref": "#/$defs/scrollCheck"},
+    "visible_widget_titles": {"type": "array", "items": {"type": "string"}},
+    "body_text_excerpt": {"type": "string"},
+    "console_messages": {"type": "array", "items": {"type": "string"}},
+    "dom_error_texts": {"type": "array", "items": {"type": "string"}},
+    "marker_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+    "console_error_count": {"type": "integer", "minimum": 0},
+    "image_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    }
+  },
+  "$defs": {
+    "scopeObjectIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "checkedSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selector_id", "interaction", "status", "affected_object_ids"],
+      "properties": {
+        "selector_id": {"type": "string", "minLength": 1},
+        "interaction": {"type": "string", "minLength": 1},
+        "status": {"const": "passed"},
+        "affected_object_ids": {"$ref": "#/$defs/scopeObjectIds"},
+        "selected_value": {}
+      }
+    },
+    "selectorInteraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "scope_object_ids"],
+      "properties": {
+        "status": {"enum": ["passed", "not_applicable"]},
+        "scope_object_ids": {"$ref": "#/$defs/scopeObjectIds"},
+        "reason": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "detail"],
+          "properties": {
+            "code": {
+              "enum": [
+                "no_selectors_in_scope",
+                "selectors_not_affected_by_change",
+                "target_is_non_interactive"
+              ]
+            },
+            "detail": {"type": "string", "minLength": 1}
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "not_applicable"}}},
+          "then": {"required": ["reason"]}
+        }
+      ]
+    },
+    "scrollCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "scope_object_ids", "document_height", "viewport_height"],
+      "properties": {
+        "status": {"enum": ["passed", "not_applicable"]},
+        "scope_object_ids": {"$ref": "#/$defs/scopeObjectIds"},
+        "document_height": {"type": "number", "exclusiveMinimum": 0},
+        "viewport_height": {"type": "number", "exclusiveMinimum": 0},
+        "start_scroll_y": {"type": "number", "minimum": 0},
+        "end_scroll_y": {"type": "number", "minimum": 0},
+        "bottom_reached": {"type": "boolean"},
+        "reason": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "detail"],
+          "properties": {
+            "code": {"const": "content_fits_viewport"},
+            "detail": {"type": "string", "minLength": 1}
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "passed"}}},
+          "then": {
+            "required": ["start_scroll_y", "end_scroll_y", "bottom_reached"],
+            "properties": {"bottom_reached": {"const": true}}
+          }
+        },
+        {
+          "if": {"properties": {"status": {"const": "not_applicable"}}},
+          "then": {"required": ["reason"]}
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "selector_interaction": {
+            "properties": {"status": {"const": "passed"}}
+          }
+        }
+      },
+      "then": {"properties": {"checked_selectors": {"minItems": 1}}}
+    },
+    {
+      "if": {
+        "properties": {
+          "selector_interaction": {
+            "properties": {"status": {"const": "not_applicable"}}
+          }
+        }
+      },
+      "then": {"properties": {"checked_selectors": {"maxItems": 0}}}
+    }
+  ]
+}

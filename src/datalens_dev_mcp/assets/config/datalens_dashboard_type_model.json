@@ -1,0 +1,444 @@
+{
+  "schema_version": "2026-07-15.dashboard_type_model.public.v1",
+  "source_trace": [
+    "project-authored requirements workflow",
+    "config/datalens_chart_param_matrix.json",
+    "docs/route-policy.md",
+    "https://yandex.cloud/ru/docs/datalens/"
+  ],
+  "map_canvas": {
+    "map_fields": [
+      "roles",
+      "objects_and_processes",
+      "dashboards_and_priorities",
+      "metrics_and_cuts",
+      "architecture",
+      "ownership_and_lifecycle"
+    ],
+    "canvas_fields": [
+      "purpose_and_audience",
+      "scenarios_and_decisions",
+      "data_architecture",
+      "visual_blocks",
+      "interactions_and_success_criteria",
+      "native_titles_and_hints"
+    ],
+    "workflow": [
+      "classify_dashboard_type",
+      "populate_dashboard_map_for_system_context",
+      "populate_dashboard_canvas_for_one_dashboard",
+      "choose_chart_families_from_param_matrix",
+      "persist_selectors_tabs_relations",
+      "generate_payload_plan_only_after_requirements_are_traceable"
+    ]
+  },
+  "fallback_questions": [
+    "Which audience and business process owns this dashboard?",
+    "Is the dashboard an overview, self-service view, object-management page, alert/subscription, analytical tool, experiment report, or project/status dashboard?",
+    "Which action should the user take after reading it?",
+    "Which metrics, cuts, source freshness, and data quality caveats are accepted?",
+    "Which selectors, object relations, and navigation targets must be preserved?"
+  ],
+  "operational_lifecycle_contract": {
+    "trigger_dashboard_types": ["self_service"],
+    "trigger_keywords": [
+      "long-lived",
+      "permanent",
+      "production dashboard",
+      "system dashboard",
+      "operational dashboard",
+      "daily use",
+      "usage analytics",
+      "self-service",
+      "self service",
+      "долгоживущий",
+      "постоянный дашборд",
+      "продуктивный дашборд",
+      "ежедневное использование",
+      "аналитика использования"
+    ],
+    "fields": [
+      "product_owner",
+      "support_and_feedback_channel",
+      "usage_analytics_mode",
+      "adoption_metric",
+      "review_cadence",
+      "performance_and_error_thresholds",
+      "data_freshness_slo",
+      "promotion_deprecation_and_retirement_rule",
+      "feedback_and_documentation_links",
+      "last_review_date"
+    ],
+    "required_questions": [
+      "Who owns the dashboard product and the support or feedback channel?",
+      "Is Usage Analytics enabled, disabled, or privacy-limited for this dashboard?",
+      "Which adoption metric is reviewed, and on what cadence?",
+      "Which performance, error, and data-freshness thresholds trigger action?",
+      "What are the promotion, deprecation, and retirement rules?"
+    ],
+    "acceptance_checklist": [
+      "product_owner_and_support_channel_are_visible",
+      "usage_analytics_mode_is_declared",
+      "adoption_metric_and_review_cadence_are_declared",
+      "performance_error_and_freshness_thresholds_are_declared",
+      "promotion_deprecation_and_retirement_rule_is_declared",
+      "feedback_and_documentation_links_are_visible",
+      "last_review_date_is_visible"
+    ]
+  },
+  "conditional_ux_acceptance": [
+    {
+      "condition_id": "dense_table_or_export",
+      "keywords": ["self-service", "self service", "detail table", "registry", "export", "many fields", "multi-filter", "multiple filters", "реестр", "выгрузка", "детальная таблица", "много фильтров"],
+      "acceptance_checklist": [
+        "table_has_stable_sort_and_bounded_pagination",
+        "keyboard_focus_and_column_labels_are_tested",
+        "empty_loading_error_and_truncated_states_are_defined",
+        "multi_filter_reset_is_available",
+        "active_filter_and_cross_filter_state_are_visible",
+        "limitations_and_errors_are_readable"
+      ]
+    },
+    {
+      "condition_id": "mobile_or_touch",
+      "keywords": ["mobile", "tablet", "touch", "phone", "мобиль", "планшет", "тач"],
+      "acceptance_checklist": [
+        "responsive_breakpoints_are_tested",
+        "touch_targets_and_scroll_behavior_are_usable"
+      ]
+    },
+    {
+      "condition_id": "status_alert_or_conflict",
+      "keywords": ["status", "alert", "threshold", "conflict", "severity", "статус", "алерт", "порог", "конфликт"],
+      "acceptance_checklist": [
+        "state_and_severity_have_noncolor_evidence",
+        "owner_and_next_action_are_visible",
+        "owner_support_and_methodology_links_are_visible",
+        "navigation_targets_are_safe_and_declared"
+      ]
+    },
+    {
+      "condition_id": "slow_or_external_source",
+      "keywords": ["api", "external source", "slow", "latency", "внешний источник", "медленный", "задержка"],
+      "acceptance_checklist": [
+        "loading_timeout_retry_and_stale_data_states_are_defined",
+        "source_freshness_is_visible",
+        "last_refresh_is_visible",
+        "limitations_and_errors_are_readable"
+      ]
+    }
+  ],
+  "dashboard_types": {
+    "overview": {
+      "selection_keywords": [
+        "overview",
+        "summary",
+        "executive",
+        "monitor",
+        "health",
+        "state",
+        "hub",
+        "first screen"
+      ],
+      "selection_reason": "Use when leaders or process owners need compact business state and a clear next place to inspect.",
+      "audience": "executives, process owners, and managers who need a fast status read",
+      "job_to_be_done": "See the current state, identify the largest exception or opportunity, and navigate to the right detail page.",
+      "required_inputs_questions": [
+        "Which five to seven primary metrics define business state?",
+        "Which period, explicit comparator if any, and source freshness must be visible?",
+        "Which detail dashboards or object pages are linked from this hub?",
+        "Which global selectors are safe without hiding required context?"
+      ],
+      "recommended_layout": "one screen or compact tab: KPI row, one trend, one ranked comparison, optional map only when geography is part of the decision, then navigation links",
+      "recommended_chart_families": [
+        "kpi_value_sparkline",
+        "line_chart",
+        "horizontal_bar",
+        "native_map_geo_widget",
+        "table_node"
+      ],
+      "selector_filter_behavior": "few global filters with visible defaults and reset; avoid selector-heavy exploration",
+      "navigation_relations": "hub links to self-service, object-management, or alert pages; selectors target only declared charts",
+      "expected_interactivity": "tooltips for metric definitions, drill links to detail, optional cross-filtering only when relation contract is explicit",
+      "anti_patterns": [
+        "too many primary metrics",
+        "filter-heavy exploration on the overview",
+        "hidden drill path",
+        "decorative KPI cards without action"
+      ],
+      "acceptance_checklist": [
+        "no_more_than_5_to_7_primary_metrics",
+        "hub_navigation_is_defined",
+        "business_state_and_action_are_clear",
+        "native_titles_and_hints_are_used"
+      ]
+    },
+    "self_service": {
+      "selection_keywords": [
+        "self-service",
+        "self service",
+        "explore",
+        "filter",
+        "filters",
+        "export",
+        "detail table",
+        "many questions",
+        "slice"
+      ],
+      "selection_reason": "Use when validated users need to answer related questions without requesting new dashboard variants.",
+      "audience": "business users and analysts exploring validated data",
+      "job_to_be_done": "Slice trusted data, inspect exact values, and reuse the same dashboard for many related questions.",
+      "required_inputs_questions": [
+        "Which fields and metrics are approved for self-service?",
+        "Which filters need defaults, reset behavior, and dependencies?",
+        "What detail table or export path is expected?",
+        "Which data quality caveats and freshness notes must stay visible?"
+      ],
+      "recommended_layout": "selector band or side panel, summary strip, comparison/trend blocks, detail table with stable sort and source notes",
+      "recommended_chart_families": [
+        "single_select_dropdown",
+        "multi_select_dropdown",
+        "date_range_selector",
+        "table_node",
+        "horizontal_bar",
+        "line_chart"
+      ],
+      "selector_filter_behavior": "rich filters with defaults, reset, dependencies, and documented affected widgets",
+      "navigation_relations": "selectors drive declared chart/table targets; detail rows can link to object pages",
+      "expected_interactivity": "filtering, sorting, table pagination, tooltips, and optional row-to-detail navigation",
+      "anti_patterns": [
+        "no reset or default states",
+        "unbounded fields",
+        "missing metric/source definitions",
+        "selectors that silently affect unrelated widgets"
+      ],
+      "acceptance_checklist": [
+        "filters_have_defaults_and_reset",
+        "detail_table_or_export_path_is_clear",
+        "users_can_answer_related_questions_without_new_dashboard",
+        "data_quality_caveats_are_visible"
+      ]
+    },
+    "object_management": {
+      "selection_keywords": [
+        "object",
+        "lifecycle",
+        "status",
+        "queue",
+        "registry",
+        "manage",
+        "owner action",
+        "reason changed"
+      ],
+      "selection_reason": "Use when the dashboard is a working page for managing entities, statuses, owners, and reasons.",
+      "audience": "operators and managers responsible for object lifecycle",
+      "job_to_be_done": "Find objects needing action, understand why status changed, and move to the right owner or detail.",
+      "required_inputs_questions": [
+        "Which business object and lifecycle states are in scope?",
+        "Which reasons, owners, and next actions must be visible?",
+        "Which object identifiers and relations are needed for navigation?",
+        "Which status freshness and source reliability rules apply?"
+      ],
+      "recommended_layout": "status summary, action queue table, reason breakdown, lifecycle trend, object-detail navigation",
+      "recommended_chart_families": [
+        "table_node",
+        "kpi_value_delta",
+        "horizontal_bar",
+        "grouped_bar",
+        "line_chart"
+      ],
+      "selector_filter_behavior": "object/status/owner filters with relation targets and no hidden default that removes urgent items",
+      "navigation_relations": "overview-to-object and queue-to-detail links are mandatory; selector targets are explicit",
+      "expected_interactivity": "sorting by urgency, filtering by owner/status, row links to object detail, tooltips for state definitions",
+      "anti_patterns": [
+        "overview-only summary without reasons",
+        "no owner or next action",
+        "status colors without definitions",
+        "missing object identifiers"
+      ],
+      "acceptance_checklist": [
+        "object_status_and_reason_are_visible",
+        "overview_to_object_navigation_is_modeled",
+        "detail_table_supports_repeated_action",
+        "owners_and_next_actions_are_visible"
+      ]
+    },
+    "alerts_mailing": {
+      "selection_keywords": [
+        "alert",
+        "alerts",
+        "subscription",
+        "mailing",
+        "threshold",
+        "exception",
+        "notify",
+        "breach"
+      ],
+      "selection_reason": "Use when the dashboard must surface exceptions for action, often through a subscription or compact message.",
+      "audience": "operators and accountable owners who need exception visibility",
+      "job_to_be_done": "Notice threshold breaches quickly, identify the owner, and take the next action.",
+      "required_inputs_questions": [
+        "Which thresholds and severities are accepted?",
+        "Who owns each exception and what action is expected?",
+        "Which subscription cadence and payload length are usable?",
+        "Which false-positive or data freshness caveats must be shown?"
+      ],
+      "recommended_layout": "compact KPI/threshold strip, exception table, owner/action block, subscription-safe summary",
+      "recommended_chart_families": [
+        "kpi_value_delta",
+        "bullet_assignees",
+        "heatmap",
+        "table_node"
+      ],
+      "selector_filter_behavior": "minimal filters with safe defaults; subscriptions should not require manual filter setup",
+      "navigation_relations": "exception rows link to owning process or object detail; alert source links to methodology",
+      "expected_interactivity": "threshold tooltip, owner/action link, optional severity filter",
+      "anti_patterns": [
+        "decorative alerts",
+        "thresholds without owner/action",
+        "too many filters for a subscription",
+        "color-only severity"
+      ],
+      "acceptance_checklist": [
+        "thresholds_are_named",
+        "owner_or_next_action_is_visible",
+        "subscription_payload_is_short",
+        "severity_has_noncolor_evidence"
+      ]
+    },
+    "analytical_tool": {
+      "selection_keywords": [
+        "analytical tool",
+        "analysis",
+        "analyze",
+        "diagnose",
+        "correlation",
+        "distribution",
+        "hypothesis search",
+        "deep dive"
+      ],
+      "selection_reason": "Use when expert users need a method-driven workspace for known analytical questions.",
+      "audience": "analysts and expert business users",
+      "job_to_be_done": "Explore a bounded question space, compare hypotheses, and inspect supporting detail.",
+      "required_inputs_questions": [
+        "Which analytical method or question space is allowed?",
+        "Which filters are mandatory and which can be exploratory?",
+        "Which metric definitions and caveats must appear near the method?",
+        "Which outputs become decisions versus investigation notes?"
+      ],
+      "recommended_layout": "method note, filter workspace, primary relationship/distribution/trend visual, supporting table",
+      "recommended_chart_families": [
+        "line_chart",
+        "horizontal_bar",
+        "scatter",
+        "histogram",
+        "box_plot",
+        "table_node",
+        "md_methodology_block"
+      ],
+      "selector_filter_behavior": "rich filters with reset and visible active state; avoid filters that invalidate the method",
+      "navigation_relations": "method notes link to sources; selected rows or points can navigate to detail when declared",
+      "expected_interactivity": "filtering, hover detail, comparison switching, drill to supporting detail",
+      "anti_patterns": [
+        "pretending exploration is an overview",
+        "missing method notes",
+        "unbounded free exploration",
+        "visual complexity without a defined question"
+      ],
+      "acceptance_checklist": [
+        "question_space_is_declared",
+        "filters_do_not_hide_required_context",
+        "method_notes_are_visible",
+        "detail_supports_the_primary_analysis"
+      ]
+    },
+    "experiment_report": {
+      "selection_keywords": [
+        "experiment",
+        "a/b",
+        "ab test",
+        "hypothesis",
+        "variant",
+        "cohort",
+        "rollout",
+        "significance"
+      ],
+      "selection_reason": "Use when stakeholders must decide whether to continue, stop, or roll out an experiment.",
+      "audience": "product owners, analysts, and experiment stakeholders",
+      "job_to_be_done": "Compare hypothesis, cohorts, results, risks, and decision in one narrative report.",
+      "required_inputs_questions": [
+        "What is the hypothesis and decision deadline?",
+        "Which cohorts, variants, metrics, and guardrails are accepted?",
+        "What baseline, period, and significance or business threshold is meaningful?",
+        "What rollout, stop, or follow-up action is expected?"
+      ],
+      "recommended_layout": "narrative canvas: hypothesis, cohorts, KPI deltas, trend context, metric table, final decision block",
+      "recommended_chart_families": [
+        "kpi_value_delta",
+        "line_chart",
+        "grouped_bar",
+        "table_node",
+        "md_methodology_block"
+      ],
+      "selector_filter_behavior": "cohort, variant, and period filters only when they preserve the experiment contract",
+      "navigation_relations": "methodology and source notes link to detail; final decision links to owner/action",
+      "expected_interactivity": "cohort/period filtering, metric tooltip definitions, drill to detailed metric table",
+      "anti_patterns": [
+        "color without decision semantics",
+        "missing hypothesis",
+        "missing baseline or cohort definition",
+        "hiding negative guardrail metrics"
+      ],
+      "acceptance_checklist": [
+        "hypothesis_and_decision_are_visible",
+        "statistical_or_business_significance_is_explained",
+        "result_color_is_semantic",
+        "guardrail_metrics_are_visible"
+      ]
+    },
+    "project_ad_hoc": {
+      "selection_keywords": [
+        "project",
+        "status dashboard",
+        "temporary",
+        "milestone",
+        "deadline",
+        "roadmap",
+        "delivery",
+        "progress"
+      ],
+      "selection_reason": "Use when a bounded project or temporary initiative needs status, risks, owners, and expiry.",
+      "audience": "project stakeholders, owners, and temporary working groups",
+      "job_to_be_done": "Track bounded work, risks, blockers, decisions, and next actions until the dashboard expires or becomes permanent.",
+      "required_inputs_questions": [
+        "Who owns the project/status dashboard and when does it expire?",
+        "Which milestones, risks, blockers, and actions are tracked?",
+        "Which metrics distinguish progress from activity?",
+        "Which open questions must stay visible?"
+      ],
+      "recommended_layout": "bounded mixed layout: status strip, milestone trend, risk/action table, owner/open-question block",
+      "recommended_chart_families": [
+        "kpi_value_delta",
+        "line_chart",
+        "horizontal_bar",
+        "table_node",
+        "md_dashboard_owner"
+      ],
+      "selector_filter_behavior": "only filters required for project scope; avoid general-purpose exploration",
+      "navigation_relations": "links to source plan, owner, issue/action registry, and replacement dashboard if promoted",
+      "expected_interactivity": "filter by owner/status, sort action table, link to source artifacts",
+      "anti_patterns": [
+        "no owner",
+        "no expiry",
+        "unclear scope",
+        "activity metrics without progress meaning"
+      ],
+      "acceptance_checklist": [
+        "owner_and_expiry_are_named",
+        "open_questions_are_visible",
+        "scope_is_bounded",
+        "actions_and_blockers_are_trackable"
+      ]
+    }
+  }
+}

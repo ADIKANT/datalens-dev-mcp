@@ -1,0 +1,23 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "moveFolderEntry",
+  "operation_id": "moveFolderEntry",
+  "path": "/rpc/moveFolderEntry",
+  "request_payload": {},
+  "request_schema_closure_hash": "046e36b26ab31c5946780d9644296352bcb9f376a7114ccdac1a8d40cf38bdc3",
+  "request_schema_closure_refs": [
+    "MoveEntryArgs"
+  ],
+  "request_schema_hash": "fff2d5de074abc35ce10c70ac180d26dd3f5b83e7c57760742ef2d3c9cfe0d7a",
+  "request_schema_ref": "MoveEntryArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "2182e1f6acb4c01e77b0d3a347dc2e3d6b42a31eaa741a511eb7620454f35ca6",
+  "response_schema_closure_refs": [
+    "MoveEntryResult",
+    "MoveEntryResultEntry"
+  ],
+  "response_schema_hash": "cbcf4f455facf5758298035aac10f3ff3a7445fbf9756759ad414b9c5271812d",
+  "response_schema_ref": "MoveEntryResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "readonly_reference"
+}

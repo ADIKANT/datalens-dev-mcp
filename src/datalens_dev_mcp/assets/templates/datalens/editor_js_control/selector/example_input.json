@@ -1,0 +1,4 @@
+{
+  "param": "status",
+  "options": ["all", "open", "done"]
+}

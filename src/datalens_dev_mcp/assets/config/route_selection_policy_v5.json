@@ -1,0 +1,157 @@
+{
+  "schema_version": "2026-07-13.route_selection_policy_v5",
+  "selection_order": [
+    "preserve_existing_saved_route",
+    "explicit_user_route",
+    "registered_capability_gap",
+    "wizard_first_default"
+  ],
+  "canonical_routes": {
+    "wizard_native": {
+      "create_method": "createWizardChart",
+      "read_method": "getWizardChart",
+      "update_method": "updateWizardChart",
+      "selection_origin": "wizard_first_default",
+      "seed_policy": "fresh_saved_same_visualization_then_canonical_template"
+    },
+    "editor_advanced": {
+      "create_method": "createEditorChart",
+      "read_method": "getEditorChart",
+      "update_method": "updateEditorChart",
+      "selection_origin": "registered_capability_gap"
+    },
+    "editor_table": {
+      "create_method": "createEditorChart",
+      "read_method": "getEditorChart",
+      "update_method": "updateEditorChart",
+      "selection_origin": "specialized_editor_route"
+    },
+    "editor_markdown": {
+      "create_method": "createEditorChart",
+      "read_method": "getEditorChart",
+      "update_method": "updateEditorChart",
+      "selection_origin": "specialized_editor_route"
+    },
+    "editor_js_control": {
+      "create_method": "createEditorChart",
+      "read_method": "getEditorChart",
+      "update_method": "updateEditorChart",
+      "selection_origin": "specialized_editor_route"
+    },
+    "ql_explicit": {
+      "create_method": "createQLChart",
+      "read_method": "getQLChart",
+      "update_method": "updateQLChart",
+      "selection_origin": "explicit_user_request",
+      "payload_policy": "explicit_payload_or_fresh_saved_ql_seed"
+    }
+  },
+  "compatibility_aliases": {
+    "wizard_map_native": {
+      "canonical_route": "wizard_native",
+      "visualization_id": "geolayer"
+    }
+  },
+  "wizard_visualizations": {
+    "metric": {
+      "semantic_families": ["kpi_value_only", "kpi_value_delta"],
+      "required_roles": ["measures"],
+      "optional_roles": ["colors"]
+    },
+    "flatTable": {
+      "semantic_families": ["table_node", "flat_table"],
+      "required_roles": ["flat-table-columns"],
+      "optional_roles": []
+    },
+    "pivotTable": {
+      "semantic_families": ["pivot_table", "pivot_table_node"],
+      "required_roles": ["pivot-table-columns", "rows", "measures"],
+      "optional_roles": []
+    },
+    "line": {
+      "semantic_families": ["line_chart", "multiline_chart"],
+      "required_roles": ["x"],
+      "optional_roles": ["y", "y2"]
+    },
+    "area": {
+      "semantic_families": ["area_completion"],
+      "required_roles": ["x", "y"],
+      "optional_roles": []
+    },
+    "area100p": {
+      "semantic_families": ["area_100p"],
+      "required_roles": ["x", "y"],
+      "optional_roles": []
+    },
+    "column": {
+      "semantic_families": ["vertical_bar_time_bucket"],
+      "required_roles": ["x", "y"],
+      "optional_roles": []
+    },
+    "column100p": {
+      "semantic_families": ["stacked_100"],
+      "required_roles": ["x", "y"],
+      "optional_roles": []
+    },
+    "bar": {
+      "semantic_families": ["horizontal_bar", "grouped_bar"],
+      "required_roles": ["y", "x"],
+      "optional_roles": []
+    },
+    "bar100p": {
+      "semantic_families": ["horizontal_stacked_100"],
+      "required_roles": ["y", "x"],
+      "optional_roles": []
+    },
+    "combined-chart": {
+      "semantic_families": ["combo_time_series_combo"],
+      "required_roles": ["x"],
+      "optional_roles": ["y", "y2"]
+    },
+    "pie": {
+      "semantic_families": ["pie"],
+      "required_roles": ["dimensions", "measures"],
+      "optional_roles": ["colors"]
+    },
+    "donut": {
+      "semantic_families": ["donut"],
+      "required_roles": ["dimensions", "measures"],
+      "optional_roles": ["colors"]
+    },
+    "scatter": {
+      "semantic_families": ["scatter", "bubble"],
+      "required_roles": ["x", "y"],
+      "optional_roles": ["points", "size"]
+    },
+    "treemap": {
+      "semantic_families": ["treemap"],
+      "required_roles": ["dimensions", "measures"],
+      "optional_roles": []
+    },
+    "geolayer": {
+      "semantic_families": ["native_map_geo_widget"],
+      "required_roles": ["geo"],
+      "optional_roles": ["measures", "colors", "labels"]
+    }
+  },
+  "js_capability_gaps": {
+    "box_plot": "wizard_has_no_box_plot_semantics",
+    "bullet_assignees": "wizard_has_no_bullet_chart_semantics",
+    "funnel_snapshot": "wizard_has_no_funnel_semantics",
+    "heatmap": "wizard_has_no_heatmap_matrix_semantics",
+    "histogram": "wizard_has_no_histogram_semantics",
+    "kpi_value_delta_sparkline": "composite_kpi_with_sparkline",
+    "kpi_value_sparkline": "composite_kpi_with_sparkline",
+    "resource_schedule_exception": "custom_resource_schedule_interaction",
+    "sankey_status_flow": "wizard_has_no_sankey_semantics",
+    "table_pivot_js": "grouped_or_pinned_table_requires_custom_semantics",
+    "waterfall": "wizard_has_no_waterfall_semantics"
+  },
+  "closed_routes": [
+    "d3_node",
+    "regular_editor_chart",
+    "gravity_ui_charts",
+    "delete_move_permission_writes",
+    "automatic_ql_selection"
+  ]
+}

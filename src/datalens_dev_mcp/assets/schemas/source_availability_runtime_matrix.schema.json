@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "datalens.delta_v8.source_availability_runtime_matrix.schema.json",
+  "title": "DataLens Delta v8 Source Availability Runtime Matrix",
+  "type": "object",
+  "required": ["schema_version", "sources", "conflicts"],
+  "properties": {
+    "schema_version": {"const": "datalens.delta_v8.source_availability_runtime_matrix.v1"},
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source_key", "environment", "expected_status", "consumers"],
+        "properties": {
+          "source_key": {"type": "string"},
+          "environment": {"type": "string"},
+          "physical_tables": {"type": "array", "items": {"type": "string"}},
+          "static_available": {"type": "boolean"},
+          "runtime_available": {"type": "boolean"},
+          "effective_available": {"type": "boolean"},
+          "row_count": {"type": ["integer", "null"]},
+          "expected_status": {"enum": ["OK", "NO_DATA", "NO_TABLE", "ERROR", "UNKNOWN"]},
+          "consumers": {"type": "object"},
+          "notes": {"type": "array", "items": {"type": "string"}}
+        },
+        "additionalProperties": true
+      }
+    },
+    "conflicts": {"type": "array", "items": {"type": "object"}},
+    "blocked_reasons": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

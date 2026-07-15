@@ -1,0 +1,58 @@
+{
+  "algorithmic_bound": "O(n)",
+  "aliases": [
+    "chart chart filtration",
+    "cross filter",
+    "cross-filtering",
+    "dashboard relation",
+    "кросс фильтр"
+  ],
+  "cardinality_limits": {},
+  "executable_bundle": {
+    "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+    "bundle_files": [
+      "expected_output.json",
+      "fixture_input.json",
+      "meta.json",
+      "params.js",
+      "prepare.js",
+      "sources.js"
+    ],
+    "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+    "status": "executable_fixture_tested"
+  },
+  "implementation_status": "implemented_tested",
+  "local_policy_status": "allowed",
+  "native_table_contract": false,
+  "observed_runtime_overrides": [],
+  "official_status": "documented",
+  "output_contract": [
+    "selector_impact_trace",
+    "source_target_relation"
+  ],
+  "recipe_id": "cross_filter",
+  "required_tabs": [
+    "Dashboard links",
+    "Widget plan"
+  ],
+  "route": "dashboard_relation_operation",
+  "source_contract": "dashboard_relation",
+  "source_traces": [
+    {
+      "anchor": "кросс-фильтрация",
+      "chunk_id": "datalens/charts/editor/cross-filtration.md#кросс-фильтрация#1",
+      "mirror_path": "datalens/charts/editor/cross-filtration.md",
+      "sha256": "449aab12145bd97f000f5f626e3cb1c113790aa3ee49d833b7d9beb469146174",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/cross-filtration"
+    }
+  ],
+  "title": "Cross-filtering",
+  "uses_generate_html": false,
+  "validation_checklist": [
+    "source_trace_present",
+    "required_tabs_present",
+    "runtime_contract_valid",
+    "safe_apply_plan_only_until_approved"
+  ],
+  "widget_contract": "relation"
+}

@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "required": ["title", "metric", "current_value"],
+  "properties": {
+    "title": {"type": "string"},
+    "metric": {"type": "string"},
+    "current_value": {"type": "number"},
+    "comparator_value": {"type": "number"},
+    "comparator_label": {"type": "string"},
+    "comparison_field_or_baseline_explicit": {"type": "string"},
+    "sparkline": {"type": "array", "items": {"type": "number"}},
+    "hint": {"type": "string"}
+  }
+}

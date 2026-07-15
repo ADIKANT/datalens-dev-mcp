@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DataLens Source Performance Budget Evidence",
+  "type": "object",
+  "required": ["schema_version", "sources"],
+  "properties": {
+    "schema_version": {"const": "datalens.source-performance-budget.v1"},
+    "dashboard_id": {"type": "string"},
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source_key", "source_budget_status"],
+        "properties": {
+          "source_key": {"type": "string"},
+          "table": {"type": "string"},
+          "default_window": {"type": "object"},
+          "physical_rows_before": {"type": ["integer", "null"]},
+          "business_grain_rows_after": {"type": ["integer", "null"]},
+          "fanout_ratio": {"type": ["number", "null"]},
+          "source_budget_status": {"enum": ["pass", "warn", "fail", "unknown"]},
+          "timeout_evidence_paths": {"type": "array", "items": {"type": "string"}},
+          "fix_strategy": {"type": "string"}
+        }
+      }
+    }
+  }
+}

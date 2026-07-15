@@ -1,0 +1,25 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getEntries",
+  "operation_id": "getEntries",
+  "path": "/rpc/getEntries",
+  "request_payload": {},
+  "request_schema_closure_hash": "9c93d8620a2253d5328de06a27b56ffe94da807d3a02c08ef54d10245b99015e",
+  "request_schema_closure_refs": [
+    "GetEntriesV2Args"
+  ],
+  "request_schema_hash": "7a5f762552dcdc33514b28d2808113832ccc901caa2be4abe953cbaad1175ad6",
+  "request_schema_ref": "GetEntriesV2Args",
+  "response_payload": {},
+  "response_schema_closure_hash": "43e5dafb68034513cff7c9d86ba6fa3953dadf437a337cff674937061284ba45",
+  "response_schema_closure_refs": [
+    "EntryPermissions",
+    "GetEntriesEntry",
+    "GetEntriesLockedEntry",
+    "GetEntriesV2Result"
+  ],
+  "response_schema_hash": "c31fafe83fb456c478b13429d8b5669f0de068de1b4da30f02d7d1950f1716e5",
+  "response_schema_ref": "GetEntriesV2Result",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

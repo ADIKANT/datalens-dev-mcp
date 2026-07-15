@@ -1,0 +1,51 @@
+{
+  "schema_version": "2026-07-01.validation_readback_fixture.v1",
+  "method": "getWorkbookEntries",
+  "workbook_id": "workbook_fixture",
+  "captured_at": "2026-07-01T00:00:00Z",
+  "safe_reuse": true,
+  "reuse_policy": "Safe for offline validation only; do not use as live target evidence.",
+  "response": {
+    "page": 1,
+    "pageSize": 100,
+    "total": 6,
+    "entries": [
+      {
+        "entryId": "dashboard_fixture",
+        "scope": "dashboard",
+        "displayKey": "Fixture Dashboard",
+        "workbookId": "workbook_fixture"
+      },
+      {
+        "entryId": "chart_editor_fixture",
+        "scope": "editor_chart",
+        "displayKey": "Fixture Editor Chart",
+        "workbookId": "workbook_fixture"
+      },
+      {
+        "entryId": "chart_table_fixture",
+        "scope": "editor_table",
+        "displayKey": "Fixture Native Table",
+        "workbookId": "workbook_fixture"
+      },
+      {
+        "entryId": "chart_map_fixture",
+        "scope": "wizard_chart",
+        "displayKey": "Fixture Native Map",
+        "workbookId": "workbook_fixture"
+      },
+      {
+        "entryId": "dataset_fixture",
+        "scope": "dataset",
+        "displayKey": "Fixture Dataset",
+        "workbookId": "workbook_fixture"
+      },
+      {
+        "entryId": "connection_fixture",
+        "scope": "connection",
+        "displayKey": "Fixture Connection",
+        "workbookId": "workbook_fixture"
+      }
+    ]
+  }
+}

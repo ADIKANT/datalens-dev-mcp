@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "title": "Delta v7 Final Maintenance Handoff",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "status",
+    "target",
+    "proof"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "datalens.delta_v7.final_maintenance_handoff.v1"
+    },
+    "status": {
+      "enum": [
+        "done",
+        "runtime_not_verified",
+        "blocked",
+        "rolled_back"
+      ]
+    },
+    "target": {
+      "type": "object"
+    },
+    "changed_objects": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "proof": {
+      "type": "object",
+      "properties": {
+        "api_readback_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "runtime_gate_path": {
+          "type": "string"
+        },
+        "metadata_evidence_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cleanup_report_path": {
+          "type": "string"
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

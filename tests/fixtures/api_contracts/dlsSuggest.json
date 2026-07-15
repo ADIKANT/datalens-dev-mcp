@@ -1,0 +1,23 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "dlsSuggest",
+  "operation_id": "dlsSuggest",
+  "path": "/rpc/dlsSuggest",
+  "request_payload": {},
+  "request_schema_closure_hash": "e1875e5c862fc7ccdd60ac40c300668390f8339e9a7446e46aea51c702bfd229",
+  "request_schema_closure_refs": [
+    "DlsSuggestArgs"
+  ],
+  "request_schema_hash": "90b3a65a23cd9739956d77b3a9a6c37b12f2d0fcde2e09418c8d5dfb6d4ae82e",
+  "request_schema_ref": "DlsSuggestArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "8c05e7e937dea2a781a5b905d9ce83968fb4c29f53828cbd22b35e4127d28374",
+  "response_schema_closure_refs": [
+    "DlsPermissionUnit",
+    "DlsSuggestResult"
+  ],
+  "response_schema_hash": "22dd893637a70023e04a93d0736af2be02833497df4ddf96cc470b6b15e8854e",
+  "response_schema_ref": "DlsSuggestResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

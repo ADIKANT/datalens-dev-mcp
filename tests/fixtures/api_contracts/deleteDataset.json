@@ -1,0 +1,20 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "deleteDataset",
+  "operation_id": "deleteDataset",
+  "path": "/rpc/deleteDataset",
+  "request_payload": {},
+  "request_schema_closure_hash": "b48bbb96dfab0f22e75fa76f440c26a9a23ebc944625642f1e52b7e92ee335fb",
+  "request_schema_closure_refs": [
+    "DeleteDatasetRequest"
+  ],
+  "request_schema_hash": "7eff16d1a278552d6f08f58025843d9642212aa9e22fc295a0bb0a021db95d72",
+  "request_schema_ref": "DeleteDatasetRequest",
+  "response_payload": {},
+  "response_schema_closure_hash": "",
+  "response_schema_closure_refs": [],
+  "response_schema_hash": "",
+  "response_schema_ref": "",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "readonly_reference"
+}

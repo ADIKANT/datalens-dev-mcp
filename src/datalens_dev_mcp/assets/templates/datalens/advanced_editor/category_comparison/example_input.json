@@ -1,0 +1,9 @@
+{
+  "title": "Issues by Status",
+  "rows": [
+    {"label": "In Progress", "value": 42, "target": 40},
+    {"label": "Done", "value": 38, "target": 36},
+    {"label": "To Do", "value": 21, "target": 24}
+  ],
+  "hint": "Sorted category comparison."
+}

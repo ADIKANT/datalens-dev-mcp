@@ -1,0 +1,22 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "updateWorkbook",
+  "operation_id": "updateWorkbook",
+  "path": "/rpc/updateWorkbook",
+  "request_payload": {},
+  "request_schema_closure_hash": "5445e8010ffafc91168f8f2bcca783ade001925a81d54438cd230e5f79d8d9b2",
+  "request_schema_closure_refs": [
+    "UpdateWorkbookArgs"
+  ],
+  "request_schema_hash": "4a7afee8824a65de21af31c907c14aafb8b6811954e55f8c2e5543311f9aad28",
+  "request_schema_ref": "UpdateWorkbookArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "a085e8b69bc0dce61297fe2f38aa69a6d7abfd08d189104f48ac9931949a6c6b",
+  "response_schema_closure_refs": [
+    "Workbook"
+  ],
+  "response_schema_hash": "8f099f5f037788f0a379a766cabdd92335054fbaa02bbd48ee9ace40dd7f8bbf",
+  "response_schema_ref": "Workbook",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "guarded_plan_only"
+}

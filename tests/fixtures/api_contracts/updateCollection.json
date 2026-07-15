@@ -1,0 +1,22 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "updateCollection",
+  "operation_id": "updateCollection",
+  "path": "/rpc/updateCollection",
+  "request_payload": {},
+  "request_schema_closure_hash": "37cb2413638d2c802f27fd97605340be7f1ac54317922d905d9bbb2b6a39d3ee",
+  "request_schema_closure_refs": [
+    "UpdateCollectionArgs"
+  ],
+  "request_schema_hash": "5c33e99101e730c8137167b0957a6a5030748ac821166446fcb354387f307633",
+  "request_schema_ref": "UpdateCollectionArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "e6ee120eb05c95751e8af2a2bbba2f8f658eeeca4e34c7f246df51cf3ff5e1f4",
+  "response_schema_closure_refs": [
+    "Collection"
+  ],
+  "response_schema_hash": "4dd9be8897df54651e001c349aa6a03ff71f4ab5772d390a3a46eadfe044d907",
+  "response_schema_ref": "Collection",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "unsupported_explicit"
+}

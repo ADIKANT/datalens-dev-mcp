@@ -1,0 +1,23 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "batchListMembers",
+  "operation_id": "batchListMembers",
+  "path": "/rpc/batchListMembers",
+  "request_payload": {},
+  "request_schema_closure_hash": "a687fecd09659ca5ddc95870c4b1b0b0701ed4552aad71b885f9385bcb9a5b98",
+  "request_schema_closure_refs": [
+    "AccessExtBatchListMembersArgs"
+  ],
+  "request_schema_hash": "2b5fba68b1a03615f048b2eff599e9aaeadd74e35da0ff57dfe7cc887437459c",
+  "request_schema_ref": "AccessExtBatchListMembersArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "95b58d3e9b32157a58708395b2640c3de65f6abd1412b7a00e4a3401a5c9ee0f",
+  "response_schema_closure_refs": [
+    "AccessExtBatchListMembersResult",
+    "AccessExtSubjectClaims"
+  ],
+  "response_schema_hash": "d3b8c8073db47eb6b0409d80f1a5d0c3063456cdf2c7e68c09a3e751520ab0e4",
+  "response_schema_ref": "AccessExtBatchListMembersResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

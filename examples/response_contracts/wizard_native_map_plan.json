@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "schema_version": "2026-06-04.wizard_payload_plan.v2",
+  "template_name": "native_map",
+  "route": "wizard_native",
+  "visualization_id": "geolayer",
+  "chart_type": "symbol_map",
+  "method": "createWizardChart",
+  "source_kind": "canonical_template",
+  "live_verification": false,
+  "native_map_preserved": true,
+  "safe_apply_required": true,
+  "execute_now": false,
+  "geo_evidence": {
+    "status": "validated",
+    "kind": "lat_lon",
+    "fields": ["latitude", "longitude"]
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "schema_version": "2026-07-01.delivery_intent_state_machine.v2",
+  "states": [
+    "read_only",
+    "plan_only",
+    "save_only",
+    "save_then_publish",
+    "publish_from_saved",
+    "blocked"
+  ],
+  "task_intents": {
+    "read_only": ["review", "audit", "diagnose", "inspect", "unknown"],
+    "plan_only": ["plan", "dry_run"],
+    "delivery": ["implement", "fix", "enhance", "redesign", "update"]
+  },
+  "user_opt_out_overrides": ["draft", "save_only", "no_publish", "plan_only", "dry_run"],
+  "approval_sources": {
+    "sufficient_for_guarded_delivery": [
+      "current_user_request",
+      "goal_objective_file",
+      "codex_tool_approval",
+      "project_manifest_operator_approval",
+      "explicit_chat_approval",
+      "safe_apply_session_approval"
+    ],
+    "must_not_require": ["literal_chat_phrase_i_approve"]
+  },
+  "required_gates": {
+    "save_only": [
+      "target_lock",
+      "writes_enabled",
+      "save_enabled",
+      "safe_apply_session_approval",
+      "fresh_readback",
+      "revision_preservation",
+      "saved_readback"
+    ],
+    "save_then_publish": [
+      "target_lock",
+      "writes_enabled",
+      "save_enabled",
+      "publish_enabled",
+      "safe_apply_session_approval",
+      "fresh_readback",
+      "revision_preservation",
+      "saved_readback_fresh",
+      "published_readback"
+    ],
+    "publish_from_saved": [
+      "target_lock",
+      "writes_enabled",
+      "save_enabled",
+      "publish_enabled",
+      "safe_apply_session_approval",
+      "fresh_readback",
+      "revision_preservation",
+      "saved_readback_fresh",
+      "published_readback"
+    ]
+  },
+  "delivery_sequence": {
+    "save_then_publish": ["save", "saved_readback", "publish_from_saved", "published_readback"],
+    "publish_source": "fresh_saved_branch_readback"
+  },
+  "policy_text": "For live implementation, fix, or enhance requests with known target IDs, explicit write gates, approved safe apply, saved readback, and no draft/no-publish instruction, delivery proceeds through save, saved readback, publish from saved readback, and published readback."
+}

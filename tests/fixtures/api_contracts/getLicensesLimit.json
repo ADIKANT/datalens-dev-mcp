@@ -1,0 +1,21 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getLicensesLimit",
+  "operation_id": "getLicensesLimit",
+  "path": "/rpc/getLicensesLimit",
+  "request_payload": {},
+  "request_schema_closure_hash": "",
+  "request_schema_closure_refs": [],
+  "request_schema_hash": "",
+  "request_schema_ref": "",
+  "response_payload": {},
+  "response_schema_closure_hash": "874feab8781dcecd123130dadf5510a9253fc639365fac42d5e6e1fe38f15124",
+  "response_schema_closure_refs": [
+    "LicenseLimit",
+    "LicenseLimits"
+  ],
+  "response_schema_hash": "6ce17d16ac51992466513121028121173620ea39e8606bdefbeb96fcc2aa8f98",
+  "response_schema_ref": "LicenseLimits",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

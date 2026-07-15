@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/dashboard-brief.schema.json",
+  "title": "Dashboard brief",
+  "type": "object",
+  "required": ["schema_version", "dashboard_name", "requirements", "data_contract", "chart_decisions"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "dashboard_name": {"type": "string"},
+    "requirements": {"type": "array"},
+    "data_contract": {"type": "object"},
+    "chart_decisions": {"type": "array"}
+  },
+  "additionalProperties": true
+}

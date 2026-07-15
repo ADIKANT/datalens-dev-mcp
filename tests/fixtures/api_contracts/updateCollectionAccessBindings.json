@@ -1,0 +1,25 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "updateCollectionAccessBindings",
+  "operation_id": "updateCollectionAccessBindings",
+  "path": "/rpc/updateCollectionAccessBindings",
+  "request_payload": {},
+  "request_schema_closure_hash": "38c9ca2cd4ab1f790b7112ef0482e309abd652373896c87fa3cddd6ac2f40f17",
+  "request_schema_closure_refs": [
+    "USAccessBinding",
+    "USAccessBindingDelta",
+    "USAccessBindingSubject",
+    "UpdateCollectionAccessBindingsArgs"
+  ],
+  "request_schema_hash": "baa011848ae2ecd108e032f5a8ac4190bf61ad0cf1679c40eaa12d12f181fc53",
+  "request_schema_ref": "UpdateCollectionAccessBindingsArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "2154e92d561d016f8bbf5990016532ccd97b0296d3675a654ad7b8f319da591b",
+  "response_schema_closure_refs": [
+    "DatalensOperation"
+  ],
+  "response_schema_hash": "3daf6da12304432cfa8d4fb6283dcae2a089f5b47706f4fc152b6f61cc801e93",
+  "response_schema_ref": "DatalensOperation",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "guarded_plan_only"
+}

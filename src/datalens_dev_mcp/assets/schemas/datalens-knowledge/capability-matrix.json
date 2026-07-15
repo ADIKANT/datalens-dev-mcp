@@ -1,0 +1,272 @@
+{
+  "capabilities": [
+    {
+      "capability_id": "simple_sql_table",
+      "evidence_state": "executable_fixture_tested",
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "route": "editor_table",
+      "source_traces": [
+        {
+          "anchor": "создание-таблицы-на-основе-sql-запроса",
+          "chunk_id": "datalens/charts/editor/quickstart/from-database.md#создание-таблицы-на-основе-sql-запроса#1",
+          "mirror_path": "datalens/charts/editor/quickstart/from-database.md",
+          "sha256": "90b24ffcc96bbb17e30407b684881092f83cc98ee6830a9b275410b365182218",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/quickstart/from-database"
+        },
+        {
+          "anchor": "таблица",
+          "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+          "mirror_path": "datalens/charts/editor/widgets/table.md",
+          "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+        }
+      ],
+      "title": "Simple SQL table"
+    },
+    {
+      "capability_id": "dataset_table",
+      "evidence_state": "executable_fixture_tested",
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "route": "editor_table",
+      "source_traces": [
+        {
+          "anchor": "создание-таблицы-на-основе-датасета",
+          "chunk_id": "datalens/charts/editor/quickstart/from-dataset.md#создание-таблицы-на-основе-датасета#1",
+          "mirror_path": "datalens/charts/editor/quickstart/from-dataset.md",
+          "sha256": "7f7837d7e9de0bbd1835cda257e157fba5b0ed8eb88cea1cb80214cd56c6feff",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/quickstart/from-dataset"
+        },
+        {
+          "anchor": "таблица",
+          "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+          "mirror_path": "datalens/charts/editor/widgets/table.md",
+          "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+        }
+      ],
+      "title": "Dataset-backed table"
+    },
+    {
+      "capability_id": "api_connector_table",
+      "evidence_state": "executable_fixture_tested",
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "route": "editor_table",
+      "source_traces": [
+        {
+          "anchor": "создание-таблицы-через-api",
+          "chunk_id": "datalens/charts/editor/quickstart/from-api-connector.md#создание-таблицы-через-api#1",
+          "mirror_path": "datalens/charts/editor/quickstart/from-api-connector.md",
+          "sha256": "c048f755ee28b817778037bbeb02f81b7f9389db262375b3d55b6bb759495e25",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/quickstart/from-api-connector"
+        },
+        {
+          "anchor": "таблица",
+          "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+          "mirror_path": "datalens/charts/editor/widgets/table.md",
+          "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+        }
+      ],
+      "title": "API Connector table"
+    },
+    {
+      "capability_id": "rich_table",
+      "evidence_state": "executable_fixture_tested",
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "route": "editor_table",
+      "source_traces": [
+        {
+          "anchor": "таблица",
+          "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+          "mirror_path": "datalens/charts/editor/widgets/table.md",
+          "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+        }
+      ],
+      "title": "Rich table features"
+    },
+    {
+      "capability_id": "javascript_pivot",
+      "evidence_state": "executable_fixture_tested",
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "observed_runtime_overrides": [],
+      "official_status": "documented_composition",
+      "route": "editor_table",
+      "source_traces": [
+        {
+          "anchor": "таблица",
+          "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+          "mirror_path": "datalens/charts/editor/widgets/table.md",
+          "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+        },
+        {
+          "anchor": "сводная-таблица-_assets-datalens-pivot-table-svg-в-yandex-datalens",
+          "chunk_id": "datalens/visualization-ref/pivot-table-chart.md#сводная-таблица-_assets-datalens-pivot-table-svg-в-yandex-datalens#1",
+          "mirror_path": "datalens/visualization-ref/pivot-table-chart.md",
+          "sha256": "abd0f4d3c0353cf39fd7167d6f13afd7d0f659f24006893c71fcc2563be182e1",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/pivot-table-chart"
+        }
+      ],
+      "title": "JavaScript pivot table"
+    },
+    {
+      "capability_id": "advanced_custom_pivot",
+      "evidence_state": "executable_fixture_tested",
+      "implementation_status": "implemented_tested_with_policy_gate",
+      "local_policy_status": "allowed",
+      "observed_runtime_overrides": [],
+      "official_status": "documented_exception",
+      "route": "editor_advanced_exception",
+      "source_traces": [
+        {
+          "anchor": "advanced-чарт",
+          "chunk_id": "datalens/charts/editor/widgets/advanced.md#advanced-чарт#1",
+          "mirror_path": "datalens/charts/editor/widgets/advanced.md",
+          "sha256": "27f4997092afdc4dbf164553f1458e9810fc256ffca76f06c2c989257553b425",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/advanced"
+        },
+        {
+          "anchor": "таблица",
+          "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+          "mirror_path": "datalens/charts/editor/widgets/table.md",
+          "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+        }
+      ],
+      "title": "Advanced custom pivot exception"
+    },
+    {
+      "capability_id": "controls_cross_filter_notifications_links",
+      "evidence_state": "executable_fixture_tested",
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "route": "editor_js_control_and_relations",
+      "source_traces": [
+        {
+          "anchor": "селектор",
+          "chunk_id": "datalens/charts/editor/widgets/controls.md#селектор#1",
+          "mirror_path": "datalens/charts/editor/widgets/controls.md",
+          "sha256": "cdd0bb0610de016a826a8ff94db6a8a4bfab66966abb97c813a2397da455c5a9",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/controls"
+        },
+        {
+          "anchor": "кросс-фильтрация",
+          "chunk_id": "datalens/charts/editor/cross-filtration.md#кросс-фильтрация#1",
+          "mirror_path": "datalens/charts/editor/cross-filtration.md",
+          "sha256": "449aab12145bd97f000f5f626e3cb1c113790aa3ee49d833b7d9beb469146174",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/cross-filtration"
+        },
+        {
+          "anchor": "уведомления",
+          "chunk_id": "datalens/charts/editor/notifications.md#уведомления#1",
+          "mirror_path": "datalens/charts/editor/notifications.md",
+          "sha256": "d63252bdae279eaa095102dcc93c5dd684bb308c04df4ea6f472e4e8acd5ca02",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/notifications"
+        },
+        {
+          "anchor": "связи-чарта-в-дашбордах-и-отчетах",
+          "chunk_id": "datalens/charts/editor/links.md#связи-чарта-в-дашбордах-и-отчетах#1",
+          "mirror_path": "datalens/charts/editor/links.md",
+          "sha256": "5424d4fb13ce55822295dfaf80d6a465f948d16d1b9055c0616c4682dc95042b",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/links"
+        }
+      ],
+      "title": "Controls, cross-filter, notifications and links"
+    },
+    {
+      "capability_id": "gravity_ui_charts",
+      "evidence_state": "blocked_by_explicit_policy",
+      "implementation_status": "documented_reference_blocked_by_local_policy",
+      "local_policy_status": "blocked_by_route_policy",
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "route": "reference_only",
+      "source_traces": [
+        {
+          "anchor": "график-gravity-ui-charts",
+          "chunk_id": "datalens/charts/editor/widgets/gravity-ui.md#график-gravity-ui-charts#1",
+          "mirror_path": "datalens/charts/editor/widgets/gravity-ui.md",
+          "sha256": "08ce645dc21ce65d1c4ac41fb240476a9ac7ef747bc033864a610090a42315c6",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/gravity-ui"
+        }
+      ],
+      "title": "Gravity UI Charts widget"
+    },
+    {
+      "capability_id": "dataset_update",
+      "evidence_state": "executable_fixture_tested",
+      "implementation_status": "implemented_tested_guarded_plan",
+      "local_policy_status": "allowed",
+      "observed_runtime_overrides": [],
+      "official_status": "openapi_documented",
+      "route": "dl_plan_guarded_dataset_update",
+      "source_traces": [
+        {
+          "anchor": "datalens-api-get-dataset",
+          "chunk_id": "datalens/openapi-ref/getDataset.md#datalens-api-get-dataset#1",
+          "mirror_path": "datalens/openapi-ref/getDataset.md",
+          "sha256": "7cfe5721cd5839c90bbe3ed4b0a5af0e2e4eb48901610d53742475c3428de2f1",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getDataset"
+        },
+        {
+          "anchor": "datalens-api-validate-dataset",
+          "chunk_id": "datalens/openapi-ref/validateDataset.md#datalens-api-validate-dataset#1",
+          "mirror_path": "datalens/openapi-ref/validateDataset.md",
+          "sha256": "90fcd711fe75d593e3f82b8fad91c4ed4cbffc0e090a7332067f5f3f2bde987c",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/validateDataset"
+        },
+        {
+          "anchor": "datalens-api-update-dataset",
+          "chunk_id": "datalens/openapi-ref/updateDataset.md#datalens-api-update-dataset#1",
+          "mirror_path": "datalens/openapi-ref/updateDataset.md",
+          "sha256": "40da9b23677a558c2bc0f9d6f4fb31e12b21037f5f84e9580885a0adc9345c5c",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateDataset"
+        }
+      ],
+      "title": "Guarded dataset update envelope"
+    },
+    {
+      "capability_id": "api_version",
+      "evidence_state": "executable_fixture_tested",
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "observed_runtime_overrides": [],
+      "official_status": "openapi_documented",
+      "route": "dl_runtime_status",
+      "source_traces": [
+        {
+          "anchor": "index",
+          "chunk_id": "datalens/openapi-ref/index.md#index#1",
+          "mirror_path": "datalens/openapi-ref/index.md",
+          "sha256": "050b96a5b2f73f2a55949a4ff94aeb044fed3425fce5601a46cf6ef34896b38f",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/"
+        }
+      ],
+      "title": "Current API version selection"
+    }
+  ],
+  "schema_version": "2026-06-25.semantic_authoring.v2",
+  "tool_budget": {
+    "all_tool_count": 93,
+    "all_tools_list_bytes": 64984,
+    "default_tool_count": 38,
+    "default_tools_list_bytes": 32786,
+    "default_tools_list_chars": 32786
+  }
+}

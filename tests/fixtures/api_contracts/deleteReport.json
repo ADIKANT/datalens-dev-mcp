@@ -1,0 +1,22 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "deleteReport",
+  "operation_id": "deleteReport",
+  "path": "/rpc/deleteReport",
+  "request_payload": {},
+  "request_schema_closure_hash": "07f4c1a32a062a4eed93a2a43717defeb136f3f1aa15050dedb531ec6f907956",
+  "request_schema_closure_refs": [
+    "DeleteReportArgs"
+  ],
+  "request_schema_hash": "994c7997130a7c5af7d589d6de4cbacc37d2aa8864c69080f33bd211c9f352e9",
+  "request_schema_ref": "DeleteReportArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "e43eca90d961333e573d6f844cce7cb40002e25030b337c94a8337523c4645dd",
+  "response_schema_closure_refs": [
+    "DeleteReportResponse"
+  ],
+  "response_schema_hash": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+  "response_schema_ref": "DeleteReportResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "readonly_reference"
+}

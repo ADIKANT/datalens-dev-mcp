@@ -1,0 +1,401 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["project_name", "workbook_id", "dashboard_ids", "workflows"],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "project_name": {
+      "type": "string"
+    },
+    "workbook_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dashboard_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "workbook_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dashboard_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "required_env_names": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/env_name"
+      }
+    },
+    "workflows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "may_execute_command"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "may_execute_command": {
+            "type": "boolean",
+            "default": false
+          },
+          "allow_publish": {
+            "type": "boolean"
+          },
+          "dry_run": {
+            "$ref": "#/$defs/command_step"
+          },
+          "validate": {
+            "$ref": "#/$defs/command_step"
+          },
+          "apply": {
+            "$ref": "#/$defs/command_step"
+          },
+          "publish": {
+            "$ref": "#/$defs/command_step"
+          },
+          "readback": {
+            "$ref": "#/$defs/command_step"
+          },
+          "retire_legacy_objects": {
+            "$ref": "#/$defs/retire_lifecycle_step"
+          },
+          "required_env_names": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/env_name"
+            }
+          },
+          "affected_objects": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "expected_changed_object_groups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expected_artifacts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence_checks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/evidence_check"
+            }
+          },
+          "readback_evidence_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "safe_constraints": {
+            "$ref": "#/$defs/safety_constraints"
+          },
+          "write_safety_constraints": {
+            "$ref": "#/$defs/safety_constraints"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "command_step": {
+      "type": "object",
+      "required": ["command", "evidence_checks", "summary_requirements"],
+      "anyOf": [
+        {
+          "required": ["summary_path"]
+        },
+        {
+          "required": ["summary_glob"]
+        }
+      ],
+      "properties": {
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "summary_path": {
+          "type": "string"
+        },
+        "summary_glob": {
+          "type": "string"
+        },
+        "readback_evidence_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_env_names": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/env_name"
+          }
+        },
+        "affected_objects": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "expected_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "evidence_checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/evidence_check"
+          }
+        },
+        "summary_requirements": {
+          "$ref": "#/$defs/summary_requirements"
+        },
+        "safe_constraints": {
+          "$ref": "#/$defs/safety_constraints"
+        },
+        "write_safety_constraints": {
+          "$ref": "#/$defs/safety_constraints"
+        }
+      }
+    },
+    "retire_lifecycle_step": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/command_step"
+        },
+        {
+          "type": "object",
+          "required": [
+            "lifecycle_state",
+            "objects",
+            "workbook_id",
+            "reason",
+            "relation_graph_proof_path",
+            "saved_no_reference_proof_path",
+            "published_no_reference_proof_path",
+            "dry_run_retire_plan_path",
+            "approval_provenance_path",
+            "execution_summary_path",
+            "post_retire_readback_paths"
+          ],
+          "anyOf": [
+            {
+              "required": ["user_request_quote"]
+            },
+            {
+              "required": ["decision_id"]
+            }
+          ],
+          "properties": {
+            "lifecycle_state": {
+              "type": "string",
+              "enum": [
+                "requested",
+                "dry_run_planned",
+                "relation_checked",
+                "approved",
+                "executed",
+                "readback_verified",
+                "failed_or_rolled_back_not_available"
+              ]
+            },
+            "objects": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/retire_object_ref"
+              }
+            },
+            "workbook_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "user_request_quote": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decision_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "relation_graph_proof_path": {
+              "$ref": "#/$defs/proof_path"
+            },
+            "saved_no_reference_proof_path": {
+              "$ref": "#/$defs/proof_path"
+            },
+            "published_no_reference_proof_path": {
+              "$ref": "#/$defs/proof_path"
+            },
+            "dry_run_retire_plan_path": {
+              "$ref": "#/$defs/proof_path"
+            },
+            "approval_provenance_path": {
+              "$ref": "#/$defs/proof_path"
+            },
+            "execution_summary_path": {
+              "$ref": "#/$defs/proof_path"
+            },
+            "post_retire_readback_paths": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/proof_path"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "retire_object_ref": {
+      "type": "object",
+      "required": ["type", "id"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "proof_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "safety_constraints": {
+      "type": "object",
+      "properties": {
+        "delete_move_permission_operations": {
+          "const": false
+        },
+        "delete_move_permissions_allowed": {
+          "const": false
+        },
+        "allow_delete": {
+          "const": false
+        },
+        "allow_move": {
+          "const": false
+        },
+        "allow_permission_mutations": {
+          "const": false
+        }
+      },
+      "additionalProperties": true
+    },
+    "evidence_check": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "required": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "summary_requirements": {
+      "type": "object",
+      "required": ["branch_status", "required_fields"],
+      "properties": {
+        "branch_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_fields": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": [
+              "workbook_id",
+              "dashboard_id",
+              "dashboard_ids",
+              "target_ids",
+              "branch_status",
+              "changed_object_counts",
+              "changed_counts",
+              "evidence_paths"
+            ]
+          }
+        },
+        "changed_counts_required": {
+          "type": "boolean",
+          "default": true
+        },
+        "target_ids_required": {
+          "type": "boolean",
+          "default": true
+        },
+        "evidence_paths_required": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "env_name": {
+      "type": "string",
+      "pattern": "^[A-Z_][A-Z0-9_]{0,95}$"
+    }
+  }
+}

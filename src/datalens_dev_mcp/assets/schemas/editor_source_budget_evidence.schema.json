@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "title": "Delta v7 Editor Source Budget Evidence",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "entry_id",
+    "source_key",
+    "decision"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "datalens.delta_v7.editor_source_budget_evidence.v1"
+    },
+    "entry_id": {
+      "type": "string"
+    },
+    "source_key": {
+      "type": "string"
+    },
+    "consumer_type": {
+      "type": "string"
+    },
+    "physical_tables": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sql_hash": {
+      "type": "string"
+    },
+    "has_sql_side_filter": {
+      "type": "boolean"
+    },
+    "has_business_grain_dedupe": {
+      "type": "boolean"
+    },
+    "estimated_physical_rows": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "estimated_output_rows": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "fanout_ratio": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "decision": {
+      "enum": [
+        "pass",
+        "warn",
+        "block",
+        "insufficient_evidence"
+      ]
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "algorithmic_bound": "O(n)",
+  "aliases": [
+    "DOM D3",
+    "advanced dom d3",
+    "advanced dom/d3 composition",
+    "advanced editor",
+    "advanced visualization",
+    "custom D3",
+    "кастомная визуализация"
+  ],
+  "cardinality_limits": {},
+  "executable_bundle": {
+    "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+    "bundle_files": [
+      "controls.js",
+      "expected_output.json",
+      "fixture_input.json",
+      "meta.json",
+      "params.js",
+      "prepare.js",
+      "sources.js"
+    ],
+    "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+    "status": "executable_fixture_tested"
+  },
+  "implementation_status": "implemented_tested",
+  "local_policy_status": "allowed",
+  "native_table_contract": false,
+  "observed_runtime_overrides": [],
+  "official_status": "documented",
+  "output_contract": [
+    "Editor.wrapFn",
+    "Editor.generateHtml",
+    "sanitizer_check"
+  ],
+  "recipe_id": "advanced_dom_d3",
+  "required_tabs": [
+    "Meta",
+    "Params",
+    "Sources",
+    "Controls",
+    "Prepare"
+  ],
+  "route": "editor_advanced",
+  "source_contract": "advanced_editor",
+  "source_traces": [
+    {
+      "anchor": "advanced-чарт",
+      "chunk_id": "datalens/charts/editor/widgets/advanced.md#advanced-чарт#1",
+      "mirror_path": "datalens/charts/editor/widgets/advanced.md",
+      "sha256": "27f4997092afdc4dbf164553f1458e9810fc256ffca76f06c2c989257553b425",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/advanced"
+    },
+    {
+      "anchor": "доступные-методы-в-editor",
+      "chunk_id": "datalens/charts/editor/methods.md#доступные-методы-в-editor#1",
+      "mirror_path": "datalens/charts/editor/methods.md",
+      "sha256": "b3d5ca4e47541d7db863b0c92915efdabdcb0dfca45ec7fe090a94f0ad89532e",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/methods"
+    }
+  ],
+  "title": "Advanced DOM/D3 composition",
+  "uses_generate_html": true,
+  "validation_checklist": [
+    "source_trace_present",
+    "required_tabs_present",
+    "runtime_contract_valid",
+    "safe_apply_plan_only_until_approved"
+  ],
+  "widget_contract": "advanced-chart_node"
+}

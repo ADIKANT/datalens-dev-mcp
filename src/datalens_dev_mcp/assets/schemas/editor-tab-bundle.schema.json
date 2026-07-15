@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/editor-tab-bundle.schema.json",
+  "title": "Editor tab bundle",
+  "type": "object",
+  "required": ["schema_version", "widget_id", "route", "entry_type", "tabs"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "widget_id": {"type": "string"},
+    "route": {
+      "type": "string",
+      "enum": ["editor_advanced", "editor_table", "editor_markdown", "editor_js_control"]
+    },
+    "entry_type": {"type": "string"},
+    "tabs": {"type": "object", "additionalProperties": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,63 @@
+{
+  "algorithmic_bound": "O(n)",
+  "aliases": [
+    "advanced editor",
+    "insights",
+    "notifications",
+    "уведомления"
+  ],
+  "cardinality_limits": {},
+  "executable_bundle": {
+    "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+    "bundle_files": [
+      "expected_output.json",
+      "fixture_input.json",
+      "meta.json",
+      "params.js",
+      "prepare.js",
+      "sources.js"
+    ],
+    "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+    "status": "executable_fixture_tested"
+  },
+  "implementation_status": "implemented_tested",
+  "local_policy_status": "allowed",
+  "native_table_contract": false,
+  "observed_runtime_overrides": [],
+  "official_status": "documented",
+  "output_contract": [
+    "documented_notification_method",
+    "runtime_contract_check"
+  ],
+  "recipe_id": "notifications",
+  "required_tabs": [
+    "Prepare"
+  ],
+  "route": "editor_advanced",
+  "source_contract": "advanced_editor",
+  "source_traces": [
+    {
+      "anchor": "уведомления",
+      "chunk_id": "datalens/charts/editor/notifications.md#уведомления#1",
+      "mirror_path": "datalens/charts/editor/notifications.md",
+      "sha256": "d63252bdae279eaa095102dcc93c5dd684bb308c04df4ea6f472e4e8acd5ca02",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/notifications"
+    },
+    {
+      "anchor": "доступные-методы-в-editor",
+      "chunk_id": "datalens/charts/editor/methods.md#доступные-методы-в-editor#1",
+      "mirror_path": "datalens/charts/editor/methods.md",
+      "sha256": "b3d5ca4e47541d7db863b0c92915efdabdcb0dfca45ec7fe090a94f0ad89532e",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/methods"
+    }
+  ],
+  "title": "Notifications",
+  "uses_generate_html": true,
+  "validation_checklist": [
+    "source_trace_present",
+    "required_tabs_present",
+    "runtime_contract_valid",
+    "safe_apply_plan_only_until_approved"
+  ],
+  "widget_contract": "advanced-chart_node"
+}

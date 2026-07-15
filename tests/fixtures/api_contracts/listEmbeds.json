@@ -1,0 +1,24 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "listEmbeds",
+  "operation_id": "listEmbeds",
+  "path": "/rpc/listEmbeds",
+  "request_payload": {},
+  "request_schema_closure_hash": "cff35f33857b9d7268b5256ed38c2eb58007d5f434cf23409fe2ffb02e380b33",
+  "request_schema_closure_refs": [
+    "ListEmbedsArgs"
+  ],
+  "request_schema_hash": "c53dc26677e4726adfb638f67a3654f8d5086250f56de8b7499f4507e4c77ae3",
+  "request_schema_ref": "ListEmbedsArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "65a03639f349c14af7bcfd22ff5f84996ac12e1d14f7688ae70fcca535ba9071",
+  "response_schema_closure_refs": [
+    "Embed",
+    "EmbedSettings",
+    "ListEmbedsResponse"
+  ],
+  "response_schema_hash": "cc3aab1e935576a81379932583d8d4ca1e0a4c95b667528b2ba05db4819ead89",
+  "response_schema_ref": "ListEmbedsResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

@@ -1,0 +1,28 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getCollectionContent",
+  "operation_id": "getCollectionContent",
+  "path": "/rpc/getCollectionContent",
+  "request_payload": {},
+  "request_schema_closure_hash": "24a8c88e648cac1e3b3385a9c62ec12827abdc52224a79eef20072af120104df",
+  "request_schema_closure_refs": [
+    "GetStructureItemsArgs"
+  ],
+  "request_schema_hash": "1eed7f6b0b70e7b7aab10faf9eb180400e168bb4dbd3dd05ae5217779623e55f",
+  "request_schema_ref": "GetStructureItemsArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "1d71b7c07d5f96c5fa54b19244d842936e7becbb05319dec6070eefe4d6a1b41",
+  "response_schema_closure_refs": [
+    "Collection",
+    "CollectionPermissions",
+    "GetStructureItemsResult",
+    "SharedEntryPermissions",
+    "StructureItemEntry",
+    "Workbook",
+    "WorkbookPermissions"
+  ],
+  "response_schema_hash": "019113865b43cee7577db7214b1cd23bcdc8af0e21774bc2cc872df539eb1654",
+  "response_schema_ref": "GetStructureItemsResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

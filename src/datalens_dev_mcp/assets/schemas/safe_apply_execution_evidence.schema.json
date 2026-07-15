@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "datalens.safe_apply_execution_evidence.schema.json",
+  "title": "Bound safe-apply execution evidence",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema_version", "generated_at", "project_root", "run_id", "run_binding", "status", "actions"],
+  "properties": {
+    "schema_version": {"const": "datalens.safe_apply_execution_evidence.v1"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "project_root": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "pattern": "^safe_apply_[a-f0-9]{12}$"},
+    "status": {"enum": ["completed", "partial", "failed"]},
+    "run_binding": {"$ref": "#/$defs/runBinding"},
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/executionAction"}
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "approvalProvenance": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["approved", "approval_source", "approval_note"],
+      "properties": {
+        "approved": {"type": "boolean"},
+        "approval_source": {"type": "string"},
+        "approval_note": {"type": "string"}
+      }
+    },
+    "artifactBinding": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "path": {"type": "string"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "readbackBinding": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "path": {"type": "string"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "branch": {"enum": ["saved", "published"]},
+        "object_id": {"type": "string"},
+        "revision_id": {"type": "string"}
+      }
+    },
+    "savedSource": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["path", "sha256", "object_id", "revision_id", "source_branch"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "object_id": {"type": "string", "minLength": 1},
+        "revision_id": {"type": "string", "minLength": 1},
+        "source_branch": {"const": "saved"}
+      }
+    },
+    "actionBinding": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "index",
+        "action",
+        "method",
+        "object_id",
+        "transaction_group_id",
+        "change_scope",
+        "mode",
+        "expected_revision",
+        "payload_sha256",
+        "desired_overlay_sha256",
+        "readback_branch",
+        "target_lock_hash",
+        "approval_provenance"
+      ],
+      "properties": {
+        "index": {"type": "integer", "minimum": 0},
+        "action": {"type": "string", "minLength": 1},
+        "method": {"type": "string", "minLength": 1},
+        "object_id": {"type": "string"},
+        "transaction_group_id": {"type": "string", "minLength": 1},
+        "change_scope": {"enum": ["content", "layout", "redesign"]},
+        "semantic_role": {"type": "string"},
+        "shared_object_key": {"type": "string"},
+        "mode": {"enum": ["save", "publish"]},
+        "expected_revision": {"type": "string"},
+        "payload_sha256": {"$ref": "#/$defs/sha256"},
+        "desired_overlay_sha256": {"$ref": "#/$defs/sha256"},
+        "readback_branch": {"enum": ["saved", "published"]},
+        "target_lock_hash": {"type": "string"},
+        "approval_provenance": {"$ref": "#/$defs/approvalProvenance"},
+        "saved_source": {"$ref": "#/$defs/savedSource"}
+      }
+    },
+    "runBinding": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["project_root", "approved", "approval_provenance", "target_lock_hash", "action_count", "actions"],
+      "properties": {
+        "project_root": {"type": "string", "minLength": 1},
+        "approved": {"type": "boolean"},
+        "approval_provenance": {"$ref": "#/$defs/approvalProvenance"},
+        "target_lock_hash": {"type": "string"},
+        "action_count": {"type": "integer", "minimum": 1},
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/actionBinding"}
+        }
+      }
+    },
+    "executionAction": {
+      "allOf": [
+        {"$ref": "#/$defs/actionBinding"},
+        {
+          "type": "object",
+          "required": ["status", "executed", "write_result", "readback"],
+          "properties": {
+            "status": {"enum": ["executed", "failed", "skipped", "not_run"]},
+            "executed": {"type": "boolean"},
+            "write_result": {"$ref": "#/$defs/artifactBinding"},
+            "readback": {"$ref": "#/$defs/readbackBinding"}
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "completed"}}},
+      "then": {
+        "properties": {
+          "run_binding": {
+            "properties": {
+              "approved": {"const": true},
+              "target_lock_hash": {"type": "string", "minLength": 1},
+              "approval_provenance": {"properties": {"approved": {"const": true}}}
+            }
+          },
+          "actions": {
+            "items": {
+              "properties": {
+                "object_id": {"type": "string", "minLength": 1},
+                "target_lock_hash": {"type": "string", "minLength": 1},
+                "status": {"const": "executed"},
+                "executed": {"const": true},
+                "approval_provenance": {"properties": {"approved": {"const": true}}},
+                "write_result": {
+                  "required": ["path", "sha256"],
+                  "properties": {"path": {"type": "string", "minLength": 1}}
+                },
+                "readback": {
+                  "required": ["path", "sha256", "branch", "object_id", "revision_id"],
+                  "properties": {
+                    "path": {"type": "string", "minLength": 1},
+                    "object_id": {"type": "string", "minLength": 1},
+                    "revision_id": {"type": "string", "minLength": 1}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

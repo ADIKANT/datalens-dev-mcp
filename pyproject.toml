@@ -1,0 +1,86 @@
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "datalens-dev-mcp"
+version = "0.3.0"
+description = "Local MCP stdio server for governed Yandex DataLens dashboard development."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0 AND CC-BY-4.0"
+license-files = [
+  "LICENSE",
+  "NOTICE",
+  "THIRD_PARTY_NOTICES.md",
+  "LICENSES/*.txt",
+]
+authors = [{name = "ADIKANT"}]
+maintainers = [{name = "ADIKANT"}]
+keywords = [
+  "model-context-protocol",
+  "mcp",
+  "datalens",
+  "dashboard",
+  "yandex-cloud",
+  "analytics",
+  "stdio",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
+dependencies = []
+
+[project.optional-dependencies]
+yaml = [
+  "PyYAML>=6.0.2,<7",
+]
+test = [
+  "jsonschema>=4.21,<5",
+  "PyYAML>=6.0.2,<7",
+]
+dev = [
+  "build>=1.2.2,<2",
+  "jsonschema>=4.21,<5",
+  "PyYAML>=6.0.2,<7",
+  "ruff>=0.9,<1",
+  "twine>=6,<7",
+]
+
+[project.urls]
+Homepage = "https://github.com/ADIKANT/datalens-dev-mcp"
+Documentation = "https://github.com/ADIKANT/datalens-dev-mcp#readme"
+Repository = "https://github.com/ADIKANT/datalens-dev-mcp.git"
+Issues = "https://github.com/ADIKANT/datalens-dev-mcp/issues"
+Changelog = "https://github.com/ADIKANT/datalens-dev-mcp/blob/main/CHANGELOG.md"
+
+[project.scripts]
+datalens-dev-mcp = "datalens_dev_mcp.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"datalens_dev_mcp" = [
+  "assets/**/*.json",
+  "assets/**/*.jsonl",
+  "assets/**/*.js",
+  "assets/**/*.md",
+]
+
+[tool.setuptools.exclude-package-data]
+"datalens_dev_mcp" = [
+  "assets/config/datalens_mcp.local.json",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"

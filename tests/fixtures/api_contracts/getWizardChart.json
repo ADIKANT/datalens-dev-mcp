@@ -1,0 +1,21 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getWizardChart",
+  "operation_id": "getWizardChart",
+  "path": "/rpc/getWizardChart",
+  "request_payload": {},
+  "request_schema_closure_hash": "e28650e02aa1f0964c68f972ecd2a50492d9992eb65b840fa87fb73db359d5b5",
+  "request_schema_closure_refs": [
+    "EntryBranch",
+    "GetWizardChartArgs"
+  ],
+  "request_schema_hash": "0b18f19e29663bb6aa3f3ee6fb8b722c6304d269e73de4f8ede2f082243baa1b",
+  "request_schema_ref": "GetWizardChartArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "",
+  "response_schema_closure_refs": [],
+  "response_schema_hash": "",
+  "response_schema_ref": "",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

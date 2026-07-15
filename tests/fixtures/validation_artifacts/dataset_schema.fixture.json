@@ -1,0 +1,45 @@
+{
+  "schema_version": "2026-07-01.validation_readback_fixture.v1",
+  "method": "getDataset",
+  "dataset_id": "dataset_fixture",
+  "captured_at": "2026-07-01T00:00:00Z",
+  "safe_reuse": true,
+  "reuse_policy": "Safe for offline validation only; do not use as live target evidence.",
+  "response": {
+    "result": {
+      "dataset": {
+        "datasetId": "dataset_fixture",
+        "fields": [
+          {
+            "name": "order_id",
+            "guid": "guid_order_id",
+            "type": "string",
+            "aggregation": "none"
+          },
+          {
+            "name": "order_dt",
+            "guid": "guid_order_dt",
+            "type": "date",
+            "aggregation": "none"
+          },
+          {
+            "name": "amount",
+            "guid": "guid_amount",
+            "type": "float",
+            "aggregation": "sum"
+          }
+        ],
+        "sources": [
+          {
+            "type": "sql",
+            "connectionId": "connection_fixture",
+            "sql": "select order_id, order_dt, amount from fixture_orders"
+          }
+        ]
+      }
+    },
+    "metadata": {
+      "revId": "rev_dataset_fixture"
+    }
+  }
+}

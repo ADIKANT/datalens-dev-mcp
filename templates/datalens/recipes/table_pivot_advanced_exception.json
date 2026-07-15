@@ -1,0 +1,74 @@
+{
+  "algorithmic_bound": "O(n log n)",
+  "aliases": [
+    "advanced pivot exception",
+    "exception only",
+    "html pivot",
+    "sticky grouped pivot",
+    "table pivot advanced exception"
+  ],
+  "cardinality_limits": {
+    "cells": 20000,
+    "columns": 200
+  },
+  "executable_bundle": {
+    "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+    "bundle_files": [
+      "controls.js",
+      "expected_output.json",
+      "fixture_input.json",
+      "meta.json",
+      "params.js",
+      "prepare.js",
+      "sources.js"
+    ],
+    "generator": "",
+    "status": "not_executable_reference_only"
+  },
+  "implementation_status": "documented_reference_blocked_by_local_policy",
+  "local_policy_status": "blocked",
+  "native_table_contract": false,
+  "observed_runtime_overrides": [],
+  "official_status": "documented",
+  "output_contract": [
+    "requires_explicit_exception_reason",
+    "uses_Editor_generateHtml",
+    "fallback_table_pivot_js",
+    "creation_and_generation_blocked"
+  ],
+  "recipe_id": "table_pivot_advanced_exception",
+  "required_tabs": [
+    "Meta",
+    "Params",
+    "Sources",
+    "Controls",
+    "Prepare"
+  ],
+  "route": "editor_advanced",
+  "source_contract": "exception_only",
+  "source_traces": [
+    {
+      "anchor": "advanced-чарт",
+      "chunk_id": "datalens/charts/editor/widgets/advanced.md#advanced-чарт#1",
+      "mirror_path": "datalens/charts/editor/widgets/advanced.md",
+      "sha256": "27f4997092afdc4dbf164553f1458e9810fc256ffca76f06c2c989257553b425",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/advanced"
+    },
+    {
+      "anchor": "таблица",
+      "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+      "mirror_path": "datalens/charts/editor/widgets/table.md",
+      "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+    }
+  ],
+  "title": "Advanced pivot exception",
+  "uses_generate_html": true,
+  "validation_checklist": [
+    "source_trace_present",
+    "required_tabs_present",
+    "runtime_contract_valid",
+    "safe_apply_plan_only_until_approved"
+  ],
+  "widget_contract": "advanced-chart_node"
+}

@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "datalens-dev": {
+      "command": "/absolute/path/to/datalens-dev-mcp/.venv/bin/datalens-dev-mcp",
+      "args": [
+        "stdio",
+        "--project-root",
+        "/absolute/path/to/your/dashboard-project"
+      ],
+      "env": {
+        "DATALENS_ENV_FILE": "/absolute/path/to/home/.config/datalens-dev-mcp/env"
+      }
+    }
+  }
+}

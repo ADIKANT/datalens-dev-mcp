@@ -1,0 +1,889 @@
+{
+  "params_contracts": {
+    "editor_advanced_metric_params": {
+      "contract_id": "editor_advanced_metric_params",
+      "params": [
+        {
+          "default": [
+            "all"
+          ],
+          "name": "segment",
+          "required": false,
+          "type": "string[]"
+        }
+      ],
+      "rule": "Params stay generic; business filters belong in dashboard wiring or explicit source contracts."
+    },
+    "editor_js_control_params": {
+      "contract_id": "editor_js_control_params",
+      "params": [
+        {
+          "default": [
+            "all"
+          ],
+          "name": "segment",
+          "required": false,
+          "type": "string[]"
+        }
+      ],
+      "rule": "Control params are selector parameters and must be wired outside the control body."
+    },
+    "editor_markdown_params": {
+      "contract_id": "editor_markdown_params",
+      "params": [
+        {
+          "default": "overview",
+          "name": "section",
+          "required": false,
+          "type": "string"
+        }
+      ],
+      "rule": "Markdown params select generic sections only."
+    },
+    "editor_table_params": {
+      "contract_id": "editor_table_params",
+      "params": [
+        {
+          "default": [
+            "all"
+          ],
+          "name": "segment",
+          "required": false,
+          "type": "string[]"
+        }
+      ],
+      "rule": "Table params may filter synthetic rows but must not encode business object ids."
+    },
+    "wizard_map_params": {
+      "contract_id": "wizard_map_params",
+      "params": [
+        {
+          "default": [
+            "all"
+          ],
+          "name": "environment",
+          "required": false,
+          "type": "string[]"
+        }
+      ],
+      "rule": "Wizard geolayer params require validated geo evidence and a canonical template or fresh same-ID saved seed."
+    }
+  },
+  "policy_basis": [
+    "AGENTS.md",
+    "docs/route-policy.md",
+    "config/route_selection_policy_v5.json",
+    "src/datalens_dev_mcp/pipeline/route_contract.py",
+    "templates/datalens/wizard/wizard_template_registry.json"
+  ],
+  "route_inventory": {
+    "banned": [
+      {
+        "reason": "Outside the local safety model.",
+        "route": "d3_node"
+      },
+      {
+        "methods": [
+          "deleteQLChart"
+        ],
+        "reason": "QL delete remains closed.",
+        "route": "ql_delete"
+      },
+      {
+        "reason": "QL is explicit-only.",
+        "route": "automatic_ql_selection"
+      },
+      {
+        "reason": "Route selection is deterministic before transport.",
+        "route": "runtime_route_fallback"
+      },
+      {
+        "reason": "Writes to guessed IDs are blocked.",
+        "route": "guessed_id_write"
+      },
+      {
+        "reason": "Fresh readback and approval are required.",
+        "route": "blind_write_or_publish"
+      },
+      {
+        "reason": "Golden gallery is static and never mutates production.",
+        "route": "production_workbook_mutation"
+      }
+    ],
+    "reference_only": [
+      {
+        "reason": "Legacy HTML template remains blocked by the runtime validator.",
+        "route": "grouped_sticky_table_exception"
+      },
+      {
+        "reason": "Unknown IDs may be updated only from fresh saved readback and cannot be created.",
+        "route": "unknown_wizard_visualization"
+      }
+    ],
+    "supported": [
+      {
+        "do_not_change_runtime_contract": [
+          "Prefer a fresh saved seed of the same visualization id.",
+          "Never fall back to JS after a failed Wizard request."
+        ],
+        "entry_type": "wizard_chart",
+        "families": [
+          "area_100p",
+          "area_completion",
+          "bubble",
+          "combo_time_series_combo",
+          "donut",
+          "flat_table",
+          "grouped_bar",
+          "horizontal_bar",
+          "horizontal_stacked_100",
+          "kpi_value_delta",
+          "kpi_value_only",
+          "line_chart",
+          "multiline_chart",
+          "native_map_geo_widget",
+          "pie",
+          "pivot_table",
+          "pivot_table_node",
+          "scatter",
+          "stacked_100",
+          "table_node",
+          "treemap",
+          "vertical_bar_time_bucket"
+        ],
+        "generator": "build_wizard_payload_plan",
+        "known_limits": [
+          "Unknown visualization IDs are blocked for create.",
+          "Live verification is not claimed by canonical fixtures."
+        ],
+        "methods": {
+          "create": "createWizardChart",
+          "read": "getWizardChart",
+          "update": "updateWizardChart"
+        },
+        "route": "wizard_native"
+      },
+      {
+        "do_not_change_runtime_contract": [
+          "Keep one visual per object and the Advanced Editor runtime allowlist."
+        ],
+        "entry_type": "advanced-chart_node",
+        "families": [
+          "box_plot",
+          "bullet_assignees",
+          "funnel_snapshot",
+          "heatmap",
+          "histogram",
+          "kpi_value_delta_sparkline",
+          "kpi_value_sparkline",
+          "resource_schedule_exception",
+          "sankey_status_flow",
+          "table_pivot_js",
+          "waterfall"
+        ],
+        "generator": "generate_editor_bundle",
+        "known_limits": [
+          "Selected only by direct request or registered capability gap."
+        ],
+        "methods": {
+          "create": "createEditorChart",
+          "read": "getEditorChart",
+          "update": "updateEditorChart"
+        },
+        "route": "editor_advanced"
+      },
+      {
+        "do_not_change_runtime_contract": [
+          "Ordinary flat and pivot tables default to Wizard."
+        ],
+        "entry_type": "table_node",
+        "families": [
+          "table_pivot_js"
+        ],
+        "generator": "generate_editor_bundle",
+        "known_limits": [
+          "Reserved for specialized grouped or pinned JavaScript table semantics."
+        ],
+        "methods": {
+          "create": "createEditorChart",
+          "read": "getEditorChart",
+          "update": "updateEditorChart"
+        },
+        "route": "editor_table"
+      },
+      {
+        "do_not_change_runtime_contract": [
+          "Keep Markdown on its dedicated Editor route."
+        ],
+        "entry_type": "markdown_node",
+        "families": [
+          "md_methodology_block",
+          "md_section_header",
+          "md_dashboard_owner",
+          "md_contact_block",
+          "md_requirements_link_block",
+          "md_source_notes"
+        ],
+        "generator": "generate_editor_bundle",
+        "known_limits": [
+          "Text-only support blocks."
+        ],
+        "methods": {
+          "create": "createEditorChart",
+          "read": "getEditorChart",
+          "update": "updateEditorChart"
+        },
+        "route": "editor_markdown"
+      },
+      {
+        "do_not_change_runtime_contract": [
+          "Keep controls separate from chart-body HTML."
+        ],
+        "entry_type": "control_node",
+        "families": [
+          "single_select_dropdown",
+          "multi_select_dropdown",
+          "search_selector",
+          "date_range_selector",
+          "selector_family_static",
+          "selector_family_dynamic"
+        ],
+        "generator": "generate_editor_bundle",
+        "known_limits": [
+          "Controls require dashboard relation wiring."
+        ],
+        "methods": {
+          "create": "createEditorChart",
+          "read": "getEditorChart",
+          "update": "updateEditorChart"
+        },
+        "route": "editor_js_control"
+      },
+      {
+        "do_not_change_runtime_contract": [
+          "Require explicit-user-request provenance and explicit payload or fresh saved seed."
+        ],
+        "entry_type": "ql_chart",
+        "families": [
+          "ql_explicit"
+        ],
+        "generator": "explicit_payload_fixture",
+        "known_limits": [
+          "No generation from a general prompt; delete remains closed."
+        ],
+        "methods": {
+          "create": "createQLChart",
+          "read": "getQLChart",
+          "update": "updateQLChart"
+        },
+        "route": "ql_explicit"
+      }
+    ],
+    "unsupported": [
+      {
+        "reason": "No maintained creation route.",
+        "route": "regular_editor_chart"
+      },
+      {
+        "reason": "No maintained creation route.",
+        "route": "gravity_ui_charts"
+      }
+    ]
+  },
+  "schema_version": "2026-07-13.golden_runtime_gallery_inventory.v2",
+  "source_data_contracts": {
+    "category_measure_rows": {
+      "contract_id": "category_measure_rows",
+      "dataset_alias": "golden_dataset",
+      "dataset_ref": "<GOLDEN_DATASET_ID>",
+      "default_param": "segment",
+      "default_param_values": [
+        "all",
+        "core",
+        "growth"
+      ],
+      "fields": [
+        {
+          "name": "category",
+          "role": "dimension",
+          "type": "string"
+        },
+        {
+          "name": "series",
+          "role": "dimension",
+          "type": "string"
+        },
+        {
+          "name": "value",
+          "role": "measure",
+          "type": "number"
+        },
+        {
+          "name": "target",
+          "role": "measure",
+          "type": "number"
+        }
+      ],
+      "row_policy": "Synthetic ranked categories with deterministic sorting and ties."
+    },
+    "diagnostic_rows": {
+      "contract_id": "diagnostic_rows",
+      "dataset_alias": "golden_dataset",
+      "dataset_ref": "<GOLDEN_DATASET_ID>",
+      "default_param": "segment",
+      "default_param_values": [
+        "all",
+        "core",
+        "growth"
+      ],
+      "fields": [
+        {
+          "name": "x_value",
+          "role": "measure",
+          "type": "number"
+        },
+        {
+          "name": "y_value",
+          "role": "measure",
+          "type": "number"
+        },
+        {
+          "name": "bucket",
+          "role": "dimension",
+          "type": "string"
+        },
+        {
+          "name": "size_value",
+          "role": "measure",
+          "type": "number"
+        }
+      ],
+      "row_policy": "Synthetic distribution rows with outlier and density examples."
+    },
+    "flow_rows": {
+      "contract_id": "flow_rows",
+      "dataset_alias": "golden_dataset",
+      "dataset_ref": "<GOLDEN_DATASET_ID>",
+      "default_param": "segment",
+      "default_param_values": [
+        "all",
+        "core",
+        "growth"
+      ],
+      "fields": [
+        {
+          "name": "stage_from",
+          "role": "dimension",
+          "type": "string"
+        },
+        {
+          "name": "stage_to",
+          "role": "dimension",
+          "type": "string"
+        },
+        {
+          "name": "stage_order",
+          "role": "dimension",
+          "type": "number"
+        },
+        {
+          "name": "value",
+          "role": "measure",
+          "type": "number"
+        }
+      ],
+      "row_policy": "Synthetic ordered-stage flow rows; stage order is explicit."
+    },
+    "geo_rows": {
+      "contract_id": "geo_rows",
+      "dataset_alias": "golden_geo_dataset",
+      "dataset_ref": "<GOLDEN_GEO_DATASET_ID>",
+      "default_param": "environment",
+      "default_param_values": [
+        "all",
+        "test"
+      ],
+      "fields": [
+        {
+          "name": "location",
+          "role": "dimension",
+          "type": "geopoint"
+        },
+        {
+          "name": "region",
+          "role": "dimension",
+          "type": "string"
+        },
+        {
+          "name": "vehicle_cnt",
+          "role": "measure",
+          "type": "number"
+        },
+        {
+          "name": "environment",
+          "role": "dimension",
+          "type": "string"
+        }
+      ],
+      "row_policy": "Synthetic geo rows with validated geopoint evidence only."
+    },
+    "hierarchy_rows": {
+      "contract_id": "hierarchy_rows",
+      "dataset_alias": "golden_dataset",
+      "dataset_ref": "<GOLDEN_DATASET_ID>",
+      "default_param": "segment",
+      "default_param_values": [
+        "all",
+        "core",
+        "growth"
+      ],
+      "fields": [
+        {
+          "name": "parent",
+          "role": "dimension",
+          "type": "string"
+        },
+        {
+          "name": "child",
+          "role": "dimension",
+          "type": "string"
+        },
+        {
+          "name": "share_value",
+          "role": "measure",
+          "type": "number"
+        }
+      ],
+      "row_policy": "Synthetic parent-child or segment-share rows with explicit total policy."
+    },
+    "markdown_rows": {
+      "contract_id": "markdown_rows",
+      "dataset_alias": "",
+      "dataset_ref": "<NO_DATASET_REQUIRED>",
+      "default_param": "section",
+      "default_param_values": [
+        "overview"
+      ],
+      "fields": [],
+      "row_policy": "Markdown templates use parameterized text snippets and do not require source rows."
+    },
+    "metric_snapshot_rows": {
+      "contract_id": "metric_snapshot_rows",
+      "dataset_alias": "golden_dataset",
+      "dataset_ref": "<GOLDEN_DATASET_ID>",
+      "default_param": "segment",
+      "default_param_values": [
+        "all",
+        "core",
+        "growth"
+      ],
+      "fields": [
+        {
+          "name": "period",
+          "role": "dimension",
+          "type": "date"
+        },
+        {
+          "name": "metric_value",
+          "role": "measure",
+          "type": "number"
+        },
+        {
+          "name": "metric_previous",
+          "role": "measure",
+          "type": "number"
+        },
+        {
+          "name": "segment",
+          "role": "dimension",
+          "type": "string"
+        }
+      ],
+      "row_policy": "Small synthetic rows only; no production dashboard ids or business SQL."
+    },
+    "selector_rows": {
+      "contract_id": "selector_rows",
+      "dataset_alias": "golden_dataset",
+      "dataset_ref": "<GOLDEN_DATASET_ID>",
+      "default_param": "segment",
+      "default_param_values": [
+        "all",
+        "core",
+        "growth"
+      ],
+      "fields": [
+        {
+          "name": "segment",
+          "role": "dimension",
+          "type": "string"
+        },
+        {
+          "name": "label",
+          "role": "dimension",
+          "type": "string"
+        }
+      ],
+      "row_policy": "Synthetic selector value rows with all-value handling and dashboard relation targets externalized."
+    },
+    "tabular_rows": {
+      "contract_id": "tabular_rows",
+      "dataset_alias": "golden_dataset",
+      "dataset_ref": "<GOLDEN_DATASET_ID>",
+      "default_param": "segment",
+      "default_param_values": [
+        "all",
+        "core",
+        "growth"
+      ],
+      "fields": [
+        {
+          "name": "name",
+          "role": "dimension",
+          "type": "string"
+        },
+        {
+          "name": "status",
+          "role": "dimension",
+          "type": "string"
+        },
+        {
+          "name": "value",
+          "role": "measure",
+          "type": "number"
+        },
+        {
+          "name": "amount",
+          "role": "measure",
+          "type": "number"
+        }
+      ],
+      "row_policy": "Synthetic table rows with text, number, status, and bar-cell measures."
+    },
+    "time_series_rows": {
+      "contract_id": "time_series_rows",
+      "dataset_alias": "golden_dataset",
+      "dataset_ref": "<GOLDEN_DATASET_ID>",
+      "default_param": "segment",
+      "default_param_values": [
+        "all",
+        "core",
+        "growth"
+      ],
+      "fields": [
+        {
+          "name": "event_date",
+          "role": "dimension",
+          "type": "date"
+        },
+        {
+          "name": "series",
+          "role": "dimension",
+          "type": "string"
+        },
+        {
+          "name": "value",
+          "role": "measure",
+          "type": "number"
+        },
+        {
+          "name": "target",
+          "role": "measure",
+          "type": "number"
+        }
+      ],
+      "row_policy": "Synthetic daily time buckets with explicit grain and missing-period policy."
+    }
+  },
+  "supported_family_inventory": [
+    {
+      "do_not_change_runtime_contract": [
+        "One KPI value per visual object."
+      ],
+      "family_id": "kpi_value_only",
+      "known_limits": [
+        "No implicit previous-period comparator."
+      ],
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "wizard_native",
+      "source_contract_ref": "metric_snapshot_rows"
+    },
+    {
+      "do_not_change_runtime_contract": [
+        "Do not infer previous period silently."
+      ],
+      "family_id": "kpi_value_delta",
+      "known_limits": [
+        "Comparator must be explicit."
+      ],
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "wizard_native",
+      "source_contract_ref": "metric_snapshot_rows"
+    },
+    {
+      "do_not_change_runtime_contract": [
+        "Trend grain must remain explicit."
+      ],
+      "family_id": "kpi_value_sparkline",
+      "known_limits": [
+        "Sparkline needs ordered trend rows."
+      ],
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "editor_advanced",
+      "source_contract_ref": "time_series_rows"
+    },
+    {
+      "do_not_change_runtime_contract": [
+        "Do not combine multiple KPI metrics in one object."
+      ],
+      "family_id": "kpi_value_delta_sparkline",
+      "known_limits": [
+        "Comparator and sparkline grain must both be explicit."
+      ],
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "editor_advanced",
+      "source_contract_ref": "time_series_rows"
+    },
+    {
+      "family_id": "line_chart",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "wizard_native",
+      "source_contract_ref": "time_series_rows"
+    },
+    {
+      "family_id": "multiline_chart",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "wizard_native",
+      "source_contract_ref": "time_series_rows"
+    },
+    {
+      "family_id": "area_completion",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "wizard_native",
+      "source_contract_ref": "time_series_rows"
+    },
+    {
+      "family_id": "vertical_bar_time_bucket",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "wizard_native",
+      "source_contract_ref": "time_series_rows"
+    },
+    {
+      "family_id": "combo_time_series_combo",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "wizard_native",
+      "source_contract_ref": "time_series_rows"
+    },
+    {
+      "family_id": "horizontal_bar",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "wizard_native",
+      "source_contract_ref": "category_measure_rows"
+    },
+    {
+      "family_id": "grouped_bar",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "wizard_native",
+      "source_contract_ref": "category_measure_rows"
+    },
+    {
+      "family_id": "stacked_100",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "wizard_native",
+      "source_contract_ref": "category_measure_rows"
+    },
+    {
+      "family_id": "bullet_assignees",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "editor_advanced",
+      "source_contract_ref": "category_measure_rows"
+    },
+    {
+      "family_id": "heatmap",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "editor_advanced",
+      "source_contract_ref": "diagnostic_rows"
+    },
+    {
+      "family_id": "waterfall",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "editor_advanced",
+      "source_contract_ref": "flow_rows"
+    },
+    {
+      "family_id": "funnel_snapshot",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "editor_advanced",
+      "source_contract_ref": "flow_rows"
+    },
+    {
+      "family_id": "sankey_status_flow",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "editor_advanced",
+      "source_contract_ref": "flow_rows"
+    },
+    {
+      "family_id": "histogram",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "editor_advanced",
+      "source_contract_ref": "diagnostic_rows"
+    },
+    {
+      "family_id": "box_plot",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "editor_advanced",
+      "source_contract_ref": "diagnostic_rows"
+    },
+    {
+      "family_id": "scatter",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "wizard_native",
+      "source_contract_ref": "diagnostic_rows"
+    },
+    {
+      "family_id": "bubble",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "wizard_native",
+      "source_contract_ref": "diagnostic_rows"
+    },
+    {
+      "family_id": "pie",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "wizard_native",
+      "source_contract_ref": "hierarchy_rows"
+    },
+    {
+      "family_id": "donut",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "wizard_native",
+      "source_contract_ref": "hierarchy_rows"
+    },
+    {
+      "family_id": "treemap",
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "wizard_native",
+      "source_contract_ref": "hierarchy_rows"
+    },
+    {
+      "family_id": "table_node",
+      "params_contract_ref": "editor_table_params",
+      "route": "wizard_native",
+      "source_contract_ref": "tabular_rows"
+    },
+    {
+      "family_id": "md_methodology_block",
+      "params_contract_ref": "editor_markdown_params",
+      "route": "editor_markdown",
+      "source_contract_ref": "markdown_rows"
+    },
+    {
+      "family_id": "md_section_header",
+      "params_contract_ref": "editor_markdown_params",
+      "route": "editor_markdown",
+      "source_contract_ref": "markdown_rows"
+    },
+    {
+      "family_id": "md_dashboard_owner",
+      "params_contract_ref": "editor_markdown_params",
+      "route": "editor_markdown",
+      "source_contract_ref": "markdown_rows"
+    },
+    {
+      "family_id": "md_contact_block",
+      "params_contract_ref": "editor_markdown_params",
+      "route": "editor_markdown",
+      "source_contract_ref": "markdown_rows"
+    },
+    {
+      "family_id": "md_requirements_link_block",
+      "params_contract_ref": "editor_markdown_params",
+      "route": "editor_markdown",
+      "source_contract_ref": "markdown_rows"
+    },
+    {
+      "family_id": "md_source_notes",
+      "params_contract_ref": "editor_markdown_params",
+      "route": "editor_markdown",
+      "source_contract_ref": "markdown_rows"
+    },
+    {
+      "family_id": "single_select_dropdown",
+      "params_contract_ref": "editor_js_control_params",
+      "route": "editor_js_control",
+      "source_contract_ref": "selector_rows"
+    },
+    {
+      "family_id": "multi_select_dropdown",
+      "params_contract_ref": "editor_js_control_params",
+      "route": "editor_js_control",
+      "source_contract_ref": "selector_rows"
+    },
+    {
+      "family_id": "search_selector",
+      "params_contract_ref": "editor_js_control_params",
+      "route": "editor_js_control",
+      "source_contract_ref": "selector_rows"
+    },
+    {
+      "family_id": "date_range_selector",
+      "params_contract_ref": "editor_js_control_params",
+      "route": "editor_js_control",
+      "source_contract_ref": "selector_rows"
+    },
+    {
+      "family_id": "selector_family_static",
+      "params_contract_ref": "editor_js_control_params",
+      "route": "editor_js_control",
+      "source_contract_ref": "selector_rows"
+    },
+    {
+      "family_id": "selector_family_dynamic",
+      "params_contract_ref": "editor_js_control_params",
+      "route": "editor_js_control",
+      "source_contract_ref": "selector_rows"
+    },
+    {
+      "family_id": "native_map_geo_widget",
+      "params_contract_ref": "wizard_map_params",
+      "route": "wizard_native",
+      "source_contract_ref": "geo_rows",
+      "template_family": "geolayer"
+    },
+    {
+      "do_not_change_runtime_contract": [
+        "selection_origin must remain explicit_user_request."
+      ],
+      "family_id": "ql_explicit",
+      "known_limits": [
+        "Explicit fixture only; no prompt-to-QL generation."
+      ],
+      "params_contract_ref": "editor_advanced_metric_params",
+      "route": "ql_explicit",
+      "source_contract_ref": "metric_snapshot_rows"
+    }
+  ],
+  "write_policy": {
+    "approved_test_workbook_env": "DATALENS_MCP_GOLDEN_TEST_WORKBOOK_ID",
+    "default_mode": "read_only_static_validation",
+    "live_create_requires": [
+      "disposable test workbook id",
+      "explicit guarded write approval",
+      "fresh saved-object readback before publish",
+      "separate explicit publish approval before published readback",
+      "browser authentication and rendered URL before screenshot proof"
+    ],
+    "never_touch": [
+      "production dashboards",
+      "demo workbook fixtures",
+      "guessed object ids",
+      "delete or move operations"
+    ],
+    "refused_workbook_ids": {
+      "demo": [
+        "<DEMO_WORKBOOK_ID>"
+      ],
+      "production": [
+        "<PRODUCTION_WORKBOOK_ID>"
+      ]
+    }
+  }
+}

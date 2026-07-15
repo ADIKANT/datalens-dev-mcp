@@ -1,0 +1,7 @@
+{
+  "fixture_kind": "wizard_native_creation_and_saved_update_regression",
+  "visualization_id": "column100p",
+  "observed_name": "100% stacked column",
+  "creation_route": "wizard_native",
+  "route_policy": "canonical create is supported; existing updates preserve column100p from fresh saved readback"
+}

@@ -1,0 +1,16 @@
+title = "datalens-dev-mcp secret scanning"
+
+[allowlist]
+description = "Allow deterministic placeholders and fake demo identifiers."
+regexes = [
+  '''<DL_[A-Z_]+>''',
+  '''<ORG_INTERNAL_URL>''',
+  '''<INTERNAL_[A-Z_]+>''',
+  '''<USER_EMAIL>''',
+  '''wb_demo_000000000000''',
+  '''chart_demo_0000000000''',
+  '''dataset_demo_00000000''',
+  '''connection_demo_0000''',
+  '''https://api\.datalens\.tech''',
+  '''https://example\.invalid/requirements''',
+]

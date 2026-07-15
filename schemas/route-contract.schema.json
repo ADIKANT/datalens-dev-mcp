@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/route-contract.schema.json",
+  "title": "DataLens route contract",
+  "type": "object",
+  "required": ["routes", "forbidden"],
+  "properties": {
+    "routes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["wizard_native", "wizard_map_native", "editor_advanced", "editor_table", "editor_markdown", "editor_js_control", "ql_explicit"]
+      }
+    },
+    "operation_routes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["advanced_editor_chart", "wizard_native_chart", "ql_explicit_chart", "dataset_operation", "connector_operation", "dashboard_relation_operation"]
+      }
+    },
+    "forbidden": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  },
+  "additionalProperties": true
+}

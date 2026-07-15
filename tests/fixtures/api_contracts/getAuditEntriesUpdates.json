@@ -1,0 +1,31 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getAuditEntriesUpdates",
+  "operation_id": "getAuditEntriesUpdates",
+  "path": "/rpc/getAuditEntriesUpdates",
+  "request_payload": {},
+  "request_schema_closure_hash": "6b948da6f2fd07db171111ff61464e08847a70608dd6fcb73a3617f4bd06ad59",
+  "request_schema_closure_refs": [
+    "GetAuditEntriesUpdatesArgs"
+  ],
+  "request_schema_hash": "77cb49dfda59a6e4007f4971a30127809e4fe64aa89495224c7fab7368259a27",
+  "request_schema_ref": "GetAuditEntriesUpdatesArgs",
+  "response_payload": {
+    "entries": [
+      {
+        "entryId": "artifact_1",
+        "isDeleted": false,
+        "scope": "artifact"
+      }
+    ]
+  },
+  "response_schema_closure_hash": "d3adda41f30b1a0f87298f515b75c0b89f5a69897774e73d86b21f6c699458f0",
+  "response_schema_closure_refs": [
+    "AuditEntry",
+    "GetAuditEntriesUpdatesResult"
+  ],
+  "response_schema_hash": "8243ee821d10eeca7c30beb8505fab34a71c0ed294e17d4779298d6cc3343393",
+  "response_schema_ref": "GetAuditEntriesUpdatesResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

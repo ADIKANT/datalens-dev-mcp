@@ -1,0 +1,8 @@
+{
+  "name": "contribution-distribution",
+  "route": "editor_advanced",
+  "entry_type": "advanced-chart_node",
+  "source_example": "contribution-distribution",
+  "local_safety": "local MCP-native fixture with placeholder IDs",
+  "source_template": "examples/gallery/contribution-distribution"
+}

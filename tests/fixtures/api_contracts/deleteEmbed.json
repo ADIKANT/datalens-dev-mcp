@@ -1,0 +1,22 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "deleteEmbed",
+  "operation_id": "deleteEmbed",
+  "path": "/rpc/deleteEmbed",
+  "request_payload": {},
+  "request_schema_closure_hash": "6f272477c3642aac9046c7c4aa4de78e143f65b82e9ae403ded20f86cae1c7ce",
+  "request_schema_closure_refs": [
+    "DeleteEmbedArgs"
+  ],
+  "request_schema_hash": "b5c20bc16d1c5ee835f9b6f93bfd904767d8bc9a9e2100b159c1b002ed231ae0",
+  "request_schema_ref": "DeleteEmbedArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "84e5b241157f7ea65fd7a0358a680fb3e06a61fb6964c04e89758acf72c9c2ec",
+  "response_schema_closure_refs": [
+    "DeleteEmbedResult"
+  ],
+  "response_schema_hash": "b5c20bc16d1c5ee835f9b6f93bfd904767d8bc9a9e2100b159c1b002ed231ae0",
+  "response_schema_ref": "DeleteEmbedResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "readonly_reference"
+}

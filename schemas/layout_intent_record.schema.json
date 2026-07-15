@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/schemas/layout_intent_record.schema.json",
+  "title": "LayoutIntentRecord",
+  "type": "object",
+  "required": [
+    "source_requirement_id",
+    "target_dashboard_type",
+    "intended_tabs",
+    "conflict_status"
+  ],
+  "properties": {
+    "source_requirement_id": {
+      "type": "string"
+    },
+    "target_dashboard_type": {
+      "type": "string"
+    },
+    "intended_tabs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "tab_id",
+          "title",
+          "reason"
+        ],
+        "properties": {
+          "tab_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "must_have_sections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "must_not_have_sections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "intended_scroll_sections": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "primary_user_path": {
+      "type": "string"
+    },
+    "secondary_user_path": {
+      "type": "string"
+    },
+    "conflict_status": {
+      "enum": [
+        "none",
+        "blocked_conflict",
+        "accepted_override"
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}

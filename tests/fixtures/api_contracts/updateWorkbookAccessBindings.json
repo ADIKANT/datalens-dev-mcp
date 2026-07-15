@@ -1,0 +1,25 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "updateWorkbookAccessBindings",
+  "operation_id": "updateWorkbookAccessBindings",
+  "path": "/rpc/updateWorkbookAccessBindings",
+  "request_payload": {},
+  "request_schema_closure_hash": "98b2e532ad0eff614909dd0d478fc2c33ae9739eeb0305ebd7b0ae87b8edcdcc",
+  "request_schema_closure_refs": [
+    "USAccessBinding",
+    "USAccessBindingDelta",
+    "USAccessBindingSubject",
+    "UpdateWorkbookAccessBindingsArgs"
+  ],
+  "request_schema_hash": "98b81bbbaed8908d869554f7eae43c6e8e4b037a4a5869168235fc467ffefb29",
+  "request_schema_ref": "UpdateWorkbookAccessBindingsArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "2154e92d561d016f8bbf5990016532ccd97b0296d3675a654ad7b8f319da591b",
+  "response_schema_closure_refs": [
+    "DatalensOperation"
+  ],
+  "response_schema_hash": "3daf6da12304432cfa8d4fb6283dcae2a089f5b47706f4fc152b6f61cc801e93",
+  "response_schema_ref": "DatalensOperation",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "guarded_plan_only"
+}

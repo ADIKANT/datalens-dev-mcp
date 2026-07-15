@@ -1,0 +1,23 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "deleteCollections",
+  "operation_id": "deleteCollections",
+  "path": "/rpc/deleteCollections",
+  "request_payload": {},
+  "request_schema_closure_hash": "b78ae61388be5b83e768b2fefb47211a33caa526f777a8a4f8ff2ee0fb080a2a",
+  "request_schema_closure_refs": [
+    "DeleteCollectionsArgs"
+  ],
+  "request_schema_hash": "f6266cba5e24ae77331c46a950a9b6d7632c6b7a8479e64f21ec2e7d772a88d4",
+  "request_schema_ref": "DeleteCollectionsArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "5ece711073c79c858e930680f4278df3df314ae681a8441a2903fc6bdc43648b",
+  "response_schema_closure_refs": [
+    "Collection",
+    "DeleteCollectionsResult"
+  ],
+  "response_schema_hash": "c942cfcb321a3eb85060134e9f49aa0106bc9b158d565c47f99dc056b7fe753f",
+  "response_schema_ref": "DeleteCollectionsResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "readonly_reference"
+}

@@ -1,0 +1,26 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "listWorkbookAccessBindings",
+  "operation_id": "listWorkbookAccessBindings",
+  "path": "/rpc/listWorkbookAccessBindings",
+  "request_payload": {},
+  "request_schema_closure_hash": "c0706e150241f8763d81d7fe946008b84488980f61ddcfcf704b77761fa0c65d",
+  "request_schema_closure_refs": [
+    "ListWorkbookAccessBindingsArgs"
+  ],
+  "request_schema_hash": "ab1c08f33d876eba1f46b1e3798eb6382a818c93eb7aa315577c186f01d77d79",
+  "request_schema_ref": "ListWorkbookAccessBindingsArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "ba8c373da0621f11f163ddad8e72f74aea5ec8a29941683e721aec9d9d51bfd2",
+  "response_schema_closure_refs": [
+    "IamAccessBinding",
+    "IamAccessBindingSubject",
+    "IamResourceSchema",
+    "IamSubjectWithBindings",
+    "ListIamAccessBindingsResult"
+  ],
+  "response_schema_hash": "e2d96a42e8d60b4407e7a02076dc64551ec12249f74eadcc8d8e1c462b83df6d",
+  "response_schema_ref": "ListIamAccessBindingsResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

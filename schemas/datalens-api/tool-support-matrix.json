@@ -1,0 +1,711 @@
+{
+  "methods": [
+    {
+      "mcp_route": "unsupported",
+      "mcp_tool": "",
+      "method": "assignLicenses",
+      "mode": "unsupported",
+      "support_reason": "No validated MCP workflow or payload contract is implemented.",
+      "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "batchListMembers",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "unsupported",
+      "mcp_tool": "",
+      "method": "cancelWorkbookExport",
+      "mode": "unsupported",
+      "support_reason": "No validated MCP workflow or payload contract is implemented.",
+      "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+    },
+    {
+      "mcp_route": "unsupported",
+      "mcp_tool": "",
+      "method": "createCollection",
+      "mode": "unsupported",
+      "support_reason": "No validated MCP workflow or payload contract is implemented.",
+      "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+    },
+    {
+      "mcp_route": "connector_operation",
+      "mcp_tool": "dl_create_connector_plan",
+      "method": "createConnection",
+      "mode": "guarded_write",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
+      "mcp_route": "dashboard_relation_operation",
+      "mcp_tool": "dl_create_dashboard_plan",
+      "method": "createDashboard",
+      "mode": "guarded_write",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
+      "mcp_route": "dataset_operation",
+      "mcp_tool": "dl_create_dataset_plan",
+      "method": "createDataset",
+      "mode": "guarded_write",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
+      "mcp_route": "editor_advanced",
+      "mcp_tool": "dl_create_editor_chart_plan",
+      "method": "createEditorChart",
+      "mode": "guarded_write",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
+      "mcp_route": "unsupported",
+      "mcp_tool": "",
+      "method": "createEmbed",
+      "mode": "unsupported",
+      "support_reason": "No validated MCP workflow or payload contract is implemented.",
+      "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+    },
+    {
+      "mcp_route": "unsupported",
+      "mcp_tool": "",
+      "method": "createEmbeddingSecret",
+      "mode": "unsupported",
+      "support_reason": "No validated MCP workflow or payload contract is implemented.",
+      "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+    },
+    {
+      "mcp_route": "unsupported",
+      "mcp_tool": "",
+      "method": "createFolder",
+      "mode": "unsupported",
+      "support_reason": "No validated MCP workflow or payload contract is implemented.",
+      "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+    },
+    {
+      "mcp_route": "ql_explicit",
+      "mcp_tool": "dl_plan_object_create",
+      "method": "createQLChart",
+      "mode": "guarded_write",
+      "support_reason": "QL create/update is guarded and requires route=ql_explicit plus direct-user-request provenance.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
+      "mcp_route": "unsupported",
+      "mcp_tool": "",
+      "method": "createReport",
+      "mode": "unsupported",
+      "support_reason": "No validated MCP workflow or payload contract is implemented.",
+      "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+    },
+    {
+      "mcp_route": "wizard_native",
+      "mcp_tool": "dl_create_wizard_chart_plan",
+      "method": "createWizardChart",
+      "mode": "guarded_write",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
+      "mcp_route": "guarded_write",
+      "mcp_tool": "",
+      "method": "createWorkbook",
+      "mode": "guarded_write",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "deleteCollection",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "deleteCollections",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "deleteConnection",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "deleteDashboard",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "deleteDataset",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "deleteEditorChart",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "deleteEmbed",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "deleteEmbeddingSecret",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "deleteFolder",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "deleteQLChart",
+      "mode": "forbidden",
+      "support_reason": "QL delete remains closed by route policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "deleteReport",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "deleteWizardChart",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "deleteWorkbook",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "deleteWorkbooks",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "dlsSuggest",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getAuditEntriesUpdates",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getAuditEntryPermissionsForUser",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getCollection",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getCollectionBreadcrumbs",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getCollectionContent",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getCollectionsByIds",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_get_connection / dl_read_object",
+      "method": "getConnection",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_get_dashboard / dl_read_object",
+      "method": "getDashboard",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_get_dataset / dl_read_object",
+      "method": "getDataset",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_get_editor_chart / dl_read_object",
+      "method": "getEditorChart",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getEmbeddingSecret",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getEntries",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getEntriesPermissions",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_get_entries_relations / dl_list_related_objects",
+      "method": "getEntriesRelations",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getLicenses",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getLicensesLimit",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getPermissions",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getPermissionsBulk",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_read_object",
+      "method": "getQLChart",
+      "mode": "readonly",
+      "support_reason": "QL read is available; QL is never selected automatically for authoring.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getReport",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getRootCollectionPermissions",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_get_wizard_chart / dl_read_object",
+      "method": "getWizardChart",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_get_workbook_entries / dl_rpc_readonly",
+      "method": "getWorkbook",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_get_workbook_entries",
+      "method": "getWorkbookEntries",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getWorkbookExportResult",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getWorkbookExportStatus",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getWorkbookImportStatus",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "getWorkbooksByIds",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_list_workbooks",
+      "method": "getWorkbooksList",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "listCollectionAccessBindings",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "listDirectory",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "listEmbeddingSecrets",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "listEmbeds",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "listSharedEntryAccessBindings",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "listWorkbookAccessBindings",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "modifyPermissions",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "moveCollection",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "moveCollections",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "moveFolderEntry",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "moveWorkbook",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "moveWorkbooks",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "renameEntry",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "setLicenseLimit",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "guarded_write",
+      "mcp_tool": "",
+      "method": "startWorkbookExport",
+      "mode": "guarded_write",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
+      "mcp_route": "guarded_write",
+      "mcp_tool": "",
+      "method": "startWorkbookImport",
+      "mode": "guarded_write",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
+      "mcp_route": "unsupported",
+      "mcp_tool": "",
+      "method": "updateCollection",
+      "mode": "unsupported",
+      "support_reason": "No validated MCP workflow or payload contract is implemented.",
+      "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+    },
+    {
+      "mcp_route": "guarded_write",
+      "mcp_tool": "",
+      "method": "updateCollectionAccessBindings",
+      "mode": "guarded_write",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
+      "mcp_route": "connector_operation",
+      "mcp_tool": "dl_update_connector_plan",
+      "method": "updateConnection",
+      "mode": "guarded_write",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
+      "mcp_route": "dashboard_relation_operation",
+      "mcp_tool": "dl_update_dashboard_plan / dl_save_object_plan / dl_publish_object_plan",
+      "method": "updateDashboard",
+      "mode": "guarded_write",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
+      "mcp_route": "dataset_operation",
+      "mcp_tool": "dl_update_dataset_plan",
+      "method": "updateDataset",
+      "mode": "guarded_write",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
+      "mcp_route": "editor_advanced",
+      "mcp_tool": "dl_update_editor_chart_plan",
+      "method": "updateEditorChart",
+      "mode": "guarded_write",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
+      "mcp_route": "unsupported",
+      "mcp_tool": "",
+      "method": "updateEmbed",
+      "mode": "unsupported",
+      "support_reason": "No validated MCP workflow or payload contract is implemented.",
+      "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+    },
+    {
+      "mcp_route": "ql_explicit",
+      "mcp_tool": "dl_plan_object_update",
+      "method": "updateQLChart",
+      "mode": "guarded_write",
+      "support_reason": "QL create/update is guarded and requires route=ql_explicit plus direct-user-request provenance.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
+      "mcp_route": "unsupported",
+      "mcp_tool": "",
+      "method": "updateReport",
+      "mode": "unsupported",
+      "support_reason": "No validated MCP workflow or payload contract is implemented.",
+      "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+    },
+    {
+      "mcp_route": "wizard_native",
+      "mcp_tool": "dl_update_wizard_chart_plan",
+      "method": "updateWizardChart",
+      "mode": "guarded_write",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
+      "mcp_route": "guarded_write",
+      "mcp_tool": "",
+      "method": "updateWorkbook",
+      "mode": "guarded_write",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
+      "mcp_route": "guarded_write",
+      "mcp_tool": "",
+      "method": "updateWorkbookAccessBindings",
+      "mode": "guarded_write",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
+      "mcp_route": "dataset_operation",
+      "mcp_tool": "dl_rpc_readonly",
+      "method": "validateDataset",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    }
+  ],
+  "schema_version": "2026-06-25.api_tool_support_matrix.v2",
+  "source": "https://api.datalens.tech/json/",
+  "support_policy_overlay": "schemas/datalens-api/support-policy-overlay.json"
+}

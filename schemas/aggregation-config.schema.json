@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/aggregation-config.schema.json",
+  "title": "Aggregation config",
+  "type": "object",
+  "required": ["schema_version", "field", "aggregation"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "field": {"type": "string"},
+    "aggregation": {"enum": ["sum", "count", "count_distinct", "avg", "min", "max", "none", "custom"]},
+    "grain": {"type": "string"},
+    "filter_condition": {"type": "string"},
+    "denominator_field": {"type": "string"},
+    "additivity": {"enum": ["additive", "semi_additive", "non_additive", "unknown"]}
+  },
+  "additionalProperties": true
+}

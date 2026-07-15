@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "datalens.dashboard-chart-validation.v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "dashboard_id",
+    "workbook_id",
+    "branch",
+    "validated_at",
+    "charts",
+    "summary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "datalens.dashboard-chart-validation.v1"
+    },
+    "dashboard_id": {
+      "type": "string"
+    },
+    "workbook_id": {
+      "type": "string"
+    },
+    "branch": {
+      "enum": [
+        "saved",
+        "published"
+      ]
+    },
+    "validated_at": {
+      "type": "string"
+    },
+    "environments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "charts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/chart"
+      }
+    },
+    "summary": {
+      "type": "object"
+    }
+  },
+  "$defs": {
+    "chart": {
+      "type": "object",
+      "required": [
+        "entry_id",
+        "path",
+        "environment_results"
+      ],
+      "properties": {
+        "entry_id": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "tab": {
+          "type": "string"
+        },
+        "source_keys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "environment_results": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/envResult"
+          }
+        }
+      }
+    },
+    "envResult": {
+      "type": "object",
+      "required": [
+        "availability_classification",
+        "sql_status",
+        "render_status",
+        "errors"
+      ],
+      "properties": {
+        "availability_classification": {
+          "enum": [
+            "present_with_data",
+            "present_empty",
+            "missing",
+            "expected_unavailable",
+            "error",
+            "unknown"
+          ]
+        },
+        "sql_status": {
+          "enum": [
+            "not_emitted",
+            "compiled",
+            "source_error",
+            "unknown"
+          ]
+        },
+        "render_status": {
+          "enum": [
+            "not_checked",
+            "browser_pass",
+            "browser_fail",
+            "browser_auth_required"
+          ]
+        },
+        "errors": {
+          "type": "array"
+        }
+      }
+    }
+  }
+}

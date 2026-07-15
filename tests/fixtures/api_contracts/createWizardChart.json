@@ -1,0 +1,24 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "createWizardChart",
+  "operation_id": "createWizardChart",
+  "path": "/rpc/createWizardChart",
+  "request_payload": {},
+  "request_schema_closure_hash": "8fe7c5b65676aaee8f279666d93a62d818a0b183afedaf276b5bb9c5e696e197",
+  "request_schema_closure_refs": [
+    "CreateWizardChartArgs",
+    "EntryAnnotationArg",
+    "EntryLocationIdentifiers"
+  ],
+  "request_schema_hash": "45fd46b183640a2f9e62c57f743e2146eb34d1d6d5c77cc32a167919c50fa1c2",
+  "request_schema_ref": "CreateWizardChartArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "1840c59fd6d8f2f8aa977863de318620dbf4a72ba23972f524829541a761ec83",
+  "response_schema_closure_refs": [
+    "CreateWizardChartResponse"
+  ],
+  "response_schema_hash": "0f43c53ef801a2df2f7ed7e71164a100d780fe120c8f14846628153ceceb98e4",
+  "response_schema_ref": "CreateWizardChartResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "guarded_plan_only"
+}

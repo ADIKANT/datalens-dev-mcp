@@ -1,0 +1,22 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "deleteQLChart",
+  "operation_id": "deleteQLChart",
+  "path": "/rpc/deleteQLChart",
+  "request_payload": {},
+  "request_schema_closure_hash": "635bb7c7da8505831d3cc25f49915c29ebafa1b07fcdc9bc685e0955d4d10460",
+  "request_schema_closure_refs": [
+    "DeleteQLChartArgs"
+  ],
+  "request_schema_hash": "65082e1657c6fa18f579020a0ec34e4cab7d0e880dbff7530fd60126aa7e2b02",
+  "request_schema_ref": "DeleteQLChartArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "09cc296064adb94bcdbede4bb4b52aa9d8631ceca9da6d0b89080ac6b5a96f9c",
+  "response_schema_closure_refs": [
+    "DeleteQLChartResponse"
+  ],
+  "response_schema_hash": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+  "response_schema_ref": "DeleteQLChartResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "readonly_reference"
+}

@@ -1,0 +1,22 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "deleteWizardChart",
+  "operation_id": "deleteWizardChart",
+  "path": "/rpc/deleteWizardChart",
+  "request_payload": {},
+  "request_schema_closure_hash": "cc4a42dbb86c2c4886950aec4133930e7cbc57b6f3ef06ca8ffbedc43a5fcc71",
+  "request_schema_closure_refs": [
+    "DeleteWizardChartArgs"
+  ],
+  "request_schema_hash": "65082e1657c6fa18f579020a0ec34e4cab7d0e880dbff7530fd60126aa7e2b02",
+  "request_schema_ref": "DeleteWizardChartArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "c5431b6d5a26e6ab35fb8eed7b2412dde0d898d4339f26d68a721ac498eb32dd",
+  "response_schema_closure_refs": [
+    "DeleteWizardChartResponse"
+  ],
+  "response_schema_hash": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+  "response_schema_ref": "DeleteWizardChartResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "readonly_reference"
+}

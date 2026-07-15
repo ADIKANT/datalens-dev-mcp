@@ -1,0 +1,24 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "createWorkbook",
+  "operation_id": "createWorkbook",
+  "path": "/rpc/createWorkbook",
+  "request_payload": {},
+  "request_schema_closure_hash": "5bb1cda29bd7df591e836b4e1e44b71dd1a8e8e6343446cc578f249be66fb3a0",
+  "request_schema_closure_refs": [
+    "CreateWorkbookArgs"
+  ],
+  "request_schema_hash": "e65bc1afce4f01900fc2931a84ec7038591463bc4aa3b50bdb9c76f92807f4d4",
+  "request_schema_ref": "CreateWorkbookArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "cfbe555c35376be109ad4d24630ad70faebf5b001783f4a6c5d6b675bb11e86b",
+  "response_schema_closure_refs": [
+    "CreateWorkbookResult",
+    "DatalensOperation",
+    "Workbook"
+  ],
+  "response_schema_hash": "f504d12d8ccf986230cbbb6cc205abb544ecf9c0abb26ad4f846706901afef9e",
+  "response_schema_ref": "CreateWorkbookResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "guarded_plan_only"
+}

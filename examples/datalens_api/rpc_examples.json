@@ -1,0 +1,51 @@
+{
+  "auth_headers": {
+    "Authorization": "Bearer <IAM_TOKEN>",
+    "accept": "application/json",
+    "content-type": "application/json",
+    "x-dl-api-version": "2",
+    "x-dl-org-id": "<ORG_ID>"
+  },
+  "plan_only": {
+    "updateConnection": {
+      "connectionId": "<CONNECTION_ID>",
+      "data": {
+        "type": "clickhouse"
+      }
+    },
+    "updateDashboard_save": {
+      "entry": {
+        "entryId": "<DASHBOARD_ID>",
+        "revId": "<REV_ID>"
+      },
+      "mode": "save"
+    },
+    "updateDataset": {
+      "data": {
+        "dataset": {}
+      },
+      "datasetId": "<DATASET_ID>"
+    },
+    "validateDataset": {
+      "data": {
+        "dataset": {}
+      },
+      "datasetId": "<DATASET_ID>",
+      "workbookId": "<WORKBOOK_ID>"
+    }
+  },
+  "readonly": {
+    "getDashboard": {
+      "branch": "saved",
+      "dashboardId": "<DASHBOARD_ID>"
+    },
+    "getEntriesRelations": {
+      "entryIds": [
+        "<ENTRY_ID>"
+      ]
+    },
+    "getWorkbookEntries": {
+      "workbookId": "<WORKBOOK_ID>"
+    }
+  }
+}

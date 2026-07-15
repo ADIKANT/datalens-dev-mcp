@@ -1,0 +1,24 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "createCollection",
+  "operation_id": "createCollection",
+  "path": "/rpc/createCollection",
+  "request_payload": {},
+  "request_schema_closure_hash": "3de63579eb574eaffc381e22f229a602bf4e7f2dfb1d8e75fd80d945b4e9630f",
+  "request_schema_closure_refs": [
+    "CreateCollectionArgs"
+  ],
+  "request_schema_hash": "8cde2b778dffa0dc44fdcfaec0ddf7339a6b0b28f45128e17ce67fd48626c4e6",
+  "request_schema_ref": "CreateCollectionArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "a23aa97f0c94246f4599c137a8185b8ae1b76b1b68b4d389b8b4514ba679a291",
+  "response_schema_closure_refs": [
+    "Collection",
+    "CreateCollectionResult",
+    "DatalensOperation"
+  ],
+  "response_schema_hash": "ab6d0a3eefce232744bd066a435706cbb819b685cad4bc413c52dd43423ade87",
+  "response_schema_ref": "CreateCollectionResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "unsupported_explicit"
+}

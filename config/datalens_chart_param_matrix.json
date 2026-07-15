@@ -1,0 +1,2539 @@
+{
+  "allowed_creation_routes": [
+    "wizard_native",
+    "editor_advanced",
+    "editor_table",
+    "editor_markdown",
+    "editor_js_control",
+    "ql_explicit"
+  ],
+  "design_process_contract": {
+    "managed_self_service": [
+      "prefer_filters_and_tables_only when they reduce repeated analyst work",
+      "declare source owner and freshness",
+      "surface data quality caveats near detail views"
+    ],
+    "required_before_parameterization": [
+      "dashboard_goal",
+      "audience",
+      "decision_action",
+      "metric_definition",
+      "source_freshness",
+      "data_quality_risks",
+      "owner"
+    ]
+  },
+  "families": {
+    "area_completion": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "date_grain_is_missing",
+        "baseline_period_is_ambiguous"
+      ],
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "one date or period field with explicit grain",
+        "dimensions": "optional series dimension with low cardinality",
+        "geo_fields": "none",
+        "measures": "one or two measures depending on variant"
+      },
+      "default_sorting": "date_ascending",
+      "description": "Completion or accumulation over time.",
+      "fallback_family": "vertical_bar_time_bucket",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "time_series",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "date_axis_shows_grain",
+        "y_axis_names_unit",
+        "direct_labels_for_few_series",
+        "gridlines_subtle"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "reference_line",
+        "target_band",
+        "series_limit"
+      ],
+      "required_parameters": [
+        "date_field",
+        "grain",
+        "measure_field",
+        "unit_label",
+        "empty_period_policy",
+        "accumulation_or_completion_definition"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "template_dir": "templates/datalens/wizard/canonical_templates.json",
+      "template_variant": "area_completion",
+      "value_formatting": [
+        "date_format_matches_grain",
+        "measure_unit_in_axis_or_tooltip",
+        "large_values_compact_consistently"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ],
+      "visualization_id": "area"
+    },
+    "box_plot": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown"
+      ],
+      "capability_gap": "wizard_has_no_box_plot_semantics",
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "optional period filter",
+        "dimensions": "optional grouping dimension",
+        "geo_fields": "none",
+        "measures": "one numeric measure"
+      },
+      "default_sorting": "numeric_bin_or_group_order",
+      "description": "Distribution summary by category.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "distribution",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "axis_names_unit",
+        "bin_or_group_labels_are_explicit",
+        "gridlines_subtle"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "group_limit",
+        "median_marker"
+      ],
+      "required_parameters": [
+        "numeric_measure",
+        "unit_label",
+        "outlier_policy",
+        "group_field"
+      ],
+      "route": "editor_advanced",
+      "selection_origin": "registered_capability_gap",
+      "template_dir": "templates/datalens/advanced_editor/distribution_relationship",
+      "template_variant": "box_plot",
+      "value_formatting": [
+        "bin_labels_show_range",
+        "outliers_visible_or_documented"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "bubble": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown"
+      ],
+      "color_strategy": "neutral_points_with_optional_group_or_focus_color",
+      "data_shape": {
+        "date_fields": "optional period filter",
+        "dimensions": "optional grouping or label dimension",
+        "geo_fields": "none",
+        "measures": "x and y numeric measures; optional size measure for bubble"
+      },
+      "default_sorting": "none_preserve_point_values",
+      "description": "Relationship with an explicit third magnitude.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "relationship_correlation",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "x_and_y_axes_name_units",
+        "labels_only_for_focus_points",
+        "avoid_dense_text_overlap"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "group_field",
+        "label_field",
+        "trend_reference"
+      ],
+      "required_parameters": [
+        "x_measure",
+        "y_measure",
+        "unit_labels",
+        "relationship_question",
+        "size_measure"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "template_dir": "templates/datalens/wizard/canonical_templates.json",
+      "template_variant": "bubble",
+      "value_formatting": [
+        "axis_units_are_independent",
+        "tooltips_show_both_measures"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ],
+      "visualization_id": "scatter"
+    },
+    "bullet_assignees": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "category_or_measure_is_missing",
+        "sort_order_changes_business_meaning"
+      ],
+      "capability_gap": "wizard_has_no_bullet_chart_semantics",
+      "color_strategy": "neutral_base_with_semantic_status_for_thresholds",
+      "data_shape": {
+        "date_fields": "optional filter or period bucket only when comparison is period-bound",
+        "dimensions": "one category dimension; optional series dimension for grouped or stacked variants",
+        "geo_fields": "none",
+        "measures": "one comparable measure plus optional target for bullet"
+      },
+      "default_sorting": "measure_descending_unless_business_order_is_declared",
+      "description": "Target versus actual comparison with strict context.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "comparison_ranking",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "bar_axis_starts_at_zero",
+        "direct_value_labels_when_space_allows",
+        "light_gridlines_only_for_lookup"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "top_n",
+        "other_bucket_policy",
+        "focus_category",
+        "threshold"
+      ],
+      "required_parameters": [
+        "category_field",
+        "measure_field",
+        "unit_label",
+        "comparison_goal",
+        "target_field"
+      ],
+      "route": "editor_advanced",
+      "selection_origin": "registered_capability_gap",
+      "template_dir": "templates/datalens/advanced_editor/category_comparison",
+      "template_variant": "bullet_assignees",
+      "value_formatting": [
+        "value_labels_match_unit",
+        "share_values_show_percent_when_whole_is_declared"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "combo_time_series_combo": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "date_grain_is_missing",
+        "baseline_period_is_ambiguous"
+      ],
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "one date or period field with explicit grain",
+        "dimensions": "optional series dimension with low cardinality",
+        "geo_fields": "none",
+        "measures": "one or two measures depending on variant"
+      },
+      "default_sorting": "date_ascending",
+      "description": "Bar and line in one time frame.",
+      "fallback_family": "vertical_bar_time_bucket",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "time_series",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "date_axis_shows_grain",
+        "y_axis_names_unit",
+        "direct_labels_for_few_series",
+        "gridlines_subtle"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "reference_line",
+        "target_band",
+        "series_limit"
+      ],
+      "required_parameters": [
+        "date_field",
+        "grain",
+        "measure_field",
+        "unit_label",
+        "empty_period_policy",
+        "series_field_or_second_measure"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "template_dir": "templates/datalens/wizard/canonical_templates.json",
+      "template_variant": "combo_time_series_combo",
+      "value_formatting": [
+        "date_format_matches_grain",
+        "measure_unit_in_axis_or_tooltip",
+        "large_values_compact_consistently"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ],
+      "visualization_id": "combined-chart"
+    },
+    "date_range_selector": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "param_name_or_default_is_missing",
+        "dynamic_option_source_is_not_defined"
+      ],
+      "color_strategy": "theme_default_controls_no_custom_decoration",
+      "data_shape": {
+        "date_fields": "date bounds for date selectors",
+        "dimensions": "one parameter field or option source",
+        "geo_fields": "none",
+        "measures": "none unless dynamic option ranking is required"
+      },
+      "default_sorting": "business_order_then_label",
+      "description": "Date range selector control.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "dashboard_control",
+      "interaction_expectations": [
+        "updates_bound_parameters",
+        "supports_reset",
+        "dynamic_options_refresh_with_dependencies"
+      ],
+      "labels_axes_gridlines": [
+        "label_names_parameter",
+        "selected_state_visible",
+        "reset_state_clear"
+      ],
+      "optional_parameters": [
+        "searchable",
+        "multiselect",
+        "dynamic_source",
+        "depends_on_param"
+      ],
+      "required_parameters": [
+        "param_name",
+        "label",
+        "option_source",
+        "default_value",
+        "reset_behavior"
+      ],
+      "route": "editor_js_control",
+      "selection_origin": "specialized_editor_route",
+      "template_dir": "templates/datalens/editor_js_control/selector",
+      "template_variant": "date_range_selector",
+      "value_formatting": [
+        "option_labels_are_human_readable",
+        "default_value_visible"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "donut": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "whole_is_not_additive_or_declared",
+        "too_many_parts_for_readable_labels"
+      ],
+      "color_strategy": "stable_part_colors_limited_to_small_cardinality",
+      "data_shape": {
+        "date_fields": "optional snapshot period",
+        "dimensions": "part dimension or hierarchy path",
+        "geo_fields": "none",
+        "measures": "one additive measure tied to a declared whole"
+      },
+      "default_sorting": "measure_descending_unless_business_order_is_declared",
+      "description": "Small part-to-whole set with optional center value.",
+      "fallback_family": "horizontal_bar",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "part_to_whole",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "labels_show_part_and_value_or_share",
+        "legend_only_when_direct_labels_do_not_fit"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "center_value",
+        "hierarchy_depth",
+        "other_bucket_policy"
+      ],
+      "required_parameters": [
+        "part_dimension",
+        "measure_field",
+        "whole_definition",
+        "max_visible_parts"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "template_dir": "templates/datalens/wizard/canonical_templates.json",
+      "template_variant": "donut",
+      "value_formatting": [
+        "parts_show_value_and_share_when_space_allows",
+        "other_bucket_is_named"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ],
+      "visualization_id": "donut"
+    },
+    "funnel_snapshot": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown"
+      ],
+      "capability_gap": "wizard_has_no_funnel_semantics",
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "optional snapshot period",
+        "dimensions": "ordered stage dimension or source and target stage fields",
+        "geo_fields": "none",
+        "measures": "one volume or count measure"
+      },
+      "default_sorting": "declared_stage_order",
+      "description": "Ordered funnel stage drop-off.",
+      "fallback_family": "funnel_snapshot",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "flow_transition",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "stage_labels_visible",
+        "volume_tooltips_required",
+        "no_unlabeled_links"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "stage_colors",
+        "minimum_visible_volume"
+      ],
+      "required_parameters": [
+        "stage_field_or_source_target",
+        "volume_field",
+        "ordered_stage_list",
+        "snapshot_period"
+      ],
+      "route": "editor_advanced",
+      "selection_origin": "registered_capability_gap",
+      "template_dir": "templates/datalens/advanced_editor/time_series",
+      "template_variant": "funnel_snapshot",
+      "value_formatting": [
+        "link_values_show_volume_unit",
+        "stage_totals_consistent_with_links"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "grouped_bar": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "category_or_measure_is_missing",
+        "sort_order_changes_business_meaning"
+      ],
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "optional filter or period bucket only when comparison is period-bound",
+        "dimensions": "one category dimension; optional series dimension for grouped or stacked variants",
+        "geo_fields": "none",
+        "measures": "one comparable measure plus optional target for bullet"
+      },
+      "default_sorting": "measure_descending_unless_business_order_is_declared",
+      "description": "Side-by-side category comparison.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "comparison_ranking",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "bar_axis_starts_at_zero",
+        "direct_value_labels_when_space_allows",
+        "light_gridlines_only_for_lookup"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "top_n",
+        "other_bucket_policy",
+        "focus_category",
+        "threshold"
+      ],
+      "required_parameters": [
+        "category_field",
+        "measure_field",
+        "unit_label",
+        "comparison_goal",
+        "series_field"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "template_dir": "templates/datalens/wizard/canonical_templates.json",
+      "template_variant": "grouped_bar",
+      "value_formatting": [
+        "value_labels_match_unit",
+        "share_values_show_percent_when_whole_is_declared"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ],
+      "visualization_id": "bar"
+    },
+    "heatmap": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "category_or_measure_is_missing",
+        "sort_order_changes_business_meaning"
+      ],
+      "capability_gap": "wizard_has_no_heatmap_matrix_semantics",
+      "color_strategy": "single_sequential_scale_with_accessible_contrast",
+      "data_shape": {
+        "date_fields": "optional filter or period bucket only when comparison is period-bound",
+        "dimensions": "one category dimension; optional series dimension for grouped or stacked variants",
+        "geo_fields": "none",
+        "measures": "one comparable measure plus optional target for bullet"
+      },
+      "default_sorting": "measure_descending_unless_business_order_is_declared",
+      "description": "Two-dimensional matrix intensity.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "comparison_ranking",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "axis_labels_for_both_dimensions",
+        "legend_names_measure_and_unit",
+        "gridlines_are_cell_boundaries_only"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "top_n",
+        "other_bucket_policy",
+        "focus_category",
+        "threshold"
+      ],
+      "required_parameters": [
+        "category_field",
+        "measure_field",
+        "unit_label",
+        "comparison_goal",
+        "x_dimension",
+        "y_dimension",
+        "color_measure"
+      ],
+      "route": "editor_advanced",
+      "selection_origin": "registered_capability_gap",
+      "template_dir": "templates/datalens/advanced_editor/category_comparison",
+      "template_variant": "heatmap",
+      "value_formatting": [
+        "value_labels_match_unit",
+        "share_values_show_percent_when_whole_is_declared"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "histogram": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown"
+      ],
+      "capability_gap": "wizard_has_no_histogram_semantics",
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "optional period filter",
+        "dimensions": "optional grouping dimension",
+        "geo_fields": "none",
+        "measures": "one numeric measure"
+      },
+      "default_sorting": "numeric_bin_or_group_order",
+      "description": "Numeric distribution bins.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "distribution",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "axis_names_unit",
+        "bin_or_group_labels_are_explicit",
+        "gridlines_subtle"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "group_limit",
+        "median_marker"
+      ],
+      "required_parameters": [
+        "numeric_measure",
+        "unit_label",
+        "outlier_policy",
+        "bin_rule"
+      ],
+      "route": "editor_advanced",
+      "selection_origin": "registered_capability_gap",
+      "template_dir": "templates/datalens/advanced_editor/distribution_relationship",
+      "template_variant": "histogram",
+      "value_formatting": [
+        "bin_labels_show_range",
+        "outliers_visible_or_documented"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "horizontal_bar": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "category_or_measure_is_missing",
+        "sort_order_changes_business_meaning"
+      ],
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "optional filter or period bucket only when comparison is period-bound",
+        "dimensions": "one category dimension; optional series dimension for grouped or stacked variants",
+        "geo_fields": "none",
+        "measures": "one comparable measure plus optional target for bullet"
+      },
+      "default_sorting": "measure_descending_unless_business_order_is_declared",
+      "description": "Sorted category comparison or ranking.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "comparison_ranking",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "bar_axis_starts_at_zero",
+        "direct_value_labels_when_space_allows",
+        "light_gridlines_only_for_lookup"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "top_n",
+        "other_bucket_policy",
+        "focus_category",
+        "threshold"
+      ],
+      "required_parameters": [
+        "category_field",
+        "measure_field",
+        "unit_label",
+        "comparison_goal"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "template_dir": "templates/datalens/wizard/canonical_templates.json",
+      "template_variant": "horizontal_bar",
+      "value_formatting": [
+        "value_labels_match_unit",
+        "share_values_show_percent_when_whole_is_declared"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ],
+      "visualization_id": "bar"
+    },
+    "kpi_value_delta": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown"
+      ],
+      "color_strategy": "neutral_base_with_semantic_status_for_thresholds",
+      "data_shape": {
+        "date_fields": "period or freshness field required for period-bound KPIs",
+        "dimensions": "optional segment dimension only when the KPI must be sliced",
+        "geo_fields": "none",
+        "measures": "one primary metric plus explicit comparator when required"
+      },
+      "default_sorting": "not_applicable",
+      "description": "KPI with current value and an explicitly declared comparator delta.",
+      "fallback_family": "kpi_value_only",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "kpi_status",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "no_internal_title_duplicate",
+        "value_and_delta_are_primary",
+        "sparkline_axis_hidden_with_tooltip_values"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "status_thresholds",
+        "secondary_label",
+        "no_data_message"
+      ],
+      "required_parameters": [
+        "metric_id",
+        "metric_label",
+        "value_field",
+        "period_label",
+        "format",
+        "comparison_field_or_baseline_explicit"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "template_dir": "templates/datalens/wizard/canonical_templates.json",
+      "template_variant": "kpi_value_delta",
+      "value_formatting": [
+        "primary_value_uses_declared_unit",
+        "delta_includes_direction_and_comparator_label",
+        "empty_value_is_explicit"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ],
+      "visualization_id": "metric"
+    },
+    "kpi_value_delta_sparkline": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown"
+      ],
+      "capability_gap": "composite_kpi_with_sparkline",
+      "color_strategy": "neutral_base_with_semantic_status_for_thresholds",
+      "data_shape": {
+        "date_fields": "period or freshness field required for period-bound KPIs",
+        "dimensions": "optional segment dimension only when the KPI must be sliced",
+        "geo_fields": "none",
+        "measures": "one primary metric plus explicit comparator and trend metric"
+      },
+      "default_sorting": "not_applicable",
+      "description": "KPI value with trend and an explicitly declared comparator delta.",
+      "fallback_family": "kpi_value_sparkline",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "kpi_status",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "no_internal_title_duplicate",
+        "value_and_delta_are_primary",
+        "sparkline_axis_hidden_with_tooltip_values"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "status_thresholds",
+        "secondary_label",
+        "no_data_message"
+      ],
+      "required_parameters": [
+        "metric_id",
+        "metric_label",
+        "value_field",
+        "period_label",
+        "format",
+        "comparison_field_or_baseline_explicit",
+        "trend_date_field",
+        "trend_value_field"
+      ],
+      "route": "editor_advanced",
+      "selection_origin": "registered_capability_gap",
+      "template_dir": "templates/datalens/advanced_editor/kpi_card",
+      "template_variant": "kpi_value_delta_sparkline",
+      "value_formatting": [
+        "primary_value_uses_declared_unit",
+        "delta_includes_direction_and_comparator_label",
+        "empty_value_is_explicit"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "kpi_value_only": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown"
+      ],
+      "color_strategy": "neutral_base_with_semantic_status_for_thresholds",
+      "data_shape": {
+        "date_fields": "period or freshness field required for period-bound KPIs",
+        "dimensions": "optional segment dimension only when the KPI must be sliced",
+        "geo_fields": "none",
+        "measures": "one primary metric"
+      },
+      "default_sorting": "not_applicable",
+      "description": "Single KPI value with title and hint.",
+      "fallback_family": "kpi_value_only",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "kpi_status",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "no_internal_title_duplicate",
+        "value_is_primary",
+        "sparkline_axis_hidden_with_tooltip_values"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "status_thresholds",
+        "secondary_label",
+        "no_data_message"
+      ],
+      "required_parameters": [
+        "metric_id",
+        "metric_label",
+        "value_field",
+        "period_label",
+        "format"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "template_dir": "templates/datalens/wizard/canonical_templates.json",
+      "template_variant": "kpi_value_only",
+      "value_formatting": [
+        "primary_value_uses_declared_unit",
+        "no_delta_without_explicit_comparator",
+        "empty_value_is_explicit"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ],
+      "visualization_id": "metric"
+    },
+    "kpi_value_sparkline": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown"
+      ],
+      "capability_gap": "composite_kpi_with_sparkline",
+      "color_strategy": "neutral_base_with_semantic_status_for_thresholds",
+      "data_shape": {
+        "date_fields": "period or freshness field required for period-bound KPIs",
+        "dimensions": "optional segment dimension only when the KPI must be sliced",
+        "geo_fields": "none",
+        "measures": "one primary metric plus optional trend metric"
+      },
+      "default_sorting": "not_applicable",
+      "description": "KPI value with compact trend context.",
+      "fallback_family": "kpi_value_only",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "kpi_status",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "no_internal_title_duplicate",
+        "value_and_trend_are_primary",
+        "sparkline_axis_hidden_with_tooltip_values"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "status_thresholds",
+        "secondary_label",
+        "no_data_message"
+      ],
+      "required_parameters": [
+        "metric_id",
+        "metric_label",
+        "value_field",
+        "period_label",
+        "format",
+        "trend_date_field",
+        "trend_value_field"
+      ],
+      "route": "editor_advanced",
+      "selection_origin": "registered_capability_gap",
+      "template_dir": "templates/datalens/advanced_editor/kpi_card",
+      "template_variant": "kpi_value_sparkline",
+      "value_formatting": [
+        "primary_value_uses_declared_unit",
+        "trend_context_without_implicit_delta",
+        "empty_value_is_explicit"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "line_chart": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "date_grain_is_missing",
+        "baseline_period_is_ambiguous"
+      ],
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "one date or period field with explicit grain",
+        "dimensions": "optional series dimension with low cardinality",
+        "geo_fields": "none",
+        "measures": "one or two measures depending on variant"
+      },
+      "default_sorting": "date_ascending",
+      "description": "Continuous time trend.",
+      "fallback_family": "vertical_bar_time_bucket",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "time_series",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "date_axis_shows_grain",
+        "y_axis_names_unit",
+        "direct_labels_for_few_series",
+        "gridlines_subtle"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "reference_line",
+        "target_band",
+        "series_limit"
+      ],
+      "required_parameters": [
+        "date_field",
+        "grain",
+        "measure_field",
+        "unit_label",
+        "empty_period_policy"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "template_dir": "templates/datalens/wizard/canonical_templates.json",
+      "template_variant": "line_chart",
+      "value_formatting": [
+        "date_format_matches_grain",
+        "measure_unit_in_axis_or_tooltip",
+        "large_values_compact_consistently"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ],
+      "visualization_id": "line"
+    },
+    "md_contact_block": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown"
+      ],
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "optional freshness date for source notes",
+        "dimensions": "none unless text depends on source context",
+        "geo_fields": "none",
+        "measures": "none"
+      },
+      "default_sorting": "not_applicable",
+      "description": "Contact metadata block.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "dashboard_text_context",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "text_block_uses_native_title_or_header_context"
+      ],
+      "optional_parameters": [
+        "source_freshness",
+        "owner",
+        "link_url"
+      ],
+      "required_parameters": [
+        "block_type",
+        "title_or_label",
+        "body_or_metadata_source"
+      ],
+      "route": "editor_markdown",
+      "selection_origin": "specialized_editor_route",
+      "template_dir": "templates/datalens/editor_markdown/markdown_block",
+      "template_variant": "md_contact_block",
+      "value_formatting": [
+        "text_uses_short_operational_labels"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "md_dashboard_owner": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown"
+      ],
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "optional freshness date for source notes",
+        "dimensions": "none unless text depends on source context",
+        "geo_fields": "none",
+        "measures": "none"
+      },
+      "default_sorting": "not_applicable",
+      "description": "Dashboard owner metadata block.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "dashboard_text_context",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "text_block_uses_native_title_or_header_context"
+      ],
+      "optional_parameters": [
+        "source_freshness",
+        "owner",
+        "link_url"
+      ],
+      "required_parameters": [
+        "block_type",
+        "title_or_label",
+        "body_or_metadata_source"
+      ],
+      "route": "editor_markdown",
+      "selection_origin": "specialized_editor_route",
+      "template_dir": "templates/datalens/editor_markdown/markdown_block",
+      "template_variant": "md_dashboard_owner",
+      "value_formatting": [
+        "text_uses_short_operational_labels"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "md_methodology_block": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown"
+      ],
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "optional freshness date for source notes",
+        "dimensions": "none unless text depends on source context",
+        "geo_fields": "none",
+        "measures": "none"
+      },
+      "default_sorting": "not_applicable",
+      "description": "Methodology or explanatory Markdown.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "dashboard_text_context",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "text_block_uses_native_title_or_header_context"
+      ],
+      "optional_parameters": [
+        "source_freshness",
+        "owner",
+        "link_url"
+      ],
+      "required_parameters": [
+        "block_type",
+        "title_or_label",
+        "body_or_metadata_source"
+      ],
+      "route": "editor_markdown",
+      "selection_origin": "specialized_editor_route",
+      "template_dir": "templates/datalens/editor_markdown/markdown_block",
+      "template_variant": "md_methodology_block",
+      "value_formatting": [
+        "text_uses_short_operational_labels"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "md_requirements_link_block": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown"
+      ],
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "optional freshness date for source notes",
+        "dimensions": "none unless text depends on source context",
+        "geo_fields": "none",
+        "measures": "none"
+      },
+      "default_sorting": "not_applicable",
+      "description": "Requirements link block.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "dashboard_text_context",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "text_block_uses_native_title_or_header_context"
+      ],
+      "optional_parameters": [
+        "source_freshness",
+        "owner",
+        "link_url"
+      ],
+      "required_parameters": [
+        "block_type",
+        "title_or_label",
+        "body_or_metadata_source"
+      ],
+      "route": "editor_markdown",
+      "selection_origin": "specialized_editor_route",
+      "template_dir": "templates/datalens/editor_markdown/markdown_block",
+      "template_variant": "md_requirements_link_block",
+      "value_formatting": [
+        "text_uses_short_operational_labels"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "md_section_header": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown"
+      ],
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "optional freshness date for source notes",
+        "dimensions": "none unless text depends on source context",
+        "geo_fields": "none",
+        "measures": "none"
+      },
+      "default_sorting": "not_applicable",
+      "description": "Markdown section divider.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "dashboard_text_context",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "text_block_uses_native_title_or_header_context"
+      ],
+      "optional_parameters": [
+        "source_freshness",
+        "owner",
+        "link_url"
+      ],
+      "required_parameters": [
+        "block_type",
+        "title_or_label",
+        "body_or_metadata_source"
+      ],
+      "route": "editor_markdown",
+      "selection_origin": "specialized_editor_route",
+      "template_dir": "templates/datalens/editor_markdown/markdown_block",
+      "template_variant": "md_section_header",
+      "value_formatting": [
+        "text_uses_short_operational_labels"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "md_source_notes": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown"
+      ],
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "optional freshness date for source notes",
+        "dimensions": "none unless text depends on source context",
+        "geo_fields": "none",
+        "measures": "none"
+      },
+      "default_sorting": "not_applicable",
+      "description": "Source notes block.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "dashboard_text_context",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "text_block_uses_native_title_or_header_context"
+      ],
+      "optional_parameters": [
+        "source_freshness",
+        "owner",
+        "link_url"
+      ],
+      "required_parameters": [
+        "block_type",
+        "title_or_label",
+        "body_or_metadata_source"
+      ],
+      "route": "editor_markdown",
+      "selection_origin": "specialized_editor_route",
+      "template_dir": "templates/datalens/editor_markdown/markdown_block",
+      "template_variant": "md_source_notes",
+      "value_formatting": [
+        "text_uses_short_operational_labels"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "multi_select_dropdown": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "param_name_or_default_is_missing",
+        "dynamic_option_source_is_not_defined"
+      ],
+      "color_strategy": "theme_default_controls_no_custom_decoration",
+      "data_shape": {
+        "date_fields": "date bounds for date selectors",
+        "dimensions": "one parameter field or option source",
+        "geo_fields": "none",
+        "measures": "none unless dynamic option ranking is required"
+      },
+      "default_sorting": "business_order_then_label",
+      "description": "Static multi-select control.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "dashboard_control",
+      "interaction_expectations": [
+        "updates_bound_parameters",
+        "supports_reset",
+        "dynamic_options_refresh_with_dependencies"
+      ],
+      "labels_axes_gridlines": [
+        "label_names_parameter",
+        "selected_state_visible",
+        "reset_state_clear"
+      ],
+      "optional_parameters": [
+        "searchable",
+        "multiselect",
+        "dynamic_source",
+        "depends_on_param"
+      ],
+      "required_parameters": [
+        "param_name",
+        "label",
+        "option_source",
+        "default_value",
+        "reset_behavior"
+      ],
+      "route": "editor_js_control",
+      "selection_origin": "specialized_editor_route",
+      "template_dir": "templates/datalens/editor_js_control/selector",
+      "template_variant": "multi_select_dropdown",
+      "value_formatting": [
+        "option_labels_are_human_readable",
+        "default_value_visible"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "multiline_chart": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "date_grain_is_missing",
+        "baseline_period_is_ambiguous"
+      ],
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "one date or period field with explicit grain",
+        "dimensions": "optional series dimension with low cardinality",
+        "geo_fields": "none",
+        "measures": "one or two measures depending on variant"
+      },
+      "default_sorting": "date_ascending",
+      "description": "Two or more comparable time series.",
+      "fallback_family": "vertical_bar_time_bucket",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "time_series",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "date_axis_shows_grain",
+        "y_axis_names_unit",
+        "direct_labels_for_few_series",
+        "gridlines_subtle"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "reference_line",
+        "target_band",
+        "series_limit"
+      ],
+      "required_parameters": [
+        "date_field",
+        "grain",
+        "measure_field",
+        "unit_label",
+        "empty_period_policy",
+        "series_field_or_second_measure"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "template_dir": "templates/datalens/wizard/canonical_templates.json",
+      "template_variant": "multiline_chart",
+      "value_formatting": [
+        "date_format_matches_grain",
+        "measure_unit_in_axis_or_tooltip",
+        "large_values_compact_consistently"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ],
+      "visualization_id": "line"
+    },
+    "native_map_geo_widget": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "geo_evidence_kind_is_missing"
+      ],
+      "color_strategy": "native_map_scale_or_status_palette_with_noncolor_tooltip_evidence",
+      "data_shape": {
+        "date_fields": "optional snapshot or freshness field",
+        "dimensions": "optional category or status grouping",
+        "geo_fields": "validated geopoint, geopolygon, or latitude and longitude pair",
+        "measures": "one measure or status field"
+      },
+      "default_sorting": "not_applicable",
+      "description": "Native Wizard map plan with validated geographic evidence.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "geography_map",
+      "interaction_expectations": [
+        "map_tooltip_and_native_zoom_pan",
+        "selection_must_preserve_dashboard_filter_context"
+      ],
+      "labels_axes_gridlines": [
+        "map_layer_name_visible_in_hint_or_tooltip",
+        "tooltip_names_geo_and_value",
+        "legend_required_for_status_or_scale"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "layer_name",
+        "tooltip_template",
+        "viewport_hint"
+      ],
+      "required_parameters": [
+        "geo_field",
+        "geo_evidence_kind",
+        "measure_or_status_field",
+        "map_grain"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "template_dir": "templates/datalens/wizard/canonical_templates.json",
+      "template_variant": "native_map_geo_widget",
+      "value_formatting": [
+        "geo_tooltip_shows_name_value_and_grain",
+        "scale_unit_declared"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ],
+      "visualization_id": "geolayer"
+    },
+    "pie": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "whole_is_not_additive_or_declared",
+        "too_many_parts_for_readable_labels"
+      ],
+      "color_strategy": "stable_part_colors_limited_to_small_cardinality",
+      "data_shape": {
+        "date_fields": "optional snapshot period",
+        "dimensions": "part dimension or hierarchy path",
+        "geo_fields": "none",
+        "measures": "one additive measure tied to a declared whole"
+      },
+      "default_sorting": "measure_descending_unless_business_order_is_declared",
+      "description": "Small part-to-whole set when donut center is unnecessary.",
+      "fallback_family": "horizontal_bar",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "part_to_whole",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "labels_show_part_and_value_or_share",
+        "legend_only_when_direct_labels_do_not_fit"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "center_value",
+        "hierarchy_depth",
+        "other_bucket_policy"
+      ],
+      "required_parameters": [
+        "part_dimension",
+        "measure_field",
+        "whole_definition",
+        "max_visible_parts"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "template_dir": "templates/datalens/wizard/canonical_templates.json",
+      "template_variant": "pie",
+      "value_formatting": [
+        "parts_show_value_and_share_when_space_allows",
+        "other_bucket_is_named"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ],
+      "visualization_id": "pie"
+    },
+    "resource_schedule_exception": {
+      "ask_user_when": [
+        "resource_or_interval_fields_are_missing",
+        "timezone_or_as_of_is_missing",
+        "conflict_semantics_are_ambiguous"
+      ],
+      "bounds": {
+        "lanes_per_resource": 8,
+        "model_bytes_utf8": 120000,
+        "resources": 50,
+        "rows": 1000,
+        "span_days": 90
+      },
+      "capability_gap": "custom_resource_schedule_interaction",
+      "color_strategy": "neutral_status_palette_with_text_or_border_for_conflicts",
+      "data_shape": {
+        "date_fields": "start_at and end_at ISO timestamps with explicit offsets",
+        "dimensions": "resource id/name, item id, status, optional owner and link",
+        "geo_fields": "none",
+        "measures": "interval duration derived deterministically from timestamps"
+      },
+      "default_sorting": "resource_then_start_then_end_then_item_id",
+      "description": "Explicit-only bounded resource-by-time schedule for overlap and conflict analysis.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use table_node when interval evidence is invalid or row/resource/lane/span/model caps are exceeded.",
+      "intent": "resource_schedule_conflict_analysis",
+      "interaction_expectations": [
+        "safe_link_to_detail_when_available",
+        "conflict_state_is_visible_without_color_only_encoding"
+      ],
+      "labels_axes_gridlines": [
+        "resource_labels_are_pinned_left",
+        "time_window_is_explicit",
+        "overlaps_use_deterministic_lanes"
+      ],
+      "optional_parameters": [
+        "owner",
+        "link",
+        "ignored_conflict_statuses",
+        "allow_http_links"
+      ],
+      "required_parameters": [
+        "resource_id",
+        "resource_name",
+        "item_id",
+        "start_at",
+        "end_at",
+        "status",
+        "timezone",
+        "as_of"
+      ],
+      "route": "editor_advanced",
+      "selection_origin": "registered_capability_gap",
+      "selection_policy": "explicit_only",
+      "template_dir": "templates/datalens/advanced_editor/resource_schedule_exception",
+      "template_variant": "resource_schedule_exception",
+      "value_formatting": [
+        "timestamps_preserve_explicit_offsets",
+        "duration_and_conflict_labels_are_textual"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "explicit_request_only_not_generic_timeline",
+        "inject_as_of_instead_of_using_render_clock",
+        "fallback_to_table_when_any_bound_fails"
+      ]
+    },
+    "sankey_status_flow": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown"
+      ],
+      "capability_gap": "wizard_has_no_sankey_semantics",
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "optional snapshot period",
+        "dimensions": "ordered stage dimension or source and target stage fields",
+        "geo_fields": "none",
+        "measures": "one volume or count measure"
+      },
+      "default_sorting": "declared_stage_order",
+      "description": "Approved only when flow volumes and stages are explicit.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "flow_transition",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "stage_labels_visible",
+        "volume_tooltips_required",
+        "no_unlabeled_links"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "stage_colors",
+        "minimum_visible_volume"
+      ],
+      "required_parameters": [
+        "stage_field_or_source_target",
+        "volume_field",
+        "ordered_stage_list",
+        "snapshot_period"
+      ],
+      "route": "editor_advanced",
+      "selection_origin": "registered_capability_gap",
+      "template_dir": "templates/datalens/advanced_editor/flow_sankey",
+      "template_variant": "sankey_status_flow",
+      "value_formatting": [
+        "link_values_show_volume_unit",
+        "stage_totals_consistent_with_links"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "scatter": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown"
+      ],
+      "color_strategy": "neutral_points_with_optional_group_or_focus_color",
+      "data_shape": {
+        "date_fields": "optional period filter",
+        "dimensions": "optional grouping or label dimension",
+        "geo_fields": "none",
+        "measures": "x and y numeric measures; optional size measure for bubble"
+      },
+      "default_sorting": "none_preserve_point_values",
+      "description": "Relationship between two numeric measures.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "relationship_correlation",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "x_and_y_axes_name_units",
+        "labels_only_for_focus_points",
+        "avoid_dense_text_overlap"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "group_field",
+        "label_field",
+        "trend_reference"
+      ],
+      "required_parameters": [
+        "x_measure",
+        "y_measure",
+        "unit_labels",
+        "relationship_question"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "template_dir": "templates/datalens/wizard/canonical_templates.json",
+      "template_variant": "scatter",
+      "value_formatting": [
+        "axis_units_are_independent",
+        "tooltips_show_both_measures"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ],
+      "visualization_id": "scatter"
+    },
+    "search_selector": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "param_name_or_default_is_missing",
+        "dynamic_option_source_is_not_defined"
+      ],
+      "color_strategy": "theme_default_controls_no_custom_decoration",
+      "data_shape": {
+        "date_fields": "date bounds for date selectors",
+        "dimensions": "one parameter field or option source",
+        "geo_fields": "none",
+        "measures": "none unless dynamic option ranking is required"
+      },
+      "default_sorting": "business_order_then_label",
+      "description": "Searchable selector control.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "dashboard_control",
+      "interaction_expectations": [
+        "updates_bound_parameters",
+        "supports_reset",
+        "dynamic_options_refresh_with_dependencies"
+      ],
+      "labels_axes_gridlines": [
+        "label_names_parameter",
+        "selected_state_visible",
+        "reset_state_clear"
+      ],
+      "optional_parameters": [
+        "searchable",
+        "multiselect",
+        "dynamic_source",
+        "depends_on_param"
+      ],
+      "required_parameters": [
+        "param_name",
+        "label",
+        "option_source",
+        "default_value",
+        "reset_behavior"
+      ],
+      "route": "editor_js_control",
+      "selection_origin": "specialized_editor_route",
+      "template_dir": "templates/datalens/editor_js_control/selector",
+      "template_variant": "search_selector",
+      "value_formatting": [
+        "option_labels_are_human_readable",
+        "default_value_visible"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "selector_family_dynamic": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "param_name_or_default_is_missing",
+        "dynamic_option_source_is_not_defined"
+      ],
+      "color_strategy": "theme_default_controls_no_custom_decoration",
+      "data_shape": {
+        "date_fields": "date bounds for date selectors",
+        "dimensions": "one parameter field or option source",
+        "geo_fields": "none",
+        "measures": "none unless dynamic option ranking is required"
+      },
+      "default_sorting": "business_order_then_label",
+      "description": "Dynamic selector family backed by sources.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "dashboard_control",
+      "interaction_expectations": [
+        "updates_bound_parameters",
+        "supports_reset",
+        "dynamic_options_refresh_with_dependencies"
+      ],
+      "labels_axes_gridlines": [
+        "label_names_parameter",
+        "selected_state_visible",
+        "reset_state_clear"
+      ],
+      "optional_parameters": [
+        "searchable",
+        "multiselect",
+        "dynamic_source",
+        "depends_on_param"
+      ],
+      "required_parameters": [
+        "param_name",
+        "label",
+        "option_source",
+        "default_value",
+        "reset_behavior"
+      ],
+      "route": "editor_js_control",
+      "selection_origin": "specialized_editor_route",
+      "template_dir": "templates/datalens/editor_js_control/selector",
+      "template_variant": "selector_family_dynamic",
+      "value_formatting": [
+        "option_labels_are_human_readable",
+        "default_value_visible"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "selector_family_static": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "param_name_or_default_is_missing",
+        "dynamic_option_source_is_not_defined"
+      ],
+      "color_strategy": "theme_default_controls_no_custom_decoration",
+      "data_shape": {
+        "date_fields": "date bounds for date selectors",
+        "dimensions": "one parameter field or option source",
+        "geo_fields": "none",
+        "measures": "none unless dynamic option ranking is required"
+      },
+      "default_sorting": "business_order_then_label",
+      "description": "Static selector family.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "dashboard_control",
+      "interaction_expectations": [
+        "updates_bound_parameters",
+        "supports_reset",
+        "dynamic_options_refresh_with_dependencies"
+      ],
+      "labels_axes_gridlines": [
+        "label_names_parameter",
+        "selected_state_visible",
+        "reset_state_clear"
+      ],
+      "optional_parameters": [
+        "searchable",
+        "multiselect",
+        "dynamic_source",
+        "depends_on_param"
+      ],
+      "required_parameters": [
+        "param_name",
+        "label",
+        "option_source",
+        "default_value",
+        "reset_behavior"
+      ],
+      "route": "editor_js_control",
+      "selection_origin": "specialized_editor_route",
+      "template_dir": "templates/datalens/editor_js_control/selector",
+      "template_variant": "selector_family_static",
+      "value_formatting": [
+        "option_labels_are_human_readable",
+        "default_value_visible"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "single_select_dropdown": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "param_name_or_default_is_missing",
+        "dynamic_option_source_is_not_defined"
+      ],
+      "color_strategy": "theme_default_controls_no_custom_decoration",
+      "data_shape": {
+        "date_fields": "date bounds for date selectors",
+        "dimensions": "one parameter field or option source",
+        "geo_fields": "none",
+        "measures": "none unless dynamic option ranking is required"
+      },
+      "default_sorting": "business_order_then_label",
+      "description": "Static single-select control.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "dashboard_control",
+      "interaction_expectations": [
+        "updates_bound_parameters",
+        "supports_reset",
+        "dynamic_options_refresh_with_dependencies"
+      ],
+      "labels_axes_gridlines": [
+        "label_names_parameter",
+        "selected_state_visible",
+        "reset_state_clear"
+      ],
+      "optional_parameters": [
+        "searchable",
+        "multiselect",
+        "dynamic_source",
+        "depends_on_param"
+      ],
+      "required_parameters": [
+        "param_name",
+        "label",
+        "option_source",
+        "default_value",
+        "reset_behavior"
+      ],
+      "route": "editor_js_control",
+      "selection_origin": "specialized_editor_route",
+      "template_dir": "templates/datalens/editor_js_control/selector",
+      "template_variant": "single_select_dropdown",
+      "value_formatting": [
+        "option_labels_are_human_readable",
+        "default_value_visible"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "stacked_100": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "category_or_measure_is_missing",
+        "sort_order_changes_business_meaning"
+      ],
+      "color_strategy": "stable_category_palette_limited_to_actionable_segments",
+      "data_shape": {
+        "date_fields": "optional filter or period bucket only when comparison is period-bound",
+        "dimensions": "one category dimension; optional series dimension for grouped or stacked variants",
+        "geo_fields": "none",
+        "measures": "one comparable measure plus optional target for bullet"
+      },
+      "default_sorting": "category_by_primary_share_or_business_order",
+      "description": "Part-to-whole comparison across categories.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "comparison_ranking",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "bar_axis_starts_at_zero",
+        "direct_value_labels_when_space_allows",
+        "light_gridlines_only_for_lookup"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "top_n",
+        "other_bucket_policy",
+        "focus_category",
+        "threshold"
+      ],
+      "required_parameters": [
+        "category_field",
+        "measure_field",
+        "unit_label",
+        "comparison_goal",
+        "whole_definition"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "template_dir": "templates/datalens/wizard/canonical_templates.json",
+      "template_variant": "stacked_100",
+      "value_formatting": [
+        "value_labels_match_unit",
+        "share_values_show_percent_when_whole_is_declared"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ],
+      "visualization_id": "column100p"
+    },
+    "table_node": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown"
+      ],
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "optional freshness, created, or updated fields",
+        "dimensions": "detail columns, identifiers, and grouping fields",
+        "geo_fields": "optional display-only geo fields",
+        "measures": "detail measures and formatted values"
+      },
+      "default_sorting": "primary_sort_then_stable_secondary_key",
+      "description": "Default exact-value JavaScript Table route.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "table_detail_self_service",
+      "interaction_expectations": [
+        "sort_filter_and_link_to_detail_when_available",
+        "preserve_selection_context"
+      ],
+      "labels_axes_gridlines": [
+        "column_headers_are_short",
+        "units_in_headers",
+        "row_density_prioritizes_scanning"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "conditional_formatting",
+        "column_groups",
+        "sticky_columns"
+      ],
+      "required_parameters": [
+        "columns",
+        "primary_sort",
+        "page_size",
+        "empty_state"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "template_dir": "templates/datalens/wizard/canonical_templates.json",
+      "template_variant": "table_node",
+      "value_formatting": [
+        "numbers_dates_and_statuses_use_column_specific_formats"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ],
+      "visualization_id": "flatTable"
+    },
+    "treemap": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "whole_is_not_additive_or_declared",
+        "too_many_parts_for_readable_labels"
+      ],
+      "color_strategy": "stable_part_colors_limited_to_small_cardinality",
+      "data_shape": {
+        "date_fields": "optional snapshot period",
+        "dimensions": "part dimension or hierarchy path",
+        "geo_fields": "none",
+        "measures": "one additive measure tied to a declared whole"
+      },
+      "default_sorting": "measure_descending_unless_business_order_is_declared",
+      "description": "Hierarchical part-to-whole or size by category.",
+      "fallback_family": "horizontal_bar",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "part_to_whole",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "labels_show_part_and_value_or_share",
+        "legend_only_when_direct_labels_do_not_fit"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "center_value",
+        "hierarchy_depth",
+        "other_bucket_policy"
+      ],
+      "required_parameters": [
+        "part_dimension",
+        "measure_field",
+        "whole_definition",
+        "max_visible_parts"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "template_dir": "templates/datalens/wizard/canonical_templates.json",
+      "template_variant": "treemap",
+      "value_formatting": [
+        "parts_show_value_and_share_when_space_allows",
+        "other_bucket_is_named"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ],
+      "visualization_id": "treemap"
+    },
+    "vertical_bar_time_bucket": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "date_grain_is_missing",
+        "baseline_period_is_ambiguous"
+      ],
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "one date or period field with explicit grain",
+        "dimensions": "optional series dimension with low cardinality",
+        "geo_fields": "none",
+        "measures": "one or two measures depending on variant"
+      },
+      "default_sorting": "date_ascending",
+      "description": "Discrete period bucket comparison.",
+      "fallback_family": "vertical_bar_time_bucket",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "time_series",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "date_axis_shows_grain",
+        "y_axis_names_unit",
+        "direct_labels_for_few_series",
+        "gridlines_subtle"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "reference_line",
+        "target_band",
+        "series_limit"
+      ],
+      "required_parameters": [
+        "date_field",
+        "grain",
+        "measure_field",
+        "unit_label",
+        "empty_period_policy"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "template_dir": "templates/datalens/wizard/canonical_templates.json",
+      "template_variant": "vertical_bar_time_bucket",
+      "value_formatting": [
+        "date_format_matches_grain",
+        "measure_unit_in_axis_or_tooltip",
+        "large_values_compact_consistently"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ],
+      "visualization_id": "column"
+    },
+    "waterfall": {
+      "ask_user_when": [
+        "goal_or_action_is_missing",
+        "metric_definition_or_owner_is_missing",
+        "source_freshness_or_quality_is_unknown",
+        "category_or_measure_is_missing",
+        "sort_order_changes_business_meaning"
+      ],
+      "capability_gap": "wizard_has_no_waterfall_semantics",
+      "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
+      "data_shape": {
+        "date_fields": "optional filter or period bucket only when comparison is period-bound",
+        "dimensions": "one category dimension; optional series dimension for grouped or stacked variants",
+        "geo_fields": "none",
+        "measures": "one comparable measure plus optional target for bullet"
+      },
+      "default_sorting": "declared_step_order",
+      "description": "Contribution or bridge analysis.",
+      "fallback_family": "table_node",
+      "fallback_reason": "Use the simpler family when required evidence, cardinality, or readability constraints fail.",
+      "intent": "comparison_ranking",
+      "interaction_expectations": [
+        "tooltip_exposes_metric_definition_and_source_context",
+        "cross_filter_only_when_dashboard_contract_declares_it"
+      ],
+      "labels_axes_gridlines": [
+        "bar_axis_starts_at_zero",
+        "direct_value_labels_when_space_allows",
+        "light_gridlines_only_for_lookup"
+      ],
+      "optional_parameters": [
+        "filters",
+        "tooltip_fields",
+        "drilldown_target",
+        "dashboard_linkage",
+        "top_n",
+        "other_bucket_policy",
+        "focus_category",
+        "threshold"
+      ],
+      "required_parameters": [
+        "category_field",
+        "measure_field",
+        "unit_label",
+        "comparison_goal",
+        "step_field",
+        "contribution_field",
+        "total_policy"
+      ],
+      "route": "editor_advanced",
+      "selection_origin": "registered_capability_gap",
+      "template_dir": "templates/datalens/advanced_editor/category_comparison",
+      "template_variant": "waterfall",
+      "value_formatting": [
+        "value_labels_match_unit",
+        "share_values_show_percent_when_whole_is_declared"
+      ],
+      "visual_constraints": [
+        "keep_native_dashboard_title_and_hint_outside_chart_body",
+        "remove_3d_shadows_ornaments_and_decorative_backgrounds",
+        "use_color_for_semantics_focus_or_grouping_not_decoration",
+        "prefer_direct_labels_when_they_reduce_lookup",
+        "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    }
+  },
+  "intent_matrix": [
+    {
+      "capability_gap": "composite_kpi_with_sparkline",
+      "default_family": "kpi_value_sparkline",
+      "fallback_family": "kpi_value_only",
+      "intent": "kpi_status",
+      "required_evidence": [
+        "metric_definition",
+        "period",
+        "period_or_freshness",
+        "decision_action"
+      ],
+      "route": "editor_advanced",
+      "selection_origin": "registered_capability_gap"
+    },
+    {
+      "default_family": "horizontal_bar",
+      "fallback_family": "table_node",
+      "intent": "comparison_ranking",
+      "required_evidence": [
+        "category",
+        "measure",
+        "ranking_or_comparison_goal"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "visualization_id": "bar"
+    },
+    {
+      "default_family": "line_chart",
+      "fallback_family": "vertical_bar_time_bucket",
+      "intent": "time_series",
+      "required_evidence": [
+        "date_or_period",
+        "measure",
+        "grain",
+        "freshness_expectation"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "visualization_id": "line"
+    },
+    {
+      "capability_gap": "wizard_has_no_histogram_semantics",
+      "default_family": "histogram",
+      "fallback_family": "table_node",
+      "intent": "distribution",
+      "required_evidence": [
+        "numeric_measure",
+        "binning_or_grouping_rule",
+        "outlier_policy"
+      ],
+      "route": "editor_advanced",
+      "selection_origin": "registered_capability_gap"
+    },
+    {
+      "default_family": "scatter",
+      "fallback_family": "table_node",
+      "intent": "relationship_correlation",
+      "required_evidence": [
+        "x_measure",
+        "y_measure",
+        "relationship_question"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "visualization_id": "scatter"
+    },
+    {
+      "default_family": "donut",
+      "fallback_family": "horizontal_bar",
+      "intent": "part_to_whole",
+      "required_evidence": [
+        "whole_definition",
+        "part_dimension",
+        "measure",
+        "stable_small_cardinality"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "visualization_id": "donut"
+    },
+    {
+      "capability_gap": "wizard_has_no_sankey_semantics",
+      "default_family": "sankey_status_flow",
+      "fallback_family": "funnel_snapshot",
+      "intent": "flow_transition",
+      "required_evidence": [
+        "source_stage",
+        "target_stage",
+        "volume_measure",
+        "ordered_process"
+      ],
+      "route": "editor_advanced",
+      "selection_origin": "registered_capability_gap"
+    },
+    {
+      "default_family": "native_map_geo_widget",
+      "fallback_family": "table_node",
+      "intent": "geography_map",
+      "required_evidence": [
+        "geo_field",
+        "geo_evidence_kind",
+        "measure_or_status",
+        "map_grain"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "visualization_id": "geolayer"
+    },
+    {
+      "default_family": "table_node",
+      "fallback_family": "table_node",
+      "intent": "table_detail_self_service",
+      "required_evidence": [
+        "fields",
+        "sort_rule",
+        "filters",
+        "owner_or_usage_context"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "visualization_id": "flatTable"
+    },
+    {
+      "capability_gap": "wizard_has_no_bullet_chart_semantics",
+      "default_family": "bullet_assignees",
+      "fallback_family": "kpi_value_delta",
+      "intent": "alerting_threshold_monitoring",
+      "required_evidence": [
+        "metric_definition",
+        "threshold",
+        "baseline_or_target",
+        "action_owner"
+      ],
+      "route": "editor_advanced",
+      "selection_origin": "registered_capability_gap"
+    }
+  ],
+  "route_policy_ref": "config/route_selection_policy_v5.json",
+  "schema_version": "2026-07-15.datalens_chart_param_matrix.public.v1",
+  "source_trace": [
+    "project-authored route and validation policy",
+    "https://yandex.cloud/ru/docs/datalens/visualization-ref/",
+    "https://yandex.cloud/ru/docs/datalens/charts/",
+    "config/datalens_chart_design_rules.json",
+    "templates/datalens/standard_chart_templates.json"
+  ]
+}

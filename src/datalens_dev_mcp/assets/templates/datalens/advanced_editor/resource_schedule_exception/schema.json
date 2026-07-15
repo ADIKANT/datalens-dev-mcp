@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["explicit_request", "timezone", "as_of", "rows"],
+  "properties": {
+    "explicit_request": {"const": true},
+    "timezone": {"type": "string", "minLength": 1},
+    "as_of": {"type": "string", "minLength": 1},
+    "rows": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "required": ["resource_id", "resource_name", "item_id", "start_at", "end_at", "status"],
+        "properties": {
+          "resource_id": {"type": "string", "minLength": 1},
+          "resource_name": {"type": "string", "minLength": 1},
+          "item_id": {"type": "string", "minLength": 1},
+          "start_at": {"type": "string", "minLength": 1},
+          "end_at": {"type": "string", "minLength": 1},
+          "status": {"type": "string", "minLength": 1},
+          "owner": {"type": ["string", "null"]},
+          "link": {"type": ["string", "null"]}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.local/datalens-dev-mcp/dataviz_chart_decision.schema.json",
+  "title": "DataLens Chart Decision Record",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "chart_id",
+    "business_question",
+    "analytical_task",
+    "selected_family",
+    "selected_route",
+    "renderer_visual_spec",
+    "confidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "2026-06-30.dataviz_chart_decision.v1"
+    },
+    "chart_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "business_question": {
+      "type": "string",
+      "minLength": 1
+    },
+    "audience": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "dashboard_type": {
+      "enum": [
+        "overview",
+        "self_service",
+        "object_management_page",
+        "alerts",
+        "analytical_instrument",
+        "experiment_report",
+        "project_dashboard",
+        "unknown"
+      ]
+    },
+    "analytical_task": {
+      "enum": [
+        "kpi_monitoring",
+        "comparison_ranking",
+        "time_trend",
+        "period_comparison",
+        "target_vs_actual",
+        "part_to_whole",
+        "relationship",
+        "distribution",
+        "geo",
+        "exact_lookup",
+        "filtering",
+        "methodology",
+        "unknown"
+      ]
+    },
+    "data_shape": {
+      "type": "object"
+    },
+    "metric_semantics": {
+      "type": "object"
+    },
+    "selected_family": {
+      "type": "string"
+    },
+    "selected_route": {
+      "enum": [
+        "editor_advanced",
+        "editor_table",
+        "editor_markdown",
+        "editor_js_control",
+        "wizard_native",
+        "wizard_map_native",
+        "ql_explicit"
+      ]
+    },
+    "rejected_families": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["family", "reason"],
+        "properties": {
+          "family": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "required_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "optional_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sort_spec": {
+      "type": "object"
+    },
+    "color_spec": {
+      "type": "object"
+    },
+    "axis_spec": {
+      "type": "object"
+    },
+    "label_spec": {
+      "type": "object"
+    },
+    "legend_spec": {
+      "type": "object"
+    },
+    "tooltip_spec": {
+      "type": "object"
+    },
+    "kpi_context_spec": {
+      "type": "object"
+    },
+    "interaction_spec": {
+      "type": "object"
+    },
+    "negative_requirements_applied": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "negative_requirement_concepts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "renderer_visual_spec": {
+      "type": "object",
+      "required": ["style_tokens", "encoding", "runtime_constraints"],
+      "properties": {
+        "style_tokens": {
+          "type": "object"
+        },
+        "encoding": {
+          "type": "object"
+        },
+        "runtime_constraints": {
+          "type": "object"
+        }
+      }
+    },
+    "confidence": {
+      "enum": ["high", "medium", "low", "blocked"]
+    },
+    "questions_if_blocked": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "source_evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

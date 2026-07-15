@@ -1,0 +1,60 @@
+{
+  "algorithmic_bound": "O(n)",
+  "aliases": [
+    "control static",
+    "static control",
+    "static selector",
+    "статический селектор"
+  ],
+  "cardinality_limits": {},
+  "executable_bundle": {
+    "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+    "bundle_files": [
+      "controls.js",
+      "expected_output.json",
+      "fixture_input.json",
+      "meta.json",
+      "params.js",
+      "sources.js"
+    ],
+    "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+    "status": "executable_fixture_tested"
+  },
+  "implementation_status": "implemented_tested",
+  "local_policy_status": "allowed",
+  "native_table_contract": false,
+  "observed_runtime_overrides": [],
+  "official_status": "documented",
+  "output_contract": [
+    "static_options",
+    "left_label",
+    "bounded_width"
+  ],
+  "recipe_id": "control_static",
+  "required_tabs": [
+    "Meta",
+    "Params",
+    "Sources",
+    "Controls"
+  ],
+  "route": "editor_js_control",
+  "source_contract": "static_control",
+  "source_traces": [
+    {
+      "anchor": "селектор",
+      "chunk_id": "datalens/charts/editor/widgets/controls.md#селектор#1",
+      "mirror_path": "datalens/charts/editor/widgets/controls.md",
+      "sha256": "cdd0bb0610de016a826a8ff94db6a8a4bfab66966abb97c813a2397da455c5a9",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/controls"
+    }
+  ],
+  "title": "Static control",
+  "uses_generate_html": false,
+  "validation_checklist": [
+    "source_trace_present",
+    "required_tabs_present",
+    "runtime_contract_valid",
+    "safe_apply_plan_only_until_approved"
+  ],
+  "widget_contract": "control_node"
+}

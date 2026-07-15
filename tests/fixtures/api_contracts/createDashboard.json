@@ -1,0 +1,30 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "createDashboard",
+  "operation_id": "createDashboard",
+  "path": "/rpc/createDashboard",
+  "request_payload": {},
+  "request_schema_closure_hash": "d1d05732e6a5b393496406047088fa2366e95a3e367e0e3bd4a0d16cedc1a49c",
+  "request_schema_closure_refs": [
+    "CreateDashboardV1Args",
+    "DashboardData",
+    "DashboardMeta",
+    "EntryAnnotationArg",
+    "EntryLocationIdentifiers"
+  ],
+  "request_schema_hash": "787d353518cc7da5fb6ec76df38645d9fa85c681805f10d252e3f3168f3030da",
+  "request_schema_ref": "CreateDashboardV1Args",
+  "response_payload": {},
+  "response_schema_closure_hash": "cd78c33a3ce02d45fc1f662921b6353f96317774fea8e9d648f7d5bef06ff842",
+  "response_schema_closure_refs": [
+    "CreateDashboardResponse",
+    "DashboardData",
+    "DashboardMeta",
+    "DashboardV1",
+    "EntryAnnotation"
+  ],
+  "response_schema_hash": "9df7fd3022dca784ba9650ddd7334addcdbea63cf337a30ba9506d761254c242",
+  "response_schema_ref": "CreateDashboardResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "guarded_plan_only"
+}

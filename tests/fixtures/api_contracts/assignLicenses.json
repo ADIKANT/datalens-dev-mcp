@@ -1,0 +1,23 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "assignLicenses",
+  "operation_id": "assignLicenses",
+  "path": "/rpc/assignLicenses",
+  "request_payload": {},
+  "request_schema_closure_hash": "8ce46bc0f015e15986538176f9a822228817e63044c178735c04e76bb0831f7d",
+  "request_schema_closure_refs": [
+    "AssignLicensesArgs"
+  ],
+  "request_schema_hash": "c7729d5c215e39d16711a3361299d36c9b49b7b01995c4030a1bc326f5c8e935",
+  "request_schema_ref": "AssignLicensesArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "43ca6362cf6a66cbf7e3f2a04534f1b8b7ae7501a5f86d73f246c0c6c09d2a7f",
+  "response_schema_closure_refs": [
+    "AssignLicensesResponse",
+    "License"
+  ],
+  "response_schema_hash": "46185bdb0e22b11fb9000dc4524881901889fa16f1c8e1feb47331f968abef2d",
+  "response_schema_ref": "AssignLicensesResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "unsupported_explicit"
+}

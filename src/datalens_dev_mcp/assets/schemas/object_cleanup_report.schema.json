@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "datalens.object-cleanup-report.delta-v6",
+  "title": "Object Cleanup Report",
+  "type": "object",
+  "required": ["dashboard_id", "created_objects", "active_graph_checked", "cleanup_actions"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "dashboard_id": {"type": "string"},
+    "workbook_id": {"type": "string"},
+    "created_objects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["object_id", "object_type", "reason"],
+        "properties": {
+          "object_id": {"type": "string"},
+          "object_type": {"type": "string"},
+          "name": {"type": "string"},
+          "reason": {"type": "string"},
+          "active_in_saved": {"type": "boolean"},
+          "active_in_published": {"type": "boolean"}
+        }
+      }
+    },
+    "active_graph_checked": {"type": "boolean"},
+    "cleanup_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["object_id", "action", "verified_absent"],
+        "properties": {
+          "object_id": {"type": "string"},
+          "action": {"enum": ["none", "delete", "retire", "blocked"]},
+          "verified_absent": {"type": "boolean"},
+          "error": {"type": "string"}
+        }
+      }
+    },
+    "proof_artifacts": {"type": "array", "items": {"type": "string"}}
+  }
+}

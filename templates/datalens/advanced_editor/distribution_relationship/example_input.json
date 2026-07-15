@@ -1,0 +1,8 @@
+{
+  "title": "Issue Age Distribution",
+  "rows": [
+    {"label": "0-7", "value": 20, "x": 3, "y": 12, "size": 5, "min": 1, "q1": 4, "median": 7, "q3": 12, "max": 18},
+    {"label": "8-14", "value": 14, "x": 11, "y": 16, "size": 8, "min": 3, "q1": 6, "median": 9, "q3": 14, "max": 20}
+  ],
+  "hint": "Numeric distribution or relationship with explicit axes."
+}

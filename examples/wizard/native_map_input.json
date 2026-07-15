@@ -1,0 +1,45 @@
+{
+  "schema_version": "2026-06-04.wizard_map_template_input.v2",
+  "template_name": "native_map",
+  "widget_id": "region_map",
+  "name": "Region Orders Map",
+  "route": "wizard_native",
+  "visualization_id": "geolayer",
+  "location": {"workbookId": "workbook_placeholder", "name": "region_orders_map"},
+  "chart_type": "symbol_map",
+  "dataset": "dataset_placeholder",
+  "dataset_ref": "dataset_placeholder",
+  "geo": {
+    "evidence_kind": "lat_lon",
+    "latitude_field": "latitude",
+    "longitude_field": "longitude"
+  },
+  "data_roles": {
+    "geo_role": "latitude_longitude",
+    "measure_role": "orders_cnt",
+    "color_role": "orders_cnt",
+    "label_role": "region",
+    "tooltip_roles": ["region", "orders_cnt"]
+  },
+  "field_bindings": {
+    "geo": "latitude_longitude",
+    "measures": "orders_cnt",
+    "colors": "orders_cnt",
+    "labels": "region"
+  },
+  "dimensions": ["region"],
+  "measures": ["orders_cnt"],
+  "filters": ["environment"],
+  "selector_bindings": [],
+  "native_metadata": {
+    "title": "Orders By Region",
+    "hint": "Native Wizard map plan with validated latitude and longitude fields.",
+    "hideTitle": false,
+    "enableHint": true
+  },
+  "style_theme": {
+    "palette": "semantic_neutral_first",
+    "map_layer": "symbols",
+    "color_strategy": "single_sequential_scale_with_accessible_contrast"
+  }
+}

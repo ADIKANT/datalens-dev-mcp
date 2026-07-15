@@ -1,0 +1,6 @@
+{
+  "sql": "leadInFrame(toNullable(event_at), 1, NULL) OVER (PARTITION BY entity_id ORDER BY event_at)",
+  "partition_last_row_expected": null,
+  "forbidden_boundary_value": "1970-01-01T00:00:00Z",
+  "invariant": "partition tail is NULL, never epoch"
+}

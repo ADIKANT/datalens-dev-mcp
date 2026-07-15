@@ -1,0 +1,24 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "updateWizardChart",
+  "operation_id": "updateWizardChart",
+  "path": "/rpc/updateWizardChart",
+  "request_payload": {},
+  "request_schema_closure_hash": "eeb2c04647ff1948405c19f69f312652e6bb51c1554fcd0a4c9dae9c8c4ce99f",
+  "request_schema_closure_refs": [
+    "EntryAnnotationArg",
+    "EntryUpdateMode",
+    "UpdateWizardChartArgs"
+  ],
+  "request_schema_hash": "e910a3e802ed93d654fc1f58312eb95d67343d173fde8fea548f6bc3aee9afdc",
+  "request_schema_ref": "UpdateWizardChartArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "2068e6f575aff6545220ad27f24f53ebfaf3b26d4e55405f2b894bcd202471f0",
+  "response_schema_closure_refs": [
+    "UpdateWizardChartResponse"
+  ],
+  "response_schema_hash": "0f43c53ef801a2df2f7ed7e71164a100d780fe120c8f14846628153ceceb98e4",
+  "response_schema_ref": "UpdateWizardChartResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "guarded_plan_only"
+}

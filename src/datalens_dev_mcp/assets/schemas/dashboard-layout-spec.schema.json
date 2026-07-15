@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/dashboard-layout-spec.schema.json",
+  "title": "Dashboard layout spec",
+  "type": "object",
+  "required": ["dashboard_name", "tabs", "desktop_grid"],
+  "$defs": {
+    "dashboard_item": {
+      "type": "object",
+      "required": ["id", "type"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "type": {"type": "string", "minLength": 1},
+        "data": {"type": "object"}
+      },
+      "additionalProperties": true
+    },
+    "layout_item": {
+      "type": "object",
+      "required": ["i", "h", "w", "x", "y"],
+      "properties": {
+        "i": {"type": "string", "minLength": 1},
+        "h": {"type": "integer", "minimum": 1},
+        "w": {"type": "integer", "minimum": 1, "maximum": 36},
+        "x": {"type": "integer", "minimum": 0, "maximum": 35},
+        "y": {"type": "integer", "minimum": 0},
+        "parent": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    },
+    "dashboard_tab": {
+      "type": "object",
+      "required": ["id", "items", "layout"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "title": {"type": "string"},
+        "items": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/dashboard_item"}
+        },
+        "globalItems": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/dashboard_item"}
+        },
+        "layout": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/layout_item"}
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "properties": {
+    "dashboard_name": {"type": "string"},
+    "desktop_grid": {
+      "oneOf": [
+        {"const": 36},
+        {"type": "string", "pattern": "^36(?:[- ]columns?)?$"}
+      ]
+    },
+    "tabs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/dashboard_tab"}
+    },
+    "selector_layout": {
+      "type": "object",
+      "properties": {
+        "labelPlacement": {"const": "left"},
+        "row_width_target_percent": {"const": 96},
+        "controls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["param", "labelPlacement", "width"],
+            "properties": {
+              "param": {"type": "string"},
+              "labelPlacement": {"const": "left"},
+              "width": {"type": "string", "pattern": "^[1-9][0-9]?%$"}
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "widget_tab_groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["widget_item_id", "hideTitle", "tabs"],
+        "properties": {
+          "widget_item_id": {"type": "string"},
+          "hideTitle": {"const": false},
+          "tabs": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "required": ["title", "chartId"],
+              "properties": {
+                "title": {"type": "string"},
+                "chartId": {"type": "string"}
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "object_relations_ref": {"type": "string"}
+  },
+  "additionalProperties": true
+}

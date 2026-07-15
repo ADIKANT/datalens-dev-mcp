@@ -1,0 +1,63 @@
+{
+  "algorithmic_bound": "O(n)",
+  "aliases": [
+    "Gravity UI Chart",
+    "documented reference",
+    "gravity chart",
+    "gravity ui charts widget",
+    "график gravity"
+  ],
+  "cardinality_limits": {},
+  "executable_bundle": {
+    "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+    "bundle_files": [
+      "config.js",
+      "expected_output.json",
+      "fixture_input.json",
+      "meta.json",
+      "params.js",
+      "prepare.js",
+      "sources.js"
+    ],
+    "generator": "",
+    "status": "not_executable_reference_only"
+  },
+  "implementation_status": "documented_reference_blocked_by_local_policy",
+  "local_policy_status": "blocked",
+  "native_table_contract": false,
+  "observed_runtime_overrides": [],
+  "official_status": "documented_reference",
+  "output_contract": [
+    "documented_widget_contract",
+    "missing_executable_mcp_route",
+    "local_policy_reference_only"
+  ],
+  "recipe_id": "gravity_chart",
+  "required_tabs": [
+    "Meta",
+    "Params",
+    "Sources",
+    "Config",
+    "Prepare"
+  ],
+  "route": "documented_reference",
+  "source_contract": "documented_reference",
+  "source_traces": [
+    {
+      "anchor": "график-gravity-ui-charts",
+      "chunk_id": "datalens/charts/editor/widgets/gravity-ui.md#график-gravity-ui-charts#1",
+      "mirror_path": "datalens/charts/editor/widgets/gravity-ui.md",
+      "sha256": "08ce645dc21ce65d1c4ac41fb240476a9ac7ef747bc033864a610090a42315c6",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/gravity-ui"
+    }
+  ],
+  "title": "Gravity UI Charts widget",
+  "uses_generate_html": false,
+  "validation_checklist": [
+    "source_trace_present",
+    "required_tabs_present",
+    "runtime_contract_valid",
+    "safe_apply_plan_only_until_approved"
+  ],
+  "widget_contract": "gravity_ui_chart"
+}

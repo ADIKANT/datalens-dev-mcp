@@ -1,0 +1,27 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getReport",
+  "operation_id": "getReport",
+  "path": "/rpc/getReport",
+  "request_payload": {},
+  "request_schema_closure_hash": "c1aecc24a6e618ead91e1e962964af983135f38d79b8f4541557c0f223261c77",
+  "request_schema_closure_refs": [
+    "GetReportV1Args"
+  ],
+  "request_schema_hash": "17fb71e89fa26df00e8c12fe692d380f47b40d48dc7c85864425ce11e9367dc7",
+  "request_schema_ref": "GetReportV1Args",
+  "response_payload": {},
+  "response_schema_closure_hash": "c9c994f86e1dbf305cc4d45ddffbfff21df177587b408b70191d659856e5f7dd",
+  "response_schema_closure_refs": [
+    "DashboardMeta",
+    "EntryAnnotation",
+    "EntryPermissions",
+    "GetReportV1Result",
+    "ReportData",
+    "ReportV1"
+  ],
+  "response_schema_hash": "a659dd5bc37a4160dd06a69b2f220d89e2e3bd7b0a72fc666761430b145845ed",
+  "response_schema_ref": "GetReportV1Result",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

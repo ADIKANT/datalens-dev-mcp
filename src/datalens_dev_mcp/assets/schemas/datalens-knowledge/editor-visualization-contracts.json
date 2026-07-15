@@ -1,0 +1,1894 @@
+{
+  "contracts": [
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Дашборды > Пошаговые инструкции > Виджеты на дашборде > Добавление селектора JS на дашборд Добавление селектора JS на дашборд Перед добавлением селектора убедитесь, что у вас есть право доступа Редактирование или Администрирование на дашборд. Подробнее в разделе Права доступа к объектам. Чтобы добавить селектор на дашборд: 1. На панели слева нажмите image ../../../asse...",
+      "contract_id": "contract_43a9c040ad142915",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "editor",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/charts/editor/add-js-selector.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Params"
+      ],
+      "source_trace": {
+        "anchor": "добавление-селектора-js-на-дашборд",
+        "chunk_id": "datalens/charts/editor/add-js-selector.md#добавление-селектора-js-на-дашборд#1",
+        "mirror_path": "datalens/charts/editor/add-js-selector.md",
+        "sha256": "d89e4e8318b0fb88346cfec60afe8875e7c013193217680b159070a7e66cd564",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/add-js-selector"
+      },
+      "title": "Добавление селектора JS на дашборд"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Нейроаналитик в Editor Нейроаналитик в Editor Нейроаналитик — это AI-помощник, который ускоряет и упрощает создание и редактирование визуализаций в Editor. Доступен для трех типов визуализаций: Таблица, Markdown и Advanced-чарт. Нейроаналитик работает только с вкладкой Prepare. Чтобы включить Нейроаналитик, в Editor вверху нажмите кнопку Помочь...",
+      "contract_id": "contract_ae31ccf9a0230689",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "editor",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/charts/editor/code-helper.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Prepare"
+      ],
+      "source_trace": {
+        "anchor": "нейроаналитик-в-editor",
+        "chunk_id": "datalens/charts/editor/code-helper.md#нейроаналитик-в-editor#1",
+        "mirror_path": "datalens/charts/editor/code-helper.md",
+        "sha256": "635bbe8fb0014c494f61eeee382480be925385329e618ab305b572c14e9cab79",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/code-helper"
+      },
+      "title": "Нейроаналитик в Editor"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Кросс-фильтрация Кросс-фильтрация Фильтрующие параметры используются для фильтрации чартов чартами. В этом случае один чарт работает как селектор для других чартов. Когда фильтрующий чарт открывается с дашборда для редактирования или в новой вкладке, фильтрующие параметры подсвечиваются. По умолчанию при открытии фильтрующего чарта из панели на...",
+      "contract_id": "contract_6d20f8c748965004",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "url"
+      ],
+      "kind": "editor",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/charts/editor/cross-filtration.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Params"
+      ],
+      "source_trace": {
+        "anchor": "кросс-фильтрация",
+        "chunk_id": "datalens/charts/editor/cross-filtration.md#кросс-фильтрация#1",
+        "mirror_path": "datalens/charts/editor/cross-filtration.md",
+        "sha256": "449aab12145bd97f000f5f626e3cb1c113790aa3ee49d833b7d9beb469146174",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/cross-filtration"
+      },
+      "title": "Кросс-фильтрация"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Отладка чартов Отладка чартов в Editor Отладочная информация и ошибки при исполнении чарта доступны на панели Console. image ../../../assets/datalens/editor/debug-error.png Чтобы вывести дополнительную информацию в нужном месте кода, используйте функцию console.log(value). Код в функциях, обернутых в Editor.wrapFn, исполняется на клиенте. При и...",
+      "contract_id": "contract_d350bba9bea7a5e2",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "editor",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [
+        "Editor.wrapFn"
+      ],
+      "mirror_path": "datalens/charts/editor/debug.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "отладка-чартов-в-editor",
+        "chunk_id": "datalens/charts/editor/debug.md#отладка-чартов-в-editor#1",
+        "mirror_path": "datalens/charts/editor/debug.md",
+        "sha256": "0153c25dbfa1942a95b34c49f715596a058d0d34cfb29ea4774ea1af26fb73c0",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/debug"
+      },
+      "title": "Отладка чартов в Editor"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Обзор Чарты в Editor Editor — редактор для создания визуализации данных и селекторов с помощью кода на JavaScript. Editor позволяет загружать данные из одного или нескольких источников, управлять параметрами чартов и настраивать визуализации. В качестве источников данных вы можете использовать датасеты и подключения. image ../../../assets/datal...",
+      "contract_id": "contract_916df926e42e14f0",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "Cmd",
+        "Ctrl",
+        "Enter"
+      ],
+      "kind": "editor",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/charts/editor/index.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "чарты-в-editor",
+        "chunk_id": "datalens/charts/editor/index.md#чарты-в-editor#1",
+        "mirror_path": "datalens/charts/editor/index.md",
+        "sha256": "80994b6e96e42ec56cb842c6fc4e64131e08556e33e155b360c123a61f8032d1",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/"
+      },
+      "title": "Чарты в Editor"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Связи чарта в дашбордах и отчетах Связи чарта в дашбордах и отчетах Чарты и селекторы, построенные в Editor, на данный момент получают все параметры с дашборда, что может приводить к обновлению чарта, даже если он не использует параметр с таким именем. Поэтому в связях для такого случая будет указано значение Не определено. Чтобы избежать лишне...",
+      "contract_id": "contract_255a863e35768b28",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "editor",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/charts/editor/links.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "связи-чарта-в-дашбордах-и-отчетах",
+        "chunk_id": "datalens/charts/editor/links.md#связи-чарта-в-дашбордах-и-отчетах#1",
+        "mirror_path": "datalens/charts/editor/links.md",
+        "sha256": "5424d4fb13ce55822295dfaf80d6a465f948d16d1b9055c0616c4682dc95042b",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/links"
+      },
+      "title": "Связи чарта в дашбордах и отчетах"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Доступные методы Доступные методы в Editor Поддерживаются методы: Editor.generateHtml(arg) Editor.getActionParams() Editor.getCurrentPage() Editor.getId(arg) Editor.getLang() Editor.getLoadedData() Editor.getParam(name) Editor.getParams() Editor.getSortParams() Editor.getWidgetConfig() Editor.resolveInterval(arg) Editor.resolveOperation(args) E...",
+      "contract_id": "contract_fad5f31bc7de21d9",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "abbr",
+        "actionParams",
+        "alignment-baseline",
+        "alt",
+        "arg",
+        "args",
+        "aria-controls",
+        "aria-describedby",
+        "aria-expanded",
+        "aria-haspopup",
+        "aria-hidden",
+        "aria-label",
+        "aria-labelledby",
+        "aria-live",
+        "aria-pressed",
+        "aria-readonly",
+        "aria-roledescription",
+        "aria-selected",
+        "bottom",
+        "br",
+        "button",
+        "caption",
+        "circle",
+        "class",
+        "clip-path",
+        "clip-rule",
+        "clipPath",
+        "code",
+        "color",
+        "colspan",
+        "columnId",
+        "conf",
+        "content",
+        "critical",
+        "cursor",
+        "cx",
+        "cy",
+        "d3",
+        "d3-chord",
+        "d3-sankey",
+        "dark",
+        "dark-hc",
+        "data",
+        "data-id",
+        "data-tooltip-anchor-id",
+        "data-tooltip-content",
+        "data-tooltip-hide-delay",
+        "data-tooltip-open-delay",
+        "data-tooltip-placement",
+        "date-util",
+        "date-utils",
+        "dd",
+        "defs",
+        "details",
+        "disabled",
+        "div",
+        "dl",
+        "dl-tooltip",
+        "dominant-baseline",
+        "dt",
+        "dx",
+        "dy",
+        "ellipse",
+        "em",
+        "enable",
+        "feComponentTransfer",
+        "feDropShadow",
+        "feFuncA",
+        "feFuncB",
+        "feFuncG",
+        "feFuncR",
+        "feGaussianBlur",
+        "feMerge",
+        "feMergeNode",
+        "feOffset",
+        "fields",
+        "fill",
+        "fill-opacity",
+        "fill-rule",
+        "filter",
+        "filterunits",
+        "flood-color",
+        "flood-opacity",
+        "fn",
+        "font-family",
+        "font-size",
+        "font-weight",
+        "fx",
+        "fy",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "height",
+        "hr",
+        "href",
+        "id",
+        "img",
+        "in",
+        "info",
+        "key",
+        "lang",
+        "latest",
+        "left",
+        "letter-spacing",
+        "level",
+        "li",
+        "libs",
+        "light",
+        "light-hc",
+        "line",
+        "linearGradient",
+        "links",
+        "locator",
+        "marker",
+        "mask",
+        "message",
+        "name"
+      ],
+      "kind": "editor",
+      "limits": [
+        "wrapFn single function 100 ms",
+        "advanced chart function 1.5 s",
+        "advanced chart total 3 s",
+        "documented limit signal"
+      ],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [
+        "Editor.generateHtml",
+        "Editor.getActionParams",
+        "Editor.getCurrentPage",
+        "Editor.getId",
+        "Editor.getLang",
+        "Editor.getLoadedData",
+        "Editor.getParam",
+        "Editor.getParams",
+        "Editor.getSortParams",
+        "Editor.getWidgetConfig",
+        "Editor.resolveInterval",
+        "Editor.resolveOperation",
+        "Editor.resolveRelative",
+        "Editor.setChartsInsights",
+        "Editor.setRawData",
+        "Editor.updateActionParams",
+        "Editor.updateConfig",
+        "Editor.updateParams",
+        "Editor.wrapFn"
+      ],
+      "mirror_path": "datalens/charts/editor/methods.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Meta",
+        "Params",
+        "Sources",
+        "Config",
+        "Controls",
+        "Prepare"
+      ],
+      "source_trace": {
+        "anchor": "доступные-методы-в-editor",
+        "chunk_id": "datalens/charts/editor/methods.md#доступные-методы-в-editor#1",
+        "mirror_path": "datalens/charts/editor/methods.md",
+        "sha256": "b3d5ca4e47541d7db863b0c92915efdabdcb0dfca45ec7fe090a94f0ad89532e",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/methods"
+      },
+      "title": "Доступные методы в Editor"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Уведомления Уведомления Чтобы сообщить информацию пользователю, просматривающему ваш чарт, используйте механизм уведомлений в Editor. Добавление уведомления в чарт Ограничения notifications ../../../assets/datalens/editor/notifications.png Добавление уведомления в чарт Чтобы создать уведомление, используйте метод Editor.setChartsInsights(args)...",
+      "contract_id": "contract_36a6e9018c9c3880",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "critical",
+        "info",
+        "warning"
+      ],
+      "kind": "editor",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [
+        "Editor.setChartsInsights"
+      ],
+      "mirror_path": "datalens/charts/editor/notifications.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Prepare"
+      ],
+      "source_trace": {
+        "anchor": "уведомления",
+        "chunk_id": "datalens/charts/editor/notifications.md#уведомления#1",
+        "mirror_path": "datalens/charts/editor/notifications.md",
+        "sha256": "d63252bdae279eaa095102dcc93c5dd684bb308c04df4ea6f472e4e8acd5ca02",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/notifications"
+      },
+      "title": "Уведомления"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Быстрый старт в Editor > Создание таблицы через API Создание таблицы через API Следуя данной инструкции, вы построите в Editor таблицу на основе подключения API Connector. В качестве источника данных будет использоваться статичный JSON-файл, расположенный по адресу: https://storage.yandexcloud.net/datalens-public-demo-assets/data/mtcars.json, о...",
+      "contract_id": "contract_1def133919182e52",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "admin",
+        "links",
+        "mtcars",
+        "owner"
+      ],
+      "kind": "editor",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [
+        "Editor.getId",
+        "Editor.getLoadedData"
+      ],
+      "mirror_path": "datalens/charts/editor/quickstart/from-api-connector.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Meta",
+        "Config",
+        "Prepare"
+      ],
+      "source_trace": {
+        "anchor": "создание-таблицы-через-api",
+        "chunk_id": "datalens/charts/editor/quickstart/from-api-connector.md#создание-таблицы-через-api#1",
+        "mirror_path": "datalens/charts/editor/quickstart/from-api-connector.md",
+        "sha256": "c048f755ee28b817778037bbeb02f81b7f9389db262375b3d55b6bb759495e25",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/quickstart/from-api-connector"
+      },
+      "title": "Создание таблицы через API"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Быстрый старт в Editor > Создание таблицы на основе SQL-запроса Создание таблицы на основе SQL-запроса Следуя данной инструкции, вы построите в Editor таблицу на основе SQL-запроса к источнику данных. Для удобства в качестве источника данных мы будем использовать подключение и датасет из развернутого демо-воркбука. Перед началом работы Чтобы на...",
+      "contract_id": "contract_e85b691eaf526eef",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "admin",
+        "demoConnection",
+        "links",
+        "owner",
+        "salesSourceData"
+      ],
+      "kind": "editor",
+      "limits": [
+        "documented limit signal"
+      ],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [
+        "Editor.generateHtml",
+        "Editor.getId",
+        "Editor.getLoadedData"
+      ],
+      "mirror_path": "datalens/charts/editor/quickstart/from-database.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Meta",
+        "Params",
+        "Config",
+        "Prepare"
+      ],
+      "source_trace": {
+        "anchor": "создание-таблицы-на-основе-sql-запроса",
+        "chunk_id": "datalens/charts/editor/quickstart/from-database.md#создание-таблицы-на-основе-sql-запроса#1",
+        "mirror_path": "datalens/charts/editor/quickstart/from-database.md",
+        "sha256": "90b24ffcc96bbb17e30407b684881092f83cc98ee6830a9b275410b365182218",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/quickstart/from-database"
+      },
+      "title": "Создание таблицы на основе SQL-запроса"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Быстрый старт в Editor > Создание таблицы на основе датасета Создание таблицы на основе датасета Следуя данной инструкции, вы построите в Editor таблицу на основе датасета. Для удобства в качестве источника данных мы будем использовать подключение и датасет из развернутого демо-воркбука. Перед началом работы Чтобы начать работать с DataLens: {%...",
+      "contract_id": "contract_3a2182b62d466ed7",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "admin",
+        "columns",
+        "datasetName",
+        "links",
+        "owner",
+        "salesDataset",
+        "salesSourceData"
+      ],
+      "kind": "editor",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [
+        "Editor.generateHtml",
+        "Editor.getId",
+        "Editor.getLoadedData"
+      ],
+      "mirror_path": "datalens/charts/editor/quickstart/from-dataset.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Meta",
+        "Params",
+        "Sources",
+        "Config",
+        "Prepare"
+      ],
+      "source_trace": {
+        "anchor": "создание-таблицы-на-основе-датасета",
+        "chunk_id": "datalens/charts/editor/quickstart/from-dataset.md#создание-таблицы-на-основе-датасета#1",
+        "mirror_path": "datalens/charts/editor/quickstart/from-dataset.md",
+        "sha256": "7f7837d7e9de0bbd1835cda257e157fba5b0ed8eb88cea1cb80214cd56c6feff",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/quickstart/from-dataset"
+      },
+      "title": "Создание таблицы на основе датасета"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Быстрый старт в Editor > Обзор Быстрый старт в Editor Ниже приведены ссылки на пошаговые инструкции для создания чарта Таблица на основе разных источников данных: Создание таблицы на основе датасета Создание таблицы на основе SQL-запроса Создание таблицы через API",
+      "contract_id": "contract_7954271bfab1fe2d",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "editor",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/charts/editor/quickstart/index.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "быстрый-старт-в-editor",
+        "chunk_id": "datalens/charts/editor/quickstart/index.md#быстрый-старт-в-editor#1",
+        "mirror_path": "datalens/charts/editor/quickstart/index.md",
+        "sha256": "dcea6c42a0d2c31cd75f3677dd6a2f7635d58710d80515915e5a0c0dd18cd50b",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/quickstart/"
+      },
+      "title": "Быстрый старт в Editor"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Источники Источники данных в Editor Yandex DataLens Виды источников Для получения данных используйте: датасет; подключение к базам данных через SQL-запрос; подключение через API Connector. Подробнее о вкладке Sources. Editor может работать с несколькими источниками данных. multi-dataset-chart ../../../assets/datalens/editor/multi-dataset-chart....",
+      "contract_id": "contract_3fef117501a69f4d",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "editor",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/charts/editor/sources.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Sources",
+        "Prepare"
+      ],
+      "source_trace": {
+        "anchor": "источники-данных-в-editor-yandex-datalens",
+        "chunk_id": "datalens/charts/editor/sources.md#источники-данных-в-editor-yandex-datalens#1",
+        "mirror_path": "datalens/charts/editor/sources.md",
+        "sha256": "6135ea3e572f6e664d75c15fbaf9c2cf4260824b981b59600052655a329a57eb",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/sources"
+      },
+      "title": "Источники данных в Editor Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Вкладки Вкладки Конфигурация чарта настраивается с помощью кода на JavaScript, который заполняется на вкладках в редакторе в интерфейсе. Код формирования конфигурации чарта, описанный на вкладках, выполняется на сервере. На этой странице представлены форматы заполнения каждой из вкладок. Код функций, расположенный внутри Editor.wrapFn, выполняе...",
+      "contract_id": "contract_1c767a54c515359d",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "action",
+        "apiConnectionId",
+        "body",
+        "columns",
+        "content",
+        "data",
+        "datasetId",
+        "date",
+        "datetime",
+        "fields",
+        "focus",
+        "grid",
+        "method",
+        "mode",
+        "ms",
+        "mySourceKeyName",
+        "onClick",
+        "params",
+        "path",
+        "popup",
+        "product",
+        "qlConnectionId",
+        "runActivity",
+        "scale",
+        "setParams",
+        "state",
+        "tab",
+        "timezone",
+        "title",
+        "toast",
+        "type",
+        "tz"
+      ],
+      "kind": "editor",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [
+        "Editor.getId",
+        "Editor.getLoadedData",
+        "Editor.getParam",
+        "Editor.getParams",
+        "Editor.resolveInterval",
+        "Editor.resolveRelative",
+        "Editor.wrapFn"
+      ],
+      "mirror_path": "datalens/charts/editor/tabs.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Meta",
+        "Params",
+        "Sources",
+        "Config",
+        "Controls",
+        "Prepare"
+      ],
+      "source_trace": {
+        "anchor": "вкладки",
+        "chunk_id": "datalens/charts/editor/tabs.md#вкладки#1",
+        "mirror_path": "datalens/charts/editor/tabs.md",
+        "sha256": "73d419ae477050b3d1865cf461d5821e4b61478d03a5ac212e9d6adcbcee30a8",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/tabs"
+      },
+      "title": "Вкладки"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Типы визуализаций > Advanced-чарт Advanced-чарт Этот тип визуализации позволяет создавать HTML с безопасной разметкой через функцию Editor.generateHtml(args) и гибкие SVG-визуализации с использованием библиотек d3, d3-chord и d3-sankey. На вкладке Prepare необходимо сформировать структуру: js module.exports = { render: Editor.wrapFn(...), }; Ог...",
+      "contract_id": "contract_66f0b81442a49354",
+      "editor_route": "editor_advanced",
+      "html_tags_or_attributes": [
+        "d3",
+        "d3-chord",
+        "d3-sankey",
+        "document",
+        "libs",
+        "render",
+        "wrapFn"
+      ],
+      "kind": "editor",
+      "limits": [
+        "wrapFn single function 100 ms",
+        "advanced chart function 1.5 s",
+        "advanced chart total 3 s"
+      ],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [
+        "Editor.generateHtml",
+        "Editor.updateActionParams",
+        "Editor.updateParams",
+        "Editor.wrapFn"
+      ],
+      "mirror_path": "datalens/charts/editor/widgets/advanced.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Params",
+        "Config",
+        "Prepare"
+      ],
+      "source_trace": {
+        "anchor": "advanced-чарт",
+        "chunk_id": "datalens/charts/editor/widgets/advanced.md#advanced-чарт#1",
+        "mirror_path": "datalens/charts/editor/widgets/advanced.md",
+        "sha256": "27f4997092afdc4dbf164553f1458e9810fc256ffca76f06c2c989257553b425",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/advanced"
+      },
+      "title": "Advanced-чарт"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Типы визуализаций > Селектор Селектор Селектор описывает набор контролов для проставления параметров чартам дашборда. Чарт парсит параметр и применяет соответствующую фильтрацию по полю, с которым связан параметр (подробнее в примере). Если селектору передаются числовые значения параметров, приведите их к строке или массиву строк. Это позволит...",
+      "contract_id": "contract_ae7c861feebd8343",
+      "editor_route": "editor_js_control",
+      "html_tags_or_attributes": [
+        "Button",
+        "GT",
+        "OPERATIONS",
+        "accentType",
+        "action",
+        "args",
+        "button",
+        "checkbox",
+        "content",
+        "datepicker",
+        "hidden",
+        "innerLabel",
+        "input",
+        "label",
+        "labelPlacement",
+        "left",
+        "line-break",
+        "maxDate",
+        "merge",
+        "minDate",
+        "mode",
+        "multiselect",
+        "null",
+        "onClick",
+        "operation",
+        "param",
+        "paramFrom",
+        "paramTo",
+        "placeholder",
+        "range-datepicker",
+        "replace",
+        "required",
+        "searchable",
+        "select",
+        "setInitialParams",
+        "setParams",
+        "textarea",
+        "theme",
+        "title",
+        "top",
+        "true",
+        "type",
+        "updateControlsOnChange",
+        "updateOnChange",
+        "value",
+        "view",
+        "width"
+      ],
+      "kind": "editor",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [
+        "Editor.getLoadedData"
+      ],
+      "mirror_path": "datalens/charts/editor/widgets/controls.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Params",
+        "Sources",
+        "Controls"
+      ],
+      "source_trace": {
+        "anchor": "селектор",
+        "chunk_id": "datalens/charts/editor/widgets/controls.md#селектор#1",
+        "mirror_path": "datalens/charts/editor/widgets/controls.md",
+        "sha256": "cdd0bb0610de016a826a8ff94db6a8a4bfab66966abb97c813a2397da455c5a9",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/controls"
+      },
+      "title": "Селектор"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Типы визуализаций > График (Gravity UI Charts) График (Gravity UI Charts) Этот тип чарта служит для отрисовки различных типов графиков с помощью библиотеки @gravity-ui/charts. Доступные типы визуализаций перечислены в документации. В данный момент библиотека находится в альфа-версии. Структура на вкладке Prepare На этой вкладке описывается конф...",
+      "contract_id": "contract_76aac1f6c525320b",
+      "editor_route": "documented_reference",
+      "html_tags_or_attributes": [],
+      "kind": "editor",
+      "limits": [],
+      "local_policy_status": "gravity_reference_only_until_route_evidence",
+      "methods": [],
+      "mirror_path": "datalens/charts/editor/widgets/gravity-ui.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Params",
+        "Config",
+        "Prepare"
+      ],
+      "source_trace": {
+        "anchor": "график-gravity-ui-charts",
+        "chunk_id": "datalens/charts/editor/widgets/gravity-ui.md#график-gravity-ui-charts#1",
+        "mirror_path": "datalens/charts/editor/widgets/gravity-ui.md",
+        "sha256": "08ce645dc21ce65d1c4ac41fb240476a9ac7ef747bc033864a610090a42315c6",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/gravity-ui"
+      },
+      "title": "График (Gravity UI Charts)"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Типы визуализаций > Обзор Типы визуализаций В Editor доступно несколько типов визуализации, для отрисовки которых используются разные библиотеки: Таблица График (Gravity UI Charts) Markdown Advanced-чарт Селектор В будущем планируется добавить тип визуализации Яндекс Карты.",
+      "contract_id": "contract_4ff6d693e764db3a",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "editor",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/charts/editor/widgets/index.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "типы-визуализаций",
+        "chunk_id": "datalens/charts/editor/widgets/index.md#типы-визуализаций#1",
+        "mirror_path": "datalens/charts/editor/widgets/index.md",
+        "sha256": "3029c56fb0a389a5b954318fa4786f83dce2af77b59a99d8e36302f402735ca7",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/"
+      },
+      "title": "Типы визуализаций"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Типы визуализаций > Markdown Markdown Визуализация для отрисовки Markdown — упрощенного языка разметки. Поддерживается язык разметки GitHub Flavored Markdown (GFM), за исключением вставок raw HTML , части плагинов и функциональности Yandex Flavored Markdown. Для отрисовки чарта используется библиотека @diplodoc/transform. Подробнее в документац...",
+      "contract_id": "contract_f8524026253db64e",
+      "editor_route": "editor_markdown",
+      "html_tags_or_attributes": [
+        "class"
+      ],
+      "kind": "editor",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [
+        "Editor.getLoadedData",
+        "Editor.getParams"
+      ],
+      "mirror_path": "datalens/charts/editor/widgets/markdown.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Params",
+        "Sources",
+        "Prepare"
+      ],
+      "source_trace": {
+        "anchor": "markdown",
+        "chunk_id": "datalens/charts/editor/widgets/markdown.md#markdown#1",
+        "mirror_path": "datalens/charts/editor/widgets/markdown.md",
+        "sha256": "70fee83cc0165de5523b31a84c50a8553747bb85878cca99f0f0655497ccb534",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/markdown"
+      },
+      "title": "Markdown"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Типы визуализаций > Таблица Таблица Этот вид чарта поддерживает ту же функциональность, что и таблица в визарде, есть возможность кастомизации стилей, настройки кросс-фильтрации, пагинации и т. п. Структура на вкладке Prepare На вкладке Prepare в module.exports необходимо сформировать структуру: js module.exports = { head: ..., rows: ..., foote...",
+      "contract_id": "contract_e5d84b20bca0eb95",
+      "editor_route": "editor_table",
+      "html_tags_or_attributes": [
+        "action",
+        "align",
+        "args",
+        "auto",
+        "bar",
+        "barHeight",
+        "boolean",
+        "css",
+        "custom",
+        "date",
+        "enabled",
+        "events",
+        "false",
+        "footer",
+        "format",
+        "formattedName",
+        "formattedValue",
+        "formatter",
+        "group",
+        "head",
+        "hint",
+        "href",
+        "id",
+        "left",
+        "limit",
+        "link",
+        "max",
+        "min",
+        "multiplier",
+        "name",
+        "newWindow",
+        "number",
+        "onClick",
+        "order",
+        "paginator",
+        "pinned",
+        "precision",
+        "prefix",
+        "right",
+        "setParams",
+        "showLabel",
+        "size",
+        "style",
+        "sub",
+        "suffix",
+        "text",
+        "title",
+        "true",
+        "type",
+        "value",
+        "width"
+      ],
+      "kind": "editor",
+      "limits": [
+        "documented limit signal"
+      ],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [
+        "Editor.generateHtml",
+        "Editor.getCurrentPage"
+      ],
+      "mirror_path": "datalens/charts/editor/widgets/table.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Params",
+        "Config",
+        "Prepare"
+      ],
+      "source_trace": {
+        "anchor": "таблица",
+        "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+        "mirror_path": "datalens/charts/editor/widgets/table.md",
+        "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+      },
+      "title": "Таблица"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Дашборды > Фильтрация чартов чартами Фильтрация чартов чартами в Yandex DataLens DataLens позволяет настроить фильтрацию чартов другими чартами на дашборде. В этом случае чартом, для которого настроена фильтрация, можно пользоваться как селектором для других чартов. Чтобы применить фильтрацию, нажмите на отдельный элемент фильтрующего чарта — например, точку на графике...",
+      "contract_id": "contract_d35ff303325c3683",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "Cmd",
+        "Ctrl",
+        "state"
+      ],
+      "kind": "dashboard",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dashboard/chart-chart-filtration.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "фильтрация-чартов-чартами-в-yandex-datalens",
+        "chunk_id": "datalens/dashboard/chart-chart-filtration.md#фильтрация-чартов-чартами-в-yandex-datalens#1",
+        "mirror_path": "datalens/dashboard/chart-chart-filtration.md",
+        "sha256": "883286cf94e8d39da5e6d61ddd16436cd760c8b596ca9c2185b196bf24824368",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dashboard/chart-chart-filtration"
+      },
+      "title": "Фильтрация чартов чартами в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Дашборды > Параметры Параметры дашборда в Yandex DataLens Параметр дашборда — это переменная, которая используется для фильтрации виджетов на дашборде при его открытии или при использовании в формулах расчетных полей. Параметры позволяют более гибко применять возможности визуализации, адаптировать использование одних и тех же чартов и дашбордов для разных целей. Исполь...",
+      "contract_id": "contract_2314e189b7169e29",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "KZ",
+        "OrderID",
+        "RU",
+        "category",
+        "date",
+        "datetime",
+        "failed",
+        "focus",
+        "grid",
+        "mode",
+        "ms",
+        "parameter",
+        "price",
+        "product",
+        "region",
+        "scale",
+        "state",
+        "tab",
+        "timezone",
+        "tz"
+      ],
+      "kind": "dashboard",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dashboard/dashboard_parameters.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Params"
+      ],
+      "source_trace": {
+        "anchor": "параметры-дашборда-в-yandex-datalens",
+        "chunk_id": "datalens/dashboard/dashboard_parameters.md#параметры-дашборда-в-yandex-datalens#1",
+        "mirror_path": "datalens/dashboard/dashboard_parameters.md",
+        "sha256": "3d9ec258bf0538ddee0d64957bcbacffc9027b3fb49a37d4005a3fd0089354ad",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dashboard/dashboard_parameters"
+      },
+      "title": "Параметры дашборда в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Дашборды > Нейроаналитик на дашборде Нейроаналитик на дашборде в Yandex DataLens Нейроаналитик на дашборде представлен в двух версиях: Нейроаналитик — инструмент, который анализирует чарты на дашборде, формирует выводы на основе данных и позволяет задавать уточняющие вопросы. В качестве контекста используются только данные на дашборде. Работает по всему дашборду или по...",
+      "contract_id": "contract_935b5ee78dc2315c",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "dashboard",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dashboard/insights.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "нейроаналитик-на-дашборде-в-yandex-datalens",
+        "chunk_id": "datalens/dashboard/insights.md#нейроаналитик-на-дашборде-в-yandex-datalens#1",
+        "mirror_path": "datalens/dashboard/insights.md",
+        "sha256": "6a0521166b5a58258f8e0070e18f9a40efbc38d50b92a8dd86abb3472ea4e4d9",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dashboard/insights"
+      },
+      "title": "Нейроаналитик на дашборде в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Дашборды > Связь Связь в Yandex DataLens Связь определяет влияние селектора на один или несколько чартов, а также на другие селекторы. По умолчанию связаны селекторы и чарты, которые созданы на основе одного датасета. Селекторы и чарты, которые созданы на базе разных датасетов, могут быть связаны вручную с помощью алиасов. В качестве связи можно выбрать существующее по...",
+      "contract_id": "contract_3e8df6eca722945b",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "dashboard",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dashboard/link.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Params"
+      ],
+      "source_trace": {
+        "anchor": "связь-в-yandex-datalens",
+        "chunk_id": "datalens/dashboard/link.md#связь-в-yandex-datalens#1",
+        "mirror_path": "datalens/dashboard/link.md",
+        "sha256": "9bea106c4608659842e153f0efb7511d5d2f4780860e5685d0bc5639eb0975bf",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dashboard/link"
+      },
+      "title": "Связь в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Дашборды > Markdown Markdown в Yandex DataLens DataLens позволяет использовать язык разметки Markdown в виджете Текст на дашборде. Вы можете разместить поясняющий текст, ссылки, таблицу, изображение или выделить значимые моменты с помощью форматирования. В текстовых виджетах вы можете использовать следующие элементы: Заголовки Выделение текста Цвет текста Списки Просто...",
+      "contract_id": "contract_d0a32229ba889d82",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "READ",
+        "allUsers",
+        "class"
+      ],
+      "kind": "dashboard",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dashboard/markdown.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "markdown-в-yandex-datalens",
+        "chunk_id": "datalens/dashboard/markdown.md#markdown-в-yandex-datalens#1",
+        "mirror_path": "datalens/dashboard/markdown.md",
+        "sha256": "2b29e20f53f7258ecc0fee0faedc8abb459f684b0c9e231a128d0f55bef8b027",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dashboard/markdown"
+      },
+      "title": "Markdown в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Дашборды > Селекторы Селекторы в Yandex DataLens Селектор — это фильтр, который влияет на результаты запросов на связанных с ним виджетах. {% note info %} ​Чтобы посмотреть текст SQL-запроса из чарта в источник, в правом верхнем углу чарта нажмите значок image ../../assets/console-icons/ellipsis.svg и выберите Инспектор. Текст запроса отображается в разделе Источники д...",
+      "contract_id": "contract_ddfe1c1bc5c51d67",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "False",
+        "True"
+      ],
+      "kind": "dashboard",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dashboard/selector.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "селекторы-в-yandex-datalens",
+        "chunk_id": "datalens/dashboard/selector.md#селекторы-в-yandex-datalens#1",
+        "mirror_path": "datalens/dashboard/selector.md",
+        "sha256": "29b690dd4694b15524c9eaa5f6b3aaf5bd0c8a463e8ec9f8998a3ab867877211",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dashboard/selector"
+      },
+      "title": "Селекторы в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Дашборды > Настройки дашборда Настройки дашборда в Yandex DataLens Настройки дашборда позволяют оптимизировать его под определенную задачу или работу с конкретным источником данных. Например, можно задать время обновления дашборда, добавить информационные сообщения или настроить приоритет загрузки виджетов. Автообновление Вы можете настроить автоматическое обновление д...",
+      "contract_id": "contract_154184543124999c",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "dashboard",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dashboard/settings.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "настройки-дашборда-в-yandex-datalens",
+        "chunk_id": "datalens/dashboard/settings.md#настройки-дашборда-в-yandex-datalens#1",
+        "mirror_path": "datalens/dashboard/settings.md",
+        "sha256": "95f9a80572a33ae86e793f795e84efb409e27a524e1a1ba508c1264a6122e05e",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dashboard/settings"
+      },
+      "title": "Настройки дашборда в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Дашборды > Тренды и сглаживания в чартах на дашборде Тренды и сглаживания в чартах Yandex DataLens В DataLens вы можете применить сглаживание или добавить линию тренда для чартов на дашборде: Сглаживание — добавляет линию с простым скользящим средним для лучшей визуализации данных с колебаниями. Линия тренда — добавляет линию тренда для отображения общей тенденции изме...",
+      "contract_id": "contract_aa3b0359e30ab3ef",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "dashboard",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dashboard/trends-and-smoothing.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "тренды-и-сглаживания-в-чартах-yandex-datalens",
+        "chunk_id": "datalens/dashboard/trends-and-smoothing.md#тренды-и-сглаживания-в-чартах-yandex-datalens#1",
+        "mirror_path": "datalens/dashboard/trends-and-smoothing.md",
+        "sha256": "deb651837235819a4a3158193dd946b92385396a2b400c70f56b14c9e94a344e",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dashboard/trends-and-smoothing"
+      },
+      "title": "Тренды и сглаживания в чартах Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Дашборды > Версионирование Версионирование в Yandex DataLens Версионирование дашборда — это возможность хранить историю изменений конфигурации дашборда с помощью версий. Список версий доступен пользователям с минимальным правом редактирования на дашборд. Чтобы перейти к списку версий, в верхней части экрана нажмите на значок image ../../assets/console-icons/ellipsis.sv...",
+      "contract_id": "contract_e1d9eb1557a04946",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "revId"
+      ],
+      "kind": "dashboard",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dashboard/versioning.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "версионирование-в-yandex-datalens",
+        "chunk_id": "datalens/dashboard/versioning.md#версионирование-в-yandex-datalens#1",
+        "mirror_path": "datalens/dashboard/versioning.md",
+        "sha256": "180399bd0825d9acb08a02b229a67d1a1a0d07bcbbfcb52559471aef1766441c",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dashboard/versioning"
+      },
+      "title": "Версионирование в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Дашборды > Виджеты Виджеты в Yandex DataLens Виджет – это элемент дашборда. Между виджетами Селектор и Чарт можно строить связи. В DataLens поддерживаются следующие типы виджетов: Чарт Селектор Селектор (JS) Текст Заголовок Инсайт Чарт Визуализация в виде таблицы или диаграммы. Вы можете размещать чарты в любом месте дашборда, а также изменять его размеры. Чарты могут...",
+      "contract_id": "contract_9280fc9b2fea4de5",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "dashboard",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dashboard/widget.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "виджеты-в-yandex-datalens",
+        "chunk_id": "datalens/dashboard/widget.md#виджеты-в-yandex-datalens#1",
+        "mirror_path": "datalens/dashboard/widget.md",
+        "sha256": "7b00c7a926223899820860b86893621b5b52d8e0f617a90af8af2e12ae22c173",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dashboard/widget"
+      },
+      "title": "Виджеты в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Датасеты > Добавление информации о датасете Добавление информации о датасете в Yandex DataLens Чтобы добавить информацию о датасете: 1. Откройте датасет, для которого необходимо добавить информацию. 1. В верхней части экрана нажмите значок image ../../assets/console-icons/circle-info.svg. 1. Введите информацию и нажмите Сохранить. {% cut \"Добавить информацию о датасете...",
+      "contract_id": "contract_97eaa1cfc279a2fa",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "dataset",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dataset/add-description.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "добавление-информации-о-датасете-в-yandex-datalens",
+        "chunk_id": "datalens/dataset/add-description.md#добавление-информации-о-датасете-в-yandex-datalens#1",
+        "mirror_path": "datalens/dataset/add-description.md",
+        "sha256": "72f267e42d34cdcfb73032008386475fc3cf61a6c4c6f64abcd0754ba90bbad1",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dataset/add-description"
+      },
+      "title": "Добавление информации о датасете в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Датасеты > Инвалидация кешей Инвалидация кешей в Yandex DataLens DataLens кеширует результаты запросов к источникам данных, чтобы ускорить отображение чартов и дашбордов. По умолчанию кеш обновляется только после истечения TTL (времени жизни кеша в секундах). Если данные обновляются регулярно, но нечасто, и нужно видеть свежие данные, то проблема в том, что обновление...",
+      "contract_id": "contract_1e7a0db5b509419e",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "SQL"
+      ],
+      "kind": "dataset",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dataset/cache-invalidation.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Meta"
+      ],
+      "source_trace": {
+        "anchor": "инвалидация-кешей-в-yandex-datalens",
+        "chunk_id": "datalens/dataset/cache-invalidation.md#инвалидация-кешей-в-yandex-datalens#1",
+        "mirror_path": "datalens/dataset/cache-invalidation.md",
+        "sha256": "6f44775934c1563559b28c37e607d9a171b2f85a399430ee3870301f60108cad",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dataset/cache-invalidation"
+      },
+      "title": "Инвалидация кешей в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Датасеты > Работа с датасетом Работа с датасетом в Yandex DataLens В этом разделе вы узнаете, как работать с датасетом: Создать датасет Добавить данные Настроить связи Создать поля Настроить поля Выполнить операции с полями Добавить параметры Добавить фильтры Отключить возможность экспорта данных Настроить доступ Удалить датасет Отмена и восстановление изменений в дата...",
+      "contract_id": "contract_9a3e11dcde025561",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "JOIN",
+        "full",
+        "inner",
+        "left",
+        "right"
+      ],
+      "kind": "dataset",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dataset/create-dataset.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "работа-с-датасетом-в-yandex-datalens",
+        "chunk_id": "datalens/dataset/create-dataset.md#работа-с-датасетом-в-yandex-datalens#1",
+        "mirror_path": "datalens/dataset/create-dataset.md",
+        "sha256": "ad30e1d93856e766eb1f9ef324006fd233774bb0ed000a638482b6e7d33fb9be",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dataset/create-dataset"
+      },
+      "title": "Работа с датасетом в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Датасеты > Модель данных Модель данных в Yandex DataLens Набор данных датасета представлен в виде полей. Источник данных В качестве источника данных используются одна или несколько таблиц. {% note info %} Существует ограничение на показ в датасете первых 1000 таблиц из источника. Если нужные таблицы не попали в список, то на данный момент их можно добавить только вручн...",
+      "contract_id": "contract_0d1aa767893eabaf",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "FULL",
+        "INNER",
+        "JOIN",
+        "LEFT",
+        "RIGHT"
+      ],
+      "kind": "dataset",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dataset/data-model.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "модель-данных-в-yandex-datalens",
+        "chunk_id": "datalens/dataset/data-model.md#модель-данных-в-yandex-datalens#1",
+        "mirror_path": "datalens/dataset/data-model.md",
+        "sha256": "0b14833b8a924fdd4894dd29098c0fedacdddf38cae552030630e0bf65cfafdf",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dataset/data-model"
+      },
+      "title": "Модель данных в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Датасеты > Типы данных Типы данных Yandex DataLens DataLens работает с различными источниками данных, в которых типы данных полей могут отличаться. Для более эффективной работы с данными, DataLens конвертирует типы данных полей источника в собственные типы. Это оптимизирует работу с данными. Подробнее в разделе Таблица соответствий типов баз данных и внутренних типов Y...",
+      "contract_id": "contract_be4e914e1fe79a5d",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "FALSE",
+        "TRUE",
+        "decimal",
+        "hierarchy",
+        "position"
+      ],
+      "kind": "dataset",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dataset/data-types.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "типы-данных-yandex-datalens",
+        "chunk_id": "datalens/dataset/data-types.md#типы-данных-yandex-datalens#1",
+        "mirror_path": "datalens/dataset/data-types.md",
+        "sha256": "e707b02b4b4fac162582fe053d37c016dfaca21486666e77f4e269319dedefd5",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dataset/data-types"
+      },
+      "title": "Типы данных Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Датасеты > Обзор Датасет в Yandex DataLens Датасет описывает набор данных и его структуру. Набор данных датасета представлен в виде полей. DataLens создает датасет на основе источника данных, для которого существует подключение. Датасет работает с источниками в режиме прямого доступа: все запросы к данным выполняются на стороне источника. При этом изменять данные в сам...",
+      "contract_id": "contract_beb4ec0455ce1852",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "dataset",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dataset/index.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [
+        "Sources"
+      ],
+      "source_trace": {
+        "anchor": "датасет-в-yandex-datalens",
+        "chunk_id": "datalens/dataset/index.md#датасет-в-yandex-datalens#1",
+        "mirror_path": "datalens/dataset/index.md",
+        "sha256": "ac7cfb7bda8f869e08b1c5b32ab45d65aceea172bd7db04bf43f944cf9f524cc",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dataset/"
+      },
+      "title": "Датасет в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Датасеты > Параметризация источников Параметризация источников датасета в Yandex DataLens Параметризация источников датасета позволяет динамически подставлять параметры из чарта в SQL-запрос или название таблицы или схемы. Чтобы включить параметризацию источников: 1. На уровне подключения настройте Уровень доступа SQL-запросов. Активируйте настройку и выберите уровень...",
+      "contract_id": "contract_f3ce20679b89a236",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "dataset",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dataset/parametrization.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "параметризация-источников-датасета-в-yandex-datalens",
+        "chunk_id": "datalens/dataset/parametrization.md#параметризация-источников-датасета-в-yandex-datalens#1",
+        "mirror_path": "datalens/dataset/parametrization.md",
+        "sha256": "c0e4558e062f563508e8830f3a2610f64078d72d7ffdf14dfefb6a3735c65407",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dataset/parametrization"
+      },
+      "title": "Параметризация источников датасета в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Датасеты > Настройки датасета Настройки датасета в Yandex DataLens Датасет работает с источниками в режиме прямого доступа: все запросы к данным DataLens выполняет на стороне источника. Настройки датасета определяют, каким образом датасет будет работать с данными источника. Подключение нескольких таблиц Если в источнике доступно несколько таблиц, вы можете объединять и...",
+      "contract_id": "contract_8195773a1fb1bb0b",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "read-only"
+      ],
+      "kind": "dataset",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dataset/settings.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "настройки-датасета-в-yandex-datalens",
+        "chunk_id": "datalens/dataset/settings.md#настройки-датасета-в-yandex-datalens#1",
+        "mirror_path": "datalens/dataset/settings.md",
+        "sha256": "6bb9d30b7d1630a91c8f944d5e60b2fe9e3e177546b47b41977d5f740f76eac7",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dataset/settings"
+      },
+      "title": "Настройки датасета в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Датасеты > Соответствие типов данных Таблица соответствий типов баз данных и внутренних типов Yandex DataLens При создании датасета DataLens приводит данные из источника в свой тип для оптимизации. Это позволяет DataLens унифицировать работу с данными из разных источников. Ниже приведена таблица соответствий типов баз данных и внутренних типов DataLens. DataLens | Clic...",
+      "contract_id": "contract_b152179bfce2963d",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "dataset",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dataset/types-lookup-table.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "таблица-соответствий-типов-баз-данных-и-внутренних-типов-yandex-datalens",
+        "chunk_id": "datalens/dataset/types-lookup-table.md#таблица-соответствий-типов-баз-данных-и-внутренних-типов-yandex-datalens#1",
+        "mirror_path": "datalens/dataset/types-lookup-table.md",
+        "sha256": "4283bf0ee7498cb7304f78bf6fe583436fb984a5ac798ef2531609513e1522d0",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dataset/types-lookup-table"
+      },
+      "title": "Таблица соответствий типов баз данных и внутренних типов Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Датасеты > Версионирование Версионирование в Yandex DataLens Версионирование датасета — это возможность хранить историю изменений конфигурации датасета с помощью версий. Список версий доступен пользователям с минимальным правом редактирования на датасет. Чтобы перейти к списку версий, в верхней части экрана нажмите на значок image ../../assets/console-icons/ellipsis.sv...",
+      "contract_id": "contract_86238565ce8e73ac",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "revId"
+      ],
+      "kind": "dataset",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/dataset/versioning.md",
+      "native_route": "not_native_wizard_route",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "версионирование-в-yandex-datalens",
+        "chunk_id": "datalens/dataset/versioning.md#версионирование-в-yandex-datalens#1",
+        "mirror_path": "datalens/dataset/versioning.md",
+        "sha256": "8d0984ade4f91a8c9cf80ef526c80b54763b55e5ce83eaa8e230e49567a514dc",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/dataset/versioning"
+      },
+      "title": "Версионирование в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Диаграмма с областями Диаграмма с областями ../../assets/datalens/area.svg в Yandex DataLens Диаграмма показывает изменение показателя во времени. Область между осью и линией заполняется цветом, чтобы выявить объем. Если вывести несколько категорий данных, они наложатся друг на друга сверху или в проекции, в зависимости от настройки. П...",
+      "contract_id": "contract_14546354141fa94a",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "null"
+      ],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/area-chart.md",
+      "native_route": "wizard_native",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "диаграмма-с-областями-_assets-datalens-area-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/area-chart.md#диаграмма-с-областями-_assets-datalens-area-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/area-chart.md",
+        "sha256": "67f5800145e50e04d6175869d422f2485dcdc78504fb00d7778f3b383f7c9bc0",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/area-chart"
+      },
+      "title": "Диаграмма с областями ![](../../_assets/datalens/area.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Линейчатая диаграмма Линейчатая диаграмма ../../assets/datalens/horizontal-bar.svg в Yandex DataLens Диаграмма в виде горизонтальных столбиков показывает значения одного или нескольких показателей по каждой категории. Длина столбика соответствует значению показателя: чем длиннее столбец, тем больше его значение. Пример {% cut \"Продажи...",
+      "contract_id": "contract_98be369aa5917059",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "null"
+      ],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/bar-chart.md",
+      "native_route": "wizard_native",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "линейчатая-диаграмма-_assets-datalens-horizontal-bar-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/bar-chart.md#линейчатая-диаграмма-_assets-datalens-horizontal-bar-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/bar-chart.md",
+        "sha256": "2544e58bd3d4257aabbd3c3a5f87cefa8ceaf2996751d0c00f18736e353f86d0",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/bar-chart"
+      },
+      "title": "Линейчатая диаграмма ![](../../_assets/datalens/horizontal-bar.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Карта > Фоновая карта Фоновая карта ../../assets/datalens/heatmap.svg в Yandex DataLens Фоновая карта отображает целые области и регионы разными цветами или оттенками цвета. Области на карте задаются с помощью геополигонов. Геополигон — это элемент, который состоит из области, ограниченной замкнутой линией, и самой этой линии. Значение...",
+      "contract_id": "contract_9a106992bfb4a8a5",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "unknown_wizard_visualization_reference_only",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/choropleth-map-chart.md",
+      "native_route": "wizard_reference_only",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "фоновая-карта-_assets-datalens-heatmap-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/choropleth-map-chart.md#фоновая-карта-_assets-datalens-heatmap-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/choropleth-map-chart.md",
+        "sha256": "af354717eab3167390c7d101f272764b16f2d51188af6c98a29a8752d82e0bbc",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/choropleth-map-chart"
+      },
+      "title": "Фоновая карта ![](../../_assets/datalens/heatmap.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Карта > Точечная карта с кластеризацией Точечная карта с кластеризацией ../../assets/datalens/heatmap.svg Yandex DataLens Точечная диаграмма с кластеризацией отличается от обычной точечной тем, что находящиеся рядом друг с другом точки объединяются в кластер. На карте кластер выглядит как кольцевая диаграмма с числом точек в центре. {%...",
+      "contract_id": "contract_f8f726b34e3f2a12",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "unknown_wizard_visualization_reference_only",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/cluster-point-map-chart.md",
+      "native_route": "wizard_reference_only",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "точечная-карта-с-кластеризацией-_assets-datalens-heatmap-svg-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/cluster-point-map-chart.md#точечная-карта-с-кластеризацией-_assets-datalens-heatmap-svg-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/cluster-point-map-chart.md",
+        "sha256": "cd6c87251d259bbdd143d59a5011bf127ecf2359268b0c42d51be2686ca11e93",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/cluster-point-map-chart"
+      },
+      "title": "Точечная карта с кластеризацией ![](../../_assets/datalens/heatmap.svg) Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Столбчатая диаграмма Столбчатая диаграмма ../../assets/datalens/column.svg в Yandex DataLens Диаграмма отображает значения одного или нескольких показателей по периодам времени или по категориям. Высота столбика определяет значение показателя: чем выше столбец, тем больше его значение. В отличие от линейного графика, на этой диаграмме...",
+      "contract_id": "contract_d994ed3afc7bea25",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "CASE",
+        "null"
+      ],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/column-chart.md",
+      "native_route": "wizard_native",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "столбчатая-диаграмма-_assets-datalens-column-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/column-chart.md#столбчатая-диаграмма-_assets-datalens-column-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/column-chart.md",
+        "sha256": "4a22f5431ec8a326ca36a3278be4ac628defacbaa44f737e7644bc925c238d1f",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/column-chart"
+      },
+      "title": "Столбчатая диаграмма ![](../../_assets/datalens/column.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Комбинированная диаграмма Комбинированная диаграмма ../../assets/datalens/combined.svg в Yandex DataLens Комбинированная диаграмма — отдельный тип визуализации, который состоит из слоев. Каждый слой — отдельный тип диаграммы. Можно комбинировать линейные, столбчатые и диаграммы с областями. Особенности Секции Х, Сортировка и Фильтры об...",
+      "contract_id": "contract_19a93007d2b702a7",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "Cmd",
+        "Ctrl"
+      ],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/combined-chart.md",
+      "native_route": "wizard_native",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "комбинированная-диаграмма-_assets-datalens-combined-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/combined-chart.md#комбинированная-диаграмма-_assets-datalens-combined-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/combined-chart.md",
+        "sha256": "90cb33d07f10b5e320fcc22c71efe800b48d02ad8aaa9981338906c83955532f",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/combined-chart"
+      },
+      "title": "Комбинированная диаграмма ![](../../_assets/datalens/combined.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Карта > Тепловая карта Тепловая карта ../../assets/datalens/heatmap.svg в Yandex DataLens Тепловая карта показывает плотность распределения точек. Области на карте окрашиваются градиентом от зеленого цвета к красному: чем больше точек сгруппированы в области, тем ближе к красному будет ее цвет. Что нужно знать о тепловых картах + Тепло...",
+      "contract_id": "contract_ed3c382b27b5a697",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "unknown_wizard_visualization_reference_only",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/heat-map-chart.md",
+      "native_route": "wizard_reference_only",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "тепловая-карта-_assets-datalens-heatmap-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/heat-map-chart.md#тепловая-карта-_assets-datalens-heatmap-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/heat-map-chart.md",
+        "sha256": "79e1a95ad1b14c4c658fcaad40a223a98999e1b7cb23c7123b02f014d926efef",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/heat-map-chart"
+      },
+      "title": "Тепловая карта ![](../../_assets/datalens/heatmap.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Все визуализации Справочник визуализаций в Yandex DataLens Чтобы представлять данные в понятном виде, а также анализировать связи внутри массивов с данными, используйте возможности визуализации в DataLens. Справочник визуализаций поможет в этом: выбирайте подходящий тип чарта и подготавливайте материалы для отчетов по показателям и свя...",
+      "contract_id": "contract_abec477f445fefab",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "unknown_wizard_visualization_reference_only",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/index.md",
+      "native_route": "wizard_reference_only",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "справочник-визуализаций-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/index.md#справочник-визуализаций-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/index.md",
+        "sha256": "6aca1ab01ca9b61255ad9bf18584cb8b95cab35698b2a3d70dbcd301a6c0d44c",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/"
+      },
+      "title": "Справочник визуализаций в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Индикатор Индикатор ../../assets/datalens/indicator.svg в Yandex DataLens Индикатор отражает значение одного ключевого показателя. Чтобы сделать индикатор более сложным и информативным, берите несколько показателей. Индикатор используется, когда на дашборде есть значения, за которыми нужно регулярно следить для понимания общей ситуации...",
+      "contract_id": "contract_99af0f290e3cbe3d",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/indicator-chart.md",
+      "native_route": "wizard_native",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "индикатор-_assets-datalens-indicator-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/indicator-chart.md#индикатор-_assets-datalens-indicator-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/indicator-chart.md",
+        "sha256": "4dfde2505ebe3c00f2d20575517eda1511f4184243596b0480ce3cd0d5f29219",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/indicator-chart"
+      },
+      "title": "Индикатор ![](../../_assets/datalens/indicator.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Линейная диаграмма Линейная диаграмма ../../assets/datalens/line.svg в Yandex DataLens Диаграмма показывает, как изменяются показатели (может быть и один) в промежутке времени. Линия диаграммы соединяет точки с координатами (X, Y). Что можно увидеть Диаграмма отображает тренды, сезонность, динамику, соотношение нескольких показателей в...",
+      "contract_id": "contract_8ec666cc4cfa8567",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "MAX",
+        "null"
+      ],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/line-chart.md",
+      "native_route": "wizard_native",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "линейная-диаграмма-_assets-datalens-line-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/line-chart.md#линейная-диаграмма-_assets-datalens-line-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/line-chart.md",
+        "sha256": "7ffce3b4845ac130a1a35249ca4059997e11d0da0155aa8199b67303e0957c3e",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/line-chart"
+      },
+      "title": "Линейная диаграмма ![](../../_assets/datalens/line.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Карта > Обзор Карта ../../assets/datalens/heatmap.svg в Yandex DataLens Карты используются для геоаналитики — отображения и исследования бизнес-показателей на карте. Что можно увидеть на картах + Численность и плотность населения. + Количество коммерческих объектов и их прибыль. + Другие показатели, которые могут влиять на эффективност...",
+      "contract_id": "contract_9b2719fb84a2b203",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/map-chart.md",
+      "native_route": "wizard_native",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "карта-_assets-datalens-heatmap-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/map-chart.md#карта-_assets-datalens-heatmap-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/map-chart.md",
+        "sha256": "1ba4ed570b75bc3c9aac480237f28eabf658ffaff23ea0075fb8bc0fce07d442",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/map-chart"
+      },
+      "title": "Карта ![](../../_assets/datalens/heatmap.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Нормированная диаграмма с областями Нормированная диаграмма с областями ../../assets/datalens/normalized-area.svg в Yandex DataLens Нормированная диаграмма с областями показывает изменения вклада каждой категории в значение показателя на отрезке времени. Области выделяются разными цветами и располагаются друг над другом. Показывается п...",
+      "contract_id": "contract_536a782de7037a9f",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/normalized-area-chart.md",
+      "native_route": "wizard_native",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "нормированная-диаграмма-с-областями-_assets-datalens-normalized-area-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/normalized-area-chart.md#нормированная-диаграмма-с-областями-_assets-datalens-normalized-area-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/normalized-area-chart.md",
+        "sha256": "e31b19b8b40796159e345b12dd74a0f28dada520305074e0eaf06a2eeb542eab",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/normalized-area-chart"
+      },
+      "title": "Нормированная диаграмма с областями ![](../../_assets/datalens/normalized-area.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Нормированная линейчатая диаграмма Нормированная линейчатая диаграмма ../../assets/datalens/normalized-horizontal-bar.svg в Yandex DataLens Нормированная линейчатая диаграмма показывает процентный вклад нескольких показателей в общую сумму по периодам времени или по категориям. В отличие от линейчатой диаграммы с накоплением для этой д...",
+      "contract_id": "contract_f22b6f6798424c6d",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/normalized-bar-chart.md",
+      "native_route": "wizard_native",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "нормированная-линейчатая-диаграмма-_assets-datalens-normalized-horizontal-bar-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/normalized-bar-chart.md#нормированная-линейчатая-диаграмма-_assets-datalens-normalized-horizontal-bar-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/normalized-bar-chart.md",
+        "sha256": "9dce99a22f0ae6994e4fb7212aca8115086309e7a49966eed9aef9990997072f",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/normalized-bar-chart"
+      },
+      "title": "Нормированная линейчатая диаграмма ![](../../_assets/datalens/normalized-horizontal-bar.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Нормированная столбчатая диаграмма Нормированная столбчатая диаграмма ../../assets/datalens/normalized-column.svg в Yandex DataLens Нормированная столбчатая диаграмма показывает вклад каждого показателя или категории в общую сумму. В отличие от столбчатой диаграммы с накоплением, для этой диаграммы важна не суммарная длина столбца, а с...",
+      "contract_id": "contract_4456cfb3a6d8c821",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/normalized-column-chart.md",
+      "native_route": "wizard_native",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "нормированная-столбчатая-диаграмма-_assets-datalens-normalized-column-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/normalized-column-chart.md#нормированная-столбчатая-диаграмма-_assets-datalens-normalized-column-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/normalized-column-chart.md",
+        "sha256": "5b09f8cb841be2fc21931112ec97b5c870a5e83add553fba739b529b69f48695",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/normalized-column-chart"
+      },
+      "title": "Нормированная столбчатая диаграмма ![](../../_assets/datalens/normalized-column.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Круговая диаграмма Круговая диаграмма ../../assets/datalens/pie.svg в Yandex DataLens Диаграмма показывает отношение между категориями в виде сегментов (секторов) круга. Площадь всего круга — это сумма всех категорий, равна 100%. Площадь каждого сегмента — доля категории в общей сумме. Круговые диаграммы подходят для показа пропорций н...",
+      "contract_id": "contract_d8d7b5f04f185e72",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "ProductSubcategory",
+        "Sales"
+      ],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/pie-chart.md",
+      "native_route": "wizard_native",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "круговая-диаграмма-_assets-datalens-pie-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/pie-chart.md#круговая-диаграмма-_assets-datalens-pie-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/pie-chart.md",
+        "sha256": "bb16684885de21ed21be88a7f8bb20945d762c26e0787bffe40902bf05018e32",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/pie-chart"
+      },
+      "title": "Круговая диаграмма ![](../../_assets/datalens/pie.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Сводная таблица Сводная таблица ../../assets/datalens/pivot-table.svg в Yandex DataLens Таблица — это стандартный вид представления данных с максимальной детализацией. {% note tip %} Таблицы лучше всего располагать в самом конце дашборда. Графику проще \"читать\", а для погружения в табличные данные нужно больше времени и внимания. {% en...",
+      "contract_id": "contract_aba326b06d241e00",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "CategorySales",
+        "MaxCountByCategory",
+        "TotalSales",
+        "null",
+        "px"
+      ],
+      "kind": "visualization-ref",
+      "limits": [
+        "documented limit signal"
+      ],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/pivot-table-chart.md",
+      "native_route": "wizard_native",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "сводная-таблица-_assets-datalens-pivot-table-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/pivot-table-chart.md#сводная-таблица-_assets-datalens-pivot-table-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/pivot-table-chart.md",
+        "sha256": "abd0f4d3c0353cf39fd7167d6f13afd7d0f659f24006893c71fcc2563be182e1",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/pivot-table-chart"
+      },
+      "title": "Сводная таблица ![](../../_assets/datalens/pivot-table.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Карта > Точечная карта Точечная карта ../../assets/datalens/heatmap.svg в Yandex DataLens Каждая точка откладывается по своим географическим координатам. + Размер точки Размер точки может выражать значение показателя: чем больше точка, тем выше значение показателя. Такую карту также можно назвать пузырьковой. + Цвет точки Разные цвета...",
+      "contract_id": "contract_5a7360bc04188de7",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "unknown_wizard_visualization_reference_only",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/point-map-chart.md",
+      "native_route": "wizard_reference_only",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "точечная-карта-_assets-datalens-heatmap-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/point-map-chart.md#точечная-карта-_assets-datalens-heatmap-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/point-map-chart.md",
+        "sha256": "3a63cabfa2b3c96968e7bcd1330fbabd6a2678e2e5c1bd33a1b80fee56bd029a",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/point-map-chart"
+      },
+      "title": "Точечная карта ![](../../_assets/datalens/heatmap.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Карта > Полилинейная карта Полилинейная карта ../../assets/datalens/polyline-map.svg в Yandex DataLens Полилинейная карта — это тип геослоя на чарте Карта, позволяющий рисовать полилинии на карте. Полилиния состоит из точек, соединенных в определенном порядке. Полилинейная карта используется, например, для отображения траектории движен...",
+      "contract_id": "contract_dee799b7f5c0668d",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/polyline-map-chart.md",
+      "native_route": "wizard_native",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "полилинейная-карта-_assets-datalens-polyline-map-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/polyline-map-chart.md#полилинейная-карта-_assets-datalens-polyline-map-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/polyline-map-chart.md",
+        "sha256": "74206fe945709e96c8f65f10e9024c12a3ed0a373bc0a85ef68f595cc613105f",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/polyline-map-chart"
+      },
+      "title": "Полилинейная карта ![](../../_assets/datalens/polyline-map.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Кольцевая диаграмма Кольцевая диаграмма ../../assets/datalens/ring.svg в Yandex DataLens Диаграмма отображает отношение между категориями при помощи сегментов кольца. Сумма всех сегментов составляет 100%. Размер каждого сегмента соответствует доле категории в общей сумме. Число в центре кольца зависит от выбранного показателя и отражае...",
+      "contract_id": "contract_c85fdae0ac72bea5",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "ProductSubcategory",
+        "Sales"
+      ],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "unknown_wizard_visualization_reference_only",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/ring-chart.md",
+      "native_route": "wizard_reference_only",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "кольцевая-диаграмма-_assets-datalens-ring-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/ring-chart.md#кольцевая-диаграмма-_assets-datalens-ring-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/ring-chart.md",
+        "sha256": "41d4bc2d7f8985b9053959e0d8b3f973348bcfa073e50fea360642cfa8f95485",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/ring-chart"
+      },
+      "title": "Кольцевая диаграмма ![](../../_assets/datalens/ring.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Точечная диаграмма Точечная диаграмма ../../assets/datalens/scatter-chart.svg в Yandex DataLens Точечная диаграмма показывает отношение между двумя величинами (измерениями или показателями). Их значения показываются в виде точек. На точечной диаграмме всегда есть две оси: набор значений одной величины представлен вдоль горизонтальной о...",
+      "contract_id": "contract_b2549192179c9e3b",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [
+        "null"
+      ],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/scatter-chart.md",
+      "native_route": "wizard_native",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "точечная-диаграмма-_assets-datalens-scatter-chart-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/scatter-chart.md#точечная-диаграмма-_assets-datalens-scatter-chart-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/scatter-chart.md",
+        "sha256": "f6315697b7d31d4a3c71fb2e3da02ac71505569287bca87c27bc323595a0714e",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/scatter-chart"
+      },
+      "title": "Точечная диаграмма ![](../../_assets/datalens/scatter-chart.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Таблица Таблица ../../assets/datalens/table-chart.svg в Yandex DataLens Таблица — это стандартный вид представления данных с наибольшей детализацией. Что надо знать Она содержит данные в виде двумерного массива, состоящего из столбцов и строк. В заголовках столбцов таблицы отображаются названия измерений или показателей, а в ячейках —...",
+      "contract_id": "contract_42d1a2d568b1e032",
+      "editor_route": "editor_table_possible",
+      "html_tags_or_attributes": [
+        "CategorySales",
+        "MaxCountByCategory",
+        "TotalSales",
+        "null",
+        "px"
+      ],
+      "kind": "visualization-ref",
+      "limits": [
+        "documented limit signal"
+      ],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/table-chart.md",
+      "native_route": "wizard_native",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "таблица-_assets-datalens-table-chart-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/table-chart.md#таблица-_assets-datalens-table-chart-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/table-chart.md",
+        "sha256": "c3fd9b472044c59276f5192b41e8375a1fdef4e2ee641e899ccec3a9332cb230",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/table-chart"
+      },
+      "title": "Таблица ![](../../_assets/datalens/table-chart.svg) в Yandex DataLens"
+    },
+    {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Древовидная диаграмма Древовидная диаграмма ../../assets/datalens/treemap.svg в Yandex DataLens Древовидная диаграмма отражает иерархические данные как набор вложенных прямоугольников. Каждый уровень иерархии соответствует измерению и показан цветным прямоугольником, содержащим вложенные прямоугольники. Размер прямоугольника напрямую з...",
+      "contract_id": "contract_cc8b4d71d6295a29",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "unknown_wizard_visualization_reference_only",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/tree-chart.md",
+      "native_route": "wizard_reference_only",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "древовидная-диаграмма-_assets-datalens-treemap-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/tree-chart.md#древовидная-диаграмма-_assets-datalens-treemap-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/tree-chart.md",
+        "sha256": "621f6648372399cccec86f65ded23ecae32243772dc4fd4ea23721969fd84677",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/tree-chart"
+      },
+      "title": "Древовидная диаграмма ![](../../_assets/datalens/treemap.svg) в Yandex DataLens"
+    }
+  ],
+  "schema_version": "2026-06-25.semantic_authoring.v2"
+}

@@ -1,0 +1,109 @@
+{
+  "schema_version": "2026-07-15.chart_design_rules.public.v1",
+  "source_trace": [
+    "project-authored visual quality policy",
+    "https://yandex.cloud/ru/docs/datalens/visualization-ref/",
+    "docs/route-policy.md",
+    "config/datalens_style_guide.json"
+  ],
+  "global_rules": [
+    "start_with_goal_audience_action_and_metric_definition",
+    "reduce_cognitive_load_before_adding_visual_detail",
+    "remove_3d_shadows_decorative_backgrounds_and_chartjunk",
+    "prefer_position_length_and_clear_labels_before_area_or_color",
+    "use_neutral_first_color_then_semantic_or_focus_color",
+    "keep_color_semantics_consistent_across_dashboard",
+    "ask_when_goal_metric_grain_baseline_or_action_is_missing"
+  ],
+  "requirements_rules": {
+    "required_questions": [
+      "What decision or action should the dashboard support?",
+      "Who is the audience and how often will they use it?",
+      "Which KPI definitions, grain, source, freshness and owner are accepted?",
+      "Which comparison baseline and alert thresholds are meaningful?",
+      "Which fields, filters and data quality risks must be visible?"
+    ],
+    "source_trace": "project-authored requirements contract"
+  },
+  "axis_rules": {
+    "bar_axis": "start_at_zero_unless_a_documented_exception_is_reviewed",
+    "line_axis": "may_use_narrower_domain_when_trend_readability_and_baseline_context_are_preserved",
+    "gridlines": "use_light_gridlines_only_when_value_lookup_is_required",
+    "labels": "prefer_direct_labels_when_they_reduce_legend_lookup"
+  },
+  "color_rules": {
+    "neutral_base": "gray_or_theme_neutral_first",
+    "categorical_limit": 7,
+    "sequential": "light_to_dark_for_magnitude",
+    "diverging": "two_poles_for_positive_negative_or_above_below_baseline",
+    "alerting": "reserve_high_saturation_for_actionable_status",
+    "accessibility": "avoid_relying_on_color_alone"
+  },
+  "truthfulness_rules": {
+    "part_to_whole": "parts_must_be_additive_and_reconcile_to_100_percent",
+    "stacking": "do_not_stack_averages_or_overlapping_distinct_populations",
+    "implicit_values": "do_not_invent_targets_quartiles_sparklines_or_missing_series_values",
+    "dual_axis": "warning_requires_explicit_scale_and_readability_justification",
+    "three_d": "forbidden"
+  },
+  "table_rules": {
+    "route": "table_node_for_exact_records_and_registries",
+    "alignment": "text_left_numbers_right_icons_center",
+    "numeric_contract": "numeric_value_plus_formattedValue",
+    "empty_state": "explicit_row_required",
+    "scroll": "avoid_horizontal_scroll_and_bound_vertical_detail_with_server_pagination",
+    "flat_table_hint": "description_requires_enabled_nonempty_hintSettings_for_visible_header_hint"
+  },
+  "layout_rules": {
+    "grid_columns": 36,
+    "grouping_order": ["proximity", "alignment", "whitespace", "background_or_border_if_needed"],
+    "information_order": "important_general_top_left_then_detail_below_or_right",
+    "overview_viewport": "one_viewport_preferred_not_universal",
+    "managed_object": "deliberate_long_scroll_or_consistent_tabs_allowed",
+    "height": "route_content_profile_plus_browser_geometry_and_preserve_existing_on_untouched_items"
+  },
+  "interaction_rules": {
+    "click_filter": "visible_state_relevant_targets_and_reset_required",
+    "hover": "highlight_only_not_hidden_filtering",
+    "drill": "declared_hierarchy_current_level_and_drill_up_required",
+    "selectors": "compile_param_impact_tabs_widget_targets_and_ignore_edges"
+  },
+  "chart_family_rules": {
+    "kpi": {
+      "use_for": ["current_status", "target_delta", "alert"],
+      "must_have": ["metric_definition", "period", "baseline_or_target"],
+      "avoid": ["decorative_status_card_without_decision"]
+    },
+    "comparison": {
+      "default": "horizontal_bar",
+      "sort": "descending_by_measure",
+      "must_have": ["category", "measure", "comparison_goal"]
+    },
+    "time_series": {
+      "default": "line_chart",
+      "must_have": ["date_or_period", "measure", "grain"],
+      "avoid": ["area_without_accumulation_semantics"]
+    },
+    "distribution": {
+      "default": "histogram_or_box_plot",
+      "must_have": ["numeric_measure", "bin_or_grouping_logic"]
+    },
+    "relationship": {
+      "default": "scatter",
+      "must_have": ["x_measure", "y_measure", "correlation_question"]
+    },
+    "part_to_whole": {
+      "default": "bar_or_donut_for_small_stable_set",
+      "must_have": ["whole_definition", "parts", "stable_small_cardinality"]
+    },
+    "geography": {
+      "default": "native_map",
+      "must_have": ["geo_field", "geo_evidence", "measure_or_status"]
+    },
+    "table": {
+      "default": "table_node",
+      "use_for": ["exact_values", "registry", "self_service_detail"],
+      "enhance_only_when": "scanability_improves"
+    }
+  }
+}

@@ -1,0 +1,530 @@
+{
+  "assignLicenses": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "AssignLicensesArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "AssignLicensesResponse"
+  },
+  "batchListMembers": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "AccessExtBatchListMembersArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "AccessExtBatchListMembersResult"
+  },
+  "cancelWorkbookExport": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CancelWorkbookExportArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CancelWorkbookExportResult"
+  },
+  "createCollection": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateCollectionArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CreateCollectionResult"
+  },
+  "createConnection": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "ConnectionCreate",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CreateConnectionResult"
+  },
+  "createDashboard": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateDashboardV1Args",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "CreateDashboardResponse"
+  },
+  "createDataset": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DatasetCreate",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DatasetRead"
+  },
+  "createEditorChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateEditorChartArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CreateEditorChartResult"
+  },
+  "createEmbed": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateEmbedArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "Embed"
+  },
+  "createEmbeddingSecret": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateEmbeddingSecretArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CreateEmbeddingSecretResult"
+  },
+  "createFolder": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateFolderArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CreateFolderResult"
+  },
+  "createQLChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateQLChartArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "CreateQLChartResponse"
+  },
+  "createReport": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateReportV1Args",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CreateReportV1Result"
+  },
+  "createWizardChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateWizardChartArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "CreateWizardChartResponse"
+  },
+  "createWorkbook": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateWorkbookArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CreateWorkbookResult"
+  },
+  "deleteCollection": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteCollectionArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DeleteCollectionResult"
+  },
+  "deleteCollections": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteCollectionsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DeleteCollectionsResult"
+  },
+  "deleteConnection": {
+    "request_schema_kind": "inline",
+    "request_schema_ref": "DeleteConnectionRequest",
+    "response_schema_kind": "none",
+    "response_schema_ref": ""
+  },
+  "deleteDashboard": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteDashboardArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "DeleteDashboardResponse"
+  },
+  "deleteDataset": {
+    "request_schema_kind": "inline",
+    "request_schema_ref": "DeleteDatasetRequest",
+    "response_schema_kind": "none",
+    "response_schema_ref": ""
+  },
+  "deleteEditorChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteEditorChartArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "DeleteEditorChartResponse"
+  },
+  "deleteEmbed": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteEmbedArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DeleteEmbedResult"
+  },
+  "deleteEmbeddingSecret": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteEmbeddingSecretArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DeleteEmbeddingSecretResult"
+  },
+  "deleteFolder": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteFolderArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "DeleteFolderResponse"
+  },
+  "deleteQLChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteQLChartArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "DeleteQLChartResponse"
+  },
+  "deleteReport": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteReportArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "DeleteReportResponse"
+  },
+  "deleteWizardChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteWizardChartArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "DeleteWizardChartResponse"
+  },
+  "deleteWorkbook": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteWorkbookArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "Workbook"
+  },
+  "deleteWorkbooks": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteWorkbooksArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "DeleteWorkbooksResponse"
+  },
+  "dlsSuggest": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DlsSuggestArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DlsSuggestResult"
+  },
+  "getAuditEntriesUpdates": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetAuditEntriesUpdatesArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetAuditEntriesUpdatesResult"
+  },
+  "getAuditEntryPermissionsForUser": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetAuditEntryPermissionsForUserArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetAuditEntryPermissionsForUserResult"
+  },
+  "getCollection": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetCollectionArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetCollectionResult"
+  },
+  "getCollectionBreadcrumbs": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetCollectionBreadcrumbsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetCollectionBreadcrumbsResult"
+  },
+  "getCollectionContent": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetStructureItemsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetStructureItemsResult"
+  },
+  "getCollectionsByIds": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetCollectionsByIdsArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "GetCollectionsByIdsResponse"
+  },
+  "getConnection": {
+    "request_schema_kind": "inline",
+    "request_schema_ref": "GetConnectionRequest",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "ConnectionRead"
+  },
+  "getDashboard": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetDashboardV1Args",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetDashboardV1Result"
+  },
+  "getDataset": {
+    "request_schema_kind": "inline",
+    "request_schema_ref": "GetDatasetRequest",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DatasetRead"
+  },
+  "getEditorChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetEditorChartArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetEditorChartResult"
+  },
+  "getEmbeddingSecret": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetEmbeddingSecretArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "EmbeddingSecret"
+  },
+  "getEntries": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetEntriesV2Args",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetEntriesV2Result"
+  },
+  "getEntriesPermissions": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetEntriesPermissionsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetEntriesPermissionsResult"
+  },
+  "getEntriesRelations": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetEntriesRelationsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetEntriesRelationsResult"
+  },
+  "getLicenses": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetLicensesArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetLicensesResult"
+  },
+  "getLicensesLimit": {
+    "request_schema_kind": "none",
+    "request_schema_ref": "",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "LicenseLimits"
+  },
+  "getPermissions": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetPermissionsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetPermissionsResult"
+  },
+  "getPermissionsBulk": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetPermissionsBulkArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetPermissionsBulkResult"
+  },
+  "getQLChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetQLChartArgs",
+    "response_schema_kind": "none",
+    "response_schema_ref": ""
+  },
+  "getReport": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetReportV1Args",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetReportV1Result"
+  },
+  "getRootCollectionPermissions": {
+    "request_schema_kind": "none",
+    "request_schema_ref": "",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetRootCollectionPermissionsResult"
+  },
+  "getWizardChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetWizardChartArgs",
+    "response_schema_kind": "none",
+    "response_schema_ref": ""
+  },
+  "getWorkbook": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetWorkbookArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetWorkbookResult"
+  },
+  "getWorkbookEntries": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetWorkbookEntriesArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetWorkbookEntriesResult"
+  },
+  "getWorkbookExportResult": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetWorkbookExportResultArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetWorkbookExportResultResult"
+  },
+  "getWorkbookExportStatus": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetWorkbookExportStatusArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetWorkbookExportStatusResult"
+  },
+  "getWorkbookImportStatus": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetWorkbookImportStatusArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetWorkbookImportStatusResult"
+  },
+  "getWorkbooksByIds": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetWorkbooksByIdsArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "GetWorkbooksByIdsResponse"
+  },
+  "getWorkbooksList": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetWorkbooksListArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetWorkbooksListResult"
+  },
+  "listCollectionAccessBindings": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "ListCollectionAccessBindingsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "ListIamAccessBindingsResult"
+  },
+  "listDirectory": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "ListDirectoryArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "ListDirectoryResult"
+  },
+  "listEmbeddingSecrets": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "ListEmbeddingSecretsArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "ListEmbeddingSecretsResponse"
+  },
+  "listEmbeds": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "ListEmbedsArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "ListEmbedsResponse"
+  },
+  "listSharedEntryAccessBindings": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "ListSharedEntryAccessBindingsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "ListIamAccessBindingsResult"
+  },
+  "listWorkbookAccessBindings": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "ListWorkbookAccessBindingsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "ListIamAccessBindingsResult"
+  },
+  "modifyPermissions": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "ModifyPermissionsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "ModifyPermissionsResult"
+  },
+  "moveCollection": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "MoveCollectionArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "Collection"
+  },
+  "moveCollections": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "MoveCollectionsArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "MoveCollectionsResponse"
+  },
+  "moveFolderEntry": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "MoveEntryArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "MoveEntryResult"
+  },
+  "moveWorkbook": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "MoveWorkbookArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "Workbook"
+  },
+  "moveWorkbooks": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "MoveWorkbooksArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "MoveWorkbooksResponse"
+  },
+  "renameEntry": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "RenameEntryArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "RenameEntryResult"
+  },
+  "setLicenseLimit": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "SetLicenseLimitArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "LicenseLimits"
+  },
+  "startWorkbookExport": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "StartWorkbookExportArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "StartWorkbookExportResult"
+  },
+  "startWorkbookImport": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "StartWorkbookImportArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "StartWorkbookImportResult"
+  },
+  "updateCollection": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateCollectionArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "Collection"
+  },
+  "updateCollectionAccessBindings": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateCollectionAccessBindingsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DatalensOperation"
+  },
+  "updateConnection": {
+    "request_schema_kind": "inline",
+    "request_schema_ref": "UpdateConnectionRequest",
+    "response_schema_kind": "none",
+    "response_schema_ref": ""
+  },
+  "updateDashboard": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateDashboardV1Args",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "UpdateDashboardResponse"
+  },
+  "updateDataset": {
+    "request_schema_kind": "inline",
+    "request_schema_ref": "UpdateDatasetRequest",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DatasetRead"
+  },
+  "updateEditorChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateEditorChartArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "UpdateEditorChartResult"
+  },
+  "updateEmbed": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateEmbedArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "Embed"
+  },
+  "updateQLChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateQLChartArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "UpdateQLChartResponse"
+  },
+  "updateReport": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateReportV1Args",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "UpdateReportV1Result"
+  },
+  "updateWizardChart": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateWizardChartArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "UpdateWizardChartResponse"
+  },
+  "updateWorkbook": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateWorkbookArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "Workbook"
+  },
+  "updateWorkbookAccessBindings": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateWorkbookAccessBindingsArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DatalensOperation"
+  },
+  "validateDataset": {
+    "request_schema_kind": "inline",
+    "request_schema_ref": "ValidateDatasetRequest",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DatasetRead"
+  }
+}

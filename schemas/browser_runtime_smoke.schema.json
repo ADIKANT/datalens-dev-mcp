@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "datalens.delta_v8.browser_runtime_smoke.schema.json",
+  "title": "DataLens Delta v8 Browser Runtime Smoke",
+  "type": "object",
+  "required": ["status", "target_url", "checked_markers", "blocking_markers_found"],
+  "properties": {
+    "status": {"enum": ["passed", "failed", "blocked", "not_run"]},
+    "target_url": {"type": "string"},
+    "tab_id": {"type": "string"},
+    "branch": {"enum": ["saved", "published", ""]},
+    "revision_id": {"type": "string"},
+    "object_revisions": {"type": "object", "additionalProperties": {"type": "string"}},
+    "required_branch": {"enum": ["saved", "published", ""]},
+    "required_revision_id": {"type": "string"},
+    "required_object_revisions": {"type": "object", "additionalProperties": {"type": "string"}},
+    "revision_mismatch_object_ids": {"type": "array", "items": {"type": "string"}},
+    "delivery_stage": {"enum": ["", "saved_runtime", "published_runtime"]},
+    "changed_chart_ids": {"type": "array", "items": {"type": "string"}},
+    "required_changed_chart_ids": {"type": "array", "items": {"type": "string"}},
+    "missing_changed_chart_ids": {"type": "array", "items": {"type": "string"}},
+    "checked_selectors": {"type": "array", "items": {"type": "object"}},
+    "selector_interaction": {
+      "type": "object",
+      "required": ["status", "scope_object_ids"],
+      "properties": {
+        "status": {"enum": ["passed", "not_applicable"]},
+        "scope_object_ids": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "scroll_check": {
+      "type": "object",
+      "required": ["status", "scope_object_ids", "document_height", "viewport_height"],
+      "properties": {
+        "status": {"enum": ["passed", "not_applicable"]},
+        "scope_object_ids": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "document_height": {"type": "number", "exclusiveMinimum": 0},
+        "viewport_height": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "visible_widget_titles": {"type": "array", "items": {"type": "string"}},
+    "expected_titles": {"type": "array", "items": {"type": "string"}},
+    "missing_expected_titles": {"type": "array", "items": {"type": "string"}},
+    "checked_markers": {"type": "array", "items": {"type": "string"}},
+    "blocking_markers_found": {"type": "array", "items": {"type": "string"}},
+    "marker_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+    "console_error_count": {"type": "integer", "minimum": 0},
+    "console_messages": {"type": "array", "items": {"type": "string"}},
+    "extracted_error_details": {"type": "array", "items": {"type": "object"}},
+    "screenshot_artifacts": {"type": "array", "items": {"type": "string"}},
+    "proof_artifacts": {"type": "array", "items": {"type": "string"}},
+    "proof_artifact_metadata": {"type": "array", "items": {"type": "object"}},
+    "artifact_validation_issues": {"type": "array", "items": {"type": "object"}},
+    "browser_capture_artifact": {"type": "string"},
+    "browser_capture_validation": {"type": "object"},
+    "evidence_validation_issues": {"type": "array", "items": {"type": "string"}},
+    "non_rendering_exemption": {"type": "string"},
+    "blocked_reason": {"type": "string"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "passed"}}},
+      "then": {
+        "required": [
+          "tab_id",
+          "branch",
+          "object_revisions",
+          "changed_chart_ids",
+          "selector_interaction",
+          "scroll_check",
+          "browser_capture_artifact",
+          "browser_capture_validation"
+        ],
+        "properties": {
+          "target_url": {"type": "string", "format": "uri", "minLength": 1},
+          "tab_id": {"type": "string", "minLength": 1},
+          "branch": {"enum": ["saved", "published"]},
+          "object_revisions": {"type": "object", "minProperties": 1},
+          "revision_mismatch_object_ids": {"maxItems": 0},
+          "changed_chart_ids": {"type": "array", "minItems": 1},
+          "missing_changed_chart_ids": {"maxItems": 0},
+          "missing_expected_titles": {"maxItems": 0},
+          "blocking_markers_found": {"maxItems": 0},
+          "console_error_count": {"const": 0},
+          "evidence_validation_issues": {"maxItems": 0},
+          "browser_capture_validation": {
+            "type": "object",
+            "required": ["ok"],
+            "properties": {"ok": {"const": true}}
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": true
+}

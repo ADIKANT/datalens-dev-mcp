@@ -1,0 +1,6 @@
+{
+  "links": {
+    "defaultConnection": "replace-with-connection-id"
+  },
+  "description": "Rare custom Advanced table with grouped headers and sticky first column."
+}

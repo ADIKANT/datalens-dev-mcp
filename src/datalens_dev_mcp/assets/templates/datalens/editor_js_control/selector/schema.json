@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "required": ["param", "options"],
+  "properties": {
+    "param": {"type": "string"},
+    "options": {"type": "array", "items": {"type": "string"}}
+  }
+}

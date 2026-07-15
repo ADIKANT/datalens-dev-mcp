@@ -1,0 +1,59 @@
+{
+  "algorithmic_bound": "O(n)",
+  "aliases": [
+    "actions",
+    "dashboard link",
+    "dashboard links",
+    "dashboard links/actions",
+    "links",
+    "действия",
+    "ссылки"
+  ],
+  "cardinality_limits": {},
+  "executable_bundle": {
+    "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+    "bundle_files": [
+      "expected_output.json",
+      "fixture_input.json",
+      "meta.json",
+      "params.js",
+      "prepare.js",
+      "sources.js"
+    ],
+    "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+    "status": "executable_fixture_tested"
+  },
+  "implementation_status": "implemented_tested",
+  "local_policy_status": "allowed",
+  "native_table_contract": false,
+  "observed_runtime_overrides": [],
+  "official_status": "documented",
+  "output_contract": [
+    "navigation_endpoint",
+    "safe_parameter_mapping"
+  ],
+  "recipe_id": "links",
+  "required_tabs": [
+    "Dashboard links"
+  ],
+  "route": "dashboard_relation_operation",
+  "source_contract": "dashboard_link",
+  "source_traces": [
+    {
+      "anchor": "связи-чарта-в-дашбордах-и-отчетах",
+      "chunk_id": "datalens/charts/editor/links.md#связи-чарта-в-дашбордах-и-отчетах#1",
+      "mirror_path": "datalens/charts/editor/links.md",
+      "sha256": "5424d4fb13ce55822295dfaf80d6a465f948d16d1b9055c0616c4682dc95042b",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/links"
+    }
+  ],
+  "title": "Dashboard links/actions",
+  "uses_generate_html": false,
+  "validation_checklist": [
+    "source_trace_present",
+    "required_tabs_present",
+    "runtime_contract_valid",
+    "safe_apply_plan_only_until_approved"
+  ],
+  "widget_contract": "link"
+}

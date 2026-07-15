@@ -1,0 +1,8 @@
+{
+  "name": "editor-table-registry",
+  "route": "editor_table",
+  "entry_type": "table_node",
+  "source_example": "editor-table-registry",
+  "local_safety": "local MCP-native fixture with placeholder IDs",
+  "source_template": "examples/gallery/editor-table-registry"
+}

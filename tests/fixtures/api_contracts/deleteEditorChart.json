@@ -1,0 +1,22 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "deleteEditorChart",
+  "operation_id": "deleteEditorChart",
+  "path": "/rpc/deleteEditorChart",
+  "request_payload": {},
+  "request_schema_closure_hash": "32148035690fdaa6e0fb765e3c42312a4ee4d24180f265e9ae4a73c1e62c8ecf",
+  "request_schema_closure_refs": [
+    "DeleteEditorChartArgs"
+  ],
+  "request_schema_hash": "4b7e64e351c845786b371a31d3759bbfced7ded5414e957f9b810a3a38b9797c",
+  "request_schema_ref": "DeleteEditorChartArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "ef5e4867f6defbe921676f3de33fef3b30409e72a25c7a134554f0b803567648",
+  "response_schema_closure_refs": [
+    "DeleteEditorChartResponse"
+  ],
+  "response_schema_hash": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+  "response_schema_ref": "DeleteEditorChartResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "readonly_reference"
+}

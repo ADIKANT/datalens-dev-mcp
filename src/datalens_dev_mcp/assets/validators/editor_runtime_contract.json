@@ -1,0 +1,131 @@
+{
+  "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+  "official_sanitizer": {
+    "allowlist_artifact": "schemas/datalens-api/editor-runtime-allowlist.json",
+    "layers": [
+      "allowed_tags",
+      "allowed_attributes",
+      "supported_editor_methods"
+    ],
+    "documented_execution_budgets_ms": {
+      "ordinary_wrap_fn": 100,
+      "advanced_wrap_fn": 1500,
+      "total_runtime": 3000
+    }
+  },
+  "observed_runtime_overrides": {
+    "blocked_attributes": {
+      "inline_event_handler": "\\son[a-z]+\\s*=",
+      "srcdoc_attribute": "\\ssrcdoc\\s*=",
+      "svg_marker_width": "\\smarkerWidth\\s*=",
+      "svg_marker_height": "\\smarkerHeight\\s*=",
+      "svg_marker_end": "\\smarker-end\\s*=",
+      "unsupported_rel": "\\srel\\s*="
+    },
+    "blocked_tags": {
+      "inline_script_tag": "<\\s*script\\b",
+      "section_tag": "<\\s*/?\\s*section\\b",
+      "article_tag": "<\\s*/?\\s*article\\b",
+      "main_tag": "<\\s*/?\\s*main\\b",
+      "header_tag": "<\\s*/?\\s*header\\b",
+      "footer_tag": "<\\s*/?\\s*footer\\b",
+      "nav_tag": "<\\s*/?\\s*nav\\b",
+      "table_tag": "<\\s*/?\\s*table\\b",
+      "thead_tag": "<\\s*/?\\s*thead\\b",
+      "tbody_tag": "<\\s*/?\\s*tbody\\b",
+      "tr_tag": "<\\s*/?\\s*tr\\b",
+      "td_tag": "<\\s*/?\\s*td\\b",
+      "th_tag": "<\\s*/?\\s*th\\b",
+      "style_tag": "<\\s*style\\b",
+      "iframe_tag": "<\\s*iframe\\b",
+      "object_tag": "<\\s*object\\b",
+      "embed_tag": "<\\s*embed\\b"
+    },
+    "blocked_patterns": {
+      "unresolved_local_require": "require\\s*\\(\\s*['\\\"]\\.\\./_shared",
+      "direct_window_access": "\\bwindow\\s*\\.(?!(?:open)\\s*\\()[A-Za-z_$][A-Za-z0-9_$]*",
+      "direct_document_access": "\\bdocument\\s*\\.(?!(?:createElement|createElementNS)\\s*\\()[A-Za-z_$][A-Za-z0-9_$]*",
+      "eval_call": "\\beval\\s*\\(",
+      "new_function_constructor": "\\bnew\\s+Function\\s*\\(",
+      "direct_document_cookie": "\\bdocument\\.cookie\\b",
+      "direct_document_write": "\\bdocument\\.write\\s*\\(",
+      "window_open": "\\bwindow\\.open\\s*\\(",
+      "local_storage": "\\blocalStorage\\b",
+      "session_storage": "\\bsessionStorage\\b"
+    }
+  },
+  "project_governance": {
+    "warning_patterns": {
+      "duplicate_inline_title": "<\\s*h[12]\\b[^>]*>\\s*(title|hint|roadmap|dashboard)",
+      "inline_hint_ui": "(data-id\\s*=\\s*[\"']hint[\"']|tooltip\\s*:)",
+      "unserializable_d3_pattern": "\\.data\\s*\\(\\s*(new\\s+Map|new\\s+Set|function\\s*\\*)"
+    }
+  },
+  "performance_diagnostics": {
+    "wrap_fn_arg_bytes_warning": 6000,
+    "heavy_iteration_warning": 100000,
+    "data_multiplication_patterns": [
+      "\\.flatMap\\s*\\(",
+      "Array\\.from\\s*\\([^)]*\\.keys\\s*\\(",
+      "\\.map\\s*\\([^)]*\\)\\.join\\s*\\("
+    ]
+  },
+  "messages": {
+    "inline_script_tag": "Inline <script> tags are blocked by the DataLens sanitizer.",
+    "section_tag": "The <section> tag is not allowed in generated Advanced Editor runtime HTML.",
+    "article_tag": "The <article> tag is not allowed in generated Advanced Editor runtime HTML.",
+    "main_tag": "The <main> tag is not allowed in generated Advanced Editor runtime HTML.",
+    "header_tag": "The <header> tag is not allowed in generated Advanced Editor runtime HTML.",
+    "footer_tag": "The <footer> tag is not allowed in generated Advanced Editor runtime HTML.",
+    "nav_tag": "The <nav> tag is not allowed in generated Advanced Editor runtime HTML.",
+    "table_tag": "HTML <table> markup is blocked; use native table_node objects.",
+    "thead_tag": "HTML table markup is blocked; use native table_node objects.",
+    "tbody_tag": "HTML table markup is blocked; use native table_node objects.",
+    "tr_tag": "HTML table markup is blocked; use native table_node objects.",
+    "td_tag": "HTML table markup is blocked; use native table_node objects.",
+    "th_tag": "HTML table markup is blocked; use native table_node objects.",
+    "style_tag": "Inline <style> tags are blocked in final generated Advanced Editor payloads.",
+    "iframe_tag": "Inline <iframe> tags are blocked by the DataLens sanitizer.",
+    "object_tag": "Inline <object> tags are blocked by the DataLens sanitizer.",
+    "embed_tag": "Inline <embed> tags are blocked by the DataLens sanitizer.",
+    "unsupported_html_tag": "HTML tag is not in the current Advanced Editor runtime allowlist.",
+    "inline_event_handler": "Inline event-handler attributes are blocked by the Advanced Editor runtime contract.",
+    "srcdoc_attribute": "srcdoc attributes are blocked by the Advanced Editor runtime contract.",
+    "editor_metaon_tab": "Compiled Editor payload contains invalid metaon tab name.",
+    "unsupported_editor_meta_title": "Editor data.meta must not contain unsupported title; use entry/dashboard native title metadata.",
+    "svg_marker_width": "SVG markerWidth is not documented as supported in the target renderer.",
+    "svg_marker_height": "SVG markerHeight is not documented as supported in the target renderer.",
+    "svg_marker_end": "SVG marker-end is not documented as supported in the target renderer.",
+    "unsupported_rel": "rel attributes are not supported in generated runtime HTML.",
+    "direct_document_cookie": "document.cookie access is forbidden in Advanced Editor runtime code.",
+    "direct_document_write": "document.write is forbidden in Advanced Editor runtime code.",
+    "window_open": "window.open is forbidden in Advanced Editor runtime code.",
+    "unresolved_local_require": "Generated bundles must not contain unresolved local require('../_shared') imports.",
+    "direct_window_access": "Direct window.* browser API access is forbidden in Advanced Editor runtime code.",
+    "direct_document_access": "Direct document.* browser API access is forbidden in Advanced Editor runtime code.",
+    "eval_call": "eval() is forbidden in Advanced Editor runtime code.",
+    "new_function_constructor": "new Function() is forbidden in Advanced Editor runtime code.",
+    "local_storage": "localStorage access is forbidden in Advanced Editor runtime code.",
+    "session_storage": "sessionStorage access is forbidden in Advanced Editor runtime code.",
+    "unsafe_uri_scheme": "Generated href/src values allow HTTPS and relative references by default; HTTP needs explicit opt-in and other schemes fall back to plain text.",
+    "dynamic_uri_without_sanitizer": "Dynamic href/src values must pass through a URI sanitizer and fall back to plain text when rejected.",
+    "duplicate_inline_title": "Inline title or hint rendering duplicates dashboard native metadata.",
+    "inline_hint_ui": "Dashboard hints must use native metadata rather than chart-body UI.",
+    "unknown_runtime_call": "Unknown Editor runtime call is not in the official Editor method list.",
+    "unserializable_d3_pattern": "D3 data binding uses a pattern that can be unserializable in DataLens runtime.",
+    "wrapfn_argument_bytes": "Editor.wrapFn args are large enough to risk runtime serialization cost.",
+    "heavy_loop_budget_risk": "Loop iteration count is high relative to documented Advanced Editor execution budgets.",
+    "data_multiplication_budget_risk": "Data multiplication pattern may exceed documented Advanced Editor execution budgets.",
+    "decorative_css_shadow": "Decorative shadows are blocked by the renderer visual spec.",
+    "decorative_css_gradient": "Decorative gradients are blocked by the renderer visual spec.",
+    "decorative_css_3d": "3D or perspective styling is blocked by the renderer visual spec.",
+    "html_table_bar": "Use native table bar formatting instead of custom HTML percent bars.",
+    "html_table_inside_advanced_editor": "HTML table structures inside Advanced Editor are blocked; use native table_node objects.",
+    "div_grid_table_inside_advanced_editor": "Div-grid table structures inside Advanced Editor are blocked; use native table_node objects.",
+    "inline_chart_body_heading": "Chart title headings belong in native dashboard/widget metadata, not Advanced Editor body HTML.",
+    "composite_dashboard_in_advanced_editor": "One Advanced Editor object may render one chart object only; dashboard-like composites require an explicit static reference artifact marker.",
+    "selector_inside_advanced_editor_body": "Selector/filter UI must be a native control_node widget, not Advanced Editor body HTML.",
+    "kpi_card_grid_inside_advanced_editor": "KPI grids must be separate one-metric KPI objects, not multi-card Advanced Editor HTML.",
+    "selector_option_value_not_string": "Selector option values must be strings for stable DataLens parameter behavior."
+  }
+}

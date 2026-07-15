@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "datalens.runtime-publish-gate.delta-v6",
+  "title": "Runtime Publish Gate",
+  "type": "object",
+  "required": ["status", "dashboard_id", "checked_error_markers", "changed_object_ids", "proof_artifacts"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "status": {"enum": ["passed", "failed", "blocked", "not_run"]},
+    "dashboard_id": {"type": "string"},
+    "tab_id": {"type": "string"},
+    "dashboard_url": {"type": "string"},
+    "changed_object_ids": {"type": "array", "items": {"type": "string"}},
+    "checked_error_markers": {"type": "array", "items": {"type": "string"}},
+    "blocking_errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["marker", "message"],
+        "properties": {
+          "marker": {"type": "string"},
+          "message": {"type": "string"},
+          "object_id": {"type": "string"}
+        }
+      }
+    },
+    "visible_assertions": {"type": "array", "items": {"type": "object"}},
+    "selector_statuses": {"type": "array", "items": {"type": "object"}},
+    "proof_artifacts": {"type": "array", "items": {"type": "string"}},
+    "blocked_reason": {"type": "string"}
+  }
+}

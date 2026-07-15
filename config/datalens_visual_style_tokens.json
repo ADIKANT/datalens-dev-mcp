@@ -1,0 +1,56 @@
+{
+  "schema_version": "2026-06-30.renderer_style_tokens.v1",
+  "font": {
+    "family": "Arial, sans-serif",
+    "base_px": 12,
+    "kpi_value_px": 28,
+    "kpi_label_px": 12
+  },
+  "colors": {
+    "background": "#ffffff",
+    "panel_background": "#ffffff",
+    "dashboard_background": "#f5f6f8",
+    "text_primary": "#1f2328",
+    "text_secondary": "#6b7280",
+    "gridline": "#e5e7eb",
+    "neutral": "#c7ccd4",
+    "neutral_dark": "#8a919c",
+    "focus": "#2f80ed",
+    "positive": "#2e7d32",
+    "negative": "#c62828",
+    "warning": "#f9a825",
+    "category_palette": [
+      "#4e79a7",
+      "#f28e2b",
+      "#59a14f",
+      "#b07aa1",
+      "#9c755f",
+      "#76b7b2",
+      "#edc948"
+    ]
+  },
+  "limits": {
+    "max_categorical_colors": 7,
+    "max_line_series_before_focus_mode": 5,
+    "max_pie_categories": 5,
+    "max_bar_labels_without_scroll": 20,
+    "wrap_fn_arg_bytes_warning": 6000,
+    "advanced_total_runtime_ms": 3000
+  },
+  "forbidden_css_patterns": [
+    "box-shadow",
+    "text-shadow",
+    "linear-gradient",
+    "radial-gradient",
+    "3d",
+    "perspective",
+    "filter: drop-shadow"
+  ],
+  "table_defaults": {
+    "size": "m",
+    "paginator_limit": 50,
+    "bar_height": "70%",
+    "numeric_align": "right",
+    "text_align": "left"
+  }
+}

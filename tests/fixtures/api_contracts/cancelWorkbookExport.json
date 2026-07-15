@@ -1,0 +1,22 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "cancelWorkbookExport",
+  "operation_id": "cancelWorkbookExport",
+  "path": "/rpc/cancelWorkbookExport",
+  "request_payload": {},
+  "request_schema_closure_hash": "b27f92fe87e581013423ebf8b935170476ff82893a92172c63e2ca56be419b4a",
+  "request_schema_closure_refs": [
+    "CancelWorkbookExportArgs"
+  ],
+  "request_schema_hash": "adff3feb54b9f112ac5d4696334e9744ab858d1db00df77de12f17ab85379f68",
+  "request_schema_ref": "CancelWorkbookExportArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "59f2b8abea04a03ade42cedc533bde9da121cbfd8f07b774340c277bbec5dd04",
+  "response_schema_closure_refs": [
+    "CancelWorkbookExportResult"
+  ],
+  "response_schema_hash": "adff3feb54b9f112ac5d4696334e9744ab858d1db00df77de12f17ab85379f68",
+  "response_schema_ref": "CancelWorkbookExportResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "unsupported_explicit"
+}

@@ -1,0 +1,23 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getCollectionsByIds",
+  "operation_id": "getCollectionsByIds",
+  "path": "/rpc/getCollectionsByIds",
+  "request_payload": {},
+  "request_schema_closure_hash": "a491160c1176e1641c8d566a173292903c7e2861c751fd9b4a5e484f8ea65d1e",
+  "request_schema_closure_refs": [
+    "GetCollectionsByIdsArgs"
+  ],
+  "request_schema_hash": "595cc683236d41888fb86adf5a21112e9d97232dcf4f7703757522cf94e88cc9",
+  "request_schema_ref": "GetCollectionsByIdsArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "46e3a1e97ae4536065ecc766fe2f2236d3516cdfca8382f3c7e5377fb114a76d",
+  "response_schema_closure_refs": [
+    "Collection",
+    "GetCollectionsByIdsResponse"
+  ],
+  "response_schema_hash": "76c6a5da2699a50903d71273254c89a46ee14994170271e2ac5382519471e006",
+  "response_schema_ref": "GetCollectionsByIdsResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

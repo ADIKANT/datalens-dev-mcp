@@ -1,0 +1,31 @@
+{
+  "schema_version": "2026-07-13.wizard_template_registry.v2",
+  "canonical_route": "wizard_native",
+  "compatibility_aliases": {"wizard_map_native": "geolayer"},
+  "template_provenance": {
+    "kind": "canonical_public_template",
+    "source": "maintained repository contract",
+    "deployment_ids_included": false
+  },
+  "seed_policy": "fresh_saved_same_visualization_then_committed_canonical",
+  "live_verification": false,
+  "canonical_template_resource": "templates/datalens/wizard/canonical_templates.json",
+  "templates": {
+    "metric": {"visualization_id": "metric", "semantic_families": ["kpi_value_only", "kpi_value_delta"], "required_roles": ["measures"], "optional_roles": ["colors"], "creation_supported": true},
+    "flatTable": {"visualization_id": "flatTable", "semantic_families": ["table_node", "flat_table"], "required_roles": ["flat-table-columns"], "optional_roles": [], "creation_supported": true},
+    "pivotTable": {"visualization_id": "pivotTable", "semantic_families": ["pivot_table", "pivot_table_node"], "required_roles": ["pivot-table-columns", "rows", "measures"], "optional_roles": [], "creation_supported": true},
+    "line": {"visualization_id": "line", "semantic_families": ["line_chart", "multiline_chart"], "required_roles": ["x"], "optional_roles": ["y", "y2"], "creation_supported": true},
+    "area": {"visualization_id": "area", "semantic_families": ["area_completion"], "required_roles": ["x", "y"], "optional_roles": [], "creation_supported": true},
+    "area100p": {"visualization_id": "area100p", "semantic_families": ["area_100p"], "required_roles": ["x", "y"], "optional_roles": [], "creation_supported": true},
+    "column": {"visualization_id": "column", "semantic_families": ["vertical_bar_time_bucket"], "required_roles": ["x", "y"], "optional_roles": [], "creation_supported": true},
+    "column100p": {"visualization_id": "column100p", "semantic_families": ["stacked_100"], "required_roles": ["x", "y"], "optional_roles": [], "creation_supported": true},
+    "bar": {"visualization_id": "bar", "semantic_families": ["horizontal_bar", "grouped_bar"], "required_roles": ["y", "x"], "optional_roles": [], "creation_supported": true},
+    "bar100p": {"visualization_id": "bar100p", "semantic_families": ["horizontal_stacked_100"], "required_roles": ["y", "x"], "optional_roles": [], "creation_supported": true},
+    "combined-chart": {"visualization_id": "combined-chart", "semantic_families": ["combo_time_series_combo"], "required_roles": ["x"], "optional_roles": ["y", "y2"], "creation_supported": true},
+    "pie": {"visualization_id": "pie", "semantic_families": ["pie"], "required_roles": ["dimensions", "measures"], "optional_roles": ["colors"], "creation_supported": true},
+    "donut": {"visualization_id": "donut", "semantic_families": ["donut"], "required_roles": ["dimensions", "measures"], "optional_roles": ["colors"], "creation_supported": true},
+    "scatter": {"visualization_id": "scatter", "semantic_families": ["scatter", "bubble"], "required_roles": ["x", "y"], "optional_roles": ["points", "size"], "creation_supported": true},
+    "treemap": {"visualization_id": "treemap", "semantic_families": ["treemap"], "required_roles": ["dimensions", "measures"], "optional_roles": [], "creation_supported": true},
+    "geolayer": {"visualization_id": "geolayer", "semantic_families": ["native_map_geo_widget"], "required_roles": ["geo"], "optional_roles": ["measures", "colors", "labels"], "creation_supported": true}
+  }
+}

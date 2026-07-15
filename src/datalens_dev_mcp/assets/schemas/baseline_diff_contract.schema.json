@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "datalens.baseline-diff-contract.delta-v6",
+  "title": "Baseline Diff Contract",
+  "type": "object",
+  "required": ["dashboard_id", "workbook_id", "baseline_source", "changed_objects", "blocked_reasons"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "dashboard_id": {"type": "string"},
+    "workbook_id": {"type": "string"},
+    "baseline_source": {
+      "type": "object",
+      "required": ["kind", "path"],
+      "properties": {
+        "kind": {"enum": ["backup", "live_saved", "live_published", "snapshot"]},
+        "path": {"type": "string"}
+      }
+    },
+    "tabs": {"type": "array", "items": {"type": "object"}},
+    "changed_objects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["object_id", "change_type"],
+        "properties": {
+          "object_id": {"type": "string"},
+          "object_type": {"type": "string"},
+          "change_type": {"enum": ["preserve", "update", "append", "retire", "blocked"]},
+          "reason": {"type": "string"}
+        }
+      }
+    },
+    "unexpected_layout_diff": {"type": "array", "items": {"type": "object"}},
+    "blocked_reasons": {"type": "array", "items": {"type": "string"}},
+    "preservation_policy": {"type": "object"}
+  }
+}

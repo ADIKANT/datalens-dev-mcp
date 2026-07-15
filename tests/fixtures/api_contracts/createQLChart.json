@@ -1,0 +1,24 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "createQLChart",
+  "operation_id": "createQLChart",
+  "path": "/rpc/createQLChart",
+  "request_payload": {},
+  "request_schema_closure_hash": "631b20731473b5821dc21c5fd8588426e56956c415b8ccb81ebc50a953199dbd",
+  "request_schema_closure_refs": [
+    "CreateQLChartArgs",
+    "EntryAnnotationArg",
+    "EntryLocationIdentifiers"
+  ],
+  "request_schema_hash": "ea26b2f69d93873ebc7db61c5474b77b73f72ee1cd618ab3c934e98003627de8",
+  "request_schema_ref": "CreateQLChartArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "93380b3dc561ef2ee237d7ac4e1123093a15682834838acb7951e92bd50556fb",
+  "response_schema_closure_refs": [
+    "CreateQLChartResponse"
+  ],
+  "response_schema_hash": "0f43c53ef801a2df2f7ed7e71164a100d780fe120c8f14846628153ceceb98e4",
+  "response_schema_ref": "CreateQLChartResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "guarded_plan_only"
+}

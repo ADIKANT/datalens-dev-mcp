@@ -1,0 +1,29 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "updateReport",
+  "operation_id": "updateReport",
+  "path": "/rpc/updateReport",
+  "request_payload": {},
+  "request_schema_closure_hash": "0912edd8e40fe139fdcc28123f98fb80cec74a3ed222eec60be8b6bd0ac2edfa",
+  "request_schema_closure_refs": [
+    "DashboardMeta",
+    "EntryAnnotationArg",
+    "ReportData",
+    "UpdateReportV1Args"
+  ],
+  "request_schema_hash": "7daf73ea6f1d192246cad5f59832a781dbb8fd8cb3d312d8244da5abc89c260b",
+  "request_schema_ref": "UpdateReportV1Args",
+  "response_payload": {},
+  "response_schema_closure_hash": "8db5983ec1192b2238801bedf79107ddb2b1b7ddfffd25dbc395ce90e5570b39",
+  "response_schema_closure_refs": [
+    "DashboardMeta",
+    "EntryAnnotation",
+    "ReportData",
+    "ReportV1",
+    "UpdateReportV1Result"
+  ],
+  "response_schema_hash": "c42fe0fc6759c3c02c48ac30722da13e8d4ed2be34f29b118ac12300fa33bee7",
+  "response_schema_ref": "UpdateReportV1Result",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "unsupported_explicit"
+}

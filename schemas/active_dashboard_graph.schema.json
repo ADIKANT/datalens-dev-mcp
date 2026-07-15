@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DataLens Active Dashboard Graph",
+  "type": "object",
+  "required": ["schema_version", "dashboard_id", "workbook_id", "entries"],
+  "properties": {
+    "schema_version": {"const": "datalens.active-dashboard-graph.v1"},
+    "dashboard_id": {"type": "string"},
+    "workbook_id": {"type": "string"},
+    "requested_tab": {"type": "string"},
+    "branch_pair": {
+      "type": "object",
+      "properties": {
+        "saved_rev": {"type": "string"},
+        "published_rev": {"type": "string"},
+        "same": {"type": "boolean"}
+      }
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["entry_id", "role", "hydrated"],
+        "properties": {
+          "entry_id": {"type": "string"},
+          "entry_type": {"type": "string"},
+          "role": {"enum": ["active_on_requested_tab", "active_elsewhere", "shared_dependency", "dormant", "unknown"]},
+          "referenced_by": {"type": "array", "items": {"type": "string"}},
+          "hydrated": {"type": "boolean"},
+          "write_scope": {"type": "string"}
+        }
+      }
+    },
+    "blocked_reasons": {"type": "array", "items": {"type": "string"}}
+  }
+}

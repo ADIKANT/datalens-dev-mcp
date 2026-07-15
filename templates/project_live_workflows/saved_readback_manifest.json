@@ -1,0 +1,60 @@
+{
+  "schema_version": "2026-07-01.project_live_workflow_manifest.v4",
+  "project_name": "sample_project_saved_readback",
+  "workbook_id": "<workbook_id>",
+  "dashboard_ids": ["<dashboard_id>"],
+  "target": {
+    "workbook_id": "<workbook_id>",
+    "dashboard_ids": ["<dashboard_id>"]
+  },
+  "allowed_live_operations": {
+    "validate": true,
+    "dry_run": true,
+    "save": false,
+    "publish": false
+  },
+  "workflows": [
+    {
+      "name": "saved_readback_dashboard_change",
+      "may_execute_command": false,
+      "allow_publish": false,
+      "affected_objects": [
+        {"type": "workbook", "id": "<workbook_id>"},
+        {"type": "dashboard", "id": "<dashboard_id>"}
+      ],
+      "expected_changed_object_groups": ["dashboards", "editor_charts"],
+      "safe_constraints": {
+        "save_first": true,
+        "publish_default": false,
+        "delete_move_permission_operations": false
+      },
+      "readback": {
+        "command": ["python3", "scripts/datalens_live_workflow.py", "--readback", "--branch", "saved"],
+        "summary_path": "reports/datalens_saved_readback_summary.json",
+        "expected_artifacts": [
+          "artifacts/readback/dashboard.saved.latest.json"
+        ],
+        "evidence_checks": [
+          "dashboard_payload_preflight",
+          "static_sql_lint",
+          "readback",
+          "target_evidence"
+        ],
+        "summary_requirements": {
+          "branch_status": "saved_readback",
+          "required_fields": [
+            "workbook_id",
+            "dashboard_ids",
+            "target_ids",
+            "branch_status",
+            "changed_object_counts",
+            "evidence_paths"
+          ],
+          "changed_counts_required": true,
+          "target_ids_required": true,
+          "evidence_paths_required": true
+        }
+      }
+    }
+  ]
+}

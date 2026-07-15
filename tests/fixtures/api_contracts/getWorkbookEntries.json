@@ -1,0 +1,32 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getWorkbookEntries",
+  "operation_id": "getWorkbookEntries",
+  "path": "/rpc/getWorkbookEntries",
+  "request_payload": {},
+  "request_schema_closure_hash": "899417a47f4c6910dd65c72b4143ff1c4780c4ae169057cd586e25b4b44897ac",
+  "request_schema_closure_refs": [
+    "GetWorkbookEntriesArgs"
+  ],
+  "request_schema_hash": "7412df5c30db9e10d8e092a174ea0a30a82e8b94b97271341c33aba9a273058b",
+  "request_schema_ref": "GetWorkbookEntriesArgs",
+  "response_payload": {
+    "entries": [
+      {
+        "entryId": "compute_1",
+        "scope": "compute",
+        "type": ""
+      }
+    ]
+  },
+  "response_schema_closure_hash": "4924c48a06fee8a3ea1d71ae20b4d49043e39c727721f1542454f3ff1710322d",
+  "response_schema_closure_refs": [
+    "EntryPermissions",
+    "GetWorkbookEntriesEntry",
+    "GetWorkbookEntriesResult"
+  ],
+  "response_schema_hash": "b92649abb21d3cbee99bddf2639fe547c7325b46d9ffa3c40a3c01d9b9635a12",
+  "response_schema_ref": "GetWorkbookEntriesResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

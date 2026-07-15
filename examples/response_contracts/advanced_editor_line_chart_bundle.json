@@ -1,0 +1,20 @@
+{
+  "schema_version": "2026-06-03.standard_template_bundle.v1",
+  "widget_id": "orders_trend",
+  "route": "editor_advanced",
+  "entry_type": "advanced-chart_node",
+  "family": "line_chart",
+  "source_template": "templates/datalens/advanced_editor/time_series",
+  "parameter_spec": {
+    "route": "editor_advanced",
+    "intent": "time_series",
+    "required_parameters": ["date_field", "grain", "measure_field", "unit_label", "empty_period_policy"]
+  },
+  "tabs": {
+    "meta.json": "{...}",
+    "params.js": "module.exports = {...};",
+    "sources.js": "module.exports = {...};",
+    "prepare.js": "module.exports = {render: Editor.wrapFn({...})};",
+    "controls.js": "module.exports = {};"
+  }
+}

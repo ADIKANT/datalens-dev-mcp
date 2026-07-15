@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DataLens Existing Object Update Plan",
+  "type": "object",
+  "required": ["schema_version", "actions"],
+  "properties": {
+    "schema_version": {"const": "datalens.existing-object-update-plan.v1"},
+    "project_root": {"type": "string"},
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["object_id", "object_type", "method", "mode", "base_revision"],
+        "properties": {
+          "object_id": {"type": "string"},
+          "object_type": {"type": "string"},
+          "method": {"type": "string"},
+          "mode": {"const": "save"},
+          "base_revision": {"type": "string"},
+          "changed_sections": {"type": "array", "items": {"type": "string"}},
+          "validator_required_cleanup": {"type": "array", "items": {"type": "string"}},
+          "requires_saved_readback": {"type": "boolean"},
+          "requires_publish_readback": {"type": "boolean"}
+        }
+      }
+    },
+    "blocked_reasons": {"type": "array", "items": {"type": "string"}}
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "target": "requirements/dashboard_requirements.md",
+  "extracted": {
+    "metrics.md": 2,
+    "selectors.md": 1,
+    "dashboard_map.md": 2,
+    "dashboard_canvas.md": 3
+  },
+  "dashboard_blueprint": {
+    "dashboard_type": "experiment_report",
+    "confidence": "high",
+    "recommended_chart_families": ["kpi_value_delta", "line_chart", "grouped_bar", "table_node"]
+  },
+  "critical_questions": []
+}

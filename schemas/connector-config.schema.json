@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/connector-config.schema.json",
+  "title": "Connector config",
+  "type": "object",
+  "required": ["schema_version", "connector_id", "connector_type", "safe_secret_policy"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "connector_id": {"type": "string"},
+    "connector_type": {"type": "string"},
+    "display_name": {"type": "string"},
+    "host": {"type": "string"},
+    "database": {"type": "string"},
+    "safe_secret_policy": {"enum": ["external_env_only", "existing_connection_only", "manual_operator_input"]},
+    "auth": {
+      "type": "object",
+      "properties": {
+        "method": {"type": "string"},
+        "secret_ref": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

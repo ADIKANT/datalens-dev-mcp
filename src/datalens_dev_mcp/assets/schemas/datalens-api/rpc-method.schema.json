@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "properties": {
+    "method": {
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "readonly",
+        "guarded_write",
+        "forbidden",
+        "unsupported"
+      ]
+    },
+    "support_status": {
+      "enum": [
+        "EXECUTABLE_TOOL_SUPPORTED",
+        "PLAN_ONLY_SUPPORTED",
+        "READ_ONLY_REFERENCE",
+        "UNSUPPORTED_NO_VALIDATED_METHOD"
+      ]
+    },
+    "path": {
+      "pattern": "^/rpc/"
+    },
+    "source": {
+      "const": "https://api.datalens.tech/json/"
+    }
+  },
+  "required": [
+    "method",
+    "path",
+    "mode",
+    "support_status",
+    "source"
+  ],
+  "title": "Curated DataLens RPC method",
+  "type": "object"
+}

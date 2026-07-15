@@ -1,0 +1,23 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getWorkbooksByIds",
+  "operation_id": "getWorkbooksByIds",
+  "path": "/rpc/getWorkbooksByIds",
+  "request_payload": {},
+  "request_schema_closure_hash": "71d5953e22e38648452a4d28fe26cd23711cd0ab7d4caf96143120c0ff7c3267",
+  "request_schema_closure_refs": [
+    "GetWorkbooksByIdsArgs"
+  ],
+  "request_schema_hash": "5c9359dcd63bbad39eeebc1a528e6b71dff4b385e17d708c75fc2b99114dc376",
+  "request_schema_ref": "GetWorkbooksByIdsArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "d8208707b0e925233ad4b4a5b3bbc88281ac82057b3d545e999743dd7cab9f66",
+  "response_schema_closure_refs": [
+    "GetWorkbooksByIdsResponse",
+    "Workbook"
+  ],
+  "response_schema_hash": "f584766a5c6e8a9560a5868b5f2a615c0ba260c3f4b52e4ca8e105b25336195a",
+  "response_schema_ref": "GetWorkbooksByIdsResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

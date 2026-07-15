@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/schemas/target_lock.schema.json",
+  "title": "TargetLock",
+  "type": "object",
+  "required": [
+    "target_source",
+    "target_workbook_id",
+    "lock_hash",
+    "status"
+  ],
+  "properties": {
+    "target_source": {
+      "enum": [
+        "user_url",
+        "manifest",
+        "workbook_entry",
+        "goal_objective",
+        "manual"
+      ]
+    },
+    "target_url": {
+      "type": "string"
+    },
+    "target_workbook_id": {
+      "type": "string"
+    },
+    "target_dashboard_id": {
+      "type": "string"
+    },
+    "target_chart_id": {
+      "type": "string"
+    },
+    "target_object_type": {
+      "type": "string"
+    },
+    "lock_hash": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "locked",
+        "ambiguous",
+        "missing",
+        "mismatch"
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}

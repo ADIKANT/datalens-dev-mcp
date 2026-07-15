@@ -1,0 +1,14 @@
+{
+  "schema_version": "2026-05-25.wizard_payload_plan.v1",
+  "widget_id": "synthetic_map",
+  "route": "wizard_map_native",
+  "canonical_route": "wizard_native",
+  "visualization_id": "geolayer",
+  "compatibility_alias": true,
+  "native_map_preserved": true,
+  "geo_evidence": {
+    "status": "validated",
+    "kind": "lat_lon",
+    "fields": ["latitude", "longitude"]
+  }
+}

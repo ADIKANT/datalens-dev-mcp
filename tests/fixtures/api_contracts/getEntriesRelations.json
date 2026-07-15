@@ -1,0 +1,35 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getEntriesRelations",
+  "operation_id": "getEntriesRelations",
+  "path": "/rpc/getEntriesRelations",
+  "request_payload": {},
+  "request_schema_closure_hash": "1c6549444758c350507a01d512d0d3cd4287153c324712ea31fe79e6817882bd",
+  "request_schema_closure_refs": [
+    "EntryScope",
+    "GetEntriesRelationsArgs"
+  ],
+  "request_schema_hash": "24ad47d7736e28ef85e27470f1ac7c081c48f6fe255bc881d480d1e603a8af86",
+  "request_schema_ref": "GetEntriesRelationsArgs",
+  "response_payload": {
+    "relations": [
+      {
+        "entryId": "compute_1",
+        "scope": "compute",
+        "type": ""
+      }
+    ]
+  },
+  "response_schema_closure_hash": "fc4527e9ea2bb9cc9160a56dbdf88ea61f9916e4dd7b63bfcacd9591719736f2",
+  "response_schema_closure_refs": [
+    "EntryPermissions",
+    "EntryScope",
+    "GetEntriesRelationsEntry",
+    "GetEntriesRelationsResult",
+    "SharedEntryPermissions"
+  ],
+  "response_schema_hash": "d1a7d7196c41fc41464989b20eca58dff8b55fae6381d2b1768fd3cb4422a691",
+  "response_schema_ref": "GetEntriesRelationsResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

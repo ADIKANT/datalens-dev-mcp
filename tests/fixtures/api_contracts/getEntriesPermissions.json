@@ -1,0 +1,23 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getEntriesPermissions",
+  "operation_id": "getEntriesPermissions",
+  "path": "/rpc/getEntriesPermissions",
+  "request_payload": {},
+  "request_schema_closure_hash": "5a465326dc0cc83356b04640d8ae4b25246a2d0778b616d2234a85c3de0237c3",
+  "request_schema_closure_refs": [
+    "GetEntriesPermissionsArgs"
+  ],
+  "request_schema_hash": "874bc47c174b035318c4141e3cc47842a79aee964b0a15d7ed0ec8fe8edf6701",
+  "request_schema_ref": "GetEntriesPermissionsArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "d5278fc531a0c4bcdae690607e84dced99988589d6b56b1c6d97f5ea2b9c37cd",
+  "response_schema_closure_refs": [
+    "EntryPermissions",
+    "GetEntriesPermissionsResult"
+  ],
+  "response_schema_hash": "f064bc6cccc95b460a967b1f950604d8fb2b6e3d372f22b86ffdb2bba682bae1",
+  "response_schema_ref": "GetEntriesPermissionsResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

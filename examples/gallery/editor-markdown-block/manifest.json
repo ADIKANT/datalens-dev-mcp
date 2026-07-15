@@ -1,0 +1,8 @@
+{
+  "name": "editor-markdown-block",
+  "route": "editor_markdown",
+  "entry_type": "markdown_node",
+  "source_example": "editor-markdown-block",
+  "local_safety": "local MCP-native fixture with placeholder IDs",
+  "source_template": "examples/gallery/editor-markdown-block"
+}

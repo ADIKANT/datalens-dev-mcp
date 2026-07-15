@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "required": ["title", "rows"],
+  "properties": {
+    "title": {"type": "string"},
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {"type": "string"},
+          "value": {"type": "number"},
+          "x": {"type": "number"},
+          "y": {"type": "number"},
+          "size": {"type": "number"},
+          "min": {"type": "number"},
+          "q1": {"type": "number"},
+          "median": {"type": "number"},
+          "q3": {"type": "number"},
+          "max": {"type": "number"}
+        }
+      }
+    },
+    "hint": {"type": "string"}
+  }
+}

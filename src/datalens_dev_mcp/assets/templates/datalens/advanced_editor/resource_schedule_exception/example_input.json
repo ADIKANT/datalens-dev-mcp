@@ -1,0 +1,27 @@
+{
+  "explicit_request": true,
+  "timezone": "Etc/UTC",
+  "as_of": "2026-07-13T00:00:00Z",
+  "rows": [
+    {
+      "resource_id": "room_a",
+      "resource_name": "Room A",
+      "item_id": "booking_1",
+      "start_at": "2026-07-13T08:00:00Z",
+      "end_at": "2026-07-13T10:00:00Z",
+      "status": "confirmed",
+      "owner": "Team A",
+      "link": "https://example.test/bookings/1"
+    },
+    {
+      "resource_id": "room_a",
+      "resource_name": "Room A",
+      "item_id": "booking_2",
+      "start_at": "2026-07-13T09:30:00Z",
+      "end_at": "2026-07-13T11:00:00Z",
+      "status": "confirmed",
+      "owner": "Team B",
+      "link": "/bookings/2"
+    }
+  ]
+}

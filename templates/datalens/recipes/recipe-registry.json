@@ -1,0 +1,1042 @@
+{
+  "recipes": [
+    {
+      "algorithmic_bound": "O(n)",
+      "aliases": [
+        "database sql",
+        "flat sql table",
+        "ordinary SQL table",
+        "simple table",
+        "sql table",
+        "sql таблица",
+        "table flat sql",
+        "простая таблица"
+      ],
+      "cardinality_limits": {},
+      "executable_bundle": {
+        "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+        "bundle_files": [
+          "config.js",
+          "expected_output.json",
+          "fixture_input.json",
+          "meta.json",
+          "params.js",
+          "prepare.js",
+          "sources.js"
+        ],
+        "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+        "status": "executable_fixture_tested"
+      },
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "native_table_contract": true,
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "output_contract": [
+        "head",
+        "rows",
+        "footer_optional"
+      ],
+      "recipe_id": "table_flat_sql",
+      "required_tabs": [
+        "Meta",
+        "Params",
+        "Sources",
+        "Config",
+        "Prepare"
+      ],
+      "route": "editor_table",
+      "source_contract": "database_sql",
+      "source_traces": [
+        {
+          "anchor": "создание-таблицы-на-основе-sql-запроса",
+          "chunk_id": "datalens/charts/editor/quickstart/from-database.md#создание-таблицы-на-основе-sql-запроса#1",
+          "mirror_path": "datalens/charts/editor/quickstart/from-database.md",
+          "sha256": "90b24ffcc96bbb17e30407b684881092f83cc98ee6830a9b275410b365182218",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/quickstart/from-database"
+        },
+        {
+          "anchor": "таблица",
+          "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+          "mirror_path": "datalens/charts/editor/widgets/table.md",
+          "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+        }
+      ],
+      "title": "Flat SQL table",
+      "uses_generate_html": false,
+      "validation_checklist": [
+        "source_trace_present",
+        "required_tabs_present",
+        "runtime_contract_valid",
+        "safe_apply_plan_only_until_approved"
+      ],
+      "widget_contract": "table_node"
+    },
+    {
+      "algorithmic_bound": "O(n)",
+      "aliases": [
+        "dataset",
+        "dataset table",
+        "flat dataset table",
+        "table flat dataset",
+        "датасет таблица",
+        "таблица из датасета"
+      ],
+      "cardinality_limits": {},
+      "executable_bundle": {
+        "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+        "bundle_files": [
+          "config.js",
+          "expected_output.json",
+          "fixture_input.json",
+          "meta.json",
+          "params.js",
+          "prepare.js",
+          "sources.js"
+        ],
+        "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+        "status": "executable_fixture_tested"
+      },
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "native_table_contract": true,
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "output_contract": [
+        "head",
+        "rows",
+        "footer_optional"
+      ],
+      "recipe_id": "table_flat_dataset",
+      "required_tabs": [
+        "Meta",
+        "Params",
+        "Sources",
+        "Config",
+        "Prepare"
+      ],
+      "route": "editor_table",
+      "source_contract": "dataset",
+      "source_traces": [
+        {
+          "anchor": "создание-таблицы-на-основе-датасета",
+          "chunk_id": "datalens/charts/editor/quickstart/from-dataset.md#создание-таблицы-на-основе-датасета#1",
+          "mirror_path": "datalens/charts/editor/quickstart/from-dataset.md",
+          "sha256": "7f7837d7e9de0bbd1835cda257e157fba5b0ed8eb88cea1cb80214cd56c6feff",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/quickstart/from-dataset"
+        },
+        {
+          "anchor": "таблица",
+          "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+          "mirror_path": "datalens/charts/editor/widgets/table.md",
+          "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+        }
+      ],
+      "title": "Flat dataset table",
+      "uses_generate_html": false,
+      "validation_checklist": [
+        "source_trace_present",
+        "required_tabs_present",
+        "runtime_contract_valid",
+        "safe_apply_plan_only_until_approved"
+      ],
+      "widget_contract": "table_node"
+    },
+    {
+      "algorithmic_bound": "O(n)",
+      "aliases": [
+        "API Connector table",
+        "api connector",
+        "flat api connector table",
+        "table flat api connector",
+        "таблица из API Connector"
+      ],
+      "cardinality_limits": {},
+      "executable_bundle": {
+        "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+        "bundle_files": [
+          "config.js",
+          "expected_output.json",
+          "fixture_input.json",
+          "meta.json",
+          "params.js",
+          "prepare.js",
+          "sources.js"
+        ],
+        "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+        "status": "executable_fixture_tested"
+      },
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "native_table_contract": true,
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "output_contract": [
+        "head",
+        "rows",
+        "footer_optional"
+      ],
+      "recipe_id": "table_flat_api_connector",
+      "required_tabs": [
+        "Meta",
+        "Params",
+        "Sources",
+        "Config",
+        "Prepare"
+      ],
+      "route": "editor_table",
+      "source_contract": "api_connector",
+      "source_traces": [
+        {
+          "anchor": "создание-таблицы-через-api",
+          "chunk_id": "datalens/charts/editor/quickstart/from-api-connector.md#создание-таблицы-через-api#1",
+          "mirror_path": "datalens/charts/editor/quickstart/from-api-connector.md",
+          "sha256": "c048f755ee28b817778037bbeb02f81b7f9389db262375b3d55b6bb759495e25",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/quickstart/from-api-connector"
+        },
+        {
+          "anchor": "таблица",
+          "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+          "mirror_path": "datalens/charts/editor/widgets/table.md",
+          "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+        }
+      ],
+      "title": "Flat API Connector table",
+      "uses_generate_html": false,
+      "validation_checklist": [
+        "source_trace_present",
+        "required_tabs_present",
+        "runtime_contract_valid",
+        "safe_apply_plan_only_until_approved"
+      ],
+      "widget_contract": "table_node"
+    },
+    {
+      "algorithmic_bound": "O(n)",
+      "aliases": [
+        "database sql or dataset or api connector",
+        "footer",
+        "pagination",
+        "pinned column",
+        "rich native table",
+        "rich table",
+        "table rich",
+        "totals",
+        "итоги",
+        "пагинация"
+      ],
+      "cardinality_limits": {
+        "cells": 20000,
+        "columns": 200
+      },
+      "executable_bundle": {
+        "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+        "bundle_files": [
+          "config.js",
+          "expected_output.json",
+          "fixture_input.json",
+          "meta.json",
+          "params.js",
+          "prepare.js",
+          "sources.js"
+        ],
+        "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+        "status": "executable_fixture_tested"
+      },
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "native_table_contract": true,
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "output_contract": [
+        "formatted_headers",
+        "formatted_cells",
+        "number_date_bar_formatting",
+        "pinned_grouped_columns",
+        "pagination",
+        "footer_totals",
+        "cross_filter"
+      ],
+      "recipe_id": "table_rich",
+      "required_tabs": [
+        "Meta",
+        "Params",
+        "Sources",
+        "Config",
+        "Prepare"
+      ],
+      "route": "editor_table",
+      "source_contract": "database_sql_or_dataset_or_api_connector",
+      "source_traces": [
+        {
+          "anchor": "таблица",
+          "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+          "mirror_path": "datalens/charts/editor/widgets/table.md",
+          "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+        },
+        {
+          "anchor": "кросс-фильтрация",
+          "chunk_id": "datalens/charts/editor/cross-filtration.md#кросс-фильтрация#1",
+          "mirror_path": "datalens/charts/editor/cross-filtration.md",
+          "sha256": "449aab12145bd97f000f5f626e3cb1c113790aa3ee49d833b7d9beb469146174",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/cross-filtration"
+        }
+      ],
+      "title": "Rich native table",
+      "uses_generate_html": false,
+      "validation_checklist": [
+        "source_trace_present",
+        "required_tabs_present",
+        "runtime_contract_valid",
+        "safe_apply_plan_only_until_approved"
+      ],
+      "widget_contract": "table_node"
+    },
+    {
+      "algorithmic_bound": "O(n log n)",
+      "aliases": [
+        "Plan Fact",
+        "database sql or dataset",
+        "javascript pivot table",
+        "native pivot",
+        "pivot table",
+        "table pivot js",
+        "план факт",
+        "сводная таблица"
+      ],
+      "cardinality_limits": {
+        "cells": 20000,
+        "columns": 200
+      },
+      "executable_bundle": {
+        "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+        "bundle_files": [
+          "config.js",
+          "expected_output.json",
+          "fixture_input.json",
+          "meta.json",
+          "params.js",
+          "prepare.js",
+          "sources.js"
+        ],
+        "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+        "status": "executable_fixture_tested"
+      },
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "native_table_contract": true,
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "output_contract": [
+        "row_dimensions",
+        "column_dimensions",
+        "multiple_measures",
+        "deterministic_dynamic_columns",
+        "head.sub",
+        "totals_subtotals",
+        "stable_sorting",
+        "missing_values",
+        "numeric_token_and_semver_comparator",
+        "status_dependent_version_selection",
+        "safe_link_or_plain_text",
+        "semantic_state_text_and_css",
+        "pagination_default_100_range_1_200",
+        "russian_english_text",
+        "bounded_cardinality",
+        "complexity_o_n_log_n"
+      ],
+      "recipe_id": "table_pivot_js",
+      "required_tabs": [
+        "Meta",
+        "Params",
+        "Sources",
+        "Config",
+        "Prepare"
+      ],
+      "route": "editor_table",
+      "source_contract": "database_sql_or_dataset",
+      "source_traces": [
+        {
+          "anchor": "таблица",
+          "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+          "mirror_path": "datalens/charts/editor/widgets/table.md",
+          "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+        },
+        {
+          "anchor": "сводная-таблица-_assets-datalens-pivot-table-svg-в-yandex-datalens",
+          "chunk_id": "datalens/visualization-ref/pivot-table-chart.md#сводная-таблица-_assets-datalens-pivot-table-svg-в-yandex-datalens#1",
+          "mirror_path": "datalens/visualization-ref/pivot-table-chart.md",
+          "sha256": "abd0f4d3c0353cf39fd7167d6f13afd7d0f659f24006893c71fcc2563be182e1",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/pivot-table-chart"
+        }
+      ],
+      "title": "JavaScript pivot table",
+      "uses_generate_html": false,
+      "validation_checklist": [
+        "source_trace_present",
+        "required_tabs_present",
+        "runtime_contract_valid",
+        "safe_apply_plan_only_until_approved"
+      ],
+      "widget_contract": "table_node"
+    },
+    {
+      "algorithmic_bound": "O(n log n)",
+      "aliases": [
+        "advanced pivot exception",
+        "exception only",
+        "html pivot",
+        "sticky grouped pivot",
+        "table pivot advanced exception"
+      ],
+      "cardinality_limits": {
+        "cells": 20000,
+        "columns": 200
+      },
+      "executable_bundle": {
+        "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+        "bundle_files": [
+          "controls.js",
+          "expected_output.json",
+          "fixture_input.json",
+          "meta.json",
+          "params.js",
+          "prepare.js",
+          "sources.js"
+        ],
+        "generator": "",
+        "status": "not_executable_reference_only"
+      },
+      "implementation_status": "documented_reference_blocked_by_local_policy",
+      "local_policy_status": "blocked",
+      "native_table_contract": false,
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "output_contract": [
+        "requires_explicit_exception_reason",
+        "uses_Editor_generateHtml",
+        "fallback_table_pivot_js",
+        "creation_and_generation_blocked"
+      ],
+      "recipe_id": "table_pivot_advanced_exception",
+      "required_tabs": [
+        "Meta",
+        "Params",
+        "Sources",
+        "Controls",
+        "Prepare"
+      ],
+      "route": "editor_advanced",
+      "source_contract": "exception_only",
+      "source_traces": [
+        {
+          "anchor": "advanced-чарт",
+          "chunk_id": "datalens/charts/editor/widgets/advanced.md#advanced-чарт#1",
+          "mirror_path": "datalens/charts/editor/widgets/advanced.md",
+          "sha256": "27f4997092afdc4dbf164553f1458e9810fc256ffca76f06c2c989257553b425",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/advanced"
+        },
+        {
+          "anchor": "таблица",
+          "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+          "mirror_path": "datalens/charts/editor/widgets/table.md",
+          "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+        }
+      ],
+      "title": "Advanced pivot exception",
+      "uses_generate_html": true,
+      "validation_checklist": [
+        "source_trace_present",
+        "required_tabs_present",
+        "runtime_contract_valid",
+        "safe_apply_plan_only_until_approved"
+      ],
+      "widget_contract": "advanced-chart_node"
+    },
+    {
+      "algorithmic_bound": "O(n log n)",
+      "aliases": [
+        "explicit resource schedule",
+        "explicit resource schedule exception",
+        "resource schedule exception"
+      ],
+      "cardinality_limits": {
+        "lanes_per_resource": 8,
+        "model_bytes": 120000,
+        "resources": 50,
+        "rows": 1000,
+        "span_days": 90
+      },
+      "executable_bundle": {
+        "behavior_test": "tests.unit.test_practical_authoring_hardening",
+        "bundle_files": [
+          "controls.js",
+          "expected_output.json",
+          "fixture_input.json",
+          "meta.json",
+          "params.js",
+          "prepare.js",
+          "sources.js"
+        ],
+        "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+        "status": "executable_fixture_tested"
+      },
+      "implementation_status": "implemented_tested_explicit_only",
+      "local_policy_status": "allowed_explicit_only",
+      "native_table_contract": false,
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "output_contract": [
+        "requires_explicit_resource_schedule_request",
+        "strict_offset_timestamps",
+        "injected_timezone_and_as_of",
+        "deterministic_lanes_and_conflicts",
+        "bounded_table_node_fallback",
+        "safe_link_or_plain_text"
+      ],
+      "recipe_id": "resource_schedule_exception",
+      "required_tabs": [
+        "Meta",
+        "Params",
+        "Sources",
+        "Controls",
+        "Prepare"
+      ],
+      "route": "editor_advanced",
+      "source_contract": "explicit_resource_schedule",
+      "source_traces": [
+        {
+          "anchor": "advanced-чарт",
+          "chunk_id": "datalens/charts/editor/widgets/advanced.md#advanced-чарт#1",
+          "mirror_path": "datalens/charts/editor/widgets/advanced.md",
+          "sha256": "27f4997092afdc4dbf164553f1458e9810fc256ffca76f06c2c989257553b425",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/advanced"
+        },
+        {
+          "anchor": "таблица",
+          "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+          "mirror_path": "datalens/charts/editor/widgets/table.md",
+          "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+        }
+      ],
+      "title": "Explicit resource schedule exception",
+      "uses_generate_html": true,
+      "validation_checklist": [
+        "source_trace_present",
+        "required_tabs_present",
+        "runtime_contract_valid",
+        "safe_apply_plan_only_until_approved"
+      ],
+      "widget_contract": "advanced-chart_node"
+    },
+    {
+      "algorithmic_bound": "O(n)",
+      "aliases": [
+        "DOM D3",
+        "advanced dom d3",
+        "advanced dom/d3 composition",
+        "advanced editor",
+        "advanced visualization",
+        "custom D3",
+        "кастомная визуализация"
+      ],
+      "cardinality_limits": {},
+      "executable_bundle": {
+        "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+        "bundle_files": [
+          "controls.js",
+          "expected_output.json",
+          "fixture_input.json",
+          "meta.json",
+          "params.js",
+          "prepare.js",
+          "sources.js"
+        ],
+        "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+        "status": "executable_fixture_tested"
+      },
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "native_table_contract": false,
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "output_contract": [
+        "Editor.wrapFn",
+        "Editor.generateHtml",
+        "sanitizer_check"
+      ],
+      "recipe_id": "advanced_dom_d3",
+      "required_tabs": [
+        "Meta",
+        "Params",
+        "Sources",
+        "Controls",
+        "Prepare"
+      ],
+      "route": "editor_advanced",
+      "source_contract": "advanced_editor",
+      "source_traces": [
+        {
+          "anchor": "advanced-чарт",
+          "chunk_id": "datalens/charts/editor/widgets/advanced.md#advanced-чарт#1",
+          "mirror_path": "datalens/charts/editor/widgets/advanced.md",
+          "sha256": "27f4997092afdc4dbf164553f1458e9810fc256ffca76f06c2c989257553b425",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/advanced"
+        },
+        {
+          "anchor": "доступные-методы-в-editor",
+          "chunk_id": "datalens/charts/editor/methods.md#доступные-методы-в-editor#1",
+          "mirror_path": "datalens/charts/editor/methods.md",
+          "sha256": "b3d5ca4e47541d7db863b0c92915efdabdcb0dfca45ec7fe090a94f0ad89532e",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/methods"
+        }
+      ],
+      "title": "Advanced DOM/D3 composition",
+      "uses_generate_html": true,
+      "validation_checklist": [
+        "source_trace_present",
+        "required_tabs_present",
+        "runtime_contract_valid",
+        "safe_apply_plan_only_until_approved"
+      ],
+      "widget_contract": "advanced-chart_node"
+    },
+    {
+      "algorithmic_bound": "O(n)",
+      "aliases": [
+        "Gravity UI Chart",
+        "documented reference",
+        "gravity chart",
+        "gravity ui charts widget",
+        "график gravity"
+      ],
+      "cardinality_limits": {},
+      "executable_bundle": {
+        "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+        "bundle_files": [
+          "config.js",
+          "expected_output.json",
+          "fixture_input.json",
+          "meta.json",
+          "params.js",
+          "prepare.js",
+          "sources.js"
+        ],
+        "generator": "",
+        "status": "not_executable_reference_only"
+      },
+      "implementation_status": "documented_reference_blocked_by_local_policy",
+      "local_policy_status": "blocked",
+      "native_table_contract": false,
+      "observed_runtime_overrides": [],
+      "official_status": "documented_reference",
+      "output_contract": [
+        "documented_widget_contract",
+        "missing_executable_mcp_route",
+        "local_policy_reference_only"
+      ],
+      "recipe_id": "gravity_chart",
+      "required_tabs": [
+        "Meta",
+        "Params",
+        "Sources",
+        "Config",
+        "Prepare"
+      ],
+      "route": "documented_reference",
+      "source_contract": "documented_reference",
+      "source_traces": [
+        {
+          "anchor": "график-gravity-ui-charts",
+          "chunk_id": "datalens/charts/editor/widgets/gravity-ui.md#график-gravity-ui-charts#1",
+          "mirror_path": "datalens/charts/editor/widgets/gravity-ui.md",
+          "sha256": "08ce645dc21ce65d1c4ac41fb240476a9ac7ef747bc033864a610090a42315c6",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/gravity-ui"
+        }
+      ],
+      "title": "Gravity UI Charts widget",
+      "uses_generate_html": false,
+      "validation_checklist": [
+        "source_trace_present",
+        "required_tabs_present",
+        "runtime_contract_valid",
+        "safe_apply_plan_only_until_approved"
+      ],
+      "widget_contract": "gravity_ui_chart"
+    },
+    {
+      "algorithmic_bound": "O(n)",
+      "aliases": [
+        "control static",
+        "static control",
+        "static selector",
+        "статический селектор"
+      ],
+      "cardinality_limits": {},
+      "executable_bundle": {
+        "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+        "bundle_files": [
+          "controls.js",
+          "expected_output.json",
+          "fixture_input.json",
+          "meta.json",
+          "params.js",
+          "sources.js"
+        ],
+        "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+        "status": "executable_fixture_tested"
+      },
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "native_table_contract": false,
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "output_contract": [
+        "static_options",
+        "left_label",
+        "bounded_width"
+      ],
+      "recipe_id": "control_static",
+      "required_tabs": [
+        "Meta",
+        "Params",
+        "Sources",
+        "Controls"
+      ],
+      "route": "editor_js_control",
+      "source_contract": "static_control",
+      "source_traces": [
+        {
+          "anchor": "селектор",
+          "chunk_id": "datalens/charts/editor/widgets/controls.md#селектор#1",
+          "mirror_path": "datalens/charts/editor/widgets/controls.md",
+          "sha256": "cdd0bb0610de016a826a8ff94db6a8a4bfab66966abb97c813a2397da455c5a9",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/controls"
+        }
+      ],
+      "title": "Static control",
+      "uses_generate_html": false,
+      "validation_checklist": [
+        "source_trace_present",
+        "required_tabs_present",
+        "runtime_contract_valid",
+        "safe_apply_plan_only_until_approved"
+      ],
+      "widget_contract": "control_node"
+    },
+    {
+      "algorithmic_bound": "O(n)",
+      "aliases": [
+        "control dynamic",
+        "dynamic control",
+        "dynamic selector",
+        "селектор",
+        "фильтр"
+      ],
+      "cardinality_limits": {},
+      "executable_bundle": {
+        "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+        "bundle_files": [
+          "controls.js",
+          "expected_output.json",
+          "fixture_input.json",
+          "meta.json",
+          "params.js",
+          "sources.js"
+        ],
+        "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+        "status": "executable_fixture_tested"
+      },
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "native_table_contract": false,
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "output_contract": [
+        "source_backed_options",
+        "left_label",
+        "bounded_width"
+      ],
+      "recipe_id": "control_dynamic",
+      "required_tabs": [
+        "Meta",
+        "Params",
+        "Sources",
+        "Controls"
+      ],
+      "route": "editor_js_control",
+      "source_contract": "dynamic_control",
+      "source_traces": [
+        {
+          "anchor": "селектор",
+          "chunk_id": "datalens/charts/editor/widgets/controls.md#селектор#1",
+          "mirror_path": "datalens/charts/editor/widgets/controls.md",
+          "sha256": "cdd0bb0610de016a826a8ff94db6a8a4bfab66966abb97c813a2397da455c5a9",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/controls"
+        },
+        {
+          "anchor": "источники-данных-в-editor-yandex-datalens",
+          "chunk_id": "datalens/charts/editor/sources.md#источники-данных-в-editor-yandex-datalens#1",
+          "mirror_path": "datalens/charts/editor/sources.md",
+          "sha256": "6135ea3e572f6e664d75c15fbaf9c2cf4260824b981b59600052655a329a57eb",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/sources"
+        }
+      ],
+      "title": "Dynamic control",
+      "uses_generate_html": false,
+      "validation_checklist": [
+        "source_trace_present",
+        "required_tabs_present",
+        "runtime_contract_valid",
+        "safe_apply_plan_only_until_approved"
+      ],
+      "widget_contract": "control_node"
+    },
+    {
+      "algorithmic_bound": "O(n)",
+      "aliases": [
+        "markdown",
+        "markdown widget",
+        "текстовый блок"
+      ],
+      "cardinality_limits": {},
+      "executable_bundle": {
+        "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+        "bundle_files": [
+          "expected_output.json",
+          "fixture_input.json",
+          "meta.json",
+          "params.js",
+          "prepare.js",
+          "sources.js"
+        ],
+        "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+        "status": "executable_fixture_tested"
+      },
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "native_table_contract": false,
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "output_contract": [
+        "markdown_output",
+        "no_generateHtml"
+      ],
+      "recipe_id": "markdown",
+      "required_tabs": [
+        "Meta",
+        "Params",
+        "Sources",
+        "Prepare"
+      ],
+      "route": "editor_markdown",
+      "source_contract": "markdown",
+      "source_traces": [
+        {
+          "anchor": "markdown",
+          "chunk_id": "datalens/charts/editor/widgets/markdown.md#markdown#1",
+          "mirror_path": "datalens/charts/editor/widgets/markdown.md",
+          "sha256": "70fee83cc0165de5523b31a84c50a8553747bb85878cca99f0f0655497ccb534",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/markdown"
+        }
+      ],
+      "title": "Markdown widget",
+      "uses_generate_html": false,
+      "validation_checklist": [
+        "source_trace_present",
+        "required_tabs_present",
+        "runtime_contract_valid",
+        "safe_apply_plan_only_until_approved"
+      ],
+      "widget_contract": "markdown_node"
+    },
+    {
+      "algorithmic_bound": "O(n)",
+      "aliases": [
+        "chart chart filtration",
+        "cross filter",
+        "cross-filtering",
+        "dashboard relation",
+        "кросс фильтр"
+      ],
+      "cardinality_limits": {},
+      "executable_bundle": {
+        "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+        "bundle_files": [
+          "expected_output.json",
+          "fixture_input.json",
+          "meta.json",
+          "params.js",
+          "prepare.js",
+          "sources.js"
+        ],
+        "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+        "status": "executable_fixture_tested"
+      },
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "native_table_contract": false,
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "output_contract": [
+        "selector_impact_trace",
+        "source_target_relation"
+      ],
+      "recipe_id": "cross_filter",
+      "required_tabs": [
+        "Dashboard links",
+        "Widget plan"
+      ],
+      "route": "dashboard_relation_operation",
+      "source_contract": "dashboard_relation",
+      "source_traces": [
+        {
+          "anchor": "кросс-фильтрация",
+          "chunk_id": "datalens/charts/editor/cross-filtration.md#кросс-фильтрация#1",
+          "mirror_path": "datalens/charts/editor/cross-filtration.md",
+          "sha256": "449aab12145bd97f000f5f626e3cb1c113790aa3ee49d833b7d9beb469146174",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/cross-filtration"
+        }
+      ],
+      "title": "Cross-filtering",
+      "uses_generate_html": false,
+      "validation_checklist": [
+        "source_trace_present",
+        "required_tabs_present",
+        "runtime_contract_valid",
+        "safe_apply_plan_only_until_approved"
+      ],
+      "widget_contract": "relation"
+    },
+    {
+      "algorithmic_bound": "O(n)",
+      "aliases": [
+        "actions",
+        "dashboard link",
+        "dashboard links",
+        "dashboard links/actions",
+        "links",
+        "действия",
+        "ссылки"
+      ],
+      "cardinality_limits": {},
+      "executable_bundle": {
+        "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+        "bundle_files": [
+          "expected_output.json",
+          "fixture_input.json",
+          "meta.json",
+          "params.js",
+          "prepare.js",
+          "sources.js"
+        ],
+        "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+        "status": "executable_fixture_tested"
+      },
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "native_table_contract": false,
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "output_contract": [
+        "navigation_endpoint",
+        "safe_parameter_mapping"
+      ],
+      "recipe_id": "links",
+      "required_tabs": [
+        "Dashboard links"
+      ],
+      "route": "dashboard_relation_operation",
+      "source_contract": "dashboard_link",
+      "source_traces": [
+        {
+          "anchor": "связи-чарта-в-дашбордах-и-отчетах",
+          "chunk_id": "datalens/charts/editor/links.md#связи-чарта-в-дашбордах-и-отчетах#1",
+          "mirror_path": "datalens/charts/editor/links.md",
+          "sha256": "5424d4fb13ce55822295dfaf80d6a465f948d16d1b9055c0616c4682dc95042b",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/links"
+        }
+      ],
+      "title": "Dashboard links/actions",
+      "uses_generate_html": false,
+      "validation_checklist": [
+        "source_trace_present",
+        "required_tabs_present",
+        "runtime_contract_valid",
+        "safe_apply_plan_only_until_approved"
+      ],
+      "widget_contract": "link"
+    },
+    {
+      "algorithmic_bound": "O(n)",
+      "aliases": [
+        "advanced editor",
+        "insights",
+        "notifications",
+        "уведомления"
+      ],
+      "cardinality_limits": {},
+      "executable_bundle": {
+        "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+        "bundle_files": [
+          "expected_output.json",
+          "fixture_input.json",
+          "meta.json",
+          "params.js",
+          "prepare.js",
+          "sources.js"
+        ],
+        "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+        "status": "executable_fixture_tested"
+      },
+      "implementation_status": "implemented_tested",
+      "local_policy_status": "allowed",
+      "native_table_contract": false,
+      "observed_runtime_overrides": [],
+      "official_status": "documented",
+      "output_contract": [
+        "documented_notification_method",
+        "runtime_contract_check"
+      ],
+      "recipe_id": "notifications",
+      "required_tabs": [
+        "Prepare"
+      ],
+      "route": "editor_advanced",
+      "source_contract": "advanced_editor",
+      "source_traces": [
+        {
+          "anchor": "уведомления",
+          "chunk_id": "datalens/charts/editor/notifications.md#уведомления#1",
+          "mirror_path": "datalens/charts/editor/notifications.md",
+          "sha256": "d63252bdae279eaa095102dcc93c5dd684bb308c04df4ea6f472e4e8acd5ca02",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/notifications"
+        },
+        {
+          "anchor": "доступные-методы-в-editor",
+          "chunk_id": "datalens/charts/editor/methods.md#доступные-методы-в-editor#1",
+          "mirror_path": "datalens/charts/editor/methods.md",
+          "sha256": "b3d5ca4e47541d7db863b0c92915efdabdcb0dfca45ec7fe090a94f0ad89532e",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/methods"
+        }
+      ],
+      "title": "Notifications",
+      "uses_generate_html": true,
+      "validation_checklist": [
+        "source_trace_present",
+        "required_tabs_present",
+        "runtime_contract_valid",
+        "safe_apply_plan_only_until_approved"
+      ],
+      "widget_contract": "advanced-chart_node"
+    }
+  ],
+  "schema_version": "2026-06-25.semantic_authoring.v2"
+}

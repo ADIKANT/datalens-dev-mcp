@@ -1,0 +1,39 @@
+{
+  "schema_version": "2026-07-15.public_provenance.v1",
+  "source_class": "official_documentation",
+  "source_name": "Yandex Cloud documentation",
+  "source_repository": "https://github.com/yandex-cloud/docs",
+  "source_documentation": "https://yandex.cloud/ru/docs/datalens/",
+  "discovery_index": "https://yandex.cloud/llms.txt",
+  "copyright": "Copyright (C) YANDEX LLC, 2018",
+  "license": "CC-BY-4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "upstream_license": "https://github.com/yandex-cloud/docs/blob/master/LICENSE",
+  "modified": true,
+  "transformations": [
+    "parsed",
+    "normalized",
+    "indexed",
+    "excerpted",
+    "summarized",
+    "deduplicated",
+    "compiled"
+  ],
+  "snapshot": {
+    "generated_at": "2026-07-13T13:43:44Z",
+    "pages_content_sha256": "fda97edaac019a8f7c74376c7918da5cffb12214cf87de106b7356a59ddccfaf"
+  },
+  "covered_files": [
+    "capability-matrix.json",
+    "chunk-registry.jsonl",
+    "editor-visualization-contracts.json",
+    "error-registry.json",
+    "formula-registry.json",
+    "page-registry.json",
+    "route-capability-matrix.json",
+    "rule-cards.jsonl",
+    "visualization-registry.json"
+  ],
+  "scope_note": "CC BY 4.0 applies to adapted documentation content. Project-authored policy metadata and independently maintained API interface facts are not relicensed by this record.",
+  "non_endorsement": "This independent project is not endorsed by Yandex."
+}

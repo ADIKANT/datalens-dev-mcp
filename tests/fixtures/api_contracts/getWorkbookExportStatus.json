@@ -1,0 +1,37 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getWorkbookExportStatus",
+  "operation_id": "getWorkbookExportStatus",
+  "path": "/rpc/getWorkbookExportStatus",
+  "request_payload": {},
+  "request_schema_closure_hash": "b3f88a16ab895af8258912f8ff3fd635a978c82bb80d8e144a54ca6d95f89f01",
+  "request_schema_closure_refs": [
+    "GetWorkbookExportStatusArgs"
+  ],
+  "request_schema_hash": "adff3feb54b9f112ac5d4696334e9744ab858d1db00df77de12f17ab85379f68",
+  "request_schema_ref": "GetWorkbookExportStatusArgs",
+  "response_payload": {
+    "exportId": "export_1",
+    "notifications": [
+      {
+        "code": "pending",
+        "entryId": "compute_1",
+        "level": "info",
+        "scope": "compute"
+      }
+    ],
+    "progress": 0,
+    "status": "pending"
+  },
+  "response_schema_closure_hash": "c9ce09de63536a928368d56c6aa0c99dc3d533251487e0059285bf64021459c1",
+  "response_schema_closure_refs": [
+    "GetWorkbookExportStatusResult",
+    "WorkbookTransferNotification",
+    "WorkbookTransferNotificationLevel",
+    "WorkbookTransferProcessStatus"
+  ],
+  "response_schema_hash": "85c87641b56316bcd3a32ef4526ced565721ba28f85a67061065213c8e7851e0",
+  "response_schema_ref": "GetWorkbookExportStatusResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

@@ -1,0 +1,113 @@
+{
+  "schema_version": "2026-06-25.regression.incident_fixtures.v1",
+  "event_dashboard": {
+    "dashboard_id": "dash_event_core",
+    "workbook_id": "wb_event_core",
+    "tab_count": 5,
+    "active_chart_ids": [
+      "chart_event_01",
+      "chart_event_02",
+      "chart_event_03",
+      "chart_event_04",
+      "chart_event_05",
+      "chart_event_06",
+      "chart_event_07",
+      "chart_event_08",
+      "chart_event_09",
+      "chart_event_10",
+      "chart_event_11",
+      "chart_event_12",
+      "chart_event_13",
+      "chart_event_14",
+      "chart_event_15",
+      "chart_event_16",
+      "chart_event_17",
+      "chart_event_18"
+    ],
+    "active_dataset_ids": ["dataset_event_records", "dataset_event_entities", "dataset_event_quality"],
+    "active_connection_ids": ["connection_event_source"],
+    "dormant_entries": [
+      {"entry_id": "chart_dormant_quality_old", "object_type": "editor_chart"},
+      {"entry_id": "dataset_dormant_archive", "object_type": "dataset"},
+      {"entry_id": "connection_dormant_archive", "object_type": "connection"},
+      {"entry_id": "folder_dormant", "object_type": "folder"}
+    ],
+    "nested_shapes": [
+      "direct_tab_items",
+      "tab_items_container_items",
+      "tab_sections_widgets",
+      "widget_tabs",
+      "grid_children"
+    ]
+  },
+  "dataset_readback_wrappers": {
+    "raw_dataset": {
+      "datasetId": "dataset_event_records",
+      "revId": "rev_dataset_raw",
+      "fields": [{"name": "event_dt", "guid": "guid_event_dt"}]
+    },
+    "wrapped_dataset": {
+      "dataset": {
+        "datasetId": "dataset_event_records",
+        "revId": "rev_dataset_wrapped",
+        "fields": [{"name": "event_dt", "guid": "guid_event_dt"}]
+      }
+    },
+    "rpc_response_with_revision": {
+      "result": {
+        "dataset": {
+          "datasetId": "dataset_event_records",
+          "fields": [{"name": "event_dt", "guid": "guid_event_dt"}]
+        }
+      },
+      "metadata": {"revId": "rev_dataset_rpc", "requestId": "req_sanitized"}
+    }
+  },
+  "publish_readback_cases": {
+    "shuffled_unrelated_missing_duplicate": {
+      "branch": "saved",
+      "charts": [
+        {"entry": {"entryId": "chart_unrelated", "revId": "rev_unrelated", "savedId": "saved_unrelated"}},
+        {"entry": {"entryId": "chart_event_03", "revId": "rev_03", "savedId": "saved_03"}},
+        {"entry": {"entryId": "chart_event_01", "revId": "rev_01", "savedId": "saved_01"}},
+        {"entry": {"entryId": "chart_event_02", "revId": "rev_02", "savedId": "saved_02"}},
+        {"entry": {"entryId": "chart_event_02", "revId": "rev_02_duplicate", "savedId": "saved_02_duplicate"}}
+      ],
+      "missing_object_id": "chart_event_04",
+      "duplicate_object_id": "chart_event_02"
+    }
+  },
+  "partial_safe_apply_failure": {
+    "successful_action_count_before_failure": 2,
+    "actions": [
+      {"action": "update_dashboard", "method": "updateDashboard", "object_id": "dash_event_core"},
+      {"action": "update_editor_chart", "method": "updateEditorChart", "object_id": "chart_event_01"},
+      {"action": "update_editor_chart", "method": "updateEditorChart", "object_id": "chart_event_02", "fail": true},
+      {"action": "update_editor_chart", "method": "updateEditorChart", "object_id": "chart_event_03"}
+    ]
+  },
+  "auth_cases": {
+    "stale_process_token": "stale_process_placeholder",
+    "canonical_env_token": "canonical_env_placeholder",
+    "rotated_env_token": "rotated_env_placeholder",
+    "org_id": "org_sanitized"
+  },
+  "api_version_cases": {
+    "legacy_header_version": "1",
+    "compiled_header_version": "2",
+    "readonly_probe_method": "getWorkbooksList",
+    "compatibility_method": "getDashboard"
+  },
+  "operation_examples": {
+    "wizard_chart": {"route": "wizard_native", "visualization_id": "geolayer", "entryId": "chart_wizard_map"},
+    "editor_chart": {"entryId": "chart_editor", "data": {"javascript": "module.exports = {};"}},
+    "editor_table": {"entryId": "chart_table", "data": {"sources": [], "prepare": "module.exports = {};"}},
+    "control": {"entryId": "chart_control", "data": {"controls": []}},
+    "markdown": {"entryId": "chart_markdown", "data": {"markdown": "# Sanitized"}},
+    "dataset": {"datasetId": "dataset_event_records", "fields": [{"name": "event_dt", "guid": "guid_event_dt"}]},
+    "connection": {"connectionId": "connection_event_source", "data": {"type": "postgres"}},
+    "dashboard": {"entryId": "dash_event_core", "data": {"tabs": []}},
+    "folder": {"entryId": "folder_sanitized", "scope": "folder"},
+    "permission": {"entryId": "dash_event_core", "subject": "subject_sanitized", "role": "viewer"}
+  }
+}

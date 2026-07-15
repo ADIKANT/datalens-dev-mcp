@@ -1,0 +1,8 @@
+{
+  "title": "Status Flow",
+  "links": [
+    {"source": "To Do", "target": "In Progress", "value": 42},
+    {"source": "In Progress", "target": "Done", "value": 34}
+  ],
+  "hint": "Flow between stages with explicit source and target."
+}

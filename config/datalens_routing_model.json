@@ -1,0 +1,56 @@
+{
+  "operation_routes": {
+    "advanced_editor_chart": {
+      "object_kind": "editor_chart",
+      "required_before": [
+        "dataset_operation"
+      ],
+      "route": "editor_advanced"
+    },
+    "connector_operation": {
+      "object_kind": "connection",
+      "required_before": [],
+      "route": "connector"
+    },
+    "dashboard_relation_operation": {
+      "object_kind": "dashboard",
+      "required_before": [],
+      "route": "dashboard_relation"
+    },
+    "dataset_operation": {
+      "object_kind": "dataset",
+      "required_before": [],
+      "route": "dataset"
+    },
+    "ql_explicit_chart": {
+      "object_kind": "ql_chart",
+      "required_before": [
+        "explicit_user_request",
+        "explicit_payload_or_fresh_saved_seed"
+      ],
+      "route": "ql_explicit"
+    },
+    "wizard_native_chart": {
+      "object_kind": "wizard_chart",
+      "required_before": [
+        "dataset_operation"
+      ],
+      "route": "wizard_native"
+    }
+  },
+  "policy_registry": "config/route_selection_policy_v5.json",
+  "rules": [
+    "Updates preserve the technology and visualization id from fresh saved readback.",
+    "Standard creates use Wizard canonical templates or a fresh saved seed of the same visualization id.",
+    "JavaScript is selected only for a registered capability gap or an explicit JS request.",
+    "QL is selected only for an explicit user request and is never a fallback.",
+    "Delete, move, permission writes, d3_node, regular Editor Chart, and Gravity UI Charts remain closed."
+  ],
+  "schema_version": "2026-07-13.datalens_operation_routing.v3",
+  "selection_order": [
+    "preserve_existing_saved_route_and_visualization",
+    "explicit_user_route",
+    "registered_capability_gap",
+    "wizard_first_default"
+  ]
+}

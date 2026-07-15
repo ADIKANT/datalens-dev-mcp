@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DataLens docs/OpenAPI reconciliation",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "status",
+    "api_sha256",
+    "operation_count"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "datalens.docs-openapi-reconciliation.v1"
+    },
+    "status": {
+      "enum": [
+        "pass",
+        "stale_repo_policy",
+        "missing_corpus",
+        "conflict"
+      ]
+    },
+    "corpus_path": {
+      "type": "string"
+    },
+    "api_sha256": {
+      "type": "string"
+    },
+    "operation_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "openapi_version": {
+      "type": "string"
+    },
+    "api_info_version": {
+      "type": "string"
+    },
+    "new_operations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "repo_known_operation_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

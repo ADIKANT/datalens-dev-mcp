@@ -1,0 +1,58 @@
+__pycache__/
+__MACOSX/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+.DS_Store
+._*
+*.tmp
+*.temp
+
+# Local secrets and operator env files
+.env
+.env.*
+.env.local
+.datalens.env
+datalens_token.env
+config/datalens_mcp.local.json
+src/datalens_dev_mcp/assets/config/datalens_mcp.local.json
+
+# Local scratch notes and pasted prompts, not server corpus
+Pasted text.txt
+datalens-dev-mcp-codex-prompts.md
+datalens-dev-mcp-roadmap.md
+
+# Root-level generated and operator-only state. Public releases never track
+# artifacts, live metadata, local project state, or source-material workspaces.
+/artifacts/
+/memory-bank/
+/datalens_mapping/
+/.metadata-fetch/
+/materials/
+/docs/reports/
+/.external/
+/RUN_STATE.md
+
+# Legacy fine-grained rules retained for downstream project workspaces.
+/raw/
+/shareable/
+/sync-local/
+/dry-runs/
+/live-exports/
+/artifacts/live/
+/artifacts/raw/
+/artifacts/shareable/
+/artifacts/datalens_knowledge/
+/artifacts/final_quality_program/02_semantic_authoring/
+/artifacts/mcp_runs/
+/artifacts/reference_runs/
+/artifacts/repo_size_budget/
+/artifacts/runtime/
+/artifacts/sql_performance/
+/artifacts/validation_profiles/

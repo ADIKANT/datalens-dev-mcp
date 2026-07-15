@@ -1,0 +1,25 @@
+{
+  "closed_schema_count": 510,
+  "closed_schema_sha256": "20291ac0fb5a83fb67a97b53defee30a5fc61ac1c95eb96a73b6a221fa629632",
+  "component_schema_count": 483,
+  "content_hashes": {
+    "api_content_hash": "9397997c317e0682dd52eaf7ceb9e428e655aeba5094214750e938087deb6f92",
+    "assets_content_hash": "4719cb457f410d44f23760ace51e1c095adaec59f366d2ac6f00de74bb26031f",
+    "manifest_stable_hash": "c77a7fb5eea76e361c7292f8a9580b2c5206e38982ab50caad67f3438be03a5b",
+    "pages_content_hash": "fda97edaac019a8f7c74376c7918da5cffb12214cf87de106b7356a59ddccfaf"
+  },
+  "corpus_root_hint": "<DATALENS_DOCS_CORPUS_ROOT>",
+  "generated_at": "2026-07-13T13:34:50.491355Z",
+  "inventory_openapi_sha256": "e4c3cf56de894e28b883b1f0ceaf2935f68570b052c46885e20bc9608e5ca532",
+  "inventory_operation_count": 88,
+  "inventory_path_count": 88,
+  "openapi_path": "raw/api/openapi.json",
+  "openapi_sha256": "e4c3cf56de894e28b883b1f0ceaf2935f68570b052c46885e20bc9608e5ca532",
+  "openapi_version": "3.1.0",
+  "operation_count": 88,
+  "path_count": 88,
+  "required_api_header_version": "2",
+  "schema_version": "2026-06-25.openapi_lock.v1",
+  "source_path_category": "external_corpus",
+  "source_url": "https://api.datalens.tech/json/"
+}

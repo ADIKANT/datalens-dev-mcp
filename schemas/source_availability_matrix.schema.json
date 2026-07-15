@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "datalens.source-availability-matrix",
+  "title": "Source Availability Matrix",
+  "type": "object",
+  "anyOf": [
+    {"$ref": "#/$defs/internalMatrix"},
+    {"$ref": "#/$defs/deltaV6Matrix"}
+  ],
+  "$defs": {
+    "internalMatrix": {
+      "type": "object",
+      "required": ["schema_version", "project", "sources"],
+      "properties": {
+        "schema_version": {"const": "datalens.dashboard-source-availability.v1"},
+        "project": {"type": "string"},
+        "generated_from": {"type": "string"},
+        "sources": {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/$defs/source"}
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["physical_tables", "environments"],
+      "properties": {
+        "physical_tables": {"type": "array", "items": {"type": "string"}},
+        "environments": {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/$defs/envAvailability"}
+        }
+      }
+    },
+    "envAvailability": {
+      "type": "object",
+      "required": ["static_supported"],
+      "properties": {
+        "static_supported": {"type": "boolean"},
+        "table_present": {"type": ["boolean", "null"]},
+        "expected_exception": {"type": "boolean"},
+        "reason": {"type": "string"}
+      }
+    },
+    "deltaV6Matrix": {
+      "type": "object",
+      "required": ["dashboard_id", "generated_at", "environments", "sources"],
+      "properties": {
+        "schema_version": {"type": "string"},
+        "dashboard_id": {"type": "string"},
+        "workbook_id": {"type": "string"},
+        "generated_at": {"type": "string"},
+        "environments": {"type": "array", "items": {"type": "string"}},
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["source_key", "tables", "expected_by_environment"],
+            "properties": {
+              "source_key": {"type": "string"},
+              "tables": {"type": "array", "items": {"type": "string"}},
+              "expected_by_environment": {"type": "object"},
+              "observed_by_environment": {"type": "object"},
+              "no_table_allowed_by_environment": {"type": "object"},
+              "notes": {"type": "array", "items": {"type": "string"}}
+            }
+          }
+        },
+        "conflicts": {"type": "array", "items": {"type": "object"}},
+        "artifact_paths": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/field-config.schema.json",
+  "title": "Field config",
+  "type": "object",
+  "required": ["name", "type", "role"],
+  "properties": {
+    "name": {"type": "string"},
+    "title": {"type": "string"},
+    "type": {"type": "string"},
+    "role": {"enum": ["dimension", "measure", "parameter", "technical"]},
+    "aggregation": {"type": "string"},
+    "nullable": {"type": "boolean"},
+    "source_field": {"type": "string"},
+    "description": {"type": "string"}
+  },
+  "additionalProperties": true
+}

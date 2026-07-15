@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "title": "Delta v7 Source Availability Consumer Matrix",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "sources"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "datalens.delta_v7.source_availability_consumer_matrix.v1"
+    },
+    "evidence_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "source_key",
+          "environment",
+          "expected_status"
+        ],
+        "properties": {
+          "source_key": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "physical_table_present": {
+            "type": [
+              "boolean",
+              "string"
+            ]
+          },
+          "row_count": {
+            "type": [
+              "integer",
+              "null",
+              "string"
+            ]
+          },
+          "static_supported": {
+            "type": "boolean"
+          },
+          "runtime_param_available": {
+            "type": [
+              "boolean",
+              "string"
+            ]
+          },
+          "expected_status": {
+            "enum": [
+              "OK",
+              "NO_DATA",
+              "NO_TABLE",
+              "ERROR",
+              "UNKNOWN"
+            ]
+          },
+          "consumer_statuses": {
+            "type": "object"
+          },
+          "conflict": {
+            "type": "boolean"
+          },
+          "publish_blocking": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "kpi-status",
+  "route": "editor_advanced",
+  "entry_type": "advanced-chart_node",
+  "source_example": "kpi-status",
+  "local_safety": "local MCP-native fixture with placeholder IDs",
+  "source_template": "examples/gallery/kpi-status"
+}

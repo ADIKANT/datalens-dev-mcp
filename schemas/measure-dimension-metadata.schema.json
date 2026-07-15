@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/measure-dimension-metadata.schema.json",
+  "title": "Measure and dimension metadata",
+  "type": "object",
+  "required": ["schema_version", "fields"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "role"],
+        "properties": {
+          "name": {"type": "string"},
+          "role": {"enum": ["measure", "dimension"]},
+          "unit": {"type": "string"},
+          "grain": {"type": "string"},
+          "business_definition": {"type": "string"},
+          "dq_status": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

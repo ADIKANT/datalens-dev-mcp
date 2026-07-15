@@ -1,0 +1,129 @@
+{
+  "removed_or_manual_review": {
+    "automatic_ql_selection": "forbidden_explicit_user_request_only",
+    "dual_axis_line": "manual_review",
+    "dumbbell": "manual_review_or_grouped_bar",
+    "lollipop": "replace_with_horizontal_bar",
+    "pie": "only_small_true_part_to_whole",
+    "sankey": "only_if_ordered_flow_and_explicit_volumes",
+    "streamgraph": "manual_review_or_area_completion"
+  },
+  "route_policy_ref": "config/route_selection_policy_v5.json",
+  "rules": [
+    {
+      "prefer": "table_node",
+      "reason": "Exact values, many columns, and export-like work belong to table.",
+      "reject": [
+        "pie",
+        "donut",
+        "advanced_html_table"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "task": "exact_lookup",
+      "visualization_id": "flatTable"
+    },
+    {
+      "color": "neutral_with_optional_focus_or_alert",
+      "prefer": "horizontal_bar",
+      "reject": [
+        "pie",
+        "donut",
+        "lollipop",
+        "radial_bar"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "sort": "measure_descending_unless_business_order",
+      "task": "comparison_ranking",
+      "visualization_id": "bar"
+    },
+    {
+      "color": "neutral_or_low_cardinality_categories",
+      "prefer": "line_chart",
+      "reject": [
+        "line_chart_for_nominal_categories"
+      ],
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "sort": "date_ascending",
+      "task": "time_trend",
+      "visualization_id": "line"
+    },
+    {
+      "axis": "zero_baseline",
+      "prefer": "vertical_bar_time_bucket",
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "sort": "date_or_declared_period_order",
+      "task": "period_comparison",
+      "visualization_id": "column"
+    },
+    {
+      "capability_gap": "composite_kpi_with_sparkline",
+      "comparator": "explicit_only",
+      "prefer": "kpi_value_sparkline",
+      "reject_if": [
+        "implicit_period_comparison"
+      ],
+      "route": "editor_advanced",
+      "selection_origin": "registered_capability_gap",
+      "task": "kpi_monitoring"
+    },
+    {
+      "capability_gap": "wizard_has_no_bullet_chart_semantics",
+      "comparator": "explicit_target_or_plan_required",
+      "prefer": "bullet_assignees",
+      "route": "editor_advanced",
+      "selection_origin": "registered_capability_gap",
+      "task": "target_vs_actual"
+    },
+    {
+      "allowed_pie_when": "true_100_percent_and_category_count_lte_5_and_shares_visibly_different",
+      "prefer_order": [
+        "stacked_100",
+        "table_node",
+        "donut",
+        "pie"
+      ],
+      "task": "part_to_whole"
+    },
+    {
+      "prefer": "scatter",
+      "required_measures": 2,
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "task": "relationship",
+      "visualization_id": "scatter"
+    },
+    {
+      "capability_gap": "wizard_has_no_histogram_semantics",
+      "fallback": "table_node",
+      "prefer": "histogram",
+      "route": "editor_advanced",
+      "selection_origin": "registered_capability_gap",
+      "task": "distribution"
+    },
+    {
+      "allowed_when": "geography_or_location_is_business_question",
+      "prefer": "native_map_geo_widget",
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "task": "geo",
+      "visualization_id": "geolayer"
+    },
+    {
+      "prefer": "selector_family_dynamic",
+      "route": "editor_js_control",
+      "selection_origin": "specialized_editor_route",
+      "task": "filtering"
+    },
+    {
+      "prefer": "md_methodology_block",
+      "route": "editor_markdown",
+      "selection_origin": "specialized_editor_route",
+      "task": "methodology"
+    }
+  ],
+  "schema_version": "2026-07-13.chart_family_rules.v2"
+}

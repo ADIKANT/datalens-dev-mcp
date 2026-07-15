@@ -1,0 +1,34 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "createEditorChart",
+  "operation_id": "createEditorChart",
+  "path": "/rpc/createEditorChart",
+  "request_payload": {},
+  "request_schema_closure_hash": "47159f8a05ba6fdff651d83c89199e730792dbdf5376e757d43d5f076ead1ad5",
+  "request_schema_closure_refs": [
+    "CreateEditorAdvancedChartNodeEntry",
+    "CreateEditorChartArgs",
+    "CreateEditorGravityChartsNodeEntry",
+    "CreateEditorMarkdownNodeEntry",
+    "CreateEditorSelectorNodeEntry",
+    "CreateEditorTableNodeEntry",
+    "EntryAnnotationArg",
+    "EntryLocationIdentifiers"
+  ],
+  "request_schema_hash": "c519003ba6df09d2020e98547a13a2836fe3b010c515e54e5e48f0e48735550e",
+  "request_schema_ref": "CreateEditorChartArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "2e099a2d95c1dac94eb70bb2734d8e0227f4291d5cc0817a74329abf7f9cd3ae",
+  "response_schema_closure_refs": [
+    "CreateEditorChartResult",
+    "EditorAdvancedChartNode",
+    "EditorGravityChartsNode",
+    "EditorMarkdownNode",
+    "EditorSelectorNode",
+    "EditorTableNode"
+  ],
+  "response_schema_hash": "66bf7369e04819436cd30922f65b3f6f9a9fa3135da6a2789b6e4ddf89a769ad",
+  "response_schema_ref": "CreateEditorChartResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "guarded_plan_only"
+}

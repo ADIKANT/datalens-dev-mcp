@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "datalens.delta_v8.object_reuse_decision.schema.json",
+  "title": "DataLens Delta v8 Object Reuse Decision",
+  "type": "object",
+  "required": ["target_object_type", "decision", "create_allowed", "blocked_reasons"],
+  "properties": {
+    "target_object_id": {"type": "string"},
+    "target_object_type": {"enum": ["dashboard", "wizard_chart", "editor_chart", "dataset", "control", "unknown"]},
+    "existing_object_found": {"type": "boolean"},
+    "decision": {"enum": ["update_existing", "create_new", "replace", "remove", "block"]},
+    "create_allowed": {"type": "boolean"},
+    "create_necessity_proof": {"type": "object"},
+    "stale_revision_retry_count": {"type": "integer", "minimum": 0},
+    "temporary_lifecycle": {"type": "object"},
+    "blocked_reasons": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

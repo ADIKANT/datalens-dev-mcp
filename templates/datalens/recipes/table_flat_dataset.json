@@ -1,0 +1,71 @@
+{
+  "algorithmic_bound": "O(n)",
+  "aliases": [
+    "dataset",
+    "dataset table",
+    "flat dataset table",
+    "table flat dataset",
+    "датасет таблица",
+    "таблица из датасета"
+  ],
+  "cardinality_limits": {},
+  "executable_bundle": {
+    "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+    "bundle_files": [
+      "config.js",
+      "expected_output.json",
+      "fixture_input.json",
+      "meta.json",
+      "params.js",
+      "prepare.js",
+      "sources.js"
+    ],
+    "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+    "status": "executable_fixture_tested"
+  },
+  "implementation_status": "implemented_tested",
+  "local_policy_status": "allowed",
+  "native_table_contract": true,
+  "observed_runtime_overrides": [],
+  "official_status": "documented",
+  "output_contract": [
+    "head",
+    "rows",
+    "footer_optional"
+  ],
+  "recipe_id": "table_flat_dataset",
+  "required_tabs": [
+    "Meta",
+    "Params",
+    "Sources",
+    "Config",
+    "Prepare"
+  ],
+  "route": "editor_table",
+  "source_contract": "dataset",
+  "source_traces": [
+    {
+      "anchor": "создание-таблицы-на-основе-датасета",
+      "chunk_id": "datalens/charts/editor/quickstart/from-dataset.md#создание-таблицы-на-основе-датасета#1",
+      "mirror_path": "datalens/charts/editor/quickstart/from-dataset.md",
+      "sha256": "7f7837d7e9de0bbd1835cda257e157fba5b0ed8eb88cea1cb80214cd56c6feff",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/quickstart/from-dataset"
+    },
+    {
+      "anchor": "таблица",
+      "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+      "mirror_path": "datalens/charts/editor/widgets/table.md",
+      "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+    }
+  ],
+  "title": "Flat dataset table",
+  "uses_generate_html": false,
+  "validation_checklist": [
+    "source_trace_present",
+    "required_tabs_present",
+    "runtime_contract_valid",
+    "safe_apply_plan_only_until_approved"
+  ],
+  "widget_contract": "table_node"
+}

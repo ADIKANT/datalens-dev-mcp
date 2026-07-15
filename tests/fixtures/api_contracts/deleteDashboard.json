@@ -1,0 +1,22 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "deleteDashboard",
+  "operation_id": "deleteDashboard",
+  "path": "/rpc/deleteDashboard",
+  "request_payload": {},
+  "request_schema_closure_hash": "596a00a6cb5a082fd613e82f4478706c48c573537f577152ab395dc9ad73f737",
+  "request_schema_closure_refs": [
+    "DeleteDashboardArgs"
+  ],
+  "request_schema_hash": "a4b81b6ad553f9522d0653a6e30876287f7bf40bc0c7f9852bf0b69eeb6d18e0",
+  "request_schema_ref": "DeleteDashboardArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "58511b0c6681fde88ecde318f0ea38c4ace73dd2745048daca982487423d1fe3",
+  "response_schema_closure_refs": [
+    "DeleteDashboardResponse"
+  ],
+  "response_schema_hash": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+  "response_schema_ref": "DeleteDashboardResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "readonly_reference"
+}

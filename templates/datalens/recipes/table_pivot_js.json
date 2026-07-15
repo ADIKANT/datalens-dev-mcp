@@ -1,0 +1,89 @@
+{
+  "algorithmic_bound": "O(n log n)",
+  "aliases": [
+    "Plan Fact",
+    "database sql or dataset",
+    "javascript pivot table",
+    "native pivot",
+    "pivot table",
+    "table pivot js",
+    "план факт",
+    "сводная таблица"
+  ],
+  "cardinality_limits": {
+    "cells": 20000,
+    "columns": 200
+  },
+  "executable_bundle": {
+    "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+    "bundle_files": [
+      "config.js",
+      "expected_output.json",
+      "fixture_input.json",
+      "meta.json",
+      "params.js",
+      "prepare.js",
+      "sources.js"
+    ],
+    "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+    "status": "executable_fixture_tested"
+  },
+  "implementation_status": "implemented_tested",
+  "local_policy_status": "allowed",
+  "native_table_contract": true,
+  "observed_runtime_overrides": [],
+  "official_status": "documented",
+  "output_contract": [
+    "row_dimensions",
+    "column_dimensions",
+    "multiple_measures",
+    "deterministic_dynamic_columns",
+    "head.sub",
+    "totals_subtotals",
+    "stable_sorting",
+    "missing_values",
+    "numeric_token_and_semver_comparator",
+    "status_dependent_version_selection",
+    "safe_link_or_plain_text",
+    "semantic_state_text_and_css",
+    "pagination_default_100_range_1_200",
+    "russian_english_text",
+    "bounded_cardinality",
+    "complexity_o_n_log_n"
+  ],
+  "recipe_id": "table_pivot_js",
+  "required_tabs": [
+    "Meta",
+    "Params",
+    "Sources",
+    "Config",
+    "Prepare"
+  ],
+  "route": "editor_table",
+  "source_contract": "database_sql_or_dataset",
+  "source_traces": [
+    {
+      "anchor": "таблица",
+      "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+      "mirror_path": "datalens/charts/editor/widgets/table.md",
+      "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+    },
+    {
+      "anchor": "сводная-таблица-_assets-datalens-pivot-table-svg-в-yandex-datalens",
+      "chunk_id": "datalens/visualization-ref/pivot-table-chart.md#сводная-таблица-_assets-datalens-pivot-table-svg-в-yandex-datalens#1",
+      "mirror_path": "datalens/visualization-ref/pivot-table-chart.md",
+      "sha256": "abd0f4d3c0353cf39fd7167d6f13afd7d0f659f24006893c71fcc2563be182e1",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/pivot-table-chart"
+    }
+  ],
+  "title": "JavaScript pivot table",
+  "uses_generate_html": false,
+  "validation_checklist": [
+    "source_trace_present",
+    "required_tabs_present",
+    "runtime_contract_valid",
+    "safe_apply_plan_only_until_approved"
+  ],
+  "widget_contract": "table_node"
+}

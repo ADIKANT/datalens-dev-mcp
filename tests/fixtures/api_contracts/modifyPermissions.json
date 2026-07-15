@@ -1,0 +1,22 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "modifyPermissions",
+  "operation_id": "modifyPermissions",
+  "path": "/rpc/modifyPermissions",
+  "request_payload": {},
+  "request_schema_closure_hash": "49f96bfa83c799cfe8210d9e0788ec7ed7a999eff063cded43fa7d43a0ae8b77",
+  "request_schema_closure_refs": [
+    "ModifyPermissionsArgs"
+  ],
+  "request_schema_hash": "bba8a864c119487a1a7d07af407715c2c847fcfd1259d017969f4b20ecbcdd15",
+  "request_schema_ref": "ModifyPermissionsArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "7f9ba4f118ef8f73ff9711e6af157335d7ef5db5820c8eec0ae63eeced85a2da",
+  "response_schema_closure_refs": [
+    "ModifyPermissionsResult"
+  ],
+  "response_schema_hash": "98eab3ddf0b2a272ed9167fe9377fa548d35e2fb9e5b7f15059bf632cfebfdad",
+  "response_schema_ref": "ModifyPermissionsResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "readonly_reference"
+}

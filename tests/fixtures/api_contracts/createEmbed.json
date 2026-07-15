@@ -1,0 +1,24 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "createEmbed",
+  "operation_id": "createEmbed",
+  "path": "/rpc/createEmbed",
+  "request_payload": {},
+  "request_schema_closure_hash": "60083bdd25b2b100908e059120433c3897418c1c38a4c2db827fe8de03605047",
+  "request_schema_closure_refs": [
+    "CreateEmbedArgs",
+    "EmbedSettings"
+  ],
+  "request_schema_hash": "81a005b49ded836d7ecd401bf2cdceb37b53b8c46aa3ac0b4152e7c918bb0838",
+  "request_schema_ref": "CreateEmbedArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "308e3b50ff12e04775d2dd7ce56162ecb2c56b9492422f012b4cefb95138a7b4",
+  "response_schema_closure_refs": [
+    "Embed",
+    "EmbedSettings"
+  ],
+  "response_schema_hash": "51aee40fc6f247d4b3793b6455cdcc4d0a37dd8f5f5532c1d29ab55a20acc272",
+  "response_schema_ref": "Embed",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "unsupported_explicit"
+}

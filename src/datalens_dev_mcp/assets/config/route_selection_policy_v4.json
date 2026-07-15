@@ -1,0 +1,7 @@
+{
+  "schema_version": "2026-07-01.route_selection_policy_v4",
+  "status": "deprecated_compatibility_pointer",
+  "runtime_authority": false,
+  "superseded_by": "config/route_selection_policy_v5.json",
+  "reason": "Wizard-first routing and explicit-only QL are defined only in the v5 registry."
+}

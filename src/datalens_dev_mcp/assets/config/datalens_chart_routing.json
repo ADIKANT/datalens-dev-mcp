@@ -1,0 +1,35 @@
+{
+  "closed_routes": [
+    "d3_node",
+    "regular_editor_chart",
+    "gravity_ui_charts",
+    "automatic_ql_selection"
+  ],
+  "compatibility_aliases": {
+    "wizard_map_native": {
+      "route": "wizard_native",
+      "visualization_id": "geolayer"
+    }
+  },
+  "creation_routes": [
+    "wizard_native",
+    "editor_advanced",
+    "editor_table",
+    "editor_markdown",
+    "editor_js_control",
+    "ql_explicit"
+  ],
+  "fallback_policy": "Wizard-first is selected before transport; never retry a failed Wizard attempt as JS or QL.",
+  "forbidden_methods": [
+    "deleteQLChart"
+  ],
+  "ql_policy": "explicit_user_request_only; never automatic or fallback",
+  "schema_version": "2026-07-13.chart_routing.v3",
+  "source_trace": [
+    "AGENTS.md",
+    "docs/route-policy.md",
+    "config/route_selection_policy_v5.json",
+    "config/datalens_chart_param_matrix.json",
+    "OpenAPI create/update methods"
+  ]
+}

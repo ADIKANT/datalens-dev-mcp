@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.datalens-dev-mcp/schemas/sql-performance-optimization-plan.schema.json",
+  "title": "SQL Performance Optimization Plan",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "automatic_mutation",
+    "approximate_distinct_allowed",
+    "hard_history_cap_allowed",
+    "recommendations",
+    "blocked"
+  ],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "automatic_mutation": {"type": "boolean", "const": false},
+    "approximate_distinct_allowed": {"type": "boolean", "const": false},
+    "hard_history_cap_allowed": {"type": "boolean", "const": false},
+    "recommendations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "strategy",
+          "affected_charts",
+          "status",
+          "current_bottleneck_evidence",
+          "proposed_grain",
+          "exact_vs_approximate",
+          "selector_compatibility",
+          "date_scale_compatibility",
+          "expected_improvement_confidence",
+          "evidence_source",
+          "parity_scenarios",
+          "rollback_plan",
+          "stop_conditions"
+        ],
+        "properties": {
+          "strategy": {"type": "string"},
+          "affected_charts": {"type": "array", "items": {"type": "string"}},
+          "status": {"type": "string", "enum": ["recommendation", "blocked"]},
+          "current_bottleneck_evidence": {"type": "string"},
+          "proposed_grain": {"type": "string"},
+          "required_fields": {"type": "array", "items": {"type": "string"}},
+          "exact_vs_approximate": {"type": "string"},
+          "selector_compatibility": {"type": "string"},
+          "date_scale_compatibility": {"type": "string"},
+          "expected_improvement_confidence": {"type": "string"},
+          "evidence_source": {"type": "string"},
+          "parity_scenarios": {"type": "array", "items": {"type": "string"}},
+          "rollback_plan": {"type": "string"},
+          "stop_conditions": {"type": "array", "items": {"type": "string"}}
+        },
+        "additionalProperties": true
+      }
+    },
+    "blocked": {"type": "array", "items": {"type": "object"}}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,28 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getDashboard",
+  "operation_id": "getDashboard",
+  "path": "/rpc/getDashboard",
+  "request_payload": {},
+  "request_schema_closure_hash": "dd300d543885ab7b5a7eaf58fceaa9f822b173a1b2489448834898c566dca4b4",
+  "request_schema_closure_refs": [
+    "EntryBranch",
+    "GetDashboardV1Args"
+  ],
+  "request_schema_hash": "3faff663bd9c0841f870008a0341470d3ae70a64c93031dd9cc237db7b2267e5",
+  "request_schema_ref": "GetDashboardV1Args",
+  "response_payload": {},
+  "response_schema_closure_hash": "ab506a186c463597cdeb4a470b17bf1d3c1b69710502e6b75239bc734dc03910",
+  "response_schema_closure_refs": [
+    "DashboardData",
+    "DashboardMeta",
+    "DashboardV1",
+    "EntryAnnotation",
+    "EntryPermissions",
+    "GetDashboardV1Result"
+  ],
+  "response_schema_hash": "3fad6f481665b9c8c680c5ee9a22a64104d539a97304e996d79508643266b471",
+  "response_schema_ref": "GetDashboardV1Result",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

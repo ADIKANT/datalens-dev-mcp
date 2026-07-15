@@ -1,0 +1,16 @@
+{
+  "links": {
+    "defaultConnection": {
+      "type": "connection"
+    },
+    "devConnection": {
+      "type": "connection"
+    },
+    "stageConnection": {
+      "type": "connection"
+    },
+    "prodConnection": {
+      "type": "connection"
+    }
+  }
+}

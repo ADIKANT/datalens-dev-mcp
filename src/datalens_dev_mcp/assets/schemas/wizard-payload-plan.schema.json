@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/wizard-payload-plan.schema.json",
+  "title": "Wizard payload plan",
+  "type": "object",
+  "required": ["schema_version", "widget_id", "route", "visualization_id", "source_kind", "compiled_payload", "validation"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "widget_id": {"type": "string"},
+    "route": {"const": "wizard_native"},
+    "visualization_id": {"type": "string"},
+    "source_kind": {"enum": ["fresh_saved_seed", "committed_canonical_template"]},
+    "sanitized_seed": {"type": "object"},
+    "compiled_payload": {"type": "object"},
+    "validation": {"type": "object"},
+    "geo_evidence": {"type": "object"}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,22 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "startWorkbookExport",
+  "operation_id": "startWorkbookExport",
+  "path": "/rpc/startWorkbookExport",
+  "request_payload": {},
+  "request_schema_closure_hash": "ce8e85b25eabd1ce7f13daf17e4fc9fae047ad81bbd916ef242c4ff77a0177c7",
+  "request_schema_closure_refs": [
+    "StartWorkbookExportArgs"
+  ],
+  "request_schema_hash": "4a7afee8824a65de21af31c907c14aafb8b6811954e55f8c2e5543311f9aad28",
+  "request_schema_ref": "StartWorkbookExportArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "f98db6ffe722fcc3ba02317d859b7c8d211e1b8bcbd82daeace0455340035ddd",
+  "response_schema_closure_refs": [
+    "StartWorkbookExportResult"
+  ],
+  "response_schema_hash": "adff3feb54b9f112ac5d4696334e9744ab858d1db00df77de12f17ab85379f68",
+  "response_schema_ref": "StartWorkbookExportResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "guarded_plan_only"
+}

@@ -1,0 +1,10 @@
+{
+  "title": "Created vs Completed",
+  "rows": [
+    {"bucket": "2026-W01", "metric": "Created", "value": 42},
+    {"bucket": "2026-W01", "metric": "Completed", "value": 36},
+    {"bucket": "2026-W02", "metric": "Created", "value": 48},
+    {"bucket": "2026-W02", "metric": "Completed", "value": 41}
+  ],
+  "hint": "Weekly created and completed issues."
+}

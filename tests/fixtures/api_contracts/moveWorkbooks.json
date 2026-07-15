@@ -1,0 +1,23 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "moveWorkbooks",
+  "operation_id": "moveWorkbooks",
+  "path": "/rpc/moveWorkbooks",
+  "request_payload": {},
+  "request_schema_closure_hash": "2446f218f473971c0a6863903f193c8be55fc4af7cb162da2da6d9d92e88c070",
+  "request_schema_closure_refs": [
+    "MoveWorkbooksArgs"
+  ],
+  "request_schema_hash": "3fb3451ca78f5a194db3d36906a8bc948bc88743a931b9087c2972233cf661da",
+  "request_schema_ref": "MoveWorkbooksArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "9d64dd88da00e7fd1ea6b9f16dd5b39caee8b4dfbc4f2f56ff38245c0f7871b3",
+  "response_schema_closure_refs": [
+    "MoveWorkbooksResponse",
+    "Workbook"
+  ],
+  "response_schema_hash": "35bbe555431abab36159997ebab5071e06e298164778da628e153f0a0f2ad182",
+  "response_schema_ref": "MoveWorkbooksResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "readonly_reference"
+}

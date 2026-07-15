@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/dataset-config.schema.json",
+  "title": "Dataset config",
+  "type": "object",
+  "required": ["schema_version", "dataset_id", "source", "fields"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "dataset_id": {"type": "string"},
+    "display_name": {"type": "string"},
+    "source": {
+      "type": "object",
+      "required": ["connector_ref", "table"],
+      "properties": {
+        "connector_ref": {"type": "string"},
+        "table": {"type": "string"},
+        "sql": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "fields": {"type": "array", "items": {"$ref": "field-config.schema.json"}},
+    "calculated_fields": {"type": "array", "items": {"$ref": "calculated-field-config.schema.json"}},
+    "joins": {"type": "array", "items": {"type": "object"}}
+  },
+  "additionalProperties": true
+}

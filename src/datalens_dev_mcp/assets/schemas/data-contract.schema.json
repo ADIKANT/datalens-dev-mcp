@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/data-contract.schema.json",
+  "title": "Data contract",
+  "type": "object",
+  "required": ["contract_id", "fields", "source_status"],
+  "properties": {
+    "contract_id": {"type": "string"},
+    "fields": {"type": "array", "items": {"type": "string"}},
+    "source_status": {"type": "string"}
+  },
+  "additionalProperties": true
+}

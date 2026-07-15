@@ -1,0 +1,33 @@
+schema_version: 2026-06-30.visual_decision_regression_cases.v1
+cases:
+  - id: kpi_current_status_no_implicit_delta
+    business_question: Current KPI status with optional trend context
+    expected_family: kpi_value_sparkline
+    forbidden_default_family: kpi_value_delta_sparkline
+  - id: exact_lookup_native_table
+    business_question: Detail table registry for repeated row lookup
+    expected_family: table_node
+    expected_route: editor_table
+  - id: negative_previous_period_blocks_delta
+    user_decision: Do not show previous period delta or previous value
+    requested_family: kpi_value_delta_sparkline
+    expected_family: kpi_value_sparkline
+  - id: negative_pie_rejected
+    business_question: Share of orders by status from source dataset
+    user_decision: Do not use pie
+    requested_family: pie
+    expected_family: horizontal_bar
+  - id: negative_legend_hidden
+    business_question: Monthly metric trend from source dataset
+    user_decision: Remove legend
+    expected_legend_show: false
+  - id: only_table_forces_native_table
+    business_question: Compare order count by status from source dataset
+    user_decision: Only table
+    requested_family: horizontal_bar
+    expected_family: table_node
+    expected_route: editor_table
+  - id: negative_red_green_palette
+    business_question: Current KPI metric against plan from source dataset
+    user_decision: Do not use red/green semantic colors
+    expected_semantic_colors: false

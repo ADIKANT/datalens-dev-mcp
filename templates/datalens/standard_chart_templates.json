@@ -1,0 +1,914 @@
+{
+  "schema_version": "2026-06-03.standard_chart_templates.v1",
+  "source_basis": "Project-authored MCP-native chart feedback and implementation patterns.",
+  "families": {
+    "kpi_value_only": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/kpi_card",
+      "variant": "kpi_value_only",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "kpi_value_only branch in templates/datalens/advanced_editor/kpi_card",
+      "required_inputs": [
+        "metric_id",
+        "metric_label",
+        "value_field",
+        "period_label",
+        "format"
+      ],
+      "fallback_family": "kpi_value_only"
+    },
+    "kpi_value_delta": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/kpi_card",
+      "variant": "kpi_value_delta",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "kpi_value_delta branch in templates/datalens/advanced_editor/kpi_card",
+      "required_inputs": [
+        "metric_id",
+        "metric_label",
+        "value_field",
+        "period_label",
+        "format",
+        "comparison_field_or_baseline_explicit"
+      ],
+      "fallback_family": "kpi_value_only"
+    },
+    "kpi_value_sparkline": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/kpi_card",
+      "variant": "kpi_value_sparkline",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "kpi_value_sparkline branch in templates/datalens/advanced_editor/kpi_card",
+      "required_inputs": [
+        "metric_id",
+        "metric_label",
+        "value_field",
+        "period_label",
+        "format",
+        "trend_date_field",
+        "trend_value_field"
+      ],
+      "fallback_family": "kpi_value_only"
+    },
+    "kpi_value_delta_sparkline": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/kpi_card",
+      "variant": "kpi_value_delta_sparkline",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "explicit-comparator kpi_value_delta_sparkline branch in templates/datalens/advanced_editor/kpi_card",
+      "required_inputs": [
+        "metric_id",
+        "metric_label",
+        "value_field",
+        "period_label",
+        "format",
+        "comparison_field_or_baseline_explicit",
+        "trend_date_field",
+        "trend_value_field"
+      ],
+      "fallback_family": "kpi_value_delta"
+    },
+    "line_chart": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/time_series",
+      "variant": "line_chart",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "line_chart branch in templates/datalens/advanced_editor/time_series",
+      "required_inputs": [
+        "date_field",
+        "grain",
+        "measure_field",
+        "unit_label",
+        "empty_period_policy"
+      ],
+      "fallback_family": "vertical_bar_time_bucket"
+    },
+    "multiline_chart": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/time_series",
+      "variant": "multiline_chart",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "multiline_chart branch in templates/datalens/advanced_editor/time_series",
+      "required_inputs": [
+        "date_field",
+        "grain",
+        "measure_field",
+        "unit_label",
+        "empty_period_policy",
+        "series_field_or_second_measure"
+      ],
+      "fallback_family": "vertical_bar_time_bucket"
+    },
+    "area_completion": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/time_series",
+      "variant": "area_completion",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "area_completion branch in templates/datalens/advanced_editor/time_series",
+      "required_inputs": [
+        "date_field",
+        "grain",
+        "measure_field",
+        "unit_label",
+        "empty_period_policy",
+        "accumulation_or_completion_definition"
+      ],
+      "fallback_family": "vertical_bar_time_bucket"
+    },
+    "vertical_bar_time_bucket": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/time_series",
+      "variant": "vertical_bar_time_bucket",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "vertical_bar_time_bucket branch in templates/datalens/advanced_editor/time_series",
+      "required_inputs": [
+        "date_field",
+        "grain",
+        "measure_field",
+        "unit_label",
+        "empty_period_policy"
+      ],
+      "fallback_family": "vertical_bar_time_bucket"
+    },
+    "combo_time_series_combo": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/time_series",
+      "variant": "combo_time_series_combo",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "combo_time_series_combo branch in templates/datalens/advanced_editor/time_series",
+      "required_inputs": [
+        "date_field",
+        "grain",
+        "measure_field",
+        "unit_label",
+        "empty_period_policy",
+        "series_field_or_second_measure"
+      ],
+      "fallback_family": "vertical_bar_time_bucket"
+    },
+    "horizontal_bar": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/category_comparison",
+      "variant": "horizontal_bar",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "horizontal_bar branch in templates/datalens/advanced_editor/category_comparison",
+      "required_inputs": [
+        "category_field",
+        "measure_field",
+        "unit_label",
+        "comparison_goal"
+      ],
+      "fallback_family": "table_node"
+    },
+    "grouped_bar": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/category_comparison",
+      "variant": "grouped_bar",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "grouped_bar branch in templates/datalens/advanced_editor/category_comparison",
+      "required_inputs": [
+        "category_field",
+        "measure_field",
+        "unit_label",
+        "comparison_goal",
+        "series_field"
+      ],
+      "fallback_family": "table_node"
+    },
+    "stacked_100": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/category_comparison",
+      "variant": "stacked_100",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "stacked_100 branch in templates/datalens/advanced_editor/category_comparison",
+      "required_inputs": [
+        "category_field",
+        "measure_field",
+        "unit_label",
+        "comparison_goal",
+        "whole_definition"
+      ],
+      "fallback_family": "table_node"
+    },
+    "bullet_assignees": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/category_comparison",
+      "variant": "bullet_assignees",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "bullet_assignees branch in templates/datalens/advanced_editor/category_comparison",
+      "required_inputs": [
+        "category_field",
+        "measure_field",
+        "unit_label",
+        "comparison_goal",
+        "target_field"
+      ],
+      "fallback_family": "table_node"
+    },
+    "heatmap": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/category_comparison",
+      "variant": "heatmap",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "heatmap branch in templates/datalens/advanced_editor/category_comparison",
+      "required_inputs": [
+        "category_field",
+        "measure_field",
+        "unit_label",
+        "comparison_goal",
+        "x_dimension",
+        "y_dimension",
+        "color_measure"
+      ],
+      "fallback_family": "table_node"
+    },
+    "waterfall": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/category_comparison",
+      "variant": "waterfall",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "waterfall branch in templates/datalens/advanced_editor/category_comparison",
+      "required_inputs": [
+        "category_field",
+        "measure_field",
+        "unit_label",
+        "comparison_goal",
+        "step_field",
+        "contribution_field",
+        "total_policy"
+      ],
+      "fallback_family": "table_node"
+    },
+    "funnel_snapshot": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/time_series",
+      "variant": "funnel_snapshot",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "funnel_snapshot branch in templates/datalens/advanced_editor/time_series",
+      "required_inputs": [
+        "stage_field_or_source_target",
+        "volume_field",
+        "ordered_stage_list",
+        "snapshot_period"
+      ],
+      "fallback_family": "funnel_snapshot"
+    },
+    "sankey_status_flow": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/flow_sankey",
+      "variant": "sankey_status_flow",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "sankey_status_flow branch in templates/datalens/advanced_editor/flow_sankey",
+      "required_inputs": [
+        "stage_field_or_source_target",
+        "volume_field",
+        "ordered_stage_list",
+        "snapshot_period"
+      ],
+      "fallback_family": "table_node"
+    },
+    "histogram": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/distribution_relationship",
+      "variant": "histogram",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "histogram branch in templates/datalens/advanced_editor/distribution_relationship",
+      "required_inputs": [
+        "numeric_measure",
+        "unit_label",
+        "outlier_policy",
+        "bin_rule"
+      ],
+      "fallback_family": "table_node"
+    },
+    "box_plot": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/distribution_relationship",
+      "variant": "box_plot",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "box_plot branch in templates/datalens/advanced_editor/distribution_relationship",
+      "required_inputs": [
+        "numeric_measure",
+        "unit_label",
+        "outlier_policy",
+        "group_field"
+      ],
+      "fallback_family": "table_node"
+    },
+    "scatter": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/distribution_relationship",
+      "variant": "scatter",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "scatter branch in templates/datalens/advanced_editor/distribution_relationship",
+      "required_inputs": [
+        "x_measure",
+        "y_measure",
+        "unit_labels",
+        "relationship_question"
+      ],
+      "fallback_family": "table_node"
+    },
+    "bubble": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/distribution_relationship",
+      "variant": "bubble",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "bubble branch in templates/datalens/advanced_editor/distribution_relationship",
+      "required_inputs": [
+        "x_measure",
+        "y_measure",
+        "unit_labels",
+        "relationship_question",
+        "size_measure"
+      ],
+      "fallback_family": "table_node"
+    },
+    "pie": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/part_whole_hierarchy",
+      "variant": "pie",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "pie branch in templates/datalens/advanced_editor/part_whole_hierarchy",
+      "required_inputs": [
+        "part_dimension",
+        "measure_field",
+        "whole_definition",
+        "max_visible_parts"
+      ],
+      "fallback_family": "horizontal_bar"
+    },
+    "donut": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/part_whole_hierarchy",
+      "variant": "donut",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "donut branch in templates/datalens/advanced_editor/part_whole_hierarchy",
+      "required_inputs": [
+        "part_dimension",
+        "measure_field",
+        "whole_definition",
+        "max_visible_parts"
+      ],
+      "fallback_family": "horizontal_bar"
+    },
+    "treemap": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/part_whole_hierarchy",
+      "variant": "treemap",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "treemap branch in templates/datalens/advanced_editor/part_whole_hierarchy",
+      "required_inputs": [
+        "part_dimension",
+        "measure_field",
+        "whole_definition",
+        "max_visible_parts"
+      ],
+      "fallback_family": "horizontal_bar"
+    },
+    "table_node": {
+      "route": "editor_table",
+      "template_dir": "templates/datalens/editor_table/table_node",
+      "variant": "table_node",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "config.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "table_node branch in templates/datalens/editor_table/table_node",
+      "required_inputs": [
+        "columns",
+        "primary_sort",
+        "page_size",
+        "empty_state"
+      ],
+      "fallback_family": "table_node"
+    },
+    "resource_schedule_exception": {
+      "route": "editor_advanced",
+      "template_dir": "templates/datalens/advanced_editor/resource_schedule_exception",
+      "variant": "resource_schedule_exception",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "selection_policy": "explicit_only",
+      "implemented_behavior": "explicit-only deterministic resource schedule with bounded lane/conflict model",
+      "required_inputs": [
+        "resource_id",
+        "resource_name",
+        "item_id",
+        "start_at",
+        "end_at",
+        "status",
+        "timezone",
+        "as_of"
+      ],
+      "fallback_family": "table_node"
+    },
+    "md_methodology_block": {
+      "route": "editor_markdown",
+      "template_dir": "templates/datalens/editor_markdown/markdown_block",
+      "variant": "md_methodology_block",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "md_methodology_block branch in templates/datalens/editor_markdown/markdown_block",
+      "required_inputs": [
+        "block_type",
+        "title_or_label",
+        "body_or_metadata_source"
+      ],
+      "fallback_family": "table_node"
+    },
+    "md_section_header": {
+      "route": "editor_markdown",
+      "template_dir": "templates/datalens/editor_markdown/markdown_block",
+      "variant": "md_section_header",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "md_section_header branch in templates/datalens/editor_markdown/markdown_block",
+      "required_inputs": [
+        "block_type",
+        "title_or_label",
+        "body_or_metadata_source"
+      ],
+      "fallback_family": "table_node"
+    },
+    "md_dashboard_owner": {
+      "route": "editor_markdown",
+      "template_dir": "templates/datalens/editor_markdown/markdown_block",
+      "variant": "md_dashboard_owner",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "md_dashboard_owner branch in templates/datalens/editor_markdown/markdown_block",
+      "required_inputs": [
+        "block_type",
+        "title_or_label",
+        "body_or_metadata_source"
+      ],
+      "fallback_family": "table_node"
+    },
+    "md_contact_block": {
+      "route": "editor_markdown",
+      "template_dir": "templates/datalens/editor_markdown/markdown_block",
+      "variant": "md_contact_block",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "md_contact_block branch in templates/datalens/editor_markdown/markdown_block",
+      "required_inputs": [
+        "block_type",
+        "title_or_label",
+        "body_or_metadata_source"
+      ],
+      "fallback_family": "table_node"
+    },
+    "md_requirements_link_block": {
+      "route": "editor_markdown",
+      "template_dir": "templates/datalens/editor_markdown/markdown_block",
+      "variant": "md_requirements_link_block",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "md_requirements_link_block branch in templates/datalens/editor_markdown/markdown_block",
+      "required_inputs": [
+        "block_type",
+        "title_or_label",
+        "body_or_metadata_source"
+      ],
+      "fallback_family": "table_node"
+    },
+    "md_source_notes": {
+      "route": "editor_markdown",
+      "template_dir": "templates/datalens/editor_markdown/markdown_block",
+      "variant": "md_source_notes",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "prepare.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "md_source_notes branch in templates/datalens/editor_markdown/markdown_block",
+      "required_inputs": [
+        "block_type",
+        "title_or_label",
+        "body_or_metadata_source"
+      ],
+      "fallback_family": "table_node"
+    },
+    "single_select_dropdown": {
+      "route": "editor_js_control",
+      "template_dir": "templates/datalens/editor_js_control/selector",
+      "variant": "single_select_dropdown",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "controls.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "single_select_dropdown branch in templates/datalens/editor_js_control/selector",
+      "required_inputs": [
+        "param_name",
+        "label",
+        "option_source",
+        "default_value",
+        "reset_behavior"
+      ],
+      "fallback_family": "table_node"
+    },
+    "multi_select_dropdown": {
+      "route": "editor_js_control",
+      "template_dir": "templates/datalens/editor_js_control/selector",
+      "variant": "multi_select_dropdown",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "controls.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "multi_select_dropdown branch in templates/datalens/editor_js_control/selector",
+      "required_inputs": [
+        "param_name",
+        "label",
+        "option_source",
+        "default_value",
+        "reset_behavior"
+      ],
+      "fallback_family": "table_node"
+    },
+    "search_selector": {
+      "route": "editor_js_control",
+      "template_dir": "templates/datalens/editor_js_control/selector",
+      "variant": "search_selector",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "controls.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "search_selector branch in templates/datalens/editor_js_control/selector",
+      "required_inputs": [
+        "param_name",
+        "label",
+        "option_source",
+        "default_value",
+        "reset_behavior"
+      ],
+      "fallback_family": "table_node"
+    },
+    "date_range_selector": {
+      "route": "editor_js_control",
+      "template_dir": "templates/datalens/editor_js_control/selector",
+      "variant": "date_range_selector",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "controls.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "date_range_selector branch in templates/datalens/editor_js_control/selector",
+      "required_inputs": [
+        "param_name",
+        "label",
+        "option_source",
+        "default_value",
+        "reset_behavior"
+      ],
+      "fallback_family": "table_node"
+    },
+    "selector_family_static": {
+      "route": "editor_js_control",
+      "template_dir": "templates/datalens/editor_js_control/selector",
+      "variant": "selector_family_static",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "controls.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "selector_family_static branch in templates/datalens/editor_js_control/selector",
+      "required_inputs": [
+        "param_name",
+        "label",
+        "option_source",
+        "default_value",
+        "reset_behavior"
+      ],
+      "fallback_family": "table_node"
+    },
+    "selector_family_dynamic": {
+      "route": "editor_js_control",
+      "template_dir": "templates/datalens/editor_js_control/selector",
+      "variant": "selector_family_dynamic",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "controls.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "selector_family_dynamic branch in templates/datalens/editor_js_control/selector",
+      "required_inputs": [
+        "param_name",
+        "label",
+        "option_source",
+        "default_value",
+        "reset_behavior"
+      ],
+      "fallback_family": "table_node"
+    }
+  }
+}

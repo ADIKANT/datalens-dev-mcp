@@ -1,0 +1,26 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getPermissionsBulk",
+  "operation_id": "getPermissionsBulk",
+  "path": "/rpc/getPermissionsBulk",
+  "request_payload": {},
+  "request_schema_closure_hash": "8472daa3cac80cdebed0e0b935802a290cc8801a3a0f030fea8c67b4b9d3413f",
+  "request_schema_closure_refs": [
+    "GetPermissionsBulkArgs"
+  ],
+  "request_schema_hash": "6f7b52ee1aacbeba16f1f80b635698fb5035a697f2325099605c6f7670eb76da",
+  "request_schema_ref": "GetPermissionsBulkArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "9295317a0ec3332010056bf068d8660a59673f4a1c315ddf8defe1b17591acb2",
+  "response_schema_closure_refs": [
+    "CollectionPermissions",
+    "EntryPermissions",
+    "GetPermissionsBulkResult",
+    "SharedEntryPermissions",
+    "WorkbookPermissions"
+  ],
+  "response_schema_hash": "3021db010c59087ca7471900e054499278bf284770cdd7c53536c3a4b7869680",
+  "response_schema_ref": "GetPermissionsBulkResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

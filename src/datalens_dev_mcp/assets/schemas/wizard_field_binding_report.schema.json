@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "title": "Delta v7 Wizard Field Binding Report",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "ok",
+    "findings"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "datalens.delta_v7.wizard_field_binding_report.v1"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "chart_id": {
+      "type": "string"
+    },
+    "dataset_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "severity",
+          "rule"
+        ],
+        "properties": {
+          "severity": {
+            "enum": [
+              "error",
+              "warning",
+              "info"
+            ]
+          },
+          "rule": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

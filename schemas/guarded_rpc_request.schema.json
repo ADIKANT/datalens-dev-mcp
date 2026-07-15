@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "title": "Delta v7 Guarded RPC Request",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "method",
+    "object_type",
+    "mode",
+    "fresh_read"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "datalens.delta_v7.guarded_rpc_request.v1"
+    },
+    "method": {
+      "type": "string"
+    },
+    "object_type": {
+      "type": "string"
+    },
+    "object_id": {
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "read",
+        "validate",
+        "save",
+        "publish",
+        "plan"
+      ]
+    },
+    "base_revision": {
+      "type": "string"
+    },
+    "payload_sha256": {
+      "type": "string"
+    },
+    "fresh_read": {
+      "type": "object",
+      "required": [
+        "required"
+      ],
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "artifact_path": {
+          "type": "string"
+        }
+      }
+    },
+    "readback": {
+      "type": "object"
+    },
+    "changed_sections": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blocked_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

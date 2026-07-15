@@ -1,0 +1,533 @@
+{
+  "clusters": [
+    {
+      "classification": "supported",
+      "id": "api_versioning",
+      "mcp_surface": "DataLens API client version policy",
+      "runtime_contract": "Guarded writes reject explicit latest before HTTP because future schemas are not compiled or reviewed.",
+      "server_decision": "Keep auto pinned to the compiled OpenAPI version; permit explicit latest only for curated read-only calls.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/operations/api-versioning.md"
+      ],
+      "title": "DataLens API version selection"
+    },
+    {
+      "classification": "supported",
+      "id": "api_changelog_v2",
+      "mcp_surface": "request compiler and read-only RPC validation",
+      "runtime_contract": "Legacy string ids/createdBy and removed page are rejected locally; getEntries never auto-falls back to v1.",
+      "server_decision": "Validate getEntries with v2 arrays, pageToken, and ignoreSharedEntries semantics.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/release-notes/api-changelog.md"
+      ],
+      "title": "DataLens API v2 changelog"
+    },
+    {
+      "classification": "read_only",
+      "id": "release_notes_2605",
+      "mcp_surface": "dl_reference and feature policy",
+      "runtime_contract": "StarRocks, mailings, shared objects, roles, cache invalidation, and hidden tabs do not enable guessed mutations.",
+      "server_decision": "Index the release note as capability context without inferring new API routes.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/release-notes/2605.md"
+      ],
+      "title": "May 2026 DataLens release notes"
+    },
+    {
+      "classification": "guarded_plan_only",
+      "id": "dashboard_margins",
+      "mcp_surface": "dashboard payload preflight and safe apply",
+      "runtime_contract": "Unknown/current dashboard style fields are preserved through fresh-read/update payloads.",
+      "server_decision": "Preserve current dashboard margin fields and allow guarded save plans; do not strip unknown style fields.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/operations/dashboard/add-margins.md"
+      ],
+      "title": "Dashboard margins"
+    },
+    {
+      "classification": "guarded_plan_only",
+      "id": "dashboard_widget_background",
+      "mcp_surface": "dashboard payload preflight and relation/layout validation",
+      "runtime_contract": "Validator checks duplicates and unsafe names without dropping current background fields.",
+      "server_decision": "Preserve widget background settings; generate only when an explicit dashboard layout plan owns the widget.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/operations/dashboard/add-widget-background.md"
+      ],
+      "title": "Widget background"
+    },
+    {
+      "classification": "guarded_plan_only",
+      "id": "dashboard_rounding",
+      "mcp_surface": "dashboard payload preflight",
+      "runtime_contract": "Dashboard item metadata owns rounding; chart body templates do not duplicate dashboard chrome.",
+      "server_decision": "Preserve rounding fields and keep decorative chart-body rounding out of Editor payloads.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/operations/dashboard/add-rounding.md"
+      ],
+      "title": "Widget rounding"
+    },
+    {
+      "classification": "guarded_plan_only",
+      "id": "dashboard_background",
+      "mcp_surface": "dashboard payload preflight",
+      "runtime_contract": "Fresh dashboard reads are the source of truth for unknown layout/style fields.",
+      "server_decision": "Preserve dashboard background settings through safe apply.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/operations/dashboard/add-dashboard-background.md"
+      ],
+      "title": "Dashboard background"
+    },
+    {
+      "classification": "guarded_plan_only",
+      "id": "dashboard_hide_tabs",
+      "mcp_surface": "dashboard tab update planner",
+      "runtime_contract": "Tab update plans must keep unrelated tabs and dashboard metadata unchanged.",
+      "server_decision": "Preserve hide-tabs settings and do not infer tab visibility from local templates.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/operations/dashboard/dashboard-hide-tabs.md"
+      ],
+      "title": "Hide dashboard tabs"
+    },
+    {
+      "classification": "guarded_plan_only",
+      "id": "dashboard_tabs",
+      "mcp_surface": "dl_plan_dashboard_tab_update",
+      "runtime_contract": "Nested tab ids must stay non-empty and unique.",
+      "server_decision": "Append/replace tabs only through fresh-read guarded plans.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/operations/dashboard/dashboard-tabs.md"
+      ],
+      "title": "Dashboard tabs"
+    },
+    {
+      "classification": "guarded_plan_only",
+      "id": "dashboard_title",
+      "mcp_surface": "dashboard native title/hint policy",
+      "runtime_contract": "Generated chart bodies must not duplicate native dashboard titles or hints.",
+      "server_decision": "Dashboard metadata renders titles and hints except narrative Markdown widgets.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/operations/dashboard/add-title-dashboard.md",
+        "https://docs.yandex.cloud/ru/ru/datalens/operations/dashboard/add-title.md"
+      ],
+      "title": "Dashboard title widgets and title metadata"
+    },
+    {
+      "classification": "guarded_plan_only",
+      "id": "dashboard_contents",
+      "mcp_surface": "dashboard layout validation",
+      "runtime_contract": "Contents widgets are not synthesized from chart body templates.",
+      "server_decision": "Treat contents widgets as dashboard structure; preserve through readback and safe apply.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/operations/dashboard/add-contents.md"
+      ],
+      "title": "Dashboard contents widget"
+    },
+    {
+      "classification": "unsupported_explicit",
+      "id": "dashboard_ai_widget",
+      "mcp_surface": "reference and preservation only",
+      "runtime_contract": "Unsupported route returns explicit policy instead of a guessed payload.",
+      "server_decision": "Do not create AI widgets from MCP; preserve unknown AI widget payloads on fresh-read update.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/operations/dashboard/add-ai.md"
+      ],
+      "title": "Dashboard AI widget"
+    },
+    {
+      "classification": "unsupported_explicit",
+      "id": "dashboard_ai_reference_tab",
+      "mcp_surface": "reference and preservation only",
+      "runtime_contract": "Unsupported route remains explicit and tested.",
+      "server_decision": "Do not create AI/reference tabs from MCP; preserve existing fields when updating other tabs.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/operations/dashboard/dashboard-ai-reference-tab.md"
+      ],
+      "title": "Dashboard AI/reference tab"
+    },
+    {
+      "classification": "guarded_plan_only",
+      "id": "workbook_access_basic",
+      "mcp_surface": "access binding planners",
+      "runtime_contract": "Access docs inform policy; no blind permission mutation is generated.",
+      "server_decision": "Workbook access changes require guarded plans and explicit approval.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/security/workbooks-access-basic.md",
+        "https://docs.yandex.cloud/ru/ru/datalens/security/workbooks-access.md"
+      ],
+      "title": "Workbook access basic"
+    },
+    {
+      "classification": "guarded_plan_only",
+      "id": "workbook_access_advanced",
+      "mcp_surface": "access binding planners",
+      "runtime_contract": "Permission changes remain outside default delivery and require explicit approval.",
+      "server_decision": "Advanced workbook access is policy-aware but still guarded.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/security/workbooks-access-advanced.md"
+      ],
+      "title": "Workbook access advanced"
+    },
+    {
+      "classification": "read_only",
+      "id": "embedded_objects",
+      "mcp_surface": "dl_reference and object reads",
+      "runtime_contract": "No embedding secret or embed write route is exposed by default.",
+      "server_decision": "Embedding docs are retained as reference; create/update embed routes are unsupported unless separately implemented.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/security/embedded-objects.md"
+      ],
+      "title": "Embedded objects"
+    },
+    {
+      "classification": "read_only",
+      "id": "roles",
+      "mcp_surface": "dl_reference",
+      "runtime_contract": "Role docs do not enable permission mutation.",
+      "server_decision": "Roles are used for operator guidance and sanitized diagnostics.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/security/roles.md"
+      ],
+      "title": "Roles and security"
+    },
+    {
+      "classification": "supported",
+      "id": "editor_methods",
+      "mcp_surface": "Advanced Editor validator and bundle generator",
+      "runtime_contract": "Generated payloads are validated before safe apply.",
+      "server_decision": "Supported methods feed the Editor runtime allowlist.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/charts/editor/methods.md"
+      ],
+      "title": "Editor methods"
+    },
+    {
+      "classification": "supported",
+      "id": "editor_tabs",
+      "mcp_surface": "Advanced Editor bundle generator",
+      "runtime_contract": "Tab names and required sections are validated.",
+      "server_decision": "Generated payloads use current tab contracts for sources, params, prepare, and config.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/charts/editor/tabs.md"
+      ],
+      "title": "Editor tabs"
+    },
+    {
+      "classification": "supported",
+      "id": "editor_sources",
+      "mcp_surface": "Editor source validators and SQL diagnostics",
+      "runtime_contract": "Source errors are classified without fabricating runtime SQL execution.",
+      "server_decision": "Generated source SQL is statically linted and tied to source artifacts.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/charts/editor/sources.md"
+      ],
+      "title": "Editor sources"
+    },
+    {
+      "classification": "read_only",
+      "id": "editor_code_helper",
+      "mcp_surface": "dl_reference",
+      "runtime_contract": "MCP does not depend on DataLens UI AI behavior.",
+      "server_decision": "AI helper docs are reference-only for authoring guidance.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/charts/editor/code-helper.md"
+      ],
+      "title": "Editor code helper"
+    },
+    {
+      "classification": "supported",
+      "id": "editor_widgets_advanced",
+      "mcp_surface": "editor_advanced route",
+      "runtime_contract": "Bundle output must pass runtime contract validation before save/publish.",
+      "server_decision": "Advanced widgets are the primary approved custom chart route.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/charts/editor/widgets/advanced.md"
+      ],
+      "title": "Advanced Editor widgets"
+    },
+    {
+      "classification": "unsupported_explicit",
+      "id": "editor_widgets_gravity_ui",
+      "mcp_surface": "dl_reference",
+      "runtime_contract": "No Gravity UI chart creation route is added.",
+      "server_decision": "Gravity UI Charts remain documented-reference only under local route policy.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/charts/editor/widgets/gravity-ui.md"
+      ],
+      "title": "Gravity UI widgets"
+    },
+    {
+      "classification": "guarded_plan_only",
+      "id": "editor_cross_filtration",
+      "mcp_surface": "selector and relation planning",
+      "runtime_contract": "Relations are validated before payload and safe apply plans.",
+      "server_decision": "Cross-filtration informs selector wiring and relation validation.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/charts/editor/cross-filtration.md"
+      ],
+      "title": "Editor cross-filtration"
+    },
+    {
+      "classification": "supported",
+      "id": "editor_notifications",
+      "mcp_surface": "Advanced Editor validator",
+      "runtime_contract": "Unsupported notification patterns fail validation before safe apply.",
+      "server_decision": "Notification APIs are allowed only where current Editor runtime allows them.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/charts/editor/notifications.md"
+      ],
+      "title": "Editor notifications"
+    },
+    {
+      "classification": "supported",
+      "id": "visual_table",
+      "mcp_surface": "wizard_native flatTable/pivotTable and specialized table validators",
+      "runtime_contract": "Custom HTML tables are not a fallback when native Wizard or registered table semantics are sufficient.",
+      "server_decision": "Ordinary flat and pivot tables use Wizard; grouped/pinned capability gaps use the specialized Editor table route.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/table-chart.md",
+        "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/pivot-table-chart.md"
+      ],
+      "title": "Table visualization"
+    },
+    {
+      "classification": "supported",
+      "id": "visual_indicator",
+      "mcp_surface": "VisualDecisionEngine and wizard_native metric",
+      "runtime_contract": "No implicit previous-period comparator is generated.",
+      "server_decision": "Indicator/KPI requires explicit metric semantics and comparator policy.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/indicator-chart.md"
+      ],
+      "title": "Indicator visualization"
+    },
+    {
+      "classification": "supported",
+      "id": "visual_bar",
+      "mcp_surface": "VisualDecisionEngine and wizard_native bar/column routes",
+      "runtime_contract": "Negative requirements can reject bars or specific colors.",
+      "server_decision": "Bar charts are selected by task, data shape, cardinality, and metric semantics.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/bar-chart.md"
+      ],
+      "title": "Bar visualization"
+    },
+    {
+      "classification": "supported",
+      "id": "visual_line",
+      "mcp_surface": "VisualDecisionEngine and wizard_native line route",
+      "runtime_contract": "Sort and axis contracts are recorded in RendererVisualSpec.",
+      "server_decision": "Line charts require time/ordered data evidence.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/line-chart.md"
+      ],
+      "title": "Line visualization"
+    },
+    {
+      "classification": "supported",
+      "id": "visual_area",
+      "mcp_surface": "VisualDecisionEngine and wizard_native area route",
+      "runtime_contract": "Renderer specs record stacking/normalization decisions.",
+      "server_decision": "Area charts require additive semantics and appropriate series count.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/area-chart.md"
+      ],
+      "title": "Area visualization"
+    },
+    {
+      "classification": "supported",
+      "id": "visual_normalized_area",
+      "mcp_surface": "VisualDecisionEngine and wizard_native area100p route",
+      "runtime_contract": "Additivity and denominator evidence are required.",
+      "server_decision": "Normalized area is selected only for part-to-whole over time semantics.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/normalized-area-chart.md"
+      ],
+      "title": "Normalized area visualization"
+    },
+    {
+      "classification": "supported",
+      "id": "visual_pie_ring",
+      "mcp_surface": "VisualDecisionEngine and wizard_native pie/donut routes",
+      "runtime_contract": "Negative requirements can force rejection and alternate families.",
+      "server_decision": "Pie/ring remain available only for small-cardinality part-to-whole tasks.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/pie-chart.md",
+        "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/ring-chart.md"
+      ],
+      "title": "Pie and ring visualization"
+    },
+    {
+      "classification": "supported",
+      "id": "visual_heatmap",
+      "mcp_surface": "VisualDecisionEngine and editor_advanced route",
+      "runtime_contract": "Color strategy must be explicit and accessible.",
+      "server_decision": "Heat maps require two-dimensional categorical/date grid evidence.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/heat-map-chart.md"
+      ],
+      "title": "Heat map visualization"
+    },
+    {
+      "classification": "guarded_plan_only",
+      "id": "visual_map",
+      "mcp_surface": "wizard_native route with geolayer visualization",
+      "runtime_contract": "Route selection is deterministic before transport and never falls back to JavaScript after a failed write.",
+      "server_decision": "Maps use the Wizard-first geolayer contract and require validated geo evidence.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/map-chart.md"
+      ],
+      "title": "Map visualization"
+    },
+    {
+      "classification": "supported",
+      "id": "visual_combined",
+      "mcp_surface": "VisualDecisionEngine and wizard_native combined-chart route",
+      "runtime_contract": "Renderer spec records multi-axis and series decisions.",
+      "server_decision": "Combined charts require explicit axis/metric compatibility.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/combined-chart.md"
+      ],
+      "title": "Combined visualization"
+    },
+    {
+      "classification": "guarded_plan_only",
+      "id": "visual_choropleth",
+      "mcp_surface": "wizard_native route with geolayer visualization",
+      "runtime_contract": "Geo evidence and map route validation are required before safe apply.",
+      "server_decision": "Choropleth uses the validated Wizard geolayer planning contract.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/choropleth-map-chart.md"
+      ],
+      "title": "Choropleth map visualization"
+    },
+    {
+      "classification": "read_only",
+      "id": "dataset_cache_invalidation",
+      "mcp_surface": "dl_reference and dataset diagnostics",
+      "runtime_contract": "No cache mutation route is guessed.",
+      "server_decision": "Cache invalidation docs are reference-only unless a validated API method is present.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/dataset/cache-invalidation.md"
+      ],
+      "title": "Dataset cache invalidation"
+    },
+    {
+      "classification": "supported",
+      "id": "dataset_data_model",
+      "mcp_surface": "dataset planners and guarded update validators",
+      "runtime_contract": "Standalone dataset-field operations remain unsupported when absent from OpenAPI.",
+      "server_decision": "Dataset field/model changes are represented inside dataset payloads.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/dataset/data-model.md"
+      ],
+      "title": "Dataset data model"
+    },
+    {
+      "classification": "unsupported_explicit",
+      "id": "dataset_versioning_drafts",
+      "mcp_surface": "dl_reference and dataset request validation",
+      "runtime_contract": "Ordinary updateDataset is not treated as draft promotion; requests need exact API evidence before mutation.",
+      "server_decision": "Explain draft/current-version behavior but do not invent draft or promotion request fields.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/dataset/versioning.md"
+      ],
+      "title": "Dataset drafts and current versions"
+    },
+    {
+      "classification": "read_only",
+      "id": "dashboard_trends_preview",
+      "mcp_surface": "dl_reference and browser QA guidance",
+      "runtime_contract": "Preview is dashboard-only, is not saved, and is unavailable in embedded dashboards.",
+      "server_decision": "Treat preview trends as temporary dashboard UI state, not as a persisted chart/dashboard payload.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/dashboard/trends-and-smoothing.md"
+      ],
+      "title": "Dashboard trends and smoothing preview"
+    },
+    {
+      "classification": "read_only",
+      "id": "audit_entry_scopes",
+      "mcp_surface": "read-only inventory and audit response projection",
+      "runtime_contract": "Neither scope enables a guessed direct reader or lifecycle route; artifact is not a generic MCP object type.",
+      "server_decision": "Preserve compute as inventory-only and artifact as an audit-only scope value.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/at-ref.md",
+        "https://docs.yandex.cloud/ru/ru/datalens/openapi-ref/getAuditEntriesUpdates.md"
+      ],
+      "title": "Audit and inventory entry scopes"
+    },
+    {
+      "classification": "read_only",
+      "id": "datalens_limits",
+      "mcp_surface": "dl_reference and validators",
+      "runtime_contract": "Limit docs do not add new write routes.",
+      "server_decision": "Limits inform budgets and warnings.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/concepts/limits.md"
+      ],
+      "title": "DataLens limits"
+    },
+    {
+      "classification": "import_only",
+      "id": "chart_inspector",
+      "mcp_surface": "dl_diagnose performance evidence",
+      "runtime_contract": "Missing inspector evidence is reported as timing_unavailable.",
+      "server_decision": "Inspector/HAR evidence may be imported; timings are not fabricated.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/concepts/chart/inspector.md"
+      ],
+      "title": "Chart inspector"
+    },
+    {
+      "classification": "supported",
+      "id": "troubleshooting_errors",
+      "mcp_surface": "dl_classify_source_error and SQL diagnostics",
+      "runtime_contract": "Request-stage null-query failures are not misclassified as SQL errors.",
+      "server_decision": "Known errors feed structured classifier and remediation output.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/troubleshooting/errors/all.md"
+      ],
+      "title": "Troubleshooting errors"
+    }
+  ],
+  "covered_new_page_urls": [
+    "https://docs.yandex.cloud/ru/ru/datalens/operations/api-versioning.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/release-notes/2605.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/release-notes/api-changelog.md"
+  ],
+  "expected_counts": {
+    "assets_current_records": 886,
+    "assets_new_references": 1,
+    "assets_removed_references": 0,
+    "docs_changed_pages": 12,
+    "docs_checked_pages": 651,
+    "docs_current_chunks": 4999,
+    "docs_current_pages": 651,
+    "docs_failed_pages": 0,
+    "docs_new_pages": 3,
+    "docs_removed_candidates": 0,
+    "manifest_current_records": 1545,
+    "openapi_operations": 88,
+    "openapi_paths": 88,
+    "validation_failure_count": 0,
+    "validation_required_checks_ok": true
+  },
+  "schema_version": "2026-06-30.current_docs_feature_policy.v1",
+  "source": {
+    "applied_delta_generated_at": "2026-07-13T13:26:50.349248Z",
+    "applied_delta_report": "reports/update_report_delta_2026-07-13.md",
+    "corpus_root_hint": "<DATALENS_DOCS_CORPUS_ROOT>",
+    "mode": "apply-updates",
+    "openapi_sha256": "e4c3cf56de894e28b883b1f0ceaf2935f68570b052c46885e20bc9608e5ca532",
+    "update_report": "reports/update_report.md",
+    "update_report_generated_at": "2026-07-13T13:37:44.377945Z"
+  },
+  "status_enum": [
+    "guarded_plan_only",
+    "import_only",
+    "not_applicable",
+    "read_only",
+    "supported",
+    "unsupported_explicit"
+  ]
+}

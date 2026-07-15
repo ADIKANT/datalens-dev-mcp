@@ -1,0 +1,25 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "listDirectory",
+  "operation_id": "listDirectory",
+  "path": "/rpc/listDirectory",
+  "request_payload": {},
+  "request_schema_closure_hash": "1043a7646a52752a51e7faf91d6e313b95133fc974354e396a0715f67106f149",
+  "request_schema_closure_refs": [
+    "ListDirectoryArgs"
+  ],
+  "request_schema_hash": "f6d2a601231097f75387308b8d9f53a8be2a3f0386870f90f698fbea2935cd52",
+  "request_schema_ref": "ListDirectoryArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "c840ccb42c3794f3991f3b51b990e04c27bfde489886cebe253da921423f908e",
+  "response_schema_closure_refs": [
+    "EntryPermissions",
+    "ListDirectoryBreadCrumb",
+    "ListDirectoryEntry",
+    "ListDirectoryResult"
+  ],
+  "response_schema_hash": "01f29d8a46a1ac582b035f168ff021ec1c910487d8e54a570b14e1d940884575",
+  "response_schema_ref": "ListDirectoryResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

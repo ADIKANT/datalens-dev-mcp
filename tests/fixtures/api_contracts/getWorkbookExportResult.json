@@ -1,0 +1,23 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getWorkbookExportResult",
+  "operation_id": "getWorkbookExportResult",
+  "path": "/rpc/getWorkbookExportResult",
+  "request_payload": {},
+  "request_schema_closure_hash": "2d960f7e345f212eb51a7756f4bce0148bfae2a6457e57b401421a17c93e7c11",
+  "request_schema_closure_refs": [
+    "GetWorkbookExportResultArgs"
+  ],
+  "request_schema_hash": "adff3feb54b9f112ac5d4696334e9744ab858d1db00df77de12f17ab85379f68",
+  "request_schema_ref": "GetWorkbookExportResultArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "c7452ab7cf897982fda4b546c0b19b90aa713fc6de821df77bc41720950bcecd",
+  "response_schema_closure_refs": [
+    "GetWorkbookExportResultResult",
+    "WorkbookTransferProcessStatus"
+  ],
+  "response_schema_hash": "61bf5d35b51cc1080ea0a82187bed73f5bb5bada65f1d65712d7dc9f57a5d3c1",
+  "response_schema_ref": "GetWorkbookExportResultResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

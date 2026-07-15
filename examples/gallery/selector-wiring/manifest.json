@@ -1,0 +1,8 @@
+{
+  "name": "selector-wiring",
+  "route": "editor_js_control",
+  "entry_type": "control_node",
+  "source_example": "selector-wiring",
+  "local_safety": "local MCP-native fixture with placeholder IDs",
+  "source_template": "examples/gallery/selector-wiring"
+}

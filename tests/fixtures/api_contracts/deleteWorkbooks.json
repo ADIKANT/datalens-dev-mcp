@@ -1,0 +1,23 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "deleteWorkbooks",
+  "operation_id": "deleteWorkbooks",
+  "path": "/rpc/deleteWorkbooks",
+  "request_payload": {},
+  "request_schema_closure_hash": "3bce6b0682b3ee8d3c4e1d3a5d0bd04afc22ad36059ffb273e34c4d7b33d5f96",
+  "request_schema_closure_refs": [
+    "DeleteWorkbooksArgs"
+  ],
+  "request_schema_hash": "27afcd9ee5a3ab73b94563a732156b87f7f8105dbbbb6a21327f2925c006e472",
+  "request_schema_ref": "DeleteWorkbooksArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "dd2386e66ac51f842ffabec45b4787a0990306b207cc88a4fa2cc58691e1c07c",
+  "response_schema_closure_refs": [
+    "DeleteWorkbooksResponse",
+    "Workbook"
+  ],
+  "response_schema_hash": "35bbe555431abab36159997ebab5071e06e298164778da628e153f0a0f2ad182",
+  "response_schema_ref": "DeleteWorkbooksResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "readonly_reference"
+}

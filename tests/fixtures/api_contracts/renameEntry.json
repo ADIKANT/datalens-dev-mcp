@@ -1,0 +1,23 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "renameEntry",
+  "operation_id": "renameEntry",
+  "path": "/rpc/renameEntry",
+  "request_payload": {},
+  "request_schema_closure_hash": "2b02e4ec0fbb97673e24f692eb61aa7afb00de289bf7eda4e5dc74f6d15b0013",
+  "request_schema_closure_refs": [
+    "RenameEntryArgs"
+  ],
+  "request_schema_hash": "7d60c83bfa0cc6af6931ddff244d6b755b19425d9a8d492dc2e949b2987f92fd",
+  "request_schema_ref": "RenameEntryArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "9e0e41fbcafa9b931ab57ba9221ddf083b6b26d6b5e08ce2e9a7b8a7596e20c6",
+  "response_schema_closure_refs": [
+    "RenameEntryResult",
+    "RenameEntryResultEntry"
+  ],
+  "response_schema_hash": "4a629b213a09957a8118d84d78b45eafaa1a77fadd3684216c331aa623f04160",
+  "response_schema_ref": "RenameEntryResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "readonly_reference"
+}

@@ -1,0 +1,4 @@
+period,segment,active_subscriptions,new_subscriptions,churned_subscriptions
+2026-01-01,all,1200,80,25
+2026-01-08,all,1255,95,40
+2026-01-15,all,1310,90,35

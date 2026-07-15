@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "required": ["columns", "rows"],
+  "properties": {
+    "page_size": {"type": "integer", "minimum": 1, "maximum": 200, "default": 100},
+    "columns": {"type": "array", "items": {"type": "string"}},
+    "rows": {"type": "array", "items": {"type": "object"}}
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "schema_version": "2026-07-13.wizard_standard_templates.v2",
+  "status": "superseded_by_canonical_registry",
+  "canonical_registry": "templates/datalens/wizard/canonical_templates.json",
+  "visualization_ids": ["metric", "flatTable", "pivotTable", "line", "area", "area100p", "column", "column100p", "bar", "bar100p", "combined-chart", "pie", "donut", "scatter", "treemap", "geolayer"],
+  "message": "Standard native Wizard create plans use canonical templates or a fresh same-visualization saved seed."
+}

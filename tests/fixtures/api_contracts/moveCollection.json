@@ -1,0 +1,22 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "moveCollection",
+  "operation_id": "moveCollection",
+  "path": "/rpc/moveCollection",
+  "request_payload": {},
+  "request_schema_closure_hash": "80c8160d6f2971367e9eea80101d82bbef6f3d867c8f2ff527b1ac99c9cec4af",
+  "request_schema_closure_refs": [
+    "MoveCollectionArgs"
+  ],
+  "request_schema_hash": "f74f922b59b9338c74b85dd1372467f79c04af98e12e998fcc18c8765595da2f",
+  "request_schema_ref": "MoveCollectionArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "e6ee120eb05c95751e8af2a2bbba2f8f658eeeca4e34c7f246df51cf3ff5e1f4",
+  "response_schema_closure_refs": [
+    "Collection"
+  ],
+  "response_schema_hash": "4dd9be8897df54651e001c349aa6a03ff71f4ab5772d390a3a46eadfe044d907",
+  "response_schema_ref": "Collection",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "readonly_reference"
+}

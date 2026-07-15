@@ -1,0 +1,8 @@
+{
+  "name": "timeseries-combo",
+  "route": "editor_advanced",
+  "entry_type": "advanced-chart_node",
+  "source_example": "timeseries-combo",
+  "local_safety": "local MCP-native fixture with placeholder IDs",
+  "source_template": "examples/gallery/timeseries-combo"
+}

@@ -1,0 +1,20 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getRootCollectionPermissions",
+  "operation_id": "getRootCollectionPermissions",
+  "path": "/rpc/getRootCollectionPermissions",
+  "request_payload": {},
+  "request_schema_closure_hash": "",
+  "request_schema_closure_refs": [],
+  "request_schema_hash": "",
+  "request_schema_ref": "",
+  "response_payload": {},
+  "response_schema_closure_hash": "fb580414f2fc6de23d196025bacf5c33dbf0a104798ed6a34ea201f666c52ff2",
+  "response_schema_closure_refs": [
+    "GetRootCollectionPermissionsResult"
+  ],
+  "response_schema_hash": "55e589ccce882e9968ddede35f90eae1bc2fd13a7523a1ad1b09b51d19330053",
+  "response_schema_ref": "GetRootCollectionPermissionsResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

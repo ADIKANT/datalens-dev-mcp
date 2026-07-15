@@ -1,0 +1,10 @@
+{
+  "type": "object",
+  "required": ["title", "columns", "rows", "exception_reason"],
+  "properties": {
+    "title": {"type": "string"},
+    "columns": {"type": "array", "items": {"type": "string"}},
+    "rows": {"type": "array", "items": {"type": "object"}},
+    "exception_reason": {"type": "string"}
+  }
+}

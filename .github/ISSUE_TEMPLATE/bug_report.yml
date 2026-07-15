@@ -1,0 +1,72 @@
+name: Bug report
+description: Report reproducible incorrect behavior in datalens-dev-mcp.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use synthetic values only. Remove credentials, private object IDs, customer data, and absolute home paths from logs and examples.
+
+  - type: input
+    id: version
+    attributes:
+      label: Server version
+      description: Output of `datalens-dev-mcp --version`.
+      placeholder: datalens-dev-mcp 0.3.0
+    validations:
+      required: true
+
+  - type: input
+    id: client
+    attributes:
+      label: MCP client and version
+      placeholder: Codex, Claude Code, Claude Desktop, or another client
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system and Python version.
+      placeholder: macOS 15, Python 3.12
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the actual and expected behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide sanitized configuration, command, MCP request, and steps.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs
+      description: Do not include tokens, headers, private IDs, customer data, or local usernames.
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety checks
+      options:
+        - label: I searched existing issues for this behavior.
+          required: true
+        - label: I removed secrets, private IDs, customer data, and private paths.
+          required: true
+        - label: This report does not disclose a security vulnerability.
+          required: true

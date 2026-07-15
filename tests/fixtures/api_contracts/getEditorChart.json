@@ -1,0 +1,29 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getEditorChart",
+  "operation_id": "getEditorChart",
+  "path": "/rpc/getEditorChart",
+  "request_payload": {},
+  "request_schema_closure_hash": "caef685fbe10c59633ac444500bc10d971cf915b9e2634df496ff1fd6b8503d5",
+  "request_schema_closure_refs": [
+    "EntryBranch",
+    "GetEditorChartArgs"
+  ],
+  "request_schema_hash": "c7e9b7aebe8e3e2c2d681ac16fb5f11657c1622c83f4393ef10efe0c39d600af",
+  "request_schema_ref": "GetEditorChartArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "c63a1c1b3127b9e9d2c3033c53c813d0431bae0a256edd62179dc5b4321808e4",
+  "response_schema_closure_refs": [
+    "EditorAdvancedChartNode",
+    "EditorGravityChartsNode",
+    "EditorMarkdownNode",
+    "EditorSelectorNode",
+    "EditorTableNode",
+    "EntryPermissions",
+    "GetEditorChartResult"
+  ],
+  "response_schema_hash": "d6dc1c608bedcb9b50d0d8f348415436c9b17b56fc32de4b596ec9265f586e04",
+  "response_schema_ref": "GetEditorChartResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

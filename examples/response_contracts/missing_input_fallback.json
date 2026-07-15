@@ -1,0 +1,8 @@
+{
+  "schema_version": "2026-06-04.datalens_operation_decision.v2",
+  "operation_kind": "advanced_editor_chart",
+  "route": "editor_table",
+  "family": "table_node",
+  "status": "blocked_question",
+  "question": "Which business question, metric, dimension/date field, and intended action should this chart support?"
+}

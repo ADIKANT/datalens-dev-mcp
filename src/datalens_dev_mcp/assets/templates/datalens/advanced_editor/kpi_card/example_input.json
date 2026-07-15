@@ -1,0 +1,9 @@
+{
+  "title": "Completed",
+  "metric": "completed_issues",
+  "current_value": 128,
+  "comparator_value": 120,
+  "comparator_label": "target",
+  "sparkline": [82, 91, 97, 104, 128],
+  "hint": "Completed issues in the selected period; comparator is shown only when explicitly declared."
+}

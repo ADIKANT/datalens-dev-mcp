@@ -1,0 +1,22 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "startWorkbookImport",
+  "operation_id": "startWorkbookImport",
+  "path": "/rpc/startWorkbookImport",
+  "request_payload": {},
+  "request_schema_closure_hash": "5c2c835db954f3e48a38d970648e91baf09d0d994d9f571307db520fe6141995",
+  "request_schema_closure_refs": [
+    "StartWorkbookImportArgs"
+  ],
+  "request_schema_hash": "86ef576093066a9736e8066d7d5200da188d2eaf7636c94d0c7306b9dc9134ec",
+  "request_schema_ref": "StartWorkbookImportArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "ce297c998676383bba72f75aa7003022042b4604085967e8ed8a2c3628b39b1d",
+  "response_schema_closure_refs": [
+    "StartWorkbookImportResult"
+  ],
+  "response_schema_hash": "52b90620fbd1596eb50da2ab03f3b4827cfe9d435b3a397d37dac9b244b3b0fb",
+  "response_schema_ref": "StartWorkbookImportResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "guarded_plan_only"
+}

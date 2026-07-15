@@ -1,0 +1,8 @@
+{
+  "name": "empty-state",
+  "route": "editor_advanced",
+  "entry_type": "advanced-chart_node",
+  "source_example": "empty-state",
+  "local_safety": "local MCP-native fixture with placeholder IDs",
+  "source_template": "examples/gallery/empty-state"
+}

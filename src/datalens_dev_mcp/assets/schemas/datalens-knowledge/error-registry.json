@@ -1,0 +1,2229 @@
+{
+  "errors": [
+    {
+      "affected_layer": "authentication",
+      "code": "ERR-AUTH_API-UNEXPECTED_RESPONSE",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-auth_api-unexpected_response",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-AUTH_API-UNEXPECTED_RESPONSE "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Got an unexpected response from an external API [Yandex DataLens] Got an unexpected response from an external API ERR.AUTHAPI.UNEXPECTEDRESPONSE Ошибка возникает при получении некорректного отв...",
+      "safe_diagnostic_probes": [
+        "dl_runtime_status",
+        "dl_auth_probe"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-got-an-unexpected-response-from-an-external-api",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-AUTH_API-UNEXPECTED_RESPONSE.md#yandex-datalens-got-an-unexpected-response-from-an-external-api#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-AUTH_API-UNEXPECTED_RESPONSE.md",
+        "sha256": "a4396bd9416a43e2ce83f331f311995b62d988595ff84a60a3362cdf887af2cc",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-AUTH_API-UNEXPECTED_RESPONSE"
+      },
+      "title": "[Yandex DataLens] Got an unexpected response from an external API"
+    },
+    {
+      "affected_layer": "runtime_renderer",
+      "code": "ERR-CHARTS-REQUEST_SIZE_LIMIT_EXCEEDED",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-charts-request_size_limit_exceeded",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-CHARTS-REQUEST_SIZE_LIMIT_EXCEEDED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Request size limit exceeded [Yandex DataLens] Request size limit exceeded ERR.CHARTS.REQUESTSIZELIMITEXCEEDED Превышен лимит объема данных. Ошибка возникает из-за того, что поступает очень боль...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-request-size-limit-exceeded",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-CHARTS-REQUEST_SIZE_LIMIT_EXCEEDED.md#yandex-datalens-request-size-limit-exceeded#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-CHARTS-REQUEST_SIZE_LIMIT_EXCEEDED.md",
+        "sha256": "187c7ce5c5dcab39a53798de5e81b45969cee15afa136907713261fa464bf73a",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-CHARTS-REQUEST_SIZE_LIMIT_EXCEEDED"
+      },
+      "title": "[Yandex DataLens] Request size limit exceeded"
+    },
+    {
+      "affected_layer": "runtime_renderer",
+      "code": "ERR-CHARTS-RUNTIME_TIMEOUT",
+      "likely_causes": [
+        "timeout"
+      ],
+      "normalized_code": "err-charts-runtime_timeout",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-CHARTS-RUNTIME_TIMEOUT "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Response processing timeout [Yandex DataLens] Response processing timeout ERR.CHARTS.RUNTIMETIMEOUT Превышено время обработки ответа. Ошибка возникает из-за того, что DataLens не успевает обраб...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-response-processing-timeout",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-CHARTS-RUNTIME_TIMEOUT.md#yandex-datalens-response-processing-timeout#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-CHARTS-RUNTIME_TIMEOUT.md",
+        "sha256": "fc7b2aeb045d379c0ace988589312eb9188f7e0ef009e993102764b786473cf9",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-CHARTS-RUNTIME_TIMEOUT"
+      },
+      "title": "[Yandex DataLens] Response processing timeout"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-CK_TOO_MANY_LINES",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ck_too_many_lines",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-CK_TOO_MANY_LINES "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Too many series on the chart [Yandex DataLens] Too many series on the chart ERR.CK.TOOMANYLINES Превышено допустимое число рядов. В DataLens есть ограничение на объем данных для отображения в ч...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-too-many-series-on-the-chart",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-CK_TOO_MANY_LINES.md#yandex-datalens-too-many-series-on-the-chart#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-CK_TOO_MANY_LINES.md",
+        "sha256": "424cc89193fc7db6d0da472ff9a5df7829defd7b3d6a2c4e69547fa9949cf4d5",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-CK_TOO_MANY_LINES"
+      },
+      "title": "[Yandex DataLens] Too many series on the chart"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-CLIENT-POPUP_BLOCKED",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-client-popup_blocked",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-CLIENT-POPUP_BLOCKED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Ошибка при блокировке всплывающего окна [Yandex DataLens] Ошибка при блокировке всплывающего окна ERR.CLIENT.POPUPBLOCKED Ошибка может возникнуть в браузере Safari при попытке отобразить всплыв...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-ошибка-при-блокировке-всплывающего-окна",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-CLIENT-POPUP_BLOCKED.md#yandex-datalens-ошибка-при-блокировке-всплывающего-окна#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-CLIENT-POPUP_BLOCKED.md",
+        "sha256": "22b22f7a8ad10da07c245739e2a607ca73038ade14cdff3be5558b0b29643cb0",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-CLIENT-POPUP_BLOCKED"
+      },
+      "title": "[Yandex DataLens] Ошибка при блокировке всплывающего окна"
+    },
+    {
+      "affected_layer": "dataset_model",
+      "code": "ERR-DS_API-ACTION_NOT_ALLOWED",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-action_not_allowed",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-ACTION_NOT_ALLOWED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Internal Server Error [Yandex DataLens] Internal Server Error ERR.DSAPI.ACTIONNOTALLOWED Ошибка может возникнуть при попытке получить данные через API. Ошибка означает, что указанное действие с...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-internal-server-error",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-ACTION_NOT_ALLOWED.md#yandex-datalens-internal-server-error#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-ACTION_NOT_ALLOWED.md",
+        "sha256": "28712aeace02c48d5eb443124f3c9335ade6fc9502758ba71464955fd6b17b4e",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-ACTION_NOT_ALLOWED"
+      },
+      "title": "[Yandex DataLens] Internal Server Error"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-AVATAR-NOT_FOUND-FIELD_REF",
+      "likely_causes": [
+        "unknown_identifier"
+      ],
+      "normalized_code": "err-ds_api-avatar-not_found-field_ref",
+      "observed_runtime_codes": [
+        "Code 47"
+      ],
+      "patterns": [
+        "ERR-DS_API-AVATAR-NOT_FOUND-FIELD_REF "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Field references an unknown source avatar [Yandex DataLens] Field references an unknown source avatar ERR.DSAPI.AVATAR.NOTFOUND.FIELDREF Ошибка возникает, когда поле датасета ссылается на ранее...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-field-references-an-unknown-source-avatar",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-AVATAR-NOT_FOUND-FIELD_REF.md#yandex-datalens-field-references-an-unknown-source-avatar#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-AVATAR-NOT_FOUND-FIELD_REF.md",
+        "sha256": "91314d22da9a24a572de69e9ac6beaf8dde363e4fa7573244983e1539618c89b",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-AVATAR-NOT_FOUND-FIELD_REF"
+      },
+      "title": "[Yandex DataLens] Field references an unknown source avatar"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-AVATAR-NOT_FOUND",
+      "likely_causes": [
+        "missing_object_or_field"
+      ],
+      "normalized_code": "err-ds_api-avatar-not_found",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-AVATAR-NOT_FOUND "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Source avatar not found [Yandex DataLens] Source avatar not found ERR.DSAPI.AVATAR.NOTFOUND Указанная таблица не найдена в датасете. Ошибка возникает при попытке доступа к таблице, ранее удален...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-source-avatar-not-found",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-AVATAR-NOT_FOUND.md#yandex-datalens-source-avatar-not-found#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-AVATAR-NOT_FOUND.md",
+        "sha256": "3bb381213df1999df1ec95577fc672f2a9dc79227e9c4a91105f8a5cfb648c01",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-AVATAR-NOT_FOUND"
+      },
+      "title": "[Yandex DataLens] Source avatar not found"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-AVATAR-TITLE-CONFLICT",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-avatar-title-conflict",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-AVATAR-TITLE-CONFLICT "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Source avatar title conflicts with another avatar [Yandex DataLens] Source avatar title conflicts with another avatar ERR.DSAPI.AVATAR.TITLE.CONFLICT Ошибка возникает при совпадении названий та...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-source-avatar-title-conflicts-with-another-avatar",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-AVATAR-TITLE-CONFLICT.md#yandex-datalens-source-avatar-title-conflicts-with-another-avatar#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-AVATAR-TITLE-CONFLICT.md",
+        "sha256": "70542ed8b0ba8a1ebf92349e43a5a0b78a0a559e49ce68a2ea50b93c90d1d302",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-AVATAR-TITLE-CONFLICT"
+      },
+      "title": "[Yandex DataLens] Source avatar title conflicts with another avatar"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-BAD_CONN_TYPE",
+      "likely_causes": [
+        "type_mismatch"
+      ],
+      "normalized_code": "err-ds_api-bad_conn_type",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-BAD_CONN_TYPE "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Invalid connection type value [Yandex DataLens] Invalid connection type value ERR.DSAPI.BADCONNTYPE Использован неизвестный тип подключения. Обратитесь к спецификации API для уточнения корректн...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-invalid-connection-type-value",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-BAD_CONN_TYPE.md#yandex-datalens-invalid-connection-type-value#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-BAD_CONN_TYPE.md",
+        "sha256": "9f6806f5e905f4df0277d648f284c61eadaa7ae654be6241197836ba753b8875",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-BAD_CONN_TYPE"
+      },
+      "title": "[Yandex DataLens] Invalid connection type value"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-BLOCK-ITEM_COMPATIBILITY",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-block-item_compatibility",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-BLOCK-ITEM_COMPATIBILITY "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Got items with incompatible roles in block [Yandex DataLens] Got items with incompatible roles in block ERR.DSAPI.BLOCK.ITEMCOMPATIBILITY Произошла внутренняя ошибка. Обратитесь в техническую п...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-got-items-with-incompatible-roles-in-block",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-BLOCK-ITEM_COMPATIBILITY.md#yandex-datalens-got-items-with-incompatible-roles-in-block#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-BLOCK-ITEM_COMPATIBILITY.md",
+        "sha256": "77e7e138b61264938e2cade4398ac28af3e64942e788c9e8049907f5d22e45bc",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-BLOCK-ITEM_COMPATIBILITY"
+      },
+      "title": "[Yandex DataLens] Got items with incompatible roles in block"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-BLOCK-MULTIPLE_ROOTS",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-block-multiple_roots",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-BLOCK-MULTIPLE_ROOTS "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Got more than one block with root placement [Yandex DataLens] Got more than one block with root placement ERR.DSAPI.BLOCK.MULTIPLEROOTS Произошла внутренняя ошибка. Обратитесь в техническую под...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-got-more-than-one-block-with-root-placement",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-BLOCK-MULTIPLE_ROOTS.md#yandex-datalens-got-more-than-one-block-with-root-placement#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-BLOCK-MULTIPLE_ROOTS.md",
+        "sha256": "b9ef18ef8b065d3be3fbe51d1ed1d30a282b517c5126e23acb1e550817ceb5a4",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-BLOCK-MULTIPLE_ROOTS"
+      },
+      "title": "[Yandex DataLens] Got more than one block with root placement"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-BLOCK-MULTIPLE_UNSUPPORTED",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-block-multiple_unsupported",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-BLOCK-MULTIPLE_UNSUPPORTED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > This API does not support multiple query blocks [Yandex DataLens] This API does not support multiple query blocks ERR.DSAPI.BLOCK.MULTIPLEUNSUPPORTED Произошла внутренняя ошибка. Обратитесь в т...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-this-api-does-not-support-multiple-query-blocks",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-BLOCK-MULTIPLE_UNSUPPORTED.md#yandex-datalens-this-api-does-not-support-multiple-query-blocks#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-BLOCK-MULTIPLE_UNSUPPORTED.md",
+        "sha256": "6f88ebf429462d61e7e796e30ce098fbf86775552249f1772346a6ce88a64c9b",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-BLOCK-MULTIPLE_UNSUPPORTED"
+      },
+      "title": "[Yandex DataLens] This API does not support multiple query blocks"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-BLOCK-NO_ROOT",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-block-no_root",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-BLOCK-NO_ROOT "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Got no blocks with root placement [Yandex DataLens] Got no blocks with root placement ERR.DSAPI.BLOCK.NOROOT Произошла внутренняя ошибка. Обратитесь в техническую поддержку Yandex Cloud. В сооб...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-got-no-blocks-with-root-placement",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-BLOCK-NO_ROOT.md#yandex-datalens-got-no-blocks-with-root-placement#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-BLOCK-NO_ROOT.md",
+        "sha256": "7fa182bed21112e5a97beaaa9cfa82e4078c4828f3bf3dc1d40fcc77cefa1ed9",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-BLOCK-NO_ROOT"
+      },
+      "title": "[Yandex DataLens] Got no blocks with root placement"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-BLOCK-UNEVEN_COLUMN_COUNT",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-block-uneven_column_count",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-BLOCK-UNEVEN_COLUMN_COUNT "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Blocks have different column count [Yandex DataLens] Blocks have different column count ERR.DSAPI.BLOCK.UNEVENCOLUMNCOUNT При возникновении ошибки обратитесь в техническую поддержку Yandex Clou...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-blocks-have-different-column-count",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-BLOCK-UNEVEN_COLUMN_COUNT.md#yandex-datalens-blocks-have-different-column-count#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-BLOCK-UNEVEN_COLUMN_COUNT.md",
+        "sha256": "9b5627be1efc78ac30ea8d33e5fede823b4bb6f5cbdd0ee823b4711b061055e7",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-BLOCK-UNEVEN_COLUMN_COUNT"
+      },
+      "title": "[Yandex DataLens] Blocks have different column count"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-COLUMN_SCHEMA_FAILED",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-column_schema_failed",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-COLUMN_SCHEMA_FAILED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Failed to load description of table columns [Yandex DataLens] Failed to load description of table columns ERR.DSAPI.COLUMNSCHEMAFAILED Возникает в случае, когда не удается получить схему таблиц...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-failed-to-load-description-of-table-columns",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-COLUMN_SCHEMA_FAILED.md#yandex-datalens-failed-to-load-description-of-table-columns#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-COLUMN_SCHEMA_FAILED.md",
+        "sha256": "efbfbd07bb7b0e6029ce5fb8d55468419c00da78debf2be5e786de1340833f43",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-COLUMN_SCHEMA_FAILED"
+      },
+      "title": "[Yandex DataLens] Failed to load description of table columns"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-CONNECTION_CONFIG-DASHSQL_NOT_ALLOWED",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-connection_config-dashsql_not_allowed",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-CONNECTION_CONFIG-DASHSQL_NOT_ALLOWED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Использование QL-чартов запрещено на уровне подключения [Yandex DataLens] Использование QL-чартов запрещено на уровне подключения ERR.DSAPI.CONNECTIONCONFIG.DASHSQLNOTALLOWED Ошибка возникает,...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-использование-ql-чартов-запрещено-на-уровне-подключения",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-CONNECTION_CONFIG-DASHSQL_NOT_ALLOWED.md#yandex-datalens-использование-ql-чартов-запрещено-на-уровне-подключения#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-CONNECTION_CONFIG-DASHSQL_NOT_ALLOWED.md",
+        "sha256": "4bf7fbbc4d2b878942a7774e7b604a213d42d1ed876fdb13a6181e6275f66267",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-CONNECTION_CONFIG-DASHSQL_NOT_ALLOWED"
+      },
+      "title": "[Yandex DataLens] Использование QL-чартов запрещено на уровне подключения"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-CONNECTION_CONFIG-SUBSELECT_NOT_ALLOWED",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-connection_config-subselect_not_allowed",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-CONNECTION_CONFIG-SUBSELECT_NOT_ALLOWED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Subquery source is disallowed in the connection settings [Yandex DataLens] Subquery source is disallowed in the connection settings ERR.DSAPI.CONNECTIONCONFIG.SUBSELECTNOTALLOWED Ошибка возника...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-subquery-source-is-disallowed-in-the-connection-settings",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-CONNECTION_CONFIG-SUBSELECT_NOT_ALLOWED.md#yandex-datalens-subquery-source-is-disallowed-in-the-connection-settings#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-CONNECTION_CONFIG-SUBSELECT_NOT_ALLOWED.md",
+        "sha256": "a2d33c5753a436a4a1927a918dec98a4ac3624e3788f2e82fb220d3391a30489",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-CONNECTION_CONFIG-SUBSELECT_NOT_ALLOWED"
+      },
+      "title": "[Yandex DataLens] Subquery source is disallowed in the connection settings"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-CONNECTION_CONFIG",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-connection_config",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-CONNECTION_CONFIG "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Internal server error [Yandex DataLens] Internal server error ERR.DSAPI.CONNECTIONCONFIG Возникает при ошибке в настройке подключения. Чтобы исправить ошибку, устраните проблемы, указанные в по...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-internal-server-error",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-CONNECTION_CONFIG.md#yandex-datalens-internal-server-error#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-CONNECTION_CONFIG.md",
+        "sha256": "0e776a5adfcdea7d20f686803ddf3bf67fdfe06eefbc266d542d0bf286c7a2a0",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-CONNECTION_CONFIG"
+      },
+      "title": "[Yandex DataLens] Internal server error"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DASHSQL-PARAMETER",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-dashsql-parameter",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DASHSQL-PARAMETER "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Internal server error [Yandex DataLens] Internal server error ERR.DSAPI.DASHSQL.PARAMETER Ошибка при обработке параметра QL-чарта. Чтобы исправить ошибку, устраните проблемы, указанные в подроб...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-internal-server-error",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DASHSQL-PARAMETER.md#yandex-datalens-internal-server-error#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DASHSQL-PARAMETER.md",
+        "sha256": "0e776a5adfcdea7d20f686803ddf3bf67fdfe06eefbc266d542d0bf286c7a2a0",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DASHSQL-PARAMETER"
+      },
+      "title": "[Yandex DataLens] Internal server error"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DASHSQL",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-dashsql",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DASHSQL "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Internal server error [Yandex DataLens] Internal server error ERR.DSAPI.DASHSQL Ошибка получения данных для QL-чарта. Чтобы исправить ошибку, устраните проблемы, указанные в подробной информаци...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-internal-server-error",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DASHSQL.md#yandex-datalens-internal-server-error#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DASHSQL.md",
+        "sha256": "0e776a5adfcdea7d20f686803ddf3bf67fdfe06eefbc266d542d0bf286c7a2a0",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DASHSQL"
+      },
+      "title": "[Yandex DataLens] Internal server error"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DATABASE_UNAVAILABLE",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-database_unavailable",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DATABASE_UNAVAILABLE "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Data source is unavailable [Yandex DataLens] Data source is unavailable ERR.DSAPI.DATABASEUNAVAILABLE Источник данных (БД) недоступен. Возможные причины: - перебои в работе сети; - нет доступа...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-data-source-is-unavailable",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DATABASE_UNAVAILABLE.md#yandex-datalens-data-source-is-unavailable#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DATABASE_UNAVAILABLE.md",
+        "sha256": "a26ee5eebccdb9e9695625e77ed37c6234b19867007a00eb95ade1d1f894856b",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DATABASE_UNAVAILABLE"
+      },
+      "title": "[Yandex DataLens] Data source is unavailable"
+    },
+    {
+      "affected_layer": "dataset_model",
+      "code": "ERR-DS_API-DATASET-TOO_MANY_FIELDS",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-dataset-too_many_fields",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DATASET-TOO_MANY_FIELDS "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > There are too many fields in the dataset [Yandex DataLens] There are too many fields in the dataset ERR.DSAPI.DATASET.TOOMANYFIELDS Ошибка возникает при попытке добавления в датасет новых полей...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-there-are-too-many-fields-in-the-dataset",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DATASET-TOO_MANY_FIELDS.md#yandex-datalens-there-are-too-many-fields-in-the-dataset#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DATASET-TOO_MANY_FIELDS.md",
+        "sha256": "a1779c9855f9021f8e07c67ce94604750cf998b4054b05e0617f72b2da617561",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DATASET-TOO_MANY_FIELDS"
+      },
+      "title": "[Yandex DataLens] There are too many fields in the dataset"
+    },
+    {
+      "affected_layer": "dataset_model",
+      "code": "ERR-DS_API-DATASET_REVISION_MISMATCH",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-dataset_revision_mismatch",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DATASET_REVISION_MISMATCH "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Dataset version mismatch. Refresh the page to continue [Yandex DataLens] Dataset version mismatch. Refresh the page to continue ERR.DSAPI.DATASETREVISIONMISMATCH Ошибка возникает при одновремен...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-dataset-version-mismatch-refresh-the-page-to-continue",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DATASET_REVISION_MISMATCH.md#yandex-datalens-dataset-version-mismatch-refresh-the-page-to-continue#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DATASET_REVISION_MISMATCH.md",
+        "sha256": "c3322398318fccfdac79f5c309117945623a86c1211fcddca3fec10f09be1582",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DATASET_REVISION_MISMATCH"
+      },
+      "title": "[Yandex DataLens] Dataset version mismatch. Refresh the page to continue"
+    },
+    {
+      "affected_layer": "authentication",
+      "code": "ERR-DS_API-DB-AUTHENTICATION_FAILED",
+      "likely_causes": [
+        "auth_failure"
+      ],
+      "normalized_code": "err-ds_api-db-authentication_failed",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-AUTHENTICATION_FAILED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Database authentication failed [Yandex DataLens] Database authentication failed ERR.DSAPI.DB.AUTHENTICATIONFAILED Не удалось подключиться к источнику с указанными учетными данными. Чтобы исправ...",
+      "safe_diagnostic_probes": [
+        "dl_runtime_status",
+        "dl_auth_probe"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-database-authentication-failed",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-AUTHENTICATION_FAILED.md#yandex-datalens-database-authentication-failed#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-AUTHENTICATION_FAILED.md",
+        "sha256": "8f3a7d0a4669b966fac8a4ee265f97118d676541ace2bde04e43e2118ce35a30",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-AUTHENTICATION_FAILED"
+      },
+      "title": "[Yandex DataLens] Database authentication failed"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-CANNOT_PARSE-DATETIME",
+      "likely_causes": [
+        "parse_failure"
+      ],
+      "normalized_code": "err-ds_api-db-cannot_parse-datetime",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-CANNOT_PARSE-DATETIME "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Cannot parse datetime [Yandex DataLens] Cannot parse datetime ERR.DSAPI.DB.CANNOTPARSE.DATETIME Неправильный формат данных для перевода строки в дату со временем.",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-cannot-parse-datetime",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-CANNOT_PARSE-DATETIME.md#yandex-datalens-cannot-parse-datetime#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-CANNOT_PARSE-DATETIME.md",
+        "sha256": "8a9d8bcb9c3de49a732734cfafbd97119a7005329cc08905af7762f5e17a05aa",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-CANNOT_PARSE-DATETIME"
+      },
+      "title": "[Yandex DataLens] Cannot parse datetime"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-CANNOT_PARSE-NUMBER",
+      "likely_causes": [
+        "parse_failure"
+      ],
+      "normalized_code": "err-ds_api-db-cannot_parse-number",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-CANNOT_PARSE-NUMBER "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Cannot parse number [Yandex DataLens] Cannot parse number ERR.DSAPI.DB.CANNOTPARSE.NUMBER Неправильный формат данных для перевода строки в число.",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-cannot-parse-number",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-CANNOT_PARSE-NUMBER.md#yandex-datalens-cannot-parse-number#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-CANNOT_PARSE-NUMBER.md",
+        "sha256": "e0270836806db6dda485fc2bf9bf00b0dd956a608804f9865166d9b367e077d6",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-CANNOT_PARSE-NUMBER"
+      },
+      "title": "[Yandex DataLens] Cannot parse number"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-CANNOT_PARSE",
+      "likely_causes": [
+        "parse_failure"
+      ],
+      "normalized_code": "err-ds_api-db-cannot_parse",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-CANNOT_PARSE "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Cannot parse [Yandex DataLens] Cannot parse ERR.DSAPI.DB.CANNOTPARSE Неправильный формат данных. Ошибка обычно связана с наличием пустых (null) значений при переводе данных из одного типа в дру...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-cannot-parse",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-CANNOT_PARSE.md#yandex-datalens-cannot-parse#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-CANNOT_PARSE.md",
+        "sha256": "3fc54d03eeb6b84cadea674bd5022ae0d239e5bdb72f4f1cc9a20bd816c8850b",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-CANNOT_PARSE"
+      },
+      "title": "[Yandex DataLens] Cannot parse"
+    },
+    {
+      "affected_layer": "authentication",
+      "code": "ERR-DS_API-DB-CHYT-AUTH_FAILED",
+      "likely_causes": [
+        "auth_failure"
+      ],
+      "normalized_code": "err-ds_api-db-chyt-auth_failed",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-CHYT-AUTH_FAILED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Authentication failed [Yandex DataLens] Authentication failed ERR.DSAPI.DB.CHYT.AUTHFAILED Ошибка возникает, когда не пройдена аутентификация при подключении к CHYT из-за проблем с токеном. Воз...",
+      "safe_diagnostic_probes": [
+        "dl_runtime_status",
+        "dl_auth_probe"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-authentication-failed",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-AUTH_FAILED.md#yandex-datalens-authentication-failed#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-AUTH_FAILED.md",
+        "sha256": "7440e5106e266d040d4dd839838c944102dba4350fabb6d351861323c69cef57",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-AUTH_FAILED"
+      },
+      "title": "[Yandex DataLens] Authentication failed"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-CHYT-CLIQUE-INVALID_GUID",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-db-chyt-clique-invalid_guid",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-CHYT-CLIQUE-INVALID_GUID "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Не удалось распарсить название клики [Yandex DataLens] Не удалось распарсить название клики ERR.DSAPI.DB.CHYT.CLIQUE.INVALIDGUID Ошибка в названии клики, указанной в настройках подключения. Воз...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-не-удалось-распарсить-название-клики",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-CLIQUE-INVALID_GUID.md#yandex-datalens-не-удалось-распарсить-название-клики#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-CLIQUE-INVALID_GUID.md",
+        "sha256": "b54760a3811b8675cc07a2eda886ec3456e2ce830900a6d0d1a2e8b3fcac3c21",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-CLIQUE-INVALID_GUID"
+      },
+      "title": "[Yandex DataLens] Не удалось распарсить название клики"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-CHYT-CLIQUE-INVALID_SPECIFICATION",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-db-chyt-clique-invalid_specification",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-CHYT-CLIQUE-INVALID_SPECIFICATION "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Invalid clique specification. Probably, clique does not exists [Yandex DataLens] Invalid clique specification. Probably, clique does not exists ERR.DSAPI.DB.CHYT.CLIQUE.INVALIDSPECIFICATION Кли...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-invalid-clique-specification-probably-clique-does-not-exists",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-CLIQUE-INVALID_SPECIFICATION.md#yandex-datalens-invalid-clique-specification-probably-clique-does-not-exists#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-CLIQUE-INVALID_SPECIFICATION.md",
+        "sha256": "8fcf263b9baba6d532e777fb25de367f0600f228402d65d7613c800a72d88d25",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-CLIQUE-INVALID_SPECIFICATION"
+      },
+      "title": "[Yandex DataLens] Invalid clique specification. Probably, clique does not exists"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-CHYT-INVALID_SORTED_JOIN-MORE_THAN_ONE_TABLE",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-db-chyt-invalid_sorted_join-more_than_one_table",
+      "observed_runtime_codes": [
+        "Code 48"
+      ],
+      "patterns": [
+        "ERR-DS_API-DB-CHYT-INVALID_SORTED_JOIN-MORE_THAN_ONE_TABLE "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Cannot join a concatenation of tables with another table [Yandex DataLens] Cannot join a concatenation of tables with another table ERR.DSAPI.DB.CHYT.INVALIDSORTEDJOIN.MORETHANONETABLE При подк...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-cannot-join-a-concatenation-of-tables-with-another-table",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-INVALID_SORTED_JOIN-MORE_THAN_ONE_TABLE.md#yandex-datalens-cannot-join-a-concatenation-of-tables-with-another-table#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-INVALID_SORTED_JOIN-MORE_THAN_ONE_TABLE.md",
+        "sha256": "56d7629e426f2dd16b318c288660d2c7d56cc25e10de08b7073768630ff675d0",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-INVALID_SORTED_JOIN-MORE_THAN_ONE_TABLE"
+      },
+      "title": "[Yandex DataLens] Cannot join a concatenation of tables with another table"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-CHYT-INVALID_SORTED_JOIN-NOT_A_KEY_COLUMN",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-db-chyt-invalid_sorted_join-not_a_key_column",
+      "observed_runtime_codes": [
+        "Code 48"
+      ],
+      "patterns": [
+        "ERR-DS_API-DB-CHYT-INVALID_SORTED_JOIN-NOT_A_KEY_COLUMN "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Column used in join expression is not a key column [Yandex DataLens] Column used in join expression is not a key column ERR.DSAPI.DB.CHYT.INVALIDSORTEDJOIN.NOTAKEYCOLUMN При использовании подкл...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-column-used-in-join-expression-is-not-a-key-column",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-INVALID_SORTED_JOIN-NOT_A_KEY_COLUMN.md#yandex-datalens-column-used-in-join-expression-is-not-a-key-column#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-INVALID_SORTED_JOIN-NOT_A_KEY_COLUMN.md",
+        "sha256": "04afd05328b7dde37df881504b36c9319c4ab69faa2de06026ea8c83babefc6c",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-INVALID_SORTED_JOIN-NOT_A_KEY_COLUMN"
+      },
+      "title": "[Yandex DataLens] Column used in join expression is not a key column"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-CHYT-INVALID_SORTED_JOIN-NOT_KEY_PREFIX_COLUMN",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-db-chyt-invalid_sorted_join-not_key_prefix_column",
+      "observed_runtime_codes": [
+        "Code 48"
+      ],
+      "patterns": [
+        "ERR-DSAPI-DB-CHYT-INVALIDSORTEDJOIN-NOTAKEYCOLUMN",
+        "ERR-DS_API-DB-CHYT-INVALID_SORTED_JOIN-NOT_KEY_PREFIX_COLUMN "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Joined columns should form prefix of joined table key columns [Yandex DataLens] Joined columns should form prefix of joined table key columns ERR.DSAPI.DB.CHYT.INVALIDSORTEDJOIN.NOTKEYPREFIXCOL...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-joined-columns-should-form-prefix-of-joined-table-key-columns",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-INVALID_SORTED_JOIN-NOT_KEY_PREFIX_COLUMN.md#yandex-datalens-joined-columns-should-form-prefix-of-joined-table-key-columns#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-INVALID_SORTED_JOIN-NOT_KEY_PREFIX_COLUMN.md",
+        "sha256": "58ae02470c9db23d2c741dedd80aeba182f494ce3609643d23b464572a45aab8",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-INVALID_SORTED_JOIN-NOT_KEY_PREFIX_COLUMN"
+      },
+      "title": "[Yandex DataLens] Joined columns should form prefix of joined table key columns"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-CHYT-SUBQ_WEIGHT_LIMIT_EXCEEDED",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-db-chyt-subq_weight_limit_exceeded",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-CHYT-SUBQ_WEIGHT_LIMIT_EXCEEDED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Subquery exceeds data weight limit [Yandex DataLens] Subquery exceeds data weight limit ERR.DSAPI.DB.CHYT.SUBQWEIGHTLIMITEXCEEDED Подробнее об опции maxdataweightpersubquery в документации по к...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-subquery-exceeds-data-weight-limit",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-SUBQ_WEIGHT_LIMIT_EXCEEDED.md#yandex-datalens-subquery-exceeds-data-weight-limit#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-SUBQ_WEIGHT_LIMIT_EXCEEDED.md",
+        "sha256": "e98bd9359794eb02bfd33d607d1bfc4ea8052fdf1c818c052c82014fd07b38fe",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-SUBQ_WEIGHT_LIMIT_EXCEEDED"
+      },
+      "title": "[Yandex DataLens] Subquery exceeds data weight limit"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-CHYT-TABLE_ACCESS_DENIED",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-db-chyt-table_access_denied",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-CHYT-TABLE_ACCESS_DENIED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Access to table was denied [Yandex DataLens] Access to table was denied ERR.DSAPI.DB.CHYT.TABLEACCESSDENIED Нет доступа к таблице на YTsaurus. Рекомендуем использовать другой токен (например, о...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-access-to-table-was-denied",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-TABLE_ACCESS_DENIED.md#yandex-datalens-access-to-table-was-denied#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-TABLE_ACCESS_DENIED.md",
+        "sha256": "d77abd74be1e07ab99bc1d8abbc67cfa1cd2f1579cb724cd7cde6d6429b245c0",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-TABLE_ACCESS_DENIED"
+      },
+      "title": "[Yandex DataLens] Access to table was denied"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-CHYT-TABLE_HAS_NO_SCHEMA",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-db-chyt-table_has_no_schema",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-CHYT-TABLE_HAS_NO_SCHEMA "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > YT table has no schema. Only schematized tables are supported [Yandex DataLens] YT table has no schema. Only schematized tables are supported ERR.DSAPI.DB.CHYT.TABLEHASNOSCHEMA У используемой Y...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-yt-table-has-no-schema-only-schematized-tables-are-supported",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-TABLE_HAS_NO_SCHEMA.md#yandex-datalens-yt-table-has-no-schema-only-schematized-tables-are-supported#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-TABLE_HAS_NO_SCHEMA.md",
+        "sha256": "b2526f50b03d6b8ce7e2f29101aae53c905d4164188fe2a8b325f13ac72d7962",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-CHYT-TABLE_HAS_NO_SCHEMA"
+      },
+      "title": "[Yandex DataLens] YT table has no schema. Only schematized tables are supported"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-COLUMN_DOES_NOT_EXIST",
+      "likely_causes": [
+        "unknown_identifier"
+      ],
+      "normalized_code": "err-ds_api-db-column_does_not_exist",
+      "observed_runtime_codes": [
+        "Code 47"
+      ],
+      "patterns": [
+        "ERR-DS_API-DB-COLUMN_DOES_NOT_EXIST "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Requested database column does not exist [Yandex DataLens] Requested database column does not exist ERR.DSAPI.DB.COLUMNDOESNOTEXIST Используется несуществующее поле. Возможные причины ошибки: В...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-requested-database-column-does-not-exist",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-COLUMN_DOES_NOT_EXIST.md#yandex-datalens-requested-database-column-does-not-exist#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-COLUMN_DOES_NOT_EXIST.md",
+        "sha256": "87b6b7b0f02db43aa7f0c646c9cca22a9f13cd92dd2d225c65bdcdabb1a5e9ab",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-COLUMN_DOES_NOT_EXIST"
+      },
+      "title": "[Yandex DataLens] Requested database column does not exist"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-DATA_PREPARATION_NOT_FINISHED",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-db-data_preparation_not_finished",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-DATA_PREPARATION_NOT_FINISHED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Подготовка данных еще не завершилась [Yandex DataLens] Подготовка данных еще не завершилась ERR.DSAPI.DB.DATAPREPARATIONNOTFINISHED Подготовка данных еще не завершилась, подождите несколько мин...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-подготовка-данных-еще-не-завершилась",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-DATA_PREPARATION_NOT_FINISHED.md#yandex-datalens-подготовка-данных-еще-не-завершилась#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-DATA_PREPARATION_NOT_FINISHED.md",
+        "sha256": "bb4f24921db5cb0a19801343a047badc0b9317345e490c4520ff5154984d660d",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-DATA_PREPARATION_NOT_FINISHED"
+      },
+      "title": "[Yandex DataLens] Подготовка данных еще не завершилась"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-DB_OPERATIONAL_ERROR",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-db-db_operational_error",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-DB_OPERATIONAL_ERROR "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Не удалось создать [Yandex DataLens] Ошибка на стороне БД ERR.DSAPI.DB.DBOPERATIONALERROR Ошибка в работе базы данных, которая не всегда контролируется пользователем. Возможные причины: неожида...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-ошибка-на-стороне-бд",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-DB_OPERATIONAL_ERROR.md#yandex-datalens-ошибка-на-стороне-бд#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-DB_OPERATIONAL_ERROR.md",
+        "sha256": "36280317dc94445a62810035e1a1fef33ae4569056016c1418f127685a5fe05f",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-DB_OPERATIONAL_ERROR"
+      },
+      "title": "[Yandex DataLens] Ошибка на стороне БД"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-INVALID_FUNCTION-PG_DOUBLE_PRECISION_ROUND",
+      "likely_causes": [
+        "type_mismatch"
+      ],
+      "normalized_code": "err-ds_api-db-invalid_function-pg_double_precision_round",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-INVALID_FUNCTION-PG_DOUBLE_PRECISION_ROUND "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > ROUND with precision parameter is not supported for double precision data type in PostgreSQL [Yandex DataLens] ROUND with precision parameter is not supported for double precision data type in...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-round-with-precision-parameter-is-not-supported-for-double-precision-data-type-in-postgresql",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-INVALID_FUNCTION-PG_DOUBLE_PRECISION_ROUND.md#yandex-datalens-round-with-precision-parameter-is-not-supported-for-double-precision-data-type-in-postgresql#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-INVALID_FUNCTION-PG_DOUBLE_PRECISION_ROUND.md",
+        "sha256": "649c5a432aecc1dd8b016150d645f49c3ab6f4ce3dec72795a5c8549199273a7",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-INVALID_FUNCTION-PG_DOUBLE_PRECISION_ROUND"
+      },
+      "title": "[Yandex DataLens] ROUND with precision parameter is not supported for double precision data type in PostgreSQL"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-JOIN_COLUMN_TYPE_MISMATCH",
+      "likely_causes": [
+        "type_mismatch"
+      ],
+      "normalized_code": "err-ds_api-db-join_column_type_mismatch",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-JOIN_COLUMN_TYPE_MISMATCH "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Columns in JOIN have different types [Yandex DataLens] Columns in JOIN have different types ERR.DSAPI.DB.JOINCOLUMNTYPEMISMATCH Колонки, указанные в связи имеют разный типы данных. Чтобы исправ...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-columns-in-join-have-different-types",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-JOIN_COLUMN_TYPE_MISMATCH.md#yandex-datalens-columns-in-join-have-different-types#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-JOIN_COLUMN_TYPE_MISMATCH.md",
+        "sha256": "0b3c168f6dafbea8434d532319555f557a6aded17d591ffb268c652738380114",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-JOIN_COLUMN_TYPE_MISMATCH"
+      },
+      "title": "[Yandex DataLens] Columns in JOIN have different types"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-MATERIALIZATION_NOT_FINISHED",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-db-materialization_not_finished",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-MATERIALIZATION_NOT_FINISHED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Подготовка данных еще не завершилась [Yandex DataLens] Подготовка данных еще не завершилась ERR.DSAPI.DB.MATERIALIZATIONNOTFINISHED Подготовка данных еще не завершилась, подождите несколько мин...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-подготовка-данных-еще-не-завершилась",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-MATERIALIZATION_NOT_FINISHED.md#yandex-datalens-подготовка-данных-еще-не-завершилась#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-MATERIALIZATION_NOT_FINISHED.md",
+        "sha256": "bb4f24921db5cb0a19801343a047badc0b9317345e490c4520ff5154984d660d",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-MATERIALIZATION_NOT_FINISHED"
+      },
+      "title": "[Yandex DataLens] Подготовка данных еще не завершилась"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-MEMORY_LIMIT_EXCEEDED",
+      "likely_causes": [
+        "resource_limit"
+      ],
+      "normalized_code": "err-ds_api-db-memory_limit_exceeded",
+      "observed_runtime_codes": [
+        "memory_limit"
+      ],
+      "patterns": [
+        "ERR-DS_API-DB-MEMORY_LIMIT_EXCEEDED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Memory limit has been exceeded during query execution [Yandex DataLens] Memory limit has been exceeded during query execution ERR.DSAPI.DB.MEMORYLIMITEXCEEDED Недостаточно памяти в источнике да...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-memory-limit-has-been-exceeded-during-query-execution",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-MEMORY_LIMIT_EXCEEDED.md#yandex-datalens-memory-limit-has-been-exceeded-during-query-execution#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-MEMORY_LIMIT_EXCEEDED.md",
+        "sha256": "d53d6f96d7d3d70dbc70d293ec77f731212c936069e510aa1cef69b812a0f57d",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-MEMORY_LIMIT_EXCEEDED"
+      },
+      "title": "[Yandex DataLens] Memory limit has been exceeded during query execution"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-SOURCE_CONNECT_ERROR",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-db-source_connect_error",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-SOURCE_CONNECT_ERROR "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Data source refused connection [Yandex DataLens] Data source refused connection ERR.DSAPI.DB.SOURCECONNECTERROR Ошибка загрузки данных. Ошибка означает, что не удалось установить соединение с Б...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-data-source-refused-connection",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-SOURCE_CONNECT_ERROR.md#yandex-datalens-data-source-refused-connection#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-SOURCE_CONNECT_ERROR.md",
+        "sha256": "5870b89c15572189b94842ef079baabbcd78aecec5ab1e9916dfc8631abe0565",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-SOURCE_CONNECT_ERROR"
+      },
+      "title": "[Yandex DataLens] Data source refused connection"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-SOURCE_DOES_NOT_EXIST",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-db-source_does_not_exist",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-SOURCE_DOES_NOT_EXIST "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Data source (table) does not exist [Yandex DataLens] Data source (table) does not exist ERR.DSAPI.DB.SOURCEDOESNOTEXIST Ошибка возникает, когда используемая таблица отсутствует в источнике данн...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-data-source-table-does-not-exist",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-SOURCE_DOES_NOT_EXIST.md#yandex-datalens-data-source-table-does-not-exist#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-SOURCE_DOES_NOT_EXIST.md",
+        "sha256": "cb980c71272ab9bb825822631f2fe96c47e8aa1818b9a535a75f663aa21512fe",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-SOURCE_DOES_NOT_EXIST"
+      },
+      "title": "[Yandex DataLens] Data source (table) does not exist"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-SOURCE_ERROR-TIMEOUT",
+      "likely_causes": [
+        "timeout"
+      ],
+      "normalized_code": "err-ds_api-db-source_error-timeout",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-SOURCE_ERROR-TIMEOUT "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Data source timed out [Yandex DataLens] Data source timed out ERR.DSAPI.DB.SOURCEERROR.TIMEOUT Превышено время выполнения запроса в источнике данных. {% note info %} На уровне сервиса DataLens...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-data-source-timed-out",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-SOURCE_ERROR-TIMEOUT.md#yandex-datalens-data-source-timed-out#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-SOURCE_ERROR-TIMEOUT.md",
+        "sha256": "f8e5fa13d355a154487fb668de61b73d61677b9a459faad221a996dcf77d6df4",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-SOURCE_ERROR-TIMEOUT"
+      },
+      "title": "[Yandex DataLens] Data source timed out"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB-ZERO_DIVISION",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-db-zero_division",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB-ZERO_DIVISION "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Division by zero [Yandex DataLens] Division by zero ERR.DSAPI.DB.ZERODIVISION В запросе произошла попытка деления на ноль. Используемый источник данных не поддерживает деление на ноль. Чтобы ис...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-division-by-zero",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB-ZERO_DIVISION.md#yandex-datalens-division-by-zero#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB-ZERO_DIVISION.md",
+        "sha256": "d1ded07ddf69714e8b38205e05c7a4aa9a80dc3422604af896e866e5cad4d9e7",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB-ZERO_DIVISION"
+      },
+      "title": "[Yandex DataLens] Division by zero"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-DB",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-db",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-DB "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Ошибка выполнения запроса в источнике данных [Yandex DataLens] Ошибка выполнения запроса в источнике данных ERR.DSAPI.DB Ошибка возникает, когда источник данных, например БД, возвращает ошибку...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-ошибка-выполнения-запроса-в-источнике-данных",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-DB.md#yandex-datalens-ошибка-выполнения-запроса-в-источнике-данных#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-DB.md",
+        "sha256": "93b8f3208274c5b0c5cce4c143ff0c70abe945c8873cc309d9b112ddb80fef52",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-DB"
+      },
+      "title": "[Yandex DataLens] Ошибка выполнения запроса в источнике данных"
+    },
+    {
+      "affected_layer": "dataset_model",
+      "code": "ERR-DS_API-FIELD-NOT_FOUND",
+      "likely_causes": [
+        "unknown_identifier"
+      ],
+      "normalized_code": "err-ds_api-field-not_found",
+      "observed_runtime_codes": [
+        "Code 47"
+      ],
+      "patterns": [
+        "ERR-DS_API-FIELD-NOT_FOUND "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Unknown field [Yandex DataLens] Unknown field ERR.DSAPI.FIELD.NOTFOUND Используется несуществующее поле. Ошибка возникает, когда в чарте используется поле с идентификатором, которого нет в дата...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-unknown-field",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-FIELD-NOT_FOUND.md#yandex-datalens-unknown-field#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-FIELD-NOT_FOUND.md",
+        "sha256": "c6fc99493b3077b0e496a02af1c1875ab158cb77fbc918f2bab33249b7b3471c",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-FIELD-NOT_FOUND"
+      },
+      "title": "[Yandex DataLens] Unknown field"
+    },
+    {
+      "affected_layer": "dataset_model",
+      "code": "ERR-DS_API-FIELD-TITLE-CONFLICT",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-field-title-conflict",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-FIELD-TITLE-CONFLICT "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Field title conflicts with another field [Yandex DataLens] Field title conflicts with another field ERR.DSAPI.FIELD.TITLE.CONFLICT Конфликт названий полей. Добавленное поле не должно иметь тако...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-field-title-conflicts-with-another-field",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-FIELD-TITLE-CONFLICT.md#yandex-datalens-field-title-conflicts-with-another-field#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-FIELD-TITLE-CONFLICT.md",
+        "sha256": "7f5cf75956ba73b623fb9f0f88b2d8cef19914f2bb58b5402d08ee21c32d3a02",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-FIELD-TITLE-CONFLICT"
+      },
+      "title": "[Yandex DataLens] Field title conflicts with another field"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-FILTER-MEASURE_UNSUPPORTED",
+      "likely_causes": [
+        "type_mismatch"
+      ],
+      "normalized_code": "err-ds_api-filter-measure_unsupported",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-FILTER-MEASURE_UNSUPPORTED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Measure filter is unsupported for this type of query [Yandex DataLens] Measure filter is unsupported for this type of query ERR.DSAPI.FILTER.MEASUREUNSUPPORTED Ошибка возникает, когда селектор...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-measure-filter-is-unsupported-for-this-type-of-query",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-FILTER-MEASURE_UNSUPPORTED.md#yandex-datalens-measure-filter-is-unsupported-for-this-type-of-query#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-FILTER-MEASURE_UNSUPPORTED.md",
+        "sha256": "3c3731866779d6480ebc052f8864da44ac3212ee37512a4d2842b062205a7622",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-FILTER-MEASURE_UNSUPPORTED"
+      },
+      "title": "[Yandex DataLens] Measure filter is unsupported for this type of query"
+    },
+    {
+      "affected_layer": "dataset_model",
+      "code": "ERR-DS_API-FORMULA-PARSE-UNEXPECTED_TOKEN",
+      "likely_causes": [
+        "parse_failure"
+      ],
+      "normalized_code": "err-ds_api-formula-parse-unexpected_token",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-FORMULA-PARSE-UNEXPECTED_TOKEN "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Ошибка в синтаксисе формулы [Yandex DataLens] Ошибка в синтаксисе формулы ERR.DSAPI.FORMULA.PARSE.UNEXPECTEDTOKEN Ошибка возникает, когда в вычисляемом поле используется формула с нарушением си...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-ошибка-в-синтаксисе-формулы",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-FORMULA-PARSE-UNEXPECTED_TOKEN.md#yandex-datalens-ошибка-в-синтаксисе-формулы#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-FORMULA-PARSE-UNEXPECTED_TOKEN.md",
+        "sha256": "25b789758387cc246003354e5143b6c15dda7923cb47f6224c0f42814f71a806",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-FORMULA-PARSE-UNEXPECTED_TOKEN"
+      },
+      "title": "[Yandex DataLens] Ошибка в синтаксисе формулы"
+    },
+    {
+      "affected_layer": "dataset_model",
+      "code": "ERR-DS_API-FORMULA-UNKNOWN_FIELD_IN_FORMULA",
+      "likely_causes": [
+        "unknown_identifier"
+      ],
+      "normalized_code": "err-ds_api-formula-unknown_field_in_formula",
+      "observed_runtime_codes": [
+        "Code 47"
+      ],
+      "patterns": [
+        "ERR-DS_API-FORMULA-UNKNOWN_FIELD_IN_FORMULA "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Unknown field found in formula [Yandex DataLens] Unknown field found in formula ERR.DSAPI.FORMULA.UNKNOWNFIELDINFORMULA Ошибка возникает, когда в формуле указано несуществующее поле. Возможно,...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-unknown-field-found-in-formula",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-FORMULA-UNKNOWN_FIELD_IN_FORMULA.md#yandex-datalens-unknown-field-found-in-formula#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-FORMULA-UNKNOWN_FIELD_IN_FORMULA.md",
+        "sha256": "e26d39dea3b60ee0aa7894c5327694cf6c09eb1bec823900d20276a421482a1e",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-FORMULA-UNKNOWN_FIELD_IN_FORMULA"
+      },
+      "title": "[Yandex DataLens] Unknown field found in formula"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-FORMULA-UNKNOWN_SOURCE_COLUMN",
+      "likely_causes": [
+        "unknown_identifier"
+      ],
+      "normalized_code": "err-ds_api-formula-unknown_source_column",
+      "observed_runtime_codes": [
+        "Code 47"
+      ],
+      "patterns": [
+        "ERR-DS_API-FORMULA-UNKNOWN_SOURCE_COLUMN "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Unknown referenced source column [Yandex DataLens] Unknown referenced source column ERR.DSAPI.FORMULA.UNKNOWNSOURCECOLUMN Поле ссылается на столбец, которого нет в источнике. Возможно столбец р...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-unknown-referenced-source-column",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-FORMULA-UNKNOWN_SOURCE_COLUMN.md#yandex-datalens-unknown-referenced-source-column#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-FORMULA-UNKNOWN_SOURCE_COLUMN.md",
+        "sha256": "2dd0d70d2c2f0cb524a2b681d79b37d0433ca305181652e46bfe8b4e9fdc4f12",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-FORMULA-UNKNOWN_SOURCE_COLUMN"
+      },
+      "title": "[Yandex DataLens] Unknown referenced source column"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-FORMULA-UNKNOWN_WINDOW_DIMENSION",
+      "likely_causes": [
+        "unknown_identifier"
+      ],
+      "normalized_code": "err-ds_api-formula-unknown_window_dimension",
+      "observed_runtime_codes": [
+        "Code 47"
+      ],
+      "patterns": [
+        "ERR-DS_API-FORMULA-UNKNOWN_WINDOW_DIMENSION "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Unknown dimension for window [Yandex DataLens] Unknown dimension for window ERR.DSAPI.FORMULA.UNKNOWNWINDOWDIMENSION Эта ошибка возникает, когда в оконной функции с группировкой AMONG используе...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-unknown-dimension-for-window",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-FORMULA-UNKNOWN_WINDOW_DIMENSION.md#yandex-datalens-unknown-dimension-for-window#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-FORMULA-UNKNOWN_WINDOW_DIMENSION.md",
+        "sha256": "b4e3c00de75ce147e5f5dcf23f68513167112ab297b3ebccbf330eeda5800e71",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-FORMULA-UNKNOWN_WINDOW_DIMENSION"
+      },
+      "title": "[Yandex DataLens] Unknown dimension for window"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-FORMULA-VALIDATION-AGG-INCONSISTENT",
+      "likely_causes": [
+        "type_mismatch"
+      ],
+      "normalized_code": "err-ds_api-formula-validation-agg-inconsistent",
+      "observed_runtime_codes": [
+        "Code 184"
+      ],
+      "patterns": [
+        "ERR-DS_API-FORMULA-VALIDATION-AGG-INCONSISTENT "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Inconsistent aggregation among operands [Yandex DataLens] Inconsistent aggregation among operands ERR.DSAPI.FORMULA.VALIDATION.AGG.INCONSISTENT Происходит, когда аргументами одной и той же функ...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-inconsistent-aggregation-among-operands",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-FORMULA-VALIDATION-AGG-INCONSISTENT.md#yandex-datalens-inconsistent-aggregation-among-operands#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-FORMULA-VALIDATION-AGG-INCONSISTENT.md",
+        "sha256": "087bde8f424e02b302fa890a57fdeb5d6c87a356782f2724ae907a404f34e484",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-FORMULA-VALIDATION-AGG-INCONSISTENT"
+      },
+      "title": "[Yandex DataLens] Inconsistent aggregation among operands"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-FORMULA-VALIDATION-LOD-INCOMPATIBLE_DIMENSIONS",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-formula-validation-lod-incompatible_dimensions",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-FORMULA-VALIDATION-LOD-INCOMPATIBLE_DIMENSIONS "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Incompatible dimensions [Yandex DataLens] Incompatible dimensions ERR.DSAPI.FORMULA.VALIDATION.LOD.INCOMPATIBLEDIMENSIONS Ошибка возникает из-за того, что агрегации, находящиеся на одном уровне...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-incompatible-dimensions",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-FORMULA-VALIDATION-LOD-INCOMPATIBLE_DIMENSIONS.md#yandex-datalens-incompatible-dimensions#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-FORMULA-VALIDATION-LOD-INCOMPATIBLE_DIMENSIONS.md",
+        "sha256": "d9fa0eb7edef3151f757178c9827ab9309840b3d66fe740e36864e09fe258b29",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-FORMULA-VALIDATION-LOD-INCOMPATIBLE_DIMENSIONS"
+      },
+      "title": "[Yandex DataLens] Incompatible dimensions"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-FORMULA-VALIDATION-LOD-INVALID_TOPLEVEL_DIMENSIONS",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-formula-validation-lod-invalid_toplevel_dimensions",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-FORMULA-VALIDATION-LOD-INVALID_TOPLEVEL_DIMENSIONS "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Invalid top-level LOD dimension found in expression [Yandex DataLens] Invalid top-level LOD dimension found in expression ERR.DSAPI.FORMULA.VALIDATION.LOD.INVALIDTOPLEVELDIMENSIONS Ошибка возни...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-invalid-top-level-lod-dimension-found-in-expression",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-FORMULA-VALIDATION-LOD-INVALID_TOPLEVEL_DIMENSIONS.md#yandex-datalens-invalid-top-level-lod-dimension-found-in-expression#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-FORMULA-VALIDATION-LOD-INVALID_TOPLEVEL_DIMENSIONS.md",
+        "sha256": "a018c0b08ed495c52ce55643317b81ff0e30298fa51b78d53e96cfe793688059",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-FORMULA-VALIDATION-LOD-INVALID_TOPLEVEL_DIMENSIONS"
+      },
+      "title": "[Yandex DataLens] Invalid top-level LOD dimension found in expression"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-FORMULA-VALIDATION-WIN_FUNC-BFB_UNSELECTED_DIMENSION",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-formula-validation-win_func-bfb_unselected_dimension",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-FORMULA-VALIDATION-WIN_FUNC-BFB_UNSELECTED_DIMENSION "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Window function has unselected dimension [Yandex DataLens] Window function has unselected dimension ERR.DSAPI.FORMULA.VALIDATION.WINFUNC.BFBUNSELECTEDDIMENSION Ошибка возникает, когда в формуле...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-window-function-has-unselected-dimension",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-FORMULA-VALIDATION-WIN_FUNC-BFB_UNSELECTED_DIMENSION.md#yandex-datalens-window-function-has-unselected-dimension#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-FORMULA-VALIDATION-WIN_FUNC-BFB_UNSELECTED_DIMENSION.md",
+        "sha256": "889aa0bdfb3cb8b748143bf8ab2a2528ae642a691e22d09cf44152b4a3edeea6",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-FORMULA-VALIDATION-WIN_FUNC-BFB_UNSELECTED_DIMENSION"
+      },
+      "title": "[Yandex DataLens] Window function has unselected dimension"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-FORMULA-VALIDATION-WIN_FUNC-NO_AGG",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-formula-validation-win_func-no_agg",
+      "observed_runtime_codes": [
+        "Code 184"
+      ],
+      "patterns": [
+        "ERR-DS_API-FORMULA-VALIDATION-WIN_FUNC-NO_AGG "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Window function has no aggregated expressions among its arguments [Yandex DataLens] Window function has no aggregated expressions among its arguments ERR.DSAPI.FORMULA.VALIDATION.WINFUNC.NOAGG...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-window-function-has-no-aggregated-expressions-among-its-arguments",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-FORMULA-VALIDATION-WIN_FUNC-NO_AGG.md#yandex-datalens-window-function-has-no-aggregated-expressions-among-its-arguments#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-FORMULA-VALIDATION-WIN_FUNC-NO_AGG.md",
+        "sha256": "d9207f3a3800724c779d34ce92a7e15a0e2250d6244de0ca9a45e08d5dddf6cb",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-FORMULA-VALIDATION-WIN_FUNC-NO_AGG"
+      },
+      "title": "[Yandex DataLens] Window function has no aggregated expressions among its arguments"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-INVALID_GROUP_BY_CONFIGURATION",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-invalid_group_by_configuration",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-INVALID_GROUP_BY_CONFIGURATION "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Invalid grouping configuration [Yandex DataLens] Invalid grouping configuration ERR.DSAPI.INVALIDGROUPBYCONFIGURATION Некорректная настройка группировки. Ошибка возникает в чарте типа Таблица,...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-invalid-grouping-configuration",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-INVALID_GROUP_BY_CONFIGURATION.md#yandex-datalens-invalid-grouping-configuration#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-INVALID_GROUP_BY_CONFIGURATION.md",
+        "sha256": "9c28a5b1eb81d102207f693119797ace920784c6d7a33d92be6ac867e1f4672d",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-INVALID_GROUP_BY_CONFIGURATION"
+      },
+      "title": "[Yandex DataLens] Invalid grouping configuration"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-INVALID_QUERY_STRUCTURE-INCONSISTENT_AGGREGATION",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-invalid_query_structure-inconsistent_aggregation",
+      "observed_runtime_codes": [
+        "Code 184"
+      ],
+      "patterns": [
+        "ERR-DS_API-INVALID_QUERY_STRUCTURE-INCONSISTENT_AGGREGATION "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Inconsistent aggregation status among SELECT items [Yandex DataLens] Inconsistent aggregation status among SELECT items ERR.DSAPI.INVALIDQUERYSTRUCTURE.INCONSISTENTAGGREGATION Происходит, когда...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-inconsistent-aggregation-status-among-select-items",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-INVALID_QUERY_STRUCTURE-INCONSISTENT_AGGREGATION.md#yandex-datalens-inconsistent-aggregation-status-among-select-items#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-INVALID_QUERY_STRUCTURE-INCONSISTENT_AGGREGATION.md",
+        "sha256": "5a88485c9ab0c3f39938437a530294176cae7ed73c3094b0f80e39c225cbe373",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-INVALID_QUERY_STRUCTURE-INCONSISTENT_AGGREGATION"
+      },
+      "title": "[Yandex DataLens] Inconsistent aggregation status among SELECT items"
+    },
+    {
+      "affected_layer": "dataset_preview_source_access",
+      "code": "ERR-DS_API-PREVIEW_SOURCE_MODIFICATION_NOT_ALLOWED",
+      "likely_causes": [
+        "preview_source_modification_not_allowed"
+      ],
+      "normalized_code": "preview_source_modification_not_allowed",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-PREVIEW_SOURCE_MODIFICATION_NOT_ALLOWED "
+      ],
+      "remediation": "Use the connection already saved in the dataset preview request, or obtain View permission on the replacement connection before modifying source parameters.",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_read_object(connection)",
+        "verify_saved_dataset_connection_reference",
+        "verify_connection_view_permission"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-изменение-источника-данных-недоступно",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-PREVIEW_SOURCE_MODIFICATION_NOT_ALLOWED.md#yandex-datalens-изменение-источника-данных-недоступно#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-PREVIEW_SOURCE_MODIFICATION_NOT_ALLOWED.md",
+        "sha256": "362496fd36e114e1fda590c4d8d809a7bb7fee30115dbafed8e3e8c5423d2077",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-PREVIEW_SOURCE_MODIFICATION_NOT_ALLOWED"
+      },
+      "title": "[Yandex DataLens] Изменение источника данных недоступно"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-REFERENCED_ENTRY_ACCESS_DENIED",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-referenced_entry_access_denied",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-REFERENCED_ENTRY_ACCESS_DENIED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Referenced connection cannot be loaded access denied [Yandex DataLens] Referenced connection cannot be loaded: access denied ERR.DSAPI.REFERENCEDENTRYACCESSDENIED Нет прав на подключение, испол...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-referenced-connection-идентификатор_подключения-cannot-be-loaded-access-denied",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-REFERENCED_ENTRY_ACCESS_DENIED.md#yandex-datalens-referenced-connection-идентификатор_подключения-cannot-be-loaded-access-denied#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-REFERENCED_ENTRY_ACCESS_DENIED.md",
+        "sha256": "9dc556e58d09c73f83c29a2e758fe832372fd1467c32e695adfc54c8690554e8",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-REFERENCED_ENTRY_ACCESS_DENIED"
+      },
+      "title": "[Yandex DataLens] Referenced connection <идентификатор_подключения> cannot be loaded: access denied"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-REFERENCED_ENTRY_NOT_FOUND",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-referenced_entry_not_found",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-REFERENCED_ENTRY_NOT_FOUND "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Обращение к несуществующему объекту [Yandex DataLens] Обращение к несуществующему объекту ERR.DSAPI.REFERENCEDENTRYNOTFOUND Эта ошибка возникает при обращении к удаленному объекту. Объект (чарт...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-обращение-к-несуществующему-объекту",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-REFERENCED_ENTRY_NOT_FOUND.md#yandex-datalens-обращение-к-несуществующему-объекту#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-REFERENCED_ENTRY_NOT_FOUND.md",
+        "sha256": "5de4b27caece0ab8bacd497acc4308f5cc88d246bb6250c5cf41224d78c7a349",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-REFERENCED_ENTRY_NOT_FOUND"
+      },
+      "title": "[Yandex DataLens] Обращение к несуществующему объекту"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-REQUEST_TIMEOUT",
+      "likely_causes": [
+        "timeout"
+      ],
+      "normalized_code": "err-ds_api-request_timeout",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-REQUEST_TIMEOUT "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Backend app request timeout exceeded [Yandex DataLens] Backend app request timeout exceeded ERR.DSAPI.REQUESTTIMEOUT Превышено время на обработку запроса. Возможные причины ошибки: долгая обраб...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-backend-app-request-timeout-exceeded",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-REQUEST_TIMEOUT.md#yandex-datalens-backend-app-request-timeout-exceeded#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-REQUEST_TIMEOUT.md",
+        "sha256": "bbd3ce04c69b16688eddbe24b625daa9beb01ba4019a00699408bb5af1dec834",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-REQUEST_TIMEOUT"
+      },
+      "title": "[Yandex DataLens] Backend app request timeout exceeded"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-ROW_COUNT_LIMIT",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-row_count_limit",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-ROW_COUNT_LIMIT "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Received too many result data rows [Yandex DataLens] Received too many result data rows ERR.DSAPI.ROWCOUNTLIMIT Превышено допустимое количество строк. В DataLens есть ограничение на объем данны...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-received-too-many-result-data-rows",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-ROW_COUNT_LIMIT.md#yandex-datalens-received-too-many-result-data-rows#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-ROW_COUNT_LIMIT.md",
+        "sha256": "d1aa92bcaa43698a56995ed9b2597d11e41c5af5f23a77beb551f1f123958cae",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-ROW_COUNT_LIMIT"
+      },
+      "title": "[Yandex DataLens] Received too many result data rows"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-SOURCE-FILE-NO_DATA",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-source-file-no_data",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-SOURCE-FILE-NO_DATA "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Empty document [Yandex DataLens] Empty document ERR.DSAPI.SOURCE.FILE.NODATA В DataLens нельзя использовать пустой файл в качестве источника. Убедитесь, что загружаете файл с данными. Если ошиб...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-empty-document",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-SOURCE-FILE-NO_DATA.md#yandex-datalens-empty-document#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-SOURCE-FILE-NO_DATA.md",
+        "sha256": "531a5733034fd50c2f6c748fc1eb13018d9e10f045eb903ac438dfa9d6aca191",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-SOURCE-FILE-NO_DATA"
+      },
+      "title": "[Yandex DataLens] Empty document"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-SOURCE_ACCESS_DENIED-INVALID_TOKEN",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-source_access_denied-invalid_token",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-SOURCE_ACCESS_DENIED-INVALID_TOKEN "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Invalid user token [Yandex DataLens] Invalid user token ERR.DSAPI.SOURCEACCESSDENIED.INVALIDTOKEN Сохраненный в подключении токен не действителен. При создании подключения был указан токен, кот...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-invalid-user-token",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-SOURCE_ACCESS_DENIED-INVALID_TOKEN.md#yandex-datalens-invalid-user-token#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-SOURCE_ACCESS_DENIED-INVALID_TOKEN.md",
+        "sha256": "9d8fa3d94c380969df4a2b9226028d865fd5d5394fe3faf30bbed91ceab2f74e",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-SOURCE_ACCESS_DENIED-INVALID_TOKEN"
+      },
+      "title": "[Yandex DataLens] Invalid user token"
+    },
+    {
+      "affected_layer": "source_sql",
+      "code": "ERR-DS_API-SOURCE_CONFIG-TABLE_NOT_CONFIGURED",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-source_config-table_not_configured",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-SOURCE_CONFIG-TABLE_NOT_CONFIGURED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Нарушена конфигурация таблицы [Yandex DataLens] Нарушена конфигурация таблицы ERR.DSAPI.SOURCECONFIG.TABLENOTCONFIGURED Ошибка возникает при неверном заполнении параметров подзапроса или таблиц...",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_build_validation_evidence_report",
+        "static_sql_lint"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-нарушена-конфигурация-таблицы",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-SOURCE_CONFIG-TABLE_NOT_CONFIGURED.md#yandex-datalens-нарушена-конфигурация-таблицы#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-SOURCE_CONFIG-TABLE_NOT_CONFIGURED.md",
+        "sha256": "bf39a069fc080b38345d598fdd5726ec3dd44643bbb587092b361b3f2b59cbaa",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-SOURCE_CONFIG-TABLE_NOT_CONFIGURED"
+      },
+      "title": "[Yandex DataLens] Нарушена конфигурация таблицы"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-TYPE_CAST-FAILED",
+      "likely_causes": [
+        "type_mismatch"
+      ],
+      "normalized_code": "err-ds_api-type_cast-failed",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-TYPE_CAST-FAILED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Ошибка преобразования типа данных [Yandex DataLens] Ошибка преобразования типа данных ERR.DSAPI.TYPECAST.FAILED Ошибка возникает из-за того, что в базе данных источника используются значения, к...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-ошибка-преобразования-типа-данных",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-TYPE_CAST-FAILED.md#yandex-datalens-ошибка-преобразования-типа-данных#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-TYPE_CAST-FAILED.md",
+        "sha256": "4f4e0d1384ccf1d5371f7de02ae6a084b5af547927912d0b6a2d64e73d8e83cc",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-TYPE_CAST-FAILED"
+      },
+      "title": "[Yandex DataLens] Ошибка преобразования типа данных"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-US-ACCESS_DENIED-CONNECTION",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-us-access_denied-connection",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-US-ACCESS_DENIED-CONNECTION "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Access to the connection was denied [Yandex DataLens] Access to the connection was denied ERR.DSAPI.US.ACCESSDENIED.CONNECTION Ошибка означает, что у пользователя нет прав на доступ к запрашива...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-access-to-the-connection-was-denied",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-US-ACCESS_DENIED-CONNECTION.md#yandex-datalens-access-to-the-connection-was-denied#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-US-ACCESS_DENIED-CONNECTION.md",
+        "sha256": "afaa72d26fcccc94f7b774520c3818747ab661bc53772accf2823a61f2ed13ce",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-US-ACCESS_DENIED-CONNECTION"
+      },
+      "title": "[Yandex DataLens] Access to the connection was denied"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-US-ACCESS_DENIED",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-us-access_denied",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-US-ACCESS_DENIED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Access denied [Yandex DataLens] Access denied ERR.DSAPI.US.ACCESSDENIED Ошибка означает, что у пользователя нет прав на доступ к объекту. Например, при отсутствии права на Просмотр датасета или...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-access-denied",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-US-ACCESS_DENIED.md#yandex-datalens-access-denied#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-US-ACCESS_DENIED.md",
+        "sha256": "f0fcfd08db0183f07fb09794a6a65dfaf23f7f94b9913a945b61c6286e5662bc",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-US-ACCESS_DENIED"
+      },
+      "title": "[Yandex DataLens] Access denied"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-US-BAD_REQUEST",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-us-bad_request",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-US-BAD_REQUEST "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Ошибка в запросе к объекту [Yandex DataLens] Ошибка в запросе к объекту ERR.DSAPI.US.BADREQUEST Ответ сервера на неправильный запрос к объекту. Ошибка может быть связана с попыткой использовать...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-ошибка-в-запросе-к-объекту",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-US-BAD_REQUEST.md#yandex-datalens-ошибка-в-запросе-к-объекту#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-US-BAD_REQUEST.md",
+        "sha256": "a8cb3aaf5eee3a3aaf95b612dc416a3c6a136c9efeac6bae7a4316d880837152",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-US-BAD_REQUEST"
+      },
+      "title": "[Yandex DataLens] Ошибка в запросе к объекту"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-US-OBJ_NOT_FOUND-CONNECTION",
+      "likely_causes": [
+        "missing_object_or_field"
+      ],
+      "normalized_code": "err-ds_api-us-obj_not_found-connection",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-US-OBJ_NOT_FOUND-CONNECTION "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Connection not found [Yandex DataLens] Connection not found ERR.DSAPI.US.OBJNOTFOUND.CONNECTION Запрашиваемое подключение не найдено. Возможно, запрашиваемое подключение было удалено или переме...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-connection-not-found",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-US-OBJ_NOT_FOUND-CONNECTION.md#yandex-datalens-connection-not-found#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-US-OBJ_NOT_FOUND-CONNECTION.md",
+        "sha256": "0946927867c007b36ad049053bf71cb451bac73dab92194277177b48da0e9516",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-US-OBJ_NOT_FOUND-CONNECTION"
+      },
+      "title": "[Yandex DataLens] Connection not found"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-US-VALIDATION_FAILED-CONNECTION",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-us-validation_failed-connection",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-US-VALIDATION_FAILED-CONNECTION "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Invalid connection ID [Yandex DataLens] Invalid connection ID ERR.DSAPI.US.VALIDATIONFAILED.CONNECTION Ошибка валидации идентификатора запрашиваемого подключения. Частный случай ошибки ERR.DSAP...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-invalid-connection-id",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-US-VALIDATION_FAILED-CONNECTION.md#yandex-datalens-invalid-connection-id#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-US-VALIDATION_FAILED-CONNECTION.md",
+        "sha256": "146b07f91202ed3cb68f444c7f2daa9ce458de23297938ecd3cc2ef61cca2c21",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-US-VALIDATION_FAILED-CONNECTION"
+      },
+      "title": "[Yandex DataLens] Invalid connection ID"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API-US-VALIDATION_FAILED",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api-us-validation_failed",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API-US-VALIDATION_FAILED "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Invalid input data: validation failed [Yandex DataLens] Invalid input data: validation failed ERR.DSAPI.US.VALIDATIONFAILED Ошибка валидации идентификатора запрашиваемого объекта, например, ког...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-invalid-input-data-validation-failed",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API-US-VALIDATION_FAILED.md#yandex-datalens-invalid-input-data-validation-failed#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API-US-VALIDATION_FAILED.md",
+        "sha256": "2cea0a5d7f84b43ff29beb53729ccec623dcf719dc0459c01bc0bcb28c5ec07e",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API-US-VALIDATION_FAILED"
+      },
+      "title": "[Yandex DataLens] Invalid input data: validation failed"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-DS_API",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-ds_api",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-DS_API "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Internal server error [Yandex DataLens] Internal server error ERR.DSAPI Произошла неизвестная ошибка, повторите действие снова спустя некоторое время. Если ошибка сохраняется, обратитесь в техн...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-internal-server-error",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-DS_API.md#yandex-datalens-internal-server-error#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-DS_API.md",
+        "sha256": "0e776a5adfcdea7d20f686803ddf3bf67fdfe06eefbc266d542d0bf286c7a2a0",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-DS_API"
+      },
+      "title": "[Yandex DataLens] Internal server error"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-FILE-CANNOT_UPDATE_DATA",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-file-cannot_update_data",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-FILE-CANNOT_UPDATE_DATA "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Невозможно обновить данные [Yandex DataLens] Невозможно обновить данные ERR.FILE.CANNOTUPDATEDATA Ошибка возникает при попытке обновить данные в таблице из подключения к файлу, Яндекс Документа...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-невозможно-обновить-данные",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-FILE-CANNOT_UPDATE_DATA.md#yandex-datalens-невозможно-обновить-данные#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-FILE-CANNOT_UPDATE_DATA.md",
+        "sha256": "ad332393751924056b4edb1058f6eb46d92e3aaa65724d63d2c6ff6fd499e894",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-FILE-CANNOT_UPDATE_DATA"
+      },
+      "title": "[Yandex DataLens] Невозможно обновить данные"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-FILE-INVALID_LINK-YADOCS_INVALID_PUBLIC_LINK_PREFIX",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-file-invalid_link-yadocs_invalid_public_link_prefix",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-FILE-INVALID_LINK-YADOCS_INVALID_PUBLIC_LINK_PREFIX "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Неверный формат ссылки на Яндекс Документы [Yandex DataLens] Неверный формат ссылки на Яндекс Документы ERR.FILE.INVALIDLINK.YADOCSINVALIDPUBLICLINKPREFIX Ошибка возникает при создании подключе...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-неверный-формат-ссылки-на-яндекс-документы",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-FILE-INVALID_LINK-YADOCS_INVALID_PUBLIC_LINK_PREFIX.md#yandex-datalens-неверный-формат-ссылки-на-яндекс-документы#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-FILE-INVALID_LINK-YADOCS_INVALID_PUBLIC_LINK_PREFIX.md",
+        "sha256": "4727bd1f91bc51e029ab0a99ffc16e96dc364dbf1eb7404c4eef0e124b89dde4",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-FILE-INVALID_LINK-YADOCS_INVALID_PUBLIC_LINK_PREFIX"
+      },
+      "title": "[Yandex DataLens] Неверный формат ссылки на Яндекс Документы"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-FILE-PARSE_FAILED-INVALID_EXCEL",
+      "likely_causes": [
+        "parse_failure"
+      ],
+      "normalized_code": "err-file-parse_failed-invalid_excel",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-FILE-PARSE_FAILED-INVALID_EXCEL "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Неверный формат файла [Yandex DataLens] Неверный формат файла ERR.FILE.PARSEFAILED.INVALIDEXCEL Ошибка возникает при попытке загрузить файл формата .xlsx с некорректными метаданными в качестве...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-неверный-формат-файла",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-FILE-PARSE_FAILED-INVALID_EXCEL.md#yandex-datalens-неверный-формат-файла#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-FILE-PARSE_FAILED-INVALID_EXCEL.md",
+        "sha256": "55fa6a9dafbfa979506922b66e39fa24af9c370cefcbcdb60653a3e9c776d2d9",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-FILE-PARSE_FAILED-INVALID_EXCEL"
+      },
+      "title": "[Yandex DataLens] Неверный формат файла"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-FILE-UNSUPPORTED_DOCUMENT",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-file-unsupported_document",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-FILE-UNSUPPORTED_DOCUMENT "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > File check failed [Yandex DataLens] File check failed ERR.FILE.UNSUPPORTEDDOCUMENT Формат файла не поддерживается. Эта ошибка возникает при попытке создать подключение к таблице в формате XLSX...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-file-check-failed",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-FILE-UNSUPPORTED_DOCUMENT.md#yandex-datalens-file-check-failed#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-FILE-UNSUPPORTED_DOCUMENT.md",
+        "sha256": "36bbb029ce8f10e9ad2cb5eb27fa4424f4e9140a8fb3a7240ceae42984bcdbd8",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-FILE-UNSUPPORTED_DOCUMENT"
+      },
+      "title": "[Yandex DataLens] File check failed"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "ERR-US-BAD_REQUEST-ALREADY_EXISTS",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "err-us-bad_request-already_exists",
+      "observed_runtime_codes": [],
+      "patterns": [
+        "ERR-US-BAD_REQUEST-ALREADY_EXISTS "
+      ],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Ошибка на стороне БД [Yandex DataLens] Не удалось создать ERR.US.BADREQUEST.ALREADYEXISTS Объект уже существует. Создание объектов с одинаковым названием в рамках одной папки запрещено. Объекта...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-не-удалось-создать-тип_объекта",
+        "chunk_id": "datalens/troubleshooting/errors/ERR-US-BAD_REQUEST-ALREADY_EXISTS.md#yandex-datalens-не-удалось-создать-тип_объекта#1",
+        "mirror_path": "datalens/troubleshooting/errors/ERR-US-BAD_REQUEST-ALREADY_EXISTS.md",
+        "sha256": "1952eebb66a2de1a44441fcac2c5dc826bb0b5b85e0adc6fa8dce3c6a8fa2bf2",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/ERR-US-BAD_REQUEST-ALREADY_EXISTS"
+      },
+      "title": "[Yandex DataLens] Не удалось создать <тип_объекта>"
+    },
+    {
+      "affected_layer": "datalens_runtime",
+      "code": "SDK_REQUEST_ERROR",
+      "likely_causes": [
+        "see_source_trace"
+      ],
+      "normalized_code": "sdk_request_error",
+      "observed_runtime_codes": [],
+      "patterns": [],
+      "remediation": "Документация Yandex Cloud > Yandex DataLens > Решение проблем > Ошибка при обработке ответа [Yandex DataLens] Ошибка при обработке ответа SDKREQUESTERROR Не удалось корректно обработать ошибку. Пожалуйста, попробуйте повторить ваши действия. Если ошибка сох...",
+      "safe_diagnostic_probes": [
+        "dl_read_object",
+        "dl_validate_editor_runtime_contract"
+      ],
+      "source_trace": {
+        "anchor": "yandex-datalens-ошибка-при-обработке-ответа",
+        "chunk_id": "datalens/troubleshooting/errors/SDK_REQUEST_ERROR.md#yandex-datalens-ошибка-при-обработке-ответа#1",
+        "mirror_path": "datalens/troubleshooting/errors/SDK_REQUEST_ERROR.md",
+        "sha256": "d86f22dbf443cf15fe24e5729660b21c005a5d7c650ec6ff38d8f547fd7cde5e",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/SDK_REQUEST_ERROR"
+      },
+      "title": "[Yandex DataLens] Ошибка при обработке ответа"
+    },
+    {
+      "affected_layer": "dataset_preview_source_access",
+      "code": "all",
+      "likely_causes": [
+        "preview_source_modification_not_allowed"
+      ],
+      "normalized_code": "preview_source_modification_not_allowed",
+      "observed_runtime_codes": [
+        "Code 184",
+        "Code 47",
+        "Code 48",
+        "memory_limit"
+      ],
+      "patterns": [],
+      "remediation": "Use the connection already saved in the dataset preview request, or obtain View permission on the replacement connection before modifying source parameters.",
+      "safe_diagnostic_probes": [
+        "dl_get_dataset_schema",
+        "dl_read_object(connection)",
+        "verify_saved_dataset_connection_reference",
+        "verify_connection_view_permission"
+      ],
+      "source_trace": {
+        "anchor": "все-ошибки-в-yandex-datalens",
+        "chunk_id": "datalens/troubleshooting/errors/all.md#все-ошибки-в-yandex-datalens#1",
+        "mirror_path": "datalens/troubleshooting/errors/all.md",
+        "sha256": "ae5cab58740a3557fe89b9ad5c69edcb5a82fdd386768b3d455beea1c0a6a969",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/troubleshooting/errors/all"
+      },
+      "title": "Все ошибки в Yandex DataLens"
+    }
+  ],
+  "schema_version": "2026-06-25.semantic_authoring.v2"
+}

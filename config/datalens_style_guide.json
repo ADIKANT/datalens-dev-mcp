@@ -1,0 +1,71 @@
+{
+  "schema_version": "2026-06-03.datalens_style_guide.v1",
+  "themes": {
+    "light": {
+      "dashboard_background": "var(--g-color-base-background, #FFFFFF)",
+      "card_background": "var(--g-color-base-background, #FFFFFF)",
+      "text_primary": "var(--g-color-text-primary, #111827)",
+      "text_secondary": "var(--g-color-text-secondary, #667085)",
+      "text_muted": "var(--g-color-text-hint, #98A2B3)",
+      "border": "var(--g-color-line-generic, #E5E7EB)",
+      "grid_line": "var(--g-color-line-generic, #E5E7EB)",
+      "tooltip_background": "var(--g-color-base-float, #FFFFFF)",
+      "tooltip_text": "var(--g-color-text-primary, #111827)",
+      "accent": "#2B75E2",
+      "warning": "var(--g-color-text-warning, #B7791F)",
+      "error": "var(--g-color-text-danger, #B42318)",
+      "success": "var(--g-color-text-positive, #237A57)",
+      "neutral_palette": ["#5F6368", "#667085", "#98A2B3", "#D0D5DD"],
+      "chart_categorical_palette": ["#2B75E2", "#6A8FCA", "#8BB7A2", "#A8B0BD", "#D4A95F", "#B58CCF"],
+      "chart_sequential_palette": ["#D7E3F6", "#AFC7ED", "#7AA7F0", "#2B75E2"],
+      "table_header_background": "var(--g-color-base-neutral-light, transparent)",
+      "table_row_background": "var(--g-color-base-background, transparent)",
+      "selector_label_text": "var(--g-color-text-secondary, #667085)"
+    },
+    "dark": {
+      "dashboard_background": "var(--g-color-base-background, #111827)",
+      "card_background": "var(--g-color-base-background, #111827)",
+      "text_primary": "var(--g-color-text-primary, #F9FAFB)",
+      "text_secondary": "var(--g-color-text-secondary, #D1D5DB)",
+      "text_muted": "var(--g-color-text-hint, #9CA3AF)",
+      "border": "var(--g-color-line-generic, #374151)",
+      "grid_line": "var(--g-color-line-generic, #374151)",
+      "tooltip_background": "var(--g-color-base-float, #1F2937)",
+      "tooltip_text": "var(--g-color-text-primary, #F9FAFB)",
+      "accent": "#79A8F7",
+      "warning": "var(--g-color-text-warning, #F2B84B)",
+      "error": "var(--g-color-text-danger, #F87171)",
+      "success": "var(--g-color-text-positive, #5BD18B)",
+      "neutral_palette": ["#F9FAFB", "#D1D5DB", "#9CA3AF", "#4B5563"],
+      "chart_categorical_palette": ["#79A8F7", "#9FB9E5", "#A8CDB9", "#B7BEC8", "#E0C47C", "#C9A6DF"],
+      "chart_sequential_palette": ["#1F2937", "#385A8D", "#5D85C9", "#79A8F7"],
+      "table_header_background": "var(--g-color-base-neutral-light, transparent)",
+      "table_row_background": "var(--g-color-base-background, transparent)",
+      "selector_label_text": "var(--g-color-text-secondary, #D1D5DB)"
+    }
+  },
+  "table_status_tokens": {
+    "failed": {
+      "background": "var(--g-color-base-danger-light, rgba(255, 77, 79, 0.16))",
+      "text": "var(--g-color-text-danger, inherit)"
+    },
+    "skipped": {
+      "background": "var(--g-color-base-warning-light, rgba(255, 190, 92, 0.18))",
+      "text": "var(--g-color-text-warning, inherit)"
+    },
+    "passed": {
+      "background": "var(--g-color-base-positive-light, rgba(48, 191, 113, 0.16))",
+      "text": "var(--g-color-text-positive, inherit)"
+    },
+    "neutral": {
+      "background": "var(--g-color-base-background, transparent)",
+      "text": "var(--g-color-text-secondary, inherit)"
+    }
+  },
+  "rules": [
+    "DataLens table body and pinned cells must set background-color from theme variables.",
+    "Do not use light-only cell fills such as #F7F9FC, #FDECEC, #ECF7EF, or #FFF7E0.",
+    "Category colors must not duplicate semantic warning/error/success colors.",
+    "Generated chart code should receive resolved style tokens from template params/model data."
+  ]
+}

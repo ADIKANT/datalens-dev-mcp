@@ -1,0 +1,928 @@
+{
+  "schema_version": "2026-06-25.semantic_authoring.v2",
+  "visualizations": [
+    {
+      "analytical_intent": "time_trend",
+      "data_volume_limits": [
+        "row_count_relevant"
+      ],
+      "dimensions_limit": {
+        "max_detected": 25,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "area-chart",
+      "local_policy": "wizard_first_supported",
+      "measures_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_native",
+      "official_capability": "documented",
+      "restrictions": [],
+      "settings": [
+        "sorting",
+        "filtering",
+        "color",
+        "labels",
+        "totals"
+      ],
+      "source_trace": {
+        "anchor": "диаграмма-с-областями-_assets-datalens-area-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/area-chart.md#диаграмма-с-областями-_assets-datalens-area-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/area-chart.md",
+        "sha256": "67f5800145e50e04d6175869d422f2485dcdc78504fb00d7778f3b383f7c9bc0",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/area-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "sort",
+        "filter",
+        "label"
+      ],
+      "title": "Диаграмма с областями ![](../../_assets/datalens/area.svg) в Yandex DataLens",
+      "wizard_visualization_id": "area"
+    },
+    {
+      "analytical_intent": "category_comparison",
+      "data_volume_limits": [
+        "row_count_relevant"
+      ],
+      "dimensions_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "bar-chart",
+      "local_policy": "wizard_first_supported",
+      "measures_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_native",
+      "official_capability": "documented",
+      "restrictions": [],
+      "settings": [
+        "sorting",
+        "filtering",
+        "color",
+        "labels",
+        "totals"
+      ],
+      "source_trace": {
+        "anchor": "линейчатая-диаграмма-_assets-datalens-horizontal-bar-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/bar-chart.md#линейчатая-диаграмма-_assets-datalens-horizontal-bar-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/bar-chart.md",
+        "sha256": "2544e58bd3d4257aabbd3c3a5f87cefa8ceaf2996751d0c00f18736e353f86d0",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/bar-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "sort",
+        "filter",
+        "label"
+      ],
+      "title": "Линейчатая диаграмма ![](../../_assets/datalens/horizontal-bar.svg) в Yandex DataLens",
+      "wizard_visualization_id": "bar"
+    },
+    {
+      "analytical_intent": "geospatial",
+      "data_volume_limits": [
+        "row_count_relevant"
+      ],
+      "dimensions_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "choropleth-map-chart",
+      "local_policy": "reference_only_unknown_visualization",
+      "measures_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_reference_only",
+      "official_capability": "documented",
+      "restrictions": [],
+      "settings": [
+        "filtering",
+        "color",
+        "labels"
+      ],
+      "source_trace": {
+        "anchor": "фоновая-карта-_assets-datalens-heatmap-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/choropleth-map-chart.md#фоновая-карта-_assets-datalens-heatmap-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/choropleth-map-chart.md",
+        "sha256": "af354717eab3167390c7d101f272764b16f2d51188af6c98a29a8752d82e0bbc",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/choropleth-map-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "filter",
+        "label"
+      ],
+      "title": "Фоновая карта ![](../../_assets/datalens/heatmap.svg) в Yandex DataLens",
+      "wizard_visualization_id": ""
+    },
+    {
+      "analytical_intent": "geospatial",
+      "data_volume_limits": [
+        "row_count_relevant"
+      ],
+      "dimensions_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "cluster-point-map-chart",
+      "local_policy": "reference_only_unknown_visualization",
+      "measures_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_reference_only",
+      "official_capability": "documented",
+      "restrictions": [
+        "has_forbidden_combination"
+      ],
+      "settings": [
+        "filtering",
+        "color",
+        "labels"
+      ],
+      "source_trace": {
+        "anchor": "точечная-карта-с-кластеризацией-_assets-datalens-heatmap-svg-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/cluster-point-map-chart.md#точечная-карта-с-кластеризацией-_assets-datalens-heatmap-svg-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/cluster-point-map-chart.md",
+        "sha256": "cd6c87251d259bbdd143d59a5011bf127ecf2359268b0c42d51be2686ca11e93",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/cluster-point-map-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "filter",
+        "label"
+      ],
+      "title": "Точечная карта с кластеризацией ![](../../_assets/datalens/heatmap.svg) Yandex DataLens",
+      "wizard_visualization_id": ""
+    },
+    {
+      "analytical_intent": "category_comparison",
+      "data_volume_limits": [
+        "row_count_relevant"
+      ],
+      "dimensions_limit": {
+        "max_detected": 25,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "column-chart",
+      "local_policy": "wizard_first_supported",
+      "measures_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_native",
+      "official_capability": "documented",
+      "restrictions": [
+        "has_forbidden_combination"
+      ],
+      "settings": [
+        "sorting",
+        "filtering",
+        "color",
+        "labels",
+        "totals"
+      ],
+      "source_trace": {
+        "anchor": "столбчатая-диаграмма-_assets-datalens-column-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/column-chart.md#столбчатая-диаграмма-_assets-datalens-column-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/column-chart.md",
+        "sha256": "4a22f5431ec8a326ca36a3278be4ac628defacbaa44f737e7644bc925c238d1f",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/column-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "sort",
+        "filter",
+        "label"
+      ],
+      "title": "Столбчатая диаграмма ![](../../_assets/datalens/column.svg) в Yandex DataLens",
+      "wizard_visualization_id": "column"
+    },
+    {
+      "analytical_intent": "documented_visual_analysis",
+      "data_volume_limits": [],
+      "dimensions_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "combined-chart",
+      "local_policy": "wizard_first_supported",
+      "measures_limit": {
+        "max_detected": null,
+        "source": "documented_without_compact_number"
+      },
+      "native_route": "wizard_native",
+      "official_capability": "documented",
+      "restrictions": [],
+      "settings": [
+        "sorting",
+        "filtering",
+        "labels"
+      ],
+      "source_trace": {
+        "anchor": "комбинированная-диаграмма-_assets-datalens-combined-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/combined-chart.md#комбинированная-диаграмма-_assets-datalens-combined-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/combined-chart.md",
+        "sha256": "90cb33d07f10b5e320fcc22c71efe800b48d02ad8aaa9981338906c83955532f",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/combined-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "sort",
+        "filter",
+        "label"
+      ],
+      "title": "Комбинированная диаграмма ![](../../_assets/datalens/combined.svg) в Yandex DataLens",
+      "wizard_visualization_id": "combined-chart"
+    },
+    {
+      "analytical_intent": "geospatial",
+      "data_volume_limits": [],
+      "dimensions_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "heat-map-chart",
+      "local_policy": "reference_only_unknown_visualization",
+      "measures_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_reference_only",
+      "official_capability": "documented",
+      "restrictions": [],
+      "settings": [
+        "filtering",
+        "color"
+      ],
+      "source_trace": {
+        "anchor": "тепловая-карта-_assets-datalens-heatmap-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/heat-map-chart.md#тепловая-карта-_assets-datalens-heatmap-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/heat-map-chart.md",
+        "sha256": "79e1a95ad1b14c4c658fcaad40a223a98999e1b7cb23c7123b02f014d926efef",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/heat-map-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "filter"
+      ],
+      "title": "Тепловая карта ![](../../_assets/datalens/heatmap.svg) в Yandex DataLens",
+      "wizard_visualization_id": ""
+    },
+    {
+      "analytical_intent": "documented_visual_analysis",
+      "data_volume_limits": [],
+      "dimensions_limit": {
+        "max_detected": null,
+        "source": "not_detected"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "index",
+      "local_policy": "reference_only_unknown_visualization",
+      "measures_limit": {
+        "max_detected": null,
+        "source": "documented_without_compact_number"
+      },
+      "native_route": "wizard_reference_only",
+      "official_capability": "documented",
+      "restrictions": [
+        "has_not_supported_clause"
+      ],
+      "settings": [],
+      "source_trace": {
+        "anchor": "справочник-визуализаций-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/index.md#справочник-визуализаций-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/index.md",
+        "sha256": "6aca1ab01ca9b61255ad9bf18584cb8b95cab35698b2a3d70dbcd301a6c0d44c",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/"
+      },
+      "supported_slots": [
+        "measure"
+      ],
+      "title": "Справочник визуализаций в Yandex DataLens",
+      "wizard_visualization_id": ""
+    },
+    {
+      "analytical_intent": "documented_visual_analysis",
+      "data_volume_limits": [],
+      "dimensions_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "indicator-chart",
+      "local_policy": "wizard_first_supported",
+      "measures_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_native",
+      "official_capability": "documented",
+      "restrictions": [],
+      "settings": [
+        "filtering",
+        "color"
+      ],
+      "source_trace": {
+        "anchor": "индикатор-_assets-datalens-indicator-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/indicator-chart.md#индикатор-_assets-datalens-indicator-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/indicator-chart.md",
+        "sha256": "4dfde2505ebe3c00f2d20575517eda1511f4184243596b0480ce3cd0d5f29219",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/indicator-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "filter"
+      ],
+      "title": "Индикатор ![](../../_assets/datalens/indicator.svg) в Yandex DataLens",
+      "wizard_visualization_id": "metric"
+    },
+    {
+      "analytical_intent": "time_trend",
+      "data_volume_limits": [
+        "row_count_relevant"
+      ],
+      "dimensions_limit": {
+        "max_detected": 12,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "line-chart",
+      "local_policy": "wizard_first_supported",
+      "measures_limit": {
+        "max_detected": 12,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_native",
+      "official_capability": "documented",
+      "restrictions": [],
+      "settings": [
+        "sorting",
+        "filtering",
+        "color",
+        "labels"
+      ],
+      "source_trace": {
+        "anchor": "линейная-диаграмма-_assets-datalens-line-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/line-chart.md#линейная-диаграмма-_assets-datalens-line-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/line-chart.md",
+        "sha256": "7ffce3b4845ac130a1a35249ca4059997e11d0da0155aa8199b67303e0957c3e",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/line-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "sort",
+        "filter",
+        "label"
+      ],
+      "title": "Линейная диаграмма ![](../../_assets/datalens/line.svg) в Yandex DataLens",
+      "wizard_visualization_id": "line"
+    },
+    {
+      "analytical_intent": "geospatial",
+      "data_volume_limits": [],
+      "dimensions_limit": {
+        "max_detected": null,
+        "source": "not_detected"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "map-chart",
+      "local_policy": "wizard_first_supported",
+      "measures_limit": {
+        "max_detected": null,
+        "source": "documented_without_compact_number"
+      },
+      "native_route": "wizard_native",
+      "official_capability": "documented",
+      "restrictions": [
+        "has_not_supported_clause"
+      ],
+      "settings": [
+        "color"
+      ],
+      "source_trace": {
+        "anchor": "карта-_assets-datalens-heatmap-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/map-chart.md#карта-_assets-datalens-heatmap-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/map-chart.md",
+        "sha256": "1ba4ed570b75bc3c9aac480237f28eabf658ffaff23ea0075fb8bc0fce07d442",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/map-chart"
+      },
+      "supported_slots": [
+        "measure",
+        "color"
+      ],
+      "title": "Карта ![](../../_assets/datalens/heatmap.svg) в Yandex DataLens",
+      "wizard_visualization_id": "geolayer"
+    },
+    {
+      "analytical_intent": "time_trend",
+      "data_volume_limits": [
+        "row_count_relevant"
+      ],
+      "dimensions_limit": {
+        "max_detected": 25,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "normalized-area-chart",
+      "local_policy": "wizard_first_supported",
+      "measures_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_native",
+      "official_capability": "documented",
+      "restrictions": [],
+      "settings": [
+        "sorting",
+        "filtering",
+        "color",
+        "labels"
+      ],
+      "source_trace": {
+        "anchor": "нормированная-диаграмма-с-областями-_assets-datalens-normalized-area-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/normalized-area-chart.md#нормированная-диаграмма-с-областями-_assets-datalens-normalized-area-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/normalized-area-chart.md",
+        "sha256": "e31b19b8b40796159e345b12dd74a0f28dada520305074e0eaf06a2eeb542eab",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/normalized-area-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "sort",
+        "filter",
+        "label"
+      ],
+      "title": "Нормированная диаграмма с областями ![](../../_assets/datalens/normalized-area.svg) в Yandex DataLens",
+      "wizard_visualization_id": "area"
+    },
+    {
+      "analytical_intent": "category_comparison",
+      "data_volume_limits": [
+        "row_count_relevant"
+      ],
+      "dimensions_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "normalized-bar-chart",
+      "local_policy": "wizard_first_supported",
+      "measures_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_native",
+      "official_capability": "documented",
+      "restrictions": [],
+      "settings": [
+        "sorting",
+        "filtering",
+        "color",
+        "labels",
+        "totals"
+      ],
+      "source_trace": {
+        "anchor": "нормированная-линейчатая-диаграмма-_assets-datalens-normalized-horizontal-bar-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/normalized-bar-chart.md#нормированная-линейчатая-диаграмма-_assets-datalens-normalized-horizontal-bar-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/normalized-bar-chart.md",
+        "sha256": "9dce99a22f0ae6994e4fb7212aca8115086309e7a49966eed9aef9990997072f",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/normalized-bar-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "sort",
+        "filter",
+        "label"
+      ],
+      "title": "Нормированная линейчатая диаграмма ![](../../_assets/datalens/normalized-horizontal-bar.svg) в Yandex DataLens",
+      "wizard_visualization_id": "bar"
+    },
+    {
+      "analytical_intent": "category_comparison",
+      "data_volume_limits": [
+        "row_count_relevant"
+      ],
+      "dimensions_limit": {
+        "max_detected": 25,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "normalized-column-chart",
+      "local_policy": "wizard_first_supported",
+      "measures_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_native",
+      "official_capability": "documented",
+      "restrictions": [],
+      "settings": [
+        "sorting",
+        "filtering",
+        "color",
+        "labels",
+        "totals"
+      ],
+      "source_trace": {
+        "anchor": "нормированная-столбчатая-диаграмма-_assets-datalens-normalized-column-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/normalized-column-chart.md#нормированная-столбчатая-диаграмма-_assets-datalens-normalized-column-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/normalized-column-chart.md",
+        "sha256": "5b09f8cb841be2fc21931112ec97b5c870a5e83add553fba739b529b69f48695",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/normalized-column-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "sort",
+        "filter",
+        "label"
+      ],
+      "title": "Нормированная столбчатая диаграмма ![](../../_assets/datalens/normalized-column.svg) в Yandex DataLens",
+      "wizard_visualization_id": "column"
+    },
+    {
+      "analytical_intent": "part_to_whole",
+      "data_volume_limits": [
+        "row_count_relevant"
+      ],
+      "dimensions_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "pie-chart",
+      "local_policy": "wizard_first_supported",
+      "measures_limit": {
+        "max_detected": 100,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_native",
+      "official_capability": "documented",
+      "restrictions": [
+        "has_forbidden_combination"
+      ],
+      "settings": [
+        "sorting",
+        "filtering",
+        "color",
+        "labels"
+      ],
+      "source_trace": {
+        "anchor": "круговая-диаграмма-_assets-datalens-pie-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/pie-chart.md#круговая-диаграмма-_assets-datalens-pie-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/pie-chart.md",
+        "sha256": "bb16684885de21ed21be88a7f8bb20945d762c26e0787bffe40902bf05018e32",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/pie-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "sort",
+        "filter",
+        "label"
+      ],
+      "title": "Круговая диаграмма ![](../../_assets/datalens/pie.svg) в Yandex DataLens",
+      "wizard_visualization_id": "pie"
+    },
+    {
+      "analytical_intent": "exact_values_or_pivot",
+      "data_volume_limits": [
+        "has_documented_limit",
+        "row_count_relevant"
+      ],
+      "dimensions_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_table",
+      "id": "pivot-table-chart",
+      "local_policy": "wizard_first_supported",
+      "measures_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_native",
+      "official_capability": "documented",
+      "restrictions": [
+        "has_not_supported_clause"
+      ],
+      "settings": [
+        "sorting",
+        "filtering",
+        "color",
+        "totals",
+        "pagination"
+      ],
+      "source_trace": {
+        "anchor": "сводная-таблица-_assets-datalens-pivot-table-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/pivot-table-chart.md#сводная-таблица-_assets-datalens-pivot-table-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/pivot-table-chart.md",
+        "sha256": "abd0f4d3c0353cf39fd7167d6f13afd7d0f659f24006893c71fcc2563be182e1",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/pivot-table-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "sort",
+        "filter"
+      ],
+      "title": "Сводная таблица ![](../../_assets/datalens/pivot-table.svg) в Yandex DataLens",
+      "wizard_visualization_id": "pivotTable"
+    },
+    {
+      "analytical_intent": "geospatial",
+      "data_volume_limits": [
+        "row_count_relevant"
+      ],
+      "dimensions_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "point-map-chart",
+      "local_policy": "reference_only_unknown_visualization",
+      "measures_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_reference_only",
+      "official_capability": "documented",
+      "restrictions": [],
+      "settings": [
+        "filtering",
+        "color",
+        "labels"
+      ],
+      "source_trace": {
+        "anchor": "точечная-карта-_assets-datalens-heatmap-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/point-map-chart.md#точечная-карта-_assets-datalens-heatmap-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/point-map-chart.md",
+        "sha256": "3a63cabfa2b3c96968e7bcd1330fbabd6a2678e2e5c1bd33a1b80fee56bd029a",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/point-map-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "filter",
+        "label"
+      ],
+      "title": "Точечная карта ![](../../_assets/datalens/heatmap.svg) в Yandex DataLens",
+      "wizard_visualization_id": ""
+    },
+    {
+      "analytical_intent": "geospatial",
+      "data_volume_limits": [
+        "row_count_relevant"
+      ],
+      "dimensions_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "polyline-map-chart",
+      "local_policy": "wizard_first_supported",
+      "measures_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_native",
+      "official_capability": "documented",
+      "restrictions": [],
+      "settings": [
+        "sorting",
+        "filtering",
+        "color"
+      ],
+      "source_trace": {
+        "anchor": "полилинейная-карта-_assets-datalens-polyline-map-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/polyline-map-chart.md#полилинейная-карта-_assets-datalens-polyline-map-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/polyline-map-chart.md",
+        "sha256": "74206fe945709e96c8f65f10e9024c12a3ed0a373bc0a85ef68f595cc613105f",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/polyline-map-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "sort",
+        "filter"
+      ],
+      "title": "Полилинейная карта ![](../../_assets/datalens/polyline-map.svg) в Yandex DataLens",
+      "wizard_visualization_id": "line"
+    },
+    {
+      "analytical_intent": "part_to_whole",
+      "data_volume_limits": [
+        "row_count_relevant"
+      ],
+      "dimensions_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "ring-chart",
+      "local_policy": "reference_only_unknown_visualization",
+      "measures_limit": {
+        "max_detected": 100,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_reference_only",
+      "official_capability": "documented",
+      "restrictions": [
+        "has_forbidden_combination"
+      ],
+      "settings": [
+        "sorting",
+        "filtering",
+        "color",
+        "labels",
+        "totals"
+      ],
+      "source_trace": {
+        "anchor": "кольцевая-диаграмма-_assets-datalens-ring-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/ring-chart.md#кольцевая-диаграмма-_assets-datalens-ring-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/ring-chart.md",
+        "sha256": "41d4bc2d7f8985b9053959e0d8b3f973348bcfa073e50fea360642cfa8f95485",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/ring-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "sort",
+        "filter",
+        "label"
+      ],
+      "title": "Кольцевая диаграмма ![](../../_assets/datalens/ring.svg) в Yandex DataLens",
+      "wizard_visualization_id": ""
+    },
+    {
+      "analytical_intent": "documented_visual_analysis",
+      "data_volume_limits": [
+        "row_count_relevant"
+      ],
+      "dimensions_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "scatter-chart",
+      "local_policy": "wizard_first_supported",
+      "measures_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_native",
+      "official_capability": "documented",
+      "restrictions": [],
+      "settings": [
+        "sorting",
+        "filtering",
+        "color",
+        "labels"
+      ],
+      "source_trace": {
+        "anchor": "точечная-диаграмма-_assets-datalens-scatter-chart-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/scatter-chart.md#точечная-диаграмма-_assets-datalens-scatter-chart-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/scatter-chart.md",
+        "sha256": "f6315697b7d31d4a3c71fb2e3da02ac71505569287bca87c27bc323595a0714e",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/scatter-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "sort",
+        "filter",
+        "label"
+      ],
+      "title": "Точечная диаграмма ![](../../_assets/datalens/scatter-chart.svg) в Yandex DataLens",
+      "wizard_visualization_id": "scatter"
+    },
+    {
+      "analytical_intent": "exact_values_or_pivot",
+      "data_volume_limits": [
+        "has_documented_limit",
+        "row_count_relevant"
+      ],
+      "dimensions_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_table",
+      "id": "table-chart",
+      "local_policy": "wizard_first_supported",
+      "measures_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_native",
+      "official_capability": "documented",
+      "restrictions": [
+        "has_not_supported_clause"
+      ],
+      "settings": [
+        "sorting",
+        "filtering",
+        "color",
+        "totals",
+        "pagination"
+      ],
+      "source_trace": {
+        "anchor": "таблица-_assets-datalens-table-chart-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/table-chart.md#таблица-_assets-datalens-table-chart-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/table-chart.md",
+        "sha256": "c3fd9b472044c59276f5192b41e8375a1fdef4e2ee641e899ccec3a9332cb230",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/table-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "sort",
+        "filter"
+      ],
+      "title": "Таблица ![](../../_assets/datalens/table-chart.svg) в Yandex DataLens",
+      "wizard_visualization_id": "flatTable"
+    },
+    {
+      "analytical_intent": "part_to_whole",
+      "data_volume_limits": [
+        "row_count_relevant"
+      ],
+      "dimensions_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "tree-chart",
+      "local_policy": "reference_only_unknown_visualization",
+      "measures_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_reference_only",
+      "official_capability": "documented",
+      "restrictions": [
+        "has_forbidden_combination"
+      ],
+      "settings": [
+        "filtering",
+        "color"
+      ],
+      "source_trace": {
+        "anchor": "древовидная-диаграмма-_assets-datalens-treemap-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/tree-chart.md#древовидная-диаграмма-_assets-datalens-treemap-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/tree-chart.md",
+        "sha256": "621f6648372399cccec86f65ded23ecae32243772dc4fd4ea23721969fd84677",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/tree-chart"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "filter"
+      ],
+      "title": "Древовидная диаграмма ![](../../_assets/datalens/treemap.svg) в Yandex DataLens",
+      "wizard_visualization_id": ""
+    }
+  ]
+}

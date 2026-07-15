@@ -1,0 +1,8 @@
+{
+  "name": "wizard-map-native-plan",
+  "route": "wizard_map_native",
+  "canonical_route": "wizard_native",
+  "visualization_id": "geolayer",
+  "compatibility_alias": true,
+  "source_example": "wizard-map-native-plan"
+}

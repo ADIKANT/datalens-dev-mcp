@@ -1,0 +1,112 @@
+{
+  "schema_version": "2026-06-04.datalens_mcp_local_config.v1",
+  "defaults": {
+    "workbook_id": "<WORKBOOK_ID>",
+    "project_id": "<PROJECT_ID>",
+    "dashboard_id": "<DASHBOARD_ID>",
+    "project_workspace_path": "."
+  },
+  "safe_mode": {
+    "default": "plan_only",
+    "allow_writes": false,
+    "require_safe_apply_plan": true,
+    "require_fresh_read": true,
+    "preserve_revision": true
+  },
+  "approval_gates": {
+    "write_requires_env": "DATALENS_MCP_ENABLE_WRITES=1",
+    "write_requires_tool_approval": true,
+    "publish_requires_explicit_tool_approval": true,
+    "publish_default": true,
+    "delete_move_permissions_allowed": false
+  },
+  "readback": {
+    "mode": "minimal",
+    "justification": "Minimal saved readback is enough for local plan verification unless a live publish or debug task explicitly requires full/debug."
+  },
+  "validation": {
+    "strictness": "strict",
+    "fail_on_secret_scan": true,
+    "require_route_validation": true,
+    "require_template_validation": true,
+    "require_relation_validation": true
+  },
+  "safe_apply": {
+    "require_approved_plan_path": true,
+    "require_approval_flag": true,
+    "require_env_write_enablement": true,
+    "require_save_mode_first": true,
+    "require_readback_after_save": true,
+    "allow_publish_by_default": true
+  },
+  "live_testing": {
+    "run_live_tests_by_default": false,
+    "require_env_flag": "DATALENS_MCP_RUN_LIVE_TESTS=1",
+    "require_disposable_targets": true,
+    "allow_publish_checks": false
+  },
+  "api_defaults": {
+    "request_interval_sec": 0.15,
+    "rate_limit_retries": 6,
+    "request_timeout_sec": 30
+  },
+  "routing": {
+    "chart_creation_routes": [
+      "wizard_native",
+      "advanced_editor_js",
+      "ql_explicit"
+    ],
+    "advanced_editor_js_routes": [
+      "editor_advanced",
+      "editor_table",
+      "editor_markdown",
+      "editor_js_control"
+    ],
+    "wizard_native": {
+      "enabled": true,
+      "visualization_registry": "templates/datalens/wizard/wizard_template_registry.json",
+      "seed_policy": "fresh_saved_same_visualization_then_committed_canonical",
+      "geolayer_requires_geo_evidence": true
+    },
+    "wizard_map_native_alias": {
+      "enabled": true,
+      "visualization_id": "geolayer"
+    },
+    "ql_behavior": "explicit_user_request_only",
+    "forbidden_routes": [
+      "d3_node",
+      "regular_editor_chart",
+      "gravity_ui_charts",
+      "automatic_ql_selection",
+      "runtime_route_fallback"
+    ]
+  },
+  "style": {
+    "style_guide_path": "config/datalens_style_guide.json",
+    "chart_design_rules_path": "config/datalens_chart_design_rules.json",
+    "theme_tokens_path": "templates/advanced/style-tokens.js",
+    "theme_tokens": {
+      "text_primary": "var(--g-color-text-primary)",
+      "text_secondary": "var(--g-color-text-secondary)",
+      "background": "var(--g-color-base-background)",
+      "border": "var(--g-color-line-generic)",
+      "accent": "var(--g-color-base-brand)"
+    }
+  },
+  "naming": {
+    "title_source": "native_metadata",
+    "hint_source": "native_metadata",
+    "duplicate_titles_inside_chart_body": false,
+    "default_title_prefix": "js - ",
+    "require_hint_when_enableHint": true
+  },
+  "selectors": {
+    "label_placement": "left",
+    "width_mode": "percentage",
+    "row_width_percent": 96,
+    "default_selector_width_percent": 24,
+    "min_selector_width_percent": 16,
+    "max_selector_width_percent": 48,
+    "target_binding_required": true
+  }
+}

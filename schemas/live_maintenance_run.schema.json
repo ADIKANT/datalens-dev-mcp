@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "title": "Delta v7 Live Maintenance Run",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "target",
+    "status",
+    "phases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "datalens.delta_v7.live_maintenance_run.v1"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "target": {
+      "type": "object",
+      "required": [
+        "workbook_id"
+      ],
+      "properties": {
+        "workbook_id": {
+          "type": "string"
+        },
+        "dashboard_id": {
+          "type": "string"
+        },
+        "target_tab_id": {
+          "type": "string"
+        }
+      }
+    },
+    "intent": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "done",
+        "runtime_not_verified",
+        "blocked",
+        "rolled_back",
+        "planned",
+        "saved",
+        "published"
+      ]
+    },
+    "phases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "status"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "artifact_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "runtime_gate": {
+      "type": "object"
+    },
+    "runtime_gates": {
+      "type": "object",
+      "required": ["saved", "published"],
+      "properties": {
+        "saved": {"type": "object"},
+        "published": {"type": "object"}
+      }
+    },
+    "publish_requested": {"type": "boolean"},
+    "publish_allowed": {"type": "boolean"},
+    "delivery_stage": {
+      "enum": ["planned", "saved", "saved_runtime_passed", "published", "published_runtime_passed"]
+    },
+    "completion_evidence": {
+      "type": "object",
+      "required": ["completion_ready", "missing_evidence", "blocked_reasons"],
+      "properties": {
+        "completion_ready": {"type": "boolean"},
+        "missing_evidence": {"type": "array", "items": {"type": "string"}},
+        "blocked_reasons": {"type": "array", "items": {"type": "string"}},
+        "safe_apply_execution": {"type": "object"},
+        "saved_readback": {"type": "object"},
+        "publish_from_saved": {"type": "object"},
+        "published_readback": {"type": "object"}
+      },
+      "additionalProperties": true
+    },
+    "cleanup_plan": {
+      "type": "object"
+    },
+    "handoff": {
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "done"}}},
+      "then": {
+        "required": ["runtime_gate", "runtime_gates", "completion_evidence", "publish_allowed", "delivery_stage"],
+        "properties": {
+          "runtime_gate": {
+            "type": "object",
+            "anyOf": [
+              {
+                "required": ["status", "browser_capture_validation"],
+                "properties": {
+                  "status": {"const": "passed"},
+                  "browser_capture_validation": {
+                    "type": "object",
+                    "required": ["ok"],
+                    "properties": {"ok": {"const": true}}
+                  }
+                }
+              },
+              {
+                "required": ["non_rendering_exemption"],
+                "properties": {"non_rendering_exemption": {"type": "string", "minLength": 1}}
+              }
+            ]
+          },
+          "completion_evidence": {
+            "type": "object",
+            "required": ["completion_ready", "missing_evidence", "blocked_reasons"],
+            "properties": {
+              "completion_ready": {"const": true},
+              "missing_evidence": {"maxItems": 0},
+              "blocked_reasons": {"maxItems": 0}
+            }
+          },
+          "delivery_stage": {"enum": ["saved_runtime_passed", "published_runtime_passed"]}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"status": {"const": "done"}, "publish_requested": {"const": true}},
+        "required": ["status", "publish_requested"]
+      },
+      "then": {
+        "properties": {
+          "publish_allowed": {"const": true},
+          "delivery_stage": {"const": "published_runtime_passed"},
+          "runtime_gates": {
+            "properties": {
+              "saved": {"required": ["status", "branch"], "properties": {"status": {"const": "passed"}, "branch": {"const": "saved"}}},
+              "published": {"required": ["status", "branch"], "properties": {"status": {"const": "passed"}, "branch": {"const": "published"}}}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

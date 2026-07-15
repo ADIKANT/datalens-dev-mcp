@@ -1,0 +1,360 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/safe-apply-plan.schema.json",
+  "title": "Safe apply plan",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "created_at",
+    "project_root",
+    "read_only_default",
+    "default_mode",
+    "approved",
+    "approval_provenance",
+    "target_lock",
+    "branch_semantics",
+    "transaction_policy",
+    "actions"
+  ],
+  "properties": {
+    "schema_version": {"type": "string", "pattern": "safe_apply_plan"},
+    "created_at": {"type": "string", "minLength": 1},
+    "project_root": {"type": "string", "minLength": 1},
+    "read_only_default": {"const": true},
+    "write_requires_env": {"const": "DATALENS_MCP_ENABLE_WRITES=1"},
+    "expert_rpc_requires_env": {"const": "DATALENS_MCP_ENABLE_EXPERT_RPC=1"},
+    "default_mode": {"const": "save"},
+    "approved": {"type": "boolean"},
+    "approval_note": {"type": "string"},
+    "approval_provenance": {"$ref": "#/$defs/approvalProvenance"},
+    "target_lock": {"$ref": "#/$defs/targetLock"},
+    "branch_semantics": {"$ref": "#/$defs/planBranchSemantics"},
+    "transaction_policy": {
+      "type": "object",
+      "required": ["no_partial_publish", "publish_requires_completed_save_actions_in_group", "unknown_write_outcome_blocks_resume"],
+      "properties": {
+        "no_partial_publish": {"const": true},
+        "publish_requires_completed_save_actions_in_group": {"const": true},
+        "unknown_write_outcome_blocks_resume": {"const": true}
+      }
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/action"}
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"approved": {"const": true}}, "required": ["approved"]},
+      "then": {
+        "properties": {
+          "approval_provenance": {
+            "required": ["approved_at"],
+            "properties": {
+              "approved": {"const": true},
+              "approved_at": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": true,
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "branch": {"enum": ["saved", "published"]},
+    "writeMethod": {
+      "enum": [
+        "createConnection",
+        "createDashboard",
+        "createDataset",
+        "createEditorChart",
+        "createWizardChart",
+        "createWorkbook",
+        "updateConnection",
+        "updateDashboard",
+        "updateDataset",
+        "updateEditorChart",
+        "updateWizardChart",
+        "updateWorkbook"
+      ]
+    },
+    "approvalProvenance": {
+      "type": "object",
+      "required": ["approved", "approval_source", "approval_note"],
+      "properties": {
+        "approved": {"type": "boolean"},
+        "approval_source": {"type": "string", "minLength": 1},
+        "approval_note": {"type": "string"},
+        "approved_at": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "targetLock": {
+      "type": "object",
+      "required": ["target_source", "status", "lock_hash", "evidence"],
+      "properties": {
+        "target_source": {"enum": ["user_url", "manifest", "workbook_entry", "goal_objective", "manual"]},
+        "status": {"enum": ["locked", "ambiguous", "missing", "mismatch"]},
+        "target_workbook_id": {"type": "string"},
+        "target_dashboard_id": {"type": "string"},
+        "target_chart_id": {"type": "string"},
+        "target_object_type": {"type": "string"},
+        "target_url": {"type": "string"},
+        "lock_hash": {"$ref": "#/$defs/sha256"},
+        "evidence": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "planBranchSemantics": {
+      "type": "object",
+      "required": ["default_write_mode", "save_readback_branch", "publish_source_branch", "publish_readback_branch"],
+      "properties": {
+        "default_write_mode": {"const": "save"},
+        "save_readback_branch": {"const": "saved"},
+        "publish_source_branch": {"const": "saved"},
+        "publish_readback_branch": {"const": "published"}
+      },
+      "additionalProperties": true
+    },
+    "sourceOwner": {
+      "type": "object",
+      "required": ["generator", "source_path"],
+      "properties": {
+        "generator": {"type": "string", "minLength": 1},
+        "source_path": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "payloadContract": {
+      "type": "object",
+      "required": ["source", "content_kind", "hash_algorithm", "sha256"],
+      "properties": {
+        "source": {"enum": ["artifact", "inline"]},
+        "content_kind": {"const": "datalens_api_request"},
+        "hash_algorithm": {"const": "sha256"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "path": {"type": "string", "minLength": 1},
+        "inline": {"type": "boolean"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"source": {"const": "artifact"}}, "required": ["source"]},
+          "then": {"required": ["path"]}
+        },
+        {
+          "if": {"properties": {"source": {"const": "inline"}}, "required": ["source"]},
+          "then": {"required": ["inline"], "properties": {"inline": {"const": true}}}
+        }
+      ],
+      "additionalProperties": true
+    },
+    "freshReadContract": {
+      "type": "object",
+      "required": ["required", "method", "payload", "branch", "purpose"],
+      "properties": {
+        "required": {"const": true},
+        "method": {"type": "string", "minLength": 1},
+        "payload": {"type": "object"},
+        "branch": {"$ref": "#/$defs/branch"},
+        "purpose": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    },
+    "readbackContract": {
+      "type": "object",
+      "required": ["required", "method", "payload", "branch", "mode", "proof_level"],
+      "properties": {
+        "required": {"type": "boolean"},
+        "method": {"type": "string"},
+        "payload": {"type": "object"},
+        "branch": {"$ref": "#/$defs/branch"},
+        "mode": {"enum": ["none", "minimal", "full", "debug"]},
+        "proof_level": {"enum": ["save_readback", "publish_readback", "live_read_only_api", "source_static"]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"mode": {"enum": ["minimal", "full", "debug"]}}, "required": ["mode"]},
+          "then": {
+            "properties": {"required": {"const": true}, "method": {"type": "string", "minLength": 1}}
+          }
+        }
+      ],
+      "additionalProperties": true
+    },
+    "revisionGuard": {
+      "type": "object",
+      "required": ["expected_revision", "stale_revision_blocks_write", "unknown_fields_preserved"],
+      "properties": {
+        "expected_revision": {"type": "string"},
+        "stale_revision_blocks_write": {"const": true},
+        "unknown_fields_preserved": {"type": "boolean"},
+        "create_exception": {"type": "boolean"},
+        "exception_reason": {"type": "string"},
+        "expected_saved_rev_id": {"type": "string"},
+        "expected_saved_id": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "actionBranchSemantics": {
+      "type": "object",
+      "required": ["write_mode", "source_branch", "fresh_read_branch", "readback_branch"],
+      "properties": {
+        "write_mode": {"enum": ["save", "publish"]},
+        "source_branch": {"$ref": "#/$defs/branch"},
+        "fresh_read_branch": {"$ref": "#/$defs/branch"},
+        "readback_branch": {"$ref": "#/$defs/branch"}
+      },
+      "additionalProperties": true
+    },
+    "geometry": {
+      "type": "object",
+      "required": ["x", "y", "w", "h"],
+      "properties": {
+        "x": {"type": "integer"},
+        "y": {"type": "integer"},
+        "w": {"type": "integer"},
+        "h": {"type": "integer"}
+      }
+    },
+    "action": {
+      "type": "object",
+      "required": [
+        "action",
+        "action_type",
+        "method",
+        "mode",
+        "transaction_group_id",
+        "change_scope",
+        "target_lock_hash",
+        "source_owner",
+        "payload_contract",
+        "desired_overlay",
+        "requires_fresh_read",
+        "fresh_read_contract",
+        "readback_mode",
+        "readback_required",
+        "readback_contract",
+        "revision_guard",
+        "branch_semantics",
+        "approval_provenance"
+      ],
+      "properties": {
+        "action": {"type": "string", "minLength": 1},
+        "action_type": {"enum": ["create", "update", "publish"]},
+        "method": {"$ref": "#/$defs/writeMethod"},
+        "mode": {"const": "save"},
+        "transaction_group_id": {"type": "string", "minLength": 1},
+        "change_scope": {"enum": ["content", "layout", "redesign"]},
+        "semantic_role": {"type": "string"},
+        "shared_object_key": {"type": "string"},
+        "publish_required": {"type": "boolean"},
+        "target_lock_hash": {"$ref": "#/$defs/sha256"},
+        "source_owner": {"$ref": "#/$defs/sourceOwner"},
+        "payload_contract": {"$ref": "#/$defs/payloadContract"},
+        "payload": {"type": "object"},
+        "desired_overlay": {"type": "object"},
+        "geometry_expectations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["item_id", "expected_old", "expected_new"],
+            "properties": {
+              "item_id": {"type": "string", "minLength": 1},
+              "expected_old": {"$ref": "#/$defs/geometry"},
+              "expected_new": {"$ref": "#/$defs/geometry"}
+            }
+          }
+        },
+        "payload_path": {"type": "string"},
+        "payload_sha256": {"$ref": "#/$defs/sha256"},
+        "requires_fresh_read": {"const": true},
+        "fresh_read_method": {"type": "string"},
+        "fresh_read_payload": {"type": "object"},
+        "fresh_read_contract": {"$ref": "#/$defs/freshReadContract"},
+        "readback_mode": {"enum": ["none", "minimal", "full", "debug"]},
+        "readback_required": {"type": "boolean"},
+        "readback_method": {"type": "string"},
+        "readback_payload": {"type": "object"},
+        "readback_contract": {"$ref": "#/$defs/readbackContract"},
+        "readback_justification": {"type": "string"},
+        "revision_guard": {"$ref": "#/$defs/revisionGuard"},
+        "revision_preservation": {"type": "object"},
+        "branch_semantics": {"$ref": "#/$defs/actionBranchSemantics"},
+        "approval_provenance": {"$ref": "#/$defs/approvalProvenance"},
+        "publish": {"type": "boolean"},
+        "source_branch": {"$ref": "#/$defs/branch"},
+        "saved_readback_path": {"type": "string"},
+        "expected_saved_rev_id": {"type": "string"},
+        "expected_saved_id": {"type": "string"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"action_type": {"const": "create"}}, "required": ["action_type"]},
+          "then": {
+            "properties": {
+              "revision_guard": {
+                "required": ["create_exception"],
+                "properties": {"create_exception": {"const": true}}
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"action_type": {"const": "update"}}, "required": ["action_type"]},
+          "then": {
+            "properties": {
+              "revision_guard": {
+                "properties": {"expected_revision": {"type": "string", "minLength": 1}}
+              },
+              "branch_semantics": {
+                "properties": {
+                  "write_mode": {"const": "save"},
+                  "fresh_read_branch": {"const": "saved"},
+                  "readback_branch": {"const": "saved"}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"action_type": {"const": "publish"}}, "required": ["action_type"]},
+          "then": {
+            "required": ["publish", "source_branch", "saved_readback_path", "expected_saved_rev_id", "expected_saved_id"],
+            "properties": {
+              "publish": {"const": true},
+              "source_branch": {"const": "saved"},
+              "saved_readback_path": {"type": "string", "minLength": 1},
+              "expected_saved_rev_id": {"type": "string", "minLength": 1},
+              "expected_saved_id": {"type": "string", "minLength": 1},
+              "revision_guard": {
+                "required": ["expected_saved_rev_id", "expected_saved_id"],
+                "properties": {
+                  "expected_saved_rev_id": {"type": "string", "minLength": 1},
+                  "expected_saved_id": {"type": "string", "minLength": 1}
+                }
+              },
+              "fresh_read_contract": {"properties": {"branch": {"const": "saved"}}},
+              "readback_contract": {"properties": {"branch": {"const": "published"}, "proof_level": {"const": "publish_readback"}}},
+              "branch_semantics": {
+                "properties": {
+                  "write_mode": {"const": "publish"},
+                  "source_branch": {"const": "saved"},
+                  "fresh_read_branch": {"const": "saved"},
+                  "readback_branch": {"const": "published"}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"readback_mode": {"const": "none"}}, "required": ["readback_mode"]},
+          "then": {"required": ["readback_justification"], "properties": {"readback_required": {"const": false}}},
+          "else": {"properties": {"readback_required": {"const": true}}}
+        }
+      ],
+      "additionalProperties": true
+    }
+  }
+}

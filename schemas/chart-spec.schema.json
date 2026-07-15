@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/chart-spec.schema.json",
+  "title": "Chart spec",
+  "type": "object",
+  "required": ["widget_id", "route", "entry_type", "requirement_ids", "governance_decision"],
+  "properties": {
+    "widget_id": {"type": "string"},
+    "route": {
+      "type": "string",
+      "enum": ["wizard_native", "wizard_map_native", "editor_advanced", "editor_table", "editor_markdown", "editor_js_control", "ql_explicit"]
+    },
+    "entry_type": {"type": "string"},
+    "requirement_ids": {"type": "array", "items": {"type": "string"}},
+    "governance_decision": {"type": "object"}
+  },
+  "additionalProperties": true
+}

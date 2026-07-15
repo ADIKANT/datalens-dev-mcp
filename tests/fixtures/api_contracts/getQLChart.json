@@ -1,0 +1,21 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getQLChart",
+  "operation_id": "getQLChart",
+  "path": "/rpc/getQLChart",
+  "request_payload": {},
+  "request_schema_closure_hash": "2ef13669363ca50ccaeb48d1a484c48c02571e7397d0826fe70c4b85f89bc384",
+  "request_schema_closure_refs": [
+    "EntryBranch",
+    "GetQLChartArgs"
+  ],
+  "request_schema_hash": "0b18f19e29663bb6aa3f3ee6fb8b722c6304d269e73de4f8ede2f082243baa1b",
+  "request_schema_ref": "GetQLChartArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "",
+  "response_schema_closure_refs": [],
+  "response_schema_hash": "",
+  "response_schema_ref": "",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

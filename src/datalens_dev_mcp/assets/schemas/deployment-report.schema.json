@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/deployment-report.schema.json",
+  "title": "Deployment report",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "write_executed", "validation_status", "publish_included"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "generated_at": {"type": "string"},
+    "write_executed": {"type": "boolean"},
+    "validation_status": {"type": "string"},
+    "publish_included": {"type": "boolean"}
+  },
+  "additionalProperties": true
+}

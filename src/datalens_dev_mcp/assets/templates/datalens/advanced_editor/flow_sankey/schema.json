@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "required": ["title", "links"],
+  "properties": {
+    "title": {"type": "string"},
+    "links": {"type": "array", "items": {"type": "object", "required": ["source", "target", "value"]}},
+    "hint": {"type": "string"}
+  }
+}

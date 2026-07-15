@@ -1,0 +1,24 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getCollectionBreadcrumbs",
+  "operation_id": "getCollectionBreadcrumbs",
+  "path": "/rpc/getCollectionBreadcrumbs",
+  "request_payload": {},
+  "request_schema_closure_hash": "8073e29191b2ca8dc7a4c6d127e3fff85e48f7705ceef426b2a91f24e3809d9c",
+  "request_schema_closure_refs": [
+    "GetCollectionBreadcrumbsArgs"
+  ],
+  "request_schema_hash": "6c934933d3d8091308d0a400efb02f61f23d3bf0f173f99b929f8eb6e712c5cb",
+  "request_schema_ref": "GetCollectionBreadcrumbsArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "b76efcb4a9b34ca0ff89b1ed0c7d2caedb44afd055415cf09a551e0050865c30",
+  "response_schema_closure_refs": [
+    "Collection",
+    "CollectionPermissions",
+    "GetCollectionBreadcrumbsResult"
+  ],
+  "response_schema_hash": "bf8bdb9f915e8208840b2f59e86bdfc92897bce9685159a63aec5e1abd72b744",
+  "response_schema_ref": "GetCollectionBreadcrumbsResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

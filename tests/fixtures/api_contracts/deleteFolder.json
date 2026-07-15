@@ -1,0 +1,22 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "deleteFolder",
+  "operation_id": "deleteFolder",
+  "path": "/rpc/deleteFolder",
+  "request_payload": {},
+  "request_schema_closure_hash": "b1ab2c0285ae059e75f7a1cda7851fa03b87ae6a27994d50c66996b7fad10f5c",
+  "request_schema_closure_refs": [
+    "DeleteFolderArgs"
+  ],
+  "request_schema_hash": "ffb5a16d92b4992a8520eb9e6ac8b6f23d3eed925817a2afaf0f848286334ad1",
+  "request_schema_ref": "DeleteFolderArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "cf85fba833e3c498f428c5cf3061ac3d54cb93ed5d16d7b6ef20c82afc6b6aaf",
+  "response_schema_closure_refs": [
+    "DeleteFolderResponse"
+  ],
+  "response_schema_hash": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+  "response_schema_ref": "DeleteFolderResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "readonly_reference"
+}

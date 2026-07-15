@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DataLens MCP local config",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "defaults",
+    "safe_mode",
+    "approval_gates",
+    "readback",
+    "validation",
+    "safe_apply",
+    "live_testing",
+    "api_defaults",
+    "routing",
+    "style",
+    "naming",
+    "selectors"
+  ],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "defaults": {
+      "type": "object",
+      "required": ["workbook_id", "project_id", "dashboard_id", "project_workspace_path"],
+      "properties": {
+        "workbook_id": {"type": "string"},
+        "project_id": {"type": "string"},
+        "dashboard_id": {"type": "string"},
+        "project_workspace_path": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "safe_mode": {
+      "type": "object",
+      "required": ["default", "allow_writes", "require_safe_apply_plan", "require_fresh_read", "preserve_revision"],
+      "properties": {
+        "default": {"type": "string", "enum": ["read_only", "plan_only", "save_only"]},
+        "allow_writes": {"const": false},
+        "require_safe_apply_plan": {"const": true},
+        "require_fresh_read": {"const": true},
+        "preserve_revision": {"const": true}
+      },
+      "additionalProperties": false
+    },
+    "approval_gates": {
+      "type": "object",
+      "required": [
+        "write_requires_env",
+        "write_requires_tool_approval",
+        "publish_requires_explicit_tool_approval",
+        "publish_default",
+        "delete_move_permissions_allowed"
+      ],
+      "properties": {
+        "write_requires_env": {"type": "string", "const": "DATALENS_MCP_ENABLE_WRITES=1"},
+        "write_requires_tool_approval": {"const": true},
+        "publish_requires_explicit_tool_approval": {"const": true},
+        "publish_default": {"const": true},
+        "delete_move_permissions_allowed": {"const": false}
+      },
+      "additionalProperties": false
+    },
+    "readback": {
+      "type": "object",
+      "required": ["mode", "justification"],
+      "properties": {
+        "mode": {"type": "string", "enum": ["none", "minimal", "full", "debug"]},
+        "justification": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "required": [
+        "strictness",
+        "fail_on_secret_scan",
+        "require_route_validation",
+        "require_template_validation",
+        "require_relation_validation"
+      ],
+      "properties": {
+        "strictness": {"type": "string", "enum": ["permissive", "normal", "strict"]},
+        "fail_on_secret_scan": {"type": "boolean"},
+        "require_route_validation": {"type": "boolean"},
+        "require_template_validation": {"type": "boolean"},
+        "require_relation_validation": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "safe_apply": {
+      "type": "object",
+      "required": [
+        "require_approved_plan_path",
+        "require_approval_flag",
+        "require_env_write_enablement",
+        "require_save_mode_first",
+        "require_readback_after_save",
+        "allow_publish_by_default"
+      ],
+      "properties": {
+        "require_approved_plan_path": {"const": true},
+        "require_approval_flag": {"const": true},
+        "require_env_write_enablement": {"const": true},
+        "require_save_mode_first": {"const": true},
+        "require_readback_after_save": {"const": true},
+        "allow_publish_by_default": {"const": true}
+      },
+      "additionalProperties": false
+    },
+    "live_testing": {
+      "type": "object",
+      "required": [
+        "run_live_tests_by_default",
+        "require_env_flag",
+        "require_disposable_targets",
+        "allow_publish_checks"
+      ],
+      "properties": {
+        "run_live_tests_by_default": {"const": false},
+        "require_env_flag": {"type": "string", "const": "DATALENS_MCP_RUN_LIVE_TESTS=1"},
+        "require_disposable_targets": {"type": "boolean"},
+        "allow_publish_checks": {"const": false}
+      },
+      "additionalProperties": false
+    },
+    "api_defaults": {
+      "type": "object",
+      "required": ["request_interval_sec", "rate_limit_retries", "request_timeout_sec"],
+      "properties": {
+        "request_interval_sec": {"type": "number", "minimum": 0},
+        "rate_limit_retries": {"type": "integer", "minimum": 0},
+        "request_timeout_sec": {"type": "number", "exclusiveMinimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "routing": {
+      "type": "object",
+      "required": [
+        "chart_creation_routes",
+        "advanced_editor_js_routes",
+        "wizard_native",
+        "wizard_map_native_alias",
+        "ql_behavior",
+        "forbidden_routes"
+      ],
+      "properties": {
+        "chart_creation_routes": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["wizard_native", "advanced_editor_js", "ql_explicit"]},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "advanced_editor_js_routes": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["editor_advanced", "editor_table", "editor_markdown", "editor_js_control"]},
+          "minItems": 4,
+          "uniqueItems": true
+        },
+        "wizard_native": {
+          "type": "object",
+          "required": ["enabled", "visualization_registry", "seed_policy", "geolayer_requires_geo_evidence"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "visualization_registry": {"type": "string"},
+            "seed_policy": {"const": "fresh_saved_same_visualization_then_committed_canonical"},
+            "geolayer_requires_geo_evidence": {"type": "boolean"}
+          },
+          "additionalProperties": false
+        },
+        "wizard_map_native_alias": {
+          "type": "object",
+          "required": ["enabled", "visualization_id"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "visualization_id": {"const": "geolayer"}
+          },
+          "additionalProperties": false
+        },
+        "ql_behavior": {"type": "string", "const": "explicit_user_request_only"},
+        "forbidden_routes": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "style": {
+      "type": "object",
+      "required": ["style_guide_path", "chart_design_rules_path", "theme_tokens_path", "theme_tokens"],
+      "properties": {
+        "style_guide_path": {"type": "string"},
+        "chart_design_rules_path": {"type": "string"},
+        "theme_tokens_path": {"type": "string"},
+        "theme_tokens": {
+          "type": "object",
+          "required": ["text_primary", "text_secondary", "background", "border", "accent"],
+          "properties": {
+            "text_primary": {"type": "string"},
+            "text_secondary": {"type": "string"},
+            "background": {"type": "string"},
+            "border": {"type": "string"},
+            "accent": {"type": "string"}
+          },
+          "additionalProperties": {"type": "string"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "naming": {
+      "type": "object",
+      "required": [
+        "title_source",
+        "hint_source",
+        "duplicate_titles_inside_chart_body",
+        "default_title_prefix",
+        "require_hint_when_enableHint"
+      ],
+      "properties": {
+        "title_source": {"type": "string", "enum": ["native_metadata"]},
+        "hint_source": {"type": "string", "enum": ["native_metadata"]},
+        "duplicate_titles_inside_chart_body": {"const": false},
+        "default_title_prefix": {"type": "string"},
+        "require_hint_when_enableHint": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "selectors": {
+      "type": "object",
+      "required": [
+        "label_placement",
+        "width_mode",
+        "row_width_percent",
+        "default_selector_width_percent",
+        "min_selector_width_percent",
+        "max_selector_width_percent",
+        "target_binding_required"
+      ],
+      "properties": {
+        "label_placement": {"type": "string", "const": "left"},
+        "width_mode": {"type": "string", "const": "percentage"},
+        "row_width_percent": {"type": "integer", "const": 96},
+        "default_selector_width_percent": {"type": "integer", "minimum": 1, "maximum": 96},
+        "min_selector_width_percent": {"type": "integer", "minimum": 1, "maximum": 96},
+        "max_selector_width_percent": {"type": "integer", "minimum": 1, "maximum": 96},
+        "target_binding_required": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

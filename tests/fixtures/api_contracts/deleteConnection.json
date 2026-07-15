@@ -1,0 +1,20 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "deleteConnection",
+  "operation_id": "deleteConnection",
+  "path": "/rpc/deleteConnection",
+  "request_payload": {},
+  "request_schema_closure_hash": "fe916be66751338ae5dff2aaf82b72bd4358f55116fec86eb83bca2fec17ad68",
+  "request_schema_closure_refs": [
+    "DeleteConnectionRequest"
+  ],
+  "request_schema_hash": "f1ceb72d00bf1e13a0ebbeb213a03d7c88e1cc75d6d4e4a3344b1926d36f47d2",
+  "request_schema_ref": "DeleteConnectionRequest",
+  "response_payload": {},
+  "response_schema_closure_hash": "",
+  "response_schema_closure_refs": [],
+  "response_schema_hash": "",
+  "response_schema_ref": "",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "readonly_reference"
+}

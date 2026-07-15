@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "datalens.delta_v8.sql_runtime_reality_check.schema.json",
+  "title": "DataLens Delta v8 SQL Runtime Reality Check",
+  "type": "object",
+  "required": ["dialect", "target_execution_engine", "runtime_probe_required", "risk_patterns"],
+  "properties": {
+    "dialect": {"enum": ["clickhouse", "trino", "mixed", "unknown"]},
+    "target_execution_engine": {"enum": ["datalens_clickhouse", "trino", "browser_runtime", "unknown"]},
+    "validated_by": {"type": "array", "items": {"enum": ["static_lint", "validateDataset", "metadata_fetch_trino", "browser_runtime", "datalens_query_preview", "manual"]}},
+    "runtime_probe_required": {"type": "boolean"},
+    "dialect_equivalent": {"type": "boolean"},
+    "risk_patterns": {"type": "array", "items": {"type": "string"}},
+    "known_limitations": {"type": "array", "items": {"type": "string"}},
+    "result": {"enum": ["passed", "failed", "not_run", "not_applicable"]}
+  },
+  "additionalProperties": true
+}

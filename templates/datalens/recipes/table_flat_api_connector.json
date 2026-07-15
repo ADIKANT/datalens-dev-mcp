@@ -1,0 +1,70 @@
+{
+  "algorithmic_bound": "O(n)",
+  "aliases": [
+    "API Connector table",
+    "api connector",
+    "flat api connector table",
+    "table flat api connector",
+    "таблица из API Connector"
+  ],
+  "cardinality_limits": {},
+  "executable_bundle": {
+    "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+    "bundle_files": [
+      "config.js",
+      "expected_output.json",
+      "fixture_input.json",
+      "meta.json",
+      "params.js",
+      "prepare.js",
+      "sources.js"
+    ],
+    "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+    "status": "executable_fixture_tested"
+  },
+  "implementation_status": "implemented_tested",
+  "local_policy_status": "allowed",
+  "native_table_contract": true,
+  "observed_runtime_overrides": [],
+  "official_status": "documented",
+  "output_contract": [
+    "head",
+    "rows",
+    "footer_optional"
+  ],
+  "recipe_id": "table_flat_api_connector",
+  "required_tabs": [
+    "Meta",
+    "Params",
+    "Sources",
+    "Config",
+    "Prepare"
+  ],
+  "route": "editor_table",
+  "source_contract": "api_connector",
+  "source_traces": [
+    {
+      "anchor": "создание-таблицы-через-api",
+      "chunk_id": "datalens/charts/editor/quickstart/from-api-connector.md#создание-таблицы-через-api#1",
+      "mirror_path": "datalens/charts/editor/quickstart/from-api-connector.md",
+      "sha256": "c048f755ee28b817778037bbeb02f81b7f9389db262375b3d55b6bb759495e25",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/quickstart/from-api-connector"
+    },
+    {
+      "anchor": "таблица",
+      "chunk_id": "datalens/charts/editor/widgets/table.md#таблица#1",
+      "mirror_path": "datalens/charts/editor/widgets/table.md",
+      "sha256": "ebb174c6fe4275e004d349b5c562c5e0675dee0befaf23e84f276cbf8d156e65",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table"
+    }
+  ],
+  "title": "Flat API Connector table",
+  "uses_generate_html": false,
+  "validation_checklist": [
+    "source_trace_present",
+    "required_tabs_present",
+    "runtime_contract_valid",
+    "safe_apply_plan_only_until_approved"
+  ],
+  "widget_contract": "table_node"
+}

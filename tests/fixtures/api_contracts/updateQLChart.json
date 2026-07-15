@@ -1,0 +1,24 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "updateQLChart",
+  "operation_id": "updateQLChart",
+  "path": "/rpc/updateQLChart",
+  "request_payload": {},
+  "request_schema_closure_hash": "82120796079a9290523166cf4ac931b6fb5440fd6f6aebb533b511b6e604b5ad",
+  "request_schema_closure_refs": [
+    "EntryAnnotationArg",
+    "EntryUpdateMode",
+    "UpdateQLChartArgs"
+  ],
+  "request_schema_hash": "adfb537756115b3e75d0f4ada82dd12bc86e4eb25a486f282eb2f2880cebf223",
+  "request_schema_ref": "UpdateQLChartArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "1794ec8024ee3dc85c2688e0f2215fdaa7058a3d959bff24d87ef51c58b200a4",
+  "response_schema_closure_refs": [
+    "UpdateQLChartResponse"
+  ],
+  "response_schema_hash": "0f43c53ef801a2df2f7ed7e71164a100d780fe120c8f14846628153ceceb98e4",
+  "response_schema_ref": "UpdateQLChartResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "guarded_plan_only"
+}

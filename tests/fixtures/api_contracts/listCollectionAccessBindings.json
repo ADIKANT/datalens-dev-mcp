@@ -1,0 +1,26 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "listCollectionAccessBindings",
+  "operation_id": "listCollectionAccessBindings",
+  "path": "/rpc/listCollectionAccessBindings",
+  "request_payload": {},
+  "request_schema_closure_hash": "c0974081a758ae4e785814268629b10dc48e2d2f1b0fd64279f0b3e459dbeb34",
+  "request_schema_closure_refs": [
+    "ListCollectionAccessBindingsArgs"
+  ],
+  "request_schema_hash": "fbda8b93325d50a372c96ad1842bc014a18485f7cd190847d80cf991f75dc0af",
+  "request_schema_ref": "ListCollectionAccessBindingsArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "ba8c373da0621f11f163ddad8e72f74aea5ec8a29941683e721aec9d9d51bfd2",
+  "response_schema_closure_refs": [
+    "IamAccessBinding",
+    "IamAccessBindingSubject",
+    "IamResourceSchema",
+    "IamSubjectWithBindings",
+    "ListIamAccessBindingsResult"
+  ],
+  "response_schema_hash": "e2d96a42e8d60b4407e7a02076dc64551ec12249f74eadcc8d8e1c462b83df6d",
+  "response_schema_ref": "ListIamAccessBindingsResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

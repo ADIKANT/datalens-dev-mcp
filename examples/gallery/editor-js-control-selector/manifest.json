@@ -1,0 +1,8 @@
+{
+  "name": "editor-js-control-selector",
+  "route": "editor_js_control",
+  "entry_type": "control_node",
+  "source_example": "editor-js-control-selector",
+  "local_safety": "local MCP-native fixture with placeholder IDs",
+  "source_template": "examples/gallery/editor-js-control-selector"
+}

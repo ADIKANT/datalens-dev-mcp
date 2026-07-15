@@ -1,0 +1,8 @@
+{
+  "name": "advanced-html-table",
+  "route": "editor_advanced",
+  "entry_type": "advanced-chart_node",
+  "source_example": "advanced-html-table",
+  "local_safety": "local MCP-native fixture with placeholder IDs",
+  "source_template": "examples/gallery/advanced-html-table"
+}

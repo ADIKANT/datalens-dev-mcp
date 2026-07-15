@@ -1,0 +1,25 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getPermissions",
+  "operation_id": "getPermissions",
+  "path": "/rpc/getPermissions",
+  "request_payload": {},
+  "request_schema_closure_hash": "4613d030d73ee1d482ef88d19262824ce5bd96ab0d46fe4b0ad0ca9cc6d6651c",
+  "request_schema_closure_refs": [
+    "GetPermissionsArgs"
+  ],
+  "request_schema_hash": "c53dc26677e4726adfb638f67a3654f8d5086250f56de8b7499f4507e4c77ae3",
+  "request_schema_ref": "GetPermissionsArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "8d8419d72896a1faff27bcf154af43b38c279ef32c8ad5d20503c44a895230d9",
+  "response_schema_closure_refs": [
+    "DlsPermissionParticipant",
+    "DlsPermissionPendingParticipant",
+    "DlsPermissionUnit",
+    "GetPermissionsResult"
+  ],
+  "response_schema_hash": "2b6c7ff05b68ec7a96f6a113392992977bb1ba58a38676d15da4848aa20aaf08",
+  "response_schema_ref": "GetPermissionsResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

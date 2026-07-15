@@ -1,0 +1,39 @@
+{
+  "corpus_root_hint": "<DATALENS_DOCS_CORPUS_ROOT>",
+  "generated_artifacts": [
+    "schemas/datalens-api/openapi.lock.json",
+    "config/datalens_api_methods.json",
+    "schemas/datalens-api/operation-schema-index.json",
+    "schemas/datalens-api/selected-openapi-schema-refs.json",
+    "schemas/datalens-api/closed-schema-bundle.json",
+    "schemas/datalens-api/support-policy-overlay.json",
+    "schemas/datalens-api/editor-runtime-allowlist.json"
+  ],
+  "generation_input": "https://api.datalens.tech/json/",
+  "inputs": [
+    "raw/api/openapi.json",
+    "api_inventory.json",
+    "reports/content_hashes.json",
+    "reports/validation.md",
+    "raw/md/datalens/charts/editor/methods.md",
+    "raw/md/datalens/charts/editor/widgets/advanced.md"
+  ],
+  "license": "CC-BY-4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "modified": true,
+  "openapi_sha256": "e4c3cf56de894e28b883b1f0ceaf2935f68570b052c46885e20bc9608e5ca532",
+  "schema_version": "2026-06-25.datalens_source_trace.v1",
+  "source_class": "official_documentation",
+  "source_path_category": "external_compiler_input",
+  "source_repository": "https://github.com/yandex-cloud/docs",
+  "source_repository_paths": [
+    "en/datalens/openapi-ref/",
+    "md-docs/datalens/openapi-ref/"
+  ],
+  "transformations": [
+    "selected interoperability contracts",
+    "normalized schema structure",
+    "removed upstream prose annotations",
+    "compiled deterministic validation bundles"
+  ]
+}
