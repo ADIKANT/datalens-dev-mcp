@@ -1,5 +1,8 @@
 # Connect `datalens-dev-mcp` to Codex
 
+[Полная инструкция на русском](../codex_setup.md) ·
+[Full guide in English](../codex_setup_en.md)
+
 Codex can start `datalens-dev-mcp` as a local stdio MCP server. Install the server in a virtual environment before adding it to Codex:
 
 ```bash
@@ -105,4 +108,7 @@ env = { DATALENS_ENV_FILE = "/absolute/path/to/home/.config/datalens-dev-mcp/env
 - **Unexpected write block:** first confirm the block is appropriate. The default is read-only, and write, save, publish, approval, fresh-read, and readback gates are independent.
 - **Protocol parse error or stdout pollution:** run the smoke test. Application logging and diagnostics must go to stderr, never stdout.
 
-See [`docs/codex_setup.md`](../codex_setup.md) for the full first-run sequence and [`docs/mcp/local_stdio_contract.md`](local_stdio_contract.md) for the transport contract.
+See [`docs/codex_setup_en.md`](../codex_setup_en.md) for the full English
+first-run sequence, [`docs/codex_setup.md`](../codex_setup.md) for Russian, and
+[`docs/mcp/local_stdio_contract.md`](local_stdio_contract.md) for the transport
+contract.

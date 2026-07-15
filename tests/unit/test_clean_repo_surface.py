@@ -67,7 +67,7 @@ class CleanRepoSurfaceTests(unittest.TestCase):
         docs = [
             ROOT / "AGENTS.md",
             ROOT / "README.md",
-            ROOT / "README_ru.md",
+            ROOT / "README_en.md",
             ROOT / "docs" / "local-only-safety-model.md",
             ROOT / "docs" / "widget-conversion-wizard-to-js.md",
         ]

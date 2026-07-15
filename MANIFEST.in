@@ -1,5 +1,5 @@
 include README.md
-include README_ru.md
+include README_en.md
 include CHANGELOG.md
 include CODE_OF_CONDUCT.md
 include CONTRIBUTING.md

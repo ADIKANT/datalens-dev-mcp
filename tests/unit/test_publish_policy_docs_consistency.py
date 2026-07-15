@@ -29,6 +29,10 @@ class DocsConsistencyTests(unittest.TestCase):
         checker = load_checker()
         report = checker.run_checks()
         self.assertIn("docs/mcp/codex_connection.md", report.checked_files)
+        self.assertIn("docs/README.md", report.checked_files)
+        self.assertIn("docs/tools.md", report.checked_files)
+        self.assertIn("docs/usage-flow.md", report.checked_files)
+        self.assertIn("docs/sources.md", report.checked_files)
         self.assertIn("docs/source_provenance.md", report.checked_files)
         self.assertIn("THIRD_PARTY_NOTICES.md", report.checked_files)
 
@@ -38,7 +42,7 @@ class DocsConsistencyTests(unittest.TestCase):
         checked = set(report.checked_files)
 
         self.assertIn("README.md", checked)
-        self.assertIn("README_ru.md", checked)
+        self.assertIn("README_en.md", checked)
         self.assertTrue(report.ok, "\n".join(report.issues))
 
 

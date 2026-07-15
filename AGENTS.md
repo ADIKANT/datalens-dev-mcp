@@ -10,17 +10,21 @@ The server is a client-independent MCP interface for DataLens dashboard developm
 
 1. `AGENTS.md`
 2. `README.md`
-3. `README_ru.md`
-4. `docs/policy_vocabulary.md`
-5. `docs/mcp/codex_connection.md`
-6. `docs/codex_setup.md`
-7. `docs/configuration.md`
-8. `docs/local-only-safety-model.md`
-9. `docs/route-policy.md`
-10. `docs/safe-apply.md`
-11. `docs/mcp/tools.md`
-12. `docs/mcp/response_contracts.md`
-13. `docs/source_provenance.md`
+3. `README_en.md`
+4. `docs/README.md`
+5. `docs/policy_vocabulary.md`
+6. `docs/mcp/codex_connection.md`
+7. `docs/codex_setup.md`
+8. `docs/usage-flow.md`
+9. `docs/configuration.md`
+10. `docs/local-only-safety-model.md`
+11. `docs/route-policy.md`
+12. `docs/safe-apply.md`
+13. `docs/tools.md`
+14. `docs/mcp/tools.md`
+15. `docs/mcp/response_contracts.md`
+16. `docs/sources.md`
+17. `docs/source_provenance.md`
 
 ## Local Material Policy
 

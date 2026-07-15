@@ -57,7 +57,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/ADIKANT/datalens-dev-mcp"
-Documentation = "https://github.com/ADIKANT/datalens-dev-mcp#readme"
+Documentation = "https://github.com/ADIKANT/datalens-dev-mcp/blob/main/docs/README.md"
 Repository = "https://github.com/ADIKANT/datalens-dev-mcp.git"
 Issues = "https://github.com/ADIKANT/datalens-dev-mcp/issues"
 Changelog = "https://github.com/ADIKANT/datalens-dev-mcp/blob/main/CHANGELOG.md"

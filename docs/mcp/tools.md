@@ -1,5 +1,9 @@
 # MCP Tools
 
+User-oriented guides: [Русский](../tools.md) · [English](../tools_en.md).
+This file remains the technical catalog for exact behavior and compatibility
+boundaries.
+
 The server exposes deterministic DataLens workflow tools. Routing and chart
 selection belong to prompts, governance, configs, and schemas; tools execute or
 plan specific operations.
