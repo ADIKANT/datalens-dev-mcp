@@ -30,7 +30,7 @@ Selectors must declare their targets explicitly:
   "selector_id": "selector_segment",
   "param": "segment",
   "labelPlacement": "left",
-  "width": "96%",
+  "width": "94%",
   "targets": [{"target_id": "widget_001", "target_kind": "widget", "param": "segment"}]
 }
 ```
@@ -39,7 +39,7 @@ Selector layout inherits the dashboard layout contract:
 
 - labels are on the left
 - widths are percentages
-- row width total is exactly 96 percent
+- row width total stays at or below 94 percent
 - selector relations are included in the generated Markdown dashboard plan
 
 ## Native Metadata

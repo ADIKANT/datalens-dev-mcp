@@ -136,6 +136,24 @@ class ComputeInventorySnapshotClient(EventSnapshotClient):
         return response
 
 
+class OmittedChartSnapshotClient(EventSnapshotClient):
+    def rpc(self, method, payload):
+        response = super().rpc(method, payload)
+        if method == "getWorkbookEntries":
+            for entry in response["entries"]:
+                if entry.get("entryId") == CHART_IDS[0]:
+                    entry["scope"] = "chart"
+        return response
+
+
+class MissingDashboardRootSnapshotClient(EventSnapshotClient):
+    def rpc(self, method, payload):
+        if method == "getDashboard":
+            self.calls.append((method, payload))
+            raise RuntimeError("dashboard root unavailable")
+        return super().rpc(method, payload)
+
+
 class MetadataFetchSnapshotClient(EventSnapshotClient):
     def rpc_readonly(self, method, payload):
         return {"result": super().rpc(method, payload)}
@@ -246,6 +264,18 @@ class AuthoritativeSnapshotTests(unittest.TestCase):
         self.assertEqual(first["manifest"]["sha256"], second["manifest"]["sha256"])
         self.assertTrue(first["branch_comparison"]["available"])
         self.assertTrue(first["branch_comparison"]["same_normalized_structure"])
+        self.assertEqual(first["completion"]["status"], "complete")
+        self.assertTrue(first["completion"]["authoritative_backup_complete"])
+        self.assertEqual(first["completion"]["error_count"], 0)
+        self.assertEqual(first["completion"]["omission_count"], 0)
+        self.assertEqual(first["coverage"]["scope"], "dashboard_dependency_graph")
+        self.assertFalse(first["coverage"]["org_wide"])
+        self.assertEqual(first["coverage"]["captured_branches"], ["saved", "published"])
+        self.assertEqual(first["api_contract"]["header_name"], "x-dl-api-version")
+        self.assertEqual(first["api_contract"]["required_api_header_version"], "2")
+        self.assertEqual(manifest["completion"], first["completion"])
+        self.assertEqual(manifest["coverage"], first["coverage"])
+        self.assertEqual(manifest["api_contract"], first["api_contract"])
 
         inline = json.dumps(first, ensure_ascii=False)
         self.assertNotIn("secret_sql", inline)
@@ -401,6 +431,50 @@ class AuthoritativeSnapshotTests(unittest.TestCase):
                 "ql_01": "ql_chart",
             },
         )
+
+    def test_omitted_dependency_is_reported_as_partial_without_changing_ok_semantics(self):
+        client = OmittedChartSnapshotClient()
+        with tempfile.TemporaryDirectory() as tmp:
+            result = dl_snapshot_dashboard(
+                project_root=tmp,
+                dashboard_id="dashboard_events",
+                workbook_id="workbook_events",
+                snapshot_branch="saved",
+                include_dormant_summary=True,
+                artifact_retention="latest_only",
+                client=client,
+            )
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["completion"]["status"], "partial")
+        self.assertFalse(result["completion"]["complete"])
+        self.assertFalse(result["completion"]["authoritative_backup_complete"])
+        self.assertEqual(result["completion"]["error_count"], 0)
+        self.assertEqual(result["completion"]["omission_count"], 1)
+        self.assertEqual(result["completion"]["missing_root_branches"], [])
+        self.assertEqual(result["completion"]["unsafe_reasons"], [])
+
+    def test_missing_dashboard_root_is_reported_as_unsafe(self):
+        client = MissingDashboardRootSnapshotClient()
+        with tempfile.TemporaryDirectory() as tmp:
+            result = dl_snapshot_dashboard(
+                project_root=tmp,
+                dashboard_id="dashboard_events",
+                workbook_id="workbook_events",
+                snapshot_branch="both",
+                include_dormant_summary=True,
+                artifact_retention="latest_only",
+                client=client,
+            )
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["completion"]["status"], "unsafe")
+        self.assertFalse(result["completion"]["authoritative_backup_complete"])
+        self.assertEqual(result["completion"]["error_count"], 2)
+        self.assertEqual(result["completion"]["omission_count"], 0)
+        self.assertEqual(result["completion"]["missing_root_branches"], ["saved", "published"])
+        self.assertEqual(result["completion"]["unsafe_reasons"], ["dashboard_root_not_captured"])
+        self.assertEqual(result["coverage"]["captured_branches"], [])
 
 
 if __name__ == "__main__":

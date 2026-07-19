@@ -495,6 +495,12 @@
           "null"
         ]
       },
+      "parentFolderId": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
       "scope": {
         "enum": [
           "dash",
@@ -533,6 +539,7 @@
       "isDeleted",
       "workbookId",
       "collectionId",
+      "parentFolderId",
       "scope",
       "type",
       "updatedAt",
@@ -6376,6 +6383,9 @@
                           "borderRadius": {
                             "type": "number"
                           },
+                          "hideActions": {
+                            "type": "boolean"
+                          },
                           "hideTitle": {
                             "type": "boolean"
                           },
@@ -7884,6 +7894,12 @@
         ]
       },
       "revId": {
+        "type": "string"
+      },
+      "revUpdatedAt": {
+        "type": "string"
+      },
+      "revUpdatedBy": {
         "type": "string"
       },
       "savedId": {
@@ -17371,6 +17387,9 @@
                           "borderRadius": {
                             "type": "number"
                           },
+                          "hideActions": {
+                            "type": "boolean"
+                          },
                           "hideTitle": {
                             "type": "boolean"
                           },
@@ -17728,6 +17747,12 @@
         ]
       },
       "revId": {
+        "type": "string"
+      },
+      "revUpdatedAt": {
+        "type": "string"
+      },
+      "revUpdatedBy": {
         "type": "string"
       },
       "savedId": {

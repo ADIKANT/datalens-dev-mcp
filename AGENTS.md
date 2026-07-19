@@ -32,6 +32,14 @@ The server is a client-independent MCP interface for DataLens dashboard developm
 - Keep compact attributable registries, distilled rules, schemas, templates, curated examples, and tests.
 - Never commit IAM tokens, env files, live authorization headers, passwords, private keys, or other credential material.
 
+## Public Change Hygiene
+
+- Treat commit messages, pull requests, issues, release notes, and review replies as public product documentation.
+- Describe generic capabilities, contracts, and synthetic test evidence only.
+- Do not name private dashboards, workbooks, customers, internal projects, source logs, local absolute paths, or live object IDs.
+- State the product change directly. Do not narrate private-source handling, sanitization work, or removed internal material.
+- Run the public-release, sensitive-artifact, and repository-size gates before publishing.
+
 ## Route And Write Safety
 
 - The standard runtime follows the user request. Audit, review, diagnose, and plan-only requests do not write. Save-only and no-publish stop after saved readback. Create, fix, update, enhance, and redesign requests for known targets continue through save, saved readback, publish from saved state, and published readback.

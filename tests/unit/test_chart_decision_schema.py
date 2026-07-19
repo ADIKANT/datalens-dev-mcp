@@ -11,7 +11,18 @@ class ChartDecisionSchemaTests(unittest.TestCase):
             self.assertIn(field, schema["required"])
         self.assertEqual(
             schema["properties"]["renderer_visual_spec"]["required"],
-            ["style_tokens", "encoding", "runtime_constraints"],
+            [
+                "schema_version",
+                "style_tokens",
+                "encoding",
+                "value_semantics",
+                "formatting",
+                "comparison_context",
+                "responsive_layout",
+                "hint_contract",
+                "layout_contract",
+                "runtime_constraints",
+            ],
         )
         self.assertIn("negative_requirement_concepts", schema["properties"])
 

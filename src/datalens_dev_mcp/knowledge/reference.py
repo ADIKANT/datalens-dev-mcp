@@ -234,7 +234,7 @@ def _reference_envelope(mode: str, term: str, result: dict[str, Any]) -> dict[st
         ],
         "selector_layout": [
             "Selectors are native control widgets with explicit dashboard relation targets.",
-            "Selector width is computed from kind and label length, and rows must stay at or below 96 percent.",
+            "Selector width is computed from kind and label length, and rows must stay at or below 94 percent.",
             "Overflow creates another selector row instead of shrinking below the minimum width.",
             "Targets must exist in dashboard objects and fields must exist in dataset/source schema.",
             "Selector-looking labels inside chart bodies are not valid selectors.",
@@ -500,7 +500,7 @@ def _runtime_quality_reference(mode: str, term: str) -> dict[str, Any]:
         },
         "selector_layout": {
             "summary": (
-                "SelectorLayoutContract computes percentage widths from selector kind and label length, splits rows at 96%, "
+                "SelectorLayoutContract computes percentage widths from selector kind and label length, splits rows at 94%, "
                 "and validates native control targets and fields."
             ),
             "implementation": "src/datalens_dev_mcp/pipeline/selector_layout_contract.py",

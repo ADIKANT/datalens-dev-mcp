@@ -6,6 +6,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from datalens_dev_mcp.api.methods import openapi_lock_summary
 from datalens_dev_mcp.mcp.response_projection import sanitize_response, serialized_metadata, stable_json_text
 from datalens_dev_mcp.pipeline.artifacts import ensure_project_dirs, write_json
 
@@ -259,6 +260,25 @@ def dl_snapshot_dashboard(
     if include_dormant_summary:
         counts_by_object_type["dormant"] = int(dormant.get("count", 0))
 
+    coverage = {
+        "schema_version": "2026-07-19.dashboard_snapshot_coverage.v1",
+        "scope": "dashboard_dependency_graph",
+        "org_wide": False,
+        "requested_branches": branches,
+        "captured_branches": [branch for branch in branches if branch in branch_summaries],
+    }
+    completion = _snapshot_completion(
+        errors=errors,
+        omissions=omissions,
+        requested_branches=branches,
+        captured_branches=set(branch_summaries),
+    )
+    api_contract = {
+        "source": "compiled_openapi_lock",
+        "header_name": "x-dl-api-version",
+        **openapi_lock_summary(),
+    }
+
     compact_graph = {
         "schema_version": "2026-06-25.dashboard_object_graph.v1",
         "dashboard_id": dashboard_id,
@@ -299,6 +319,9 @@ def dl_snapshot_dashboard(
         "object_artifacts": sorted(object_artifacts.values(), key=lambda item: item["sha256"]),
         "errors": errors,
         "omissions": omissions,
+        "completion": completion,
+        "coverage": coverage,
+        "api_contract": api_contract,
         "artifact_retention": retention,
     }
     manifest_path = run_dir / "manifest.json"
@@ -333,6 +356,9 @@ def dl_snapshot_dashboard(
         "branch_comparison": manifest["branch_comparison"],
         "errors": errors,
         "omissions": omissions,
+        "completion": completion,
+        "coverage": coverage,
+        "api_contract": api_contract,
         "manifest": manifest_metadata,
         "compact_graph": graph_metadata,
         "object_artifact_count": len(object_artifacts),
@@ -350,6 +376,33 @@ def _default_client() -> Any:
     from datalens_dev_mcp.config import DataLensConfig
 
     return DataLensApiClient(DataLensConfig.from_env())
+
+
+def _snapshot_completion(
+    *,
+    errors: list[dict[str, str]],
+    omissions: list[dict[str, str]],
+    requested_branches: list[str],
+    captured_branches: set[str],
+) -> dict[str, Any]:
+    missing_root_branches = [branch for branch in requested_branches if branch not in captured_branches]
+    unsafe_reasons = ["dashboard_root_not_captured"] if missing_root_branches else []
+    if unsafe_reasons:
+        status = "unsafe"
+    elif errors or omissions:
+        status = "partial"
+    else:
+        status = "complete"
+    return {
+        "schema_version": "2026-07-19.dashboard_snapshot_completion.v1",
+        "status": status,
+        "complete": status == "complete",
+        "authoritative_backup_complete": status == "complete",
+        "error_count": len(errors),
+        "omission_count": len(omissions),
+        "missing_root_branches": missing_root_branches,
+        "unsafe_reasons": unsafe_reasons,
+    }
 
 
 def _read_rpc(client: Any, method: str, payload: dict[str, Any]) -> dict[str, Any]:

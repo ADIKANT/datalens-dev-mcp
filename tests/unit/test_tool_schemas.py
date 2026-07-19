@@ -139,7 +139,7 @@ class ToolSchemaTests(unittest.TestCase):
 
         core_bytes = len(json.dumps(result, separators=(",", ":")).encode("utf-8"))
         all_bytes = len(json.dumps({"tools": list_tools("all")}, separators=(",", ":")).encode("utf-8"))
-        self.assertLessEqual(core_bytes, 34_000)
+        self.assertLessEqual(core_bytes, 28_000)
         self.assertLess(core_bytes, all_bytes)
 
         listed = {tool["name"]: tool for tool in result["tools"]}

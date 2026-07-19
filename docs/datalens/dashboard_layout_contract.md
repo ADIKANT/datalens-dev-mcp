@@ -41,9 +41,9 @@ Required multi-tab widget shape:
 
 - `labelPlacement` is always `left`.
 - Control `width` is always a percentage string.
-- One row must total exactly 96 percent.
-- Rows above 96 percent are invalid and must fail with a clear diagnostic.
-- Rows below 96 percent are also invalid because they create inconsistent control alignment.
+- One row may use up to 94 percent of the available width.
+- Rows above 94 percent are invalid and must fail with a clear diagnostic.
+- Rows below the budget are valid when the controls remain readable and aligned.
 - Split dense selector rows instead of using pixel widths.
 - Pixel widths are allowed only if a future DataLens API field requires pixels;
   that exception must be documented with the API field name and source.
@@ -57,7 +57,7 @@ The MCP helper `datalens_dev_mcp.pipeline.layout_contract` provides:
 ## Template Consequence
 
 Selector templates and examples must include `labelPlacement: 'left'` and
-percentage `width` values. Fallback generated single selectors use `width: '96%'`.
+percentage `width` values. Fallback generated single selectors use `width: '94%'`.
 
 ## Object Relation Link
 

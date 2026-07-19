@@ -21,9 +21,16 @@ class RendererVisualSpec:
     tooltip: dict[str, Any]
     kpi_context: dict[str, Any]
     table_formatting: dict[str, Any]
+    value_semantics: dict[str, Any]
+    formatting: dict[str, Any]
+    comparison_context: dict[str, Any]
+    responsive_layout: dict[str, Any]
+    hint_contract: dict[str, Any]
+    layout_contract: dict[str, Any]
     advanced_runtime_budget: dict[str, Any]
     style_tokens: dict[str, Any] = field(default_factory=dict)
     runtime_constraints: dict[str, Any] = field(default_factory=dict)
+    schema_version: str = "2026-07-19.renderer_visual_spec.v2"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -92,9 +99,56 @@ def build_renderer_visual_spec(
             "include_metric_definition": True,
             "include_source_context": True,
             "include_comparator": bool(comparator),
+            "include_values": True,
+            "comparison_interval_and_value": bool(comparator),
+            "avoid_redundant_metric_name": True,
         },
         kpi_context=kpi_context,
         table_formatting=table_formatting,
+        value_semantics={
+            "missing_label": "N/A",
+            "observed_zero_distinct_from_missing": True,
+            "null_time_series": "preserve_gaps",
+            "future_periods": "exclude_without_observed_rows",
+            "source_absence_states": ["ABSENT", "PRESENT_EMPTY", "PRESENT_WITH_DATA"],
+        },
+        formatting={
+            "daily_date": "DD.MM.YY",
+            "monthly_date": "MM.YY",
+            "number_grouping": "locale",
+            "axis_tick_strategy": "nice_1_2_2_5_5_10",
+            "axis_integer_ticks_unique": True,
+            "label_thinning": "viewport_aware",
+        },
+        comparison_context={
+            "explicit_only": True,
+            "options": "contextual_to_selected_period",
+            "invalid_option": "nearest_valid_fallback",
+            "tab_summary": "single_shared_summary",
+            "tooltip": "selected_interval_value_vs_comparison_interval_value",
+        },
+        responsive_layout={
+            "sizing_source": "options.width_and_height",
+            "fixed_min_width": False,
+            "widget_width_probes_px": [236, 360, 530, 560, 700, 900],
+            "dashboard_profiles": ["compact_desktop", "wide_desktop"],
+            "horizontal_overflow": "forbidden",
+            "content_clipping": "forbidden",
+            "theme_profiles": ["light", "dark"],
+        },
+        hint_contract={
+            "content": ["business_meaning", "calculation", "limitations"],
+            "forbidden": ["rendering_mechanics", "hover_instructions", "line_style_instructions"],
+            "section_header_hint": False,
+            "table_column_hint_settings_required": True,
+        },
+        layout_contract={
+            "preserve_existing_geometry": True,
+            "semantic_noop_geometry_drift": False,
+            "equal_kpi_heights_within_row": True,
+            "one_kpi_per_object": True,
+            "long_table_internal_scroll": True,
+        },
         advanced_runtime_budget={
             "ordinary_wrap_fn_ms": 100,
             "advanced_wrap_fn_ms": 1500,

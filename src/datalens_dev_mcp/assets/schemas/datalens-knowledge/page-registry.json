@@ -14709,7 +14709,7 @@
         "создание-подключения-api-connector"
       ],
       "asset_count": 1,
-      "bytes": 5098,
+      "bytes": 5109,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -14717,12 +14717,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:48:50.232853Z",
+      "fetched_at": "2026-07-19T12:05:56.228924Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
+      "last_modified": "Fri, 17 Jul 2026 14:03:11 GMT",
       "link_count": 11,
       "local_path": "raw/md/datalens/operations/connection/create-api-connector.md",
       "mirror_path": "datalens/operations/connection/create-api-connector.md",
@@ -14733,7 +14733,7 @@
         "connection",
         "create-api-connector"
       ],
-      "sha256": "40006cdd6dd80dde8e29501521d2cd61e05a509653e1e6d5c772fb8c14c865ee",
+      "sha256": "196641c6215e4c2b48363938fed33bb922cd6358fc543d3e9b514d981f11dc55",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/create-api-connector",
       "title": "Создание подключения API Connector"
     },

@@ -20,7 +20,7 @@ class FullCorpusRuntimeIntegrationTests(unittest.TestCase):
 
         self.assertIn("dl_reference", names)
         self.assertLessEqual(len(names), 40)
-        self.assertLessEqual(payload_chars, 34000)
+        self.assertLessEqual(payload_chars, 28000)
         self.assertIn("recipe", schemas["dl_reference"]["properties"]["mode"]["enum"])
         self.assertEqual(all_schemas["dl_update_dashboard_plan"]["properties"]["mode"]["enum"], ["save", "publish"])
 

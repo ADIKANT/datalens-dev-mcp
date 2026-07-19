@@ -50,7 +50,7 @@ These routes are intentional and route-native:
 
 All three routes inherit DataLens light/dark theme behavior and must keep
 selector layout defaults aligned with local config: left labels, percentage
-widths, and a 96 percent selector row total.
+widths, and a 94 percent selector row budget.
 
 ## Wizard Native Templates
 
@@ -66,7 +66,7 @@ Generated dashboard plans must validate:
 - native title and hint metadata;
 - selector target bindings;
 - tab/chart references;
-- percentage widths and 96 percent selector row total;
+- percentage widths and a 94 percent selector row budget;
 - chart relation endpoints;
 - navigation endpoints.
 

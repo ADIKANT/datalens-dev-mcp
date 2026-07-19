@@ -238,6 +238,87 @@ class DashboardGridContractTests(unittest.TestCase):
         issue = next(item for item in result.issues if item.rule == "existing_layout_geometry_changed")
         self.assertEqual(issue.severity, "warning")
 
+    def test_layout_ownership_rejects_geometry_changes_outside_changed_object_ids(self):
+        current = _payload(
+            items=[{"id": "owned", "type": "widget"}, {"id": "preserved", "type": "widget"}],
+            layout=[
+                {"i": "owned", "x": 0, "y": 0, "w": 18, "h": 8},
+                {"i": "preserved", "x": 18, "y": 0, "w": 18, "h": 8},
+            ],
+        )
+        proposed = _payload(
+            items=[{"id": "owned", "type": "widget"}, {"id": "preserved", "type": "widget"}],
+            layout=[
+                {"i": "owned", "x": 0, "y": 0, "w": 18, "h": 7},
+                {"i": "preserved", "x": 18, "y": 0, "w": 18, "h": 7},
+            ],
+        )
+
+        result = validate_dashboard_payload(
+            proposed,
+            current_dashboard=current,
+            project_contract={"layout_ownership": {"changed_object_ids": ["owned"]}},
+        )
+
+        self.assertFalse(result.ok)
+        ownership_issues = [issue for issue in result.issues if issue.rule == "unowned_layout_geometry_change"]
+        self.assertEqual([issue.path for issue in ownership_issues], ["$.tabs[0].layout[1]"])
+        self.assertIn("'preserved'", ownership_issues[0].message)
+
+    def test_layout_ownership_allows_geometry_changes_for_owned_objects(self):
+        current = {
+            "entry": {
+                "data": {
+                    **_payload(
+                        items=[{"id": "owned", "type": "widget"}],
+                        layout=[{"i": "owned", "x": 0, "y": 0, "w": 18, "h": 8}],
+                    )
+                }
+            }
+        }
+        proposed = {
+            "data": {
+                **_payload(
+                    items=[{"id": "owned", "type": "widget"}],
+                    layout=[{"i": "owned", "x": 0, "y": 0, "w": 18, "h": 7}],
+                )
+            }
+        }
+
+        result = validate_dashboard_payload(
+            proposed,
+            current_dashboard=current,
+            project_contract={"layout_ownership": {"changed_object_ids": ["owned"]}},
+        )
+
+        self.assertTrue(result.ok, [issue.to_dict() for issue in result.issues])
+        self.assertTrue(any(issue.rule == "existing_layout_geometry_changed" for issue in result.issues))
+        self.assertFalse(any(issue.rule == "unowned_layout_geometry_change" for issue in result.issues))
+
+    def test_semantic_noop_rejects_geometry_drift_even_for_owned_objects(self):
+        current = _payload(
+            items=[{"id": "owned", "type": "widget"}],
+            layout=[{"i": "owned", "x": 0, "y": 0, "w": 18, "h": 8, "parent": "__fixHead"}],
+        )
+        proposed = _payload(
+            items=[{"id": "owned", "type": "widget"}],
+            layout=[{"i": "owned", "x": 0, "y": 0, "w": 18, "h": 8, "parent": "__fixGCont"}],
+        )
+
+        result = validate_dashboard_payload(
+            proposed,
+            current_dashboard=current,
+            project_contract={
+                "layout_ownership": {
+                    "changed_object_ids": ["owned"],
+                    "semantic_noop": True,
+                }
+            },
+        )
+
+        self.assertFalse(result.ok)
+        self.assertTrue(any(issue.rule == "semantic_noop_layout_geometry_drift" for issue in result.issues))
+
     def test_changed_legacy_overlap_is_not_exempted(self):
         current = _payload(
             items=[{"id": "left", "type": "widget"}, {"id": "right", "type": "widget"}],

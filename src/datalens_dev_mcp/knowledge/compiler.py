@@ -32,6 +32,7 @@ QA_KNOWLEDGE_DIR = ARTIFACT_DIR / "compiled-qa"
 INDEX_PATH = REPO_ROOT / "artifacts" / "datalens_knowledge" / "index.sqlite"
 COMPILER_VERSION = "2026-06-25.semantic_authoring.v2"
 RUNTIME_KNOWLEDGE_FILES = {
+    "knowledge.lock.json",
     "page-registry.json",
     "chunk-registry.jsonl",
     "rule-cards.jsonl",
@@ -3145,7 +3146,12 @@ def check_compiled_knowledge(
     if not route_matrix.get("routes"):
         issues.append("route capability matrix is missing")
     demo_mapping = compiled.get("demo_reference_mapping") or {}
-    if not demo_mapping.get("ok") or len(demo_mapping.get("mapped_examples") or []) < 8:
+    demo_manifest_available = (
+        Path(str(demo_mapping.get("demo_root") or "")).expanduser() / "raw" / "manifest.json"
+    ).is_file()
+    if demo_manifest_available and (
+        not demo_mapping.get("ok") or len(demo_mapping.get("mapped_examples") or []) < 8
+    ):
         issues.append("demo reference mapping is incomplete")
     benchmark_cases = compiled.get("retrieval_benchmark_cases") or {}
     if int(benchmark_cases.get("case_count") or 0) < 250:
@@ -3157,8 +3163,8 @@ def check_compiled_knowledge(
                 issues.append(f"implemented recipe missing executable fixture: {item['recipe_id']}")
     if compiled["tool_budget"]["default_tool_count"] > 40:
         issues.append("default tool count exceeds 40")
-    if compiled["tool_budget"]["default_tools_list_chars"] > 34000:
-        issues.append("default tools/list chars exceeds 34000")
+    if compiled["tool_budget"]["default_tools_list_chars"] > 28000:
+        issues.append("default tools/list chars exceeds 28000")
     parity = _check_compiled_resource_parity(compiled) if verify_disk_parity else {"ok": True, "issues": [], "checked": 0}
     issues.extend(parity["issues"])
     if INDEX_PATH.exists():

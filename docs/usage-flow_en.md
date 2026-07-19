@@ -54,7 +54,11 @@ dl_runtime_status
   -> dl_diagnose or dl_reference when needed
 ```
 
-For an existing dashboard, `dl_snapshot_dashboard` stores the dashboard and related objects. `dl_get_entries_relations` shows dependencies that must be considered before a change.
+For an existing dashboard, `dl_snapshot_dashboard` stores the dashboard and
+related objects. `completion.status` distinguishes `complete`, `partial`, and
+`unsafe`; `coverage.scope=dashboard_dependency_graph` is not a claim about the
+whole space or organization. `dl_get_entries_relations` shows dependencies that
+must be considered before a change.
 
 Prompt:
 

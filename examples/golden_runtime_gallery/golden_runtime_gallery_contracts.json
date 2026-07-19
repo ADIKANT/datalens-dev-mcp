@@ -312,7 +312,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "96bd1f5356ff5eea38431887f05d6d4df12b797971ae365c7b6f6566ad6a390d",
+        "sha256": "60d2623e0efcfeef548d83cd827fc0d1c93f1643485ab79f1f95a5e5d9c94e70",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -431,8 +431,8 @@
         "tab_hashes": {
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
-          "params.js": "64006e54be8cebe63c8b35bfa0f0f370bd86f91d37c418707acf2ae542655b49",
-          "prepare.js": "30eed7fb97a8800785bd540a77dffab9ff7f7ea5e828e84f987edd2f218315b8",
+          "params.js": "65b67de2bf549b1532f6182a3bdec48660e762f37c71b852e50fbf3708966c2c",
+          "prepare.js": "f49f234f946ba396f4b4e1c99a9e2c4b91ca9e6575607eb0a052bc5b01f83173",
           "sources.js": "83cd5cbe307b8f1735f5aa5d4c64aae48f4314f100a8d9cfd28085bd3283202d"
         }
       },
@@ -474,7 +474,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "f4523af68a35b48fe1e1fcc320ec2b3eac77474f0047079c3994869b6f63fdaf",
+        "sha256": "357959c0287caf2d9e6282a6da9982b0926ef9d0ee99c0aa24fcd7fe0078dbc6",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -593,8 +593,8 @@
         "tab_hashes": {
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
-          "params.js": "28675c80b05de9fb1ce2b06e8ba720897e6e1024e5f5fe0f5e97b1a35dc9f9c1",
-          "prepare.js": "de822c56edbf9e208e3b5cbfa23224776ccdc15d2cd5bd6b9f81a314f48bbabb",
+          "params.js": "ea4a1aabe7e7b7ef2d0283697158e112456e99b491be666b195fac268ddc2c29",
+          "prepare.js": "97942f7c661052d443a7479162033c1215f430aca8921169c62b5ccfe90ca2f0",
           "sources.js": "83cd5cbe307b8f1735f5aa5d4c64aae48f4314f100a8d9cfd28085bd3283202d"
         }
       },
@@ -1792,7 +1792,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "9ff19464aaf592fad38548db6ea7451b35811bfb2f8c5c552b65b338e77972cd",
+        "sha256": "8985bf6010d206747bd19a62e7caf16e18a2ac2c196e6ad2098c895a2bd62d18",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -1910,8 +1910,8 @@
         "tab_hashes": {
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
-          "params.js": "78e06210dc20de377aa8ddfc73f390af17cf67ebf5824aab3c7f2150dfc1f570",
-          "prepare.js": "b93798e5f9e4ae6288c1ff48b0b1fb77ff9da7764105bf6119503ab7337c9b05",
+          "params.js": "836e60b26f9af0330f212d55ed2152c87a2a4a0b7dabbe437bc500904c72a6ad",
+          "prepare.js": "2b0ba9e46fecc08b967b521b3c7df5b7aa68393cb460c0020cf441d14478be65",
           "sources.js": "87c2339eb93334905b4dd5241ca577ea80c7d2741fa9118df810153c75016ad9"
         }
       },
@@ -1952,7 +1952,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "0850ceb13abf88da8aa42e0de56c36a8e668b3f74cf84772648d6e99e5209d5e",
+        "sha256": "15e1431a21324af7cc8d823f2d7ad0f5704a7ead4066ef78e465d7f2a26601f1",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -2070,8 +2070,8 @@
         "tab_hashes": {
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
-          "params.js": "df1a230776bef94fc3e528bc7d95df94622073f29fcad4d07cecb3aa701c96c5",
-          "prepare.js": "8dda7037f0f3b816945b157503672fd565a3f527b57ceaf14ffe3db5cdd60dd2",
+          "params.js": "8479699787447ef914f8e676be7d8bd9b3e280d1c424aa72ced247466d7b376a",
+          "prepare.js": "808aa9ffee6e3eb3b9914ff48a48242c259f650ae4fe531e4273d0b41b09debe",
           "sources.js": "87c2339eb93334905b4dd5241ca577ea80c7d2741fa9118df810153c75016ad9"
         }
       },
@@ -2112,7 +2112,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "53eebbf83794571f57859085201924f9c393da6b6f58644e8036fb6d024750bc",
+        "sha256": "bc65b49b8af4dffc85954d2bd976de208fa1b5f2222a1552d155732b47bdd6ba",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -2230,8 +2230,8 @@
         "tab_hashes": {
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
-          "params.js": "452b25b06a8502ef20336ff06746c441f22a4d9710e7cf82e2c570a7825c8b41",
-          "prepare.js": "1b48485da3506b01be2a7b27ac69122a295c25497121ed75a72e6c0b30207fbf",
+          "params.js": "ed51d0f1a12884d0960038515d89d8ba79d1875606eba2dece44b76739e730b7",
+          "prepare.js": "182c46dd21ea84bae12d83fc75b86c51a0e5e66f556b8bfa9bc4c3f25b5165b0",
           "sources.js": "87c2339eb93334905b4dd5241ca577ea80c7d2741fa9118df810153c75016ad9"
         }
       },
@@ -2272,7 +2272,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "5a5f792cf9ae2901046b44b6a8ad5ec2e5b1dc13318e8f687aef7928a5bb9a5a",
+        "sha256": "46b08232090de6a70ca818ca99b1115bc0c9777415cc010fdb40b378f2ac12a6",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -2390,8 +2390,8 @@
         "tab_hashes": {
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
-          "params.js": "38b386640dbde32eabf5fd50d5196c03d4a7170f4145e0241845d261d92041c6",
-          "prepare.js": "6e0be7f615d3843e95f693d2c6e90390fff36fb53fb5db276e25dc8ec10f96e2",
+          "params.js": "756c402548dceeb57cd09816ac08a7fa7d07f3e281f116bb9a80e205192dfede",
+          "prepare.js": "bb4cec3ab35c3956c61955d1becaa065f1d6b2926bcb247f7268bce431330031",
           "sources.js": "840dad94c56918f6a901c9bb7c459afda4b59ee88d2c709f426442a19fefa285"
         }
       },
@@ -2432,7 +2432,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "9fae68d594893194a67c4209421078952d216aec18f751c1340fd2c362a3efe4",
+        "sha256": "59965b0cce7ce9c89c3ddabd2879e2c033aaa3035fbb767ddd348f7402b75bff",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -2550,8 +2550,8 @@
         "tab_hashes": {
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
-          "params.js": "7f00a8a4484ea359bbd17da841c4096906b4f1e36dd8d9326711e437b33f8171",
-          "prepare.js": "00c44952dc57d7416aad11c663a63450b274bbf0b39fce125502c61a84eb2fa4",
+          "params.js": "3cad53923e9fa16ffcaf610922c056dccbec6a1e611b49e4510a0f376f6c5099",
+          "prepare.js": "c6d2b357dfc6689f33cae04ba793e8aa90ca36dec281b8cc51fbdd65d8724432",
           "sources.js": "1144ef939d7e289ba80b8cce701293abe48381a73e17bb4c149316a380ef4a74"
         }
       },
@@ -2592,7 +2592,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "1250206691cbf4a8d1f6edbcba78f99cbfb5f438f17b431fcdb9704a7dc36a42",
+        "sha256": "eeaf0e1199b0a1920f5ef2dfc9fdd9f35f58b0df41cad446195f8e43d5abcf71",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -2710,8 +2710,8 @@
         "tab_hashes": {
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
-          "params.js": "04e48b93bec06b4a1b695e2f08ad207f01128b8a7f1c003e59a31a65c9a5671c",
-          "prepare.js": "bd9112fac42ad319d269144285e96da5e4c96f9be35725c2e62ce99e0edc08ab",
+          "params.js": "9fc21f7f703f80fa621c14a8f1ff2cd00d7a0fecf357fa7a59946289e5608288",
+          "prepare.js": "449a3457a4750b9d0408d33729e739480f2c3eeb6a6b03697b76100e5868d75c",
           "sources.js": "4a05d96658eea9e6d7e9f5d1e3f315114476893eebee35e0888cb3e8f650f9e6"
         }
       },
@@ -2752,7 +2752,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "80fe2aa7bad5bc6b1b34d32bacfa3c36a196a1bb98c9618f2d580b07e1bb79c3",
+        "sha256": "0decc36bfe8581a8c862ad97ca2cb2082d8be843b83f184e0dfa606e30a8d637",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -2870,8 +2870,8 @@
         "tab_hashes": {
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
-          "params.js": "798e8fc44990c59bbe6f03dd561c0fc28260fa04ee101e119b74c30250f945be",
-          "prepare.js": "265fc75a380b3412d9ff4000f929c74d3d1c7befdc5ecf6f5c7d225cbfda31d6",
+          "params.js": "28130895eee7263a70b25c4cb3cfaea3da1ece08ea29ff478a91613cff7af525",
+          "prepare.js": "b0f3212f79c7fea65d14f62230c128fa2935e5d1aaf7e82fb1d20aeb73c05fe2",
           "sources.js": "4a05d96658eea9e6d7e9f5d1e3f315114476893eebee35e0888cb3e8f650f9e6"
         }
       },
@@ -3766,7 +3766,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "f5b98524b373609f55fde6d4a747d270b20228f5a7d7e7af6be896e8ce775d9b",
+        "sha256": "adf7517102507b1a8e6019583be641576aba7c9028793e76d5deed62d02cc8b3",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -3856,7 +3856,7 @@
         "source_template": "templates/datalens/editor_markdown/markdown_block",
         "tab_hashes": {
           "meta.json": "6985d23eb1570d460cae3027be39aec3e95de07ab9587271ae62dbac27ee8b50",
-          "params.js": "69066ac25694b0d44ad8f51ca2aa1303b641788f5dd515607fbe4420d30c03ed",
+          "params.js": "57f62dff1b302bd4370f5d90213fc6fcca412b9bab8e64ba67a40fbe54b0c971",
           "prepare.js": "d8aea90b91e6f74e0b7871aab081bed8410c76f082f867001c5d71211039b907",
           "sources.js": "8f41dc1d4be7f484cae865b9342fadd25dddb13f129f0b253a307e0f2584876e"
         }
@@ -3898,7 +3898,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "ce5a388c5a4eeaaa6c24a2d51d25bf5dadcbe37eea760eade00b108915d74a6b",
+        "sha256": "733b8dfa5e7fe95cc7f8cda5c3a6196939726f71965182230a8d8ece4a297a5f",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -3988,7 +3988,7 @@
         "source_template": "templates/datalens/editor_markdown/markdown_block",
         "tab_hashes": {
           "meta.json": "6985d23eb1570d460cae3027be39aec3e95de07ab9587271ae62dbac27ee8b50",
-          "params.js": "8e8028c183e47ae19dccecbe8f928d319f8cf7411dd90e1bbfbe93aee9aa40b7",
+          "params.js": "c9aa76725d371a494ae24ccce6448a11be70d56fa73586b92194a48ca210ed0b",
           "prepare.js": "d8aea90b91e6f74e0b7871aab081bed8410c76f082f867001c5d71211039b907",
           "sources.js": "8f41dc1d4be7f484cae865b9342fadd25dddb13f129f0b253a307e0f2584876e"
         }
@@ -4030,7 +4030,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "e2c3bdd9bb7f7083a8a3e1daff9d15fb747fd30ca683579a3d67c8753df700a4",
+        "sha256": "490ad5281e7332d2079aa7caf4d0561ce6e1af2a7399bd52f379e1113ea4a661",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -4120,7 +4120,7 @@
         "source_template": "templates/datalens/editor_markdown/markdown_block",
         "tab_hashes": {
           "meta.json": "6985d23eb1570d460cae3027be39aec3e95de07ab9587271ae62dbac27ee8b50",
-          "params.js": "2ad04a80593ec869ccef5abbbfaf09292a2e0c877d178307a2e7d940b13b107c",
+          "params.js": "f30e9c5eadf427d67e9e69dd1aa9f7491fd86c5b250397279771cd9b7994af6c",
           "prepare.js": "d8aea90b91e6f74e0b7871aab081bed8410c76f082f867001c5d71211039b907",
           "sources.js": "8f41dc1d4be7f484cae865b9342fadd25dddb13f129f0b253a307e0f2584876e"
         }
@@ -4162,7 +4162,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "a6ddced4c388fd34b9239cfa0fc775d9adb2c87d73a32e91f1e36c1e8602c01b",
+        "sha256": "b21f7fcb09212a577d9fc5f1b6e9d2d0a9269ffb22d0519a1851d4f01fadea4e",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -4252,7 +4252,7 @@
         "source_template": "templates/datalens/editor_markdown/markdown_block",
         "tab_hashes": {
           "meta.json": "6985d23eb1570d460cae3027be39aec3e95de07ab9587271ae62dbac27ee8b50",
-          "params.js": "5c38a923395d5bd2558961105a9c1b3859a12c93c10fb9ee3a7dc5326c349c28",
+          "params.js": "0925966150c64ec0592201fd41ef0abe2e65c3e8260939586dcde0754b55076e",
           "prepare.js": "d8aea90b91e6f74e0b7871aab081bed8410c76f082f867001c5d71211039b907",
           "sources.js": "8f41dc1d4be7f484cae865b9342fadd25dddb13f129f0b253a307e0f2584876e"
         }
@@ -4294,7 +4294,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "7d26f17026d64481f504e82dc85701e2697ff3f4a2c236f528014a31290141ea",
+        "sha256": "3d1cc22da23725d0083428b6dec8387181bd0081a0d51f2160034353fe54e75d",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -4384,7 +4384,7 @@
         "source_template": "templates/datalens/editor_markdown/markdown_block",
         "tab_hashes": {
           "meta.json": "6985d23eb1570d460cae3027be39aec3e95de07ab9587271ae62dbac27ee8b50",
-          "params.js": "b8b5f3632e8ff83c5406711ba611718e86f80fa8dd69474efe0cde498b5801d2",
+          "params.js": "6363b67f02fb30df9d16edd1a8436151c858d2ad72597f761d14fa4620b57cf9",
           "prepare.js": "d8aea90b91e6f74e0b7871aab081bed8410c76f082f867001c5d71211039b907",
           "sources.js": "8f41dc1d4be7f484cae865b9342fadd25dddb13f129f0b253a307e0f2584876e"
         }
@@ -4426,7 +4426,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "19894e46296e54a5601039d62a9abc4b3c5de9c4b85d8adb35e8c72918bb3ccb",
+        "sha256": "58f33465ced1201e4f86aea1c5eda2b6d0bed06096e328e0d5583578d714ed5a",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -4516,7 +4516,7 @@
         "source_template": "templates/datalens/editor_markdown/markdown_block",
         "tab_hashes": {
           "meta.json": "6985d23eb1570d460cae3027be39aec3e95de07ab9587271ae62dbac27ee8b50",
-          "params.js": "25963fc97f659b8aaef3e7ad588e8b42818af51cef546db241c7a4a18a0b07cc",
+          "params.js": "8ffc91220e827e5f2b23b4c0a80e846269e705fb63cf001419898f570e670a53",
           "prepare.js": "d8aea90b91e6f74e0b7871aab081bed8410c76f082f867001c5d71211039b907",
           "sources.js": "8f41dc1d4be7f484cae865b9342fadd25dddb13f129f0b253a307e0f2584876e"
         }
@@ -4558,7 +4558,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "fd943e9e119582de23eb4dfb0bd3455c5e4d94d4b65424143497bcca15809f98",
+        "sha256": "6329bbd854e96fd2e859a21dee5826c1f28fd3683b6fe702b2e5ff32542c1a5d",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -4662,9 +4662,9 @@
         "schema_version": "2026-06-03.standard_template_bundle.v1",
         "source_template": "templates/datalens/editor_js_control/selector",
         "tab_hashes": {
-          "controls.js": "fcc3787c47bd02d568b6ee36ea687d8382322164249f7f38536f8b1e37ed0c8d",
+          "controls.js": "039b3965e8eade802635c6cd101f95e94845c5d71cfa680f1f707288190b58f7",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
-          "params.js": "62d5c1b02d34a588de8577078feae2f9b916ab73f8f4888eb672326fc8f03dda",
+          "params.js": "50f63b789b02c15b7d00f04d2788c7a583c44895f0e8a00c7b23cfb365a45905",
           "sources.js": "0cc3847efabc1c42b674b41a8c438ee7e3220a2b367419ce284d0c855bf403a7"
         }
       },
@@ -4705,7 +4705,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "dde52ce28421b02aa985b5f4887b93f2f1e798cd38d52651ca1e871fd39624c7",
+        "sha256": "bd7eb2ae2de3bec072e45407b489b4de9da28ecab034b558c3811a1b05325d97",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -4809,9 +4809,9 @@
         "schema_version": "2026-06-03.standard_template_bundle.v1",
         "source_template": "templates/datalens/editor_js_control/selector",
         "tab_hashes": {
-          "controls.js": "fcc3787c47bd02d568b6ee36ea687d8382322164249f7f38536f8b1e37ed0c8d",
+          "controls.js": "039b3965e8eade802635c6cd101f95e94845c5d71cfa680f1f707288190b58f7",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
-          "params.js": "899eeb395f90091fc16c30cb2646b681419a564180e5ac88b7fb172fbcabff70",
+          "params.js": "2527ebe2f7646a48942f7dda73451db16b366da37905d117a6f52a6eeaaa9cb9",
           "sources.js": "0cc3847efabc1c42b674b41a8c438ee7e3220a2b367419ce284d0c855bf403a7"
         }
       },
@@ -4852,7 +4852,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "c4637146faa4041a6bda879efee696f66fbbe12da776cc4b4563942039f64b18",
+        "sha256": "e333cfdc59b09d9ea2b08e009f944bff93627af878682512c7914ab1156b4723",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -4956,9 +4956,9 @@
         "schema_version": "2026-06-03.standard_template_bundle.v1",
         "source_template": "templates/datalens/editor_js_control/selector",
         "tab_hashes": {
-          "controls.js": "fcc3787c47bd02d568b6ee36ea687d8382322164249f7f38536f8b1e37ed0c8d",
+          "controls.js": "039b3965e8eade802635c6cd101f95e94845c5d71cfa680f1f707288190b58f7",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
-          "params.js": "549c6f1ad7b023efaba2289d56d443a279735c4c9fe0c1322a43276fc1cfdfc6",
+          "params.js": "ddc292613168711113983c5a8915cd9054de84fb941f36b47cd4cc623db9b2d7",
           "sources.js": "0cc3847efabc1c42b674b41a8c438ee7e3220a2b367419ce284d0c855bf403a7"
         }
       },
@@ -4999,7 +4999,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "57a0c31ce1adfae139c30af547ee1225d438a1bb767eeb0a5840b19396ca5422",
+        "sha256": "d94101c739197c23841dffae7d42f005311131bb2da0d4cda7fe6606e83ad19a",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -5103,9 +5103,9 @@
         "schema_version": "2026-06-03.standard_template_bundle.v1",
         "source_template": "templates/datalens/editor_js_control/selector",
         "tab_hashes": {
-          "controls.js": "fcc3787c47bd02d568b6ee36ea687d8382322164249f7f38536f8b1e37ed0c8d",
+          "controls.js": "039b3965e8eade802635c6cd101f95e94845c5d71cfa680f1f707288190b58f7",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
-          "params.js": "0966f8c8e3e630ac216a2fe9d0dbeb01adcff114981a6c2b648e6d05d459aa9c",
+          "params.js": "b66d56ce70fe5cb78e180c690bba1d3b425566c014eb47aa704db96edfc9b5c8",
           "sources.js": "0cc3847efabc1c42b674b41a8c438ee7e3220a2b367419ce284d0c855bf403a7"
         }
       },
@@ -5146,7 +5146,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "d082e7da24842568e7ee25ab8369868e70f5b3832e9117b2b4622d493a6d92e0",
+        "sha256": "d71d468e5df5f66c78cfdebb24ebd076d2baedf00109759f87b9d63cf0b3cdb1",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -5250,9 +5250,9 @@
         "schema_version": "2026-06-03.standard_template_bundle.v1",
         "source_template": "templates/datalens/editor_js_control/selector",
         "tab_hashes": {
-          "controls.js": "fcc3787c47bd02d568b6ee36ea687d8382322164249f7f38536f8b1e37ed0c8d",
+          "controls.js": "039b3965e8eade802635c6cd101f95e94845c5d71cfa680f1f707288190b58f7",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
-          "params.js": "7518490087897927ee0df9eea78be73d7f85fab6c3cb1fa38e376ef370ce90ee",
+          "params.js": "5f6c171ccacfb3518a306fcb781a8a313f466fdd5edc164ebdbc3fe3d1b2bd5b",
           "sources.js": "0cc3847efabc1c42b674b41a8c438ee7e3220a2b367419ce284d0c855bf403a7"
         }
       },
@@ -5293,7 +5293,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "986beb31ab3b276b6f3a7baf1cc4df73e6bbe0abd9cc1369af10428593dbcb21",
+        "sha256": "305b82e38648489493e4ad1714e121613fef9f6858864ff14cf00f8fd18db6b6",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -5397,9 +5397,9 @@
         "schema_version": "2026-06-03.standard_template_bundle.v1",
         "source_template": "templates/datalens/editor_js_control/selector",
         "tab_hashes": {
-          "controls.js": "fcc3787c47bd02d568b6ee36ea687d8382322164249f7f38536f8b1e37ed0c8d",
+          "controls.js": "039b3965e8eade802635c6cd101f95e94845c5d71cfa680f1f707288190b58f7",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
-          "params.js": "45bae9fa9536303fa53a20e4321b7b8c53a0991af5e1383fc1476e381401c1f6",
+          "params.js": "ad4028a8f442198557baf1738c62bebde71685ab768f4ae7123d8375b38eea65",
           "sources.js": "0cc3847efabc1c42b674b41a8c438ee7e3220a2b367419ce284d0c855bf403a7"
         }
       },

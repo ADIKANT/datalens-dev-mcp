@@ -16,7 +16,7 @@ module.exports = {
       param: 'segment',
       label: 'Segment',
       labelPlacement: 'left',
-      width: '96%',
+      width: '94%',
       multiselect: true,
       searchable: true,
       updateOnChange: true,

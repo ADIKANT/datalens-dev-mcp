@@ -16,7 +16,7 @@ module.exports = {
       param: 'status',
       label: 'Status',
       labelPlacement: 'left',
-      width: '96%',
+      width: '94%',
       multiselect: true,
       searchable: true,
       updateOnChange: true,

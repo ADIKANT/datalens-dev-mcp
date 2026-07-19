@@ -145,12 +145,44 @@
     },
     "renderer_visual_spec": {
       "type": "object",
-      "required": ["style_tokens", "encoding", "runtime_constraints"],
+      "required": [
+        "schema_version",
+        "style_tokens",
+        "encoding",
+        "value_semantics",
+        "formatting",
+        "comparison_context",
+        "responsive_layout",
+        "hint_contract",
+        "layout_contract",
+        "runtime_constraints"
+      ],
       "properties": {
+        "schema_version": {
+          "const": "2026-07-19.renderer_visual_spec.v2"
+        },
         "style_tokens": {
           "type": "object"
         },
         "encoding": {
+          "type": "object"
+        },
+        "value_semantics": {
+          "type": "object"
+        },
+        "formatting": {
+          "type": "object"
+        },
+        "comparison_context": {
+          "type": "object"
+        },
+        "responsive_layout": {
+          "type": "object"
+        },
+        "hint_contract": {
+          "type": "object"
+        },
+        "layout_contract": {
           "type": "object"
         },
         "runtime_constraints": {

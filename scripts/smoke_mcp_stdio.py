@@ -88,7 +88,7 @@ def main() -> int:
     if len(tools) != 38:
         print(f"tools/list returned {len(tools)} tools instead of 38", file=sys.stderr)
         return 1
-    if tool_payload_bytes > 34_000:
+    if tool_payload_bytes > 28_000:
         print(f"tools/list payload exceeds budget: {tool_payload_bytes} bytes", file=sys.stderr)
         return 1
     if "dl_get_local_config" not in tools:

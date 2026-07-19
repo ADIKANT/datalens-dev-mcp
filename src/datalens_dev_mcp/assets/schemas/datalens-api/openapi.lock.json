@@ -1,20 +1,20 @@
 {
   "closed_schema_count": 510,
-  "closed_schema_sha256": "20291ac0fb5a83fb67a97b53defee30a5fc61ac1c95eb96a73b6a221fa629632",
+  "closed_schema_sha256": "08f068bada7331ded7189836d3cce248d2e672c555a43e5c0d61c601d08a953d",
   "component_schema_count": 483,
   "content_hashes": {
-    "api_content_hash": "9397997c317e0682dd52eaf7ceb9e428e655aeba5094214750e938087deb6f92",
+    "api_content_hash": "950a5bc436d6912e81be25946bdb99b0422dc1f38b16ee70d15199e1bdbebe1d",
     "assets_content_hash": "4719cb457f410d44f23760ace51e1c095adaec59f366d2ac6f00de74bb26031f",
-    "manifest_stable_hash": "c77a7fb5eea76e361c7292f8a9580b2c5206e38982ab50caad67f3438be03a5b",
-    "pages_content_hash": "fda97edaac019a8f7c74376c7918da5cffb12214cf87de106b7356a59ddccfaf"
+    "manifest_stable_hash": "78238ee97c3e05e5f3af7487be5108fd737b1e380fe3e55f8b9f2a8e19ca1bf2",
+    "pages_content_hash": "32870a8ea0dc568e7881907e5abb3a6b583d4b16847002f1fcb1683b895b3213"
   },
   "corpus_root_hint": "<DATALENS_DOCS_CORPUS_ROOT>",
-  "generated_at": "2026-07-13T13:34:50.491355Z",
-  "inventory_openapi_sha256": "e4c3cf56de894e28b883b1f0ceaf2935f68570b052c46885e20bc9608e5ca532",
+  "generated_at": "2026-07-19T12:10:31.828176Z",
+  "inventory_openapi_sha256": "c0dec7cb5cd14da09a6fe3a9388201a6639f4ec97cf0e93e2a7888281537cc91",
   "inventory_operation_count": 88,
   "inventory_path_count": 88,
   "openapi_path": "raw/api/openapi.json",
-  "openapi_sha256": "e4c3cf56de894e28b883b1f0ceaf2935f68570b052c46885e20bc9608e5ca532",
+  "openapi_sha256": "c0dec7cb5cd14da09a6fe3a9388201a6639f4ec97cf0e93e2a7888281537cc91",
   "openapi_version": "3.1.0",
   "operation_count": 88,
   "path_count": 88,

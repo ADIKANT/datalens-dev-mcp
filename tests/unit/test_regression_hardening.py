@@ -978,7 +978,7 @@ class DashboardPayloadPreflightTests(unittest.TestCase):
                     ],
                 },
             ],
-            "selector_rows": [[{"id": "global_period", "width": "24%"}, {"id": "source_filter", "width": "72%"}]],
+            "selector_rows": [[{"id": "global_period", "width": "24%"}, {"id": "source_filter", "width": "70%"}]],
         }
 
         result = validate_dashboard_payload(payload, current_dashboard=current, preserved_control_ids=["global_period"])
@@ -1049,7 +1049,7 @@ class DashboardPayloadPreflightTests(unittest.TestCase):
                     "controlType": "preset",
                     "defaultValue": "last_30_days",
                     "labelPlacement": "left",
-                    "width": "96%",
+                    "width": "94%",
                 }
             ]
         }
@@ -1069,7 +1069,7 @@ class DashboardPayloadPreflightTests(unittest.TestCase):
                     "id": "global_period",
                     "type": "selector",
                     "labelPlacement": "left",
-                    "width": "96%",
+                    "width": "94%",
                     "impactTabsIds": ["overview", "missing_tab"],
                 }
             ],

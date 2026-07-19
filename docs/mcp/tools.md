@@ -64,6 +64,9 @@
 - Required: `dashboard_id`
 - Optional: `project_root`, `workbook_id`, `snapshot_branch`, `include_dormant_summary`, `artifact_retention`
 - Читает дашборд и связанные объекты, затем сохраняет manifest и файлы снимка.
+- Возвращает одинаковые блоки `completion`, `coverage` и `api_contract` в
+  manifest и inline-ответе. `completion.status` принимает `complete`, `partial`
+  или `unsafe`; область покрытия ограничена графом зависимостей дашборда.
 
 ## Справка и диагностика
 
@@ -249,7 +252,9 @@
 
 - Required: —
 - Optional: `include_guarded_writes`, `limit`
-- Возвращает каталог методов, статус поддержки и URL официальной документации.
+- Возвращает компактный каталог методов и статус поддержки. `source_trace`
+  содержит SHA-256 скомпилированного OpenAPI, требуемую версию заголовка и
+  счётчики операций/закрытых схем.
 
 ### `dl_get_api_method_schema`
 

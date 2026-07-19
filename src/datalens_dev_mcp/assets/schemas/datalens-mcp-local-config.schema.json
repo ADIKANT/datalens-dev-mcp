@@ -17,7 +17,7 @@
     "selectors"
   ],
   "properties": {
-    "schema_version": {"const": "2026-07-15.datalens_mcp_local_config.v2"},
+    "schema_version": {"const": "2026-07-19.datalens_mcp_local_config.v3"},
     "defaults": {
       "type": "object",
       "required": ["workbook_id", "project_id", "dashboard_id", "project_workspace_path"],
@@ -219,10 +219,10 @@
       "properties": {
         "label_placement": {"type": "string", "const": "left"},
         "width_mode": {"type": "string", "const": "percentage"},
-        "row_width_percent": {"type": "integer", "const": 96},
-        "default_selector_width_percent": {"type": "integer", "minimum": 1, "maximum": 96},
-        "min_selector_width_percent": {"type": "integer", "minimum": 1, "maximum": 96},
-        "max_selector_width_percent": {"type": "integer", "minimum": 1, "maximum": 96},
+        "row_width_percent": {"type": "integer", "const": 94},
+        "default_selector_width_percent": {"type": "integer", "minimum": 1, "maximum": 94},
+        "min_selector_width_percent": {"type": "integer", "minimum": 1, "maximum": 94},
+        "max_selector_width_percent": {"type": "integer", "minimum": 1, "maximum": 94},
         "target_binding_required": {"type": "boolean"}
       },
       "additionalProperties": false

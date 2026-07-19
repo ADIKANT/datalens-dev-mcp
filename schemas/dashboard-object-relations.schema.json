@@ -23,7 +23,7 @@
         "dashboard_type": {"type": "string"},
         "selector_zone": {"type": "string"},
         "content_flow": {"type": "array", "items": {"type": "string"}},
-        "selector_row_width": {"const": "96%"},
+        "selector_row_width": {"const": "94%"},
         "native_metadata_required": {"const": true}
       },
       "additionalProperties": true

@@ -4,7 +4,7 @@
   "operation_id": "createDashboard",
   "path": "/rpc/createDashboard",
   "request_payload": {},
-  "request_schema_closure_hash": "d1d05732e6a5b393496406047088fa2366e95a3e367e0e3bd4a0d16cedc1a49c",
+  "request_schema_closure_hash": "79350e38bc6110d653802f7ce7711b26851793345a830d3b246dcf3101988845",
   "request_schema_closure_refs": [
     "CreateDashboardV1Args",
     "DashboardData",
@@ -15,7 +15,7 @@
   "request_schema_hash": "787d353518cc7da5fb6ec76df38645d9fa85c681805f10d252e3f3168f3030da",
   "request_schema_ref": "CreateDashboardV1Args",
   "response_payload": {},
-  "response_schema_closure_hash": "cd78c33a3ce02d45fc1f662921b6353f96317774fea8e9d648f7d5bef06ff842",
+  "response_schema_closure_hash": "4726b9730fe32e817dabddffce0d41ccbae38be33d1faa7dc84ebfdb4db0f5e3",
   "response_schema_closure_refs": [
     "CreateDashboardResponse",
     "DashboardData",

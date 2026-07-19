@@ -23,9 +23,9 @@ class DashboardObjectRelationsTests(unittest.TestCase):
 
         selector = relations["selectors"][0]
         self.assertEqual(selector["labelPlacement"], "left")
-        self.assertEqual(selector["width"], "96%")
+        self.assertEqual(selector["width"], "94%")
         self.assertEqual(selector["targets"][0]["target_id"], "widget_001")
-        self.assertEqual(relations["layout_blueprint"]["selector_row_width"], "96%")
+        self.assertEqual(relations["layout_blueprint"]["selector_row_width"], "94%")
         self.assertFalse(relations["widgets"][0]["native_metadata"]["hideTitle"])
         self.assertTrue(relations["widgets"][0]["native_metadata"]["enableHint"])
         self.assertTrue(validate_dashboard_relations(relations).ok)

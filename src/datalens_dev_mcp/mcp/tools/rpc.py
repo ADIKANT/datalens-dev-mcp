@@ -5,7 +5,7 @@ from typing import Any
 
 from datalens_dev_mcp.api.client import DataLensApiClient
 from datalens_dev_mcp.api.errors import DataLensSafetyError
-from datalens_dev_mcp.api.methods import get_method_schema, is_readonly_method, list_methods
+from datalens_dev_mcp.api.methods import get_method_schema, is_readonly_method, list_methods, openapi_lock_summary
 from datalens_dev_mcp.api.request_compiler import validate_method_request
 from datalens_dev_mcp.config import DataLensConfig
 
@@ -38,7 +38,10 @@ def dl_list_api_methods(include_guarded_writes: bool = True, limit: int = 50) ->
         "truncated": len(methods) > preview_limit,
         "preview_limit": preview_limit,
         "detail_tool": "dl_get_api_method_schema",
-        "source_trace": {"catalog_resource": "config/datalens_api_methods.json"},
+        "source_trace": {
+            "catalog_resource": "config/datalens_api_methods.json",
+            "compiled_openapi": openapi_lock_summary(),
+        },
     }
 
 

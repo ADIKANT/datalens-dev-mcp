@@ -553,102 +553,94 @@ def build_openapi_lock(
     }
 
 
-def render_methods_table(catalog: dict[str, Any]) -> list[str]:
-    rows = [
-        "| Method | Tag | Mode | Support status | MCP tool/route | Request schema | Response schema |",
-        "| --- | --- | --- | --- | --- | --- | --- |",
-    ]
-    for item in catalog["methods"]:
-        tool = item.get("mcp_tool") or item.get("mcp_route") or ""
-        rows.append(
-            f"| `{item['method']}` | {item['tag']} | `{item['mode']}` | `{item['support_status']}` | "
-            f"{tool} | `{item['request_schema_ref']}` | `{item['response_schema_ref']}` |"
-        )
-    return rows
+def build_docs() -> dict[Path, str]:
+    api_contract = """# Контракт DataLens API
 
+Официальный источник:
+[DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/).
+Сведения о компиляции схем: [`docs/sources.md`](../sources.md).
 
-def build_docs(catalog: dict[str, Any], lock: dict[str, Any], missing: list[str]) -> dict[Path, str]:
-    api_version = lock["required_api_header_version"]
-    api_contract = [
-        "# DataLens API Contract",
-        "",
-        "Source trace: external docs corpus `raw/api/openapi.json`, `api_inventory.json`, "
-        "`reports/content_hashes.json`, and normalized Editor docs under `raw/md/`.",
-        "",
-        "## Transport",
-        "",
-        "- Curated operations are `POST /rpc/<method>` JSON RPC-style calls under `https://api.datalens.tech`.",
-        "- Required request headers are `Authorization: Bearer <IAM_TOKEN>`, `x-dl-org-id: <ORG_ID>`, "
-        f"`x-dl-api-version: {api_version}`, `content-type: application/json`, and `accept: application/json`.",
-        "- Runtime default API version is `auto`: the intended request goes directly to the compiled current "
-        "version. No read or write request falls back to v1; explicit `DATALENS_API_VERSION=1` is a read-only "
-        "compatibility mode and `latest` is read-only.",
-        "- The client sanitizes diagnostics and must not print token values, token prefixes, token lengths, "
-        "auth headers, or subject tokens.",
-        "",
-        "## Support Status Contract",
-        "",
-        "- `EXECUTABLE_TOOL_SUPPORTED`: callable through a read-only MCP tool or `dl_rpc_readonly` without enabling writes.",
-        "- `PLAN_ONLY_SUPPORTED`: official method and schema evidence exist, but MCP returns a safe-apply plan "
-        "and does not execute by default.",
-        "- `READ_ONLY_REFERENCE`: documented for import/read/reference only; not used as an executable chart creation route.",
-        "- `UNSUPPORTED_NO_VALIDATED_METHOD`: official method is outside the validated local MCP workflow "
-        "or lacks a safe payload contract.",
-        "",
-        "## Write Safety",
-        "",
-        "- Guarded writes are plan-only until safe apply is approved, writes are explicitly enabled, a fresh read "
-        "preserves revision/unknown fields, `save` semantics are chosen, and readback is recorded.",
-        "- Delete, move, rename, permission, license mutation, and QL delete are blocked from operator write routing.",
-        "- Dataset fields and calculated fields are represented through dataset payloads; no standalone official field RPC is claimed.",
-        "- Writes are never retried under a different API version.",
-        "",
-    ]
+## Транспорт
 
-    catalog_lines = [
-        "# DataLens API Methods Catalog",
-        "",
-        "Source trace: external docs corpus `raw/api/openapi.json`, `api_inventory.json`, and normalized method pages.",
-        "",
-        f"- OpenAPI version: `{catalog['openapi_version']}`.",
-        f"- RPC operation count: `{catalog['operation_count']}`.",
-        f"- RPC path count: `{lock['path_count']}`.",
-        f"- Required API header version: `{api_version}`.",
-        f"- Lock SHA-256: `{lock['openapi_sha256']}`.",
-        f"- Support counts: {', '.join(f'`{k}`={v}' for k, v in sorted(catalog['support_status_counts'].items()))}.",
-        "",
-    ]
-    catalog_lines.extend(render_methods_table(catalog))
+- Методы вызываются через `POST https://api.datalens.tech/rpc/<method>`.
+- Запрос содержит `Authorization: Bearer <IAM_TOKEN>`, `x-dl-org-id`,
+  `x-dl-api-version`, `content-type: application/json` и
+  `accept: application/json`.
+- `DATALENS_API_VERSION=auto` выбирает версию, закреплённую в скомпилированном контракте.
+- Диагностика очищается от токенов, заголовков авторизации, паролей и закрытых ключей.
 
-    mapping_lines = [
-        "# API Tool Mapping",
-        "",
-        "Source trace: `config/datalens_api_methods.json`, `schemas/datalens-api/support-policy-overlay.json`, "
-        "MCP object lifecycle tools, `dl_rpc_readonly`, and safe apply policy.",
-        "",
-        "| MCP surface | Official method(s) | Support status | Notes |",
-        "| --- | --- | --- | --- |",
-        "| `dl_rpc_readonly` | all curated `readonly` methods, including QL reads | "
-        "`EXECUTABLE_TOOL_SUPPORTED` | Read-only RPC only; no writes. |",
-        "| `dl_read_object` / object readers | `getDashboard`, `getEditorChart`, `getWizardChart`, "
-        "`getDataset`, `getConnection` | `EXECUTABLE_TOOL_SUPPORTED` | Saved/published branch reads where applicable. |",
-        "| Dashboard lifecycle planners | `createDashboard`, `updateDashboard` | `PLAN_ONLY_SUPPORTED` | "
-        "Safe-apply plan; save by default. |",
-        "| Advanced Editor planners | `createEditorChart`, `updateEditorChart` | `PLAN_ONLY_SUPPORTED` | "
-        "JavaScript is selected explicitly or for a registered Wizard capability gap. |",
-        "| Wizard native planners | `createWizardChart`, `updateWizardChart` | `PLAN_ONLY_SUPPORTED` | "
-        "Wizard-first standard visualizations use canonical templates or a matching fresh saved seed. |",
-        "| Dataset/connector planners | `createDataset`, `updateDataset`, `createConnection`, "
-        "`updateConnection`, `validateDataset` | `PLAN_ONLY_SUPPORTED` / `EXECUTABLE_TOOL_SUPPORTED` | "
-        "Create/update are plans; validation/read are read-only. |",
-        "| QL methods | `getQLChart`, `createQLChart`, `updateQLChart` | "
-        "`EXECUTABLE_TOOL_SUPPORTED` / `PLAN_ONLY_SUPPORTED` | QL create/update requires "
-        "`ql_explicit` and direct-user-request provenance. |",
-        "| QL delete | `deleteQLChart` | `READ_ONLY_REFERENCE` | Delete remains policy-blocked. |",
-        "| Delete/move/permission/license mutation | delete/move/permission/license RPCs | "
-        "`READ_ONLY_REFERENCE` / policy blocked | Documented for awareness; not an operator route. |",
-        "",
-    ]
+## Статус метода
+
+Каталог разделяет методы чтения, методы записи через Safe Apply и справочные
+операции. Текущий статус можно получить через `dl_list_api_methods`, точную
+схему — через `dl_get_api_method_schema`.
+
+## Запись
+
+Перед write выполняются target lock, актуальное чтение, сохранение ревизии и
+неизвестных полей, валидация payload и проверка write/save/publish. Save
+сопровождается saved readback. Publish строится из saved readback и
+сопровождается published readback.
+
+Команда пользователя на create/fix/update/enhance/redesign запускает этот цикл
+без отдельного подтверждения save/publish. Удаление целого объекта использует
+отдельный `confirm_delete` flow. Перемещение, изменение прав и credential
+mutations не поддерживаются.
+
+Повтор записи под другой API-версией не выполняется.
+"""
+
+    catalog_doc = """# Каталог методов DataLens API
+
+Полный актуальный каталог поставляется в `config/datalens_api_methods.json` и
+доступен через `dl_list_api_methods`. Для одного метода используйте
+`dl_get_api_method_schema`.
+
+## Основные методы
+
+| Объект | Методы чтения | Методы создания/обновления |
+| --- | --- | --- |
+| Workbook | `getWorkbooksList`, `getWorkbookEntries` | Обрабатываются проектным workflow при наличии manifest |
+| Dashboard | `getDashboard` | `createDashboard`, `updateDashboard` |
+| Wizard chart | `getWizardChart` | `createWizardChart`, `updateWizardChart` |
+| Editor chart | `getEditorChart` | `createEditorChart`, `updateEditorChart` |
+| QL chart | `getQLChart` | `createQLChart`, `updateQLChart` по прямому QL-запросу |
+| Dataset | `getDataset` | `validateDataset`, `createDataset`, `updateDataset` |
+| Connection | `getConnection` | `createConnection`, `updateConnection` |
+| Relations | `getEntriesRelations` | — |
+
+## Статусы
+
+- `read_only` — метод используется для чтения или проверки;
+- `guarded_write` — метод выполняется через target lock, fresh read, Safe Apply и readback;
+- `reference_only` — контракт доступен для справки;
+- `unsupported` — операция не входит в публичный workflow сервера.
+
+Удаление целого объекта, когда оно поддержано выбранным project workflow,
+требует отдельного `confirm_delete`. Перемещение и изменение permissions не
+поддерживаются.
+
+Официальные схемы и описания: [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/).
+"""
+
+    mapping_doc = """# Связь инструментов с DataLens API
+
+| Инструменты MCP | Официальные методы | Использование |
+| --- | --- | --- |
+| `dl_list_workbooks`, `dl_get_workbook_entries` | `getWorkbooksList`, `getWorkbookEntries` | Поиск воркбуков и объектов |
+| `dl_get_entries_relations` | `getEntriesRelations` | Связи объектов |
+| `dl_read_object` | `getDashboard`, `get*Chart`, `getDataset`, `getConnection` | Унифицированное чтение |
+| `dl_plan_object_create` | create-метод выбранного object type | План создания |
+| `dl_plan_object_update` | update-метод выбранного object type | План обновления |
+| `dl_plan_guarded_dataset_update` | `getDataset`, `validateDataset`, `updateDataset` | Проверка и обновление датасета |
+| `dl_create_safe_apply_plan`, `dl_execute_safe_apply` | Методы записи из проверенного плана | Save-first применение |
+| `dl_create_publish_from_saved_plan` | Update-метод в publish mode | Публикация из saved readback |
+| `dl_list_api_methods`, `dl_get_api_method_schema` | OpenAPI catalog | Справка по контрактам |
+
+Точный метод и request schema возвращаются plan-инструментом до выполнения
+записи. Официальный источник:
+[DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/).
+"""
 
     examples_doc = [
         "# DataLens API Examples",
@@ -681,9 +673,9 @@ def build_docs(catalog: dict[str, Any], lock: dict[str, Any], missing: list[str]
     ]
 
     return {
-        DOCS_DIR / "api_contract.md": "\n".join(api_contract) + "\n",
-        DOCS_DIR / "api_methods_catalog.md": "\n".join(catalog_lines) + "\n",
-        DOCS_DIR / "api_tool_mapping.md": "\n".join(mapping_lines) + "\n",
+        DOCS_DIR / "api_contract.md": api_contract,
+        DOCS_DIR / "api_methods_catalog.md": catalog_doc,
+        DOCS_DIR / "api_tool_mapping.md": mapping_doc,
         DOCS_DIR / "api_examples.md": "\n".join(examples_doc) + "\n",
     }
 
@@ -829,7 +821,7 @@ def render_outputs(corpus_root: Path) -> dict[Path, str]:
         path: json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
         for path, value in json_outputs.items()
     }
-    outputs.update(build_docs(catalog, lock, missing))
+    outputs.update(build_docs())
     packaged_sources = {
         CONFIG_PATH: PACKAGE_CONFIG_DIR / CONFIG_PATH.name,
         **{

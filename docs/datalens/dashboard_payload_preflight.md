@@ -16,7 +16,7 @@ The validator blocks:
 - inline Advanced Editor titles that duplicate dashboard native title/hint
   metadata;
 - selector layout violations: label placement defaults to left, widths use
-  percent units, and selector rows target 96%;
+  percent units, and selector rows stay within a 94 percent budget;
 - selector `impactTabsIds` values that reference tabs absent from the payload;
 - date-range selector regressions back to preset controls when the project
   contract requires a range control;

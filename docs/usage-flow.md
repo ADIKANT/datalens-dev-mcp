@@ -54,7 +54,12 @@ dl_runtime_status
   -> dl_diagnose или dl_reference при необходимости
 ```
 
-Для существующего дашборда `dl_snapshot_dashboard` сохраняет снимок самого дашборда и связанных объектов. `dl_get_entries_relations` показывает зависимости, которые нужно учесть перед изменением.
+Для существующего дашборда `dl_snapshot_dashboard` сохраняет снимок самого
+дашборда и связанных объектов. Поле `completion.status` различает `complete`,
+`partial` и `unsafe`; `coverage.scope=dashboard_dependency_graph` не является
+заявлением о полноте всего пространства или организации.
+`dl_get_entries_relations` показывает зависимости, которые нужно учесть перед
+изменением.
 
 Промпт:
 

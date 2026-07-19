@@ -29,7 +29,7 @@
 | `dl_get_workbook_entries` | Читает объекты выбранного воркбука | Найти дашборды, чарты, датасеты и подключения | `workbook_id`, при необходимости режим ответа | Список объектов или файл с полными данными · `чтение API` | [`getWorkbookEntries`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookEntries) |
 | `dl_get_entries_relations` | Читает связи между объектами | Перед изменением или удалением связанных объектов | `entry_ids` | Граф зависимостей · `чтение API` | [`getEntriesRelations`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getEntriesRelations) |
 | `dl_read_object` | Читает объект известного типа по ID | Получить актуальную сохранённую или опубликованную версию | `object_type`, `object_id`, при необходимости branch | Объект или путь к файлу с полным ответом · `чтение API` | [Справочник методов API](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
-| `dl_snapshot_dashboard` | Сохраняет дашборд и связанные с ним объекты | Перед аудитом, изменением, переработкой или резервным копированием | `dashboard_id`, при необходимости `workbook_id` и branch | Набор файлов и manifest снимка · `чтение API` + `локальная` | [Модель дашборда](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) |
+| `dl_snapshot_dashboard` | Сохраняет дашборд и связанные с ним объекты | Перед аудитом, изменением, переработкой или резервным копированием | `dashboard_id`, при необходимости `workbook_id` и branch | Файлы, manifest и статус `complete` / `partial` / `unsafe` · `чтение API` + `локальная` | [Модель дашборда](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) |
 
 ## Справка и диагностика
 
@@ -88,5 +88,5 @@
 
 | Инструмент | Назначение | Когда использовать | Необходимые данные | Результат и класс | Источник |
 | --- | --- | --- | --- | --- | --- |
-| `dl_list_api_methods` | Перечисляет известные методы DataLens и статус их поддержки | Проверить, какая операция доступна | Фильтры и лимит при необходимости | Компактный каталог методов · `локальная` | [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
+| `dl_list_api_methods` | Перечисляет известные методы DataLens и статус их поддержки | Проверить, какая операция доступна | Фильтры и лимит при необходимости | Компактный каталог с SHA/version скомпилированного OpenAPI · `локальная` | [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
 | `dl_get_api_method_schema` | Возвращает схему одного метода | Уточнить обязательные поля перед планированием | `method` | Поля запроса, правила использования и ссылка на документацию · `локальная` | [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |

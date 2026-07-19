@@ -4,7 +4,7 @@
   "operation_id": "updateReport",
   "path": "/rpc/updateReport",
   "request_payload": {},
-  "request_schema_closure_hash": "0912edd8e40fe139fdcc28123f98fb80cec74a3ed222eec60be8b6bd0ac2edfa",
+  "request_schema_closure_hash": "b813f729878fbdfecac8c0cb811baab0a98c6b210a9bb75c542a344c0f530955",
   "request_schema_closure_refs": [
     "DashboardMeta",
     "EntryAnnotationArg",
@@ -14,7 +14,7 @@
   "request_schema_hash": "7daf73ea6f1d192246cad5f59832a781dbb8fd8cb3d312d8244da5abc89c260b",
   "request_schema_ref": "UpdateReportV1Args",
   "response_payload": {},
-  "response_schema_closure_hash": "8db5983ec1192b2238801bedf79107ddb2b1b7ddfffd25dbc395ce90e5570b39",
+  "response_schema_closure_hash": "d2f01f80aecc5a09f0218283668c6c617014ed9ff54049ed03ede946b5f3423d",
   "response_schema_closure_refs": [
     "DashboardMeta",
     "EntryAnnotation",

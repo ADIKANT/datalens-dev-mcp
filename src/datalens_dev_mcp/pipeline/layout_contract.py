@@ -6,50 +6,50 @@ from typing import Any
 from datalens_dev_mcp.validators.route_validator import ValidationResult
 
 
-SELECTOR_ROW_WIDTH_TARGET = 96
+SELECTOR_ROW_WIDTH_TARGET = 94
 
 
 LAYOUT_BLUEPRINTS = {
     "overview": {
         "selector_zone": "top compact row",
         "content_flow": ["kpi_row", "trend_or_comparison", "detail_or_navigation"],
-        "selector_row_width": "96%",
+        "selector_row_width": "94%",
         "native_metadata_required": True,
     },
     "self_service": {
         "selector_zone": "top or left dense filter panel",
         "content_flow": ["selector_panel", "summary", "comparison_or_trend", "detail_table"],
-        "selector_row_width": "96%",
+        "selector_row_width": "94%",
         "native_metadata_required": True,
     },
     "object_management": {
         "selector_zone": "status and owner filter row",
         "content_flow": ["status_summary", "action_queue", "reason_breakdown", "object_navigation"],
-        "selector_row_width": "96%",
+        "selector_row_width": "94%",
         "native_metadata_required": True,
     },
     "alerts_mailing": {
         "selector_zone": "minimal defaults",
         "content_flow": ["threshold_summary", "exception_table", "owner_action"],
-        "selector_row_width": "96%",
+        "selector_row_width": "94%",
         "native_metadata_required": True,
     },
     "analytical_tool": {
         "selector_zone": "method-safe filter workspace",
         "content_flow": ["method_note", "filters", "primary_analysis", "supporting_detail"],
-        "selector_row_width": "96%",
+        "selector_row_width": "94%",
         "native_metadata_required": True,
     },
     "experiment_report": {
         "selector_zone": "cohort and period controls",
         "content_flow": ["hypothesis", "cohort_metrics", "trend_context", "decision_block"],
-        "selector_row_width": "96%",
+        "selector_row_width": "94%",
         "native_metadata_required": True,
     },
     "project_ad_hoc": {
         "selector_zone": "scope filters only",
         "content_flow": ["status_strip", "milestones", "risk_action_table", "owner_block"],
-        "selector_row_width": "96%",
+        "selector_row_width": "94%",
         "native_metadata_required": True,
     },
 }
@@ -106,8 +106,6 @@ def validate_selector_controls(controls: list[dict[str, Any]], *, target: int = 
     for row, width in sorted(row_widths.items()):
         if width > target:
             issues.append(f"{row}: selector row width total {width}% exceeds {target}% target")
-        elif width != target:
-            issues.append(f"{row}: selector row width total {width}% must equal {target}% target")
     return ValidationResult(ok=not issues, issues=issues)
 
 

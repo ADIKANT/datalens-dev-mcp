@@ -59,7 +59,7 @@ def build_default_dashboard_relations(
                 "tab_id": "main",
                 "chart_id": chart_id,
                 "route": route,
-                "layout": {"x": 0, "y": 8, "w": 96, "h": 24, "width": "96%"},
+                "layout": {"x": 0, "y": 8, "w": 94, "h": 24, "width": "94%"},
                 "native_metadata": native_metadata,
             },
             {
@@ -68,7 +68,7 @@ def build_default_dashboard_relations(
                 "tab_id": "main",
                 "selector_id": selector_id,
                 "route": "editor_js_control",
-                "layout": {"x": 0, "y": 0, "w": 96, "h": 4, "width": "96%"},
+                "layout": {"x": 0, "y": 0, "w": 94, "h": 4, "width": "94%"},
             },
         ],
         "charts": [
@@ -97,7 +97,7 @@ def build_default_dashboard_relations(
                 "param": selector_param,
                 "label": selector_param.replace("_", " ").title(),
                 "labelPlacement": "left",
-                "width": "96%",
+                "width": "94%",
                 "row": "row-1",
                 "source_field": source_field,
                 "field_dependency_status": "validated" if source_field else "schema_unavailable",

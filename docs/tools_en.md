@@ -29,7 +29,7 @@ Operation classes:
 | `dl_get_workbook_entries` | Read objects in one workbook | Find dashboards, charts, datasets, and connections | `workbook_id`, optional response mode | Entry list or a full-data artifact · `read-only API` | [`getWorkbookEntries`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookEntries) |
 | `dl_get_entries_relations` | Read relations between entries | Before changing or deleting related objects | `entry_ids` | Dependency graph · `read-only API` | [`getEntriesRelations`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getEntriesRelations) |
 | `dl_read_object` | Read a known object type by ID | Get current saved or published state | `object_type`, `object_id`, optional branch | Object data or a full-response artifact · `read-only API` | [API method reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
-| `dl_snapshot_dashboard` | Store a dashboard and its related objects | Before an audit, change, redesign, or backup | `dashboard_id`, optional `workbook_id` and branch | Snapshot files and manifest · `read-only API` + `local` | [Dashboard model](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) |
+| `dl_snapshot_dashboard` | Store a dashboard and its related objects | Before an audit, change, redesign, or backup | `dashboard_id`, optional `workbook_id` and branch | Files, manifest, and `complete` / `partial` / `unsafe` status · `read-only API` + `local` | [Dashboard model](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) |
 
 ## Reference and diagnostics
 
@@ -88,5 +88,5 @@ Operation classes:
 
 | Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
-| `dl_list_api_methods` | List known DataLens methods and support status | Check which operation is available | Optional filters and limit | Compact method catalog · `local` | [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
+| `dl_list_api_methods` | List known DataLens methods and support status | Check which operation is available | Optional filters and limit | Compact catalog with compiled OpenAPI SHA/version · `local` | [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
 | `dl_get_api_method_schema` | Return one method schema | Inspect required fields before planning | `method` | Request fields, usage policy, and documentation URL · `local` | [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |

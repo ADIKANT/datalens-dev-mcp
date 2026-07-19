@@ -74,7 +74,7 @@
   "selector_layout": {
     "native_object_type": "control_node",
     "overflow": "new_row",
-    "row_width_sum_max_pct": 96
+    "row_width_sum_max_pct": 94
   },
   "source_route": {
     "dataset_backed_before_embedded": true,

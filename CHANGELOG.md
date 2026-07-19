@@ -6,9 +6,19 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Versioned responsive browser evidence for compact and wide dashboard layouts.
+- Deterministic visual, value-semantics, hint, and layout-ownership contracts.
+- Explicit complete, partial, and unsafe classifications for dashboard snapshots.
+
 ### Changed
 
-- Nothing yet.
+- Reduced the standard tool-schema payload while preserving safety-critical
+  parameter guidance.
+- Reconciled the compiled API contract with the current public OpenAPI snapshot.
+- Improved responsive Advanced Editor templates for time series, KPI, and
+  category-comparison charts.
 
 ## [0.3.0] - 2026-07-15
 
@@ -24,8 +34,8 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Security
 
-- Live writes remain disabled by default and require explicit local enablement
-  plus the safe-apply workflow.
+- Live writes remain constrained to the target-locked safe-apply workflow;
+  explicit hard-off environment values disable write, save, or publish.
 - Private workbooks, execution evidence, credentials, and local operator state
   are excluded from the public distribution.
 

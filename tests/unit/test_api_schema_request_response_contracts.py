@@ -17,6 +17,9 @@ class ApiSchemaRequestResponseContractsTests(unittest.TestCase):
         cls.schemas = json.loads(
             (ROOT / "schemas" / "datalens-api" / "selected-openapi-schema-refs.json").read_text(encoding="utf-8")
         )
+        cls.closed_schemas = json.loads(
+            (ROOT / "schemas" / "datalens-api" / "closed-schema-bundle.json").read_text(encoding="utf-8")
+        )["schemas"]
 
     def test_schema_refs_have_hashes_when_present(self):
         for record in self.policy["operations"]:
@@ -43,6 +46,41 @@ class ApiSchemaRequestResponseContractsTests(unittest.TestCase):
         self.assertIn("GetWorkbookEntriesEntry", policy["getWorkbookEntries"]["response_schema_closure_refs"])
         self.assertIn("WorkbookTransferNotification", policy["getWorkbookExportStatus"]["response_schema_closure_refs"])
         self.assertIn("WorkbookTransferNotification", policy["getWorkbookImportStatus"]["response_schema_closure_refs"])
+
+    def test_dashboard_and_report_neuro_widget_hide_actions_stays_optional(self):
+        for bundle_name, schemas in (("selected", self.schemas), ("closed", self.closed_schemas)):
+            collections = {
+                "DashboardData": schemas["DashboardData"]["properties"]["tabs"],
+                "ReportData": schemas["ReportData"]["properties"]["slideGroups"],
+            }
+            for schema_name, collection in collections.items():
+                with self.subTest(bundle=bundle_name, schema=schema_name):
+                    variants = collection["items"]["properties"]["items"]["items"]["oneOf"]
+                    neuro_widget = next(
+                        variant
+                        for variant in variants
+                        if variant["properties"]["type"].get("enum") == ["neuro_widget"]
+                    )
+                    widget_data = neuro_widget["properties"]["data"]
+                    self.assertEqual(widget_data["properties"]["hideActions"], {"type": "boolean"})
+                    self.assertNotIn("hideActions", widget_data["required"])
+
+    def test_dashboard_and_report_revision_audit_fields_stay_optional(self):
+        for bundle_name, schemas in (("selected", self.schemas), ("closed", self.closed_schemas)):
+            for schema_name in ("DashboardV1", "ReportV1"):
+                with self.subTest(bundle=bundle_name, schema=schema_name):
+                    schema = schemas[schema_name]
+                    self.assertEqual(schema["properties"]["revUpdatedAt"], {"type": "string"})
+                    self.assertEqual(schema["properties"]["revUpdatedBy"], {"type": "string"})
+                    self.assertNotIn("revUpdatedAt", schema["required"])
+                    self.assertNotIn("revUpdatedBy", schema["required"])
+
+    def test_audit_parent_folder_id_stays_required_nullable(self):
+        for bundle_name, schemas in (("selected", self.schemas), ("closed", self.closed_schemas)):
+            with self.subTest(bundle=bundle_name):
+                audit_entry = schemas["AuditEntry"]
+                self.assertEqual(audit_entry["properties"]["parentFolderId"], {"type": ["string", "null"]})
+                self.assertIn("parentFolderId", audit_entry["required"])
 
     def test_runtime_schema_lookup_matches_policy_refs(self):
         policy_by_method = {record["method_name"]: record for record in self.policy["operations"]}

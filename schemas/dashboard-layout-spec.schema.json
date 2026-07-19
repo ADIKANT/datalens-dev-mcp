@@ -67,7 +67,7 @@
       "type": "object",
       "properties": {
         "labelPlacement": {"const": "left"},
-        "row_width_target_percent": {"const": 96},
+        "row_width_target_percent": {"const": 94},
         "controls": {
           "type": "array",
           "items": {

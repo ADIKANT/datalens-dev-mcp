@@ -1,10 +1,11 @@
 {
-  "schema_version": "2026-06-30.renderer_style_tokens.v1",
+  "schema_version": "2026-07-19.renderer_style_tokens.v2",
   "font": {
-    "family": "Arial, sans-serif",
+    "family": "Inter, Arial, sans-serif",
     "base_px": 12,
     "kpi_value_px": 28,
-    "kpi_label_px": 12
+    "kpi_label_px": 12,
+    "line_height": 1.25
   },
   "colors": {
     "background": "#ffffff",
