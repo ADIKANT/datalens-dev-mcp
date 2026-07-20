@@ -42,8 +42,9 @@ class ToolSchemaTests(unittest.TestCase):
 
             expected_params = {
                 param_name
-                for param_name in inspect.signature(fn).parameters
+                for param_name, param in inspect.signature(fn).parameters.items()
                 if param_name != "client"
+                and param.kind not in {inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD}
             }
             if name in PROJECT_CONTEXT_AWARE_TOOLS:
                 expected_params.update({"context_ref", "evidence_refs"})
@@ -51,6 +52,19 @@ class ToolSchemaTests(unittest.TestCase):
             self.assertLess(len(listed[name]["description"]), 180, name)
             for required in schema.get("required", []):
                 self.assertIn(required, schema["properties"], name)
+
+    def test_list_tools_returns_mutation_safe_schema_copies(self):
+        first = list_tools()
+        original_name = first[0]["name"]
+        first[0]["name"] = "poisoned_tool"
+        first[0]["inputSchema"]["properties"]["poisoned"] = {"type": "string"}
+
+        second = list_tools()
+        restored = next(tool for tool in second if tool["name"] == original_name)
+
+        self.assertNotIn("poisoned_tool", {tool["name"] for tool in second})
+        self.assertNotIn("poisoned", restored["inputSchema"]["properties"])
+        self.assertEqual({tool["name"] for tool in second}, STANDARD_TOOL_NAMES)
 
     def test_required_fields_and_enums_are_visible(self):
         listed = {tool["name"]: tool for tool in list_tools("all")}
@@ -65,13 +79,20 @@ class ToolSchemaTests(unittest.TestCase):
         route_schema = listed["dl_generate_editor_bundle"]["inputSchema"]
         self.assertIn("wizard_native", route_schema["properties"]["route"]["enum"])
         self.assertIn("wizard_map_native", route_schema["properties"]["route"]["enum"])
+        selector_schema = route_schema["properties"]["selector_contract"]
+        self.assertFalse(selector_schema["additionalProperties"])
+        self.assertEqual(
+            selector_schema["required"],
+            ["label", "option_source", "reset_behavior"],
+        )
+        self.assertEqual(len(selector_schema["oneOf"]), 2)
+        dataset_readbacks_schema = route_schema["properties"]["dataset_readbacks"]
+        self.assertEqual(dataset_readbacks_schema["type"], "array")
+        self.assertEqual(dataset_readbacks_schema["items"]["type"], "object")
 
     def test_structured_list_annotations_are_not_advertised_as_string_arrays(self):
         listed = {tool["name"]: tool for tool in list_tools()}
         expected_object_arrays = {
-            ("dl_run_live_maintenance_update", "changed_objects"),
-            ("dl_run_live_maintenance_update", "safe_apply_actions"),
-            ("dl_run_live_maintenance_update", "guarded_requests"),
             ("dl_validate_source_availability_consumers", "consumers"),
             ("dl_create_safe_apply_plan", "existing_update_actions"),
             ("dl_reconcile_partial_creates", "planned_objects"),
@@ -82,13 +103,63 @@ class ToolSchemaTests(unittest.TestCase):
                 self.assertEqual(schema["type"], "array")
                 self.assertEqual(schema["items"]["type"], "object")
 
-        union_schema = listed["dl_run_live_maintenance_update"]["inputSchema"]["properties"][
-            "source_budget_evidence"
-        ]
+        maintenance_schema = listed["dl_run_live_maintenance_update"]["inputSchema"]
+        maintenance_properties = maintenance_schema["properties"]
+        self.assertIn("maintenance_evidence", maintenance_properties)
+        self.assertNotIn("safe_apply_execution_evidence", maintenance_properties)
+        self.assertNotIn("saved_readback_evidence", maintenance_properties)
+        self.assertNotIn("legacy_evidence", maintenance_properties)
+        evidence_schema = maintenance_properties["maintenance_evidence"]
+        self.assertFalse(evidence_schema["additionalProperties"])
+        for parameter_name in ("changed_objects", "safe_apply_actions", "guarded_requests"):
+            with self.subTest(tool="dl_run_live_maintenance_update", parameter=parameter_name):
+                schema = evidence_schema["properties"][parameter_name]
+                self.assertEqual(schema["type"], "array")
+                self.assertEqual(schema["items"]["type"], "object")
+
+        union_schema = evidence_schema["properties"]["source_budget_evidence"]
         self.assertEqual(
             union_schema["anyOf"],
             [{"type": "object"}, {"type": "array", "items": {"type": "object"}}],
         )
+
+    def test_live_maintenance_bundle_and_validated_legacy_keywords_share_one_boundary(self):
+        from datalens_dev_mcp.mcp.tools import pipeline
+
+        with patch.object(pipeline, "run_live_maintenance_update", return_value={"ok": True}) as run_update:
+            bundled = pipeline.dl_run_live_maintenance_update(
+                workbook_id="workbook_1",
+                maintenance_evidence={
+                    "browser_runtime_required": False,
+                    "non_rendering_exemption": "No rendering surface is changed.",
+                    "safe_apply_actions": [{"method": "updateEditorChart"}],
+                },
+            )
+            bundled_call = run_update.call_args.kwargs
+            legacy = pipeline.dl_run_live_maintenance_update(
+                workbook_id="workbook_1",
+                browser_runtime_required=False,
+                non_rendering_exemption="No rendering surface is changed.",
+                safe_apply_actions=[{"method": "updateEditorChart"}],
+            )
+            legacy_call = run_update.call_args.kwargs
+
+        self.assertTrue(bundled["ok"])
+        self.assertTrue(legacy["ok"])
+        self.assertEqual(bundled_call["browser_runtime_required"], legacy_call["browser_runtime_required"])
+        self.assertEqual(bundled_call["non_rendering_exemption"], legacy_call["non_rendering_exemption"])
+        self.assertEqual(bundled_call["safe_apply_actions"], legacy_call["safe_apply_actions"])
+        with self.assertRaisesRegex(ValueError, "unknown fields"):
+            pipeline.dl_run_live_maintenance_update(maintenance_evidence={"unknown_evidence": {}})
+        with self.assertRaisesRegex(ValueError, "supplied twice"):
+            pipeline.dl_run_live_maintenance_update(
+                maintenance_evidence={"browser_runtime_required": True},
+                browser_runtime_required=True,
+            )
+        with self.assertRaisesRegex(ValueError, "array of objects"):
+            pipeline.dl_run_live_maintenance_update(
+                maintenance_evidence={"safe_apply_actions": ["not-an-object"]},
+            )
 
     def test_tool_list_has_no_legacy_sync_or_corpus_tools(self):
         payload = json.dumps(list_tools("all"), ensure_ascii=False)
@@ -139,7 +210,7 @@ class ToolSchemaTests(unittest.TestCase):
 
         core_bytes = len(json.dumps(result, separators=(",", ":")).encode("utf-8"))
         all_bytes = len(json.dumps({"tools": list_tools("all")}, separators=(",", ":")).encode("utf-8"))
-        self.assertLessEqual(core_bytes, 34_000)
+        self.assertLessEqual(core_bytes, 25_000)
         self.assertLess(core_bytes, all_bytes)
 
         listed = {tool["name"]: tool for tool in result["tools"]}
@@ -221,6 +292,9 @@ class ToolSchemaTests(unittest.TestCase):
         for sequence in (quality_sequence, roadmap_sequence, order_sequence):
             with self.subTest(sequence=sequence[0]):
                 self.assertLessEqual(set(sequence), names)
+
+        self.assertIn("dl_generate_editor_bundle", names)
+        self.assertNotIn("dl_compile_guarded_rpc_request", names)
 
     def test_missing_required_runtime_input_is_structured_tool_error(self):
         server = JsonRpcServer(project_root=".")

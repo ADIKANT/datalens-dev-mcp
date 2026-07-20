@@ -1,4 +1,14 @@
 {
-  "param": "status",
-  "options": ["all", "open", "done"]
+  "selector_contract": {
+    "param": "status",
+    "label": "Status",
+    "option_source": "static",
+    "options": [
+      {"title": "All", "value": "all"},
+      {"title": "Open", "value": "open"},
+      {"title": "Done", "value": "done"}
+    ],
+    "default_values": ["all"],
+    "reset_behavior": "initial"
+  }
 }

@@ -2,7 +2,7 @@ import unittest
 
 
 class SelectorLayoutContractTests(unittest.TestCase):
-    def test_long_selectors_split_rows_under_96_percent(self):
+    def test_long_selectors_split_rows_under_94_percent(self):
         from datalens_dev_mcp.pipeline.selector_layout_contract import (
             SelectorLayoutContract,
             validate_selector_layout_contract,
@@ -66,7 +66,7 @@ class SelectorLayoutContractTests(unittest.TestCase):
 
         self.assertGreaterEqual(len(rows), 2)
         self.assertTrue(result.ok, [finding.to_dict() for finding in result.findings])
-        self.assertTrue(all(width <= 96 for width in result.row_widths_pct))
+        self.assertTrue(all(width <= 94 for width in result.row_widths_pct))
 
     def test_unknown_target_fails(self):
         from datalens_dev_mcp.pipeline.selector_layout_contract import validate_selector_layout_contract

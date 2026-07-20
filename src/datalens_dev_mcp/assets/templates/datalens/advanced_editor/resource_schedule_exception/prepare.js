@@ -36,6 +36,12 @@ function boundedInteger(name, fallback, maximum) {
   const value = Number(paramValue(name, fallback));
   return Number.isInteger(value) && value > 0 ? Math.min(value, maximum) : fallback;
 }
+function paramBoolean(name, fallback) {
+  const value = String(paramValue(name, fallback ? 'true' : 'false')).trim().toLowerCase();
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  return fallback;
+}
 
 const ISO_OFFSET_RE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?(Z|[+-]\d{2}:\d{2})$/;
 function lexicalCompare(left, right) {
@@ -97,7 +103,7 @@ const timezone = String(paramValue('timezone', '')).trim();
 const asOf = strictTimestamp(paramValue('as_of', ''));
 const ignoredStatuses = new Set(paramList('ignored_conflict_statuses', ['cancelled', 'canceled']));
 const doneStatuses = new Set(paramList('done_statuses', ['done', 'completed', 'closed']));
-const allowHttpLinks = paramValue('allow_http_links', false) === true;
+const allowHttpLinks = paramBoolean('allow_http_links', false);
 const sourceRows = normalizeRows('rows');
 
 function fallback(reason, observed) {
@@ -113,7 +119,7 @@ function fallback(reason, observed) {
 }
 
 function buildModel() {
-  if (paramValue('explicit_request', false) !== true) return fallback('explicit_request_required');
+  if (!paramBoolean('explicit_request', false)) return fallback('explicit_request_required');
   if (!validTimeZone(timezone)) return fallback('invalid_or_missing_iana_timezone');
   if (!asOf) return fallback('invalid_or_missing_as_of');
   if (sourceRows.length > limits.rows) return fallback('row_cap_exceeded', {rows: sourceRows.length, maximum: limits.rows});
@@ -227,26 +233,35 @@ module.exports = {
         return /^[A-Za-z][A-Za-z0-9+.-]*:/.test(text) ? '' : text;
       }
       const style = (data.style.themes && data.style.themes[data.theme]) || data.style;
+      const requestedWidth = Number(options && options.width);
+      const requestedHeight = Number(options && options.height);
+      const width = Number.isFinite(requestedWidth) && requestedWidth > 0 ? requestedWidth : 640;
+      const height = Number.isFinite(requestedHeight) && requestedHeight > 0 ? requestedHeight : 340;
+      const compact = width < 560;
+      const dense = height < 260;
       if (data.required) {
         return Editor.generateHtml(`<div style="box-sizing:border-box;width:100%;height:100%;padding:14px;background:${style.colors.surface};color:${style.colors.text};font-family:Inter,Arial,sans-serif;"><b>TABLE FALLBACK REQUIRED</b><div style="margin-top:6px;color:${style.colors.textMuted};">${esc(data.reason)}</div></div>`);
       }
       const start = data.timeRange.startMs;
       const span = Math.max(1, data.timeRange.endMs - start);
       const resourceHtml = data.resources.map((resource) => {
-        const laneHeight = 32;
+        const laneHeight = dense ? 28 : 32;
         const items = resource.items.map((item) => {
           const left = ((item.startMs - start) / span) * 100;
-          const width = Math.max(1.5, ((item.endMs - item.startMs) / span) * 100);
+          const itemWidth = Math.max(1.5, ((item.endMs - item.startMs) / span) * 100);
           const stateText = item.conflict ? 'CONFLICT' : (item.anomaly ? 'ANOMALY' : item.status || 'scheduled');
           const color = item.conflict ? style.colors.critical : (item.anomaly ? style.colors.warning : style.colors.primary);
           const label = `<b>${esc(item.itemId)}</b><span style="margin-left:5px;">${esc(stateText)}</span>`;
           const safeLink = safeHref(item.href, data.allowHttpLinks);
           const content = safeLink ? `<a href="${safeHref(item.href, data.allowHttpLinks)}" style="color:inherit;text-decoration:underline;">${label}</a>` : `<span>${label}</span>`;
-          return `<div data-state="${esc(stateText)}" style="position:absolute;box-sizing:border-box;left:${left}%;width:${width}%;top:${item.lane * laneHeight}px;min-width:54px;height:26px;padding:5px 7px;border:1px solid ${color};border-left-width:4px;border-radius:4px;background:${style.colors.surfaceMuted};color:${style.colors.text};overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11px;">${content}</div>`;
+          return `<div data-state="${esc(stateText)}" title="${esc(item.itemId)} · ${esc(stateText)}" style="position:absolute;box-sizing:border-box;left:${left}%;width:${itemWidth}%;top:${item.lane * laneHeight}px;height:${dense ? 22 : 26}px;padding:${dense ? 3 : 5}px ${compact ? 4 : 7}px;border:1px solid ${color};border-left-width:${compact ? 2 : 4}px;border-radius:4px;background:${style.colors.surfaceMuted};color:${style.colors.text};overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${dense || compact ? 10 : 11}px;">${content}</div>`;
         }).join('');
-        return `<div style="display:grid;grid-template-columns:150px minmax(540px,1fr);border-top:1px solid ${style.colors.border};"><div style="position:sticky;left:0;z-index:2;padding:8px;background:${style.colors.surface};color:${style.colors.text};font-size:12px;font-weight:700;">${esc(resource.name)}</div><div style="position:relative;min-height:${Math.max(1, resource.laneCount) * laneHeight}px;">${items}</div></div>`;
+        const rowLayout = compact
+          ? 'grid-template-columns:1fr;grid-template-rows:auto auto;'
+          : 'grid-template-columns:minmax(0,0.24fr) minmax(0,0.76fr);grid-template-rows:1fr;';
+        return `<div style="display:grid;${rowLayout}border-top:1px solid ${style.colors.border};"><div style="padding:${compact ? 5 : 8}px;background:${style.colors.surface};color:${style.colors.text};font-size:${compact ? 11 : 12}px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;">${esc(resource.name)}</div><div style="position:relative;min-width:0;min-height:${Math.max(1, resource.laneCount) * laneHeight}px;">${items}</div></div>`;
       }).join('');
-      return Editor.generateHtml(`<div style="box-sizing:border-box;width:100%;height:100%;padding:10px 12px;background:${style.colors.surface};font-family:Inter,Arial,sans-serif;overflow:auto;"><div style="position:sticky;top:0;z-index:3;padding:4px 0 8px;background:${style.colors.surface};color:${style.colors.textMuted};font-size:11px;">${esc(data.timezone)} · ${esc(data.asOf)} · CONFLICTS ${data.counts.conflicts}</div>${resourceHtml || `<div style="color:${style.colors.textSubtle};">NO SCHEDULE DATA</div>`}</div>`);
+      return Editor.generateHtml(`<div style="box-sizing:border-box;width:100%;height:100%;padding:${compact ? 6 : 10}px ${compact ? 6 : 12}px;background:${style.colors.surface};font-family:Inter,Arial,sans-serif;overflow-x:hidden;overflow-y:auto;"><div style="position:sticky;top:0;z-index:3;padding:4px 0 ${dense ? 5 : 8}px;background:${style.colors.surface};color:${style.colors.textMuted};font-size:${compact ? 10 : 11}px;">${esc(data.timezone)} · ${esc(data.asOf)} · CONFLICTS ${data.counts.conflicts}</div>${resourceHtml || `<div style="color:${style.colors.textSubtle};">NO SCHEDULE DATA</div>`}</div>`);
     },
   }),
 };

@@ -255,7 +255,12 @@ class PracticalAuthoringHardeningTests(unittest.TestCase):
         params = self._schedule_params()
         self.assertEqual(
             {key: params[key] for key in ("max_rows", "max_lanes_per_resource", "max_span_days", "max_model_bytes")},
-            {"max_rows": 1000, "max_lanes_per_resource": 8, "max_span_days": 90, "max_model_bytes": 120000},
+            {
+                "max_rows": ["1000"],
+                "max_lanes_per_resource": ["8"],
+                "max_span_days": ["90"],
+                "max_model_bytes": ["120000"],
+            },
         )
         start = datetime(2026, 7, 13, tzinfo=timezone.utc)
         overlapping = [

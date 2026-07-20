@@ -124,6 +124,7 @@ class AuthoritativeHardeningEventsTests(unittest.TestCase):
         class FakeClient:
             def __init__(self):
                 self.calls = []
+                self.saved = False
 
             def rpc(self, method, payload):
                 self.calls.append((method, payload))
@@ -133,11 +134,12 @@ class AuthoritativeHardeningEventsTests(unittest.TestCase):
                     return {
                         "dataset": {
                             "datasetId": payload["datasetId"],
-                            "revId": "rev_dataset_1",
-                            "fields": dataset_payload()["fields"],
+                            "revId": "rev_dataset_2" if self.saved else "rev_dataset_1",
+                            **dataset_payload(),
                         }
                     }
                 if method == "updateDataset":
+                    self.saved = True
                     return {"status": "saved", "datasetId": payload["datasetId"]}
                 raise AssertionError(method)
 

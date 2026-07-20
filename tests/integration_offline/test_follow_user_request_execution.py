@@ -27,9 +27,9 @@ class SavePublishClient:
             self.saved = True
             return self._chart("rev_saved", saved_id="saved_1")
         if method == "updateEditorChart" and payload.get("mode") == "publish":
-            return self._chart("rev_published", saved_id="")
+            return self._chart("rev_saved", saved_id="")
         if method == "getEditorChart" and payload.get("branch") == "published":
-            return self._chart("rev_published", saved_id="")
+            return self._chart("rev_saved", saved_id="")
         raise AssertionError(f"unexpected RPC: {method} {payload}")
 
     @staticmethod
@@ -74,6 +74,8 @@ class FollowUserRequestExecutionTests(unittest.TestCase):
             request_text or "fix chart",
             target_chart_id="chart_follow_request",
         ).to_dict()
+        for action in plan["actions"]:
+            action["target_lock_hash"] = plan["target_lock"]["lock_hash"]
         plan_path = root / "artifacts" / "safe_apply_plan.json"
         plan_path.parent.mkdir(parents=True, exist_ok=True)
         plan_path.write_text(json.dumps(plan), encoding="utf-8")

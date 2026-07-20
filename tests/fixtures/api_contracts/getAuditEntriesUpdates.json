@@ -19,7 +19,7 @@
       }
     ]
   },
-  "response_schema_closure_hash": "d3adda41f30b1a0f87298f515b75c0b89f5a69897774e73d86b21f6c699458f0",
+  "response_schema_closure_hash": "1e7f9addeab19a8caa4258230077d8584dec57c10c0051364be7442655f75061",
   "response_schema_closure_refs": [
     "AuditEntry",
     "GetAuditEntriesUpdatesResult"

@@ -63,5 +63,6 @@ See `docs/source_provenance.md` and `THIRD_PARTY_NOTICES.md`.
 
 - Access-binding reads may be used as evidence; permission updates are not
   supported by this MCP server.
-- Deleting a complete supported object requires a separate confirmation with
-  exact IDs. Move, rename, and license-management operations are unsupported.
+- Arbitrary whole-object deletion is unsupported. A manifest
+  `retire_legacy_objects` action requires separate confirmation with exact IDs.
+  Move, rename, and license-management operations are unsupported.

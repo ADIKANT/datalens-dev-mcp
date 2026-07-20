@@ -432,8 +432,14 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
                 "import json\n"
                 "from pathlib import Path\n"
                 "Path('reports').mkdir(exist_ok=True)\n"
-                "json.dump({'dashboard_id': 'apply_dash', 'saved': True, "
-                "'changed_object_counts': {'dashboards': 1}}, open('reports/apply.json', 'w'))\n",
+                "Path('artifacts/readback').mkdir(parents=True, exist_ok=True)\n"
+                "Path('artifacts/readback/dashboard.saved.json').write_text('{}')\n"
+                "json.dump({'workbook_id': 'workbook_summary', 'dashboard_id': 'apply_dash', "
+                "'dashboard_ids': ['apply_dash'], "
+                "'target_ids': {'dashboard_ids': ['apply_dash']}, 'branch_status': 'saved', "
+                "'saved': True, 'changed_object_counts': {'dashboards': 1}, "
+                "'evidence_paths': ['artifacts/readback/dashboard.saved.json']}, "
+                "open('reports/apply.json', 'w'))\n",
                 encoding="utf-8",
             )
             env = {"DATALENS_MCP_ENABLE_WRITES": "1", "DATALENS_MCP_LIVE_ALLOW_SAVE": "1"}
@@ -503,8 +509,14 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
                 "import json\n"
                 "from pathlib import Path\n"
                 "Path('reports').mkdir(exist_ok=True)\n"
-                "json.dump({'dashboard_id': 'publish_dash', 'saved': True, 'published': True, "
-                "'changed_object_counts': {'dashboards': 1}}, open('reports/publish.json', 'w'))\n",
+                "Path('artifacts/readback').mkdir(parents=True, exist_ok=True)\n"
+                "Path('artifacts/readback/dashboard.published.json').write_text('{}')\n"
+                "json.dump({'workbook_id': 'workbook_summary', 'dashboard_id': 'publish_dash', "
+                "'dashboard_ids': ['publish_dash'], "
+                "'target_ids': {'dashboard_ids': ['publish_dash']}, 'branch_status': 'published', "
+                "'saved': True, 'published': True, 'changed_object_counts': {'dashboards': 1}, "
+                "'evidence_paths': ['artifacts/readback/dashboard.published.json']}, "
+                "open('reports/publish.json', 'w'))\n",
                 encoding="utf-8",
             )
             env = {
@@ -552,14 +564,26 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             (root / ".datalens-mcp.json").write_text(json.dumps(manifest), encoding="utf-8")
             (root / "scripts" / "apply.py").write_text(
                 "import json\nfrom pathlib import Path\nPath('reports').mkdir(exist_ok=True)\n"
-                "json.dump({'dashboard_id': 'dashboard_live', 'saved': True, "
-                "'saved_readback_path': 'artifacts/readback/dashboard.saved.latest.json'}, open('reports/apply.json', 'w'))\n",
+                "Path('artifacts/readback').mkdir(parents=True, exist_ok=True)\n"
+                "Path('artifacts/readback/dashboard.saved.latest.json').write_text('{}')\n"
+                "json.dump({'workbook_id': 'workbook_live', 'dashboard_ids': ['dashboard_live'], "
+                "'target_ids': {'dashboard_ids': ['dashboard_live']}, 'branch_status': 'saved', "
+                "'saved': True, 'changed_object_counts': {'dashboards': 1}, "
+                "'evidence_paths': ['artifacts/readback/dashboard.saved.latest.json'], "
+                "'saved_readback_path': 'artifacts/readback/dashboard.saved.latest.json'}, "
+                "open('reports/apply.json', 'w'))\n",
                 encoding="utf-8",
             )
             (root / "scripts" / "publish.py").write_text(
                 "import json\nfrom pathlib import Path\nPath('reports').mkdir(exist_ok=True)\n"
-                "json.dump({'dashboard_id': 'dashboard_live', 'published': True, "
-                "'published_readback_path': 'artifacts/readback/dashboard.published.latest.json'}, open('reports/publish.json', 'w'))\n",
+                "Path('artifacts/readback').mkdir(parents=True, exist_ok=True)\n"
+                "Path('artifacts/readback/dashboard.published.latest.json').write_text('{}')\n"
+                "json.dump({'workbook_id': 'workbook_live', 'dashboard_ids': ['dashboard_live'], "
+                "'target_ids': {'dashboard_ids': ['dashboard_live']}, 'branch_status': 'published', "
+                "'published': True, 'changed_object_counts': {'dashboards': 1}, "
+                "'evidence_paths': ['artifacts/readback/dashboard.published.latest.json'], "
+                "'published_readback_path': 'artifacts/readback/dashboard.published.latest.json'}, "
+                "open('reports/publish.json', 'w'))\n",
                 encoding="utf-8",
             )
             env = {
@@ -605,7 +629,13 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             (root / ".datalens-mcp.json").write_text(json.dumps(manifest), encoding="utf-8")
             (root / "scripts" / "apply.py").write_text(
                 "import json\nfrom pathlib import Path\nPath('reports').mkdir(exist_ok=True)\n"
-                "json.dump({'dashboard_id': 'dashboard_live', 'saved': True}, open('reports/apply.json', 'w'))\n",
+                "Path('artifacts/readback').mkdir(parents=True, exist_ok=True)\n"
+                "Path('artifacts/readback/dashboard.saved.json').write_text('{}')\n"
+                "json.dump({'workbook_id': 'workbook_live', 'dashboard_ids': ['dashboard_live'], "
+                "'target_ids': {'dashboard_ids': ['dashboard_live']}, 'branch_status': 'saved', "
+                "'saved': True, 'changed_object_counts': {'dashboards': 1}, "
+                "'evidence_paths': ['artifacts/readback/dashboard.saved.json']}, "
+                "open('reports/apply.json', 'w'))\n",
                 encoding="utf-8",
             )
             env = {
@@ -666,11 +696,135 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
                     delivery_intent_text="save only",
                 )
 
-        self.assertEqual(result["status"], "completed")
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["status"], "summary_blocked")
+        self.assertIn("project live action summary was not found", result["blocked_reasons"])
         self.assertEqual(result["summary"]["status"], "summary_not_found")
         self.assertEqual(result["summary"]["action"], "apply")
         self.assertIn("reports/apply.json", result["summary"]["summary_candidates"][0])
         self.assertNotIn("dry_dash", json.dumps(result["summary"], ensure_ascii=False))
+
+    def test_missing_apply_summary_prevents_publish_command(self):
+        from datalens_dev_mcp.mcp.tools.pipeline import dl_run_project_live_apply
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "scripts").mkdir()
+            manifest = {
+                "schema_version": "2026-07-02.project_live_workflow_manifest.v4",
+                "project_name": "missing_apply_summary",
+                "workbook_id": "workbook_live",
+                "dashboard_ids": ["dashboard_live"],
+                "workflows": [
+                    {
+                        "name": "layout",
+                        "may_execute_command": True,
+                        "allow_publish": True,
+                        "apply": {
+                            "command": [sys.executable, "scripts/apply.py"],
+                            "summary_path": "reports/apply.json",
+                        },
+                        "publish": {
+                            "command": [sys.executable, "scripts/publish.py"],
+                            "summary_path": "reports/publish.json",
+                        },
+                    }
+                ],
+            }
+            (root / ".datalens-mcp.json").write_text(json.dumps(manifest), encoding="utf-8")
+            (root / "scripts" / "apply.py").write_text("", encoding="utf-8")
+            (root / "scripts" / "publish.py").write_text(
+                "import json\nfrom pathlib import Path\n"
+                "Path('publish-ran').write_text('ran')\n"
+                "Path('reports').mkdir(exist_ok=True)\n"
+                "json.dump({'dashboard_id':'dashboard_live','published':True}, open('reports/publish.json','w'))\n",
+                encoding="utf-8",
+            )
+            env = {
+                "DATALENS_MCP_ENABLE_WRITES": "1",
+                "DATALENS_MCP_LIVE_ALLOW_SAVE": "1",
+                "DATALENS_MCP_LIVE_ALLOW_PUBLISH": "1",
+            }
+            with patched_env(env, clear=True):
+                result = dl_run_project_live_apply(
+                    str(root),
+                    workflow_name="layout",
+                    execute_now=True,
+                    delivery_intent_text="fix this dashboard",
+                )
+            publish_ran = (root / "publish-ran").exists()
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["status"], "summary_blocked")
+        self.assertIsNone(result["publish_result"])
+        self.assertFalse(publish_ran)
+        self.assertFalse(result["project_live_delivery"]["saved"]["passed"])
+        self.assertFalse(result["project_live_delivery"]["published"]["passed"])
+        self.assertIn("project live action summary was not found", result["publish_blocked_reasons"])
+
+    def test_blocked_apply_summary_prevents_publish_command(self):
+        from datalens_dev_mcp.mcp.tools.pipeline import dl_run_project_live_apply
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "scripts").mkdir()
+            manifest = {
+                "schema_version": "2026-07-02.project_live_workflow_manifest.v4",
+                "project_name": "blocked_apply_summary",
+                "workbook_id": "workbook_live",
+                "dashboard_ids": ["dashboard_live"],
+                "workflows": [
+                    {
+                        "name": "layout",
+                        "may_execute_command": True,
+                        "allow_publish": True,
+                        "apply": {
+                            "command": [sys.executable, "scripts/apply.py"],
+                            "summary_path": "reports/apply.json",
+                            "evidence_checks": ["readback"],
+                        },
+                        "publish": {
+                            "command": [sys.executable, "scripts/publish.py"],
+                            "summary_path": "reports/publish.json",
+                        },
+                    }
+                ],
+            }
+            (root / ".datalens-mcp.json").write_text(json.dumps(manifest), encoding="utf-8")
+            (root / "scripts" / "apply.py").write_text(
+                "import json\nfrom pathlib import Path\n"
+                "Path('reports').mkdir(exist_ok=True)\n"
+                "json.dump({'dashboard_id':'dashboard_live','saved':True,"
+                "'readback_evidence_paths':['artifacts/readback/missing.json']}, open('reports/apply.json','w'))\n",
+                encoding="utf-8",
+            )
+            (root / "scripts" / "publish.py").write_text(
+                "from pathlib import Path\nPath('publish-ran').write_text('ran')\n",
+                encoding="utf-8",
+            )
+            env = {
+                "DATALENS_MCP_ENABLE_WRITES": "1",
+                "DATALENS_MCP_LIVE_ALLOW_SAVE": "1",
+                "DATALENS_MCP_LIVE_ALLOW_PUBLISH": "1",
+            }
+            with patched_env(env, clear=True):
+                result = dl_run_project_live_apply(
+                    str(root),
+                    workflow_name="layout",
+                    execute_now=True,
+                    delivery_intent_text="fix this dashboard",
+                )
+            publish_ran = (root / "publish-ran").exists()
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["status"], "summary_blocked")
+        self.assertFalse(result["summary"]["ok"])
+        self.assertEqual(result["summary"]["status"], "summary_blocked")
+        self.assertIsNone(result["publish_result"])
+        self.assertFalse(publish_ran)
+        self.assertTrue(
+            any(issue["rule"] == "zero_coverage" for issue in result["summary"]["blocking_issues"])
+        )
 
     def test_declared_project_live_evidence_zero_coverage_blocks_summary(self):
         from datalens_dev_mcp.mcp.tools.pipeline import dl_read_project_live_summary
@@ -978,7 +1132,7 @@ class DashboardPayloadPreflightTests(unittest.TestCase):
                     ],
                 },
             ],
-            "selector_rows": [[{"id": "global_period", "width": "24%"}, {"id": "source_filter", "width": "72%"}]],
+            "selector_rows": [[{"id": "global_period", "width": "24%"}, {"id": "source_filter", "width": "70%"}]],
         }
 
         result = validate_dashboard_payload(payload, current_dashboard=current, preserved_control_ids=["global_period"])
@@ -1049,7 +1203,7 @@ class DashboardPayloadPreflightTests(unittest.TestCase):
                     "controlType": "preset",
                     "defaultValue": "last_30_days",
                     "labelPlacement": "left",
-                    "width": "96%",
+                    "width": "94%",
                 }
             ]
         }
@@ -1069,7 +1223,7 @@ class DashboardPayloadPreflightTests(unittest.TestCase):
                     "id": "global_period",
                     "type": "selector",
                     "labelPlacement": "left",
-                    "width": "96%",
+                    "width": "94%",
                     "impactTabsIds": ["overview", "missing_tab"],
                 }
             ],

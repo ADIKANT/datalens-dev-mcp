@@ -87,7 +87,12 @@ class McpStdioSmokeTests(unittest.TestCase):
         prompts = {item["name"] for item in responses[3]["result"]["prompts"]}
         self.assertIn("dl_snapshot_dashboard", tools)
         self.assertIn("dl_read_object", tools)
-        self.assertTrue(all("title" in tool for tool in responses[1]["result"]["tools"]))
+        self.assertTrue(
+            all(
+                "name" in tool and "description" in tool and "inputSchema" in tool
+                for tool in responses[1]["result"]["tools"]
+            )
+        )
         self.assertIn("dl_get_api_method_schema", tools)
         self.assertIn("datalens://routes/contract", resources)
         self.assertIn("datalens.develop_dashboard", prompts)

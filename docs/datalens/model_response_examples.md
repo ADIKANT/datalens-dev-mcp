@@ -50,7 +50,7 @@ Expected response summary:
 
 - Label placement: `left`.
 - Width: percentage.
-- Row total: `96%`.
+- Row total: at most `94%`.
 - Targets: explicit widgets/charts only.
 
 ## Missing Input

@@ -70,6 +70,13 @@ def validate_dashboard_payload(
     issues.extend(_inline_title_issues(payload, strict=strict))
     issues.extend(_selector_layout_issues(payload))
     issues.extend(_impact_tabs_scope_issues(payload))
+    issues.extend(
+        _layout_ownership_issues(
+            payload,
+            current_dashboard=current_dashboard or {},
+            project_contract=contract,
+        )
+    )
     issues.extend(_date_range_contract_issues(payload, project_contract=contract))
     issues.extend(_debug_widget_issues(payload, project_contract=contract))
     issues.extend(_availability_default_issues(payload, project_contract=contract))
@@ -87,6 +94,138 @@ def validate_dashboard_payload(
         )
     ok = not any(issue.severity == "error" for issue in issues)
     return DashboardPayloadValidationResult(ok=ok, issues=issues)
+
+
+def _layout_ownership_issues(
+    payload: dict[str, Any],
+    *,
+    current_dashboard: dict[str, Any],
+    project_contract: dict[str, Any],
+) -> list[DashboardPayloadIssue]:
+    if "layout_ownership" not in project_contract or not current_dashboard:
+        return []
+
+    raw_ownership = project_contract.get("layout_ownership")
+    ownership = raw_ownership if isinstance(raw_ownership, dict) else {}
+    raw_changed_ids = ownership.get("changed_object_ids", project_contract.get("changed_object_ids", []))
+    if isinstance(raw_changed_ids, str):
+        raw_changed_ids = [raw_changed_ids]
+    elif not isinstance(raw_changed_ids, (list, tuple, set)):
+        raw_changed_ids = []
+    changed_object_ids = {
+        str(item).strip()
+        for item in raw_changed_ids
+        if str(item).strip()
+    }
+    semantic_noop = ownership.get("semantic_noop", project_contract.get("semantic_noop")) is True
+
+    proposed_extracted = _extract_dashboard_tabs_for_layout_ownership(payload)
+    current_extracted = _extract_dashboard_tabs_for_layout_ownership(current_dashboard)
+    if proposed_extracted is None or current_extracted is None:
+        return []
+    proposed_tabs, proposed_tabs_path = proposed_extracted
+    current_tabs, _ = current_extracted
+    current_by_id = {
+        str(tab.get("id")): tab
+        for tab in current_tabs
+        if isinstance(tab, dict) and str(tab.get("id") or "").strip()
+    }
+
+    issues: list[DashboardPayloadIssue] = []
+    for tab_index, proposed_tab in enumerate(proposed_tabs):
+        if not isinstance(proposed_tab, dict):
+            continue
+        proposed_tab_id = str(proposed_tab.get("id") or "").strip()
+        current_tab = current_by_id.get(proposed_tab_id) if proposed_tab_id else None
+        if current_tab is None and tab_index < len(current_tabs) and isinstance(current_tabs[tab_index], dict):
+            current_tab = current_tabs[tab_index]
+        if not isinstance(current_tab, dict):
+            continue
+
+        proposed_geometry = _layout_geometry_by_id(
+            proposed_tab,
+            layout_path=f"{proposed_tabs_path}[{tab_index}].layout",
+        )
+        current_geometry = _layout_geometry_by_id(current_tab, layout_path="$.current_dashboard.layout")
+        for item_id in sorted(set(proposed_geometry) & set(current_geometry)):
+            proposed_value, proposed_path = proposed_geometry[item_id]
+            current_value, _ = current_geometry[item_id]
+            if proposed_value == current_value:
+                continue
+            if semantic_noop:
+                rule = "semantic_noop_layout_geometry_drift"
+                message = (
+                    f"Semantic no-op changed existing item {item_id!r} layout geometry "
+                    f"from {current_value} to {proposed_value}."
+                )
+                suggested_fix = "Restore the saved x/y/w/h/parent geometry before applying the semantic no-op."
+            elif item_id not in changed_object_ids:
+                rule = "unowned_layout_geometry_change"
+                message = (
+                    f"Existing item {item_id!r} changed layout geometry from {current_value} to {proposed_value} "
+                    "without being listed in layout_ownership.changed_object_ids."
+                )
+                suggested_fix = (
+                    "Restore the existing geometry or add the item id to changed_object_ids when the layout change "
+                    "is intentional and in scope."
+                )
+            else:
+                continue
+            issues.append(
+                DashboardPayloadIssue(
+                    severity="error",
+                    rule=rule,
+                    path=proposed_path,
+                    message=message,
+                    object_type="dashboard_layout",
+                    suggested_fix=suggested_fix,
+                )
+            )
+    return issues
+
+
+def _extract_dashboard_tabs_for_layout_ownership(
+    payload: dict[str, Any],
+) -> tuple[list[Any], str] | None:
+    entry = payload.get("entry")
+    if isinstance(entry, dict):
+        entry_data = entry.get("data")
+        if isinstance(entry_data, dict) and isinstance(entry_data.get("tabs"), list):
+            return entry_data["tabs"], "$.entry.data.tabs"
+    data = payload.get("data")
+    if isinstance(data, dict) and isinstance(data.get("tabs"), list):
+        return data["tabs"], "$.data.tabs"
+    if isinstance(payload.get("tabs"), list):
+        return payload["tabs"], "$.tabs"
+    return None
+
+
+def _layout_geometry_by_id(
+    tab: dict[str, Any],
+    *,
+    layout_path: str,
+) -> dict[str, tuple[tuple[Any, ...], str]]:
+    raw_layout = tab.get("layout")
+    if not isinstance(raw_layout, list):
+        return {}
+    geometry: dict[str, tuple[tuple[Any, ...], str]] = {}
+    for index, record in enumerate(raw_layout):
+        if not isinstance(record, dict):
+            continue
+        item_id = str(record.get("i") or "").strip()
+        if not item_id or not all(field in record for field in ("x", "y", "w", "h")):
+            continue
+        geometry[item_id] = (
+            (
+                record.get("x"),
+                record.get("y"),
+                record.get("w"),
+                record.get("h"),
+                str(record.get("parent") or "").strip(),
+            ),
+            f"{layout_path}[{index}]",
+        )
+    return geometry
 
 
 def rewrite_duplicate_nested_tab_ids(payload: dict[str, Any]) -> dict[str, Any]:
@@ -401,7 +540,7 @@ def _selector_layout_issues(payload: Any) -> list[DashboardPayloadIssue]:
                             path=path,
                             message="Selector width must use percent units.",
                             object_type="selector",
-                            suggested_fix="Use widths like 24%, 48%, or 96%.",
+                            suggested_fix="Use widths like 24%, 47%, or 94%.",
                         )
                     )
             for key, item in value.items():
@@ -434,13 +573,13 @@ def _selector_row_width_issues(rows: list[Any], path: str) -> list[DashboardPayl
                         total += float(width[:-1])
                     except ValueError:
                         pass
-        if row and total > 96.0 + 0.01:
+        if row and total > 94.0 + 0.01:
             issues.append(
                 DashboardPayloadIssue(
                     severity="error",
                     rule="selector_row_width_total",
                     path=f"{path}[{row_index}]",
-                    message=f"Selector row widths must be <= 96%, got {total:g}%.",
+                    message=f"Selector row widths must be <= 94%, got {total:g}%.",
                     object_type="selector_row",
                     suggested_fix="Split controls into another selector row or reduce widths without going below minimums.",
                 )

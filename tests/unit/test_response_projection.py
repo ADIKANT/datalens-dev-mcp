@@ -149,6 +149,8 @@ class ResponseProjectionTests(unittest.TestCase):
         self.assertTrue(compact["ok"])
         self.assertLessEqual(len(serialized), 6000)
         self.assertIn("dl_get_api_method_schema", compact["detail_tool"])
+        self.assertEqual(compact["source_trace"]["compiled_openapi"]["required_api_header_version"], "2")
+        self.assertEqual(compact["source_trace"]["compiled_openapi"]["operation_count"], 88)
         self.assertEqual(dl_list_api_methods(include_guarded_writes="bad")["error"]["category"], "invalid_input")
 
     def test_dataset_rpc_wrapper_summary_preserves_identity_revision_and_bounded_shape(self):
@@ -190,7 +192,7 @@ class ResponseProjectionTests(unittest.TestCase):
             projected = project_dashboard_response(
                 dashboard_fixture(),
                 response_mode="summary",
-                inline_char_budget=1,
+                inline_char_budget=800,
                 project_root=tmp,
                 run_id="projection-test",
             )
@@ -201,6 +203,45 @@ class ResponseProjectionTests(unittest.TestCase):
         self.assertTrue(artifact_path.name.endswith(".full.json"))
         self.assertIn("<redacted>", artifact_text)
         self.assertNotIn("Bearer fixtureTokenValue12345", artifact_text)
+
+    def test_pathological_summary_respects_inline_budget_with_compact_artifact_pointer(self):
+        fixture = dashboard_fixture()
+        fixture["entry"]["data"]["title"] = "Dashboard " + ("x" * 50_000)
+        fixture["entry"]["data"]["tabs"] = [
+            {
+                "id": f"tab_{index}",
+                "title": f"Tab {index} " + ("y" * 2_000),
+                "items": [],
+            }
+            for index in range(200)
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            projected = project_dashboard_response(
+                fixture,
+                response_mode="summary",
+                inline_char_budget=1_000,
+                project_root=tmp,
+                run_id="pathological-summary-budget",
+            )
+            serialized = json.dumps(projected, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+            artifact_path = Path(projected["artifact"]["path"])
+
+            self.assertLessEqual(len(serialized), 1_000)
+            self.assertTrue(artifact_path.is_file())
+
+        self.assertTrue(projected["summary"]["truncated"])
+        self.assertGreater(projected["summary"]["item_count"], 0)
+        self.assertEqual(len(projected["summary"]["sha256"]), 64)
+        self.assertTrue(projected["summary"]["preview"])
+        self.assertLess(len(projected["summary"]["preview"]), 300)
+
+    def test_too_small_budget_fails_instead_of_returning_an_oversized_projection(self):
+        with self.assertRaisesRegex(ValueError, "inline_char_budget"):
+            project_dashboard_response(
+                dashboard_fixture(),
+                response_mode="summary",
+                inline_char_budget=1,
+            )
 
     def test_sanitizer_redacts_api_keys_and_dsns_in_text_values(self):
         header_value = "abcdefghijklmnopqrstuvwxyz" + "123456"

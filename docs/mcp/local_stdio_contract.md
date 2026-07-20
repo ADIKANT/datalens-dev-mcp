@@ -22,10 +22,11 @@ default_tools_approval_mode = "approve"
 - Логи, диагностические сведения и traceback пишутся в `stderr`.
 - `initialize` возвращает версию протокола, capabilities и server info.
 - `notifications/initialized` не создаёт ответ в stdout.
-- `tools/list` возвращает 38 инструментов с `name`, `title`, `description` и `inputSchema`.
+- `tools/list` возвращает 38 инструментов с `name`, `description` и
+  `inputSchema`; избыточный `title` не передаётся.
 - `tools/call` возвращает MCP content и `isError`; прикладная ошибка кодируется как JSON с `ok: false`.
 
-Стандартный runtime следует пользовательскому запросу. Write/save/publish доступны, а audit/plan-only не выполняют запись. Save-only останавливается после saved readback. Обычная команда на изменение проходит save и publish без повторного подтверждения. Удаление целого объекта требует `confirm_delete`.
+Стандартный runtime следует пользовательскому запросу. Write/save/publish доступны, а audit/plan-only не выполняют запись. Save-only останавливается после saved readback. Обычная команда на изменение проходит save и publish без повторного подтверждения. Произвольное удаление целого объекта недоступно; manifest action `retire_legacy_objects` требует `confirm_delete`.
 
 ## Локальная проверка
 

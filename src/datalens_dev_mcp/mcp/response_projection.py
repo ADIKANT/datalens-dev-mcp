@@ -8,7 +8,13 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from datalens_dev_mcp.validators.redaction import REDACTED, is_sensitive_key, redact_text
+from datalens_dev_mcp.serialization import (
+    sanitize_response,
+    serialized_metadata,
+    stable_json_text,
+    stable_sha256,
+)
+from datalens_dev_mcp.validators.redaction import redact_text
 
 
 DEFAULT_INLINE_CHAR_BUDGET = 20_000
@@ -79,71 +85,6 @@ _PUBLIC_WORDING_REPLACEMENTS = (
     (re.compile(r"\bapproval\b", re.IGNORECASE), "request authorization"),
     (re.compile(r"\bapprove\b", re.IGNORECASE), "authorize"),
 )
-
-
-def stable_json_text(value: Any) -> str:
-    return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
-
-
-def stable_sha256(value: Any) -> str:
-    return hashlib.sha256(stable_json_text(value).encode("utf-8")).hexdigest()
-
-
-def serialized_metadata(value: Any) -> dict[str, Any]:
-    text = stable_json_text(value)
-    return {
-        "serialized_chars": len(text),
-        "serialized_bytes": len(text.encode("utf-8")),
-        "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
-    }
-
-
-def sanitize_response(value: Any) -> Any:
-    return _sanitize_response_value(value)
-
-
-def _sanitize_response_value(value: Any) -> Any:
-    if isinstance(value, dict):
-        sanitized: dict[Any, Any] = {}
-        for key, item in value.items():
-            if is_sensitive_key(key) and not _safe_sensitive_metadata(key, item):
-                sanitized[key] = REDACTED
-            else:
-                sanitized[key] = _sanitize_response_value(item)
-        return sanitized
-    if isinstance(value, list):
-        return [_sanitize_response_value(item) for item in value]
-    if isinstance(value, tuple):
-        return [_sanitize_response_value(item) for item in value]
-    if isinstance(value, str):
-        return redact_text(value)
-    return value
-
-
-def _safe_sensitive_metadata(key: Any, value: Any) -> bool:
-    """Keep status metadata while still redacting all credential material."""
-
-    normalized = str(key).strip().lower().replace("-", "_").replace(".", "_")
-    if isinstance(value, bool):
-        return normalized.endswith(("_present", "_available", "_enabled", "_bootstrapped", "_expired")) or any(
-            marker in normalized for marker in ("refresh", "token", "authorization")
-        )
-    if isinstance(value, int | float):
-        return normalized.endswith(("_timeout_sec", "_expires_in", "_count"))
-    if normalized in {"token_source", "authorization_source"} and isinstance(value, str):
-        return value in {
-            "canonical_env_file",
-            "current_user_request",
-            "env_file",
-            "local_config",
-            "missing",
-            "process_env",
-            "token_refresh",
-            "tool_call_intent",
-            "yc_cli",
-            "yc_cli_bootstrap",
-        }
-    return False
 
 
 def project_public_response(
@@ -475,6 +416,8 @@ def project_response(
 ) -> dict[str, Any]:
     mode = normalize_response_mode(response_mode)
     budget = max(0, int(inline_char_budget))
+    if budget < 2:
+        raise ValueError("inline_char_budget must be at least 2 characters")
     sanitized = sanitize_response(response)
     sanitized_summary = sanitize_response(summary)
     full_metadata = serialized_metadata(sanitized)
@@ -486,9 +429,8 @@ def project_response(
         "summary": sanitized_summary,
         "full_response": full_metadata,
     }
-    should_spill = mode == "artifact" or full_metadata["serialized_chars"] > budget
     if mode in {"summary", "structure"}:
-        if should_spill:
+        if full_metadata["serialized_chars"] > budget or _serialized_chars(projected) > budget:
             projected["artifact"] = write_full_artifact(
                 kind=kind,
                 response=sanitized,
@@ -496,8 +438,8 @@ def project_response(
                 run_id=run_id,
                 full_hash=full_metadata["sha256"],
             )
-        return projected
-    if mode == "artifact" or should_spill:
+        return _fit_projected_response(projected, summary=sanitized_summary, budget=budget)
+    if mode == "artifact":
         projected["response_mode"] = "artifact"
         projected["artifact"] = write_full_artifact(
             kind=kind,
@@ -506,9 +448,131 @@ def project_response(
             run_id=run_id,
             full_hash=full_metadata["sha256"],
         )
-        return projected
+        return _fit_projected_response(projected, summary=sanitized_summary, budget=budget)
     projected["response"] = sanitized
-    return projected
+    if _serialized_chars(projected) <= budget:
+        return projected
+    projected.pop("response", None)
+    projected["response_mode"] = "artifact"
+    projected["artifact"] = write_full_artifact(
+        kind=kind,
+        response=sanitized,
+        project_root=project_root,
+        run_id=run_id,
+        full_hash=full_metadata["sha256"],
+    )
+    return _fit_projected_response(projected, summary=sanitized_summary, budget=budget)
+
+
+def _fit_projected_response(
+    projected: dict[str, Any],
+    *,
+    summary: dict[str, Any],
+    budget: int,
+) -> dict[str, Any]:
+    if _serialized_chars(projected) <= budget:
+        return projected
+    artifact = projected.get("artifact")
+    if not isinstance(artifact, dict) or not str(artifact.get("path") or ""):
+        raise ValueError("oversized response projection requires an artifact pointer")
+
+    summary_text = stable_json_text(summary)
+    summary_bytes = summary_text.encode("utf-8")
+    summary_metadata = {
+        "serialized_chars": len(summary_text),
+        "serialized_bytes": len(summary_bytes),
+        "sha256": hashlib.sha256(summary_bytes).hexdigest(),
+    }
+    for preview_limit in (240, 160, 96, 48, 16, 1):
+        compact = {
+            "ok": bool(projected.get("ok", True)),
+            "response_mode": str(projected.get("response_mode") or "summary"),
+            "requested_response_mode": str(projected.get("requested_response_mode") or "summary"),
+            "summary_kind": str(projected.get("summary_kind") or ""),
+            "summary": _compact_summary_metadata(
+                summary,
+                summary_text=summary_text,
+                summary_metadata=summary_metadata,
+                preview_limit=preview_limit,
+            ),
+            "full_response": projected.get("full_response"),
+            "artifact": artifact,
+        }
+        if _serialized_chars(compact) <= budget:
+            return compact
+
+    minimal = {
+        "ok": bool(projected.get("ok", True)),
+        "response_mode": str(projected.get("response_mode") or "summary"),
+        "requested_response_mode": str(projected.get("requested_response_mode") or "summary"),
+        "summary_kind": str(projected.get("summary_kind") or ""),
+        "summary": _compact_summary_metadata(
+            summary,
+            summary_text=summary_text,
+            summary_metadata=summary_metadata,
+            preview_limit=1,
+            minimal=True,
+        ),
+        "full_response": {
+            "sha256": str((projected.get("full_response") or {}).get("sha256") or ""),
+        },
+        "artifact": {
+            "path": str(artifact["path"]),
+            "sha256": str(artifact.get("sha256") or ""),
+        },
+    }
+    minimum_required = _serialized_chars(minimal)
+    if minimum_required > budget:
+        raise ValueError(
+            f"inline_char_budget must be at least {minimum_required} characters "
+            "for an artifact-backed compact summary"
+        )
+    return minimal
+
+
+def _compact_summary_metadata(
+    summary: dict[str, Any],
+    *,
+    summary_text: str,
+    summary_metadata: dict[str, Any],
+    preview_limit: int,
+    minimal: bool = False,
+) -> dict[str, Any]:
+    compact = {
+        "truncated": True,
+        "item_count": len(summary),
+        "sha256": summary_metadata["sha256"],
+        "preview": _bounded_text_preview(summary_text, preview_limit),
+    }
+    if not minimal:
+        compact["serialized_chars"] = summary_metadata["serialized_chars"]
+        compact["serialized_bytes"] = summary_metadata["serialized_bytes"]
+        counts = summary.get("counts")
+        if isinstance(counts, dict):
+            numeric_counts = [
+                (str(key), value)
+                for key, value in sorted(counts.items(), key=lambda item: str(item[0]))
+                if isinstance(value, int | float | bool)
+            ]
+            bounded_counts = dict(numeric_counts[:32])
+            if bounded_counts:
+                compact["counts"] = bounded_counts
+                compact["counts_item_count"] = len(numeric_counts)
+                compact["counts_truncated"] = len(numeric_counts) > len(bounded_counts)
+    return compact
+
+
+def _bounded_text_preview(text: str, limit: int) -> str:
+    bounded_limit = max(1, int(limit))
+    if len(text) <= bounded_limit:
+        return text
+    if bounded_limit == 1:
+        return text[:1]
+    return text[: bounded_limit - 1] + "…"
+
+
+def _serialized_chars(value: Any) -> int:
+    return len(stable_json_text(value))
 
 
 def normalize_response_mode(response_mode: str) -> str:
@@ -535,8 +599,13 @@ def write_full_artifact(
     path.parent.mkdir(parents=True, exist_ok=True)
     text = stable_json_text(response) + "\n"
     path.write_text(text, encoding="utf-8")
+    resolved_path = path.resolve()
+    try:
+        display_path = resolved_path.relative_to(Path.cwd().resolve()).as_posix()
+    except ValueError:
+        display_path = str(resolved_path)
     return {
-        "path": str(path),
+        "path": display_path,
         "serialized_chars": len(text) - 1,
         "serialized_bytes": len(text.encode("utf-8")) - 1,
         "sha256": full_hash,

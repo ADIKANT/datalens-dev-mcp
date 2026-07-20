@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -38,6 +39,12 @@ class GovernedDashboardDecisionPipelineTests(unittest.TestCase):
             (root / "datasets").mkdir()
             (root / "datasets" / "active_users.sql").write_text(
                 "SELECT segment, created_date, active_users FROM mart.active_users_daily\n",
+                encoding="utf-8",
+            )
+            dashboard_payload_dir = root / "artifacts" / "dashboard_payloads"
+            dashboard_payload_dir.mkdir(parents=True, exist_ok=True)
+            (dashboard_payload_dir / "ops_kpi.dashboard.payload.json").write_text(
+                json.dumps({"dashboardId": "dashboard_placeholder", "tabs": [], "items": []}),
                 encoding="utf-8",
             )
             validation = dl_validate_project(str(root))

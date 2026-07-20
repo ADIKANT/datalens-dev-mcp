@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-07-15.datalens_mcp_local_config.v2",
+  "schema_version": "2026-07-19.datalens_mcp_local_config.v3",
   "defaults": {
     "workbook_id": "<WORKBOOK_ID>",
     "project_id": "<PROJECT_ID>",
@@ -95,7 +95,7 @@
   "selectors": {
     "label_placement": "left",
     "width_mode": "percentage",
-    "row_width_percent": 96,
+    "row_width_percent": 94,
     "default_selector_width_percent": 24,
     "min_selector_width_percent": 16,
     "max_selector_width_percent": 48,

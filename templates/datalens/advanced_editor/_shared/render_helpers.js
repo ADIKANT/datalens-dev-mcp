@@ -9,11 +9,36 @@ function escapeHtml(value) {
 }
 
 function formatCompact(value) {
-  const number = Number(value || 0);
+  if (value == null || value === '' || !Number.isFinite(Number(value))) return 'N/A';
+  const number = Number(value);
   const abs = Math.abs(number);
   if (abs >= 1000000) return `${(number / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
   if (abs >= 1000) return `${(number / 1000).toFixed(1).replace(/\.0$/, '')}K`;
   return String(Math.round(number * 10) / 10).replace(/\.0$/, '');
+}
+
+function formatDateLabel(value) {
+  const text = String(value == null ? '' : value).trim();
+  const daily = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ].*)?$/);
+  if (daily) return `${daily[3]}.${daily[2]}.${daily[1].slice(2)}`;
+  const monthly = text.match(/^(\d{4})-(\d{2})$/);
+  if (monthly) return `${monthly[2]}.${monthly[1].slice(2)}`;
+  return text || 'N/A';
+}
+
+function niceAxis(maxValue, tickCount) {
+  const maximum = Number(maxValue);
+  const count = Math.max(2, Math.round(Number(tickCount) || 4));
+  if (!Number.isFinite(maximum) || maximum <= 0) return {max: 1, step: 1, ticks: [0, 1]};
+  const rough = maximum / count;
+  const power = Math.pow(10, Math.floor(Math.log10(rough)));
+  const fraction = rough / power;
+  const niceFraction = fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 2.5 ? 2.5 : fraction <= 5 ? 5 : 10;
+  const step = niceFraction * power;
+  const niceMax = Math.ceil(maximum / step) * step;
+  const ticks = [];
+  for (let value = 0; value <= niceMax + step / 2; value += step) ticks.push(Number(value.toPrecision(12)));
+  return {max: niceMax, step, ticks};
 }
 
 // URI safety: HTTPS and relative references are allowed by default. HTTP is
@@ -68,4 +93,4 @@ function themeName() {
   return requested === 'dark' ? 'dark' : 'light';
 }
 
-module.exports = {escapeHtml, formatCompact, normalizeRows, safeUri, themeName};
+module.exports = {escapeHtml, formatCompact, formatDateLabel, niceAxis, normalizeRows, safeUri, themeName};

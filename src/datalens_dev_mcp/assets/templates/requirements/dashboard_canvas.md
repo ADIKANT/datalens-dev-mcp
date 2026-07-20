@@ -44,6 +44,17 @@ Project-authored dashboard specification template backed by
 - Navigation targets:
 - Acceptance checklist:
 
+## Layout Ownership And Responsive Profiles
+
+- Existing geometry owned by:
+- Explicitly changed layout objects:
+- KPI row height:
+- Table height/internal scroll:
+- Compact desktop behavior:
+- Wide desktop behavior:
+- Expected top/middle/bottom tab evidence:
+- Horizontal overflow/clipping tolerance: `0-2 px`
+
 ## Conditional UX Acceptance
 
 Record only conditions that apply to this dashboard; do not turn every optional

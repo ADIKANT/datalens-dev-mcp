@@ -54,11 +54,11 @@ class CurrentDataLensDocsReconciliationTests(unittest.TestCase):
         self.assertEqual(clusters["chart_inspector"]["classification"], "import_only")
         self.assertIn("No Gravity UI chart creation route is added", clusters["editor_widgets_gravity_ui"]["runtime_contract"])
 
-    def test_zero_delta_snapshot_cannot_replace_historical_applied_delta(self):
+    def test_current_snapshot_cannot_replace_historical_applied_delta(self):
         reports = self.validator.load_update_reports(self.corpus_root)
         policy = self.validator.build_policy(self.corpus_root)
 
-        self.assertEqual(reports["snapshot_summary"]["docs"]["changed_count"], 0)
+        self.assertEqual(reports["snapshot_summary"]["docs"]["changed_count"], 1)
         self.assertEqual(reports["snapshot_summary"]["docs"]["new_count"], 0)
         self.assertEqual(reports["delta_summary"]["docs"]["changed_count"], 12)
         self.assertEqual(reports["delta_summary"]["docs"]["new_count"], 3)

@@ -23,7 +23,7 @@ connect the MCP client
   -> verify the result in DataLens
 ```
 
-The request selects the stopping point. The server does not ask again before save or publish after the user has requested a create, fix, update, enhancement, or redesign of a known object. Deleting a complete object requires a separate confirmation.
+The request selects the stopping point. The server does not ask again before save or publish after the user has requested a create, fix, update, enhancement, or redesign of a known object. Arbitrary whole-object deletion is unavailable; only a manifest `retire_legacy_objects` action requires separate confirmation.
 
 ## Connection and preflight
 
@@ -54,7 +54,11 @@ dl_runtime_status
   -> dl_diagnose or dl_reference when needed
 ```
 
-For an existing dashboard, `dl_snapshot_dashboard` stores the dashboard and related objects. `dl_get_entries_relations` shows dependencies that must be considered before a change.
+For an existing dashboard, `dl_snapshot_dashboard` stores the dashboard and
+related objects. `completion.status` distinguishes `complete`, `partial`, and
+`unsafe`; `coverage.scope=dashboard_dependency_graph` is not a claim about the
+whole space or organization. `dl_get_entries_relations` shows dependencies that
+must be considered before a change.
 
 Prompt:
 
@@ -125,16 +129,20 @@ For a visible chart or dashboard change, final verification should cover the cha
 
 ## Delete a complete object
 
-Deleting a complete dashboard, chart, dataset, connection, or another object takes two calls:
+The standard lifecycle tools do not execute arbitrary whole-object deletion.
+The supported path is a `retire_legacy_objects` action declared by a project
+manifest, and it takes two calls:
 
-1. the server builds a plan and returns the type, exact ID, relations, and plan hash with `delete_confirmation_required`;
-2. the user confirms that deletion, and the same plan runs with `confirm_delete=true`.
+1. `dl_run_project_live_apply` builds a plan and returns the exact IDs and plan hash with `delete_confirmation_required`;
+2. the user confirms that unchanged plan, and the call repeats with `confirm_delete=true`.
 
-If the object or plan changes, the confirmation no longer applies and the server builds a new plan. Removing an element inside an object, such as a legend, filter, column, tab, or widget, is a normal update.
+If the target or plan changes, the confirmation no longer applies. Removing an
+element inside an object, such as a legend, filter, column, tab, or widget, is a
+normal update. Whole-object QL deletion is unsupported.
 
 Prompt:
 
-> Delete complete `<OBJECT_TYPE>` `<OBJECT_ID>`. First show the exact object, relations, and deletion plan. Execute only after my separate confirmation of that plan.
+> Run the `retire_legacy_objects` action declared by the project manifest. First show the exact IDs and plan hash. Execute the same plan only after my separate confirmation.
 
 ## Manifest-backed projects
 

@@ -20,6 +20,7 @@ MAX_CAPTURE_IMAGE_DIMENSION = 65_535
 MAX_CAPTURE_IMAGE_PIXELS = 50_000_000
 MAX_CAPTURE_DECODED_BYTES = 256 * 1024 * 1024
 SCROLL_BOTTOM_TOLERANCE_PX = 2.0
+SCREENSHOT_DIMENSION_TOLERANCE_PX = 2.0
 
 SELECTOR_NOT_APPLICABLE_CODES = {
     "no_selectors_in_scope",
@@ -90,7 +91,17 @@ def build_runtime_gate_evidence(
     rendering_pass = normalized == "passed" and not non_rendering_exemption.strip()
     selector_interaction: dict[str, Any] = {}
     scroll_check: dict[str, Any] = {}
+    browser_capture_schema_version = ""
+    change_scope = ""
+    viewport_checks: list[dict[str, Any]] = []
     if rendering_pass and capture:
+        browser_capture_schema_version = str(capture.get("schema_version") or "")
+        change_scope = str(capture.get("change_scope") or "")
+        viewport_checks = [
+            dict(item)
+            for item in capture.get("viewport_checks") or []
+            if isinstance(item, dict)
+        ]
         target_url = str(capture.get("target_url") or "")
         tab_id = str(capture.get("tab_id") or "")
         changed_object_ids = [str(item) for item in capture.get("changed_object_ids") or []]
@@ -261,6 +272,9 @@ def build_runtime_gate_evidence(
         "required_object_revisions": normalized_required_object_revisions,
         "revision_mismatch_object_ids": revision_mismatch_object_ids,
         "delivery_stage": str(delivery_stage or "").strip(),
+        "browser_capture_schema_version": browser_capture_schema_version,
+        "change_scope": change_scope,
+        "viewport_checks": viewport_checks,
         "changed_object_ids": changed_ids,
         "required_changed_object_ids": required_changed_ids,
         "missing_changed_object_ids": missing_changed_ids,
@@ -307,6 +321,7 @@ def build_runtime_gate_evidence(
             "ok": capture_validation["ok"],
             "verified_artifacts": capture_validation.get("verified_artifacts") or [],
             "image_details": capture_validation.get("image_details") or {},
+            "viewport_image_details": capture_validation.get("viewport_image_details") or [],
             "issues": capture_validation["issues"],
         },
         "evidence_validation_issues": evidence_validation_issues,
@@ -420,6 +435,9 @@ def build_browser_runtime_smoke(
         "required_object_revisions": gate["required_object_revisions"],
         "revision_mismatch_object_ids": gate["revision_mismatch_object_ids"],
         "delivery_stage": gate["delivery_stage"],
+        "browser_capture_schema_version": gate["browser_capture_schema_version"],
+        "change_scope": gate["change_scope"],
+        "viewport_checks": gate["viewport_checks"],
         "changed_chart_ids": gate["changed_object_ids"],
         "required_changed_chart_ids": gate["required_changed_object_ids"],
         "missing_changed_chart_ids": gate["missing_changed_object_ids"],
@@ -521,6 +539,7 @@ def validate_browser_capture_artifact(
             "verified_artifacts": [],
             "image_artifacts": [],
             "image_details": {},
+            "viewport_image_details": [],
             "issues": [],
         }
     item = dict(artifact_metadata or {})
@@ -534,6 +553,7 @@ def validate_browser_capture_artifact(
             "verified_artifacts": [],
             "image_artifacts": [],
             "image_details": {},
+            "viewport_image_details": [],
             "issues": issues,
         }
     sidecar_path = Path(sidecar_validation["verified_artifacts"][0]["resolved_path"])
@@ -551,6 +571,7 @@ def validate_browser_capture_artifact(
             "verified_artifacts": sidecar_validation["verified_artifacts"],
             "image_artifacts": [],
             "image_details": {},
+            "viewport_image_details": [],
             "issues": issues,
         }
     try:
@@ -567,7 +588,11 @@ def validate_browser_capture_artifact(
                 "message": "browser capture sidecar must contain one JSON object",
             }
         )
-    if document and document.get("schema_version") != "datalens.browser_capture.v1":
+    capture_schema_version = str(document.get("schema_version") or "") if document else ""
+    if document and capture_schema_version not in {
+        "datalens.browser_capture.v1",
+        "datalens.browser_capture.v2",
+    }:
         issues.append(
             {
                 "rule": "browser_capture_schema_version",
@@ -642,6 +667,8 @@ def validate_browser_capture_artifact(
             )
     if document:
         issues.extend(_browser_interaction_issues(document, path=sidecar_path))
+        if capture_schema_version == "datalens.browser_capture.v2":
+            issues.extend(_responsive_viewport_issues(document, path=sidecar_path))
     capture_time_issue = _capture_time_issue(str(document.get("captured_at") or "")) if document else ""
     if capture_time_issue:
         issues.append(
@@ -652,51 +679,170 @@ def validate_browser_capture_artifact(
             }
         )
     image = document.get("image_artifact") if isinstance(document.get("image_artifact"), dict) else {}
-    image_path_value = str(image.get("path") or "").strip()
-    image_sha = str(image.get("sha256") or "").strip().lower()
-    image_validation = {"verified_artifacts": [], "issues": []}
+    image_validation = {"verified_artifacts": [], "image_artifacts": [], "image_details": {}, "issues": []}
     image_details: dict[str, Any] = {}
-    if not image_path_value or not image_sha:
-        issues.append(
-            {
-                "rule": "browser_capture_image_binding",
-                "path": str(sidecar_path),
-                "message": "browser capture sidecar requires image_artifact.path and sha256",
-            }
-        )
-    else:
-        image_path = Path(image_path_value)
-        if not image_path.is_absolute():
-            image_path = sidecar_path.parent / image_path
-        image_validation = verify_local_artifacts(
-            [{"path": str(image_path), "sha256": image_sha}],
-            artifact_root=sidecar_path.parent,
+    if capture_schema_version == "datalens.browser_capture.v1" or image:
+        image_validation = _validate_capture_image_binding(
+            image,
+            sidecar_path=sidecar_path,
+            binding_label="image_artifact",
         )
         issues.extend(image_validation["issues"])
-        if image_validation["verified_artifacts"]:
-            resolved_image = Path(image_validation["verified_artifacts"][0]["resolved_path"])
-            image_details, image_issue = _decode_image_metadata(resolved_image)
-            if image_issue:
-                issues.append(
-                    {
-                        "rule": "browser_capture_image_invalid",
-                        "path": str(resolved_image),
-                        "message": f"browser capture image is not decodable: {image_issue}",
-                    }
+        image_details = dict(image_validation.get("image_details") or {})
+    viewport_validations: list[dict[str, Any]] = []
+    viewport_image_details: list[dict[str, Any]] = []
+    if capture_schema_version == "datalens.browser_capture.v2":
+        viewport_checks = document.get("viewport_checks")
+        if isinstance(viewport_checks, list):
+            for index, check in enumerate(viewport_checks):
+                screenshot = (
+                    check.get("screenshot_artifact")
+                    if isinstance(check, dict) and isinstance(check.get("screenshot_artifact"), dict)
+                    else {}
                 )
+                validation = _validate_capture_image_binding(
+                    screenshot,
+                    sidecar_path=sidecar_path,
+                    binding_label=f"viewport_checks[{index}].screenshot_artifact",
+                )
+                viewport_validations.append(validation)
+                issues.extend(validation["issues"])
+                if validation.get("image_details"):
+                    dimension_issues = _viewport_screenshot_dimension_issues(
+                        check if isinstance(check, dict) else {},
+                        validation["image_details"],
+                        viewport_index=index,
+                        path=sidecar_path,
+                    )
+                    issues.extend(dimension_issues)
+                    viewport_width = check.get("width") if isinstance(check, dict) else None
+                    viewport_height = check.get("height") if isinstance(check, dict) else None
+                    device_pixel_ratio = check.get("device_pixel_ratio") if isinstance(check, dict) else None
+                    viewport_image_details.append(
+                        {
+                            "viewport_index": index,
+                            "viewport_width": viewport_width,
+                            "viewport_height": viewport_height,
+                            "device_pixel_ratio": device_pixel_ratio,
+                            "expected_image_width": (
+                                viewport_width * device_pixel_ratio
+                                if isinstance(viewport_width, (int, float))
+                                and not isinstance(viewport_width, bool)
+                                and isinstance(device_pixel_ratio, (int, float))
+                                and not isinstance(device_pixel_ratio, bool)
+                                else None
+                            ),
+                            "expected_image_height": (
+                                viewport_height * device_pixel_ratio
+                                if isinstance(viewport_height, (int, float))
+                                and not isinstance(viewport_height, bool)
+                                and isinstance(device_pixel_ratio, (int, float))
+                                and not isinstance(device_pixel_ratio, bool)
+                                else None
+                            ),
+                            **dict(validation["image_details"]),
+                        }
+                    )
+    if capture_schema_version == "datalens.browser_capture.v2" and not viewport_validations:
+        issues.append(
+            {
+                "rule": "browser_capture_viewport_screenshot_binding",
+                "path": str(sidecar_path),
+                "message": "browser capture v2 requires a hash-bound screenshot for every viewport check",
+            }
+        )
     verified_artifacts = [
         *sidecar_validation["verified_artifacts"],
         *image_validation.get("verified_artifacts", []),
+        *[
+            artifact
+            for validation in viewport_validations
+            for artifact in validation.get("verified_artifacts", [])
+        ],
     ]
-    image_artifacts = [
-        str(item.get("resolved_path") or item.get("path") or "")
-        for item in image_validation.get("verified_artifacts", [])
-        if item.get("resolved_path") or item.get("path")
-    ]
+    image_artifacts = _unique_strings(
+        [
+            *image_validation.get("image_artifacts", []),
+            *[
+                artifact
+                for validation in viewport_validations
+                for artifact in validation.get("image_artifacts", [])
+            ],
+        ]
+    )
+    if not image_details and viewport_image_details:
+        image_details = {
+            key: value
+            for key, value in viewport_image_details[0].items()
+            if key
+            not in {
+                "viewport_index",
+                "viewport_width",
+                "viewport_height",
+                "device_pixel_ratio",
+                "expected_image_width",
+                "expected_image_height",
+            }
+        }
     return {
         "ok": not issues and bool(document) and bool(image_artifacts),
         "document": document,
         "verified_artifacts": verified_artifacts,
+        "image_artifacts": image_artifacts,
+        "image_details": image_details,
+        "viewport_image_details": viewport_image_details,
+        "issues": issues,
+    }
+
+
+def _validate_capture_image_binding(
+    image: dict[str, Any],
+    *,
+    sidecar_path: Path,
+    binding_label: str,
+) -> dict[str, Any]:
+    image_path_value = str(image.get("path") or "").strip()
+    image_sha = str(image.get("sha256") or "").strip().lower()
+    if not image_path_value or not image_sha:
+        return {
+            "verified_artifacts": [],
+            "image_artifacts": [],
+            "image_details": {},
+            "issues": [
+                {
+                    "rule": "browser_capture_image_binding",
+                    "path": str(sidecar_path),
+                    "message": f"browser capture sidecar requires {binding_label}.path and sha256",
+                }
+            ],
+        }
+    image_path = Path(image_path_value)
+    if not image_path.is_absolute():
+        image_path = sidecar_path.parent / image_path
+    validation = verify_local_artifacts(
+        [{"path": str(image_path), "sha256": image_sha}],
+        artifact_root=sidecar_path.parent,
+    )
+    issues = list(validation["issues"])
+    image_details: dict[str, Any] = {}
+    if validation["verified_artifacts"]:
+        resolved_image = Path(validation["verified_artifacts"][0]["resolved_path"])
+        image_details, image_issue = _decode_image_metadata(resolved_image)
+        if image_issue:
+            issues.append(
+                {
+                    "rule": "browser_capture_image_invalid",
+                    "path": str(resolved_image),
+                    "message": f"browser capture image is not decodable: {image_issue}",
+                }
+            )
+    image_artifacts = [
+        str(item.get("resolved_path") or item.get("path") or "")
+        for item in validation.get("verified_artifacts", [])
+        if item.get("resolved_path") or item.get("path")
+    ]
+    return {
+        "verified_artifacts": validation.get("verified_artifacts", []),
         "image_artifacts": image_artifacts,
         "image_details": image_details,
         "issues": issues,
@@ -877,6 +1023,227 @@ def _browser_interaction_issues(document: dict[str, Any], *, path: Path) -> list
     if isinstance(scroll_contract, dict):
         issues.extend(_scroll_check_issues(scroll_contract, changed_ids=changed_ids, path=path))
     return issues
+
+
+def _responsive_viewport_issues(
+    document: dict[str, Any],
+    *,
+    path: Path,
+) -> list[dict[str, str]]:
+    issues: list[dict[str, str]] = []
+    change_scope = str(document.get("change_scope") or "").strip()
+    if change_scope not in {"content", "layout", "dashboard"}:
+        issues.append(
+            _capture_issue(
+                "browser_capture_change_scope",
+                path,
+                "browser capture v2 change_scope must be content, layout, or dashboard",
+            )
+        )
+    changed_ids = _unique_strings(document.get("changed_object_ids") or [])
+    checks = document.get("viewport_checks")
+    if not isinstance(checks, list) or not checks:
+        return [
+            *issues,
+            _capture_issue(
+                "browser_capture_viewport_checks",
+                path,
+                "browser capture v2 requires at least one viewport check",
+            ),
+        ]
+    widths: list[float] = []
+    for index, item in enumerate(checks):
+        label = f"viewport_checks[{index}]"
+        if not isinstance(item, dict):
+            issues.append(
+                _capture_issue(
+                    "browser_capture_viewport_check",
+                    path,
+                    f"{label} must be an object",
+                )
+            )
+            continue
+        width = _finite_json_number(item.get("width"))
+        height = _finite_json_number(item.get("height"))
+        device_pixel_ratio = _finite_json_number(item.get("device_pixel_ratio"))
+        document_width = _finite_json_number(item.get("document_width"))
+        overflow = _finite_json_number(item.get("horizontal_overflow_px"))
+        if width is None or width <= 0 or height is None or height <= 0 or document_width is None or document_width <= 0:
+            issues.append(
+                _capture_issue(
+                    "browser_capture_viewport_dimensions",
+                    path,
+                    f"{label} requires positive finite width, height, and document_width",
+                )
+            )
+        else:
+            widths.append(width)
+            if document_width > width + SCROLL_BOTTOM_TOLERANCE_PX:
+                issues.append(
+                    _capture_issue(
+                        "browser_capture_horizontal_overflow",
+                        path,
+                        f"{label}.document_width exceeds viewport width by more than 2 px",
+                    )
+                )
+        if device_pixel_ratio is None or device_pixel_ratio <= 0:
+            issues.append(
+                _capture_issue(
+                    "browser_capture_device_pixel_ratio",
+                    path,
+                    f"{label}.device_pixel_ratio must be a positive finite number",
+                )
+            )
+        if overflow is None or overflow < 0 or overflow > SCROLL_BOTTOM_TOLERANCE_PX:
+            issues.append(
+                _capture_issue(
+                    "browser_capture_horizontal_overflow",
+                    path,
+                    f"{label}.horizontal_overflow_px must be between 0 and 2",
+                )
+            )
+        raw_scope_ids = item.get("scope_object_ids")
+        raw_visible_ids = item.get("visible_object_ids")
+        raw_clipped_ids = item.get("clipped_object_ids")
+        raw_missing_ids = item.get("missing_object_ids")
+        for field_name, raw_ids in (
+            ("scope_object_ids", raw_scope_ids),
+            ("visible_object_ids", raw_visible_ids),
+            ("clipped_object_ids", raw_clipped_ids),
+            ("missing_object_ids", raw_missing_ids),
+        ):
+            if not isinstance(raw_ids, list):
+                issues.append(
+                    _capture_issue(
+                        "browser_capture_viewport_object_ids",
+                        path,
+                        f"{label}.{field_name} must be an array",
+                    )
+                )
+        scope_ids = _unique_strings(raw_scope_ids if isinstance(raw_scope_ids, list) else [])
+        visible_ids = _unique_strings(raw_visible_ids if isinstance(raw_visible_ids, list) else [])
+        issues.extend(_scope_binding_issues(label, scope_ids, changed_ids, path=path))
+        missing_visible = [object_id for object_id in changed_ids if object_id not in set(visible_ids)]
+        if missing_visible:
+            issues.append(
+                _capture_issue(
+                    "browser_capture_viewport_visibility",
+                    path,
+                    f"{label}.visible_object_ids omit changed objects: {', '.join(missing_visible)}",
+                )
+            )
+        if any(object_id not in set(scope_ids) for object_id in visible_ids):
+            issues.append(
+                _capture_issue(
+                    "browser_capture_viewport_visibility",
+                    path,
+                    f"{label}.visible_object_ids must stay inside scope_object_ids",
+                )
+            )
+        clipped_ids = _unique_strings(raw_clipped_ids if isinstance(raw_clipped_ids, list) else [])
+        missing_ids = _unique_strings(raw_missing_ids if isinstance(raw_missing_ids, list) else [])
+        if clipped_ids:
+            issues.append(
+                _capture_issue(
+                    "browser_capture_viewport_clipping",
+                    path,
+                    f"{label} reports clipped objects: {', '.join(clipped_ids)}",
+                )
+            )
+        if missing_ids:
+            issues.append(
+                _capture_issue(
+                    "browser_capture_viewport_missing",
+                    path,
+                    f"{label} reports missing objects: {', '.join(missing_ids)}",
+                )
+            )
+        screenshot = item.get("screenshot_artifact")
+        if not isinstance(screenshot, dict):
+            issues.append(
+                _capture_issue(
+                    "browser_capture_viewport_screenshot_binding",
+                    path,
+                    f"{label} requires screenshot_artifact.path and sha256",
+                )
+            )
+    if change_scope == "content" and len(checks) < 1:
+        issues.append(
+            _capture_issue(
+                "browser_capture_viewport_coverage",
+                path,
+                "content changes require at least one viewport check",
+            )
+        )
+    if change_scope in {"layout", "dashboard"}:
+        if len(set(widths)) < 2:
+            issues.append(
+                _capture_issue(
+                    "browser_capture_viewport_coverage",
+                    path,
+                    "layout and dashboard changes require at least two distinct viewport widths",
+                )
+            )
+        if not any(width <= 1280 for width in widths):
+            issues.append(
+                _capture_issue(
+                    "browser_capture_viewport_coverage",
+                    path,
+                    "layout and dashboard changes require a compact desktop viewport width of at most 1280",
+                )
+            )
+        if not any(width >= 1366 for width in widths):
+            issues.append(
+                _capture_issue(
+                    "browser_capture_viewport_coverage",
+                    path,
+                    "layout and dashboard changes require a wide desktop viewport width of at least 1366",
+                )
+            )
+    return issues
+
+
+def _viewport_screenshot_dimension_issues(
+    viewport: dict[str, Any],
+    image_details: dict[str, Any],
+    *,
+    viewport_index: int,
+    path: Path,
+) -> list[dict[str, str]]:
+    width = _finite_json_number(viewport.get("width"))
+    height = _finite_json_number(viewport.get("height"))
+    device_pixel_ratio = _finite_json_number(viewport.get("device_pixel_ratio"))
+    image_width = _finite_json_number(image_details.get("width"))
+    image_height = _finite_json_number(image_details.get("height"))
+    if (
+        width is None
+        or width <= 0
+        or height is None
+        or height <= 0
+        or device_pixel_ratio is None
+        or device_pixel_ratio <= 0
+        or image_width is None
+        or image_height is None
+    ):
+        return []
+    expected_width = width * device_pixel_ratio
+    expected_height = height * device_pixel_ratio
+    if (
+        abs(image_width - expected_width) <= SCREENSHOT_DIMENSION_TOLERANCE_PX
+        and abs(image_height - expected_height) <= SCREENSHOT_DIMENSION_TOLERANCE_PX
+    ):
+        return []
+    return [
+        _capture_issue(
+            "browser_capture_viewport_screenshot_dimensions",
+            path,
+            (
+                f"viewport_checks[{viewport_index}] screenshot is {image_width:g}x{image_height:g}px; "
+                f"expected approximately {expected_width:g}x{expected_height:g}px "
+                f"for {width:g}x{height:g} CSS px at device_pixel_ratio={device_pixel_ratio:g}"
+            ),
+        )
+    ]
 
 
 def _selector_interaction_issues(
@@ -1070,6 +1437,12 @@ def _finite_number(value: Any) -> float | None:
     except (TypeError, ValueError):
         return None
     return number if math.isfinite(number) else None
+
+
+def _finite_json_number(value: Any) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return _finite_number(value)
 
 
 def _valid_target_url(value: str) -> bool:

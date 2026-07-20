@@ -43,6 +43,28 @@ fields produce an empty `sources.js`, `generation_status=blocked_missing_source`
 and actionable blocking issues. Example rows are available only through the
 explicit `golden_fixture` source mode used by the static regression gallery.
 
+Control and Markdown families are compiled from caller-owned inputs as well:
+
+- production selectors consume an explicit `selector_contract` with the
+  parameter binding, label, option source, defaults, and reset behavior;
+- single, multi, search, and static selectors require caller-owned options.
+  Options may use separate string `title` and `value` fields;
+- `date_range_selector` emits the official `range-datepicker` control with
+  either one interval `param` or a `param_from` / `param_to` pair, never both;
+- `selector_family_dynamic` requires a dataset source with a `value` output
+  alias and accepts optional `title`; event-stream rows are normalized before
+  deterministic de-duplication;
+- every generated DataLens Params value is an array of strings, including both
+  members of a paired date range;
+- Markdown families preserve explicit `markdown` verbatim through JSON-safe
+  compilation. Business metadata is never invented when content is missing.
+
+Missing or incomplete selector contracts produce empty controls and Params plus
+blocking issues. Generation never infers a parameter such as `segment` or
+fabricates option values from requirements text. Legacy `param` / `options`
+arguments are accepted only when a caller explicitly supplies them; example
+inputs are read only in `golden_fixture` mode.
+
 ## Active Archetypes
 
 | Template | Families |
@@ -68,6 +90,13 @@ explicit `golden_fixture` source mode used by the static regression gallery.
   and safe-render sections.
 - Templates contain no source workbook IDs, dataset IDs, local paths, or source
   env references.
+- Renderer width and height come from the mounted `options` object. Fixed
+  minimum widths that force dashboard-level horizontal scrolling are rejected
+  by the executable 25-family, 450-viewport sweep.
+- Signed time, bar, histogram, box, and scatter domains are rendered without
+  negative SVG/CSS geometry. Part-to-whole, flow, stacked-100, and funnel
+  inputs that cannot be represented truthfully return an explicit no-data
+  reason.
 - Display titles remain business-readable. Generated `entry.name` values are
   separate ASCII technical names; Cyrillic is deterministically transliterated
   and the caller's widget key participates in non-ASCII name generation.

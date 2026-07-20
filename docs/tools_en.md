@@ -29,7 +29,7 @@ Operation classes:
 | `dl_get_workbook_entries` | Read objects in one workbook | Find dashboards, charts, datasets, and connections | `workbook_id`, optional response mode | Entry list or a full-data artifact · `read-only API` | [`getWorkbookEntries`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookEntries) |
 | `dl_get_entries_relations` | Read relations between entries | Before changing or deleting related objects | `entry_ids` | Dependency graph · `read-only API` | [`getEntriesRelations`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getEntriesRelations) |
 | `dl_read_object` | Read a known object type by ID | Get current saved or published state | `object_type`, `object_id`, optional branch | Object data or a full-response artifact · `read-only API` | [API method reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
-| `dl_snapshot_dashboard` | Store a dashboard and its related objects | Before an audit, change, redesign, or backup | `dashboard_id`, optional `workbook_id` and branch | Snapshot files and manifest · `read-only API` + `local` | [Dashboard model](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) |
+| `dl_snapshot_dashboard` | Store a dashboard and its related objects | Before an audit, change, redesign, or backup | `dashboard_id`, optional `workbook_id` and branch | Files, manifest, and `complete` / `partial` / `unsafe` status · `read-only API` + `local` | [Dashboard model](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) |
 
 ## Reference and diagnostics
 
@@ -44,6 +44,7 @@ Operation classes:
 
 | Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
+| `dl_generate_editor_bundle` | Compile a Wizard plan or Editor tabs for the selected route | After visualization selection and before project validation | Project root, route, field bindings, and optional selector/readback contract | Deterministic bundle with validated relations · `local` | [Standard templates](datalens/standard_chart_templates.md) |
 | `dl_validate_project` | Check project files, requests, SQL, relations, and secrets | Before building an apply plan | Project root and optional context references | Findings and warnings · `local` | [Architecture](architecture.md) |
 | `dl_build_payload_plan` | Compile validated materials into a DataLens request plan | After project and object validation | Project root, target, and request text | Methods, targets, and payloads without writing · `local` | [Safe apply](safe-apply_en.md) |
 | `dl_build_validation_evidence_report` | Collect validation results by stage | Before handoff and after apply | Project root and report paths | Unified evidence report · `local` | [Response contracts](mcp/response_contracts.md) |
@@ -53,7 +54,6 @@ Operation classes:
 | `dl_plan_guarded_dataset_update` | Plan dataset-model validation and update | Change fields, relations, or the dataset model | ID, current/proposed datasets, affected charts | GUID and chart-impact checks · `local` | [`validateDataset`](https://yandex.cloud/ru/docs/datalens/openapi-ref/validateDataset) |
 | `dl_plan_dashboard_tab_update` | Prepare a bounded update to one dashboard tab | Append or replace a tab while preserving the rest | Current dashboard, tab, operation | Minimal dashboard update · `local` | [Dashboards](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) |
 | `dl_reconcile_partial_creates` | Match a create plan with entries that already appeared | After an interrupted or uncertain create result | `workbook_id`, planned objects, optional entries | Reuse, create, or manual-review decision · `read-only API` + `local` | [Safe apply](safe-apply_en.md) |
-| `dl_compile_guarded_rpc_request` | Compile a guarded request to one API method | Before an update enters the apply plan | Method, payload, ID, revision, and current readback | Request with a locked target and expected readback · `local` | [API contracts](sources_en.md#public-api-contracts) |
 
 ## Save and publish
 
@@ -79,7 +79,7 @@ Operation classes:
 
 | Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
-| `dl_run_live_maintenance_update` | Coordinate a bounded fix from supplied validation results | Fix a known chart or tab | Target, request, current/proposed data, reports | Delivery stage and handoff report · `local` | [Safe apply](safe-apply_en.md) |
+| `dl_run_live_maintenance_update` | Coordinate a bounded fix from supplied validation results | Fix a known chart or tab | Target, request, and typed `maintenance_evidence` | Delivery stage and handoff report · `local` | [Safe apply](safe-apply_en.md) |
 | `dl_build_dashboard_source_availability_matrix` | Build source state for dashboard consumers | Objects depend on different tables or environments | Dashboard snapshot and source-check results | `OK`/`NO_DATA`/`NO_TABLE`/`ERROR`/`UNKNOWN` matrix · `local` | [Diagnostic contracts](mcp/response_contracts.md#diagnostics) |
 | `dl_validate_source_availability_consumers` | Validate consumers against one source matrix | Before a source-dependent change | Matrix and consumer requirements | Conflicts and stopping reasons · `local` | [Diagnostic contracts](mcp/response_contracts.md#diagnostics) |
 | `dl_plan_source_availability_patch` | Plan a bounded correction from the source matrix | After validating the matrix | Matrix, target, and desired correction | Plan without querying source systems · `local` | [Safe apply](safe-apply_en.md) |
@@ -88,5 +88,5 @@ Operation classes:
 
 | Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
-| `dl_list_api_methods` | List known DataLens methods and support status | Check which operation is available | Optional filters and limit | Compact method catalog · `local` | [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
+| `dl_list_api_methods` | List known DataLens methods and support status | Check which operation is available | Optional filters and limit | Compact catalog with compiled OpenAPI SHA/version · `local` | [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
 | `dl_get_api_method_schema` | Return one method schema | Inspect required fields before planning | `method` | Request fields, usage policy, and documentation URL · `local` | [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |

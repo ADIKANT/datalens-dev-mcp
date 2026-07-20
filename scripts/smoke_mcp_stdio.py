@@ -88,14 +88,14 @@ def main() -> int:
     if len(tools) != 38:
         print(f"tools/list returned {len(tools)} tools instead of 38", file=sys.stderr)
         return 1
-    if tool_payload_bytes > 34_000:
+    if tool_payload_bytes > 25_000:
         print(f"tools/list payload exceeds budget: {tool_payload_bytes} bytes", file=sys.stderr)
         return 1
     if "dl_get_local_config" not in tools:
         print("tools/list did not expose dl_get_local_config", file=sys.stderr)
         return 1
-    if not all("title" in tool and "description" in tool and "inputSchema" in tool for tool in responses[1]["result"]["tools"]):
-        print("tools/list returned a tool without title, description, or inputSchema", file=sys.stderr)
+    if not all("name" in tool and "description" in tool and "inputSchema" in tool for tool in responses[1]["result"]["tools"]):
+        print("tools/list returned a tool without name, description, or inputSchema", file=sys.stderr)
         return 1
     if responses[2].get("error"):
         print(json.dumps(responses[2]["error"], indent=2), file=sys.stderr)

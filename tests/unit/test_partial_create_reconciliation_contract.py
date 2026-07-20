@@ -42,11 +42,27 @@ class PartialCreateReconciliationContractTests(unittest.TestCase):
             existing_payload = payload_dir / "existing.json"
             missing_payload = payload_dir / "missing.json"
             existing_payload.write_text(
-                json.dumps({"entry": {"name": "existing_chart", "data": {"title": "Existing Chart"}}}),
+                json.dumps(
+                    {
+                        "entry": {
+                            "workbookId": "workbook_1",
+                            "name": "existing_chart",
+                            "data": {"title": "Existing Chart"},
+                        },
+                    }
+                ),
                 encoding="utf-8",
             )
             missing_payload.write_text(
-                json.dumps({"entry": {"name": "missing_chart", "data": {"title": "Missing Chart"}}}),
+                json.dumps(
+                    {
+                        "entry": {
+                            "workbookId": "workbook_1",
+                            "name": "missing_chart",
+                            "data": {"title": "Missing Chart"},
+                        },
+                    }
+                ),
                 encoding="utf-8",
             )
             (root / "artifacts" / "payload_plan.json").write_text(

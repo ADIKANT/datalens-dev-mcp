@@ -1,8 +1,55 @@
 {
   "type": "object",
-  "required": ["param", "options"],
+  "additionalProperties": false,
+  "required": ["selector_contract"],
   "properties": {
-    "param": {"type": "string"},
-    "options": {"type": "array", "items": {"type": "string"}}
+    "selector_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "option_source", "reset_behavior"],
+      "properties": {
+        "param": {"type": "string", "minLength": 1},
+        "param_from": {"type": "string", "minLength": 1},
+        "param_to": {"type": "string", "minLength": 1},
+        "label": {"type": "string", "minLength": 1},
+        "option_source": {"enum": ["static", "dataset", "dynamic", "none"]},
+        "options": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {"type": "string", "minLength": 1},
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["title", "value"],
+                "properties": {
+                  "title": {"type": "string", "minLength": 1},
+                  "value": {"type": "string", "minLength": 1}
+                }
+              }
+            ]
+          }
+        },
+        "default_values": {"type": "array", "items": {"type": "string"}},
+        "default_from": {"type": "string"},
+        "default_to": {"type": "string"},
+        "reset_behavior": {"enum": ["initial", "empty"]}
+      },
+      "oneOf": [
+        {
+          "required": ["param"],
+          "not": {
+            "anyOf": [
+              {"required": ["param_from"]},
+              {"required": ["param_to"]}
+            ]
+          }
+        },
+        {
+          "required": ["param_from", "param_to"],
+          "not": {"required": ["param"]}
+        }
+      ]
+    }
   }
 }

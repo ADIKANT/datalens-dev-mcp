@@ -4,7 +4,7 @@
   "operation_id": "createReport",
   "path": "/rpc/createReport",
   "request_payload": {},
-  "request_schema_closure_hash": "d40515412fd29c9c0275df0e066a5868073d6f44f1154a2fbc2f90057a4e6870",
+  "request_schema_closure_hash": "123220b6fda51390ed2b5c7bc7a67647faa399eac6ff0c74b641c6316770ee68",
   "request_schema_closure_refs": [
     "CreateReportV1Args",
     "DashboardMeta",
@@ -15,7 +15,7 @@
   "request_schema_hash": "21591e6c27d6876d7f5715bf59390422288edcc60f478d6f3aa239b0e5351e86",
   "request_schema_ref": "CreateReportV1Args",
   "response_payload": {},
-  "response_schema_closure_hash": "fba2b9101acd03af1f9170613dea36c43d37394541cb23052621486110f4a6c4",
+  "response_schema_closure_hash": "1d023cb74e187b01523039533afcad4f8fd73b6164bc6975078eb436d7828555",
   "response_schema_closure_refs": [
     "CreateReportV1Result",
     "DashboardMeta",

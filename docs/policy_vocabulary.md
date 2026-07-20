@@ -5,12 +5,12 @@
 | Термин | Значение |
 | --- | --- |
 | `follow_user_request` | Режим, в котором формулировка задачи выбирает чтение, планирование, save-only или полный save-and-publish цикл |
-| `delivery intent` | Нормализованный режим конкретной задачи: read-only, plan-only, save-only, save-then-publish или delete |
+| `delivery intent` | Нормализованный режим конкретной задачи: read-only, plan-only, save-only, save-then-publish или manifest delete |
 | `target lock` | Зафиксированные тип, ID, branch и ожидаемая ревизия объекта, которые сверяются перед записью |
 | `saved readback` | Контрольное чтение сохранённой версии после save |
 | `publish from saved` | Публикация, построенная из проверенной saved-версии |
 | `published readback` | Контрольное чтение опубликованной версии после publish |
-| `delete confirmation` | Отдельное подтверждение удаления целого объекта с точным ID и hash неизменившегося плана |
+| `delete confirmation` | Подтверждение manifest action `retire_legacy_objects` с точными ID и hash неизменившегося плана |
 | `project manifest` | Файл проекта с точными командами, целями, именами переменных окружения и ожидаемыми отчётами |
 | `validation coverage` | Перечень реально проверенных файлов, запросов, объектов и отчётов; пустая проверка не считается успешной |
 | `proof level` | Тип подтверждения результата: статическая проверка, чтение API, saved readback, published readback или проверка интерфейса |

@@ -1,5 +1,6 @@
 """Offline integration coverage for the generic downstream project workflow."""
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -54,11 +55,27 @@ class ProjectWorkflowTests(unittest.TestCase):
                 widget_id="sample_widget",
                 dataset_alias="sample_dataset",
                 columns=["bucket", "metric", "value"],
+                dataset_readbacks=[
+                    {
+                        "datasetId": "sample_dataset",
+                        "result_schema": [
+                            {"guid": "bucket", "type": "date"},
+                            {"guid": "metric", "type": "string"},
+                            {"guid": "value", "type": "float"},
+                        ],
+                    }
+                ],
             )
             payload_plan = dl_build_payload_plan(str(root), workbook_id="workbook_placeholder")
             (root / "datasets").mkdir()
             (root / "datasets" / "sample_ops.sql").write_text(
                 "SELECT segment, month, order_count FROM sample_ops_daily\n",
+                encoding="utf-8",
+            )
+            dashboard_payload_dir = root / "artifacts" / "dashboard_payloads"
+            dashboard_payload_dir.mkdir(parents=True, exist_ok=True)
+            (dashboard_payload_dir / "sample_ops.dashboard.payload.json").write_text(
+                json.dumps({"dashboardId": "dashboard_placeholder", "tabs": [], "items": []}),
                 encoding="utf-8",
             )
             validation = dl_validate_project(str(root))

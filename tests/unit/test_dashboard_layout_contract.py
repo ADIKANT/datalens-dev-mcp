@@ -2,27 +2,26 @@ import unittest
 
 
 class DashboardLayoutContractTests(unittest.TestCase):
-    def test_selector_width_planner_uses_percentages_and_targets_96(self):
+    def test_selector_width_planner_uses_percentages_and_targets_94(self):
         from datalens_dev_mcp.pipeline.layout_contract import plan_selector_row_widths, validate_selector_controls
 
         widths = plan_selector_row_widths(["environment", "schema", "table", "status"])
 
         self.assertEqual(set(widths), {"environment", "schema", "table", "status"})
         self.assertTrue(all(value.endswith("%") for value in widths.values()))
-        self.assertEqual(sum(int(value.removesuffix("%")) for value in widths.values()), 96)
+        self.assertEqual(sum(int(value.removesuffix("%")) for value in widths.values()), 94)
         self.assertTrue(
             validate_selector_controls(
                 [{"param": name, "labelPlacement": "left", "width": width} for name, width in widths.items()]
             ).ok
         )
 
-    def test_selector_validation_requires_exact_96_percent_row(self):
+    def test_selector_validation_accepts_under_budget_row(self):
         from datalens_dev_mcp.pipeline.layout_contract import validate_selector_controls
 
         result = validate_selector_controls([{"param": "env", "labelPlacement": "left", "width": "50%"}])
 
-        self.assertFalse(result.ok)
-        self.assertIn("must equal 96% target", "\n".join(result.issues))
+        self.assertTrue(result.ok, result.issues)
 
     def test_layout_blueprints_exist_for_dashboard_types(self):
         from datalens_dev_mcp.pipeline.layout_contract import layout_blueprint_for_dashboard_type
@@ -40,7 +39,7 @@ class DashboardLayoutContractTests(unittest.TestCase):
             with self.subTest(dashboard_type=dashboard_type):
                 blueprint = layout_blueprint_for_dashboard_type(dashboard_type)
                 self.assertEqual(blueprint["dashboard_type"], dashboard_type)
-                self.assertEqual(blueprint["selector_row_width"], "96%")
+                self.assertEqual(blueprint["selector_row_width"], "94%")
                 self.assertTrue(blueprint["native_metadata_required"])
 
     def test_selector_validation_rejects_top_pixel_and_overwide_rows(self):
@@ -97,14 +96,20 @@ class DashboardLayoutContractTests(unittest.TestCase):
             widget_id="selector_demo",
             route="editor_js_control",
             title="Selector Demo",
-            param="segment",
-            options=["all", "new"],
-            family="unknown_family_to_force_fallback",
+            selector_contract={
+                "label": "Segment",
+                "param": "segment",
+                "option_source": "static",
+                "options": ["all", "new"],
+                "default_values": ["all"],
+                "reset_behavior": "initial",
+            },
+            family="single_select_dropdown",
         )
 
         controls = bundle["tabs"]["controls.js"]
         self.assertIn("labelPlacement: 'left'", controls)
-        self.assertIn("width: '96%'", controls)
+        self.assertIn("width: '94%'", controls)
 
 
 if __name__ == "__main__":

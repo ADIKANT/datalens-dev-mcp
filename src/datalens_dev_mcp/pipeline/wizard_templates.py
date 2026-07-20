@@ -11,6 +11,11 @@ from datalens_dev_mcp.pipeline.route_registry import (
     is_supported_wizard_visualization,
     normalize_creation_route,
 )
+from datalens_dev_mcp.pipeline.wizard_contracts import (
+    compact_wizard_dataset_readbacks,
+    validate_wizard_field_binding_against_dataset_readback,
+)
+from datalens_dev_mcp.pipeline.wizard_role_types import binding_role_type_error
 from datalens_dev_mcp.runtime_resources import resource_json
 
 
@@ -74,6 +79,15 @@ def validate_wizard_template_config(config: dict[str, Any]) -> dict[str, Any]:
             errors.append(f"field_bindings.{role} is required")
         elif any(not _binding_guid(item) for item in role_bindings):
             errors.append(f"field_bindings.{role} must contain saved dataset field GUIDs")
+    for role, raw_values in bindings.items():
+        for item in _binding_items(raw_values):
+            type_error = binding_role_type_error(
+                visualization_id=visualization_id,
+                role=str(role),
+                field_type=_binding_type(item),
+            )
+            if type_error:
+                errors.append(f"field_bindings.{role} {type_error}")
     semantic_family = str(normalized.get("semantic_family") or "")
     if semantic_family == "bubble" and not _binding_items(bindings.get("size")):
         errors.append("bubble requires a non-empty size role")
@@ -143,6 +157,33 @@ def build_wizard_payload_plan(config: dict[str, Any] | None = None) -> dict[str,
     if active_config.get("annotation") not in (None, ""):
         payload["annotation"] = deepcopy(active_config["annotation"])
 
+    raw_dataset_readbacks = active_config.get("dataset_readbacks")
+    dataset_readback_shape_valid = isinstance(raw_dataset_readbacks, list) and all(
+        isinstance(item, dict) for item in raw_dataset_readbacks
+    )
+    dataset_readbacks = compact_wizard_dataset_readbacks(
+        payload,
+        raw_dataset_readbacks if dataset_readback_shape_valid else [],
+    )
+    dataset_readback_validation = validate_wizard_field_binding_against_dataset_readback(
+        payload,
+        dataset_readbacks,
+        source="wizard_payload_plan",
+        strict=True,
+        enforce_role_types=True,
+    )
+    if raw_dataset_readbacks is not None and not dataset_readback_shape_valid:
+        dataset_readback_validation["ok"] = False
+        dataset_readback_validation["findings"].insert(
+            0,
+            {
+                "severity": "error",
+                "rule": "dataset_readbacks_shape_invalid",
+                "path": "$.dataset_readbacks",
+                "message": "dataset_readbacks must be an array of dataset readback objects",
+            },
+        )
+
     registry = load_wizard_template_registry()
     template_spec = (registry.get("templates") or {})[visualization_id]
     sanitized_hash = _sha256_json(sanitized_seed) if sanitized_seed else ""
@@ -173,7 +214,10 @@ def build_wizard_payload_plan(config: dict[str, Any] | None = None) -> dict[str,
         "safe_apply_required": True,
         "execute_now": False,
         "live_verification": False,
+        "live_execution_ready": bool(dataset_readback_validation["ok"]),
         "validation": validation,
+        "dataset_readbacks": dataset_readbacks,
+        "dataset_readback_validation": dataset_readback_validation,
         "compiled_payload": payload,
         "payload": payload,
         "compiled_payload_sha256": _sha256_json(payload),
@@ -184,6 +228,14 @@ def build_wizard_payload_plan(config: dict[str, Any] | None = None) -> dict[str,
             "kind": (normalized.get("geo") or {}).get("evidence_kind"),
         }
         plan["native_map_preserved"] = True
+    if raw_dataset_readbacks is not None and not dataset_readback_validation["ok"]:
+        plan["ok"] = False
+        plan["status"] = "blocked_dataset_readback_validation"
+        plan["validation"]["errors"].extend(
+            finding["message"]
+            for finding in dataset_readback_validation["findings"]
+            if finding.get("severity") == "error"
+        )
     return plan
 
 
@@ -272,6 +324,19 @@ def _binding_guid(value: Any) -> str:
     if isinstance(value, dict):
         return str(value.get("guid") or value.get("field_guid") or value.get("id") or "").strip()
     return str(value or "").strip()
+
+
+def _binding_type(value: Any) -> str:
+    if not isinstance(value, dict):
+        return ""
+    return str(
+        value.get("data_type")
+        or value.get("dataType")
+        or value.get("field_type")
+        or value.get("fieldType")
+        or value.get("type")
+        or ""
+    ).strip()
 
 
 def _field_item(value: Any, *, dataset_id: str) -> dict[str, Any]:

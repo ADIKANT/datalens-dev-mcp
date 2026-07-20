@@ -138,6 +138,157 @@ class SafeApplyTests(unittest.TestCase):
         self.assertEqual(result["actions"][0]["error"]["category"], "missing_fresh_revision")
         self.assertFalse(result["actions"][0]["write_attempted"])
 
+    def test_update_requires_non_empty_fresh_read_before_write(self):
+        from datalens_dev_mcp.config import DataLensConfig
+        from datalens_dev_mcp.pipeline.safe_apply import create_safe_apply_plan, execute_safe_apply
+
+        class EmptyFreshClient:
+            def __init__(self):
+                self.calls = []
+
+            def rpc(self, method, payload):
+                self.calls.append((method, payload))
+                if method == "getEditorChart":
+                    return {}
+                raise AssertionError("write must not be attempted after an empty fresh read")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            client = EmptyFreshClient()
+            plan = create_safe_apply_plan(
+                project_root=tmp,
+                approved=True,
+                actions=[
+                    {
+                        "action": "update_editor_chart",
+                        "method": "updateEditorChart",
+                        "payload": {"mode": "save", "entry": {"entryId": "chart_local", "revId": "rev_old"}},
+                        "fresh_read_method": "getEditorChart",
+                        "fresh_read_payload": {"chartId": "chart_local", "branch": "saved"},
+                        "readback_method": "getEditorChart",
+                        "readback_payload": {"chartId": "chart_local", "branch": "saved"},
+                    }
+                ],
+            )
+            result = execute_safe_apply(plan, config=DataLensConfig(write_enabled=True), client=client)
+
+        self.assertFalse(result["executed"])
+        self.assertEqual(result["actions"][0]["error"]["category"], "fresh_read_required")
+        self.assertFalse(result["actions"][0]["write_attempted"])
+        self.assertEqual([method for method, _payload in client.calls], ["getEditorChart"])
+
+    def test_update_requires_matching_fresh_identity_and_target_lock(self):
+        from datalens_dev_mcp.config import DataLensConfig
+        from datalens_dev_mcp.pipeline.safe_apply import (
+            create_safe_apply_plan,
+            execute_safe_apply,
+            validate_safe_apply_plan_exhaustive,
+        )
+
+        class MissingIdentityClient:
+            def rpc(self, method, payload):
+                if method == "getEditorChart":
+                    return {"entry": {"revId": "rev_old"}}
+                raise AssertionError("write must not be attempted without fresh identity")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            plan = create_safe_apply_plan(
+                project_root=tmp,
+                approved=True,
+                actions=[
+                    {
+                        "action": "update_editor_chart",
+                        "method": "updateEditorChart",
+                        "payload": {"mode": "save", "entry": {"entryId": "chart_local", "revId": "rev_old"}},
+                        "fresh_read_method": "getEditorChart",
+                        "fresh_read_payload": {"chartId": "chart_local", "branch": "saved"},
+                        "readback_method": "getEditorChart",
+                        "readback_payload": {"chartId": "chart_local", "branch": "saved"},
+                    }
+                ],
+            )
+            missing_identity = execute_safe_apply(
+                plan,
+                config=DataLensConfig(write_enabled=True),
+                client=MissingIdentityClient(),
+            )
+            mismatched_lock = json.loads(json.dumps(plan))
+            mismatched_lock["actions"][0]["target_lock_hash"] = "0" * 64
+            lock_preflight = validate_safe_apply_plan_exhaustive(mismatched_lock)
+
+        self.assertEqual(missing_identity["actions"][0]["error"]["category"], "missing_fresh_identity")
+        self.assertFalse(missing_identity["actions"][0]["write_attempted"])
+        self.assertFalse(lock_preflight["ok"])
+        self.assertIn("target_lock_hash does not match", "\n".join(lock_preflight["issues"]))
+
+    def test_post_write_readback_must_match_intended_content_and_advance_revision(self):
+        from datalens_dev_mcp.config import DataLensConfig
+        from datalens_dev_mcp.pipeline.safe_apply import create_safe_apply_plan, execute_safe_apply
+
+        class StaleReadbackClient:
+            def __init__(self, *, content_updated: bool):
+                self.calls = []
+                self.content_updated = content_updated
+
+            def rpc(self, method, payload):
+                self.calls.append((method, payload))
+                if len(self.calls) == 1:
+                    return {
+                        "entry": {
+                            "entryId": "chart_local",
+                            "revId": "rev_old",
+                            "data": {"title": "Old"},
+                        }
+                    }
+                if method == "updateEditorChart":
+                    return {"status": "saved"}
+                return {
+                    "entry": {
+                        "entryId": "chart_local",
+                        "revId": "rev_old",
+                        "data": {"title": "New" if self.content_updated else "Old"},
+                    }
+                }
+
+        def run(client):
+            with tempfile.TemporaryDirectory() as tmp:
+                plan = create_safe_apply_plan(
+                    project_root=tmp,
+                    approved=True,
+                    actions=[
+                        {
+                            "action": "update_editor_chart",
+                            "method": "updateEditorChart",
+                            "payload": {
+                                "mode": "save",
+                                "entry": {
+                                    "entryId": "chart_local",
+                                    "revId": "rev_old",
+                                    "data": {"title": "New"},
+                                },
+                            },
+                            "fresh_read_method": "getEditorChart",
+                            "fresh_read_payload": {"chartId": "chart_local", "branch": "saved"},
+                            "readback_method": "getEditorChart",
+                            "readback_payload": {"chartId": "chart_local", "branch": "saved"},
+                        }
+                    ],
+                )
+                return execute_safe_apply(
+                    plan,
+                    config=DataLensConfig(write_enabled=True),
+                    client=client,
+                )
+
+        stale_content = run(StaleReadbackClient(content_updated=False))
+        stale_revision = run(StaleReadbackClient(content_updated=True))
+
+        self.assertEqual(stale_content["actions"][0]["error"]["category"], "readback_content_mismatch")
+        self.assertEqual(stale_revision["actions"][0]["error"]["category"], "readback_revision_not_advanced")
+        self.assertFalse(stale_content["actions"][0]["executed"])
+        self.assertFalse(stale_revision["actions"][0]["executed"])
+        self.assertFalse(stale_content["publish_allowed"])
+        self.assertFalse(stale_revision["publish_allowed"])
+
     def test_post_write_readback_identity_mismatch_fails_action(self):
         from datalens_dev_mcp.config import DataLensConfig
         from datalens_dev_mcp.pipeline.safe_apply import create_safe_apply_plan, execute_safe_apply
@@ -218,11 +369,17 @@ class SafeApplyTests(unittest.TestCase):
         from datalens_dev_mcp.pipeline.safe_apply import create_safe_apply_plan, execute_safe_apply
 
         class LargeFakeClient:
+            def __init__(self):
+                self.saved_revisions = {}
+
             def rpc(self, method, payload):
                 object_id = payload.get("chartId") or (payload.get("entry") or {}).get("entryId") or "chart_unknown"
+                if method == "updateEditorChart":
+                    self.saved_revisions[object_id] = f"rev_updateEditorChart_{object_id}"
+                revision = self.saved_revisions.get(object_id, f"rev_getEditorChart_{object_id}")
                 return {
                     "status": "ok",
-                    "entry": {"entryId": object_id, "revId": f"rev_{method}_{object_id}", "savedId": "saved_1"},
+                    "entry": {"entryId": object_id, "revId": revision, "savedId": "saved_1"},
                     "data": {"sources": [{"query": "select 1"}], "prepare": "prepare_payload_" * 500},
                     "Authorization": "Bearer fixtureTokenValue12345",
                 }

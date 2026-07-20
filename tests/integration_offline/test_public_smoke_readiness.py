@@ -119,7 +119,7 @@ class PublicSmokeReadinessTests(unittest.TestCase):
             catalog = Path(tmp, "docs", "datalens", "implemented_charts.md").read_text(encoding="utf-8")
             relations = Path(tmp, "artifacts", "dashboard_object_relations.json").read_text(encoding="utf-8")
             self.assertIn("orders_trend", catalog)
-            self.assertIn("selector_region", relations)
+            self.assertNotIn("selector_region", relations)
 
 
 if __name__ == "__main__":

@@ -21,7 +21,7 @@ SCHEMA_VERSION = "2026-06-30.current_docs_feature_policy.v1"
 DELTA_REPORT_NAME = "update_report_delta_2026-07-13.md"
 EXPECTED_FINAL_COUNTS = {"pages": 651, "chunks": 4999, "assets": 886, "manifest": 1545}
 EXPECTED_DELTA_COUNTS = {"changed": 12, "new": 3}
-EXPECTED_OPENAPI_SHA256 = "e4c3cf56de894e28b883b1f0ceaf2935f68570b052c46885e20bc9608e5ca532"
+EXPECTED_OPENAPI_SHA256 = "c0dec7cb5cd14da09a6fe3a9388201a6639f4ec97cf0e93e2a7888281537cc91"
 
 VALID_STATUSES = {
     "supported",
@@ -743,7 +743,7 @@ def validate(corpus_root: Path, *, strict: bool = False) -> dict[str, Any]:
     if inventory["stats"]["paths"] != 88:
         issues.append("OpenAPI path count must be 88 for this update report")
     if str(inventory.get("openapi_sha256") or "") != EXPECTED_OPENAPI_SHA256:
-        issues.append("OpenAPI SHA-256 does not match the locked 2026-07-13 snapshot")
+        issues.append("OpenAPI SHA-256 does not match the current locked snapshot")
     if not validation_summary.get("required_checks_ok"):
         issues.append("update report required checks are not OK")
 

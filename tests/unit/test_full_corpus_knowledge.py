@@ -38,7 +38,6 @@ class FullCorpusKnowledgeTests(unittest.TestCase):
 
         self.assertEqual(self.compiled["lock"]["corpus_root_hint"], "<DATALENS_DOCS_CORPUS_ROOT>")
         for path in (
-            root / "schemas" / "datalens-knowledge" / "knowledge.lock.json",
             root
             / "src"
             / "datalens_dev_mcp"
@@ -76,7 +75,6 @@ class FullCorpusKnowledgeTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[2]
         guarded_paths = [
             INDEX_PATH,
-            root / "schemas" / "datalens-knowledge" / "knowledge.lock.json",
             root
             / "src"
             / "datalens_dev_mcp"

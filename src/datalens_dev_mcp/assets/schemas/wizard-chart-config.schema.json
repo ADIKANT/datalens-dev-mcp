@@ -32,6 +32,15 @@
         ]
       }
     },
+    "dataset_readbacks": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Fresh saved dataset readbacks used to prove bound field existence and role-compatible data types before live create.",
+      "items": {
+        "type": "object",
+        "minProperties": 1
+      }
+    },
     "options": {"type": "object"},
     "geo": {
       "type": "object",

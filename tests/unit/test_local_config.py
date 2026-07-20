@@ -31,7 +31,7 @@ class LocalConfigTests(unittest.TestCase):
         config = load_local_config(ROOT / "config" / "datalens_mcp.local.example.json", project_root=ROOT)
 
         self.assertEqual(config["defaults"]["workbook_id"], "<WORKBOOK_ID>")
-        self.assertEqual(config["schema_version"], "2026-07-15.datalens_mcp_local_config.v2")
+        self.assertEqual(config["schema_version"], "2026-07-19.datalens_mcp_local_config.v3")
         self.assertEqual(config["execution"]["default"], "follow_user_request")
         self.assertTrue(config["execution"]["writes"])
         self.assertTrue(config["execution"]["save"])
@@ -50,7 +50,7 @@ class LocalConfigTests(unittest.TestCase):
         )
         self.assertEqual(config["routing"]["ql_behavior"], "explicit_user_request_only")
         self.assertEqual(config["selectors"]["label_placement"], "left")
-        self.assertEqual(config["selectors"]["row_width_percent"], 96)
+        self.assertEqual(config["selectors"]["row_width_percent"], 94)
         self.assertEqual(config["selectors"]["default_selector_width_percent"], 24)
 
     def test_env_override_config_path(self):
@@ -121,7 +121,7 @@ class LocalConfigTests(unittest.TestCase):
             {"execution": {"delete_requires_confirmation": False}},
             {"safe_apply": {"require_fresh_read": False}},
             {"live_testing": {"run_live_tests_by_default": True}},
-            {"selectors": {"row_width_percent": 95}},
+            {"selectors": {"row_width_percent": 96}},
         ]
         with tempfile.TemporaryDirectory() as tmp:
             for index, payload in enumerate(invalid_configs):
@@ -174,7 +174,7 @@ class LocalConfigTests(unittest.TestCase):
             )
             config = load_local_config(config_path, project_root=ROOT)
 
-        self.assertEqual(config["schema_version"], "2026-07-15.datalens_mcp_local_config.v2")
+        self.assertEqual(config["schema_version"], "2026-07-19.datalens_mcp_local_config.v3")
         self.assertEqual(config["execution"]["default"], "follow_user_request")
         self.assertTrue(config["execution"]["writes"])
         self.assertTrue(config["execution"]["save"])
@@ -182,7 +182,33 @@ class LocalConfigTests(unittest.TestCase):
         self.assertNotIn("safe_mode", config)
         self.assertNotIn("approval_gates", config)
         self.assertNotIn("require_approved_plan_path", config["safe_apply"])
-        self.assertIn("local_config:v1->v2_follow_user_request", config["_meta"]["compatibility_migrations"])
+        self.assertIn("local_config:v1->v3_follow_user_request", config["_meta"]["compatibility_migrations"])
+
+    def test_v2_selector_budget_is_migrated_to_responsive_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / "legacy-v2.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "2026-07-15.datalens_mcp_local_config.v2",
+                        "selectors": {
+                            "row_width_percent": 96,
+                            "default_selector_width_percent": 24,
+                            "min_selector_width_percent": 16,
+                            "max_selector_width_percent": 48,
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            config = load_local_config(config_path, project_root=ROOT)
+
+        self.assertEqual(config["schema_version"], "2026-07-19.datalens_mcp_local_config.v3")
+        self.assertEqual(config["selectors"]["row_width_percent"], 94)
+        self.assertIn(
+            "local_config:v2->v3_responsive_selector_budget",
+            config["_meta"]["compatibility_migrations"],
+        )
 
     def test_legacy_mcp_profile_config_is_tolerated_but_removed_from_effective_config(self):
         with tempfile.TemporaryDirectory() as tmp:

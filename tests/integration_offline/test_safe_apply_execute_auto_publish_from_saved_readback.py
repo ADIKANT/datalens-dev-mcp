@@ -30,11 +30,11 @@ class SafeApplyExecuteAutoPublishFromSavedReadbackTests(unittest.TestCase):
                 if method == "getEditorChart" and payload.get("branch") == "saved":
                     return self._chart("rev_0" if len(self.calls) == 1 else "rev_saved", saved_id="saved_snapshot")
                 if method == "getEditorChart" and payload.get("branch") == "published":
-                    return self._chart("rev_published", saved_id="")
+                    return self._chart("rev_saved", saved_id="")
                 if method == "updateEditorChart" and payload.get("mode") == "save":
                     return self._chart("rev_saved", saved_id="saved_snapshot")
                 if method == "updateEditorChart" and payload.get("mode") == "publish":
-                    return self._chart("rev_published", saved_id="")
+                    return self._chart("rev_saved", saved_id="")
                 raise AssertionError(f"unexpected rpc call {method} {payload}")
 
             @staticmethod
@@ -68,6 +68,8 @@ class SafeApplyExecuteAutoPublishFromSavedReadbackTests(unittest.TestCase):
                 ],
             )
             plan["target_lock"] = create_target_lock("fix chart", target_chart_id="chart_publish").to_dict()
+            for action in plan["actions"]:
+                action["target_lock_hash"] = plan["target_lock"]["lock_hash"]
             plan_path = root / "artifacts" / "safe_apply_plan.json"
             plan_path.parent.mkdir(parents=True)
             plan_path.write_text(json.dumps(plan), encoding="utf-8")
@@ -87,6 +89,16 @@ class SafeApplyExecuteAutoPublishFromSavedReadbackTests(unittest.TestCase):
         self.assertEqual(result["status"], "completed")
         self.assertTrue(result["delivery_result"]["saved"]["passed"])
         self.assertTrue(result["delivery_result"]["published"]["passed"])
+        self.assertTrue(
+            result["publish_results"][0]["result"]["actions"][0]["readback_verification"][
+                "publish_source_revision_matched"
+            ]
+        )
+        self.assertFalse(
+            result["publish_results"][0]["result"]["actions"][0]["readback_verification"][
+                "revision_advanced"
+            ]
+        )
         self.assertEqual(len(result["saved_readback_paths"]), 1)
         self.assertEqual(len(result["published_readback_paths"]), 1)
         self.assertTrue(result["delivery_intent_decision"]["saved_readback_path"])

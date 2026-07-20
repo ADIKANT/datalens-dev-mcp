@@ -84,6 +84,40 @@
 
 При превышении inline-бюджета полные данные сохраняются в `artifact_path`; `summary`, ID и поля, необходимые следующему инструменту, остаются в ответе.
 
+## Снимок дашборда
+
+`dl_snapshot_dashboard` не смешивает успешность вызова с полнотой резервной
+копии:
+
+```json
+{
+  "ok": true,
+  "completion": {
+    "status": "partial",
+    "complete": false,
+    "error_count": 0,
+    "omission_count": 1,
+    "missing_root_branches": [],
+    "unsafe_reasons": []
+  },
+  "coverage": {
+    "scope": "dashboard_dependency_graph",
+    "org_wide": false,
+    "requested_branches": ["saved"],
+    "captured_branches": ["saved"]
+  },
+  "api_contract": {
+    "header_name": "x-dl-api-version",
+    "required_api_header_version": "2",
+    "openapi_sha256": "<SHA256>"
+  }
+}
+```
+
+`complete` означает снимок запрошенного графа без ошибок и пропусков,
+`partial` — доступный снимок с пропусками, `unsafe` — отсутствие корневой
+ветки дашборда. Эти же блоки записываются в manifest.
+
 ## Диагностика
 
 `dl_diagnose`, `dl_validate_project`, `dl_validate_object` и проверки Editor возвращают findings:
@@ -208,7 +242,9 @@ Published readback сохраняется отдельно:
 
 ## Удаление
 
-Первый запрос удаления целого объекта возвращает:
+Произвольное whole-object delete не входит в стандартный lifecycle surface.
+Ниже приведён контракт только для manifest-действия
+`retire_legacy_objects`. Первый вызов `dl_run_project_live_apply` возвращает:
 
 ```json
 {
@@ -224,7 +260,7 @@ Published readback сохраняется отдельно:
 }
 ```
 
-Второй вызов передаёт `confirm_delete=true` и должен ссылаться на тот же plan. Несовпадение цели, связей или hash возвращает новый `delete_confirmation_required`.
+Второй вызов передаёт `confirm_delete=true` и должен ссылаться на тот же plan. Несовпадение цели, связей или hash возвращает новый `delete_confirmation_required`. Whole-object QL deletion не поддерживается.
 
 Удаление элемента внутри объекта использует operation `update` и не возвращает этот статус.
 
@@ -245,7 +281,7 @@ Published readback сохраняется отдельно:
 }
 ```
 
-Execution response содержит очищенные stdout/stderr, exit code, timeout, путь к summary и достигнутый этап. `dl_read_project_live_summary` проверяет совпадение target IDs и непустое покрытие.
+Execution response содержит очищенные stdout/stderr, exit code, timeout, путь к summary и достигнутый этап. `dl_read_project_live_summary` проверяет совпадение target IDs и непустое покрытие. Нулевой exit code не заменяет эту проверку: отсутствующий или заблокированный apply/publish summary возвращает `summary_blocked`, а следующий publish-этап не запускается.
 
 ## Source availability
 

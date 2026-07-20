@@ -43,6 +43,12 @@ def validate_visual_quality_contract(
     kpi_context = spec.get("kpi_context") if isinstance(spec.get("kpi_context"), dict) else spec.get("kpi_context_spec") or {}
     style_tokens = spec.get("style_tokens") if isinstance(spec.get("style_tokens"), dict) else {}
     runtime_constraints = spec.get("runtime_constraints") if isinstance(spec.get("runtime_constraints"), dict) else {}
+    value_semantics = spec.get("value_semantics") if isinstance(spec.get("value_semantics"), dict) else {}
+    formatting = spec.get("formatting") if isinstance(spec.get("formatting"), dict) else {}
+    comparison_context = spec.get("comparison_context") if isinstance(spec.get("comparison_context"), dict) else {}
+    responsive_layout = spec.get("responsive_layout") if isinstance(spec.get("responsive_layout"), dict) else {}
+    hint_contract = spec.get("hint_contract") if isinstance(spec.get("hint_contract"), dict) else {}
+    layout_contract = spec.get("layout_contract") if isinstance(spec.get("layout_contract"), dict) else {}
 
     if _is_bar_like(family, analytical_task):
         direct_labels = bool(labels.get("direct_labels") or labels.get("show_values") or labels.get("showLabels"))
@@ -118,6 +124,34 @@ def validate_visual_quality_contract(
     for key in ("decorative_css", "shadows", "gradients", "three_d"):
         if runtime_constraints.get(key):
             findings.append(_finding("chartjunk_forbidden", f"$.runtime_constraints.{key}", f"{key} is forbidden"))
+    if spec.get("schema_version") == "2026-07-19.renderer_visual_spec.v2":
+        findings.extend(
+            _v2_renderer_contract_findings(
+                value_semantics=value_semantics,
+                formatting=formatting,
+                comparison_context=comparison_context,
+                responsive_layout=responsive_layout,
+                hint_contract=hint_contract,
+                layout_contract=layout_contract,
+            )
+        )
+        if comparator and tooltip.get("comparison_interval_and_value") is not True:
+            findings.append(
+                _finding(
+                    "comparison_tooltip_context_required",
+                    "$.tooltip.comparison_interval_and_value",
+                    "comparison tooltips must identify both intervals and both values",
+                )
+            )
+    elif spec:
+        findings.append(
+            _finding(
+                "renderer_visual_spec_v2_missing",
+                "$.schema_version",
+                "legacy visual spec has no responsive, formatting, and missing-value v2 contract",
+                severity="warning",
+            )
+        )
     if visual_qa_status == "pass_unverified":
         findings.append(
             _finding(
@@ -205,6 +239,201 @@ def _explicit_gridline_exception(spec: dict[str, Any]) -> bool:
         or gridlines.get("explicit_reason")
         or alternatives.get("gridlines_required")
     )
+
+
+def _v2_renderer_contract_findings(
+    *,
+    value_semantics: dict[str, Any],
+    formatting: dict[str, Any],
+    comparison_context: dict[str, Any],
+    responsive_layout: dict[str, Any],
+    hint_contract: dict[str, Any],
+    layout_contract: dict[str, Any],
+) -> list[VisualQualityFinding]:
+    findings: list[VisualQualityFinding] = []
+    required_objects = {
+        "value_semantics": value_semantics,
+        "formatting": formatting,
+        "comparison_context": comparison_context,
+        "responsive_layout": responsive_layout,
+        "hint_contract": hint_contract,
+        "layout_contract": layout_contract,
+    }
+    for name, value in required_objects.items():
+        if not value:
+            findings.append(_finding("renderer_v2_contract_missing", f"$.{name}", f"{name} is required"))
+    if value_semantics:
+        if value_semantics.get("missing_label") != "N/A":
+            findings.append(
+                _finding("missing_value_label", "$.value_semantics.missing_label", "missing values must render as N/A")
+            )
+        if value_semantics.get("observed_zero_distinct_from_missing") is not True:
+            findings.append(
+                _finding(
+                    "zero_missing_semantics",
+                    "$.value_semantics.observed_zero_distinct_from_missing",
+                    "observed zero must stay distinct from a missing value",
+                )
+            )
+        if value_semantics.get("null_time_series") != "preserve_gaps":
+            findings.append(
+                _finding(
+                    "time_series_null_gap",
+                    "$.value_semantics.null_time_series",
+                    "time-series nulls must preserve gaps instead of becoming zero",
+                )
+            )
+        if value_semantics.get("future_periods") != "exclude_without_observed_rows":
+            findings.append(
+                _finding(
+                    "future_period_zero_fill",
+                    "$.value_semantics.future_periods",
+                    "future periods without observed rows must not be zero-filled",
+                )
+            )
+    if formatting:
+        expected_formats = {
+            "daily_date": "DD.MM.YY",
+            "monthly_date": "MM.YY",
+            "axis_tick_strategy": "nice_1_2_2_5_5_10",
+            "label_thinning": "viewport_aware",
+        }
+        for key, expected in expected_formats.items():
+            if formatting.get(key) != expected:
+                findings.append(
+                    _finding(
+                        "deterministic_formatting",
+                        f"$.formatting.{key}",
+                        f"{key} must use {expected}",
+                    )
+                )
+        if formatting.get("axis_integer_ticks_unique") is not True:
+            findings.append(
+                _finding(
+                    "duplicate_integer_ticks",
+                    "$.formatting.axis_integer_ticks_unique",
+                    "rounded integer axis ticks must remain unique",
+                )
+            )
+    if comparison_context:
+        if comparison_context.get("explicit_only") is not True:
+            findings.append(
+                _finding(
+                    "comparison_explicitness",
+                    "$.comparison_context.explicit_only",
+                    "comparison is enabled only by an explicit accepted contract",
+                )
+            )
+        if comparison_context.get("options") != "contextual_to_selected_period":
+            findings.append(
+                _finding(
+                    "comparison_contextual_options",
+                    "$.comparison_context.options",
+                    "comparison options must be valid for the selected period",
+                )
+            )
+        if comparison_context.get("tooltip") != "selected_interval_value_vs_comparison_interval_value":
+            findings.append(
+                _finding(
+                    "comparison_tooltip_context_required",
+                    "$.comparison_context.tooltip",
+                    "comparison context must identify both intervals and values",
+                )
+            )
+    if responsive_layout:
+        if responsive_layout.get("sizing_source") != "options.width_and_height":
+            findings.append(
+                _finding(
+                    "responsive_sizing_source",
+                    "$.responsive_layout.sizing_source",
+                    "Advanced renderers must derive size from options.width and options.height",
+                )
+            )
+        if responsive_layout.get("fixed_min_width") is not False:
+            findings.append(
+                _finding(
+                    "fixed_desktop_min_width",
+                    "$.responsive_layout.fixed_min_width",
+                    "fixed desktop minimum widths are forbidden",
+                )
+            )
+        probes = [
+            int(item)
+            for item in responsive_layout.get("widget_width_probes_px") or []
+            if isinstance(item, (int, float)) and not isinstance(item, bool)
+        ]
+        if not probes or min(probes) > 360 or max(probes) < 700:
+            findings.append(
+                _finding(
+                    "responsive_widget_probe_coverage",
+                    "$.responsive_layout.widget_width_probes_px",
+                    "responsive QA needs both narrow and wide widget probes",
+                )
+            )
+        profiles = {str(item) for item in responsive_layout.get("dashboard_profiles") or []}
+        if not {"compact_desktop", "wide_desktop"} <= profiles:
+            findings.append(
+                _finding(
+                    "responsive_dashboard_profiles",
+                    "$.responsive_layout.dashboard_profiles",
+                    "responsive QA needs compact and wide desktop profiles",
+                )
+            )
+        for key in ("horizontal_overflow", "content_clipping"):
+            if responsive_layout.get(key) != "forbidden":
+                findings.append(
+                    _finding(
+                        "responsive_overflow_contract",
+                        f"$.responsive_layout.{key}",
+                        f"{key} must be forbidden",
+                    )
+                )
+    if hint_contract:
+        content = {str(item) for item in hint_contract.get("content") or []}
+        if not {"business_meaning", "calculation", "limitations"} <= content:
+            findings.append(
+                _finding(
+                    "business_hint_contract",
+                    "$.hint_contract.content",
+                    "hints must explain business meaning, calculation, and limitations",
+                )
+            )
+        if hint_contract.get("section_header_hint") is not False:
+            findings.append(
+                _finding(
+                    "section_header_hint",
+                    "$.hint_contract.section_header_hint",
+                    "plain section headers must not carry a redundant hint",
+                )
+            )
+        if hint_contract.get("table_column_hint_settings_required") is not True:
+            findings.append(
+                _finding(
+                    "table_column_hint_settings",
+                    "$.hint_contract.table_column_hint_settings_required",
+                    "table-column hints require enabled hintSettings in addition to description",
+                )
+            )
+    if layout_contract:
+        for key in (
+            "preserve_existing_geometry",
+            "equal_kpi_heights_within_row",
+            "one_kpi_per_object",
+            "long_table_internal_scroll",
+        ):
+            if layout_contract.get(key) is not True:
+                findings.append(
+                    _finding("layout_runtime_contract", f"$.layout_contract.{key}", f"{key} must be true")
+                )
+        if layout_contract.get("semantic_noop_geometry_drift") is not False:
+            findings.append(
+                _finding(
+                    "semantic_noop_geometry_drift",
+                    "$.layout_contract.semantic_noop_geometry_drift",
+                    "a semantic no-op must not change dashboard geometry",
+                )
+            )
+    return findings
 
 
 def _active_widget_count(value: dict[str, Any]) -> int:

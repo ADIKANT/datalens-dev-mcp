@@ -1,5 +1,3 @@
 {
-  "chart_variant": "line_chart",
-  "theme": "light",
-  "date_grain": "week"
+  "theme": ["light"]
 }

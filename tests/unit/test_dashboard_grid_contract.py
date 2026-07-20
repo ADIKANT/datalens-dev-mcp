@@ -238,6 +238,87 @@ class DashboardGridContractTests(unittest.TestCase):
         issue = next(item for item in result.issues if item.rule == "existing_layout_geometry_changed")
         self.assertEqual(issue.severity, "warning")
 
+    def test_layout_ownership_rejects_geometry_changes_outside_changed_object_ids(self):
+        current = _payload(
+            items=[{"id": "owned", "type": "widget"}, {"id": "preserved", "type": "widget"}],
+            layout=[
+                {"i": "owned", "x": 0, "y": 0, "w": 18, "h": 8},
+                {"i": "preserved", "x": 18, "y": 0, "w": 18, "h": 8},
+            ],
+        )
+        proposed = _payload(
+            items=[{"id": "owned", "type": "widget"}, {"id": "preserved", "type": "widget"}],
+            layout=[
+                {"i": "owned", "x": 0, "y": 0, "w": 18, "h": 7},
+                {"i": "preserved", "x": 18, "y": 0, "w": 18, "h": 7},
+            ],
+        )
+
+        result = validate_dashboard_payload(
+            proposed,
+            current_dashboard=current,
+            project_contract={"layout_ownership": {"changed_object_ids": ["owned"]}},
+        )
+
+        self.assertFalse(result.ok)
+        ownership_issues = [issue for issue in result.issues if issue.rule == "unowned_layout_geometry_change"]
+        self.assertEqual([issue.path for issue in ownership_issues], ["$.tabs[0].layout[1]"])
+        self.assertIn("'preserved'", ownership_issues[0].message)
+
+    def test_layout_ownership_allows_geometry_changes_for_owned_objects(self):
+        current = {
+            "entry": {
+                "data": {
+                    **_payload(
+                        items=[{"id": "owned", "type": "widget"}],
+                        layout=[{"i": "owned", "x": 0, "y": 0, "w": 18, "h": 8}],
+                    )
+                }
+            }
+        }
+        proposed = {
+            "data": {
+                **_payload(
+                    items=[{"id": "owned", "type": "widget"}],
+                    layout=[{"i": "owned", "x": 0, "y": 0, "w": 18, "h": 7}],
+                )
+            }
+        }
+
+        result = validate_dashboard_payload(
+            proposed,
+            current_dashboard=current,
+            project_contract={"layout_ownership": {"changed_object_ids": ["owned"]}},
+        )
+
+        self.assertTrue(result.ok, [issue.to_dict() for issue in result.issues])
+        self.assertTrue(any(issue.rule == "existing_layout_geometry_changed" for issue in result.issues))
+        self.assertFalse(any(issue.rule == "unowned_layout_geometry_change" for issue in result.issues))
+
+    def test_semantic_noop_rejects_geometry_drift_even_for_owned_objects(self):
+        current = _payload(
+            items=[{"id": "owned", "type": "widget"}],
+            layout=[{"i": "owned", "x": 0, "y": 0, "w": 18, "h": 8, "parent": "__fixHead"}],
+        )
+        proposed = _payload(
+            items=[{"id": "owned", "type": "widget"}],
+            layout=[{"i": "owned", "x": 0, "y": 0, "w": 18, "h": 8, "parent": "__fixGCont"}],
+        )
+
+        result = validate_dashboard_payload(
+            proposed,
+            current_dashboard=current,
+            project_contract={
+                "layout_ownership": {
+                    "changed_object_ids": ["owned"],
+                    "semantic_noop": True,
+                }
+            },
+        )
+
+        self.assertFalse(result.ok)
+        self.assertTrue(any(issue.rule == "semantic_noop_layout_geometry_drift" for issue in result.issues))
+
     def test_changed_legacy_overlap_is_not_exempted(self):
         current = _payload(
             items=[{"id": "left", "type": "widget"}, {"id": "right", "type": "widget"}],
@@ -259,7 +340,7 @@ class DashboardGridContractTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertTrue(any(issue.rule == "peer_layout_overlap" for issue in result.issues))
 
-    def test_height_and_auto_height_guidance_is_warning_only(self):
+    def test_generated_layout_blocks_mixed_auto_height_but_keeps_height_guidance(self):
         payload = _payload(
             items=[
                 {"id": "title", "type": "title"},
@@ -296,17 +377,123 @@ class DashboardGridContractTests(unittest.TestCase):
 
         result = validate_dashboard_payload(payload)
         warning_rules = {issue.rule for issue in result.issues if issue.severity == "warning"}
+        error_rules = {issue.rule for issue in result.issues if issue.severity == "error"}
 
-        self.assertTrue(result.ok, [issue.to_dict() for issue in result.issues])
+        self.assertFalse(result.ok)
+        self.assertIn("mixed_widget_auto_height", error_rules)
         self.assertTrue(
             {
                 "atypical_title_height",
                 "atypical_control_height",
                 "atypical_kpi_height",
                 "atypical_table_height",
-                "mixed_widget_auto_height",
             }.issubset(warning_rules),
             warning_rules,
+        )
+
+    def test_existing_layout_keeps_mixed_auto_height_as_runtime_warning(self):
+        payload = _payload(
+            items=[
+                {
+                    "id": "mixed_height_widget",
+                    "type": "widget",
+                    "data": {
+                        "tabs": [
+                            {"id": "mixed_a", "chartId": "mixed_a_chart", "title": "A", "autoHeight": True},
+                            {"id": "mixed_b", "chartId": "mixed_b_chart", "title": "B", "autoHeight": False},
+                        ]
+                    },
+                }
+            ],
+            layout=[{"i": "mixed_height_widget", "x": 0, "y": 0, "w": 36, "h": 10}],
+        )
+
+        result = validate_dashboard_payload(payload, current_dashboard=payload)
+
+        self.assertTrue(result.ok, [issue.to_dict() for issue in result.issues])
+        self.assertIn(
+            "mixed_widget_auto_height",
+            {issue.rule for issue in result.issues if issue.severity == "warning"},
+        )
+
+    def test_existing_layout_blocks_new_mixed_auto_height_state(self):
+        current = _payload(
+            items=[
+                {
+                    "id": "changed_height_widget",
+                    "type": "widget",
+                    "data": {
+                        "tabs": [
+                            {"id": "changed_a", "chartId": "changed_a_chart", "title": "A", "autoHeight": True},
+                            {"id": "changed_b", "chartId": "changed_b_chart", "title": "B", "autoHeight": True},
+                        ]
+                    },
+                }
+            ],
+            layout=[{"i": "changed_height_widget", "x": 0, "y": 0, "w": 36, "h": 10}],
+        )
+        proposed = _payload(
+            items=[
+                {
+                    "id": "changed_height_widget",
+                    "type": "widget",
+                    "data": {
+                        "tabs": [
+                            {"id": "changed_a", "chartId": "changed_a_chart", "title": "A", "autoHeight": True},
+                            {"id": "changed_b", "chartId": "changed_b_chart", "title": "B", "autoHeight": False},
+                        ]
+                    },
+                }
+            ],
+            layout=[{"i": "changed_height_widget", "x": 0, "y": 0, "w": 36, "h": 10}],
+        )
+
+        result = validate_dashboard_payload(proposed, current_dashboard=current)
+
+        self.assertFalse(result.ok)
+        self.assertIn(
+            "mixed_widget_auto_height",
+            {issue.rule for issue in result.issues if issue.severity == "error"},
+        )
+
+    def test_empty_current_dashboard_does_not_disable_generated_layout_strictness(self):
+        payload = _payload(
+            items=[
+                {
+                    "id": "invalid_auto_height",
+                    "type": "widget",
+                    "data": {"autoHeight": "true"},
+                }
+            ],
+            layout=[{"i": "invalid_auto_height", "x": 0, "y": 0, "w": 36, "h": 10}],
+        )
+
+        result = validate_dashboard_payload(payload, current_dashboard={})
+
+        self.assertFalse(result.ok)
+        self.assertIn(
+            "invalid_auto_height_value",
+            {issue.rule for issue in result.issues if issue.severity == "error"},
+        )
+
+    def test_generated_layout_blocks_non_boolean_auto_height(self):
+        payload = _payload(
+            items=[
+                {
+                    "id": "invalid_auto_height",
+                    "type": "widget",
+                    "data": {"autoHeight": "true"},
+                }
+            ],
+            layout=[{"i": "invalid_auto_height", "x": 0, "y": 0, "w": 36, "h": 10}],
+        )
+
+        result = validate_dashboard_payload(payload)
+
+        self.assertFalse(result.ok)
+        self.assertIn(
+            "invalid_auto_height_value",
+            {issue.rule for issue in result.issues if issue.severity == "error"},
         )
 
     def test_layout_schema_and_packaged_mirror_require_integer_grid_geometry(self):

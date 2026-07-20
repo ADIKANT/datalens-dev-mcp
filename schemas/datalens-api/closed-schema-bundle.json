@@ -1,6 +1,6 @@
 {
   "missing_refs": [],
-  "openapi_lock_sha256": "e4c3cf56de894e28b883b1f0ceaf2935f68570b052c46885e20bc9608e5ca532",
+  "openapi_lock_sha256": "c0dec7cb5cd14da09a6fe3a9388201a6639f4ec97cf0e93e2a7888281537cc91",
   "schema_count": 510,
   "schema_version": "2026-06-25.closed_openapi_schema_bundle.v1",
   "schemas": {
@@ -500,6 +500,12 @@
             "null"
           ]
         },
+        "parentFolderId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "scope": {
           "enum": [
             "dash",
@@ -538,6 +544,7 @@
         "isDeleted",
         "workbookId",
         "collectionId",
+        "parentFolderId",
         "scope",
         "type",
         "updatedAt",
@@ -6381,6 +6388,9 @@
                             "borderRadius": {
                               "type": "number"
                             },
+                            "hideActions": {
+                              "type": "boolean"
+                            },
                             "hideTitle": {
                               "type": "boolean"
                             },
@@ -7889,6 +7899,12 @@
           ]
         },
         "revId": {
+          "type": "string"
+        },
+        "revUpdatedAt": {
+          "type": "string"
+        },
+        "revUpdatedBy": {
           "type": "string"
         },
         "savedId": {
@@ -17376,6 +17392,9 @@
                             "borderRadius": {
                               "type": "number"
                             },
+                            "hideActions": {
+                              "type": "boolean"
+                            },
                             "hideTitle": {
                               "type": "boolean"
                             },
@@ -17733,6 +17752,12 @@
           ]
         },
         "revId": {
+          "type": "string"
+        },
+        "revUpdatedAt": {
+          "type": "string"
+        },
+        "revUpdatedBy": {
           "type": "string"
         },
         "savedId": {

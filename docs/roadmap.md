@@ -1,10 +1,13 @@
 # Roadmap
 
-- Deeper local MCP coverage for live diagnostics, source resolution, and
-  dashboard update workflows.
-- Broader mocked scenarios for governance, authoring, API safe apply,
-  readback, and visual QA.
-- Browser visual QA against generated Advanced Editor bundles.
+The current release already includes guarded object workflows, saved/published
+readback, native title and hint validation, responsive Editor contracts, and
+artifact-bound browser evidence. Remaining roadmap items are deliberately
+optional extensions rather than missing safety gates:
+
+- Broader disposable-workbook browser coverage for every supported renderer
+  family and viewport probe.
 - Dataset profiling, field cataloging, and metadata enrichment.
-- Dashboard-native titles, hints, and selector ergonomics.
-- MCP Apps/UI for safe apply review.
+- MCP Apps/UI for reviewing guarded plans and their artifact evidence.
+- Additional source adapters only when the public API exposes a stable,
+  testable contract.

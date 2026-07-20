@@ -191,7 +191,14 @@ class SafeApplyIncidentTests(unittest.TestCase):
         )
         complete = _publish_transaction_group_error(
             plan=plan,
-            results=[{"index": 0, "executed": True, "artifacts": {"readback": {"path": "saved.json"}}}],
+            results=[
+                {
+                    "index": 0,
+                    "executed": True,
+                    "artifacts": {"readback": {"path": "saved.json"}},
+                    "readback_verification": {"verified": True},
+                }
+            ],
             action_index=1,
             action=publish,
             payload=publish["payload"],
@@ -365,6 +372,7 @@ class SafeApplyIncidentTests(unittest.TestCase):
         class WizardClient:
             def __init__(self):
                 self.calls = []
+                self.saved_payload = {}
 
             def rpc(self, method, payload):
                 self.calls.append((method, payload))
@@ -379,8 +387,14 @@ class SafeApplyIncidentTests(unittest.TestCase):
                         },
                     }
                 if method == "updateWizardChart":
+                    self.saved_payload = payload
                     return {"entryId": "chart_1", "revId": "rev_2"}
-                return {"entryId": "chart_1", "revId": "rev_2", "data": payload}
+                return {
+                    "entryId": "chart_1",
+                    "revId": "rev_2",
+                    "template": self.saved_payload["template"],
+                    "data": self.saved_payload["data"],
+                }
 
         with tempfile.TemporaryDirectory() as tmp:
             payload = {

@@ -11,7 +11,7 @@ MIN_WIDTH_BY_KIND = {
     "search_select": 18.0,
     "granularity": 10.0,
 }
-ROW_WIDTH_SUM_MAX_PCT = 96.0
+ROW_WIDTH_SUM_MAX_PCT = 94.0
 
 
 @dataclass(frozen=True)
@@ -117,7 +117,7 @@ def validate_selector_layout_contract(
                 _finding(
                     "selector_row_width_over_budget",
                     f"$.selector_rows[{row_index}]",
-                    f"selector row width sum must be <= 96%, got {total:g}%",
+                    f"selector row width sum must be <= 94%, got {total:g}%",
                 )
             )
     if not rows and selectors:

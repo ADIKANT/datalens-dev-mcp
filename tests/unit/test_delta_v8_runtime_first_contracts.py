@@ -605,11 +605,12 @@ class DeltaV8RuntimeFirstContractsTests(unittest.TestCase):
         self.assertTrue(run["completion_evidence"]["completion_ready"])
         self.assertEqual(len(run["handoff"]["proof"]["api_readback_paths"]), 2)
 
-    def test_standard_wrapper_exposes_baseline_and_completion_evidence_inputs(self):
+    def test_standard_wrapper_exposes_typed_maintenance_evidence_bundle(self):
         from datalens_dev_mcp.server import list_tools
 
         tool = next(item for item in list_tools() if item["name"] == "dl_run_live_maintenance_update")
         properties = tool["inputSchema"]["properties"]
+        evidence_schema = properties["maintenance_evidence"]
 
         for name in (
             "baseline_dashboard",
@@ -622,8 +623,10 @@ class DeltaV8RuntimeFirstContractsTests(unittest.TestCase):
             "published_runtime_gate_evidence",
         ):
             with self.subTest(name=name):
-                self.assertIn(name, properties)
-                self.assertEqual(properties[name]["type"], "object")
+                self.assertNotIn(name, properties)
+                self.assertIn(name, evidence_schema["properties"])
+                self.assertEqual(evidence_schema["properties"][name]["type"], "object")
+        self.assertFalse(evidence_schema["additionalProperties"])
 
     def test_success_schemas_reject_unbound_passed_and_done_states(self):
         from jsonschema import Draft202012Validator

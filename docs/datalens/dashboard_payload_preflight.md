@@ -16,8 +16,10 @@ The validator blocks:
 - inline Advanced Editor titles that duplicate dashboard native title/hint
   metadata;
 - selector layout violations: label placement defaults to left, widths use
-  percent units, and selector rows target 96%;
+  percent units, and selector rows stay within a 94 percent budget;
 - selector `impactTabsIds` values that reference tabs absent from the payload;
+- invalid or mixed `autoHeight` policies in newly generated native-grid
+  widgets, while unchanged saved legacy layouts remain warning-only;
 - date-range selector regressions back to preset controls when the project
   contract requires a range control;
 - debug/service widgets in publish layouts unless explicitly allowed by the

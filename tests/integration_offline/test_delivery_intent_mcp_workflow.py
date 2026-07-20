@@ -79,7 +79,12 @@ class DeliveryIntentMcpWorkflowTests(unittest.TestCase):
                 delivery_intent_text="implement the requested dashboard fix",
             )
 
-        self.assertTrue(safe_plan["ok"], safe_plan)
+        self.assertFalse(safe_plan["ok"], safe_plan)
+        self.assertEqual(safe_plan["status"], "safe_apply_plan_blocked")
+        self.assertIn(
+            "object_reuse_decision is required",
+            "\n".join(safe_plan["blocked_reasons"]),
+        )
         self.assertEqual(safe_plan["delivery_intent_decision"]["intent"], "save_and_publish_delivery")
         self.assertEqual(safe_plan["delivery_intent_decision"]["state"], "save_then_publish")
         self.assertIn("Run saved readback.", safe_plan["delivery_intent_decision"]["next_actions"])

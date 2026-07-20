@@ -17,6 +17,19 @@ dataset binding, semantic field bindings, visualization ID, options, and an
 optional saved seed. Output contains source kind, sanitized seed binding/hash,
 compiled request payload, and a validation report.
 
+A template may be compiled offline without dataset readback evidence, but that
+plan is not live-execution-ready. Wizard create requires fresh saved
+`dataset_readbacks`; the compiler keeps only the bound dataset identity and
+referenced field GUID/type pairs, checks that the evidence belongs to the
+payload dataset, and rejects role/type mismatches before payload or safe-apply
+planning. Create planning also requires workbook entries reconciliation and a
+deterministic object-reuse decision.
+
+Immediately before create, safe apply refreshes the workbook inventory through
+bounded pagination, merges entries deterministically by identity, and repeats
+the reuse check. Cursor cycles, incomplete pages, capacity limits, conflicting
+duplicate identities, or a compatible object found on any page block the write.
+
 A seed is accepted only from the saved branch with a fresh revision and the
 same visualization ID. Create sanitization removes entry, revision, and
 location identities while preserving unknown `data` fields, then rebinds the

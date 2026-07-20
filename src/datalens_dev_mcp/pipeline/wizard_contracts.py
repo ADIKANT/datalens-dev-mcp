@@ -5,6 +5,7 @@ import re
 from typing import Any
 
 from datalens_dev_mcp.knowledge.formulas import FormulaSyntaxError, tokenize_formula
+from datalens_dev_mcp.pipeline.wizard_role_types import binding_role_type_error
 
 
 @dataclass(frozen=True)
@@ -34,15 +35,43 @@ def validate_wizard_field_binding_against_dataset_readback(
     *,
     source: str = "",
     strict: bool = True,
+    enforce_role_types: bool = False,
 ) -> dict[str, Any]:
     findings: list[dict[str, str]] = []
     readbacks = [item for item in dataset_readbacks or [] if isinstance(item, dict)]
     dataset_ids = [_dataset_id(item) for item in readbacks]
+    chart_dataset_ids = _chart_dataset_ids(chart_payload)
     dataset_field_ids = set()
+    dataset_field_types: dict[str, str] = {}
     for readback in readbacks:
+        if chart_dataset_ids and _dataset_id(readback) not in chart_dataset_ids:
+            continue
         dataset_field_ids.update(_dataset_field_ids(readback))
+        dataset_field_types.update(_dataset_field_type_map(readback))
     if strict and not readbacks:
         findings.append(_finding_dict("error", "dataset_readback_required", "$.dataset_readbacks", "dataset readback is required"))
+    bound_dataset_ids = {item for item in dataset_ids if item}
+    if strict:
+        for index, dataset_id in enumerate(dataset_ids):
+            if not dataset_id:
+                findings.append(
+                    _finding_dict(
+                        "error",
+                        "dataset_readback_identity_required",
+                        f"$.dataset_readbacks[{index}]",
+                        "dataset readback must expose datasetId/id",
+                    )
+                )
+        missing_dataset_ids = sorted(chart_dataset_ids - bound_dataset_ids)
+        if missing_dataset_ids:
+            findings.append(
+                _finding_dict(
+                    "error",
+                    "wizard_dataset_readback_mismatch",
+                    "$.dataset_readbacks",
+                    "dataset readback does not cover chart dataset ids: " + ", ".join(missing_dataset_ids),
+                )
+            )
 
     partial_fields = _partial_fields(chart_payload)
     partial_ids = {field_id for field_id, _path, _field in partial_fields}
@@ -88,6 +117,28 @@ def validate_wizard_field_binding_against_dataset_readback(
                     "wizard_formula_ref_unresolved_against_dataset_readback",
                     path,
                     f"formula reference `{ref}` is unresolved",
+                )
+            )
+    visualization_id = _wizard_visualization_token(chart_payload) or str(
+        chart_payload.get("chart_type")
+        or chart_payload.get("type")
+        or chart_payload.get("family")
+        or ""
+    )
+    for role, ref, path in _role_field_refs(chart_payload):
+        field_type = dataset_field_types.get(ref, "")
+        type_error = binding_role_type_error(
+            visualization_id=visualization_id,
+            role=role,
+            field_type=field_type,
+        )
+        if type_error:
+            findings.append(
+                _finding_dict(
+                    "error" if enforce_role_types else "warning",
+                    "wizard_field_role_type_mismatch",
+                    path,
+                    f"field `{ref}` in role `{role}` {type_error}",
                 )
             )
     if _uses_select_star(chart_payload):
@@ -150,6 +201,52 @@ def validate_wizard_field_binding_against_dataset_readback(
         "source": source,
         "findings": findings,
     }
+
+
+def compact_wizard_dataset_readbacks(
+    chart_payload: dict[str, Any],
+    dataset_readbacks: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
+    """Keep only identity plus referenced field id/type evidence for a Wizard plan."""
+
+    referenced_ids = {
+        ref
+        for ref, _path in _field_refs(chart_payload)
+        if ref
+    }
+    referenced_ids.update(
+        field_id
+        for field_id, _path, _field in _partial_fields(chart_payload)
+        if field_id
+    )
+    referenced_ids.update(
+        ref
+        for _role, ref, _path in _role_field_refs(chart_payload)
+        if ref
+    )
+    chart_dataset_ids = _chart_dataset_ids(chart_payload)
+    compact: list[dict[str, Any]] = []
+    for readback in dataset_readbacks or []:
+        if not isinstance(readback, dict):
+            continue
+        readback_dataset_id = _dataset_id(readback)
+        if chart_dataset_ids and readback_dataset_id not in chart_dataset_ids:
+            continue
+        available_ids = _dataset_field_ids(readback)
+        field_types = _dataset_field_type_map(readback)
+        fields: list[dict[str, str]] = []
+        for field_id in sorted(referenced_ids & available_ids):
+            field: dict[str, str] = {"guid": field_id}
+            if field_types.get(field_id):
+                field["data_type"] = field_types[field_id]
+            fields.append(field)
+        compact.append(
+            {
+                "datasetId": readback_dataset_id,
+                "result_schema": fields,
+            }
+        )
+    return compact
 
 
 def validate_wizard_visual_dataset_contract(payload: dict[str, Any]) -> WizardContractResult:
@@ -385,6 +482,23 @@ def _dataset_id(value: dict[str, Any]) -> str:
     return ""
 
 
+def _chart_dataset_ids(value: Any) -> set[str]:
+    ids: set[str] = set()
+    if isinstance(value, dict):
+        for key, item in value.items():
+            normalized = str(key).replace("_", "").lower()
+            if normalized == "datasetsids" and isinstance(item, list):
+                ids.update(str(dataset_id).strip() for dataset_id in item if str(dataset_id).strip())
+            elif normalized == "datasetid" and item not in (None, "") and not isinstance(item, (dict, list)):
+                ids.add(str(item).strip())
+            elif isinstance(item, (dict, list)):
+                ids.update(_chart_dataset_ids(item))
+    elif isinstance(value, list):
+        for item in value:
+            ids.update(_chart_dataset_ids(item))
+    return ids
+
+
 def _dataset_field_ids(value: Any, *, in_field_container: bool = False) -> set[str]:
     ids: set[str] = set()
     if isinstance(value, dict):
@@ -410,6 +524,102 @@ def _dataset_field_ids(value: Any, *, in_field_container: bool = False) -> set[s
         for item in value:
             ids.update(_dataset_field_ids(item, in_field_container=in_field_container))
     return ids
+
+
+def _dataset_field_type_map(value: Any, *, in_field_container: bool = False) -> dict[str, str]:
+    field_types: dict[str, str] = {}
+    if isinstance(value, dict):
+        is_field = in_field_container and _looks_like_dataset_field(value)
+        if is_field:
+            field_type = str(
+                value.get("data_type")
+                or value.get("dataType")
+                or value.get("field_type")
+                or value.get("fieldType")
+                or value.get("type")
+                or ""
+            ).strip()
+            if field_type:
+                for key in ("guid", "fieldGuid", "field_guid", "fieldId", "field_id", "id", "name", "title"):
+                    item = value.get(key)
+                    if item not in (None, "") and not isinstance(item, (dict, list)):
+                        field_types[str(item).strip()] = field_type
+        for key, item in value.items():
+            lowered = str(key).lower()
+            child_is_field_container = in_field_container or lowered in {
+                "fields",
+                "datasetfields",
+                "dataset_fields",
+                "fielddefinitions",
+                "field_definitions",
+                "resultschema",
+                "result_schema",
+            }
+            field_types.update(_dataset_field_type_map(item, in_field_container=child_is_field_container))
+    elif isinstance(value, list):
+        for item in value:
+            field_types.update(_dataset_field_type_map(item, in_field_container=in_field_container))
+    return field_types
+
+
+def _role_field_refs(value: Any, path: str = "$") -> list[tuple[str, str, str]]:
+    refs: list[tuple[str, str, str]] = []
+    if isinstance(value, dict):
+        field_bindings = value.get("field_bindings")
+        if isinstance(field_bindings, dict):
+            for role, raw_items in field_bindings.items():
+                items = raw_items if isinstance(raw_items, list) else [raw_items]
+                for index, item in enumerate(items):
+                    ref = _field_id(item) if isinstance(item, dict) else str(item or "").strip()
+                    if ref:
+                        refs.append((str(role), ref, f"{path}.field_bindings.{role}[{index}]"))
+        placeholders = value.get("placeholders")
+        if isinstance(placeholders, list):
+            for index, placeholder in enumerate(placeholders):
+                if not isinstance(placeholder, dict):
+                    continue
+                role = str(placeholder.get("id") or placeholder.get("name") or "").strip()
+                items = placeholder.get("items") if isinstance(placeholder.get("items"), list) else []
+                for item_index, item in enumerate(items):
+                    ref = _field_id(item) if isinstance(item, dict) else str(item or "").strip()
+                    if role and ref:
+                        refs.append(
+                            (
+                                role,
+                                ref,
+                                f"{path}.placeholders[{index}].items[{item_index}]",
+                            )
+                        )
+        for key, item in value.items():
+            if key not in {"field_bindings", "placeholders"}:
+                refs.extend(_role_field_refs(item, f"{path}.{key}"))
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            refs.extend(_role_field_refs(item, f"{path}[{index}]"))
+    return refs
+
+
+def _wizard_visualization_token(value: Any) -> str:
+    if isinstance(value, dict):
+        for key in ("visualization_id", "visualizationId"):
+            token = str(value.get(key) or "").strip()
+            if token:
+                return token
+        visualization = value.get("visualization")
+        if isinstance(visualization, dict):
+            token = str(visualization.get("id") or visualization.get("type") or "").strip()
+            if token:
+                return token
+        for child in value.values():
+            token = _wizard_visualization_token(child)
+            if token:
+                return token
+    elif isinstance(value, list):
+        for child in value:
+            token = _wizard_visualization_token(child)
+            if token:
+                return token
+    return ""
 
 
 def _looks_like_dataset_field(value: dict[str, Any]) -> bool:

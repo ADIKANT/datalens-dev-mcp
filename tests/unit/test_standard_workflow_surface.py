@@ -31,6 +31,7 @@ class StandardWorkflowSurfaceTests(unittest.TestCase):
             },
             "quality_table_creation": {
                 "dl_reference",
+                "dl_generate_editor_bundle",
                 "dl_validate_editor_runtime_contract",
                 "dl_plan_object_create",
                 "dl_validate_project",
@@ -51,6 +52,7 @@ class StandardWorkflowSurfaceTests(unittest.TestCase):
         self.assertNotIn("dl_rpc_readonly", default_tools)
         self.assertNotIn("dl_rpc_expert", default_tools)
         self.assertNotIn("dl_get_dataset", default_tools)
+        self.assertNotIn("dl_compile_guarded_rpc_request", default_tools)
 
         dataset_plan = dl_plan_guarded_dataset_update(
             "dataset_events",

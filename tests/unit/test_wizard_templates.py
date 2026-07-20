@@ -104,6 +104,152 @@ class WizardTemplateTests(unittest.TestCase):
         for blocked in (wrong_branch, stale, mismatched):
             self.assertFalse(blocked["ok"])
 
+    def test_known_binding_types_must_match_wizard_roles(self):
+        from datalens_dev_mcp.pipeline.wizard_templates import build_wizard_payload_plan
+
+        invalid = build_wizard_payload_plan(
+            {
+                "route": "wizard_native",
+                "visualization_id": "column",
+                "location": {"key": "folder/column"},
+                "dataset": "dataset_fixture",
+                "field_bindings": {
+                    "x": {"guid": "category_guid", "type": "string"},
+                    "y": {"guid": "value_guid", "type": "string"},
+                },
+            }
+        )
+        valid = build_wizard_payload_plan(
+            {
+                "route": "wizard_native",
+                "visualization_id": "column",
+                "location": {"key": "folder/column"},
+                "dataset": "dataset_fixture",
+                "field_bindings": {
+                    "x": {"guid": "category_guid", "type": "string"},
+                    "y": {"guid": "value_guid", "type": "float"},
+                },
+            }
+        )
+        invalid_geo = build_wizard_payload_plan(
+            {
+                "route": "wizard_native",
+                "visualization_id": "geolayer",
+                "location": {"key": "folder/map"},
+                "dataset": "dataset_fixture",
+                "field_bindings": {"geo": {"guid": "city_guid", "type": "string"}},
+                "geo": {"evidence_kind": "geopoint"},
+            }
+        )
+
+        self.assertFalse(invalid["ok"])
+        self.assertIn("requires a numeric field", "\n".join(invalid["validation"]["errors"]))
+        self.assertTrue(valid["ok"], valid.get("validation"))
+        self.assertFalse(invalid_geo["ok"])
+        self.assertIn("requires a geographic field", "\n".join(invalid_geo["validation"]["errors"]))
+
+    def test_saved_dataset_readback_makes_plan_live_ready_and_is_compacted(self):
+        from datalens_dev_mcp.pipeline.wizard_templates import build_wizard_payload_plan
+
+        plan = build_wizard_payload_plan(
+            {
+                "route": "wizard_native",
+                "visualization_id": "column",
+                "location": {"workbookId": "workbook_fixture", "name": "typed_column"},
+                "dataset": "dataset_fixture",
+                "field_bindings": {"x": "category_guid", "y": "value_guid"},
+                "options": {"labels": [{"guid": "value_guid"}]},
+                "dataset_readbacks": [
+                    {
+                        "datasetId": "dataset_fixture",
+                        "result_schema": [
+                            {"guid": "category_guid", "type": "string", "title": "Category"},
+                            {"guid": "value_guid", "type": "float", "title": "Value"},
+                            {"guid": "unused_guid", "type": "integer"},
+                        ],
+                        "unrelated": {"discard": True},
+                    }
+                ],
+            }
+        )
+
+        self.assertTrue(plan["ok"], plan.get("dataset_readback_validation"))
+        self.assertTrue(plan["live_execution_ready"])
+        self.assertTrue(plan["dataset_readback_validation"]["ok"])
+        self.assertEqual(
+            plan["dataset_readbacks"][0]["result_schema"],
+            [
+                {"guid": "category_guid", "data_type": "string"},
+                {"guid": "value_guid", "data_type": "float"},
+            ],
+        )
+
+    def test_saved_dataset_readback_blocks_incompatible_measure_type(self):
+        from datalens_dev_mcp.pipeline.wizard_templates import build_wizard_payload_plan
+
+        plan = build_wizard_payload_plan(
+            {
+                "route": "wizard_native",
+                "visualization_id": "column",
+                "location": {"workbookId": "workbook_fixture", "name": "invalid_column"},
+                "dataset": "dataset_fixture",
+                "field_bindings": {"x": "category_guid", "y": "value_guid"},
+                "options": {"labels": [{"guid": "value_guid"}]},
+                "dataset_readbacks": [
+                    {
+                        "datasetId": "dataset_fixture",
+                        "result_schema": [
+                            {"guid": "category_guid", "type": "string"},
+                            {"guid": "value_guid", "type": "string"},
+                        ],
+                    }
+                ],
+            }
+        )
+
+        self.assertFalse(plan["ok"])
+        self.assertFalse(plan["live_execution_ready"])
+        self.assertEqual(plan["status"], "blocked_dataset_readback_validation")
+        self.assertIn(
+            "requires a numeric field",
+            "\n".join(plan["validation"]["errors"]),
+        )
+
+    def test_horizontal_bar_uses_string_x_dimension_and_numeric_y_measure(self):
+        from datalens_dev_mcp.pipeline.wizard_templates import build_wizard_payload_plan
+
+        valid = build_wizard_payload_plan(
+            {
+                "route": "wizard_native",
+                "visualization_id": "bar",
+                "location": {"key": "folder/bar"},
+                "dataset": "dataset_fixture",
+                "field_bindings": {
+                    "x": {"guid": "category_guid", "type": "string"},
+                    "y": {"guid": "value_guid", "type": "integer"},
+                },
+            }
+        )
+        invalid_measure = build_wizard_payload_plan(
+            {
+                "route": "wizard_native",
+                "visualization_id": "bar100p",
+                "location": {"key": "folder/bar100p"},
+                "dataset": "dataset_fixture",
+                "field_bindings": {
+                    "x": {"guid": "category_guid", "type": "string"},
+                    "y": {"guid": "value_guid", "type": "string"},
+                },
+            }
+        )
+
+        self.assertTrue(valid["ok"], valid.get("validation"))
+        self.assertFalse(invalid_measure["ok"])
+        self.assertIn(
+            "field_bindings.y requires a numeric field",
+            "\n".join(invalid_measure["validation"]["errors"]),
+        )
+
     def test_registry_declares_all_templates_creation_supported_and_anonymized(self):
         registry = json.loads(Path("templates/datalens/wizard/wizard_template_registry.json").read_text(encoding="utf-8"))
         templates = json.loads(Path("templates/datalens/wizard/canonical_templates.json").read_text(encoding="utf-8"))

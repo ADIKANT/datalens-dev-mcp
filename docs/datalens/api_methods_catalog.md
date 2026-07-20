@@ -1,6 +1,8 @@
 # Каталог методов DataLens API
 
-Полный актуальный каталог поставляется в `config/datalens_api_methods.json` и доступен через `dl_list_api_methods`. Для одного метода используйте `dl_get_api_method_schema`.
+Полный актуальный каталог поставляется в `config/datalens_api_methods.json` и
+доступен через `dl_list_api_methods`. Для одного метода используйте
+`dl_get_api_method_schema`.
 
 ## Основные методы
 
@@ -22,6 +24,8 @@
 - `reference_only` — контракт доступен для справки;
 - `unsupported` — операция не входит в публичный workflow сервера.
 
-Удаление целого объекта, когда оно поддержано выбранным project workflow, требует отдельного `confirm_delete`. Перемещение и изменение permissions не поддерживаются.
+Только объявленное в project manifest действие `retire_legacy_objects` может
+удалять целые объекты и требует отдельного `confirm_delete`. Произвольное
+whole-object deletion, перемещение и изменение permissions не поддерживаются.
 
 Официальные схемы и описания: [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/).

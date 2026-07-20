@@ -11,12 +11,15 @@ from typing import Any
 from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.api.methods import is_write_method
 from datalens_dev_mcp.api.request_compiler import validate_method_request
-from datalens_dev_mcp.mcp.response_projection import sanitize_response, serialized_metadata, stable_json_text
+from datalens_dev_mcp.serialization import sanitize_response, serialized_metadata, stable_json_text
 from datalens_dev_mcp.pipeline.proof_levels import proof_level_for_readback_branch
 from datalens_dev_mcp.pipeline.readback import normalize_readback_mode
 from datalens_dev_mcp.pipeline.baseline_preservation import build_baseline_diff_contract, create_necessity_proof
+from datalens_dev_mcp.pipeline.reconciliation import (
+    reconcile_partial_creates,
+    validate_entries_reconciliation_evidence,
+)
 from datalens_dev_mcp.pipeline.sql_performance import validate_payload_sql_performance
-from datalens_dev_mcp.pipeline.target_lock import create_target_lock
 from datalens_dev_mcp.pipeline.user_request import normalize_user_request
 from datalens_dev_mcp.pipeline.wizard_contracts import (
     validate_wizard_field_binding_against_dataset_readback,
@@ -32,6 +35,8 @@ from datalens_dev_mcp.validators.redaction import redact_text
 DESTRUCTIVE_TERMS = ("delete", "remove", "move", "permission", "accessBinding")
 READBACK_BRANCHES = {"saved", "published"}
 SAFE_APPLY_DEBUG_INLINE_CHAR_CAP = 2_000
+SAFE_APPLY_CREATE_INVENTORY_MAX_PAGES = 25
+SAFE_APPLY_CREATE_INVENTORY_MAX_ENTRIES = 10_000
 REQUEST_CONTROL_IDENTITY_KEYS = (
     "mode",
     "entryId",
@@ -49,6 +54,15 @@ PUBLISH_OBJECT_METHODS: dict[str, dict[str, str]] = {
     "advanced_editor_chart": {"read": "getEditorChart", "write": "updateEditorChart", "id_key": "chartId"},
     "wizard_chart": {"read": "getWizardChart", "write": "updateWizardChart", "id_key": "chartId"},
     "ql_chart": {"read": "getQLChart", "write": "updateQLChart", "id_key": "chartId"},
+}
+CREATE_READBACK_ID_KEYS: dict[str, str] = {
+    "getConnection": "connectionId",
+    "getDashboard": "dashboardId",
+    "getDataset": "datasetId",
+    "getEditorChart": "chartId",
+    "getQLChart": "chartId",
+    "getReport": "reportId",
+    "getWizardChart": "chartId",
 }
 
 
@@ -74,7 +88,7 @@ def create_safe_apply_plan(
         if approved
         else "not_authorized"
     )
-    default_target_lock = create_target_lock("", target_source="manual").to_dict()
+    default_target_lock = _default_action_target_lock(actions)
     for action in actions:
         item = dict(action)
         saved_source_path = str(item.get("saved_readback_path") or "").strip()
@@ -159,6 +173,44 @@ def create_safe_apply_plan(
             "partial_create_retry_requires_reconciliation": True,
         },
         "actions": normalized_actions,
+    }
+
+
+def _default_action_target_lock(actions: list[dict[str, Any]]) -> dict[str, Any]:
+    targets: list[dict[str, str]] = []
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        payload = _payload_for_action(action)
+        if _action_type(action, payload) not in {"update", "publish"}:
+            continue
+        targets.append(
+            {
+                "method": str(action.get("method") or ""),
+                "object_id": _action_object_id(action, payload),
+            }
+        )
+    targets.sort(key=lambda item: (item["method"], item["object_id"]))
+    lock_hash = serialized_metadata({"targets": targets})["sha256"]
+    target_ids = [item["object_id"] for item in targets if item["object_id"]]
+    all_targets_known = bool(targets) and len(target_ids) == len(targets)
+    single_method = targets[0]["method"] if len(targets) == 1 else ""
+    single_object_id = target_ids[0] if len(target_ids) == 1 else ""
+    return {
+        "target_source": "manual",
+        "target_workbook_id": "",
+        "target_dashboard_id": single_object_id if "Dashboard" in single_method else "",
+        "target_chart_id": single_object_id if "Chart" in single_method else "",
+        "target_object_type": "safe_apply_action_set",
+        "target_object_key": ",".join(target_ids),
+        "target_url": "",
+        "lock_hash": lock_hash,
+        "status": "locked" if all_targets_known else "missing",
+        "evidence": [
+            f"action_target:{item['method']}:{item['object_id']}"
+            for item in targets
+            if item["object_id"]
+        ],
     }
 
 
@@ -292,6 +344,8 @@ def validate_safe_apply_plan(plan: dict[str, Any]) -> ValidationResult:
 def validate_safe_apply_plan_exhaustive(plan: dict[str, Any]) -> dict[str, Any]:
     issues: list[str] = []
     action_checks: list[dict[str, Any]] = []
+    target_lock = plan.get("target_lock") if isinstance(plan.get("target_lock"), dict) else {}
+    plan_target_lock_hash = str(target_lock.get("lock_hash") or "").strip()
     if not plan.get("approved"):
         issues.append("safe apply plan is not approved")
     actions = plan.get("actions")
@@ -323,6 +377,31 @@ def validate_safe_apply_plan_exhaustive(plan: dict[str, Any]) -> dict[str, Any]:
                     f"action {index} {method} request {issue}" for issue in request_validation["issues"]
                 )
         action_issues.extend(_contract_issues(action=action, payload=payload, index=index))
+        action_type = _action_type(action, payload)
+        if action_type in {"update", "publish"}:
+            object_id = _action_object_id(action, payload)
+            if not object_id:
+                action_issues.append(f"action {index} update/publish requires a known target object_id")
+            action_target_lock_hash = str(action.get("target_lock_hash") or "").strip()
+            if not plan_target_lock_hash:
+                action_issues.append(f"action {index} update/publish requires a plan target_lock hash")
+            elif action_target_lock_hash != plan_target_lock_hash:
+                action_issues.append(f"action {index} target_lock_hash does not match the plan target_lock")
+            target_lock_status = str(target_lock.get("status") or "").strip().lower()
+            if target_lock_status in {"ambiguous", "mismatch"}:
+                action_issues.append(
+                    f"action {index} update/publish target_lock status must not be {target_lock_status}"
+                )
+            locked_chart_id = str(target_lock.get("target_chart_id") or "").strip()
+            locked_dashboard_id = str(target_lock.get("target_dashboard_id") or "").strip()
+            if locked_chart_id and object_id and object_id != locked_chart_id:
+                action_issues.append(
+                    f"action {index} target object_id {object_id} does not match locked chart {locked_chart_id}"
+                )
+            if locked_dashboard_id and _is_dashboard_action(action) and object_id and object_id != locked_dashboard_id:
+                action_issues.append(
+                    f"action {index} target object_id {object_id} does not match locked dashboard {locked_dashboard_id}"
+                )
         payload_mode = str(payload.get("mode") or action.get("mode", "save"))
         if payload_mode == "publish":
             action_issues.extend(_publish_source_issues(root=Path(str(plan.get("project_root") or ".")), action=action, index=index))
@@ -340,6 +419,10 @@ def validate_safe_apply_plan_exhaustive(plan: dict[str, Any]) -> dict[str, Any]:
             readback_mode = "minimal"
         if readback_mode == "none" and not action.get("readback_justification"):
             action_issues.append(f"action {index} disables readback without readback_justification")
+        if action_type == "create" and readback_mode == "none":
+            action_issues.append(
+                f"action {index} create requires an exact post-write object readback"
+            )
         if readback_mode != "none" and not action.get("readback_required", False):
             action_issues.append(f"action {index} readback_required must be true unless readback_mode is none")
         readback_method = action.get("readback_method") or fresh_method
@@ -453,6 +536,10 @@ def validate_safe_apply_plan_exhaustive(plan: dict[str, Any]) -> dict[str, Any]:
                     dataset_readbacks,
                     source=f"safe_apply.action[{index}]",
                     strict=True,
+                    enforce_role_types=bool(
+                        action_type == "create"
+                        or action.get("enforce_wizard_role_types")
+                    ),
                 )
                 for finding in wizard_readback["findings"]:
                     if finding["severity"] == "error":
@@ -460,6 +547,10 @@ def validate_safe_apply_plan_exhaustive(plan: dict[str, Any]) -> dict[str, Any]:
                             f"action {index} wizard live field binding {finding['rule']}: "
                             f"{finding['path']}: {finding['message']}"
                         )
+            elif action_type == "create":
+                action_issues.append(
+                    f"action {index} Wizard creation requires dataset_readbacks for field existence and role-type validation"
+                )
         if _is_table_chart_action(action, payload):
             from datalens_dev_mcp.pipeline.native_table_contract import validate_native_table_contract
 
@@ -594,14 +685,57 @@ def execute_safe_apply(
         readback_mode = normalize_readback_mode(action.get("readback_mode"))
         fresh_method = action.get("read_method") or action.get("fresh_read_method")
         fresh_payload = action.get("fresh_read_payload") or {}
+        action_type = _action_type(action, payload)
         try:
-            fresh = client.rpc(fresh_method, fresh_payload) if fresh_method else {}
-            dashboard_update = _is_dashboard_action(action) and _action_type(action, payload) != "create"
-            if dashboard_update and not fresh:
+            if action_type == "create" and fresh_method == "getWorkbookEntries":
+                paginated_fresh = _read_complete_workbook_entries_for_create(
+                    client=client,
+                    payload=fresh_payload,
+                    target_lock_hash=str(action.get("target_lock_hash") or ""),
+                )
+                fresh = paginated_fresh["value"]
+                action_result["fresh_read_pagination"] = paginated_fresh["evidence"]
+                if not paginated_fresh["ok"]:
+                    action_result["artifacts"]["pre_write"] = _write_safe_apply_envelope(
+                        root=root,
+                        run_id=run_id,
+                        index=index,
+                        label="pre_write",
+                        value=fresh,
+                    )
+                    action_result["summaries"]["pre_write"] = _safe_apply_envelope_summary(
+                        fresh,
+                        readback_mode,
+                    )
+                    action_result["status"] = "failed"
+                    action_result["error"] = paginated_fresh["error"]
+                    results.append(action_result)
+                    break
+            else:
+                fresh = client.rpc(fresh_method, fresh_payload) if fresh_method else {}
+            guarded_existing_write = action_type in {"update", "publish"}
+            dashboard_update = _is_dashboard_action(action) and guarded_existing_write
+            if action_type == "create" and fresh_method == "getWorkbookEntries" and not fresh:
                 action_result["status"] = "failed"
                 action_result["error"] = {
-                    "category": "dashboard_fresh_read_required",
-                    "message": "dashboard validation requires a non-empty fresh read immediately before write",
+                    "category": "fresh_create_reconciliation_incomplete",
+                    "message": (
+                        "create requires a non-empty getWorkbookEntries envelope with an explicit "
+                        "entries array before write"
+                    ),
+                    "write_outcome": "no_write",
+                    "retry_safe": True,
+                }
+                results.append(action_result)
+                break
+            if guarded_existing_write and not fresh:
+                action_result["status"] = "failed"
+                action_result["error"] = {
+                    "category": "fresh_read_required",
+                    "message": (
+                        "update/publish requires a non-empty authoritative fresh read immediately before write; "
+                        "only an explicit create action may use the creation-context exception"
+                    ),
                 }
                 results.append(action_result)
                 break
@@ -621,6 +755,17 @@ def execute_safe_apply(
                     action_result["error"] = guard_error
                     results.append(action_result)
                     break
+                if action_type == "create":
+                    reconciliation_error = _fresh_create_reconciliation_error(
+                        action=action,
+                        payload=payload,
+                        fresh=fresh,
+                    )
+                    if reconciliation_error:
+                        action_result["status"] = "failed"
+                        action_result["error"] = reconciliation_error
+                        results.append(action_result)
+                        break
                 overlay_result = apply_desired_overlay_to_fresh_readback(
                     action=action,
                     planned_payload=payload,
@@ -671,8 +816,40 @@ def execute_safe_apply(
             )
             action_result["summaries"]["write_result"] = _safe_apply_envelope_summary(write_result, readback_mode)
             action_result["revisions"]["write"] = _revision_id(write_result)
+            if action_type == "create":
+                created_identity = _object_identity(sanitize_response(write_result)).get("object_id", "")
+                action_result["created_object_identity"] = created_identity
+                if not created_identity:
+                    action_result["status"] = "failed"
+                    action_result["error"] = {
+                        "category": "missing_created_identity",
+                        "message": (
+                            "create response did not return an object identity; exact post-write readback "
+                            "cannot be addressed"
+                        ),
+                        "write_outcome": "unknown",
+                        "retry_safe": False,
+                    }
+                    results.append(action_result)
+                    break
             if readback_mode != "none" and fresh_method:
-                readback = client.rpc(action.get("readback_method") or fresh_method, action.get("readback_payload") or fresh_payload)
+                readback_method = str(action.get("readback_method") or fresh_method)
+                readback_payload = deepcopy(action.get("readback_payload") or fresh_payload)
+                if action_type == "create":
+                    readback_request = _created_object_readback_request(
+                        action=action,
+                        write_result=write_result,
+                        method=readback_method,
+                        payload=readback_payload,
+                    )
+                    if not readback_request["ok"]:
+                        action_result["status"] = "failed"
+                        action_result["error"] = readback_request["error"]
+                        results.append(action_result)
+                        break
+                    readback_method = str(readback_request["method"])
+                    readback_payload = dict(readback_request["payload"])
+                readback = client.rpc(readback_method, readback_payload)
                 action_result["artifacts"]["readback"] = _write_safe_apply_envelope(
                     root=root,
                     run_id=run_id,
@@ -682,7 +859,20 @@ def execute_safe_apply(
                 )
                 action_result["summaries"]["readback"] = _safe_apply_envelope_summary(readback, readback_mode)
                 action_result["revisions"]["readback"] = _revision_id(readback)
-                readback_error = _post_write_readback_error(action=action, payload=payload, readback=readback)
+                readback_verification = _post_write_readback_verification(
+                    action=action,
+                    payload=payload,
+                    fresh=fresh,
+                    write_payload=write_payload,
+                    write_result=write_result,
+                    readback=readback,
+                )
+                action_result["readback_verification"] = {
+                    key: value
+                    for key, value in readback_verification.items()
+                    if key != "error"
+                }
+                readback_error = readback_verification.get("error")
                 if readback_error:
                     action_result["status"] = "failed"
                     action_result["error"] = readback_error
@@ -992,15 +1182,31 @@ def _safe_apply_envelope_summary(value: dict[str, Any], readback_mode: str) -> d
 
 
 def _fresh_read_guard_error(action: dict[str, Any], payload: dict[str, Any], fresh: dict[str, Any]) -> dict[str, str] | None:
+    action_type = _action_type(action, payload)
     expected_object_id = _action_object_id(action, payload)
     actual_object_id = _object_identity(sanitize_response(fresh)).get("object_id", "")
-    if expected_object_id and actual_object_id and actual_object_id != expected_object_id:
+    if action_type in {"update", "publish"} and not expected_object_id:
+        return {
+            "category": "missing_target_identity",
+            "message": "update/publish requires a known target object_id before fresh read validation",
+        }
+    if expected_object_id and not actual_object_id:
+        return {
+            "category": "missing_fresh_identity",
+            "message": "fresh read did not return the target object identity",
+        }
+    if expected_object_id and actual_object_id != expected_object_id:
         return {
             "category": "object_id_mismatch",
             "message": f"fresh read object_id {actual_object_id} does not match planned object_id {expected_object_id}",
         }
     expected_revision = _expected_revision(action, payload)
     actual_revision = _revision_id(sanitize_response(fresh))
+    if action_type in {"update", "publish"} and not expected_revision:
+        return {
+            "category": "missing_expected_revision",
+            "message": "update/publish requires an expected revision bound to the safe-apply plan",
+        }
     if expected_revision and not actual_revision:
         return {
             "category": "missing_fresh_revision",
@@ -1010,6 +1216,295 @@ def _fresh_read_guard_error(action: dict[str, Any], payload: dict[str, Any], fre
         return {
             "category": "stale_revision",
             "message": "fresh read revision does not match planned revision",
+        }
+    return None
+
+
+def _read_complete_workbook_entries_for_create(
+    *,
+    client: Any,
+    payload: dict[str, Any],
+    target_lock_hash: str,
+) -> dict[str, Any]:
+    base_payload = deepcopy(payload)
+    initial_cursor = str(
+        base_payload.get("pageToken")
+        or base_payload.get("page_token")
+        or ""
+    ).strip()
+    initial_page = base_payload.get("page")
+    if initial_cursor or (
+        initial_page not in (None, "", 0, 1, 1.0)
+    ):
+        evidence = _create_inventory_pagination_evidence(
+            complete=False,
+            page_count=0,
+            entry_count=0,
+            duplicate_entry_count=0,
+            cursor_hashes=[],
+            target_lock_hash=target_lock_hash,
+            request_payload=base_payload,
+            error_category="fresh_create_pagination_requires_first_page",
+        )
+        return {
+            "ok": False,
+            "value": {"entries": [], "pagination": evidence},
+            "evidence": evidence,
+            "error": {
+                "category": "fresh_create_pagination_requires_first_page",
+                "message": "fresh create reconciliation must start from the first workbook entries page",
+                "write_outcome": "no_write",
+                "retry_safe": True,
+            },
+        }
+
+    request_payload = deepcopy(base_payload)
+    request_payload.pop("pageToken", None)
+    request_payload.pop("page_token", None)
+    entries_by_id: dict[str, tuple[str, dict[str, Any]]] = {}
+    seen_cursors: set[str] = set()
+    cursor_hashes: list[str] = []
+    duplicate_entry_count = 0
+    page_count = 0
+
+    def finish_error(category: str, message: str) -> dict[str, Any]:
+        evidence = _create_inventory_pagination_evidence(
+            complete=False,
+            page_count=page_count,
+            entry_count=len(entries_by_id),
+            duplicate_entry_count=duplicate_entry_count,
+            cursor_hashes=cursor_hashes,
+            target_lock_hash=target_lock_hash,
+            request_payload=base_payload,
+            error_category=category,
+        )
+        return {
+            "ok": False,
+            "value": {
+                "entries": [
+                    item
+                    for _entry_id, (_serialized, item) in sorted(entries_by_id.items())
+                ],
+                "pagination": evidence,
+            },
+            "evidence": evidence,
+            "error": {
+                "category": category,
+                "message": message,
+                "write_outcome": "no_write",
+                "retry_safe": True,
+            },
+        }
+
+    while True:
+        raw_page = client.rpc("getWorkbookEntries", request_payload)
+        page_count += 1
+        page = sanitize_response(raw_page)
+        while isinstance(page, dict) and isinstance(page.get("result"), dict):
+            page = page["result"]
+        if isinstance(page, dict) and isinstance(page.get("response"), dict):
+            page = page["response"]
+        raw_entries = page.get("entries") if isinstance(page, dict) else None
+        if not isinstance(raw_entries, list) or not all(
+            isinstance(entry, dict) for entry in raw_entries
+        ):
+            return finish_error(
+                "fresh_create_pagination_incomplete_page",
+                f"getWorkbookEntries page {page_count} did not return an entries array of objects",
+            )
+        for entry in raw_entries:
+            normalized_entry = json.loads(stable_json_text(sanitize_response(entry)))
+            entry_id = _candidate_object_id(normalized_entry)
+            if not entry_id:
+                return finish_error(
+                    "fresh_create_pagination_entry_identity_missing",
+                    f"getWorkbookEntries page {page_count} contains an entry without identity",
+                )
+            serialized_entry = stable_json_text(normalized_entry)
+            previous = entries_by_id.get(entry_id)
+            if previous is not None:
+                if previous[0] != serialized_entry:
+                    return finish_error(
+                        "fresh_create_pagination_duplicate_conflict",
+                        (
+                            f"workbook entry {entry_id} differs across pagination pages; "
+                            "the inventory is not a stable reconciliation source"
+                        ),
+                    )
+                duplicate_entry_count += 1
+                continue
+            entries_by_id[entry_id] = (serialized_entry, normalized_entry)
+            if len(entries_by_id) > SAFE_APPLY_CREATE_INVENTORY_MAX_ENTRIES:
+                return finish_error(
+                    "fresh_create_pagination_entry_cap_exceeded",
+                    (
+                        "workbook entries pagination exceeded the bounded entry cap "
+                        f"of {SAFE_APPLY_CREATE_INVENTORY_MAX_ENTRIES}"
+                    ),
+                )
+
+        next_cursor = str(page.get("nextPageToken") or "").strip()
+        if not next_cursor:
+            evidence = _create_inventory_pagination_evidence(
+                complete=True,
+                page_count=page_count,
+                entry_count=len(entries_by_id),
+                duplicate_entry_count=duplicate_entry_count,
+                cursor_hashes=cursor_hashes,
+                target_lock_hash=target_lock_hash,
+                request_payload=base_payload,
+                error_category="",
+            )
+            return {
+                "ok": True,
+                "value": {
+                    "entries": [
+                        item
+                        for _entry_id, (_serialized, item) in sorted(entries_by_id.items())
+                    ],
+                    "pagination": evidence,
+                },
+                "evidence": evidence,
+            }
+        if next_cursor in seen_cursors:
+            return finish_error(
+                "fresh_create_pagination_cursor_cycle",
+                "getWorkbookEntries pagination repeated a cursor before reaching a complete inventory",
+            )
+        seen_cursors.add(next_cursor)
+        cursor_hashes.append(hashlib.sha256(next_cursor.encode("utf-8")).hexdigest())
+        if page_count >= SAFE_APPLY_CREATE_INVENTORY_MAX_PAGES:
+            return finish_error(
+                "fresh_create_pagination_page_cap_exceeded",
+                (
+                    "workbook entries pagination exceeded the bounded page cap "
+                    f"of {SAFE_APPLY_CREATE_INVENTORY_MAX_PAGES}"
+                ),
+            )
+        request_payload = deepcopy(base_payload)
+        request_payload.pop("pageToken", None)
+        request_payload.pop("page_token", None)
+        first_page = int(base_payload.get("page") or 1)
+        request_payload["page"] = first_page + page_count
+
+
+def _create_inventory_pagination_evidence(
+    *,
+    complete: bool,
+    page_count: int,
+    entry_count: int,
+    duplicate_entry_count: int,
+    cursor_hashes: list[str],
+    target_lock_hash: str,
+    request_payload: dict[str, Any],
+    error_category: str,
+) -> dict[str, Any]:
+    return {
+        "schema_version": "datalens.safe_apply.create_inventory_pagination.v1",
+        "method": "getWorkbookEntries",
+        "complete": complete,
+        "page_count": page_count,
+        "entry_count": entry_count,
+        "duplicate_entry_count": duplicate_entry_count,
+        "cursor_count": len(cursor_hashes),
+        "cursor_chain_sha256": serialized_metadata(cursor_hashes)["sha256"],
+        "initial_request_sha256": serialized_metadata(request_payload)["sha256"],
+        "target_lock_hash": target_lock_hash,
+        "max_pages": SAFE_APPLY_CREATE_INVENTORY_MAX_PAGES,
+        "max_entries": SAFE_APPLY_CREATE_INVENTORY_MAX_ENTRIES,
+        "merge_order": "entry_id_ascending",
+        "error_category": error_category,
+    }
+
+
+def _fresh_create_reconciliation_error(
+    *,
+    action: dict[str, Any],
+    payload: dict[str, Any],
+    fresh: dict[str, Any],
+) -> dict[str, Any] | None:
+    fresh_method = str(action.get("read_method") or action.get("fresh_read_method") or "")
+    if fresh_method != "getWorkbookEntries":
+        return None
+    fresh_payload = (
+        action.get("fresh_read_payload")
+        if isinstance(action.get("fresh_read_payload"), dict)
+        else {}
+    )
+    workbook_id = str(
+        fresh_payload.get("workbookId")
+        or payload.get("workbookId")
+        or (
+            payload.get("entry", {}).get("workbookId")
+            if isinstance(payload.get("entry"), dict)
+            else ""
+        )
+        or ""
+    ).strip()
+    evidence_validation = validate_entries_reconciliation_evidence(
+        sanitize_response(fresh),
+        expected_workbook_id=workbook_id,
+    )
+    if not evidence_validation["ok"]:
+        return {
+            "category": "fresh_create_reconciliation_incomplete",
+            "message": "; ".join(evidence_validation["issues"]),
+            "write_outcome": "no_write",
+            "retry_safe": True,
+        }
+    entry = payload.get("entry") if isinstance(payload.get("entry"), dict) else {}
+    data = entry.get("data") if isinstance(entry.get("data"), dict) else {}
+    payload_data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+    internal_name = str(
+        entry.get("name")
+        or payload.get("name")
+        or data.get("name")
+        or payload_data.get("name")
+        or ""
+    ).strip()
+    display_title = str(
+        data.get("title")
+        or payload_data.get("title")
+        or payload.get("title")
+        or internal_name
+        or ""
+    ).strip()
+    if not internal_name and not display_title:
+        return {
+            "category": "fresh_create_reconciliation_target_missing",
+            "message": "create payload has no stable name or title for fresh object reuse reconciliation",
+            "write_outcome": "no_write",
+            "retry_safe": True,
+        }
+    reconciliation = reconcile_partial_creates(
+        workbook_id=workbook_id,
+        planned_objects=[
+            {
+                "display_title": display_title,
+                "internal_name": internal_name,
+                "object_type": str(action.get("object_type") or "unknown"),
+            }
+        ],
+        entries_payload=sanitize_response(fresh),
+    )
+    object_decision = reconciliation["objects"][0]
+    if object_decision["recommended_action"] == "reuse":
+        return {
+            "category": "create_target_now_exists",
+            "message": (
+                "fresh workbook entries now contain a compatible object; create is blocked "
+                "and the existing object must be reused"
+            ),
+            "existing_object_id": object_decision.get("existing_object_id") or "",
+            "write_outcome": "no_write",
+            "retry_safe": True,
+        }
+    if object_decision["recommended_action"] == "manual_review":
+        return {
+            "category": "fresh_create_reconciliation_ambiguous",
+            "message": "fresh workbook entries contain duplicate compatible create targets",
+            "write_outcome": "no_write",
+            "retry_safe": True,
         }
     return None
 
@@ -1280,26 +1775,355 @@ def _wizard_visualization_token(value: Any) -> str:
     return ""
 
 
-def _post_write_readback_error(action: dict[str, Any], payload: dict[str, Any], readback: dict[str, Any]) -> dict[str, str] | None:
-    expected_object_id = _action_object_id(action, payload)
-    sanitized = sanitize_response(readback)
-    actual_object_id = _object_identity(sanitized).get("object_id", "")
-    if expected_object_id and not actual_object_id:
+def _created_object_readback_request(
+    *,
+    action: dict[str, Any],
+    write_result: dict[str, Any],
+    method: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    created_object_id = _object_identity(sanitize_response(write_result)).get("object_id", "")
+    if not created_object_id:
         return {
+            "ok": False,
+            "error": {
+                "category": "missing_created_identity",
+                "message": "create response did not return an object identity",
+                "write_outcome": "unknown",
+                "retry_safe": False,
+            },
+        }
+    readback_payload = deepcopy(payload)
+    id_key = CREATE_READBACK_ID_KEYS.get(method)
+    if id_key:
+        readback_payload[id_key] = created_object_id
+    elif method == "getWorkbookEntries":
+        if not str(readback_payload.get("workbookId") or "").strip():
+            fresh_payload = (
+                action.get("fresh_read_payload")
+                if isinstance(action.get("fresh_read_payload"), dict)
+                else {}
+            )
+            workbook_id = str(fresh_payload.get("workbookId") or "").strip()
+            if workbook_id:
+                readback_payload["workbookId"] = workbook_id
+        if not str(readback_payload.get("workbookId") or "").strip():
+            return {
+                "ok": False,
+                "error": {
+                    "category": "created_readback_not_addressable",
+                    "message": "getWorkbookEntries create readback requires workbookId",
+                    "write_outcome": "written_unverified",
+                    "retry_safe": False,
+                },
+            }
+    else:
+        return {
+            "ok": False,
+            "error": {
+                "category": "created_readback_not_addressable",
+                "message": (
+                    f"readback method {method or '<missing>'} cannot address or enumerate the "
+                    "created object deterministically"
+                ),
+                "write_outcome": "written_unverified",
+                "retry_safe": False,
+            },
+        }
+    return {
+        "ok": True,
+        "method": method,
+        "payload": readback_payload,
+        "created_object_id": created_object_id,
+    }
+
+
+def _post_write_readback_verification(
+    *,
+    action: dict[str, Any],
+    payload: dict[str, Any],
+    fresh: dict[str, Any],
+    write_payload: dict[str, Any],
+    write_result: dict[str, Any],
+    readback: dict[str, Any],
+) -> dict[str, Any]:
+    action_type = _action_type(action, payload)
+    expected_object_id = _action_object_id(action, payload)
+    created_object_id = ""
+    created_readback_object: dict[str, Any] | None = None
+    sanitized = sanitize_response(readback)
+    if action_type == "create":
+        created_object_id = _object_identity(sanitize_response(write_result)).get("object_id", "")
+        if created_object_id:
+            created_readback_object = _find_readback_object_by_identity(
+                sanitized,
+                object_id=created_object_id,
+                identity_key=CREATE_READBACK_ID_KEYS.get(
+                    str(action.get("readback_method") or action.get("fresh_read_method") or "")
+                ),
+            )
+        if created_readback_object is not None:
+            sanitized = created_readback_object
+        expected_object_id = created_object_id
+    actual_object_id = _object_identity(sanitized).get("object_id", "")
+    fresh_revision = _revision_id(sanitize_response(fresh))
+    write_revision = _revision_id(sanitize_response(write_result))
+    readback_revision = _revision_id(sanitized)
+    content_equivalent = _write_payload_matches_readback(
+        method=str(action.get("method") or ""),
+        write_payload=write_payload,
+        readback=sanitized,
+    )
+    api_noop_proven = _api_noop_proven(
+        action_type=action_type,
+        method=str(action.get("method") or ""),
+        payload=payload,
+        fresh=fresh,
+        write_payload=write_payload,
+        write_result=write_result,
+        readback=readback,
+    )
+    verification: dict[str, Any] = {
+        "verified": False,
+        "content_equivalent": content_equivalent,
+        "revision_advanced": bool(
+            fresh_revision and readback_revision and fresh_revision != readback_revision
+        ),
+        "publish_source_revision_matched": bool(
+            action_type == "publish"
+            and fresh_revision
+            and readback_revision
+            and fresh_revision == readback_revision
+        ),
+        "api_noop_proven": api_noop_proven,
+        "fresh_revision": fresh_revision,
+        "write_revision": write_revision,
+        "readback_revision": readback_revision,
+        "expected_object_id": expected_object_id,
+        "actual_object_id": actual_object_id,
+    }
+    if action_type == "create" and not created_object_id:
+        verification["error"] = {
+            "category": "missing_created_identity",
+            "message": "create response did not return an object identity",
+        }
+        return verification
+    if action_type == "create" and created_readback_object is None:
+        verification["error"] = {
+            "category": "created_object_missing_from_readback",
+            "message": (
+                f"post-write readback did not contain the exact created object {created_object_id}"
+            ),
+        }
+        return verification
+    if expected_object_id and not actual_object_id:
+        verification["error"] = {
             "category": "missing_readback_identity",
             "message": "post-write readback did not return an object identity",
         }
+        return verification
     if expected_object_id and actual_object_id != expected_object_id:
-        return {
+        verification["error"] = {
             "category": "readback_object_id_mismatch",
             "message": f"post-write readback object_id {actual_object_id} does not match planned object_id {expected_object_id}",
         }
-    if _expected_revision(action, payload) and not _revision_id(sanitized):
-        return {
+        return verification
+    if action_type in {"update", "publish"} and not readback_revision:
+        verification["error"] = {
             "category": "missing_readback_revision",
             "message": "post-write readback did not return a revision required by the safe-apply plan",
         }
-    return None
+        return verification
+    if action_type in {"update", "publish"} and not content_equivalent:
+        verification["error"] = {
+            "category": "readback_content_mismatch",
+            "message": "post-write readback is not content-equivalent to the intended merged write payload",
+        }
+        return verification
+    if action_type == "create" and not content_equivalent:
+        verification["error"] = {
+            "category": "readback_content_mismatch",
+            "message": "created object readback is not content-equivalent to the create payload",
+        }
+        return verification
+    if action_type == "publish" and fresh_revision and readback_revision != fresh_revision:
+        verification["error"] = {
+            "category": "published_revision_source_mismatch",
+            "message": "published readback revision does not match the verified saved source revision",
+        }
+        return verification
+    if (
+        action_type == "update"
+        and fresh_revision
+        and readback_revision == fresh_revision
+        and not api_noop_proven
+    ):
+        verification["error"] = {
+            "category": "readback_revision_not_advanced",
+            "message": (
+                "post-write readback still exposes the pre-write revision and the execution did not prove "
+                "an API no-op"
+            ),
+        }
+        return verification
+    if (
+        action_type in {"create", "update", "publish"}
+        and write_revision
+        and readback_revision != write_revision
+        and (action_type == "create" or (fresh_revision and write_revision != fresh_revision))
+    ):
+        verification["error"] = {
+            "category": "readback_write_revision_mismatch",
+            "message": "post-write readback revision does not match the revision returned by the write",
+        }
+        return verification
+    if _expected_revision(action, payload) and not readback_revision:
+        verification["error"] = {
+            "category": "missing_readback_revision",
+            "message": "post-write readback did not return a revision required by the safe-apply plan",
+        }
+        return verification
+    verification["verified"] = True
+    return verification
+
+
+_SEMANTIC_CONTROL_KEYS = {
+    "branch",
+    "chartId",
+    "chart_id",
+    "connectionId",
+    "connection_id",
+    "dashboardId",
+    "dashboard_id",
+    "datasetId",
+    "dataset_id",
+    "entryId",
+    "entry_id",
+    "id",
+    "lockToken",
+    "mode",
+    "publishedId",
+    "published_id",
+    "revId",
+    "rev_id",
+    "revisionId",
+    "revision_id",
+    "savedId",
+    "saved_id",
+    "workbookId",
+    "workbook_id",
+}
+_SEMANTIC_VOLATILE_METADATA_KEYS = {
+    "createdAt",
+    "created_at",
+    "createdBy",
+    "created_by",
+    "revUpdatedAt",
+    "rev_updated_at",
+    "revUpdatedBy",
+    "rev_updated_by",
+    "updatedAt",
+    "updated_at",
+    "updatedBy",
+    "updated_by",
+}
+
+
+def _write_payload_matches_readback(
+    *,
+    method: str,
+    write_payload: dict[str, Any],
+    readback: dict[str, Any],
+) -> bool:
+    expected = _semantic_object_payload(write_payload, method=method)
+    actual = _semantic_object_payload(readback, method=method)
+    return _semantic_subset(actual=actual, expected=expected)
+
+
+def _semantic_object_payload(value: dict[str, Any], *, method: str) -> Any:
+    current = deepcopy(value)
+    while isinstance(current, dict) and isinstance(current.get("result"), dict):
+        current = current["result"]
+    if not isinstance(current, dict):
+        return current
+
+    if method == "updateDataset":
+        data = current.get("data")
+        if isinstance(data, dict) and isinstance(data.get("dataset"), dict):
+            current = data["dataset"]
+        elif isinstance(current.get("dataset"), dict):
+            current = current["dataset"]
+    elif method == "updateConnection":
+        data = current.get("data")
+        if isinstance(data, dict) and isinstance(data.get("connection"), dict):
+            current = data["connection"]
+        elif isinstance(current.get("connection"), dict):
+            current = current["connection"]
+    else:
+        for key in ("entry", "dashboard", "chart", "object"):
+            nested = current.get(key)
+            if not isinstance(nested, dict):
+                continue
+            current = nested.get("entry") if isinstance(nested.get("entry"), dict) else nested
+            break
+
+    if not isinstance(current, dict):
+        return current
+    return {
+        key: deepcopy(item)
+        for key, item in sorted(current.items())
+        if key not in _SEMANTIC_CONTROL_KEYS
+        and key not in _SEMANTIC_VOLATILE_METADATA_KEYS
+    }
+
+
+def _semantic_subset(*, actual: Any, expected: Any) -> bool:
+    if isinstance(expected, dict):
+        if not isinstance(actual, dict):
+            return False
+        return all(
+            key in actual and _semantic_subset(actual=actual[key], expected=value)
+            for key, value in expected.items()
+        )
+    if isinstance(expected, list):
+        return (
+            isinstance(actual, list)
+            and len(actual) == len(expected)
+            and all(
+                _semantic_subset(actual=actual_item, expected=expected_item)
+                for actual_item, expected_item in zip(actual, expected, strict=True)
+            )
+        )
+    return actual == expected
+
+
+def _api_noop_proven(
+    *,
+    action_type: str,
+    method: str,
+    payload: dict[str, Any],
+    fresh: dict[str, Any],
+    write_payload: dict[str, Any],
+    write_result: dict[str, Any],
+    readback: dict[str, Any],
+) -> bool:
+    sanitized_result = sanitize_response(write_result)
+    status = str(sanitized_result.get("status") or sanitized_result.get("state") or "").strip().lower()
+    explicit_noop = bool(
+        sanitized_result.get("noop") is True
+        or sanitized_result.get("noOp") is True
+        or sanitized_result.get("changed") is False
+        or status in {"noop", "no_op", "not_modified", "unchanged"}
+    )
+    if explicit_noop:
+        return True
+    payload_mode = str(payload.get("mode") or "").strip().lower()
+    if action_type != "update" or payload_mode == "publish":
+        return False
+    intended = _semantic_object_payload(write_payload, method=method)
+    before = _semantic_object_payload(fresh, method=method)
+    after = _semantic_object_payload(readback, method=method)
+    return intended == before == after
 
 
 def _expected_revision(action: dict[str, Any], payload: dict[str, Any]) -> str:
@@ -1586,6 +2410,7 @@ def _completed_saved_readback(*, action: dict[str, Any], result: dict[str, Any])
     return bool(
         result.get("executed")
         and (result.get("artifacts") or {}).get("readback")
+        and (result.get("readback_verification") or {}).get("verified")
         and str((action.get("readback_contract") or {}).get("branch") or "").strip().lower() == "saved"
     )
 
@@ -2022,6 +2847,66 @@ def _object_identity(value: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def _find_readback_object_by_identity(
+    value: Any,
+    *,
+    object_id: str,
+    identity_key: str | None = None,
+) -> dict[str, Any] | None:
+    if not object_id:
+        return None
+    if isinstance(value, dict):
+        current = value
+        while isinstance(current.get("result"), dict):
+            current = current["result"]
+        identity_keys = ["entryId", "entry_id", "id"]
+        if identity_key:
+            identity_keys.extend(
+                [identity_key, re.sub(r"(?<!^)(?=[A-Z])", "_", identity_key).lower()]
+            )
+        if any(
+            str(current.get(key) or "").strip() == object_id
+            for key in identity_keys
+        ):
+            return current
+        ordered_keys = (
+            "entry",
+            "dashboard",
+            "chart",
+            "dataset",
+            "connection",
+            "report",
+            "object",
+            "entries",
+            "charts",
+            "dashboards",
+            "datasets",
+            "connections",
+            "reports",
+        )
+        for key in ordered_keys:
+            if key not in current:
+                continue
+            found = _find_readback_object_by_identity(
+                current[key],
+                object_id=object_id,
+                identity_key=identity_key,
+            )
+            if found is not None:
+                return found
+        return None
+    if isinstance(value, list):
+        for item in value:
+            found = _find_readback_object_by_identity(
+                item,
+                object_id=object_id,
+                identity_key=identity_key,
+            )
+            if found is not None:
+                return found
+    return None
+
+
 def _revision_id(value: dict[str, Any]) -> str:
     candidate = _first_identity_candidate(value)
     return str(candidate.get("revId") or candidate.get("rev_id") or candidate.get("revisionId") or candidate.get("revision_id") or "")
@@ -2059,7 +2944,9 @@ def _status_value(value: dict[str, Any]) -> str:
 
 
 def _first_identity_candidate(value: dict[str, Any]) -> dict[str, Any]:
-    for key in ("entry", "dashboard", "chart", "dataset", "connection", "connector", "object"):
+    while isinstance(value.get("result"), dict):
+        value = value["result"]
+    for key in ("entry", "dashboard", "chart", "dataset", "connection", "connector", "report", "object"):
         candidate = value.get(key)
         if isinstance(candidate, dict):
             nested = candidate.get("entry")
@@ -2077,6 +2964,7 @@ def _candidate_object_id(candidate: dict[str, Any]) -> str:
         or candidate.get("chartId")
         or candidate.get("datasetId")
         or candidate.get("connectionId")
+        or candidate.get("reportId")
         or ""
     ).strip()
 

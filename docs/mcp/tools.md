@@ -10,7 +10,9 @@
 - Полные ответы API можно сохранить в project root и вернуть как компактную сводку с `artifact_path`.
 - Учётные данные загружаются из `DATALENS_ENV_FILE` и не принимаются как аргументы инструментов.
 - Формулировка задачи передаётся в `delivery_intent_text`, когда инструмент должен выбрать read-only, plan-only, save-only или save-and-publish.
-- Обычное save/publish не использует отдельные поля подтверждения. Для удаления целого объекта применяется `confirm_delete`.
+- Обычное save/publish не использует отдельные поля подтверждения. Только
+  manifest action `retire_legacy_objects` применяет `confirm_delete`;
+  произвольное удаление целого объекта недоступно.
 - Методы записи проверяют write/save/publish непосредственно перед запросом к DataLens.
 
 ## Состояние и доступ
@@ -56,7 +58,7 @@
 ### `dl_read_object`
 
 - Required: `object_type`, `object_id`
-- Optional: `branch`, `response_mode`, `inline_char_budget`, `project_root`, `run_id`, `workbook_id`
+- Optional: `branch`, `response_mode`, `inline_char_budget` (не менее 800), `project_root`, `run_id`, `workbook_id`
 - Выбирает официальный get-метод для dashboard, chart, dataset или connection и возвращает нормализованный результат.
 
 ### `dl_snapshot_dashboard`
@@ -64,6 +66,9 @@
 - Required: `dashboard_id`
 - Optional: `project_root`, `workbook_id`, `snapshot_branch`, `include_dormant_summary`, `artifact_retention`
 - Читает дашборд и связанные объекты, затем сохраняет manifest и файлы снимка.
+- Возвращает одинаковые блоки `completion`, `coverage` и `api_contract` в
+  manifest и inline-ответе. `completion.status` принимает `complete`, `partial`
+  или `unsafe`; область покрытия ограничена графом зависимостей дашборда.
 
 ## Справка и диагностика
 
@@ -92,6 +97,16 @@
 - Возвращает ограниченный набор справочных записей с исходными URL и рекомендацией следующего инструмента.
 
 ## Проверка и планирование
+
+### `dl_generate_editor_bundle`
+
+- Required: —
+- Optional: `project_root`, `widget_id`, `route`, `dataset_alias`, `columns`, `selector_contract`, `dataset_readbacks`, `context_ref`, `evidence_refs`
+- Компилирует Wizard plan или Editor tabs по выбранному маршруту. Для
+  `editor_js_control` production-вызов передаёт полный `selector_contract`;
+  неполный контракт блокируется без выдуманных параметров или значений.
+  `dataset_readbacks`, если они переданы, проверяют Wizard field GUID и роли;
+  отсутствие аргумента не подменяется пустым readback.
 
 ### `dl_validate_project`
 
@@ -146,12 +161,6 @@
 - Required: `workbook_id`, `planned_objects`
 - Optional: `entries_payload`
 - Сопоставляет план создания с текущими entries и предотвращает дубли после прерванной операции.
-
-### `dl_compile_guarded_rpc_request`
-
-- Required: `method`, `payload`
-- Optional: `object_type`, `operation`, `object_id`, `workbook_id`, `mode`, `base_revision`, `fresh_read_artifact_path`, `expected_readback_branch`, `publish_source_artifact`, `changed_sections`
-- Создаёт запрос с зафиксированной целью, base revision и ожидаемым branch контрольного чтения.
 
 ## Safe Apply
 
@@ -209,7 +218,8 @@
 
 - Required: `project_root`
 - Optional: `workflow_name`, `execute_now`, `publish`, `action`, `timeout_sec`, `delivery_intent_text`, `confirm_delete`
-- Запускает объявленное apply-действие. `confirm_delete` используется только для удаления целого объекта по совпадающему plan.
+- Запускает объявленное apply-действие. `confirm_delete` используется только
+  для `retire_legacy_objects` по совпадающему plan.
 
 ### `dl_read_project_live_summary`
 
@@ -222,7 +232,7 @@
 ### `dl_run_live_maintenance_update`
 
 - Required: цель и данные, необходимые выбранному режиму
-- Optional: project/target IDs, `intent`, `maintenance_mode`, `publish`, baseline, changed objects, source evidence, safe-apply results, saved/published readbacks, UI evidence и target URL
+- Optional: project/target IDs, `intent`, `maintenance_mode`, `publish`, типизированный пакет `maintenance_evidence` с baseline, changed objects, source evidence, safe-apply results, saved/published readbacks и UI evidence, а также target URL
 - Координирует точечное изменение и возвращает достигнутый этап. Фактические записи выполняются через Safe Apply.
 
 ### `dl_build_dashboard_source_availability_matrix`
@@ -249,7 +259,9 @@
 
 - Required: —
 - Optional: `include_guarded_writes`, `limit`
-- Возвращает каталог методов, статус поддержки и URL официальной документации.
+- Возвращает компактный каталог методов и статус поддержки. `source_trace`
+  содержит SHA-256 скомпилированного OpenAPI, требуемую версию заголовка и
+  счётчики операций/закрытых схем.
 
 ### `dl_get_api_method_schema`
 
@@ -261,4 +273,7 @@
 
 Обычная команда create/fix/update/enhance/redesign проходит `dl_create_safe_apply_plan` → `dl_execute_safe_apply` → saved `dl_readback_and_report` → `dl_create_publish_from_saved_plan` → `dl_execute_safe_apply` → published `dl_readback_and_report`.
 
-Plan-only не вызывает executor. Save-only останавливается после saved readback. Удаление целого объекта требует `confirm_delete=true` для неизменившегося plan с точными IDs.
+Plan-only не вызывает executor. Save-only останавливается после saved readback.
+Произвольное удаление целого объекта недоступно; manifest action
+`retire_legacy_objects` требует `confirm_delete=true` для неизменившегося plan
+с точными IDs.

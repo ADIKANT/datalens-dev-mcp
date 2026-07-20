@@ -19,6 +19,7 @@ from datalens_dev_mcp.knowledge.formulas import load_formula_registry, validate_
 from datalens_dev_mcp.mcp.object_registry import object_read_contract, object_type_registry
 from datalens_dev_mcp.mcp.response_projection import (
     DEFAULT_INLINE_CHAR_BUDGET,
+    normalize_response_mode,
     project_response,
     sanitize_response,
     serialized_metadata,
@@ -41,6 +42,12 @@ from datalens_dev_mcp.pipeline.route_registry import (
 
 
 SENSITIVE_KEYWORDS = ("token", "authorization", "password", "secret", "iam", "subjecttoken")
+MIN_READ_OBJECT_INLINE_CHAR_BUDGET = 800
+# The compact artifact-backed projection currently needs at least 550
+# characters with the bounded relative artifact pointer. Keep this below the
+# exact envelope remainder for every registered readable object at the public
+# 800-character minimum; project_response remains the authoritative fit check.
+_MIN_READ_OBJECT_PROJECTION_RESERVE = 550
 
 OBJECT_METHODS: dict[str, dict[str, str | None]] = {
     "dashboard": {"read": "getDashboard", "create": "createDashboard", "update": "updateDashboard"},
@@ -135,23 +142,34 @@ def dl_read_object(
     workbook_id: str = "",
     client: Any | None = None,
 ) -> dict[str, Any]:
+    if type(inline_char_budget) is not int or inline_char_budget < MIN_READ_OBJECT_INLINE_CHAR_BUDGET:
+        return _error(
+            "invalid_input",
+            f"inline_char_budget must be an integer of at least {MIN_READ_OBJECT_INLINE_CHAR_BUDGET} characters",
+        )
+    budget = inline_char_budget
     contract = object_read_contract(object_type)
     normalized = contract.object_type if contract else str(object_type or "").strip().lower()
     if not normalized:
-        return _error("missing_input", "object_type is required")
+        return _fit_read_object_result(_error("missing_input", "object_type is required"), budget=budget)
     if not object_id:
-        return _error("missing_input", "object_id is required")
+        return _fit_read_object_result(_error("missing_input", "object_id is required"), budget=budget)
     if not contract:
-        return {
-            **_error(
-                "unsupported_type",
-                f"Unsupported object_type `{object_type}`. Use one of {sorted(object_type_registry()['object_types'])}.",
-            ),
-            "object_type": normalized,
-            "object_id": object_id,
-            "attempted_method": "",
-            "remediation": "Resolve the workbook entry type through getWorkbookEntries or add an evidence-backed registry contract.",
-        }
+        return _fit_read_object_result(
+            {
+                **_error(
+                    "unsupported_type",
+                    f"Unsupported object_type `{object_type}`. Use one of {sorted(object_type_registry()['object_types'])}.",
+                ),
+                "object_type": normalized,
+                "object_id": object_id,
+                "attempted_method": "",
+                "remediation": (
+                    "Resolve the workbook entry type through getWorkbookEntries or add an evidence-backed registry contract."
+                ),
+            },
+            budget=budget,
+        )
     method = contract.read_method
     if not method:
         result = _unavailable(normalized, "read")
@@ -164,7 +182,7 @@ def dl_read_object(
                 or "Use the supported parent object read contract or workbook inventory.",
             }
         )
-        return result
+        return _fit_read_object_result(result, budget=budget)
     payload_key = contract.identity_field
     payload = {payload_key: object_id}
     if workbook_id and payload_key != "workbookId":
@@ -182,13 +200,14 @@ def dl_read_object(
             method=method,
             contract=contract.to_dict(),
             response_mode=response_mode,
-            inline_char_budget=inline_char_budget,
+            inline_char_budget=budget,
             project_root=project_root,
             run_id=run_id,
         )
         return projected
     except Exception as exc:  # noqa: BLE001
-        result = _error_result(exc)
+        fallback_category = "invalid_input" if isinstance(exc, (TypeError, ValueError)) else "unknown_runtime_error"
+        result = _error_result(exc, fallback_category=fallback_category)
         result.update(
             {
                 "object_type": normalized,
@@ -198,7 +217,7 @@ def dl_read_object(
                 "remediation": _bounded_remediation(result["error"]["category"], method, normalized),
             }
         )
-        return result
+        return _fit_read_object_result(result, budget=budget)
 
 
 def dl_validate_object_payload(
@@ -1407,25 +1426,178 @@ def _project_read_response(
     run_id: str,
 ) -> dict[str, Any]:
     summary = _read_object_summary(response, object_type=object_type, object_id=object_id, branch=branch)
-    projected = project_response(
-        kind=object_type,
-        response=response,
-        summary=summary,
-        response_mode=response_mode,
-        inline_char_budget=inline_char_budget,
-        project_root=project_root,
-        run_id=run_id or f"read_{object_type}_{object_id}",
-    )
-    projected.update(
-        {
+    mode = normalize_response_mode(response_mode)
+    envelope_base = {
+        "method": method,
+        "object_type": object_type,
+        "object_id": object_id,
+        "branch": branch if contract.get("branch_semantics") == "saved_or_published" else "",
+    }
+    effective_run_id = run_id or f"r_{stable_sha256([object_type, object_id, branch])[:12]}"
+    last_budget_error: ValueError | None = None
+    for contract_variant in _read_contract_variants(contract):
+        envelope = {
+            **envelope_base,
+            "contract": contract_variant,
+        }
+        # project_response already enforces its own serialized-size budget. Reserve
+        # the exact JSON-object merge overhead before projection so the lifecycle
+        # envelope is part of the same budget rather than appended afterwards.
+        projection_budget = inline_char_budget - (_serialized_read_chars(envelope) - 1)
+        # Avoid repeatedly writing the same artifact for contract variants that
+        # cannot carry the projection's compact pointer contract.
+        if projection_budget < _MIN_READ_OBJECT_PROJECTION_RESERVE:
+            continue
+        try:
+            projected = project_response(
+                kind=object_type,
+                response=response,
+                summary=summary,
+                response_mode=mode,
+                inline_char_budget=projection_budget,
+                project_root=project_root,
+                run_id=effective_run_id,
+            )
+        except ValueError as exc:
+            last_budget_error = exc
+            continue
+        composed = {
+            **projected,
             "method": method,
             "object_type": object_type,
             "object_id": object_id,
-            "branch": branch if contract.get("branch_semantics") == "saved_or_published" else "",
-            "contract": contract,
+            "branch": envelope["branch"],
+            "contract": contract_variant,
         }
+        if _serialized_read_chars(composed) <= inline_char_budget:
+            return composed
+    detail = f": {last_budget_error}" if last_budget_error else ""
+    raise ValueError(
+        f"inline_char_budget must be increased to fit the stable dl_read_object response contract{detail}"
     )
-    return projected
+
+
+def _read_contract_variants(contract: dict[str, Any]) -> list[dict[str, Any]]:
+    full = deepcopy(contract)
+    if not full:
+        return [{}]
+    contract_text = json.dumps(full, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    shared = {
+        "schema_version": str(full.get("schema_version") or ""),
+        "object_type": str(full.get("object_type") or ""),
+        "read_method": str(full.get("read_method") or ""),
+        "identity_field": str(full.get("identity_field") or ""),
+        "branch_semantics": str(full.get("branch_semantics") or ""),
+    }
+    medium = {
+        **shared,
+        "evidence_status": str(full.get("evidence_status") or ""),
+        "artifact_schema": str(full.get("artifact_schema") or ""),
+        "compact_summary_schema": str(full.get("compact_summary_schema") or ""),
+        "structure_schema": str(full.get("structure_schema") or ""),
+        "revision_fields": deepcopy(full.get("revision_fields") or []),
+        "truncated": True,
+        "serialized_chars": len(contract_text),
+        "sha256": stable_sha256(full),
+    }
+    small = {
+        **shared,
+        "truncated": True,
+    }
+    minimal = {
+        "schema_version": shared["schema_version"],
+        "truncated": True,
+    }
+    # Even the smallest projection must retain the registry schema identity.
+    # A bare ``{"truncated": true}`` contract is not actionable evidence and
+    # made the minimum-budget response depend on artifact-path length.
+    variants = [full, medium, small, minimal]
+    unique: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for variant in variants:
+        key = json.dumps(variant, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+        if key not in seen:
+            unique.append(variant)
+            seen.add(key)
+    return unique
+
+
+def _fit_read_object_result(result: dict[str, Any], *, budget: int) -> dict[str, Any]:
+    if _serialized_read_chars(result) <= budget:
+        return result
+
+    contract = result.get("contract")
+    contract_variants = _read_contract_variants(contract) if isinstance(contract, dict) else [None]
+    for contract_variant in contract_variants:
+        candidate = deepcopy(result)
+        if contract_variant is not None:
+            candidate["contract"] = contract_variant
+        if _serialized_read_chars(candidate) <= budget:
+            return candidate
+
+    compact = deepcopy(result)
+    if isinstance(contract, dict):
+        compact_variants = _read_contract_variants(contract)
+        compact["contract"] = compact_variants[-1]
+    for limit in (256, 128, 64, 32, 8):
+        candidate = _compact_read_result_text(compact, limit=limit)
+        if _serialized_read_chars(candidate) <= budget:
+            return candidate
+
+    original_error = result.get("error") if isinstance(result.get("error"), dict) else {}
+    fallback = {
+        "ok": False,
+        "error": {
+            "category": str(original_error.get("category") or "response_budget_exceeded"),
+            "message": "Read result was compacted to the supported inline response budget.",
+        },
+        "object_type": _bounded_read_text(result.get("object_type"), 32),
+        "object_id": _bounded_read_text(result.get("object_id"), 32),
+        "attempted_method": _bounded_read_text(result.get("attempted_method"), 32),
+        "contract": {
+            "schema_version": str(contract.get("schema_version") or "")
+            if isinstance(contract, dict)
+            else "",
+            "truncated": True,
+        },
+        "remediation": "Increase inline_char_budget for full error details.",
+    }
+    if _serialized_read_chars(fallback) > budget:
+        raise ValueError("inline_char_budget is too small for the minimal dl_read_object error contract")
+    return fallback
+
+
+def _compact_read_result_text(value: Any, *, limit: int, key: str = "") -> Any:
+    if isinstance(value, dict):
+        return {
+            str(child_key): _compact_read_result_text(child, limit=limit, key=str(child_key))
+            for child_key, child in value.items()
+        }
+    if isinstance(value, list):
+        return [_compact_read_result_text(child, limit=limit, key=key) for child in value]
+    if isinstance(value, str) and key in {
+        "message",
+        "remediation",
+        "object_type",
+        "object_id",
+        "attempted_method",
+        "operation",
+    }:
+        return _bounded_read_text(value, limit)
+    return value
+
+
+def _bounded_read_text(value: Any, limit: int) -> str:
+    text = str(value or "")
+    if len(text) <= limit:
+        return text
+    if limit <= 1:
+        return text[:1]
+    return text[: limit - 1] + "…"
+
+
+def _serialized_read_chars(value: Any) -> int:
+    return len(json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True))
 
 
 def _read_object_summary(response: dict[str, Any], *, object_type: str, object_id: str, branch: str) -> dict[str, Any]:

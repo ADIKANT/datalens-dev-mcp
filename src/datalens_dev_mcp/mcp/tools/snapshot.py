@@ -6,6 +6,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from datalens_dev_mcp.api.methods import openapi_lock_summary
 from datalens_dev_mcp.mcp.response_projection import sanitize_response, serialized_metadata, stable_json_text
 from datalens_dev_mcp.pipeline.artifacts import ensure_project_dirs, write_json
 
@@ -33,6 +34,9 @@ VOLATILE_KEYS = {
     "favorite",
 }
 EDITOR_NODE_TYPES = ("table_node", "control_node", "markdown_node", "d3_node")
+ACTIVE_GRAPH_EDGE_PREVIEW_LIMIT = 24
+DORMANT_ENTRY_PREVIEW_LIMIT = 12
+INLINE_FAILURE_PREVIEW_LIMIT = 8
 
 
 def dl_snapshot_dashboard(
@@ -77,6 +81,7 @@ def dl_snapshot_dashboard(
     dashboard_payloads: dict[str, dict[str, Any]] = {}
     branch_summaries: dict[str, dict[str, Any]] = {}
     active_candidates: set[str] = set()
+    active_candidates_by_branch: dict[str, set[str]] = {}
     tab_count = 0
     resolved_workbook_id = str(workbook_id or "").strip()
 
@@ -101,7 +106,9 @@ def dl_snapshot_dashboard(
             resolved_workbook_id = resolved_workbook_id or str(_first_value(entry, response, keys=("workbookId", "workbook_id")))
             tabs = _as_list(data.get("tabs"))
             tab_count = max(tab_count, len(tabs))
-            active_candidates.update(_dashboard_active_candidates(data, dashboard_id=dashboard_id))
+            branch_candidates = _dashboard_active_candidates(data, dashboard_id=dashboard_id)
+            active_candidates_by_branch[branch] = branch_candidates
+            active_candidates.update(branch_candidates)
             normalized_structure = _strip_volatile(data)
             branch_summaries[branch] = {
                 "rev_id": _first_value(entry, response, keys=("revId", "rev_id")),
@@ -143,6 +150,14 @@ def dl_snapshot_dashboard(
         for candidate in active_candidates
         if candidate != dashboard_id and _is_chart_type(inventory_types.get(candidate, "chart"))
     )
+    active_chart_ids_by_branch = {
+        branch: sorted(
+            candidate
+            for candidate in active_candidates_by_branch.get(branch, set())
+            if candidate != dashboard_id and _is_chart_type(inventory_types.get(candidate, "chart"))
+        )
+        for branch in branches
+    }
     relation_ids = [dashboard_id, *active_chart_ids]
     relations_response: dict[str, Any] = {}
     relation_edges: list[dict[str, Any]] = []
@@ -166,29 +181,54 @@ def dl_snapshot_dashboard(
 
     graph_edges = _dashboard_edges(dashboard_id, active_chart_ids, inventory_types) + relation_edges
 
-    hydrated_chart_types: Counter[str] = Counter()
-    for chart_id in active_chart_ids:
-        object_type = _normalize_chart_type(inventory_types.get(chart_id, "chart"))
-        method = _read_method_for_chart_type(object_type)
-        if not method:
-            omissions.append({"object_type": object_type, "object_id": chart_id, "reason": "no_curated_read_method"})
-            continue
-        response = _read_rpc(active_client, method, {"chartId": chart_id, "branch": branches[0]})
-        if response["ok"]:
-            hydrated_chart_types[object_type] += 1
-            _record_object(
-                object_refs=object_refs,
-                object_artifacts=object_artifacts,
-                object_dir=object_dir,
-                method=method,
-                object_type=object_type,
-                object_id=chart_id,
-                branch=branches[0],
-                response=response["response"],
-            )
-            graph_edges.extend(_chart_dependency_edges(chart_id, response["response"], inventory_types))
-        else:
-            errors.append({"method": method, "object_id": chart_id, "message": response["message"]})
+    required_object_branch_pairs: set[tuple[str, str, str]] = {
+        ("dashboard", dashboard_id, branch)
+        for branch in branches
+    }
+    captured_object_branch_pairs: set[tuple[str, str, str]] = {
+        ("dashboard", dashboard_id, branch)
+        for branch in branch_summaries
+    }
+    hydrated_chart_ids_by_type: dict[str, set[str]] = {}
+    for branch in branches:
+        for chart_id in active_chart_ids_by_branch.get(branch, []):
+            object_type = _normalize_chart_type(inventory_types.get(chart_id, "chart"))
+            required_object_branch_pairs.add((object_type, chart_id, branch))
+            method = _read_method_for_chart_type(object_type)
+            if not method:
+                omissions.append(
+                    {
+                        "object_type": object_type,
+                        "object_id": chart_id,
+                        "branch": branch,
+                        "reason": "no_curated_read_method",
+                    }
+                )
+                continue
+            response = _read_rpc(active_client, method, {"chartId": chart_id, "branch": branch})
+            if response["ok"]:
+                hydrated_chart_ids_by_type.setdefault(object_type, set()).add(chart_id)
+                captured_object_branch_pairs.add((object_type, chart_id, branch))
+                _record_object(
+                    object_refs=object_refs,
+                    object_artifacts=object_artifacts,
+                    object_dir=object_dir,
+                    method=method,
+                    object_type=object_type,
+                    object_id=chart_id,
+                    branch=branch,
+                    response=response["response"],
+                )
+                graph_edges.extend(_chart_dependency_edges(chart_id, response["response"], inventory_types))
+            else:
+                errors.append(
+                    {
+                        "method": method,
+                        "object_id": chart_id,
+                        "branch": branch,
+                        "message": response["message"],
+                    }
+                )
 
     dataset_ids = sorted(
         {
@@ -255,9 +295,41 @@ def dl_snapshot_dashboard(
         "dataset": len(dataset_ids),
         "connection": len(connection_ids),
     }
-    counts_by_object_type.update({key: int(value) for key, value in sorted(hydrated_chart_types.items())})
+    counts_by_object_type.update(
+        {
+            key: len(chart_ids)
+            for key, chart_ids in sorted(hydrated_chart_ids_by_type.items())
+        }
+    )
     if include_dormant_summary:
         counts_by_object_type["dormant"] = int(dormant.get("count", 0))
+
+    missing_object_branch_pairs = required_object_branch_pairs - captured_object_branch_pairs
+    object_branch_coverage = _object_branch_coverage(
+        requested_branches=branches,
+        required_pairs=required_object_branch_pairs,
+        captured_pairs=captured_object_branch_pairs,
+    )
+    coverage = {
+        "schema_version": "2026-07-19.dashboard_snapshot_coverage.v1",
+        "scope": "dashboard_dependency_graph",
+        "org_wide": False,
+        "requested_branches": branches,
+        "captured_branches": [branch for branch in branches if branch in branch_summaries],
+        "object_branch_coverage": object_branch_coverage,
+    }
+    completion = _snapshot_completion(
+        errors=errors,
+        omissions=omissions,
+        requested_branches=branches,
+        captured_branches=set(branch_summaries),
+        missing_dependency_pairs=missing_object_branch_pairs,
+    )
+    api_contract = {
+        "source": "compiled_openapi_lock",
+        "header_name": "x-dl-api-version",
+        **openapi_lock_summary(),
+    }
 
     compact_graph = {
         "schema_version": "2026-06-25.dashboard_object_graph.v1",
@@ -299,6 +371,9 @@ def dl_snapshot_dashboard(
         "object_artifacts": sorted(object_artifacts.values(), key=lambda item: item["sha256"]),
         "errors": errors,
         "omissions": omissions,
+        "completion": completion,
+        "coverage": coverage,
+        "api_contract": api_contract,
         "artifact_retention": retention,
     }
     manifest_path = run_dir / "manifest.json"
@@ -320,6 +395,16 @@ def dl_snapshot_dashboard(
         _write_stable_json(retained_manifest, manifest)
         retained_manifest_paths.append(str(retained_manifest))
 
+    active_graph_edge_preview = compact_graph["edges"][:ACTIVE_GRAPH_EDGE_PREVIEW_LIMIT]
+    inline_errors, inline_errors_metadata = _bounded_inline_preview(
+        errors,
+        limit=INLINE_FAILURE_PREVIEW_LIMIT,
+    )
+    inline_omissions, inline_omissions_metadata = _bounded_inline_preview(
+        omissions,
+        limit=INLINE_FAILURE_PREVIEW_LIMIT,
+    )
+    inline_coverage = _compact_inline_coverage(coverage)
     response = {
         "ok": not errors,
         "model_facing_tool_calls": 1,
@@ -328,15 +413,26 @@ def dl_snapshot_dashboard(
         "counts_by_object_type": counts_by_object_type,
         "tab_count": tab_count,
         "active_chart_count": len(active_chart_ids),
-        "active_graph_edges": compact_graph["edges"][:200],
+        "active_graph_edges": active_graph_edge_preview,
+        "active_graph_edge_preview": {
+            "total_count": len(compact_graph["edges"]),
+            "preview_count": len(active_graph_edge_preview),
+            "limit": ACTIVE_GRAPH_EDGE_PREVIEW_LIMIT,
+            "truncated": len(active_graph_edge_preview) < len(compact_graph["edges"]),
+        },
         "branch_summary": branch_summaries,
         "branch_comparison": manifest["branch_comparison"],
-        "errors": errors,
-        "omissions": omissions,
+        "errors": inline_errors,
+        "errors_preview": inline_errors_metadata,
+        "omissions": inline_omissions,
+        "omissions_preview": inline_omissions_metadata,
+        "completion": completion,
+        "coverage": inline_coverage,
+        "api_contract": api_contract,
         "manifest": manifest_metadata,
         "compact_graph": graph_metadata,
         "object_artifact_count": len(object_artifacts),
-        "dormant_summary": dormant,
+        "dormant_summary": _compact_dormant_preview(dormant),
         "retained_manifest_paths": retained_manifest_paths,
     }
     response_metadata = serialized_metadata(response)
@@ -350,6 +446,122 @@ def _default_client() -> Any:
     from datalens_dev_mcp.config import DataLensConfig
 
     return DataLensApiClient(DataLensConfig.from_env())
+
+
+def _snapshot_completion(
+    *,
+    errors: list[dict[str, str]],
+    omissions: list[dict[str, str]],
+    requested_branches: list[str],
+    captured_branches: set[str],
+    missing_dependency_pairs: set[tuple[str, str, str]],
+) -> dict[str, Any]:
+    missing_root_branches = [branch for branch in requested_branches if branch not in captured_branches]
+    unsafe_reasons = ["dashboard_root_not_captured"] if missing_root_branches else []
+    if unsafe_reasons:
+        status = "unsafe"
+    elif errors or omissions or missing_dependency_pairs:
+        status = "partial"
+    else:
+        status = "complete"
+    return {
+        "schema_version": "2026-07-19.dashboard_snapshot_completion.v1",
+        "status": status,
+        "complete": status == "complete",
+        "authoritative_backup_complete": status == "complete",
+        "error_count": len(errors),
+        "omission_count": len(omissions),
+        "missing_root_branches": missing_root_branches,
+        "missing_dependency_pair_count": len(missing_dependency_pairs),
+        "missing_dependency_pairs_sha256": serialized_metadata(
+            _object_branch_pair_items(missing_dependency_pairs)
+        )["sha256"],
+        "missing_dependency_pairs_ref": "coverage.object_branch_coverage.missing_pairs",
+        "unsafe_reasons": unsafe_reasons,
+    }
+
+
+def _object_branch_coverage(
+    *,
+    requested_branches: list[str],
+    required_pairs: set[tuple[str, str, str]],
+    captured_pairs: set[tuple[str, str, str]],
+) -> dict[str, Any]:
+    missing_pairs = required_pairs - captured_pairs
+    captured_required_pairs = required_pairs & captured_pairs
+    required_rows = [list(item) for item in sorted(required_pairs)]
+    captured_rows = [list(item) for item in sorted(captured_required_pairs)]
+    missing_pair_items = _object_branch_pair_items(missing_pairs)
+    _missing_preview, missing_pairs_metadata = _bounded_inline_preview(
+        missing_pair_items,
+        limit=INLINE_FAILURE_PREVIEW_LIMIT,
+    )
+    return {
+        "required_pair_count": len(required_pairs),
+        "captured_pair_count": len(captured_required_pairs),
+        "missing_pair_count": len(missing_pairs),
+        "required_pairs_sha256": hashlib.sha256(stable_json_text(required_rows).encode("utf-8")).hexdigest(),
+        "captured_pairs_sha256": hashlib.sha256(stable_json_text(captured_rows).encode("utf-8")).hexdigest(),
+        "missing_pairs_preview": missing_pairs_metadata,
+        "by_branch": {
+            branch: {
+                "required_pair_count": sum(
+                    1 for _object_type, _object_id, pair_branch in required_pairs if pair_branch == branch
+                ),
+                "captured_pair_count": sum(
+                    1
+                    for _object_type, _object_id, pair_branch in captured_required_pairs
+                    if pair_branch == branch
+                ),
+                "missing_pair_count": sum(
+                    1 for _object_type, _object_id, pair_branch in missing_pairs if pair_branch == branch
+                ),
+            }
+            for branch in requested_branches
+        },
+        "missing_pairs": missing_pair_items,
+    }
+
+
+def _object_branch_pair_items(pairs: set[tuple[str, str, str]]) -> list[dict[str, str]]:
+    return [
+        {"object_type": object_type, "object_id": object_id, "branch": branch}
+        for object_type, object_id, branch in sorted(pairs)
+    ]
+
+
+def _bounded_inline_preview(
+    items: list[dict[str, Any]],
+    *,
+    limit: int,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    preview = items[:limit]
+    return preview, {
+        "total_count": len(items),
+        "preview_count": len(preview),
+        "limit": limit,
+        "truncated": len(preview) < len(items),
+        "sha256": serialized_metadata(items)["sha256"],
+    }
+
+
+def _compact_inline_coverage(coverage: dict[str, Any]) -> dict[str, Any]:
+    inline = dict(coverage)
+    full_object_branch = coverage.get("object_branch_coverage")
+    if not isinstance(full_object_branch, dict):
+        return inline
+    object_branch = dict(full_object_branch)
+    missing_pairs = full_object_branch.get("missing_pairs")
+    if not isinstance(missing_pairs, list):
+        missing_pairs = []
+    preview, metadata = _bounded_inline_preview(
+        [item for item in missing_pairs if isinstance(item, dict)],
+        limit=INLINE_FAILURE_PREVIEW_LIMIT,
+    )
+    object_branch["missing_pairs"] = preview
+    object_branch["missing_pairs_preview"] = metadata
+    inline["object_branch_coverage"] = object_branch
+    return inline
 
 
 def _read_rpc(client: Any, method: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -554,10 +766,26 @@ def _dormant_summary(entries: list[dict[str, Any]], active_ids: set[str]) -> dic
     return {
         "included": True,
         "count": len(dormant_entries),
+        "total_count": len(dormant_entries),
         "counts_by_object_type": dict(sorted(counts.items())),
-        "entries": dormant_entries[:100],
+        "entries": dormant_entries,
+        "preview_count": len(dormant_entries),
+        "truncated": False,
         "hydrated": False,
     }
+
+
+def _compact_dormant_preview(dormant: dict[str, Any]) -> dict[str, Any]:
+    compact = dict(dormant)
+    entries = dormant.get("entries") if isinstance(dormant.get("entries"), list) else []
+    preview = entries[:DORMANT_ENTRY_PREVIEW_LIMIT]
+    total_count = int(dormant.get("total_count") or dormant.get("count") or len(entries))
+    compact["entries"] = preview
+    compact["total_count"] = total_count
+    compact["preview_count"] = len(preview)
+    compact["preview_limit"] = DORMANT_ENTRY_PREVIEW_LIMIT
+    compact["truncated"] = len(preview) < total_count
+    return compact
 
 
 def _classify_entry_type(entry: dict[str, Any]) -> str:

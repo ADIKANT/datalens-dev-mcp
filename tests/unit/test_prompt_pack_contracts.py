@@ -221,14 +221,26 @@ class PromptPackPlanningContractsTests(unittest.TestCase):
             (root / ".datalens-mcp.json").write_text(json.dumps(manifest), encoding="utf-8")
             (root / "scripts" / "apply.py").write_text(
                 "import json\nfrom pathlib import Path\nPath('reports').mkdir(exist_ok=True)\n"
-                "json.dump({'dashboard_id':'dashboard_live','saved':True,"
-                "'saved_readback_path':'artifacts/readback/dashboard.saved.latest.json'}, open('reports/apply.json','w'))\n",
+                "Path('artifacts/readback').mkdir(parents=True, exist_ok=True)\n"
+                "Path('artifacts/readback/dashboard.saved.latest.json').write_text('{}')\n"
+                "json.dump({'workbook_id':'workbook_live','dashboard_ids':['dashboard_live'],"
+                "'target_ids':{'dashboard_ids':['dashboard_live']},'branch_status':'saved','saved':True,"
+                "'changed_object_counts':{'dashboards':1},"
+                "'evidence_paths':['artifacts/readback/dashboard.saved.latest.json'],"
+                "'saved_readback_path':'artifacts/readback/dashboard.saved.latest.json'},"
+                "open('reports/apply.json','w'))\n",
                 encoding="utf-8",
             )
             (root / "scripts" / "publish.py").write_text(
                 "import json\nfrom pathlib import Path\nPath('reports').mkdir(exist_ok=True)\n"
-                "json.dump({'dashboard_id':'dashboard_live','published':True,"
-                "'published_readback_path':'artifacts/readback/dashboard.published.latest.json'}, open('reports/publish.json','w'))\n",
+                "Path('artifacts/readback').mkdir(parents=True, exist_ok=True)\n"
+                "Path('artifacts/readback/dashboard.published.latest.json').write_text('{}')\n"
+                "json.dump({'workbook_id':'workbook_live','dashboard_ids':['dashboard_live'],"
+                "'target_ids':{'dashboard_ids':['dashboard_live']},'branch_status':'published','published':True,"
+                "'changed_object_counts':{'dashboards':1},"
+                "'evidence_paths':['artifacts/readback/dashboard.published.latest.json'],"
+                "'published_readback_path':'artifacts/readback/dashboard.published.latest.json'},"
+                "open('reports/publish.json','w'))\n",
                 encoding="utf-8",
             )
             with patch.dict(

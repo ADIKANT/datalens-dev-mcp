@@ -62,6 +62,48 @@
     "managed_object": "deliberate_long_scroll_or_consistent_tabs_allowed",
     "height": "route_content_profile_plus_browser_geometry_and_preserve_existing_on_untouched_items"
   },
+  "responsive_rules": {
+    "renderer_sizing": "derive_from_options_width_and_height_without_a_fixed_desktop_minimum",
+    "widget_width_probes_px": [236, 360, 530, 560, 700, 900],
+    "dashboard_profiles": {
+      "compact_desktop": {"max_width_px": 1280},
+      "wide_desktop": {"min_width_px": 1366}
+    },
+    "must_verify": [
+      "no_horizontal_overflow",
+      "no_clipped_content_or_axes",
+      "changed_objects_visible",
+      "equal_kpi_heights_within_each_row",
+      "top_middle_bottom_of_each_changed_tab",
+      "internal_table_scroll_when_present"
+    ]
+  },
+  "value_semantics_rules": {
+    "missing_label": "N/A",
+    "zero": "observed_zero_is_not_missing",
+    "future_periods": "exclude_without_observed_rows",
+    "time_series_nulls": "preserve_gaps",
+    "source_states": ["ABSENT", "PRESENT_EMPTY", "PRESENT_WITH_DATA"]
+  },
+  "formatting_rules": {
+    "daily_date": "DD.MM.YY",
+    "monthly_date": "MM.YY",
+    "axis_ticks": "nice_1_2_2_5_5_10",
+    "axis_integer_ticks": "unique",
+    "long_axis_labels": "thin_by_viewport"
+  },
+  "comparison_rules": {
+    "period_and_comparison": "separate_controls_with_one_shared_context_summary",
+    "options": "contextual_to_selected_period",
+    "invalid_option": "nearest_valid_fallback",
+    "tooltip": "selected_interval_value_vs_comparison_interval_value"
+  },
+  "hint_rules": {
+    "include": ["business_meaning", "calculation", "limitations"],
+    "exclude": ["rendering_mechanics", "hover_instructions", "line_style_instructions"],
+    "section_headers": "no_hint",
+    "table_columns": "description_plus_enabled_hintSettings"
+  },
   "interaction_rules": {
     "click_filter": "visible_state_relevant_targets_and_reset_required",
     "hover": "highlight_only_not_hidden_filtering",

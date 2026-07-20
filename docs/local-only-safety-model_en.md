@@ -38,7 +38,11 @@ A revision conflict, object lock, uniqueness conflict, or unknown write outcome 
 
 ## Deletion
 
-Deleting a complete object requires a separate confirmation. The first call returns the type, exact ID, relations, and plan hash. The second call must pass `confirm_delete=true` for that same plan. A changed plan must be confirmed again.
+Arbitrary whole-object deletion is unsupported. Only a project-manifest
+`retire_legacy_objects` action uses separate confirmation: the first call
+returns exact IDs, relations, and the plan hash, and the second passes
+`confirm_delete=true` for that same plan. A changed plan must be confirmed
+again. Whole-object QL deletion is unsupported.
 
 Removing an element inside an object, such as a legend, filter, column, tab, or widget, is an update. Object moves, permission changes, and credential mutations are unsupported.
 

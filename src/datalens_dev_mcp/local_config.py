@@ -8,7 +8,7 @@ from typing import Any
 
 
 DEFAULT_LOCAL_CONFIG: dict[str, Any] = {
-    "schema_version": "2026-07-15.datalens_mcp_local_config.v2",
+    "schema_version": "2026-07-19.datalens_mcp_local_config.v3",
     "defaults": {
         "workbook_id": "<WORKBOOK_ID>",
         "project_id": "<PROJECT_ID>",
@@ -95,7 +95,7 @@ DEFAULT_LOCAL_CONFIG: dict[str, Any] = {
     "selectors": {
         "label_placement": "left",
         "width_mode": "percentage",
-        "row_width_percent": 96,
+        "row_width_percent": 94,
         "default_selector_width_percent": 24,
         "min_selector_width_percent": 16,
         "max_selector_width_percent": 48,
@@ -103,7 +103,7 @@ DEFAULT_LOCAL_CONFIG: dict[str, Any] = {
     },
 }
 
-LOCAL_CONFIG_SCHEMA_VERSION = "2026-07-15.datalens_mcp_local_config.v2"
+LOCAL_CONFIG_SCHEMA_VERSION = "2026-07-19.datalens_mcp_local_config.v3"
 ALLOWED_EXECUTION_MODES = {"follow_user_request"}
 ALLOWED_READBACK_MODES = {"none", "minimal", "full", "debug"}
 ALLOWED_VALIDATION_STRICTNESS = {"permissive", "normal", "strict"}
@@ -194,13 +194,13 @@ def validate_local_config(config: dict[str, Any]) -> None:
         raise ValueError("selectors.label_placement must be left")
     if selectors.get("width_mode") != "percentage":
         raise ValueError("selectors.width_mode must be percentage")
-    if int(selectors.get("row_width_percent", 0)) != 96:
-        raise ValueError("selectors.row_width_percent must be 96")
+    if int(selectors.get("row_width_percent", 0)) != 94:
+        raise ValueError("selectors.row_width_percent must be 94")
     default_width = int(selectors.get("default_selector_width_percent", 0))
     min_width = int(selectors.get("min_selector_width_percent", 0))
     max_width = int(selectors.get("max_selector_width_percent", 0))
-    if not 1 <= min_width <= default_width <= max_width <= 96:
-        raise ValueError("selector width defaults must satisfy 1 <= min <= default <= max <= 96")
+    if not 1 <= min_width <= default_width <= max_width <= 94:
+        raise ValueError("selector width defaults must satisfy 1 <= min <= default <= max <= 94")
 
 
 def apply_tool_defaults(
@@ -296,11 +296,13 @@ def _migrate_legacy_routing_config(data: dict[str, Any]) -> tuple[dict[str, Any]
 
 
 def _migrate_local_config_v2(data: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
-    """Normalize v1 execution and approval sections into the v2 runtime contract."""
+    """Normalize older execution, approval, and selector defaults into the current contract."""
 
     migrated = copy.deepcopy(data)
     changes: list[str] = []
-    legacy_version = str(migrated.get("schema_version") or "").endswith("datalens_mcp_local_config.v1")
+    supplied_version = str(migrated.get("schema_version") or "")
+    legacy_version = supplied_version.endswith("datalens_mcp_local_config.v1")
+    legacy_v2 = supplied_version.endswith("datalens_mcp_local_config.v2")
     legacy_safe_mode = migrated.pop("safe_mode", None)
     legacy_approval = migrated.pop("approval_gates", None)
     supplied_safe_apply = migrated.get("safe_apply")
@@ -313,7 +315,7 @@ def _migrate_local_config_v2(data: dict[str, Any]) -> tuple[dict[str, Any], list
         }
         & set(supplied_safe_apply)
     )
-    if legacy_version or isinstance(legacy_safe_mode, dict) or isinstance(legacy_approval, dict) or legacy_safe_apply:
+    if legacy_version or legacy_v2 or isinstance(legacy_safe_mode, dict) or isinstance(legacy_approval, dict) or legacy_safe_apply:
         migrated["schema_version"] = LOCAL_CONFIG_SCHEMA_VERSION
         execution = migrated.setdefault("execution", {})
         if isinstance(execution, dict):
@@ -339,7 +341,16 @@ def _migrate_local_config_v2(data: dict[str, Any]) -> tuple[dict[str, Any], list
                 for key in ("require_safe_apply_plan", "require_fresh_read", "preserve_revision"):
                     if key in legacy_safe_mode:
                         safe_apply[key] = legacy_safe_mode[key]
-        changes.append("local_config:v1->v2_follow_user_request")
+        if legacy_version or isinstance(legacy_safe_mode, dict) or isinstance(legacy_approval, dict) or legacy_safe_apply:
+            changes.append("local_config:v1->v3_follow_user_request")
+        if legacy_version or legacy_v2:
+            selectors = migrated.setdefault("selectors", {})
+            if isinstance(selectors, dict) and int(selectors.get("row_width_percent") or 96) == 96:
+                selectors["row_width_percent"] = 94
+                if int(selectors.get("max_selector_width_percent") or 0) > 94:
+                    selectors["max_selector_width_percent"] = 94
+        if legacy_v2:
+            changes.append("local_config:v2->v3_responsive_selector_budget")
     return migrated, changes
 
 
