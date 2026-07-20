@@ -28,7 +28,7 @@ An explicit create, fix, update, enhance, or redesign request for a known object
 | plan-only, dry-run | Plan without writing |
 | save-only, no-publish, draft | Save and saved readback |
 | create, fix, update, enhance, redesign | Save, saved readback, publish-from-saved, published readback |
-| delete a complete object | Deletion plan and separate confirmation |
+| manifest action `retire_legacy_objects` | Deletion plan and separate confirmation |
 
 The mode is stored in the plan and inherited by publish-from-saved. Publishing does not run when the original request was `save-only` or `no-publish`.
 
@@ -86,6 +86,11 @@ A related action group is fully saved and verified first. Publishing begins only
 
 ## Delete a complete object
 
-The first deletion request returns `delete_confirmation_required`, object type and ID, relations, and the plan hash. Execution requires another call with `confirm_delete=true` for that same plan. Any target or plan change invalidates the confirmation.
+Arbitrary whole-object deletion is not part of the standard lifecycle surface.
+The only supported path is a project-manifest `retire_legacy_objects` action.
+The first call returns `delete_confirmation_required`, exact IDs, relations,
+and the plan hash. Execution requires another call with `confirm_delete=true`
+for that same plan. Any target or plan change invalidates the confirmation.
+Whole-object QL deletion is unsupported.
 
 Removing a legend, filter, column, tab, or widget inside an object is an update and follows the normal write safeguards.

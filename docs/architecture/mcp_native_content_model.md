@@ -18,7 +18,11 @@ This repository is the active DataLens development surface. Runtime behavior mus
 - Raw copied materials are not the normal documentation shape.
 - If a rule affects runtime behavior, encode it in code, config, schemas, templates, or tests.
 - User-facing docs should describe current local MCP workflows, not historical conversion or cache procedures.
-- Release-style profile splits are out of scope; this repo exposes one standard local Codex MCP tool surface.
+- Release-style profile splits are out of scope; this repo exposes one standard
+  local MCP tool surface for Codex, Claude, and other MCP clients.
+- Common governed workflows stay discoverable as semantic tools. The broader
+  public API uses lazy method discovery and schema lookup, while raw mutation
+  remains behind the guarded planning and safe-apply layer.
 
 ## Promotion Path
 

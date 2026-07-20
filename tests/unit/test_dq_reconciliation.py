@@ -181,7 +181,13 @@ class DqReconciliationTests(unittest.TestCase):
         )
 
         json.dumps(result, ensure_ascii=False)
-        self.assertEqual(result["objects"][0]["matches"][0]["internal_names"], ["sales_chart"])
+        # Reconciliation preserves every deterministic alias observed in the
+        # workbook entry. This lets later retries match either the internal
+        # name or the display-key-derived alias without inventing an ID.
+        self.assertEqual(
+            result["objects"][0]["matches"][0]["internal_names"],
+            ["sales", "sales_chart"],
+        )
 
 
 if __name__ == "__main__":

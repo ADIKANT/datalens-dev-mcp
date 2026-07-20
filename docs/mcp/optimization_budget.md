@@ -10,7 +10,7 @@ artifact metadata instead of full hydrated payloads.
 
 Budget rules:
 
-- `tools/list` standard surface: exactly 38 tools and at most 28,000 UTF-8 JSON
+- `tools/list` standard surface: exactly 38 tools and at most 25,000 UTF-8 JSON
   bytes.
 - Project context is supplied as `project_context_ref.v1` by Project Memory
   Bank; DataLens does not duplicate startup-file reads in its responses.

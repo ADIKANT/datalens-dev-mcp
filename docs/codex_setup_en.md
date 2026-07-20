@@ -47,7 +47,7 @@ startup_timeout_sec = 20
 tool_timeout_sec = 120
 ```
 
-Use absolute paths. `default_tools_approval_mode = "approve"` allows normal calls to this server without a separate Codex prompt before save or publish. The server still requires confirmation to delete a complete DataLens object.
+Use absolute paths. `default_tools_approval_mode = "approve"` allows normal calls to this server without a separate Codex prompt before save or publish. Separate confirmation applies only to a manifest `retire_legacy_objects` action.
 
 Copyable file: [`examples/clients/codex.toml`](../examples/clients/codex.toml).
 

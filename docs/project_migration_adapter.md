@@ -22,6 +22,8 @@
 }
 ```
 
-После проверки укажите разрешённые действия явно. Удаление целого объекта использует отдельный action и `confirm_delete`; перемещение и permission changes не добавляются.
+После проверки укажите разрешённые действия явно. Только manifest action
+`retire_legacy_objects` может удалять целые объекты и использует
+`confirm_delete`; перемещение и permission changes не добавляются.
 
 Шаблоны находятся в `templates/project_live_workflows/`.

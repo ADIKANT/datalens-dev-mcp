@@ -38,13 +38,14 @@ The server is a client-independent MCP interface for DataLens dashboard developm
 - Describe generic capabilities, contracts, and synthetic test evidence only.
 - Do not name private dashboards, workbooks, customers, internal projects, source logs, local absolute paths, or live object IDs.
 - State the product change directly. Do not narrate private-source handling, sanitization work, or removed internal material.
+- Use a public-safe author identity for commits and verify commit and pull-request metadata before publishing; do not expose an employer or private email address.
 - Run the public-release, sensitive-artifact, and repository-size gates before publishing.
 
 ## Route And Write Safety
 
 - The standard runtime follows the user request. Audit, review, diagnose, and plan-only requests do not write. Save-only and no-publish stop after saved readback. Create, fix, update, enhance, and redesign requests for known targets continue through save, saved readback, publish from saved state, and published readback.
 - Write, save, and publish capabilities are enabled by default. An explicit environment value of `0` is a hard-off switch for the corresponding capability.
-- Do not ask for another confirmation before ordinary save or publish after the user has requested the change. Deleting a complete DataLens object is the only operation that requires a separate confirmation with exact IDs and an unchanged plan.
+- Do not ask for another confirmation before ordinary save or publish after the user has requested the change. Arbitrary whole-object deletion is unsupported; only a project-manifest `retire_legacy_objects` action requires separate confirmation with exact IDs and an unchanged plan.
 - Every write requires a known target, fresh saved readback, target and revision checks, payload validation, unknown-field preservation, save-first behavior, and readback. Publish is built only from verified saved state.
 - Removing a legend, filter, column, tab, or widget inside an object is an update. Object moves, permission changes, and credential mutations are unsupported.
 - Canonical chart creation routes are `wizard_native`, `editor_advanced`, `editor_table`, `editor_markdown`, `editor_js_control`, and direct-request-only `ql_explicit`. `wizard_map_native` is normalized to `wizard_native` with `visualization_id=geolayer`.

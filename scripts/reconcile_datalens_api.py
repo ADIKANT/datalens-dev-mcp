@@ -583,7 +583,8 @@ def build_docs() -> dict[Path, str]:
 сопровождается published readback.
 
 Команда пользователя на create/fix/update/enhance/redesign запускает этот цикл
-без отдельного подтверждения save/publish. Удаление целого объекта использует
+без отдельного подтверждения save/publish. Произвольное удаление целого
+объекта недоступно; manifest action `retire_legacy_objects` использует
 отдельный `confirm_delete` flow. Перемещение, изменение прав и credential
 mutations не поддерживаются.
 
@@ -616,9 +617,9 @@ mutations не поддерживаются.
 - `reference_only` — контракт доступен для справки;
 - `unsupported` — операция не входит в публичный workflow сервера.
 
-Удаление целого объекта, когда оно поддержано выбранным project workflow,
-требует отдельного `confirm_delete`. Перемещение и изменение permissions не
-поддерживаются.
+Только объявленное в project manifest действие `retire_legacy_objects` может
+удалять целые объекты и требует отдельного `confirm_delete`. Произвольное
+whole-object deletion, перемещение и изменение permissions не поддерживаются.
 
 Официальные схемы и описания: [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/).
 """

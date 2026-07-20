@@ -28,7 +28,9 @@ Write, save, and publish capabilities are available in the standard configuratio
 - “plan” and `plan-only` stop after planning;
 - “save without publishing”, `save-only`, and `no-publish` stop after saved readback;
 - “create”, “fix”, “update”, “enhance”, and “redesign” continue through save, saved readback, publish from saved state, and final verification;
-- deleting a complete DataLens object requires a separate confirmation that includes the exact object ID.
+- arbitrary whole-object deletion is unavailable; a project-manifest
+  `retire_legacy_objects` action requires separate confirmation of the
+  unchanged plan and exact IDs.
 
 The [guide to all 38 tools](docs/tools_en.md) describes the purpose, inputs, result, and operation class of every call.
 
@@ -87,7 +89,7 @@ startup_timeout_sec = 20
 tool_timeout_sec = 120
 ```
 
-`default_tools_approval_mode = "approve"` lets Codex run normal calls to this MCP server without a separate client prompt before save or publish. The server itself requires confirmation for whole-object deletion.
+`default_tools_approval_mode = "approve"` lets Codex run normal calls to this MCP server without a separate client prompt before save or publish. Separate confirmation applies only to a project-manifest `retire_legacy_objects` action.
 
 You can register the same server from the CLI:
 
@@ -150,7 +152,11 @@ Before writing, the server checks the exact target, current revision, request sc
 
 Set `DATALENS_MCP_ENABLE_WRITES`, `DATALENS_MCP_LIVE_ALLOW_SAVE`, or `DATALENS_MCP_LIVE_ALLOW_PUBLISH` to `0` to disable that capability. A hard-off value takes precedence over the request.
 
-Removing a legend, filter, column, tab, or widget inside an object is an update. Deleting an entire dashboard, chart, dataset, connection, or another complete object requires a separate confirmation with the exact object ID.
+Removing a legend, filter, column, tab, or widget inside an object is an update.
+The standard lifecycle tools do not delete complete objects; only a
+project-manifest `retire_legacy_objects` action is supported, with two-step
+confirmation of exact IDs and the unchanged plan. Whole-object QL deletion is
+unsupported.
 
 See the [safety model](docs/local-only-safety-model_en.md), [safe apply](docs/safe-apply_en.md), and [chart route policy](docs/route-policy_en.md).
 

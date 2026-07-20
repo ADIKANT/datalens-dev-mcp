@@ -41,7 +41,9 @@ Local config v2 includes:
 - `plan-only` creates a plan;
 - `save-only` and `no-publish` save without publishing;
 - create, fix, update, enhance, and redesign continue through save and publish;
-- deleting a complete object requires `confirm_delete=true` for the unchanged plan.
+- a project-manifest `retire_legacy_objects` action requires
+  `confirm_delete=true` for the unchanged plan; arbitrary whole-object
+  deletion is unavailable.
 
 Older local configuration is migrated to v2 when loaded. Use `dl_get_local_config` to inspect the effective settings.
 

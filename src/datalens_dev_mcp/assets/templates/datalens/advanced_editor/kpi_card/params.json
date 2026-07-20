@@ -1,5 +1,3 @@
 {
-  "card_variant": "kpi_value_sparkline",
-  "theme": "light",
-  "comparison_mode": "week_over_week"
+  "theme": ["light"]
 }

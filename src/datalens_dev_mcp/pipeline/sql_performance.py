@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from datalens_dev_mcp.mcp.response_projection import sanitize_response, serialized_metadata, stable_json_text
+from datalens_dev_mcp.serialization import sanitize_response, serialized_metadata, stable_json_text
 from datalens_dev_mcp.validators.editor_sql_lint import lint_editor_sql_text
 
 

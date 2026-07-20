@@ -27,7 +27,8 @@
 сопровождается published readback.
 
 Команда пользователя на create/fix/update/enhance/redesign запускает этот цикл
-без отдельного подтверждения save/publish. Удаление целого объекта использует
+без отдельного подтверждения save/publish. Произвольное удаление целого
+объекта недоступно; manifest action `retire_legacy_objects` использует
 отдельный `confirm_delete` flow. Перемещение, изменение прав и credential
 mutations не поддерживаются.
 

@@ -11,14 +11,23 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Versioned responsive browser evidence for compact and wide dashboard layouts.
 - Deterministic visual, value-semantics, hint, and layout-ownership contracts.
 - Explicit complete, partial, and unsafe classifications for dashboard snapshots.
+- Typed selector contracts with validated parameter bindings and dashboard
+  relation checks.
+- Dataset-backed Wizard role validation and create/readback evidence.
 
 ### Changed
 
 - Reduced the standard tool-schema payload while preserving safety-critical
   parameter guidance.
+- Exposed validated Wizard/Editor bundle generation on the standard surface
+  while keeping low-level request compilation internal.
+- Enforced hard inline response budgets with deterministic compaction.
 - Reconciled the compiled API contract with the current public OpenAPI snapshot.
-- Improved responsive Advanced Editor templates for time series, KPI, and
-  category-comparison charts.
+- Expanded responsive and signed-value Advanced Editor coverage across every
+  implemented chart family.
+- Strengthened create, update, publish, snapshot, and portable-wheel verification.
+- Aligned whole-object deletion with the manifest-only
+  `retire_legacy_objects` contract.
 
 ## [0.3.0] - 2026-07-15
 

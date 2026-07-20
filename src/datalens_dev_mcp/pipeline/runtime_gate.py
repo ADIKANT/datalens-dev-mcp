@@ -20,6 +20,7 @@ MAX_CAPTURE_IMAGE_DIMENSION = 65_535
 MAX_CAPTURE_IMAGE_PIXELS = 50_000_000
 MAX_CAPTURE_DECODED_BYTES = 256 * 1024 * 1024
 SCROLL_BOTTOM_TOLERANCE_PX = 2.0
+SCREENSHOT_DIMENSION_TOLERANCE_PX = 2.0
 
 SELECTOR_NOT_APPLICABLE_CODES = {
     "no_selectors_in_scope",
@@ -707,11 +708,38 @@ def validate_browser_capture_artifact(
                 viewport_validations.append(validation)
                 issues.extend(validation["issues"])
                 if validation.get("image_details"):
+                    dimension_issues = _viewport_screenshot_dimension_issues(
+                        check if isinstance(check, dict) else {},
+                        validation["image_details"],
+                        viewport_index=index,
+                        path=sidecar_path,
+                    )
+                    issues.extend(dimension_issues)
+                    viewport_width = check.get("width") if isinstance(check, dict) else None
+                    viewport_height = check.get("height") if isinstance(check, dict) else None
+                    device_pixel_ratio = check.get("device_pixel_ratio") if isinstance(check, dict) else None
                     viewport_image_details.append(
                         {
                             "viewport_index": index,
-                            "width": check.get("width") if isinstance(check, dict) else None,
-                            "height": check.get("height") if isinstance(check, dict) else None,
+                            "viewport_width": viewport_width,
+                            "viewport_height": viewport_height,
+                            "device_pixel_ratio": device_pixel_ratio,
+                            "expected_image_width": (
+                                viewport_width * device_pixel_ratio
+                                if isinstance(viewport_width, (int, float))
+                                and not isinstance(viewport_width, bool)
+                                and isinstance(device_pixel_ratio, (int, float))
+                                and not isinstance(device_pixel_ratio, bool)
+                                else None
+                            ),
+                            "expected_image_height": (
+                                viewport_height * device_pixel_ratio
+                                if isinstance(viewport_height, (int, float))
+                                and not isinstance(viewport_height, bool)
+                                and isinstance(device_pixel_ratio, (int, float))
+                                and not isinstance(device_pixel_ratio, bool)
+                                else None
+                            ),
                             **dict(validation["image_details"]),
                         }
                     )
@@ -746,7 +774,15 @@ def validate_browser_capture_artifact(
         image_details = {
             key: value
             for key, value in viewport_image_details[0].items()
-            if key not in {"viewport_index", "width", "height"}
+            if key
+            not in {
+                "viewport_index",
+                "viewport_width",
+                "viewport_height",
+                "device_pixel_ratio",
+                "expected_image_width",
+                "expected_image_height",
+            }
         }
     return {
         "ok": not issues and bool(document) and bool(image_artifacts),
@@ -1029,6 +1065,7 @@ def _responsive_viewport_issues(
             continue
         width = _finite_json_number(item.get("width"))
         height = _finite_json_number(item.get("height"))
+        device_pixel_ratio = _finite_json_number(item.get("device_pixel_ratio"))
         document_width = _finite_json_number(item.get("document_width"))
         overflow = _finite_json_number(item.get("horizontal_overflow_px"))
         if width is None or width <= 0 or height is None or height <= 0 or document_width is None or document_width <= 0:
@@ -1049,6 +1086,14 @@ def _responsive_viewport_issues(
                         f"{label}.document_width exceeds viewport width by more than 2 px",
                     )
                 )
+        if device_pixel_ratio is None or device_pixel_ratio <= 0:
+            issues.append(
+                _capture_issue(
+                    "browser_capture_device_pixel_ratio",
+                    path,
+                    f"{label}.device_pixel_ratio must be a positive finite number",
+                )
+            )
         if overflow is None or overflow < 0 or overflow > SCROLL_BOTTOM_TOLERANCE_PX:
             issues.append(
                 _capture_issue(
@@ -1156,6 +1201,49 @@ def _responsive_viewport_issues(
                 )
             )
     return issues
+
+
+def _viewport_screenshot_dimension_issues(
+    viewport: dict[str, Any],
+    image_details: dict[str, Any],
+    *,
+    viewport_index: int,
+    path: Path,
+) -> list[dict[str, str]]:
+    width = _finite_json_number(viewport.get("width"))
+    height = _finite_json_number(viewport.get("height"))
+    device_pixel_ratio = _finite_json_number(viewport.get("device_pixel_ratio"))
+    image_width = _finite_json_number(image_details.get("width"))
+    image_height = _finite_json_number(image_details.get("height"))
+    if (
+        width is None
+        or width <= 0
+        or height is None
+        or height <= 0
+        or device_pixel_ratio is None
+        or device_pixel_ratio <= 0
+        or image_width is None
+        or image_height is None
+    ):
+        return []
+    expected_width = width * device_pixel_ratio
+    expected_height = height * device_pixel_ratio
+    if (
+        abs(image_width - expected_width) <= SCREENSHOT_DIMENSION_TOLERANCE_PX
+        and abs(image_height - expected_height) <= SCREENSHOT_DIMENSION_TOLERANCE_PX
+    ):
+        return []
+    return [
+        _capture_issue(
+            "browser_capture_viewport_screenshot_dimensions",
+            path,
+            (
+                f"viewport_checks[{viewport_index}] screenshot is {image_width:g}x{image_height:g}px; "
+                f"expected approximately {expected_width:g}x{expected_height:g}px "
+                f"for {width:g}x{height:g} CSS px at device_pixel_ratio={device_pixel_ratio:g}"
+            ),
+        )
+    ]
 
 
 def _selector_interaction_issues(

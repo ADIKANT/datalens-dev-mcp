@@ -1,15 +1,14 @@
 {
-  "chart_variant": "resource_schedule_exception",
-  "explicit_request": true,
-  "theme": "light",
-  "timezone": "Etc/UTC",
-  "as_of": "2026-07-13T00:00:00Z",
+  "explicit_request": ["true"],
+  "theme": ["light"],
+  "timezone": ["Etc/UTC"],
+  "as_of": ["2026-07-13T00:00:00Z"],
   "ignored_conflict_statuses": ["cancelled", "canceled"],
   "done_statuses": ["done", "completed", "closed"],
-  "allow_http_links": false,
-  "max_rows": 1000,
-  "max_resources": 50,
-  "max_lanes_per_resource": 8,
-  "max_span_days": 90,
-  "max_model_bytes": 120000
+  "allow_http_links": ["false"],
+  "max_rows": ["1000"],
+  "max_resources": ["50"],
+  "max_lanes_per_resource": ["8"],
+  "max_span_days": ["90"],
+  "max_model_bytes": ["120000"]
 }

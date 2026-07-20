@@ -154,6 +154,18 @@ class MissingDashboardRootSnapshotClient(EventSnapshotClient):
         return super().rpc(method, payload)
 
 
+class MissingPublishedChartBranchSnapshotClient(EventSnapshotClient):
+    def rpc(self, method, payload):
+        if (
+            method in {"getEditorChart", "getWizardChart"}
+            and payload.get("chartId") == CHART_IDS[0]
+            and payload.get("branch") == "published"
+        ):
+            self.calls.append((method, payload))
+            raise RuntimeError("published chart branch unavailable")
+        return super().rpc(method, payload)
+
+
 class MetadataFetchSnapshotClient(EventSnapshotClient):
     def rpc_readonly(self, method, payload):
         return {"result": super().rpc(method, payload)}
@@ -226,6 +238,64 @@ class MixedEditorNodeSnapshotClient:
         raise AssertionError(method)
 
 
+class LargeSnapshotClient:
+    CHART_IDS = [f"chart_large_{index:03d}" for index in range(123)]
+    DORMANT_IDS = [f"dormant_large_{index:03d}" for index in range(40)]
+
+    def __init__(self):
+        self.calls = []
+
+    def rpc(self, method, payload):
+        self.calls.append((method, payload))
+        if method == "getDashboard":
+            branch = payload.get("branch", "saved")
+            return {
+                "entry": {
+                    "entryId": "dashboard_large",
+                    "workbookId": "workbook_large",
+                    "revId": f"rev_{branch}",
+                    "data": {
+                        "tabs": [
+                            {
+                                "id": "overview",
+                                "items": [
+                                    {"id": f"item_{chart_id}", "type": "chart", "chartId": chart_id}
+                                    for chart_id in self.CHART_IDS
+                                ],
+                            }
+                        ]
+                    },
+                }
+            }
+        if method == "getWorkbookEntries":
+            return {
+                "entries": [
+                    {"entryId": "dashboard_large", "scope": "dashboard"},
+                    *[{"entryId": chart_id, "scope": "editor_chart"} for chart_id in self.CHART_IDS],
+                    *[{"entryId": entry_id, "scope": "editor_chart"} for entry_id in self.DORMANT_IDS],
+                ]
+            }
+        if method == "getEntriesRelations":
+            return {"relations": []}
+        if method == "getEditorChart":
+            return {
+                "entry": {
+                    "entryId": payload["chartId"],
+                    "revId": f"{payload.get('branch', 'saved')}_{payload['chartId']}",
+                    "data": {"title": payload["chartId"]},
+                }
+            }
+        raise AssertionError(method)
+
+
+class LargePublishedFailureSnapshotClient(LargeSnapshotClient):
+    def rpc(self, method, payload):
+        if method == "getEditorChart" and payload.get("branch") == "published":
+            self.calls.append((method, payload))
+            raise RuntimeError(f"published chart unavailable: {payload['chartId']}")
+        return super().rpc(method, payload)
+
+
 class AuthoritativeSnapshotTests(unittest.TestCase):
     def test_event_dashboard_snapshot_is_compact_deduped_and_stable(self):
         client = EventSnapshotClient()
@@ -271,6 +341,17 @@ class AuthoritativeSnapshotTests(unittest.TestCase):
         self.assertEqual(first["coverage"]["scope"], "dashboard_dependency_graph")
         self.assertFalse(first["coverage"]["org_wide"])
         self.assertEqual(first["coverage"]["captured_branches"], ["saved", "published"])
+        object_branch_coverage = first["coverage"]["object_branch_coverage"]
+        self.assertEqual(object_branch_coverage["required_pair_count"], 38)
+        self.assertEqual(object_branch_coverage["captured_pair_count"], 38)
+        self.assertEqual(object_branch_coverage["missing_pair_count"], 0)
+        chart_calls = [
+            payload
+            for method, payload in client.calls
+            if method in {"getEditorChart", "getWizardChart"}
+        ]
+        self.assertEqual(len(chart_calls), len(CHART_IDS) * 2 * 2)
+        self.assertEqual({payload["branch"] for payload in chart_calls}, {"saved", "published"})
         self.assertEqual(first["api_contract"]["header_name"], "x-dl-api-version")
         self.assertEqual(first["api_contract"]["required_api_header_version"], "2")
         self.assertEqual(manifest["completion"], first["completion"])
@@ -475,6 +556,105 @@ class AuthoritativeSnapshotTests(unittest.TestCase):
         self.assertEqual(result["completion"]["missing_root_branches"], ["saved", "published"])
         self.assertEqual(result["completion"]["unsafe_reasons"], ["dashboard_root_not_captured"])
         self.assertEqual(result["coverage"]["captured_branches"], [])
+
+    def test_missing_chart_branch_withholds_authoritative_completion(self):
+        client = MissingPublishedChartBranchSnapshotClient()
+        with tempfile.TemporaryDirectory() as tmp:
+            result = dl_snapshot_dashboard(
+                project_root=tmp,
+                dashboard_id="dashboard_events",
+                workbook_id="workbook_events",
+                snapshot_branch="both",
+                include_dormant_summary=True,
+                artifact_retention="latest_only",
+                client=client,
+            )
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["completion"]["status"], "partial")
+        self.assertFalse(result["completion"]["authoritative_backup_complete"])
+        self.assertEqual(result["completion"]["missing_dependency_pair_count"], 1)
+        self.assertEqual(
+            result["coverage"]["object_branch_coverage"]["missing_pairs"],
+            [
+                {
+                    "object_type": "editor_chart",
+                    "object_id": CHART_IDS[0],
+                    "branch": "published",
+                }
+            ],
+        )
+        coverage = result["coverage"]["object_branch_coverage"]
+        self.assertEqual(coverage["required_pair_count"], 38)
+        self.assertEqual(coverage["captured_pair_count"], 37)
+        self.assertEqual(coverage["missing_pair_count"], 1)
+
+    def test_large_snapshot_keeps_inline_preview_bounded_and_artifacts_complete(self):
+        client = LargeSnapshotClient()
+        with tempfile.TemporaryDirectory() as tmp:
+            result = dl_snapshot_dashboard(
+                project_root=tmp,
+                dashboard_id="dashboard_large",
+                workbook_id="workbook_large",
+                snapshot_branch="both",
+                include_dormant_summary=True,
+                artifact_retention="latest_only",
+                client=client,
+            )
+            manifest = json.loads(Path(result["manifest"]["path"]).read_text(encoding="utf-8"))
+            compact_graph = json.loads(Path(result["compact_graph"]["path"]).read_text(encoding="utf-8"))
+
+        self.assertTrue(result["ok"], result["errors"])
+        self.assertEqual(result["active_chart_count"], 123)
+        self.assertLessEqual(len(json.dumps(result, ensure_ascii=False)), 12_000)
+        self.assertEqual(len(result["active_graph_edges"]), 24)
+        self.assertEqual(result["active_graph_edge_preview"]["total_count"], 123)
+        self.assertTrue(result["active_graph_edge_preview"]["truncated"])
+        self.assertEqual(len(compact_graph["edges"]), 123)
+        self.assertEqual(len(manifest["graph"]["edges"]), 123)
+        self.assertEqual(result["dormant_summary"]["total_count"], 40)
+        self.assertEqual(len(result["dormant_summary"]["entries"]), 12)
+        self.assertTrue(result["dormant_summary"]["truncated"])
+        self.assertEqual(len(manifest["dormant"]["entries"]), 40)
+        self.assertFalse(manifest["dormant"]["truncated"])
+        coverage = result["coverage"]["object_branch_coverage"]
+        self.assertEqual(coverage["required_pair_count"], 248)
+        self.assertEqual(coverage["captured_pair_count"], 248)
+        self.assertEqual(coverage["missing_pair_count"], 0)
+
+    def test_large_partial_snapshot_bounds_all_inline_failure_lists(self):
+        client = LargePublishedFailureSnapshotClient()
+        with tempfile.TemporaryDirectory() as tmp:
+            result = dl_snapshot_dashboard(
+                project_root=tmp,
+                dashboard_id="dashboard_large",
+                workbook_id="workbook_large",
+                snapshot_branch="both",
+                include_dormant_summary=True,
+                artifact_retention="latest_only",
+                client=client,
+            )
+            manifest = json.loads(Path(result["manifest"]["path"]).read_text(encoding="utf-8"))
+
+        inline_coverage = result["coverage"]["object_branch_coverage"]
+        manifest_coverage = manifest["coverage"]["object_branch_coverage"]
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["completion"]["status"], "partial")
+        self.assertEqual(result["completion"]["missing_dependency_pair_count"], 123)
+        self.assertNotIn("missing_dependency_pairs", result["completion"])
+        self.assertLessEqual(len(json.dumps(result, ensure_ascii=False)), 12_000)
+        self.assertEqual(len(result["errors"]), 8)
+        self.assertEqual(result["errors_preview"]["total_count"], 123)
+        self.assertTrue(result["errors_preview"]["truncated"])
+        self.assertEqual(len(inline_coverage["missing_pairs"]), 8)
+        self.assertEqual(inline_coverage["missing_pairs_preview"]["total_count"], 123)
+        self.assertTrue(inline_coverage["missing_pairs_preview"]["truncated"])
+        self.assertEqual(len(manifest["errors"]), 123)
+        self.assertEqual(len(manifest_coverage["missing_pairs"]), 123)
+        self.assertEqual(
+            result["completion"]["missing_dependency_pairs_sha256"],
+            inline_coverage["missing_pairs_preview"]["sha256"],
+        )
 
 
 if __name__ == "__main__":

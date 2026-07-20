@@ -19,7 +19,8 @@ class ToolSurfaceBudgetTests(unittest.TestCase):
         self.assertEqual(names, STANDARD_TOOL_NAMES)
         self.assertEqual(len(names), 38)
         self.assertLessEqual(len(names), 40)
-        self.assertLessEqual(payload_bytes, 28_000)
+        self.assertLessEqual(payload_bytes, 25_000)
+        self.assertGreaterEqual(25_000 - payload_bytes, 500)
         self.assertLessEqual(all_payload_bytes, 65_000)
         self.assertIn("dl_reference", names)
         self.assertNotIn("dl_rpc_expert", names)
@@ -53,7 +54,7 @@ class ToolSurfaceBudgetTests(unittest.TestCase):
         self.assertIn("Proposed dataset payload", description("dl_plan_guarded_dataset_update", "proposed_dataset"))
         self.assertIn("Execute", description("dl_run_project_live_apply", "execute_now"))
         self.assertIn("publish", description("dl_run_project_live_apply", "publish"))
-        self.assertIn("whole-object IDs", description("dl_run_project_live_apply", "confirm_delete"))
+        self.assertIn("retire_legacy_objects IDs", description("dl_run_project_live_apply", "confirm_delete"))
 
 
 if __name__ == "__main__":

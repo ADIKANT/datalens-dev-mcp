@@ -1,4 +1,3 @@
 {
-  "chart_variant": "grouped_sticky_table_exception",
-  "theme": "light"
+  "theme": ["light"]
 }

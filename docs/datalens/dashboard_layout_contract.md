@@ -59,6 +59,36 @@ The MCP helper `datalens_dev_mcp.pipeline.layout_contract` provides:
 Selector templates and examples must include `labelPlacement: 'left'` and
 percentage `width` values. Fallback generated single selectors use `width: '94%'`.
 
+## Native Grid And Height Rule
+
+- Native dashboard tabs use a 36-column grid and require a one-to-one mapping
+  between item IDs and layout IDs.
+- Peer overlap, out-of-bounds geometry, broken parents, and parent cycles are
+  blockers.
+- A newly generated layout also blocks non-boolean `autoHeight` and mixed
+  `autoHeight=true/false` inside one mounted widget.
+- Existing saved layouts keep those two auto-height conditions as warnings so
+  an unrelated update can preserve legacy geometry; changed geometry still
+  requires runtime viewport evidence.
+- Conventional title, control, KPI, and table heights remain guidance rather
+  than universal constants because real content and mounted width determine
+  the final slot.
+
+## Browser Viewport Evidence
+
+- Layout and dashboard changes require browser checks at two or more distinct
+  widths, including a compact desktop viewport at or below 1280 CSS pixels and
+  a wide desktop viewport at or above 1366 CSS pixels.
+- Every viewport check records positive CSS `width` and `height`,
+  `device_pixel_ratio`, document width, overflow, scoped object IDs, and a
+  hash-bound screenshot.
+- Screenshot pixel dimensions must match
+  `CSS viewport × device_pixel_ratio` within a two-pixel tolerance. A valid
+  image header or hash alone does not prove that the requested viewport was
+  captured.
+- Horizontal overflow above two pixels, clipped or missing scoped objects, or
+  a screenshot/viewport mismatch blocks browser-rendered evidence.
+
 ## Object Relation Link
 
 Layout is not enough to define behavior. Dashboard assembly must also write

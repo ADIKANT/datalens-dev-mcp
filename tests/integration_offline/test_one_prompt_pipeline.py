@@ -29,6 +29,16 @@ class OnePromptPipelineTests(unittest.TestCase):
                 widget_id="widget_001",
                 dataset_alias="synthetic_ops_dataset",
                 columns=["bucket", "metric", "value"],
+                dataset_readbacks=[
+                    {
+                        "datasetId": "synthetic_ops_dataset",
+                        "result_schema": [
+                            {"guid": "bucket", "type": "string"},
+                            {"guid": "metric", "type": "string"},
+                            {"guid": "value", "type": "float"},
+                        ],
+                    }
+                ],
             )
             payload_plan = dl_build_payload_plan(str(root), workbook_id="workbook_local_001")
             (root / "datasets").mkdir()
@@ -49,6 +59,8 @@ class OnePromptPipelineTests(unittest.TestCase):
             self.assertEqual(validation["status"], "pass")
             self.assertEqual(payload_plan["payloads"][0]["method"], "createWizardChart")
             self.assertEqual(safe_apply["delivery_intent_decision"]["state"], "plan_only")
+            self.assertFalse(safe_apply["ok"])
+            self.assertEqual(safe_apply["status"], "safe_apply_plan_blocked")
             self.assertFalse(report["deployment_report"]["write_executed"])
             self.assertTrue((root / "artifacts" / "deployment_report.json").is_file())
             self.assertFalse((root / "AGENTS.md").exists())

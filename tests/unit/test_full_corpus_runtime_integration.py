@@ -3,9 +3,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from datalens_dev_mcp.knowledge.compiler import measure_tool_budget
 from datalens_dev_mcp.knowledge.recipes import compact_recipe_for_payload, get_recipe, select_authoring_recipe
 from datalens_dev_mcp.mcp.tools.pipeline import dl_build_payload_plan
 from datalens_dev_mcp.mcp.tools.runtime import dl_validate_editor_runtime_contract
+from datalens_dev_mcp.runtime_resources import resource_json
 from datalens_dev_mcp.server import JsonRpcServer, list_tools
 
 
@@ -20,9 +22,19 @@ class FullCorpusRuntimeIntegrationTests(unittest.TestCase):
 
         self.assertIn("dl_reference", names)
         self.assertLessEqual(len(names), 40)
-        self.assertLessEqual(payload_chars, 28000)
+        self.assertLessEqual(payload_chars, 25000)
         self.assertIn("recipe", schemas["dl_reference"]["properties"]["mode"]["enum"])
         self.assertEqual(all_schemas["dl_update_dashboard_plan"]["properties"]["mode"]["enum"], ["save", "publish"])
+
+    def test_compiled_capability_matrices_embed_the_current_tool_budget(self):
+        expected = measure_tool_budget()
+
+        for resource_name in (
+            "schemas/datalens-knowledge/capability-matrix.json",
+            "schemas/datalens-knowledge/route-capability-matrix.json",
+        ):
+            with self.subTest(resource_name=resource_name):
+                self.assertEqual(resource_json(resource_name)["tool_budget"], expected)
 
     def test_reference_tool_returns_bounded_source_traced_recipe(self):
         server = JsonRpcServer(project_root=".")

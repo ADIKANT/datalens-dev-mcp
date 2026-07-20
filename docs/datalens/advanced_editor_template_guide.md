@@ -36,5 +36,17 @@ These labels are intentionally deterministic so reviews and tests can detect gen
 
 - No 3D, shadows, ornamental backgrounds, decorative gradients, or chartjunk.
 - Use shared `HOUSE_STYLE` tokens and accessible semantic colors.
-- Bars start from zero; time charts show grain; numeric relationship/distribution charts name axes and units.
+- Bars use an explicit zero baseline and signed numeric domains; time charts
+  show grain; numeric relationship/distribution charts name axes and units.
+- Part-to-whole, flow, stacked-100, and funnel renderers fail closed instead
+  of drawing invalid geometry for negative, missing, over-limit, or
+  non-monotonic inputs.
 - Labels/tooltips should reduce lookup and explain metric/source context without duplicating dashboard metadata.
+- Every renderer derives mounted dimensions from `options.width` and
+  `options.height`; executable probes cover 236, 360, 530, 560, 700, and 900
+  pixel widths at three independent heights for all 25 registered Advanced
+  Editor families. The 450-probe sweep rejects fixed minimums and invalid
+  geometry that force viewport overflow.
+- Missing time-series observations remain null points that split line
+  segments. Trailing future null-only buckets are omitted instead of being
+  plotted as observed zeroes.

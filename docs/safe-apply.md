@@ -28,7 +28,7 @@ Safe Apply связывает исходную задачу пользовате
 | plan-only, dry-run | План без записи |
 | save-only, no-publish, draft | Save и saved readback |
 | create, fix, update, enhance, redesign | Save, saved readback, publish-from-saved, published readback |
-| delete полного объекта | План удаления и отдельное подтверждение |
+| manifest action `retire_legacy_objects` | План удаления и отдельное подтверждение |
 
 Режим сохраняется в плане и наследуется при построении publish-from-saved. Publish не запускается, если исходная задача была `save-only` или `no-publish`.
 
@@ -86,6 +86,12 @@ Saved и published читаются отдельно. Отчёты и файлы
 
 ## Удаление целого объекта
 
-Первый запрос на удаление возвращает `delete_confirmation_required`, тип и ID объекта, связи и hash плана. Выполнение требует повторного вызова с `confirm_delete=true` и тем же plan. Любое изменение цели или плана аннулирует подтверждение.
+Произвольное удаление целого объекта не входит в стандартный lifecycle surface.
+Единственный поддерживаемый путь — объявленное в project manifest действие
+`retire_legacy_objects`. Первый вызов возвращает
+`delete_confirmation_required`, точные ID, связи и hash плана. Выполнение
+требует повторного вызова с `confirm_delete=true` и тем же plan. Любое
+изменение цели или плана аннулирует подтверждение. Удаление целого QL-объекта
+не поддерживается.
 
 Удаление легенды, фильтра, колонки, вкладки или виджета внутри объекта является update и проходит обычные проверки записи.

@@ -5,6 +5,69 @@ from typing import Any
 from datalens_dev_mcp.validators.datalens_names import sanitize_datalens_internal_name
 
 
+def validate_entries_reconciliation_evidence(
+    entries_payload: dict[str, Any],
+    *,
+    expected_workbook_id: str = "",
+) -> dict[str, Any]:
+    issues: list[str] = []
+    entries: list[dict[str, Any]] = []
+    if not isinstance(entries_payload, dict):
+        issues.append("entries_payload must be an object")
+    elif "entries" in entries_payload:
+        raw_entries = entries_payload.get("entries")
+        if not isinstance(raw_entries, list) or not all(
+            isinstance(entry, dict) for entry in raw_entries
+        ):
+            issues.append("entries_payload.entries must be an array of objects")
+        else:
+            entries = list(raw_entries)
+        if str(entries_payload.get("nextPageToken") or "").strip():
+            issues.append("entries_payload is incomplete because nextPageToken is present")
+    elif "pages" in entries_payload:
+        pages = entries_payload.get("pages")
+        if not isinstance(pages, list) or not pages:
+            issues.append("entries_payload.pages must be a non-empty array")
+        else:
+            for index, page in enumerate(pages):
+                if not isinstance(page, dict) or not isinstance(page.get("entries"), list):
+                    issues.append(f"entries_payload.pages[{index}].entries must be an array")
+                    continue
+                if not all(isinstance(entry, dict) for entry in page["entries"]):
+                    issues.append(
+                        f"entries_payload.pages[{index}].entries must contain only objects"
+                    )
+                    continue
+                entries.extend(page["entries"])
+            last_page = pages[-1] if isinstance(pages[-1], dict) else {}
+            if str(last_page.get("nextPageToken") or "").strip():
+                issues.append(
+                    "entries_payload pages are incomplete because the last page has nextPageToken"
+                )
+    else:
+        issues.append("entries_payload must contain entries or complete pages")
+    observed_workbook_id = str(
+        entries_payload.get("workbookId")
+        or entries_payload.get("workbook_id")
+        or ""
+    ).strip() if isinstance(entries_payload, dict) else ""
+    if (
+        expected_workbook_id
+        and observed_workbook_id
+        and observed_workbook_id != expected_workbook_id
+    ):
+        issues.append(
+            "entries_payload workbook identity does not match the planned workbook"
+        )
+    return {
+        "ok": not issues,
+        "issues": issues,
+        "entry_count": len(entries),
+        "complete": not issues,
+        "workbook_id": observed_workbook_id or expected_workbook_id,
+    }
+
+
 def reconcile_partial_creates(
     *,
     workbook_id: str,
@@ -112,8 +175,11 @@ def _normalize_planned(planned: dict[str, Any]) -> dict[str, str]:
 
 def _normalize_entry(entry: dict[str, Any]) -> dict[str, Any]:
     entry_id = str(entry.get("entryId") or entry.get("id") or "").strip()
+    display_key = str(entry.get("displayKey") or "").strip()
+    key = str(entry.get("key") or "").strip()
     display_titles = _compact_strings(
-        entry.get("displayKey"),
+        display_key,
+        _entry_leaf(display_key),
         entry.get("title"),
         entry.get("displayTitle"),
         entry.get("name"),
@@ -121,14 +187,23 @@ def _normalize_entry(entry: dict[str, Any]) -> dict[str, Any]:
     )
     raw_names = _compact_strings(
         entry.get("name"),
-        entry.get("key"),
+        key,
+        _entry_leaf(key),
+        _entry_leaf(display_key),
         (entry.get("data") or {}).get("name") if isinstance(entry.get("data"), dict) else "",
         (entry.get("meta") or {}).get("name") if isinstance(entry.get("meta"), dict) else "",
     )
     internal_names = sorted({sanitize_datalens_internal_name(value) for value in raw_names if value})
+    scope = str(entry.get("scope") or "").strip()
+    entry_type = str(entry.get("type") or "").strip()
+    type_source = (
+        entry_type
+        if scope.lower() in {"widget", "chart"} and entry_type
+        else scope or entry_type
+    )
     return {
         "entry_id": entry_id,
-        "object_type": _normalize_object_type(str(entry.get("scope") or entry.get("type") or "")),
+        "object_type": _normalize_object_type(type_source),
         "display_titles": display_titles,
         "internal_names": internal_names,
     }
@@ -143,8 +218,14 @@ def _compact_strings(*values: Any) -> list[str]:
     return result
 
 
+def _entry_leaf(value: str) -> str:
+    return value.rstrip("/").rsplit("/", 1)[-1].strip() if value else ""
+
+
 def _normalize_object_type(value: str) -> str:
     normalized = value.strip().lower().replace("-", "_")
+    if normalized in {"dash", "dashboard"}:
+        return "dashboard"
     if normalized in {"advanced_chart_node", "advanced_chart", "advanced_editor", "chart", "editor"}:
         return "editor_chart"
     if normalized in {"table_node", "markdown_node", "control_node", "advanced_chart_node"}:

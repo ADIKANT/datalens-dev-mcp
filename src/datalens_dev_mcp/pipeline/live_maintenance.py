@@ -7,7 +7,7 @@ from time import monotonic
 from typing import Any
 
 from datalens_dev_mcp.api.request_compiler import compile_guarded_rpc_request
-from datalens_dev_mcp.mcp.response_projection import serialized_metadata
+from datalens_dev_mcp.serialization import serialized_metadata
 from datalens_dev_mcp.pipeline.artifacts import ensure_project_dirs, write_json
 from datalens_dev_mcp.pipeline.baseline_preservation import build_baseline_diff_contract
 from datalens_dev_mcp.pipeline.performance_budget import normalize_editor_source_budget_evidence_v7

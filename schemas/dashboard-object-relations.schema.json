@@ -95,13 +95,34 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["selector_id", "param", "labelPlacement", "width", "targets"],
+        "required": ["selector_id", "params", "label", "labelPlacement", "width", "targets"],
         "properties": {
           "selector_id": {"type": "string"},
           "param": {"type": "string"},
+          "param_from": {"type": "string"},
+          "param_to": {"type": "string"},
+          "label": {"type": "string", "minLength": 1},
+          "params": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 2,
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          },
           "labelPlacement": {"const": "left"},
           "width": {"type": "string", "pattern": "^[1-9][0-9]?%$"},
           "source_field": {"type": "string"},
+          "source_fields": {"type": "array", "items": {"type": "string"}},
+          "contract": {
+            "type": "object",
+            "properties": {
+              "schema_version": {"type": ["string", "null"]},
+              "family": {"type": ["string", "null"]},
+              "option_source": {"type": ["string", "null"]},
+              "reset_behavior": {"type": ["string", "null"]}
+            },
+            "additionalProperties": false
+          },
           "targets": {
             "type": "array",
             "items": {
@@ -116,10 +137,42 @@
             }
           }
         },
+        "oneOf": [
+          {
+            "required": ["param"],
+            "not": {
+              "anyOf": [
+                {"required": ["param_from"]},
+                {"required": ["param_to"]}
+              ]
+            }
+          },
+          {
+            "required": ["param_from", "param_to"],
+            "not": {"required": ["param"]}
+          }
+        ],
         "additionalProperties": true
       }
     },
-    "dashboard_filters": {"type": "array", "items": {"type": "object"}},
+    "dashboard_filters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["filter_id", "param", "selector_id", "targets"],
+        "properties": {
+          "filter_id": {"type": "string", "minLength": 1},
+          "param": {"type": "string", "minLength": 1},
+          "selector_id": {"type": "string", "minLength": 1},
+          "targets": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          }
+        },
+        "additionalProperties": true
+      }
+    },
     "datasets": {"type": "array", "items": {"type": "object"}}
   },
   "$defs": {

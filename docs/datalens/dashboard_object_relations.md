@@ -29,9 +29,29 @@ Selectors must declare their targets explicitly:
 {
   "selector_id": "selector_segment",
   "param": "segment",
+  "params": ["segment"],
+  "label": "Segment",
   "labelPlacement": "left",
   "width": "94%",
   "targets": [{"target_id": "widget_001", "target_kind": "widget", "param": "segment"}]
+}
+```
+
+Paired date controls declare and target both parameters:
+
+```json
+{
+  "selector_id": "selector_period_from_period_to",
+  "param_from": "period_from",
+  "param_to": "period_to",
+  "params": ["period_from", "period_to"],
+  "label": "Period",
+  "labelPlacement": "left",
+  "width": "94%",
+  "targets": [
+    {"target_id": "widget_001", "target_kind": "widget", "param": "period_from"},
+    {"target_id": "widget_001", "target_kind": "widget", "param": "period_to"}
+  ]
 }
 ```
 
@@ -40,7 +60,12 @@ Selector layout inherits the dashboard layout contract:
 - labels are on the left
 - widths are percentages
 - row width total stays at or below 94 percent
+- every declared selector parameter has a target and dashboard filter
 - selector relations are included in the generated Markdown dashboard plan
+
+Relations are emitted only from an explicit valid selector contract (or an
+explicit legacy parameter supplied by a fixture). Requirements prose does not
+create an implicit selector.
 
 ## Native Metadata
 

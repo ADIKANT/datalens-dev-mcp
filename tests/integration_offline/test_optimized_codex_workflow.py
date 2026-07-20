@@ -26,7 +26,7 @@ class OptimizedCodexWorkflowTests(unittest.TestCase):
             )
 
         tool_chars = len(json.dumps({"tools": list_tools()}, ensure_ascii=False, separators=(",", ":")))
-        self.assertLessEqual(tool_chars, 28_000)
+        self.assertLessEqual(tool_chars, 25_000)
         self.assertLessEqual(reference["response_chars"], 4000)
         self.assertLessEqual(tool_reference["response_chars"], 4000)
         self.assertLessEqual(docs_reference["response_chars"], 4000)

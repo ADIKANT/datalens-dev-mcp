@@ -46,7 +46,7 @@ class ImplementedChartsCatalogTests(unittest.TestCase):
             self.assertIn("templates/datalens/advanced_editor/time_series", catalog)
             self.assertIn("order_month", catalog)
             self.assertIn("order_count", catalog)
-            self.assertIn("selector_segment", catalog)
+            self.assertNotIn("selector_segment", catalog)
             self.assertIn("Implemented Chart Catalog", charts)
             self.assertIn("Implemented Metrics And Attributes", metrics)
             self.assertIn("order_count", metrics)

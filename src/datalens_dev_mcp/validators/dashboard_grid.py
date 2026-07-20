@@ -23,6 +23,7 @@ def validate_dashboard_grid(
     payload: dict[str, Any],
     *,
     current_dashboard: dict[str, Any] | None = None,
+    strict_generated_layout: bool | None = None,
 ) -> list[DashboardGridIssue]:
     """Validate the native DataLens 36-column dashboard grid.
 
@@ -62,7 +63,14 @@ def validate_dashboard_grid(
             )
             continue
         current_tab = _matching_current_tab(tab, tab_index, current_tabs, current_by_id)
-        issues.extend(_validate_tab_grid(tab, tab_path=tab_path, current_tab=current_tab))
+        issues.extend(
+            _validate_tab_grid(
+                tab,
+                tab_path=tab_path,
+                current_tab=current_tab,
+                strict_generated_layout=strict_generated_layout,
+            )
+        )
     return issues
 
 
@@ -80,6 +88,7 @@ def _validate_tab_grid(
     *,
     tab_path: str,
     current_tab: dict[str, Any] | None,
+    strict_generated_layout: bool | None,
 ) -> list[DashboardGridIssue]:
     issues: list[DashboardGridIssue] = []
     items, item_issues = _collect_tab_items(tab, tab_path=tab_path)
@@ -140,9 +149,12 @@ def _validate_tab_grid(
 
     current_overlap_pairs = _peer_overlap_pairs(current_tab or {})
     current_layouts: dict[str, tuple[dict[str, Any], str]] = {}
+    current_items: dict[str, tuple[dict[str, Any], str]] = {}
     raw_current_layout = (current_tab or {}).get("layout")
     if isinstance(raw_current_layout, list):
         current_layouts, _ = _collect_layout_records(raw_current_layout, path=f"{tab_path}.current_layout")
+    if current_tab is not None:
+        current_items, _ = _collect_tab_items(current_tab, tab_path=f"{tab_path}.current")
     for left_id, right_id in sorted(_peer_overlap_pairs(tab)):
         if (left_id, right_id) in current_overlap_pairs and _pair_geometry_unchanged(
             left_id,
@@ -179,7 +191,16 @@ def _validate_tab_grid(
     for item_id in sorted(item_ids & layout_ids):
         item, item_path = items[item_id]
         layout, layout_path = layouts[item_id]
-        issues.extend(_height_and_auto_height_issues(item, layout, item_path=item_path, layout_path=layout_path))
+        issues.extend(
+            _height_and_auto_height_issues(
+                item,
+                layout,
+                item_path=item_path,
+                layout_path=layout_path,
+                strict_generated_layout=strict_generated_layout,
+                current_item=(current_items.get(item_id) or (None, ""))[0],
+            )
+        )
     return issues
 
 
@@ -487,6 +508,8 @@ def _height_and_auto_height_issues(
     *,
     item_path: str,
     layout_path: str,
+    strict_generated_layout: bool | None,
+    current_item: dict[str, Any] | None,
 ) -> list[DashboardGridIssue]:
     if not _valid_geometry(layout):
         return []
@@ -535,10 +558,17 @@ def _height_and_auto_height_issues(
         )
 
     auto_height_values, invalid_paths = _auto_height_values(item, item_path=item_path)
+    if strict_generated_layout is None:
+        strict_auto_height = not (
+            current_item is not None
+            and _auto_height_signature(item) == _auto_height_signature(current_item)
+        )
+    else:
+        strict_auto_height = strict_generated_layout
     for invalid_path in invalid_paths:
         issues.append(
             DashboardGridIssue(
-                severity="warning",
+                severity="error" if strict_auto_height else "warning",
                 rule="invalid_auto_height_value",
                 path=invalid_path,
                 message="autoHeight is present but is not boolean; DataLens may normalize or ignore it.",
@@ -549,7 +579,7 @@ def _height_and_auto_height_issues(
     if auto_height_values == {True, False}:
         issues.append(
             DashboardGridIssue(
-                severity="warning",
+                severity="error" if strict_auto_height else "warning",
                 rule="mixed_widget_auto_height",
                 path=item_path,
                 message="One dashboard item mixes autoHeight=true and autoHeight=false across its item/inner tabs.",
@@ -641,6 +671,31 @@ def _auto_height_values(item: dict[str, Any], *, item_path: str) -> tuple[set[bo
                 if isinstance(tab, dict):
                     collect(tab, f"{item_path}.data.tabs[{index}]")
     return values, invalid_paths
+
+
+def _auto_height_signature(item: dict[str, Any]) -> tuple[tuple[str, str, str], ...]:
+    """Return the mounted item's exact auto-height state without index paths."""
+
+    entries: list[tuple[str, str, str]] = []
+
+    def collect(value: dict[str, Any], path: str) -> None:
+        for key in ("autoHeight", "auto_height"):
+            if key not in value:
+                continue
+            raw = value[key]
+            encoded = str(raw).lower() if type(raw) is bool else f"{type(raw).__name__}:{raw!r}"
+            entries.append((path, key, encoded))
+
+    collect(item, "$")
+    data = item.get("data")
+    if isinstance(data, dict):
+        collect(data, "$.data")
+        tabs = data.get("tabs")
+        if isinstance(tabs, list):
+            for index, tab in enumerate(tabs):
+                if isinstance(tab, dict):
+                    collect(tab, f"$.data.tabs[{index}]")
+    return tuple(entries)
 
 
 def _peer_overlap_pairs(tab: dict[str, Any]) -> set[tuple[str, str]]:

@@ -629,24 +629,47 @@ def _run_project_live_action(
             action=_summary_action_label(action, publish=publish),
         )
     mutation_guard = _tracked_source_mutation_result(root, mutation_guard_before)
+    summary_required = normalized_action in {"apply", "publish", RETIRE_ACTION} or publish
+    summary_ok = not summary_required or summary.get("ok") is True
+    summary_blocked_reasons = _summary_validation_blockers(summary) if summary_required and not summary_ok else []
+    command_ok = completed.returncode == 0
     return {
         **plan,
-        "ok": completed.returncode == 0 and not mutation_guard["mutated"],
+        "ok": command_ok and summary_ok and not mutation_guard["mutated"],
         "executed": True,
         "status": (
             "tracked_source_mutation_blocked"
             if mutation_guard["mutated"]
-            else "completed"
-            if completed.returncode == 0
             else "command_failed"
+            if not command_ok
+            else "summary_blocked"
+            if not summary_ok
+            else "completed"
         ),
         "returncode": completed.returncode,
         "stdout": stdout[:4000],
         "stderr": stderr[:4000],
         "env_summary": env_summary,
         "summary": summary,
+        "blocked_reasons": summary_blocked_reasons,
         "tracked_source_mutation_guard": mutation_guard,
     }
+
+
+def _summary_validation_blockers(summary: dict[str, Any]) -> list[str]:
+    status = str(summary.get("status") or "").strip()
+    if status == "summary_not_found":
+        return ["project live action summary was not found"]
+    issues = summary.get("blocking_issues")
+    messages: list[str] = []
+    if isinstance(issues, list):
+        messages = [
+            str(issue.get("message") or issue.get("rule") or "").strip()
+            for issue in issues
+            if isinstance(issue, dict)
+        ]
+    blockers = [message for message in messages if message]
+    return blockers or ["project live action summary did not pass validation"]
 
 
 def _tracked_source_snapshot(root: Path) -> dict[str, Any]:
@@ -1634,7 +1657,7 @@ def _changed_counts(payload: dict[str, Any]) -> dict[str, int]:
 
 def _summary_requirements_from_action(action_spec: dict[str, Any]) -> dict[str, Any]:
     raw = action_spec.get("summary_requirements") or action_spec.get("summary_contract") or {}
-    if not isinstance(raw, dict):
+    if not isinstance(raw, dict) or not raw:
         return {}
     required_fields = raw.get("required_fields") or raw.get("fields") or []
     if isinstance(required_fields, str):

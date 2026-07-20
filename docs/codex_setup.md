@@ -47,7 +47,7 @@ startup_timeout_sec = 20
 tool_timeout_sec = 120
 ```
 
-Используйте абсолютные пути. Параметр `default_tools_approval_mode = "approve"` разрешает обычные вызовы этого сервера без отдельного вопроса Codex перед сохранением или публикацией. Сервер всё равно попросит подтвердить удаление целого объекта DataLens.
+Используйте абсолютные пути. Параметр `default_tools_approval_mode = "approve"` разрешает обычные вызовы этого сервера без отдельного вопроса Codex перед сохранением или публикацией. Отдельное подтверждение применяется только к manifest action `retire_legacy_objects`.
 
 Готовый файл: [`examples/clients/codex.toml`](../examples/clients/codex.toml).
 

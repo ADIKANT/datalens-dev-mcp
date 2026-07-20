@@ -257,7 +257,8 @@ def render_markdown(policy: dict[str, Any]) -> str:
 - `dl_get_api_method_schema` — обязательные поля, request/response schema и URL официальной страницы;
 - `dl_validate_object` — проверка payload;
 - `dl_plan_object_create` и `dl_plan_object_update` — подготовка create/update;
-- `dl_compile_guarded_rpc_request` — target lock, ревизия и ожидаемое контрольное чтение.
+- Safe Apply — внутренняя компиляция target lock, ревизии и ожидаемого
+  контрольного чтения.
 
 ## Покрытые семейства
 
@@ -277,7 +278,9 @@ def render_markdown(policy: dict[str, Any]) -> str:
 Create/update выполняются через plan, актуальное чтение, валидацию, save и saved readback.
 Обычная задача на реализацию продолжается через publish-from-saved и published readback.
 
-Удаление целого поддерживаемого объекта требует `confirm_delete=true` для неизменившегося плана с точными ID.
+Произвольное удаление целого объекта недоступно. Manifest action
+`retire_legacy_objects` требует `confirm_delete=true` для неизменившегося
+плана с точными ID. Whole-object QL deletion не поддерживается.
 Перемещение, изменение прав доступа, лицензий и учётных данных не поддерживаются.
 
 Машинный trace с данными сборки находится в [`schemas/datalens-api/source-trace.json`](../../schemas/datalens-api/source-trace.json).

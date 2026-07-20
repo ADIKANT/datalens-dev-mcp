@@ -44,6 +44,7 @@ Operation classes:
 
 | Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
+| `dl_generate_editor_bundle` | Compile a Wizard plan or Editor tabs for the selected route | After visualization selection and before project validation | Project root, route, field bindings, and optional selector/readback contract | Deterministic bundle with validated relations · `local` | [Standard templates](datalens/standard_chart_templates.md) |
 | `dl_validate_project` | Check project files, requests, SQL, relations, and secrets | Before building an apply plan | Project root and optional context references | Findings and warnings · `local` | [Architecture](architecture.md) |
 | `dl_build_payload_plan` | Compile validated materials into a DataLens request plan | After project and object validation | Project root, target, and request text | Methods, targets, and payloads without writing · `local` | [Safe apply](safe-apply_en.md) |
 | `dl_build_validation_evidence_report` | Collect validation results by stage | Before handoff and after apply | Project root and report paths | Unified evidence report · `local` | [Response contracts](mcp/response_contracts.md) |
@@ -53,7 +54,6 @@ Operation classes:
 | `dl_plan_guarded_dataset_update` | Plan dataset-model validation and update | Change fields, relations, or the dataset model | ID, current/proposed datasets, affected charts | GUID and chart-impact checks · `local` | [`validateDataset`](https://yandex.cloud/ru/docs/datalens/openapi-ref/validateDataset) |
 | `dl_plan_dashboard_tab_update` | Prepare a bounded update to one dashboard tab | Append or replace a tab while preserving the rest | Current dashboard, tab, operation | Minimal dashboard update · `local` | [Dashboards](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) |
 | `dl_reconcile_partial_creates` | Match a create plan with entries that already appeared | After an interrupted or uncertain create result | `workbook_id`, planned objects, optional entries | Reuse, create, or manual-review decision · `read-only API` + `local` | [Safe apply](safe-apply_en.md) |
-| `dl_compile_guarded_rpc_request` | Compile a guarded request to one API method | Before an update enters the apply plan | Method, payload, ID, revision, and current readback | Request with a locked target and expected readback · `local` | [API contracts](sources_en.md#public-api-contracts) |
 
 ## Save and publish
 
@@ -79,7 +79,7 @@ Operation classes:
 
 | Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
-| `dl_run_live_maintenance_update` | Coordinate a bounded fix from supplied validation results | Fix a known chart or tab | Target, request, current/proposed data, reports | Delivery stage and handoff report · `local` | [Safe apply](safe-apply_en.md) |
+| `dl_run_live_maintenance_update` | Coordinate a bounded fix from supplied validation results | Fix a known chart or tab | Target, request, and typed `maintenance_evidence` | Delivery stage and handoff report · `local` | [Safe apply](safe-apply_en.md) |
 | `dl_build_dashboard_source_availability_matrix` | Build source state for dashboard consumers | Objects depend on different tables or environments | Dashboard snapshot and source-check results | `OK`/`NO_DATA`/`NO_TABLE`/`ERROR`/`UNKNOWN` matrix · `local` | [Diagnostic contracts](mcp/response_contracts.md#diagnostics) |
 | `dl_validate_source_availability_consumers` | Validate consumers against one source matrix | Before a source-dependent change | Matrix and consumer requirements | Conflicts and stopping reasons · `local` | [Diagnostic contracts](mcp/response_contracts.md#diagnostics) |
 | `dl_plan_source_availability_patch` | Plan a bounded correction from the source matrix | After validating the matrix | Matrix, target, and desired correction | Plan without querying source systems · `local` | [Safe apply](safe-apply_en.md) |

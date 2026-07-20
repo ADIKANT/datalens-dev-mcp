@@ -36,7 +36,7 @@ connect the client
   -> verify the result in DataLens
 ```
 
-The user request selects the mode. Audits and diagnostics do not mutate DataLens. `plan-only` stops after planning, and `save-only` stops after saved readback. Create, fix, update, enhance, and redesign requests for a known target run through the complete flow without another prompt before save or publish. Deleting a complete object requires a separate confirmation with its ID.
+The user request selects the mode. Audits and diagnostics do not mutate DataLens. `plan-only` stops after planning, and `save-only` stops after saved readback. Create, fix, update, enhance, and redesign requests for a known target run through the complete flow without another prompt before save or publish. Arbitrary whole-object deletion is unavailable; a manifest `retire_legacy_objects` action requires separate confirmation of the unchanged plan.
 
 ## Main guides
 

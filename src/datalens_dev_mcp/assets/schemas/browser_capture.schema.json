@@ -159,6 +159,7 @@
       "required": [
         "width",
         "height",
+        "device_pixel_ratio",
         "document_width",
         "horizontal_overflow_px",
         "scope_object_ids",
@@ -171,6 +172,7 @@
         "label": {"type": "string", "minLength": 1},
         "width": {"type": "number", "exclusiveMinimum": 0},
         "height": {"type": "number", "exclusiveMinimum": 0},
+        "device_pixel_ratio": {"type": "number", "exclusiveMinimum": 0},
         "document_width": {"type": "number", "exclusiveMinimum": 0},
         "horizontal_overflow_px": {
           "type": "number",

@@ -96,9 +96,15 @@ class DashboardLayoutContractTests(unittest.TestCase):
             widget_id="selector_demo",
             route="editor_js_control",
             title="Selector Demo",
-            param="segment",
-            options=["all", "new"],
-            family="unknown_family_to_force_fallback",
+            selector_contract={
+                "label": "Segment",
+                "param": "segment",
+                "option_source": "static",
+                "options": ["all", "new"],
+                "default_values": ["all"],
+                "reset_behavior": "initial",
+            },
+            family="single_select_dropdown",
         )
 
         controls = bundle["tabs"]["controls.js"]

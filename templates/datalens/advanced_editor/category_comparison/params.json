@@ -1,5 +1,3 @@
 {
-  "chart_variant": "horizontal_bar",
-  "theme": "light",
-  "top_n": 12
+  "theme": ["light"]
 }

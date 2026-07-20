@@ -41,9 +41,8 @@ class SafeApplySavePublishTraceTests(unittest.TestCase):
 
             def rpc(self, method, payload):
                 self.calls.append((method, payload))
-                branch = payload.get("branch", "saved")
-                rev = "rev_saved" if branch == "saved" else "rev_published"
-                return {"entry": {"entryId": "chart_publish", "revId": rev, "savedId": "saved_snapshot"}}
+                entry = json.loads(json.dumps(saved_editor_chart_readback()["chart"]["entry"]))
+                return {"entry": entry}
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -74,7 +73,9 @@ class SafeApplySavePublishTraceTests(unittest.TestCase):
         self.assertEqual(plan["publish_source"]["branch"], "saved")
         self.assertEqual(plan["actions"][0]["readback_payload"]["branch"], "published")
         self.assertTrue(published_stage["ok"])
-        self.assertEqual(published_stage["value"]["entry"]["revId"], "rev_published")
+        self.assertEqual(published_stage["value"]["entry"]["revId"], "rev_saved")
+        self.assertTrue(result["actions"][0]["readback_verification"]["publish_source_revision_matched"])
+        self.assertFalse(result["actions"][0]["readback_verification"]["revision_advanced"])
 
     def test_stale_saved_revision_blocks_publish_before_write(self):
         from datalens_dev_mcp.config import DataLensConfig

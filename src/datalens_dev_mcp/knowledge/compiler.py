@@ -3163,8 +3163,8 @@ def check_compiled_knowledge(
                 issues.append(f"implemented recipe missing executable fixture: {item['recipe_id']}")
     if compiled["tool_budget"]["default_tool_count"] > 40:
         issues.append("default tool count exceeds 40")
-    if compiled["tool_budget"]["default_tools_list_chars"] > 28000:
-        issues.append("default tools/list chars exceeds 28000")
+    if compiled["tool_budget"]["default_tools_list_chars"] > 25000:
+        issues.append("default tools/list chars exceeds 25000")
     parity = _check_compiled_resource_parity(compiled) if verify_disk_parity else {"ok": True, "issues": [], "checked": 0}
     issues.extend(parity["issues"])
     if INDEX_PATH.exists():

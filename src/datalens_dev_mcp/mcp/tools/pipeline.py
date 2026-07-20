@@ -18,6 +18,7 @@ from datalens_dev_mcp.mcp.response_projection import (
     serialized_metadata,
 )
 from datalens_dev_mcp.pipeline.artifacts import ensure_project_dirs, read_json, read_text, write_json, write_text
+from datalens_dev_mcp.pipeline.baseline_preservation import build_object_reuse_decision
 from datalens_dev_mcp.pipeline.dashboard_relations import (
     build_default_dashboard_relations,
     validate_dashboard_relations,
@@ -44,7 +45,10 @@ from datalens_dev_mcp.pipeline.project_live_workflows import (
 )
 from datalens_dev_mcp.pipeline.proof_levels import proof_level_for_readback_branch
 from datalens_dev_mcp.pipeline.readback import build_readback_summary, normalize_readback_mode
-from datalens_dev_mcp.pipeline.reconciliation import reconcile_partial_creates
+from datalens_dev_mcp.pipeline.reconciliation import (
+    reconcile_partial_creates,
+    validate_entries_reconciliation_evidence,
+)
 from datalens_dev_mcp.pipeline.requirements_workspace import (
     build_dashboard_blueprint_plan,
     initialize_requirements_workspace,
@@ -62,6 +66,7 @@ from datalens_dev_mcp.pipeline.safe_apply import (
     execute_safe_apply,
     load_safe_apply_stage_value,
     readback_artifact_path,
+    validate_safe_apply_plan_exhaustive,
 )
 from datalens_dev_mcp.pipeline.scenarios import normalize_scenario
 from datalens_dev_mcp.pipeline.sql_performance import validate_project_sql_performance
@@ -76,6 +81,7 @@ from datalens_dev_mcp.pipeline.validation_evidence import build_validation_evide
 from datalens_dev_mcp.pipeline.visual_quality import validate_visual_quality_contract
 from datalens_dev_mcp.pipeline.visual_decisions import decide_chart
 from datalens_dev_mcp.pipeline.wizard_templates import build_wizard_payload_plan, load_wizard_template_registry
+from datalens_dev_mcp.pipeline.wizard_contracts import compact_wizard_dataset_readbacks
 from datalens_dev_mcp.pipeline.route_registry import normalize_creation_route, visualization_for_family
 from datalens_dev_mcp.validators.dashboard_payload import validate_dashboard_payload
 from datalens_dev_mcp.validators.advanced_editor_validator import validate_editor_runtime_contract
@@ -552,6 +558,8 @@ def dl_generate_editor_bundle(
     route: str = "",
     dataset_alias: str = "",
     columns: list[str] | None = None,
+    selector_contract: dict[str, Any] | None = None,
+    dataset_readbacks: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     root = ensure_project_dirs(project_root)
     brief = read_json(root / "artifacts" / "dashboard_brief.json", default={})
@@ -643,6 +651,11 @@ def dl_generate_editor_bundle(
                 "visualization_id": visualization_id,
                 "semantic_family": requested_family,
                 "dataset": dataset_id,
+                **(
+                    {"dataset_readbacks": list(dataset_readbacks)}
+                    if dataset_readbacks is not None
+                    else {}
+                ),
                 "field_bindings": field_bindings,
                 "geo": {"evidence_kind": "validated_map_payload"} if visualization_id == "geolayer" else {},
                 "options": {"title": brief.get("dashboard_name", "Native Wizard Chart")},
@@ -672,7 +685,6 @@ def dl_generate_editor_bundle(
             root=root,
             brief=brief,
             widget_id=widget_id,
-            selector_param=_selector_param_from_requirements(root, brief),
         )
         if plan.get("ok"):
             update_implemented_charts_catalog(root, bundle=plan, relations=relations, brief=brief)
@@ -696,8 +708,7 @@ def dl_generate_editor_bundle(
         dataset_alias=resolved_dataset_alias or None,
         columns=resolved_columns,
         markdown=intent_text or None,
-        param="segment",
-        options=["all", "new", "returning"],
+        selector_contract=selector_contract,
         family=decision_record.get("selected_family") or decision.get("family"),
         visual_spec=visual_spec,
         chart_decision_record=decision_record,
@@ -726,7 +737,12 @@ def dl_generate_editor_bundle(
         root=root,
         brief=brief,
         widget_id=widget_id,
-        selector_param=_selector_param_from_requirements(root, brief),
+        selector_contract=(
+            bundle.get("selector_contract")
+            if isinstance(bundle.get("selector_contract"), dict)
+            and bundle["selector_contract"].get("ok") is True
+            else None
+        ),
     )
     update_implemented_charts_catalog(root, bundle=bundle, relations=relations, brief=brief)
     return bundle
@@ -880,6 +896,34 @@ def dl_build_payload_plan(
                 }
             )
             continue
+        dataset_readback_validation = (
+            wizard_plan.get("dataset_readback_validation")
+            if isinstance(wizard_plan.get("dataset_readback_validation"), dict)
+            else {}
+        )
+        dataset_readbacks = [
+            item
+            for item in (wizard_plan.get("dataset_readbacks") or [])
+            if isinstance(item, dict)
+        ]
+        if (
+            wizard_plan.get("live_execution_ready") is not True
+            or dataset_readback_validation.get("ok") is not True
+            or not dataset_readbacks
+        ):
+            blocking_issues.append(
+                {
+                    "widget_id": wizard_plan.get("widget_id") or wizard_plan_path.stem,
+                    "status": "blocked_missing_dataset_readback_evidence",
+                    "issues": list(dataset_readback_validation.get("findings") or [])
+                    or ["A validated saved dataset readback is required before Wizard create."],
+                    "action": (
+                        "Read the bound dataset, pass it as dataset_readbacks when compiling the Wizard plan, "
+                        "then rebuild the payload plan."
+                    ),
+                }
+            )
+            continue
         compiled_payload = deepcopy(wizard_plan.get("compiled_payload") or {})
         if not any(compiled_payload.get(key) not in (None, "") for key in ("key", "workbookId")):
             compiled_payload["workbookId"] = workbook_id
@@ -896,6 +940,9 @@ def dl_build_payload_plan(
                 "payload_path": str(out),
                 "compiled_payload_sha256": wizard_plan.get("compiled_payload_sha256") or "",
                 "validation": wizard_plan.get("validation") or {},
+                "dataset_readbacks": dataset_readbacks,
+                "dataset_readback_validation": dataset_readback_validation,
+                "enforce_wizard_role_types": True,
             }
         )
     planned_object_key = (
@@ -1238,8 +1285,11 @@ def _continue_project_live_publish(
     apply_result: dict[str, Any],
 ) -> dict[str, Any]:
     blockers: list[str] = []
-    if apply_result.get("status") != "completed" or not apply_result.get("executed"):
-        blockers.append("apply stage did not complete; publish was not attempted")
+    if not _project_live_stage_passed(apply_result):
+        blockers.extend(
+            apply_result.get("blocked_reasons")
+            or ["apply summary did not pass validation; publish was not attempted"]
+        )
     if "publish" not in (apply_result.get("workflow_modes") or []):
         blockers.append("missing_publish_path_for_save_then_publish")
     if blockers:
@@ -1260,7 +1310,7 @@ def _continue_project_live_publish(
         approved=approved,
         after_saved=True,
     )
-    if publish_result.get("status") != "completed" or not publish_result.get("executed"):
+    if not _project_live_stage_passed(publish_result):
         blockers.extend(publish_result.get("blocked_reasons") or ["publish stage did not complete"])
     return _project_live_delivery_result(apply_result, publish_result, blockers)
 
@@ -1278,8 +1328,12 @@ def _project_live_delivery_result(
     )
     saved_paths = _project_live_readback_paths(summary, branch="saved")
     published_paths = _project_live_readback_paths(publish_summary, branch="published")
-    if publish_result and publish_result.get("status") == "completed" and not blockers:
+    apply_passed = _project_live_stage_passed(apply_result)
+    publish_passed = bool(publish_result and _project_live_stage_passed(publish_result) and not blockers)
+    if publish_passed:
         status = "completed"
+    elif not apply_passed:
+        status = str(apply_result.get("status") or "blocked")
     elif apply_result.get("executed"):
         status = "partial"
     else:
@@ -1293,6 +1347,7 @@ def _project_live_delivery_result(
     )
     return {
         **apply_result,
+        "ok": bool(apply_passed and publish_passed),
         "status": status,
         "executed": bool(publish_result and publish_result.get("executed") and not blockers),
         "publish_blocked_reasons": blockers,
@@ -1304,12 +1359,12 @@ def _project_live_delivery_result(
             "apply": _delivery_stage_snapshot(apply_result),
             "publish": _delivery_stage_snapshot(publish_result or {}),
             "saved": {
-                "passed": bool(apply_result.get("status") == "completed"),
+                "passed": apply_passed,
                 "status": str(apply_result.get("status") or ""),
                 "readback_paths": saved_paths,
             },
             "published": {
-                "passed": bool(publish_result and publish_result.get("status") == "completed" and not blockers),
+                "passed": publish_passed,
                 "status": str((publish_result or {}).get("status") or ("blocked" if blockers else "not_started")),
                 "readback_paths": published_paths,
             },
@@ -1317,6 +1372,16 @@ def _project_live_delivery_result(
             "approval_reuse_for_publish": bool((apply_result.get("delivery_intent_decision") or {}).get("approval_reuse_for_publish")),
         },
     }
+
+
+def _project_live_stage_passed(result: dict[str, Any]) -> bool:
+    summary = result.get("summary") if isinstance(result.get("summary"), dict) else {}
+    return bool(
+        result.get("ok") is True
+        and result.get("executed")
+        and result.get("status") == "completed"
+        and summary.get("ok") is True
+    )
 
 
 def _project_live_readback_paths(summary: dict[str, Any], *, branch: str) -> list[str]:
@@ -1383,29 +1448,11 @@ def dl_run_live_maintenance_update(
     intent: str = "fix_existing",
     maintenance_mode: str = "quick_visible_patch",
     publish: bool = True,
-    browser_runtime_required: bool = True,
-    non_rendering_exemption: str = "",
-    baseline_snapshot_path: str = "",
-    metadata_evidence_paths: list[str] | None = None,
-    source_availability_artifact: str = "",
-    changed_objects: list[dict[str, Any]] | None = None,
-    allow_create: bool = False,
-    create_necessity_proof: dict[str, Any] | None = None,
-    cleanup_mode: str = "plan_only",
-    safe_apply_actions: list[dict[str, Any]] | None = None,
-    guarded_requests: list[dict[str, Any]] | None = None,
-    source_budget_evidence: dict[str, Any] | list[dict[str, Any]] | None = None,
-    runtime_gate_evidence: dict[str, Any] | None = None,
-    saved_runtime_gate_evidence: dict[str, Any] | None = None,
-    published_runtime_gate_evidence: dict[str, Any] | None = None,
-    safe_apply_execution_evidence: dict[str, Any] | None = None,
-    saved_readback_evidence: dict[str, Any] | None = None,
-    publish_from_saved_evidence: dict[str, Any] | None = None,
-    published_readback_evidence: dict[str, Any] | None = None,
-    baseline_dashboard: dict[str, Any] | None = None,
-    proposed_dashboard: dict[str, Any] | None = None,
+    maintenance_evidence: dict[str, Any] | None = None,
     target_url: str = "",
+    **legacy_evidence: Any,
 ) -> dict[str, Any]:
+    evidence = _normalize_live_maintenance_evidence(maintenance_evidence, legacy_evidence)
     effective_authorized = _request_authorizes_standard_write(
         intent,
         default_text="fix existing dashboard",
@@ -1420,29 +1467,138 @@ def dl_run_live_maintenance_update(
         maintenance_mode=maintenance_mode,
         approved=effective_authorized,
         publish=publish,
-        browser_runtime_required=browser_runtime_required,
-        non_rendering_exemption=non_rendering_exemption,
-        baseline_snapshot_path=baseline_snapshot_path,
-        metadata_evidence_paths=metadata_evidence_paths,
-        source_availability_artifact=source_availability_artifact,
-        changed_objects=changed_objects,
-        allow_create=allow_create,
-        create_necessity_proof=create_necessity_proof,
-        cleanup_mode=cleanup_mode,
-        safe_apply_actions=safe_apply_actions,
-        guarded_requests=guarded_requests,
-        baseline_dashboard=baseline_dashboard,
-        proposed_dashboard=proposed_dashboard,
-        source_budget_evidence=source_budget_evidence,
-        runtime_gate_evidence=runtime_gate_evidence,
-        saved_runtime_gate_evidence=saved_runtime_gate_evidence,
-        published_runtime_gate_evidence=published_runtime_gate_evidence,
-        safe_apply_execution_evidence=safe_apply_execution_evidence,
-        saved_readback_evidence=saved_readback_evidence,
-        publish_from_saved_evidence=publish_from_saved_evidence,
-        published_readback_evidence=published_readback_evidence,
+        browser_runtime_required=evidence["browser_runtime_required"],
+        non_rendering_exemption=evidence["non_rendering_exemption"],
+        baseline_snapshot_path=evidence["baseline_snapshot_path"],
+        metadata_evidence_paths=evidence["metadata_evidence_paths"],
+        source_availability_artifact=evidence["source_availability_artifact"],
+        changed_objects=evidence["changed_objects"],
+        allow_create=evidence["allow_create"],
+        create_necessity_proof=evidence["create_necessity_proof"],
+        cleanup_mode=evidence["cleanup_mode"],
+        safe_apply_actions=evidence["safe_apply_actions"],
+        guarded_requests=evidence["guarded_requests"],
+        baseline_dashboard=evidence["baseline_dashboard"],
+        proposed_dashboard=evidence["proposed_dashboard"],
+        source_budget_evidence=evidence["source_budget_evidence"],
+        runtime_gate_evidence=evidence["runtime_gate_evidence"],
+        saved_runtime_gate_evidence=evidence["saved_runtime_gate_evidence"],
+        published_runtime_gate_evidence=evidence["published_runtime_gate_evidence"],
+        safe_apply_execution_evidence=evidence["safe_apply_execution_evidence"],
+        saved_readback_evidence=evidence["saved_readback_evidence"],
+        publish_from_saved_evidence=evidence["publish_from_saved_evidence"],
+        published_readback_evidence=evidence["published_readback_evidence"],
         target_url=target_url,
     )
+
+
+_LIVE_MAINTENANCE_EVIDENCE_DEFAULTS: dict[str, Any] = {
+    "browser_runtime_required": True,
+    "non_rendering_exemption": "",
+    "baseline_snapshot_path": "",
+    "metadata_evidence_paths": None,
+    "source_availability_artifact": "",
+    "changed_objects": None,
+    "allow_create": False,
+    "create_necessity_proof": None,
+    "cleanup_mode": "plan_only",
+    "safe_apply_actions": None,
+    "guarded_requests": None,
+    "source_budget_evidence": None,
+    "runtime_gate_evidence": None,
+    "saved_runtime_gate_evidence": None,
+    "published_runtime_gate_evidence": None,
+    "safe_apply_execution_evidence": None,
+    "saved_readback_evidence": None,
+    "publish_from_saved_evidence": None,
+    "published_readback_evidence": None,
+    "baseline_dashboard": None,
+    "proposed_dashboard": None,
+}
+_LIVE_MAINTENANCE_OBJECT_FIELDS = {
+    "create_necessity_proof",
+    "runtime_gate_evidence",
+    "saved_runtime_gate_evidence",
+    "published_runtime_gate_evidence",
+    "safe_apply_execution_evidence",
+    "saved_readback_evidence",
+    "publish_from_saved_evidence",
+    "published_readback_evidence",
+    "baseline_dashboard",
+    "proposed_dashboard",
+}
+_LIVE_MAINTENANCE_OBJECT_LIST_FIELDS = {
+    "changed_objects",
+    "safe_apply_actions",
+    "guarded_requests",
+}
+_LIVE_MAINTENANCE_STRING_FIELDS = {
+    "non_rendering_exemption",
+    "baseline_snapshot_path",
+    "source_availability_artifact",
+    "cleanup_mode",
+}
+_LIVE_MAINTENANCE_BOOL_FIELDS = {"browser_runtime_required", "allow_create"}
+
+
+def _normalize_live_maintenance_evidence(
+    maintenance_evidence: dict[str, Any] | None,
+    legacy_evidence: dict[str, Any],
+) -> dict[str, Any]:
+    if maintenance_evidence is None:
+        supplied: dict[str, Any] = {}
+    elif isinstance(maintenance_evidence, dict):
+        supplied = deepcopy(maintenance_evidence)
+    else:
+        raise ValueError("maintenance_evidence must be an object")
+
+    known = set(_LIVE_MAINTENANCE_EVIDENCE_DEFAULTS)
+    unknown_bundle = sorted(set(supplied) - known)
+    unknown_legacy = sorted(set(legacy_evidence) - known)
+    duplicate = sorted(set(supplied) & set(legacy_evidence))
+    issues: list[str] = []
+    if unknown_bundle:
+        issues.append(f"maintenance_evidence has unknown fields: {', '.join(unknown_bundle)}")
+    if unknown_legacy:
+        issues.append(f"legacy maintenance evidence has unknown fields: {', '.join(unknown_legacy)}")
+    if duplicate:
+        issues.append(f"maintenance evidence fields were supplied twice: {', '.join(duplicate)}")
+    if issues:
+        raise ValueError("; ".join(issues))
+
+    normalized = deepcopy(_LIVE_MAINTENANCE_EVIDENCE_DEFAULTS)
+    normalized.update(supplied)
+    normalized.update(deepcopy(legacy_evidence))
+    for name in sorted(_LIVE_MAINTENANCE_BOOL_FIELDS):
+        if type(normalized[name]) is not bool:
+            issues.append(f"{name} must be boolean")
+    for name in sorted(_LIVE_MAINTENANCE_STRING_FIELDS):
+        if not isinstance(normalized[name], str):
+            issues.append(f"{name} must be a string")
+    metadata_paths = normalized["metadata_evidence_paths"]
+    if metadata_paths is not None and (
+        not isinstance(metadata_paths, list) or not all(isinstance(item, str) for item in metadata_paths)
+    ):
+        issues.append("metadata_evidence_paths must be an array of strings")
+    for name in sorted(_LIVE_MAINTENANCE_OBJECT_FIELDS):
+        value = normalized[name]
+        if value is not None and not isinstance(value, dict):
+            issues.append(f"{name} must be an object")
+    for name in sorted(_LIVE_MAINTENANCE_OBJECT_LIST_FIELDS):
+        value = normalized[name]
+        if value is not None and (
+            not isinstance(value, list) or not all(isinstance(item, dict) for item in value)
+        ):
+            issues.append(f"{name} must be an array of objects")
+    source_budget = normalized["source_budget_evidence"]
+    if source_budget is not None and not (
+        isinstance(source_budget, dict)
+        or (isinstance(source_budget, list) and all(isinstance(item, dict) for item in source_budget))
+    ):
+        issues.append("source_budget_evidence must be an object or an array of objects")
+    if issues:
+        raise ValueError("invalid maintenance evidence: " + "; ".join(issues))
+    return normalized
 
 
 def dl_build_dashboard_source_availability_matrix(
@@ -1540,6 +1696,31 @@ def dl_create_safe_apply_plan(
         }
     root = ensure_project_dirs(project_root)
     payload_plan = read_json(root / "artifacts" / "payload_plan.json", default={"payloads": []})
+    if payload_plan.get("blocking_issues"):
+        result = {
+            "ok": False,
+            "status": "payload_plan_blocked",
+            "schema_version": "2026-05-25.safe_apply_plan.v1",
+            "project_root": str(root),
+            "actions": [],
+            "blocked_reasons": ["payload_plan_has_blocking_issues"],
+            "blocking_issues": deepcopy(payload_plan.get("blocking_issues") or []),
+            "payload_plan_path": str(root / "artifacts" / "payload_plan.json"),
+            "target_lock": (
+                deepcopy(payload_plan.get("target_lock"))
+                if isinstance(payload_plan.get("target_lock"), dict)
+                else early_target_lock.to_dict()
+            ),
+            "delivery_intent_decision": _delivery_intent_decision(
+                delivery_intent_text,
+                target_known=target_known,
+                approved=effective_authorized,
+                target_lock=early_target_lock.to_dict(),
+                proof_path=str(root / "artifacts" / "payload_plan.json"),
+            ),
+        }
+        write_json(root / "artifacts" / "safe_apply_plan.json", result)
+        return result
     existing_target_lock = payload_plan.get("target_lock") if isinstance(payload_plan.get("target_lock"), dict) else {}
     target_lock = create_target_lock(
         delivery_intent_text,
@@ -1570,16 +1751,37 @@ def dl_create_safe_apply_plan(
         if isinstance(data, dict):
             internal_name = str(data.get("name") or internal_name).strip()
             display_title = str(data.get("title") or "").strip()
+        if isinstance(payload, dict):
+            internal_name = str(payload.get("name") or payload.get("key") or internal_name).strip()
+            display_title = str(payload.get("title") or display_title or payload.get("name") or "").strip()
+        method = str(item.get("method") or "")
+        object_type = {
+            "createEditorChart": "editor_chart",
+            "createWizardChart": "wizard_chart",
+        }.get(method, "unknown")
         planned_objects.append(
             {
                 "display_title": display_title or internal_name or str(item.get("widget_id") or ""),
                 "internal_name": internal_name or str(item.get("widget_id") or ""),
-                "object_type": "editor_chart" if item.get("method") == "createEditorChart" else "unknown",
+                "object_type": object_type,
             }
         )
+        action_name = {
+            "createEditorChart": "create_editor_chart",
+            "createWizardChart": "create_wizard_chart",
+        }.get(method, "create_object")
+        readback_method = {
+            "createEditorChart": "getEditorChart",
+            "createWizardChart": "getWizardChart",
+        }.get(method, "getWorkbookEntries")
+        dataset_readbacks = [
+            evidence
+            for evidence in (item.get("dataset_readbacks") or [])
+            if isinstance(evidence, dict)
+        ]
         actions.append(
             {
-                "action": "create_editor_chart",
+                "action": action_name,
                 "action_type": "create",
                 "creation_necessity_proof": {
                     "schema_version": "datalens.object-creation-necessity.delta-v6",
@@ -1592,21 +1794,30 @@ def dl_create_safe_apply_plan(
                     "preserve_existing_ids_default": True,
                     "cleanup_report_required_if_created": True,
                 },
-                "method": item["method"],
+                "object_type": object_type,
+                "method": method,
                 "mode": "save",
                 "target_lock_hash": target_lock.lock_hash,
                 "requires_fresh_read": True,
                 "fresh_read_method": "getWorkbookEntries",
-                "fresh_read_payload": {"workbookId": str(payload_plan.get("workbook_id") or ""), "branch": "saved"},
+                "fresh_read_payload": {"workbookId": str(payload_plan.get("workbook_id") or "")},
                 "readback_mode": normalized_readback_mode,
                 "readback_required": normalized_readback_mode != "none",
-                "readback_method": "getWorkbookEntries",
-                "readback_payload": {"workbookId": str(payload_plan.get("workbook_id") or ""), "branch": "saved"},
+                "readback_method": readback_method,
+                "readback_payload": {"branch": "saved"},
                 "readback_justification": "offline create plan; readback disabled explicitly" if normalized_readback_mode == "none" else "",
                 "payload_path": payload_path,
                 "payload_sha256": serialized_metadata(payload)["sha256"],
                 "generator": "dl_build_payload_plan",
                 "source_path": payload_path,
+                **(
+                    {
+                        "dataset_readbacks": dataset_readbacks,
+                        "enforce_wizard_role_types": True,
+                    }
+                    if method == "createWizardChart"
+                    else {}
+                ),
             }
         )
     if not actions:
@@ -1631,11 +1842,40 @@ def dl_create_safe_apply_plan(
     reused_existing_objects: list[dict[str, Any]] = []
     if entries_payload is not None and planned_objects:
         workbook_id = str(payload_plan.get("workbook_id") or "")
+        entries_evidence_validation = validate_entries_reconciliation_evidence(
+            entries_payload,
+            expected_workbook_id=workbook_id,
+        )
+        if not entries_evidence_validation["ok"]:
+            result = {
+                "ok": False,
+                "status": "blocked_entries_reconciliation",
+                "error": {
+                    "category": "invalid_entries_reconciliation_evidence",
+                    "message": "; ".join(entries_evidence_validation["issues"]),
+                },
+                "adapter": adapter,
+                "entries_reconciliation_validation": entries_evidence_validation,
+                "target_lock": target_lock.to_dict(),
+                "actions": [],
+                "delivery_intent_decision": _delivery_intent_decision(
+                    delivery_intent_text,
+                    target_known=delivery_target_known,
+                    approved=effective_authorized,
+                    target_lock=target_lock.to_dict(),
+                    proof_path=str(root / "artifacts" / "safe_apply_plan.json"),
+                ),
+            }
+            write_json(root / "artifacts" / "safe_apply_plan.json", result)
+            return result
         reconciliation = reconcile_partial_creates(
             workbook_id=workbook_id,
             planned_objects=planned_objects,
             entries_payload=entries_payload,
         )
+        reconciliation["evidence_validation"] = entries_evidence_validation
+        reconciliation_path = root / "artifacts" / "entries_reconciliation.json"
+        write_json(reconciliation_path, reconciliation)
         if reconciliation["duplicates_detected"]:
             return {
                 "ok": False,
@@ -1661,6 +1901,39 @@ def dl_create_safe_apply_plan(
             if item["recommended_action"] == "reuse":
                 reused_existing_objects.append(item)
                 continue
+            creation_proof = {
+                "schema_version": "datalens.object-creation-necessity.delta-v6",
+                "status": "validated",
+                "update_insufficient_reason": (
+                    "Workbook entry reconciliation found no compatible existing object for the requested role."
+                ),
+                "existing_readback_checked": True,
+                "preserve_existing_ids_default": True,
+                "cleanup_report_required_if_created": True,
+            }
+            reuse_decision = build_object_reuse_decision(
+                desired_role=str(action.get("action") or "create_object"),
+                target_object_type=str(action.get("object_type") or "unknown"),
+                existing_object_found=False,
+                target_scope={"workbook_id": workbook_id},
+                existing_candidates=list(item.get("matches") or []),
+                selected_action="create",
+                create_necessity_proof=creation_proof,
+                cleanup_lifecycle={
+                    "mode": "created_object_registry",
+                    "owner_workflow": "dl_create_safe_apply_plan",
+                    "active_graph_check": True,
+                },
+                baseline_proof_artifact=str(reconciliation_path),
+            )
+            action["creation_necessity_proof"] = creation_proof
+            action["object_reuse_decision"] = reuse_decision
+            action["cleanup_lifecycle"] = deepcopy(reuse_decision["cleanup_lifecycle"])
+            action["entries_reconciliation"] = {
+                "status": str(item.get("status") or ""),
+                "recommended_action": str(item.get("recommended_action") or ""),
+                "proof_artifact": str(reconciliation_path),
+            }
             filtered_actions.append(action)
         actions = filtered_actions
         if not actions:
@@ -1690,7 +1963,6 @@ def dl_create_safe_apply_plan(
         approved=effective_authorized,
         user_request_text=delivery_intent_text,
     )
-    plan["ok"] = True
     plan["adapter"] = adapter
     plan["target_lock"] = target_lock.to_dict()
     plan["delivery_intent_decision"] = _delivery_intent_decision(
@@ -1706,8 +1978,6 @@ def dl_create_safe_apply_plan(
     if reconciliation is not None:
         plan["reconciliation"] = reconciliation
         plan["reused_existing_objects"] = reused_existing_objects
-    write_json(root / "artifacts" / "safe_apply_plan.json", plan)
-    write_json(root / "artifacts" / "delivery" / "target_lock.json", target_lock.to_dict())
     plan["suggested_records"] = [
         {
             "op": "upsert_entry",
@@ -1720,6 +1990,14 @@ def dl_create_safe_apply_plan(
             ),
         }
     ]
+    preflight = validate_safe_apply_plan_exhaustive(plan)
+    plan["preflight"] = preflight
+    plan["ok"] = preflight.get("ok") is True
+    plan["status"] = "safe_apply_plan_ready" if plan["ok"] else "safe_apply_plan_blocked"
+    if not plan["ok"]:
+        plan["blocked_reasons"] = list(preflight.get("issues") or ["safe_apply_preflight_failed"])
+    write_json(root / "artifacts" / "safe_apply_plan.json", plan)
+    write_json(root / "artifacts" / "delivery" / "target_lock.json", target_lock.to_dict())
     return plan
 
 
@@ -1777,8 +2055,6 @@ def _create_existing_object_update_safe_apply_plan(
         approved=approved,
         user_request_text=delivery_intent_text,
     )
-    safe_plan["ok"] = True
-    safe_plan["status"] = "existing_object_update_plan_created"
     safe_plan["existing_object_update_plan"] = update_plan
     safe_plan["target_lock"] = target_lock
     safe_plan["delivery_intent_decision"] = _delivery_intent_decision(
@@ -1791,6 +2067,16 @@ def _create_existing_object_update_safe_apply_plan(
         target_lock=target_lock,
         proof_path=str(root / "artifacts" / "safe_apply_plan.json"),
     )
+    preflight = validate_safe_apply_plan_exhaustive(safe_plan)
+    safe_plan["preflight"] = preflight
+    safe_plan["ok"] = preflight.get("ok") is True
+    safe_plan["status"] = (
+        "existing_object_update_plan_created"
+        if safe_plan["ok"]
+        else "existing_object_update_plan_blocked"
+    )
+    if not safe_plan["ok"]:
+        safe_plan["blocked_reasons"] = list(preflight.get("issues") or ["safe_apply_preflight_failed"])
     write_json(root / "artifacts" / "safe_apply_plan.json", safe_plan)
     return safe_plan
 
@@ -1825,6 +2111,27 @@ def _existing_update_action(
         errors = [finding for finding in validation.get("findings") or [] if finding.get("severity") == "error"]
         if errors and not item.get("validator_required_cleanup"):
             blocked.append(f"existing_update[{index}].full_object_editor_validation_failed")
+    wizard_dataset_readbacks: list[dict[str, Any]] | None = None
+    enforce_wizard_role_types: bool | None = None
+    if method_spec["method"] == "updateWizardChart":
+        raw_dataset_readbacks = item.get("dataset_readbacks")
+        if raw_dataset_readbacks is not None:
+            if not isinstance(raw_dataset_readbacks, list) or not all(
+                isinstance(evidence, dict) for evidence in raw_dataset_readbacks
+            ):
+                blocked.append(f"existing_update[{index}].dataset_readbacks_invalid")
+            else:
+                wizard_dataset_readbacks = compact_wizard_dataset_readbacks(
+                    payload,
+                    raw_dataset_readbacks,
+                )
+        raw_enforce_role_types = item.get("enforce_wizard_role_types")
+        if raw_enforce_role_types is not None and type(raw_enforce_role_types) is not bool:
+            blocked.append(f"existing_update[{index}].enforce_wizard_role_types_invalid")
+        elif raw_enforce_role_types is not None:
+            enforce_wizard_role_types = raw_enforce_role_types
+        if enforce_wizard_role_types is True and not wizard_dataset_readbacks:
+            blocked.append(f"existing_update[{index}].dataset_readbacks_required_for_role_type_enforcement")
     plan_action = {
         "object_id": object_id,
         "object_type": object_type,
@@ -1855,6 +2162,12 @@ def _existing_update_action(
         "base_revision": base_revision,
         "validator_required_cleanup": plan_action["validator_required_cleanup"],
     }
+    if wizard_dataset_readbacks is not None:
+        action["dataset_readbacks"] = wizard_dataset_readbacks
+        plan_action["dataset_readbacks"] = wizard_dataset_readbacks
+    if enforce_wizard_role_types is not None:
+        action["enforce_wizard_role_types"] = enforce_wizard_role_types
+        plan_action["enforce_wizard_role_types"] = enforce_wizard_role_types
     return {"action": action if not blocked else None, "plan_action": plan_action, "blocked_reasons": blocked}
 
 
@@ -2112,6 +2425,13 @@ def _execute_publish_after_save(
             readback_mode=item.get("readback_mode", "minimal"),
             user_request_text=delivery_intent_text,
         )
+        inherited_target_lock = plan.get("target_lock") if isinstance(plan.get("target_lock"), dict) else {}
+        inherited_target_lock_hash = str(inherited_target_lock.get("lock_hash") or "").strip()
+        if inherited_target_lock_hash:
+            publish_plan["target_lock"] = deepcopy(inherited_target_lock)
+            for publish_action in publish_plan.get("actions") or []:
+                if isinstance(publish_action, dict):
+                    publish_action["target_lock_hash"] = inherited_target_lock_hash
         if isinstance(plan.get("request_intent"), dict):
             inherited_intent = deepcopy(plan["request_intent"])
             publish_plan["request_intent"] = inherited_intent
@@ -2217,6 +2537,14 @@ def _persist_result_readbacks(
         if not isinstance(action_result, dict) or not action_result.get("executed"):
             continue
         index = int(action_result.get("index") or 0)
+        verification = (
+            action_result.get("readback_verification")
+            if isinstance(action_result.get("readback_verification"), dict)
+            else {}
+        )
+        if verification.get("verified") is not True:
+            errors.append(f"action {index} readback lacks successful post-write verification")
+            continue
         plan_action = actions[index] if 0 <= index < len(actions) and isinstance(actions[index], dict) else {}
         stage = load_safe_apply_stage_value(action_result, "readback", project_root=root)
         if not stage.get("ok"):
@@ -2566,8 +2894,18 @@ def dl_readback_and_report(
     return {"readback": inline_readback, "deployment_report": inline_report}
 
 
-def _write_dashboard_relations(*, root: Path, brief: dict[str, Any], widget_id: str, selector_param: str = "segment") -> dict[str, Any]:
-    relations = build_default_dashboard_relations(brief=brief, widget_id=widget_id, selector_param=selector_param)
+def _write_dashboard_relations(
+    *,
+    root: Path,
+    brief: dict[str, Any],
+    widget_id: str,
+    selector_contract: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    relations = build_default_dashboard_relations(
+        brief=brief,
+        widget_id=widget_id,
+        selector_contract=selector_contract,
+    )
     write_json(root / "artifacts" / "dashboard_object_relations.json", relations)
     return relations
 
@@ -2587,15 +2925,6 @@ def _relation_report_summary(relations: dict[str, Any]) -> dict[str, Any]:
         "chart_count": len(relations.get("charts") or []),
         "relation_targets": sorted(set(targets)),
     }
-
-
-def _selector_param_from_requirements(root: Path, brief: dict[str, Any]) -> str:
-    fields = [str(item) for item in (brief.get("data_contract") or {}).get("fields") or []]
-    selectors_text = read_text(root / "requirements" / "selectors.md", default="").lower()
-    for field in fields:
-        if field and field.lower() in selectors_text:
-            return field
-    return "segment"
 
 
 def _brief_from_governance_bundle(bundle: dict[str, Any]) -> dict[str, Any]:

@@ -1,4 +1,7 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 
 REQUIRED_TOOLS = {
@@ -37,6 +40,32 @@ UNSUPPORTED_SCHEMA_ONLY_TOOLS = {
 class FakeClient:
     def rpc(self, method, payload):
         return {"method": method, "payload": payload, "fields": [{"name": "segment"}, {"name": "value"}]}
+
+
+class OversizedReadClient:
+    def rpc(self, method, payload):
+        return {
+            "datasetId": payload.get("datasetId", "dataset_1"),
+            "revId": "rev_1",
+            "fields": [
+                {
+                    "name": f"field_{index}",
+                    "guid": f"guid_{index}",
+                    "formula": "SUM([value]) " + ("x" * 120),
+                }
+                for index in range(80)
+            ],
+            "sources": [{"sql": "SELECT " + ("x" * 4_000)}],
+        }
+
+
+class FailingReadClient:
+    def rpc(self, method, payload):
+        raise RuntimeError("synthetic read failure " + ("x" * 5_000))
+
+
+def compact_chars(value):
+    return len(json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True))
 
 
 class McpObjectLifecycleToolTests(unittest.TestCase):
@@ -255,6 +284,117 @@ class McpObjectLifecycleToolTests(unittest.TestCase):
         self.assertEqual(relations["method"], "getEntriesRelations")
         self.assertEqual(schema["field_validation"]["status"], "blocked_missing_fields")
         self.assertEqual(schema["field_validation"]["missing_fields"], ["missing"])
+
+    def test_read_object_composes_envelope_inside_requested_budget(self):
+        from datalens_dev_mcp.mcp.tools.object_lifecycle import dl_read_object
+
+        stable_keys = {
+            "ok",
+            "response_mode",
+            "requested_response_mode",
+            "summary_kind",
+            "summary",
+            "full_response",
+            "artifact",
+            "method",
+            "object_type",
+            "object_id",
+            "branch",
+            "contract",
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            for response_mode in ("summary", "structure", "full", "artifact"):
+                for budget in (800, 1_000, 2_000):
+                    with self.subTest(response_mode=response_mode, budget=budget):
+                        result = dl_read_object(
+                            "dataset",
+                            "dataset_1",
+                            response_mode=response_mode,
+                            inline_char_budget=budget,
+                            project_root=tmp,
+                            run_id=f"budget-{response_mode}-{budget}",
+                            client=OversizedReadClient(),
+                        )
+
+                        self.assertTrue(result["ok"], result)
+                        self.assertLessEqual(compact_chars(result), budget)
+                        self.assertEqual(set(result), stable_keys)
+                        self.assertEqual(result["method"], "getDataset")
+                        self.assertEqual(result["object_type"], "dataset")
+                        self.assertEqual(result["object_id"], "dataset_1")
+                        self.assertEqual(result["branch"], "")
+                        self.assertEqual(
+                            result["contract"]["schema_version"],
+                            "2026-06-25.object_read_registry.v1",
+                        )
+                        self.assertTrue(result["contract"]["truncated"])
+                        self.assertTrue(Path(result["artifact"]["path"]).is_file())
+
+    def test_read_object_preserves_full_contract_when_budget_allows(self):
+        from datalens_dev_mcp.mcp.tools.object_lifecycle import dl_read_object
+        from datalens_dev_mcp.server import list_tools
+
+        result = dl_read_object(
+            "dataset",
+            "dataset_1",
+            inline_char_budget=20_000,
+            client=FakeClient(),
+        )
+
+        self.assertTrue(result["ok"], result)
+        self.assertLessEqual(compact_chars(result), 20_000)
+        self.assertEqual(result["contract"]["read_method"], "getDataset")
+        self.assertIn("method_schema", result["contract"])
+        self.assertNotIn("truncated", result["contract"])
+        schema = next(tool for tool in list_tools() if tool["name"] == "dl_read_object")["inputSchema"]
+        self.assertEqual(schema["properties"]["inline_char_budget"]["minimum"], 800)
+
+    def test_read_object_minimum_budget_covers_every_readable_registered_type(self):
+        from datalens_dev_mcp.mcp.object_registry import object_read_contract, object_type_registry
+        from datalens_dev_mcp.mcp.tools.object_lifecycle import dl_read_object
+
+        with tempfile.TemporaryDirectory() as tmp:
+            for object_type in object_type_registry()["object_types"]:
+                contract = object_read_contract(object_type)
+                if not contract or not contract.read_method:
+                    continue
+                with self.subTest(object_type=object_type):
+                    result = dl_read_object(
+                        object_type,
+                        "fixture-object-id-1234567890",
+                        branch="published",
+                        inline_char_budget=800,
+                        project_root=tmp,
+                        client=OversizedReadClient(),
+                    )
+                    self.assertTrue(result["ok"], result)
+                    self.assertLessEqual(compact_chars(result), 800)
+
+    def test_read_object_error_and_unsupported_paths_respect_supported_budgets(self):
+        from datalens_dev_mcp.mcp.tools.object_lifecycle import dl_read_object
+
+        for budget in (800, 1_000, 2_000):
+            cases = (
+                dl_read_object("calculated_field", "field_1", inline_char_budget=budget),
+                dl_read_object("unsupported_fixture", "entry_1", inline_char_budget=budget),
+                dl_read_object("dataset", "dataset_1", inline_char_budget=budget, client=FailingReadClient()),
+            )
+            for result in cases:
+                with self.subTest(budget=budget, category=result["error"]["category"]):
+                    self.assertFalse(result["ok"])
+                    self.assertLessEqual(compact_chars(result), budget)
+
+        invalid = dl_read_object("dataset", "dataset_1", inline_char_budget=799, client=FakeClient())
+        self.assertEqual(invalid["error"]["category"], "invalid_input")
+        invalid_mode = dl_read_object(
+            "dataset",
+            "dataset_1",
+            response_mode="unsupported_mode",
+            inline_char_budget=800,
+            client=FakeClient(),
+        )
+        self.assertEqual(invalid_mode["error"]["category"], "invalid_input")
+        self.assertLessEqual(compact_chars(invalid_mode), 800)
 
     def test_guarded_dataset_update_validate_only_does_not_plan_update(self):
         from datalens_dev_mcp.mcp.tools.object_lifecycle import dl_plan_guarded_dataset_update

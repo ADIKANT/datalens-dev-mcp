@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 
 from datalens_dev_mcp.pipeline.chart_taxonomy import resolve_chart_family
-from datalens_dev_mcp.pipeline.layout_contract import plan_selector_row_widths
 from datalens_dev_mcp.pipeline.route_contract import ROUTE_CONTRACT, normalize_route
 from datalens_dev_mcp.editor.standard_templates import (
     GOLDEN_FIXTURE_SOURCE_MODE,
@@ -72,7 +71,7 @@ def _default_meta(dataset_alias: str | None = None) -> str:
 def _default_params(param: str | None = None) -> str:
     if not param:
         return "module.exports = {};\n"
-    return f"module.exports = {{\n  {param}: ['all'],\n}};\n"
+    return "module.exports = " + json.dumps({param: []}, ensure_ascii=False, indent=2) + ";\n"
 
 
 def _default_sources(dataset_alias: str | None, columns: list[str] | None) -> str:
@@ -146,30 +145,6 @@ def _markdown_prepare(markdown: str | None, title: str) -> str:
     return f"const markdown = {_js_string(body)};\nmodule.exports = {{markdown}};\n"
 
 
-def _controls(param: str | None, options: list[str] | None, title: str) -> str:
-    param_name = param or "segment"
-    width = plan_selector_row_widths([param_name])[param_name]
-    values = options or ["all"]
-    content = [{"title": value, "value": str(value)} for value in values]
-    return (
-        "module.exports = {\n"
-        "  controls: [\n"
-        "    {\n"
-        "      type: 'select',\n"
-        f"      param: {_js_string(param_name)},\n"
-        f"      label: {_js_string(title)},\n"
-        "      labelPlacement: 'left',\n"
-        f"      width: '{width}',\n"
-        "      multiselect: true,\n"
-        "      searchable: true,\n"
-        "      updateOnChange: true,\n"
-        f"      content: {json.dumps(content, ensure_ascii=False)},\n"
-        "    },\n"
-        "  ],\n"
-        "};\n"
-    )
-
-
 def generate_editor_bundle(
     *,
     widget_id: str,
@@ -180,6 +155,7 @@ def generate_editor_bundle(
     markdown: str | None = None,
     param: str | None = None,
     options: list[str] | None = None,
+    selector_contract: dict[str, Any] | None = None,
     family: str | None = None,
     visual_spec: dict[str, Any] | None = None,
     chart_decision_record: dict[str, Any] | None = None,
@@ -212,6 +188,10 @@ def generate_editor_bundle(
         visual_spec=requested_visual_spec,
         dataset_alias=dataset_alias,
         columns=columns,
+        markdown=markdown,
+        param=param,
+        options=options,
+        selector_contract=selector_contract,
         source_mode=source_mode,
     )
     if standard_bundle:
@@ -260,7 +240,7 @@ def generate_editor_bundle(
     elif normalized == "editor_markdown":
         tabs["prepare.js"] = _markdown_prepare(markdown, title)
     elif normalized == "editor_js_control":
-        tabs["controls.js"] = _controls(param, options, title)
+        tabs["controls.js"] = "module.exports = {controls: []};\n"
     else:
         tabs["controls.js"] = "module.exports = {};\n"
         tabs["prepare.js"] = _advanced_prepare(title)
@@ -270,6 +250,16 @@ def generate_editor_bundle(
             {
                 "code": "missing_standard_chart_family",
                 "message": "Choose an approved Advanced Editor family before compiling a production payload.",
+            }
+        )
+    if normalized == "editor_js_control":
+        blocking_issues.append(
+            {
+                "code": "missing_standard_selector_family",
+                "message": (
+                    "Choose a registered selector family and provide its complete selector_contract "
+                    "before compiling a production control."
+                ),
             }
         )
     generation_status = "ready" if not blocking_issues else "blocked_missing_source_or_family"

@@ -35,6 +35,8 @@ def _write_v2_capture(
     *,
     change_scope: str = "layout",
     widths: tuple[int, ...] = (1200, 1440),
+    device_pixel_ratio: float = 1.0,
+    screenshot_size: tuple[int, int] | None = None,
     horizontal_overflow_px: float = 0,
     clipped_object_ids: list[str] | None = None,
     missing_object_ids: list[str] | None = None,
@@ -43,12 +45,17 @@ def _write_v2_capture(
     viewport_checks: list[dict[str, object]] = []
     for index, width in enumerate(widths):
         screenshot = root / f"viewport-{width}-{index}.png"
-        screenshot.write_bytes(_png_bytes())
+        image_width, image_height = screenshot_size or (
+            round(width * device_pixel_ratio),
+            round(900 * device_pixel_ratio),
+        )
+        screenshot.write_bytes(_png_bytes(width=image_width, height=image_height))
         viewport_checks.append(
             {
                 "label": f"desktop-{width}",
                 "width": width,
                 "height": 900,
+                "device_pixel_ratio": device_pixel_ratio,
                 "document_width": width,
                 "horizontal_overflow_px": horizontal_overflow_px,
                 "scope_object_ids": object_ids,
@@ -128,6 +135,11 @@ class ResponsiveBrowserCaptureContractTests(unittest.TestCase):
             len(smoke["browser_capture_validation"]["viewport_image_details"]),
             2,
         )
+        first_image = smoke["browser_capture_validation"]["viewport_image_details"][0]
+        self.assertEqual(first_image["viewport_width"], 1200)
+        self.assertEqual(first_image["device_pixel_ratio"], 1.0)
+        self.assertEqual(first_image["width"], 1200)
+        self.assertEqual(first_image["height"], 900)
 
     def test_content_capture_accepts_one_viewport(self):
         from datalens_dev_mcp.pipeline.runtime_gate import validate_browser_capture_artifact
@@ -142,6 +154,25 @@ class ResponsiveBrowserCaptureContractTests(unittest.TestCase):
 
         self.assertTrue(validation["ok"], validation["issues"])
         self.assertEqual(len(validation["image_artifacts"]), 1)
+
+    def test_fractional_device_pixel_ratio_scales_expected_screenshot_size(self):
+        from datalens_dev_mcp.pipeline.runtime_gate import validate_browser_capture_artifact
+
+        with tempfile.TemporaryDirectory() as tmp:
+            capture = _write_v2_capture(
+                Path(tmp),
+                change_scope="content",
+                widths=(400,),
+                device_pixel_ratio=1.5,
+            )
+            validation = validate_browser_capture_artifact(str(capture))
+
+        self.assertTrue(validation["ok"], validation["issues"])
+        details = validation["viewport_image_details"][0]
+        self.assertEqual(details["expected_image_width"], 600)
+        self.assertEqual(details["expected_image_height"], 1350)
+        self.assertEqual(details["width"], 600)
+        self.assertEqual(details["height"], 1350)
 
     def test_layout_capture_rejects_single_or_duplicate_widths(self):
         from datalens_dev_mcp.pipeline.runtime_gate import validate_browser_capture_artifact
@@ -186,6 +217,41 @@ class ResponsiveBrowserCaptureContractTests(unittest.TestCase):
 
         self.assertFalse(validation["ok"])
         self.assertTrue(any(issue["rule"] == "artifact_sha256_mismatch" for issue in validation["issues"]))
+
+    def test_viewport_screenshot_dimensions_must_match_css_viewport_and_dpr(self):
+        from datalens_dev_mcp.pipeline.runtime_gate import validate_browser_capture_artifact
+
+        with tempfile.TemporaryDirectory() as tmp:
+            capture = _write_v2_capture(Path(tmp), screenshot_size=(2, 2))
+            validation = validate_browser_capture_artifact(str(capture))
+
+        self.assertFalse(validation["ok"])
+        self.assertTrue(
+            any(
+                issue["rule"] == "browser_capture_viewport_screenshot_dimensions"
+                for issue in validation["issues"]
+            )
+        )
+
+    def test_viewport_device_pixel_ratio_is_required_and_positive(self):
+        from datalens_dev_mcp.pipeline.runtime_gate import validate_browser_capture_artifact
+
+        with tempfile.TemporaryDirectory() as tmp:
+            capture = _write_v2_capture(Path(tmp))
+            document = json.loads(capture.read_text(encoding="utf-8"))
+            document["viewport_checks"][0].pop("device_pixel_ratio")
+            document["viewport_checks"][1]["device_pixel_ratio"] = 0
+            capture.write_text(json.dumps(document), encoding="utf-8")
+            validation = validate_browser_capture_artifact(str(capture))
+
+        self.assertFalse(validation["ok"])
+        self.assertEqual(
+            sum(
+                issue["rule"] == "browser_capture_device_pixel_ratio"
+                for issue in validation["issues"]
+            ),
+            2,
+        )
 
     def test_schema_accepts_v1_and_v2_and_packaged_mirrors_match(self):
         schema_path = REPO_ROOT / "schemas" / "browser_capture.schema.json"

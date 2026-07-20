@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import inspect
 import json
 import os
@@ -51,11 +52,6 @@ MCP_PROTOCOL_VERSION = "2025-06-18"
 DEFAULT_TOOL_SURFACE = "standard"
 
 
-def _title_from_name(name: str) -> str:
-    cleaned = name.removeprefix("dl_").replace("_", " ").replace(".", " ")
-    return " ".join(word.capitalize() for word in cleaned.split())
-
-
 def _tool_schema(
     name: str,
     description: str,
@@ -64,7 +60,6 @@ def _tool_schema(
 ) -> dict[str, Any]:
     return {
         "name": name,
-        "title": _title_from_name(name),
         "description": description,
         "inputSchema": _input_schema_for_tool(name, properties=properties, required=required),
     }
@@ -174,6 +169,7 @@ STANDARD_TOOL_NAMES = {
     "dl_classify_source_error",
     "dl_diagnose",
     "dl_reference",
+    "dl_generate_editor_bundle",
     "dl_validate_project",
     "dl_build_payload_plan",
     "dl_create_safe_apply_plan",
@@ -201,7 +197,6 @@ STANDARD_TOOL_NAMES = {
     "dl_run_project_live_apply",
     "dl_read_project_live_summary",
     "dl_run_live_maintenance_update",
-    "dl_compile_guarded_rpc_request",
     "dl_build_dashboard_source_availability_matrix",
     "dl_validate_source_availability_consumers",
     "dl_plan_source_availability_patch",
@@ -338,7 +333,7 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "readback_mode": "Readback depth for saved/published verification.",
     "plan_path": "Path to the guarded safe-apply plan artifact to execute.",
     "write_manifest": "Write the generated local project manifest instead of returning a preview only.",
-    "confirm_delete": "Confirm deletion of the exact whole-object IDs and unchanged plan hash returned by the previous call.",
+    "confirm_delete": "Confirm exact retire_legacy_objects IDs and the unchanged plan hash returned by the previous call.",
     "saved_readback_path": "Saved-branch readback artifact used as the only valid publish source.",
     "workflow_name": "Manifest workflow name.",
     "overwrite_existing": "Allow the generated project manifest to replace an existing manifest.",
@@ -381,6 +376,11 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "probe_operation": "Read-only evidence probe operation.",
     "table_ref": "Physical table reference as schema.table or catalog.schema.table.",
     "columns": "Explicit column list for source binding or bounded probes; SELECT * is not allowed.",
+    "selector_contract": (
+        "Explicit selector parameter, option-source, default, and reset contract. "
+        "Required for production editor_js_control generation."
+    ),
+    "dataset_readbacks": "Fresh dataset readbacks used to validate Wizard field GUID and role bindings.",
     "where_clause": "Optional bounded WHERE predicate for read-only data probes.",
     "cte_sql": "CTE SQL used only for stage-count probe planning.",
     "graph_config": "Graph/link/freshness probe options such as source_key, target_key, or timestamp_column.",
@@ -449,6 +449,7 @@ COMPACT_SCHEMA_DESCRIPTION_PARAMS = {
     "dashboard_id",
     "dashboard_name",
     "dataset_id",
+    "dataset_alias",
     "decision_id",
     "delivery_intent_text",
     "entry_ids",
@@ -626,8 +627,106 @@ PUBLISH_OBJECT_TYPE_SCHEMA = {
     "enum": ["dashboard", "editor_chart", "wizard_chart", "ql_chart"],
     "description": "Saved-branch publish object type.",
 }
+SELECTOR_CONTRACT_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "description": (
+        "Complete Editor selector contract. Date ranges use either param or the "
+        "param_from/param_to pair; Params values are generated only as arrays of strings."
+    ),
+    "properties": {
+        "param": {"type": "string", "minLength": 1},
+        "param_from": {"type": "string", "minLength": 1},
+        "param_to": {"type": "string", "minLength": 1},
+        "label": {"type": "string", "minLength": 1},
+        "option_source": {"type": "string", "enum": ["static", "dataset", "dynamic", "none"]},
+        "options": {
+            "type": "array",
+            "items": {
+                "oneOf": [
+                    {"type": "string", "minLength": 1},
+                    {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "required": ["title", "value"],
+                        "properties": {
+                            "title": {"type": "string", "minLength": 1},
+                            "value": {"type": "string", "minLength": 1},
+                        },
+                    },
+                ]
+            },
+        },
+        "default_values": {"type": "array", "items": {"type": "string"}},
+        "default_from": {"type": "string"},
+        "default_to": {"type": "string"},
+        "reset_behavior": {"type": "string", "enum": ["initial", "empty"]},
+    },
+    "required": ["label", "option_source", "reset_behavior"],
+    "oneOf": [
+        {
+            "required": ["param"],
+            "not": {
+                "anyOf": [
+                    {"required": ["param_from"]},
+                    {"required": ["param_to"]},
+                ]
+            },
+        },
+        {
+            "required": ["param_from", "param_to"],
+            "not": {"required": ["param"]},
+        },
+    ],
+}
+MAINTENANCE_EVIDENCE_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "description": (
+        "Typed evidence only: creation needs create_necessity_proof; publish needs guarded save, "
+        "saved readback, and publish-from-saved; rendering claims need saved/published browser evidence."
+    ),
+    "properties": {
+        "browser_runtime_required": {
+            "type": "boolean",
+            "default": True,
+        },
+        "non_rendering_exemption": {"type": "string"},
+        "baseline_snapshot_path": {"type": "string"},
+        "metadata_evidence_paths": {"type": "array", "items": {"type": "string"}},
+        "source_availability_artifact": {"type": "string"},
+        "changed_objects": {"type": "array", "items": {"type": "object"}},
+        "allow_create": {
+            "type": "boolean",
+            "default": False,
+        },
+        "create_necessity_proof": {"type": "object"},
+        "cleanup_mode": {"type": "string", "default": "plan_only"},
+        "safe_apply_actions": {
+            "type": "array",
+            "items": {"type": "object"},
+        },
+        "guarded_requests": {"type": "array", "items": {"type": "object"}},
+        "source_budget_evidence": {
+            "anyOf": [
+                {"type": "object"},
+                {"type": "array", "items": {"type": "object"}},
+            ]
+        },
+        "runtime_gate_evidence": {"type": "object"},
+        "saved_runtime_gate_evidence": {"type": "object"},
+        "published_runtime_gate_evidence": {"type": "object"},
+        "safe_apply_execution_evidence": {"type": "object"},
+        "saved_readback_evidence": {"type": "object"},
+        "publish_from_saved_evidence": {"type": "object"},
+        "published_readback_evidence": {"type": "object"},
+        "baseline_dashboard": {"type": "object"},
+        "proposed_dashboard": {"type": "object"},
+    },
+}
 
 TOOL_PARAM_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
+    ("dl_generate_editor_bundle", "selector_contract"): SELECTOR_CONTRACT_SCHEMA,
     ("dl_diagnose", "mode"): {
         "type": "string",
         "enum": [
@@ -674,6 +773,12 @@ TOOL_PARAM_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
         ],
         "default": "search",
         "description": "Bounded reference mode.",
+    },
+    ("dl_run_live_maintenance_update", "maintenance_evidence"): MAINTENANCE_EVIDENCE_SCHEMA,
+    ("dl_read_object", "inline_char_budget"): {
+        "type": "integer",
+        "default": 20_000,
+        "minimum": 800,
     },
     ("dl_read_object", "object_type"): READ_OBJECT_TYPE_SCHEMA,
     ("dl_validate_object_payload", "object_type"): LIFECYCLE_OBJECT_TYPE_SCHEMA,
@@ -783,7 +888,7 @@ def _all_tool_schemas() -> tuple[dict[str, Any], ...]:
         _tool_schema("dl_run_project_live_dry_run", "Run manifest dry-run command with secret-safe env."),
         _tool_schema(
             "dl_run_project_live_apply",
-            "Run a manifest apply/publish command behind live guards; only whole-object deletion needs confirmation.",
+            "Run a guarded manifest apply/publish command; retire_legacy_objects alone needs confirmation.",
         ),
         _tool_schema("dl_read_project_live_summary", "Read and normalize a project live workflow summary JSON."),
         _tool_schema(
@@ -862,7 +967,7 @@ def _all_tool_schemas() -> tuple[dict[str, Any], ...]:
 
 def list_tools(profile: str | None = None) -> list[dict[str, Any]]:
     names = STANDARD_TOOL_NAMES if profile is None else tool_names_for_profile(profile)
-    return [tool for tool in _all_tool_schemas() if tool["name"] in names]
+    return [deepcopy(tool) for tool in _all_tool_schemas() if tool["name"] in names]
 
 
 def list_test_tools(profile: str = "all") -> list[dict[str, Any]]:
@@ -905,14 +1010,13 @@ def _input_schema_for_tool(
         if name in PROJECT_CONTEXT_AWARE_TOOLS:
             schema_properties.setdefault(
                 "context_ref",
-                {"type": "object", "description": "Owning project_context_ref.v1 from Project Memory Bank."},
+                {"type": "object"},
             )
             schema_properties.setdefault(
                 "evidence_refs",
                 {
                     "type": "array",
                     "items": {"type": "object"},
-                    "description": "Hash-bound evidence_ref.v1 inputs from prior project-aware operations.",
                 },
             )
     required_fields = required if required is not None else TOOL_REQUIRED_FIELDS.get(name, [])
@@ -928,9 +1032,15 @@ def _input_schema_for_tool(
 
 def _schema_for_parameter(tool_name: str, name: str, param: inspect.Parameter) -> dict[str, Any]:
     schema = dict(TOOL_PARAM_OVERRIDES.get((tool_name, name), PARAM_OVERRIDES.get(name, _schema_from_annotation(param.annotation))))
-    if name not in COMPACT_SCHEMA_DESCRIPTION_PARAMS:
-        schema.setdefault("description", PARAM_DESCRIPTIONS.get(name, f"{name} input."))
-    if param.default is not inspect._empty and param.default is not None and _json_scalar(param.default):
+    description = PARAM_DESCRIPTIONS.get(name)
+    if name not in COMPACT_SCHEMA_DESCRIPTION_PARAMS and description:
+        schema.setdefault("description", description)
+    if (
+        param.default is not inspect._empty
+        and param.default is not None
+        and param.default != ""
+        and _json_scalar(param.default)
+    ):
         schema.setdefault("default", param.default)
     return schema
 
@@ -1026,7 +1136,9 @@ class JsonRpcServer:
                         "publish from saved readback; published readback and runtime check. "
                         "An explicit create/fix/update/redesign request authorizes guarded save and publish without another question. "
                         "Review, audit, diagnose, plan-only, save-only, and no-publish wording limits execution accordingly. "
-                        "Only deletion of whole DataLens objects requires a second call with confirm_delete=true for the unchanged plan. "
+                        "Arbitrary whole-object deletion is unsupported; "
+                        "retire_legacy_objects alone requires a second call with "
+                        "confirm_delete=true for the unchanged plan. "
                         "Writes remain guarded by runtime enablement, target lock, fresh reads, "
                         "revision preservation, save semantics, and readback."
                     ),
