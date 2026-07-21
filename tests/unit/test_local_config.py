@@ -43,7 +43,9 @@ class LocalConfigTests(unittest.TestCase):
         self.assertTrue(config["safe_apply"]["require_safe_apply_plan"])
         self.assertTrue(config["safe_apply"]["require_readback_after_save"])
         self.assertFalse(config["live_testing"]["run_live_tests_by_default"])
-        self.assertEqual(config["api_defaults"]["request_interval_sec"], 0.15)
+        self.assertEqual(config["api_defaults"]["request_interval_sec"], 1.05)
+        self.assertEqual(config["api_defaults"]["max_read_concurrency"], 3)
+        self.assertEqual(config["api_defaults"]["read_transient_retries"], 2)
         self.assertEqual(
             config["routing"]["chart_creation_routes"],
             ["wizard_native", "advanced_editor_js", "ql_explicit"],
@@ -291,6 +293,23 @@ class LocalConfigTests(unittest.TestCase):
             )
 
         self.assertEqual(resolved["project_root"], str(root / "explicit"))
+
+    def test_batch_workbook_ids_are_not_mixed_with_configured_single_default(self):
+        config = load_local_config(project_root=ROOT)
+        config["defaults"]["workbook_id"] = "configured_workbook"
+
+        resolved = apply_tool_defaults(
+            "dl_get_workbook_entries",
+            {"workbook_ids": ["workbook_a", "workbook_b"]},
+            config,
+            project_root=str(ROOT),
+            supports_project_root=True,
+            supports_workbook_id=True,
+            supports_readback_mode=False,
+        )
+
+        self.assertNotIn("workbook_id", resolved)
+        self.assertEqual(resolved["workbook_ids"], ["workbook_a", "workbook_b"])
 
 
 if __name__ == "__main__":

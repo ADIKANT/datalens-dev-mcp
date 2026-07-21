@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import os
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping
+from typing import Any, Iterator, Mapping
 
 DEFAULT_BASE_URL = "https://api.datalens.tech"
+DEFAULT_REQUEST_INTERVAL_SEC = 1.05
+DEFAULT_MAX_READ_CONCURRENCY = 3
+DEFAULT_READ_TRANSIENT_RETRIES = 2
+_API_DEFAULTS_CONTEXT: ContextVar[dict[str, Any]] = ContextVar("datalens_api_defaults", default={})
 EXECUTION_SWITCH_ENV_NAMES = frozenset(
     {
         "DATALENS_MCP_ENABLE_WRITES",
@@ -73,9 +79,11 @@ class DataLensConfig:
     publish_enabled: bool = True
     delete_requires_confirmation: bool = True
     expert_rpc_enabled: bool = False
-    request_interval_sec: float = 0.15
+    request_interval_sec: float = DEFAULT_REQUEST_INTERVAL_SEC
     request_timeout_sec: float = 30.0
     rate_limit_retries: int = 6
+    max_read_concurrency: int = DEFAULT_MAX_READ_CONCURRENCY
+    read_transient_retries: int = DEFAULT_READ_TRANSIENT_RETRIES
     request_debug: bool = False
     token_refresh_enabled: bool = False
     token_refresh_timeout_sec: float = 15.0
@@ -86,6 +94,20 @@ class DataLensConfig:
     credential_source: str = "none"
     org_id_source: str = "none"
     env_file_reload_state: str = "not_reloaded"
+
+    def __post_init__(self) -> None:
+        if self.request_interval_sec < 0:
+            raise ValueError("request_interval_sec must be non-negative")
+        if self.request_timeout_sec <= 0:
+            raise ValueError("request_timeout_sec must be positive")
+        if self.rate_limit_retries < 0:
+            raise ValueError("rate_limit_retries must be non-negative")
+        if not 1 <= self.max_read_concurrency <= 3:
+            raise ValueError("max_read_concurrency must be between 1 and 3")
+        if not 0 <= self.read_transient_retries <= 2:
+            raise ValueError("read_transient_retries must be between 0 and 2")
+        if self.token_refresh_timeout_sec <= 0:
+            raise ValueError("token_refresh_timeout_sec must be positive")
 
     @classmethod
     def from_env(
@@ -115,6 +137,16 @@ class DataLensConfig:
             process_values=process_values,
             prefer_file=bool(env_file_path),
             default=DEFAULT_BASE_URL,
+        )
+        api_defaults = dict(_API_DEFAULTS_CONTEXT.get())
+        default_interval = str(api_defaults.get("request_interval_sec", DEFAULT_REQUEST_INTERVAL_SEC))
+        default_timeout = str(api_defaults.get("request_timeout_sec", 30))
+        default_rate_limit_retries = str(api_defaults.get("rate_limit_retries", 6))
+        default_max_read_concurrency = str(
+            api_defaults.get("max_read_concurrency", DEFAULT_MAX_READ_CONCURRENCY)
+        )
+        default_read_transient_retries = str(
+            api_defaults.get("read_transient_retries", DEFAULT_READ_TRANSIENT_RETRIES)
         )
         return cls(
             iam_token=iam_token,
@@ -163,9 +195,9 @@ class DataLensConfig:
                     file_values=file_values,
                     process_values=process_values,
                     prefer_file=bool(env_file_path),
-                    default="0.15",
+                    default=default_interval,
                 )
-                or "0.15"
+                or default_interval
             ),
             request_timeout_sec=float(
                 _config_value(
@@ -173,9 +205,9 @@ class DataLensConfig:
                     file_values=file_values,
                     process_values=process_values,
                     prefer_file=bool(env_file_path),
-                    default="30",
+                    default=default_timeout,
                 )
-                or "30"
+                or default_timeout
             ),
             rate_limit_retries=int(
                 _config_value(
@@ -183,9 +215,29 @@ class DataLensConfig:
                     file_values=file_values,
                     process_values=process_values,
                     prefer_file=bool(env_file_path),
-                    default="6",
+                    default=default_rate_limit_retries,
                 )
-                or "6"
+                or default_rate_limit_retries
+            ),
+            max_read_concurrency=int(
+                _config_value(
+                    "DATALENS_MAX_READ_CONCURRENCY",
+                    file_values=file_values,
+                    process_values=process_values,
+                    prefer_file=bool(env_file_path),
+                    default=default_max_read_concurrency,
+                )
+                or default_max_read_concurrency
+            ),
+            read_transient_retries=int(
+                _config_value(
+                    "DATALENS_READ_TRANSIENT_RETRIES",
+                    file_values=file_values,
+                    process_values=process_values,
+                    prefer_file=bool(env_file_path),
+                    default=default_read_transient_retries,
+                )
+                or default_read_transient_retries
             ),
             request_debug=_config_flag(
                 "DATALENS_REQUEST_DEBUG",
@@ -238,7 +290,16 @@ class DataLensConfig:
 
         if not self.env_file_path:
             return self
-        return type(self).from_env(self.env_file_path, reload_state=reload_state)
+        with use_api_defaults(
+            {
+                "request_interval_sec": self.request_interval_sec,
+                "request_timeout_sec": self.request_timeout_sec,
+                "rate_limit_retries": self.rate_limit_retries,
+                "max_read_concurrency": self.max_read_concurrency,
+                "read_transient_retries": self.read_transient_retries,
+            }
+        ):
+            return type(self).from_env(self.env_file_path, reload_state=reload_state)
 
     def require_auth(self) -> None:
         from datalens_dev_mcp.api.errors import DataLensApiError
@@ -264,7 +325,19 @@ class DataLensConfig:
             "token_refresh_on_401": self.token_refresh_enabled,
             "yc_binary_configured": bool(self.yc_binary),
             "token_refresh_timeout_sec": self.token_refresh_timeout_sec,
+            "request_interval_sec": self.request_interval_sec,
+            "max_read_concurrency": self.max_read_concurrency,
+            "read_transient_retries": self.read_transient_retries,
         }
+
+
+@contextmanager
+def use_api_defaults(api_defaults: Mapping[str, Any] | None) -> Iterator[None]:
+    reset_handle = _API_DEFAULTS_CONTEXT.set(dict(api_defaults or {}))
+    try:
+        yield
+    finally:
+        _API_DEFAULTS_CONTEXT.reset(reset_handle)
 
 
 def _first_config_value(

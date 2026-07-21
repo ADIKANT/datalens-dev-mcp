@@ -3,10 +3,14 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+from collections import OrderedDict
 from copy import deepcopy
 from pathlib import Path
+from threading import RLock
+from types import SimpleNamespace
 from typing import Any
 
+from datalens_dev_mcp.api.scheduler import record_cache_hit
 from datalens_dev_mcp.editor.bundle import generate_editor_bundle
 from datalens_dev_mcp.editor.payload_compiler import compile_editor_payload
 from datalens_dev_mcp.knowledge.recipes import compact_recipe_for_payload, select_authoring_recipe
@@ -107,6 +111,20 @@ PLACEHOLDER_TARGETS = {
     "<chart_id>",
     "<dataset_id>",
     "<connection_id>",
+}
+
+_PROJECT_VALIDATION_CACHE_MAX_ENTRIES = 8
+_PROJECT_VALIDATION_CACHE: OrderedDict[str, tuple[str, dict[str, Any]]] = OrderedDict()
+_PROJECT_VALIDATION_CACHE_LOCK = RLock()
+_PROJECT_VALIDATION_CACHE_SKIP_DIRS = {
+    ".git",
+    ".venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".mypy_cache",
+    "dist",
+    "build",
 }
 
 
@@ -750,6 +768,18 @@ def dl_generate_editor_bundle(
 
 def dl_validate_project(project_root: str = ".") -> dict[str, Any]:
     root = Path(project_root)
+    cache_key = str(root.expanduser().resolve())
+    input_fingerprint = _project_validation_fingerprint(root)
+    cached = _cached_project_validation(cache_key, input_fingerprint)
+    if cached is not None:
+        record_cache_hit("project_validation")
+        cached["validation_cache"] = {
+            "hit": True,
+            "fingerprint": input_fingerprint,
+            "strategy": "filesystem_metadata",
+        }
+        return cached
+
     issues: list[str] = []
     bundle_paths = list(root.glob("dashboard/*/bundle.json"))
     for bundle_path in bundle_paths:
@@ -835,7 +865,54 @@ def dl_validate_project(project_root: str = ".") -> dict[str, Any]:
         "negative_requirement_drift": negative_drift,
     }
     write_json(root / "artifacts" / "validation_report.json", report)
-    return report
+    output_fingerprint = _project_validation_fingerprint(root)
+    _store_project_validation(cache_key, output_fingerprint, report)
+    response = deepcopy(report)
+    response["validation_cache"] = {
+        "hit": False,
+        "fingerprint": output_fingerprint,
+        "strategy": "filesystem_metadata",
+    }
+    return response
+
+
+def _project_validation_fingerprint(root: Path) -> str:
+    rows: list[tuple[str, int, int, int]] = []
+    if root.is_dir():
+        for path in root.rglob("*"):
+            try:
+                if not path.is_file():
+                    continue
+                relative = path.relative_to(root)
+                if any(part in _PROJECT_VALIDATION_CACHE_SKIP_DIRS for part in relative.parts):
+                    continue
+                stat = path.stat()
+            except OSError:
+                return ""
+            rows.append((relative.as_posix(), stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns))
+    encoded = json.dumps(sorted(rows), ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _cached_project_validation(cache_key: str, fingerprint: str) -> dict[str, Any] | None:
+    if not fingerprint:
+        return None
+    with _PROJECT_VALIDATION_CACHE_LOCK:
+        cached = _PROJECT_VALIDATION_CACHE.get(cache_key)
+        if cached is None or cached[0] != fingerprint:
+            return None
+        _PROJECT_VALIDATION_CACHE.move_to_end(cache_key)
+        return deepcopy(cached[1])
+
+
+def _store_project_validation(cache_key: str, fingerprint: str, report: dict[str, Any]) -> None:
+    if not fingerprint:
+        return
+    with _PROJECT_VALIDATION_CACHE_LOCK:
+        _PROJECT_VALIDATION_CACHE[cache_key] = (fingerprint, deepcopy(report))
+        _PROJECT_VALIDATION_CACHE.move_to_end(cache_key)
+        while len(_PROJECT_VALIDATION_CACHE) > _PROJECT_VALIDATION_CACHE_MAX_ENTRIES:
+            _PROJECT_VALIDATION_CACHE.popitem(last=False)
 
 
 def dl_build_payload_plan(
@@ -2648,7 +2725,7 @@ def _delivery_result_summary(
         "state": state,
         "save": _delivery_stage_snapshot(save_result),
         "publish": [_delivery_stage_snapshot(item.get("result") or {}) for item in publish_results],
-        "publish_plans": [item.get("plan") for item in publish_results],
+        "publish_plans": [_delivery_plan_snapshot(item.get("plan") or {}) for item in publish_results],
         "saved": {
             "passed": bool(save_result.get("executed") and saved_readbacks),
             "status": str(save_result.get("status") or ""),
@@ -2667,9 +2744,40 @@ def _delivery_result_summary(
 
 
 def _delivery_stage_snapshot(result: dict[str, Any]) -> dict[str, Any]:
-    snapshot = dict(result)
-    snapshot.pop("delivery_result", None)
-    snapshot.pop("publish_results", None)
+    keys = (
+        "ok",
+        "executed",
+        "status",
+        "returncode",
+        "proof_level",
+        "proof_levels",
+        "completed_action_count",
+        "completed_action_indices",
+        "failed_action_index",
+        "failed_action_indices",
+        "skipped_action_indices",
+        "blocked_reasons",
+        "publish_blocked_reasons",
+        "saved_readback_paths",
+        "published_readback_paths",
+        "saved_readback_errors",
+        "published_readback_errors",
+        "save_stage_status",
+        "publish_stage_status",
+        "summary",
+    )
+    return {key: deepcopy(result[key]) for key in keys if key in result}
+
+
+def _delivery_plan_snapshot(plan: dict[str, Any]) -> dict[str, Any]:
+    actions = plan.get("actions") if isinstance(plan.get("actions"), list) else []
+    snapshot = {
+        key: deepcopy(plan[key])
+        for key in ("ok", "status", "safe_apply_id", "project_root", "target_lock", "error")
+        if key in plan
+    }
+    snapshot["action_count"] = len(actions)
+    snapshot["methods"] = [str(action.get("method") or "") for action in actions if isinstance(action, dict)]
     return snapshot
 
 
@@ -2799,41 +2907,41 @@ def dl_readback_and_report(
         target_chart_id=(chart_ids or [""])[0] if chart_ids else str(existing_target_lock.get("target_chart_id") or ""),
         target_url=target_url or str(existing_target_lock.get("target_url") or ""),
     )
-    readback = _live_readback(
-        target=target,
-        dashboard_id=dashboard_id,
-        chart_ids=chart_ids or [],
-        dataset_id=dataset_id,
-        connection_id=connection_id,
-        branch=normalized_branch,
-        readback_mode=normalized_readback_mode,
-        client=client,
-    )
+    snapshot: dict[str, Any] | None = None
     if dashboard_id and normalized_readback_mode in {"full", "debug"}:
         from datalens_dev_mcp.mcp.tools.snapshot import dl_snapshot_dashboard
 
+        snapshot_client = _exclusive_snapshot_client(client)
         snapshot = dl_snapshot_dashboard(
             project_root=project_root,
             dashboard_id=dashboard_id,
+            workbook_id=target_workbook_id,
             snapshot_branch=normalized_branch,
             include_dormant_summary=True,
             artifact_retention="latest_only",
-            client=client,
+            client=snapshot_client,
         )
-        readback.update(
-            {
-                "snapshot_manifest": snapshot.get("manifest"),
-                "compact_graph": snapshot.get("compact_graph"),
-                "counts_by_object_type": snapshot.get(
-                    "counts_by_object_type", readback.get("counts_by_object_type", {})
-                ),
-                "active_graph_edges": snapshot.get("active_graph_edges", []),
-                "branch_summary": snapshot.get("branch_summary", {}),
-                "branch_comparison": snapshot.get("branch_comparison", {}),
-                "errors": snapshot.get("errors", []),
-                "omissions": snapshot.get("omissions", []),
-                "object_artifact_count": snapshot.get("object_artifact_count", 0),
-            }
+        readback = _readback_from_snapshot(
+            snapshot=snapshot,
+            target=target,
+            dashboard_id=dashboard_id,
+            chart_ids=chart_ids or [],
+            dataset_id=dataset_id,
+            connection_id=connection_id,
+            branch=normalized_branch,
+            readback_mode=normalized_readback_mode,
+            client=snapshot_client,
+        )
+    else:
+        readback = _live_readback(
+            target=target,
+            dashboard_id=dashboard_id,
+            chart_ids=chart_ids or [],
+            dataset_id=dataset_id,
+            connection_id=connection_id,
+            branch=normalized_branch,
+            readback_mode=normalized_readback_mode,
+            client=client,
         )
     artifact_path = readback_artifact_path(root, target, normalized_branch)
     readback["artifact_path"] = str(artifact_path)
@@ -3006,18 +3114,22 @@ def _live_readback(
         from datalens_dev_mcp.config import DataLensConfig
 
         client = DataLensApiClient(DataLensConfig.from_env())
-    dashboard = client.rpc("getDashboard", {"dashboardId": dashboard_id, "branch": branch}) if dashboard_id else None
+    dashboard = (
+        _readback_rpc(client, "getDashboard", {"dashboardId": dashboard_id, "branch": branch})
+        if dashboard_id
+        else None
+    )
     selected_chart_ids = chart_ids if normalized_mode in {"full", "debug"} else chart_ids[:1]
     charts = [
-        client.rpc("getEditorChart", {"chartId": chart_id, "branch": branch})
+        _readback_rpc(client, "getEditorChart", {"chartId": chart_id, "branch": branch})
         for chart_id in selected_chart_ids
     ]
     dataset = None
     connection = None
     if normalized_target == "dataset" and dataset_id:
-        dataset = client.rpc("getDataset", {"datasetId": dataset_id})
+        dataset = _readback_rpc(client, "getDataset", {"datasetId": dataset_id})
     if normalized_target in {"connection", "connector"} and connection_id:
-        connection = client.rpc("getConnection", {"connectionId": connection_id})
+        connection = _readback_rpc(client, "getConnection", {"connectionId": connection_id})
     identity_rows = [
         _readback_identity_row(value, fallback_id=fallback_id)
         for value, fallback_id in [
@@ -3052,6 +3164,157 @@ def _live_readback(
             "connection": 1 if connection else 0,
         },
         "omitted_chart_ids": chart_ids[len(selected_chart_ids):],
+    }
+
+
+def _readback_rpc(client: Any, method: str, payload: dict[str, Any]) -> dict[str, Any]:
+    reader = getattr(client, "rpc_exclusive_read", None)
+    if callable(reader):
+        return reader(method, payload)
+    readonly_reader = getattr(client, "rpc_readonly", None)
+    if callable(readonly_reader):
+        return readonly_reader(method, payload)
+    return client.rpc(method, payload)
+
+
+def _exclusive_snapshot_client(client: Any | None) -> Any:
+    active_client = client
+    if active_client is None:
+        from datalens_dev_mcp.api.client import DataLensApiClient
+        from datalens_dev_mcp.config import DataLensConfig
+
+        active_client = DataLensApiClient(DataLensConfig.from_env())
+    reader = getattr(active_client, "rpc_exclusive_read", None)
+    if not callable(reader):
+        return active_client
+
+    class ExclusiveSnapshotClient:
+        config = SimpleNamespace(max_read_concurrency=1)
+
+        def rpc_readonly(self, method: str, payload: dict[str, Any]) -> dict[str, Any]:
+            return reader(method, payload)
+
+    return ExclusiveSnapshotClient()
+
+
+def _readback_from_snapshot(
+    *,
+    snapshot: dict[str, Any],
+    target: str,
+    dashboard_id: str,
+    chart_ids: list[str],
+    dataset_id: str,
+    connection_id: str,
+    branch: str,
+    readback_mode: str,
+    client: Any,
+) -> dict[str, Any]:
+    manifest_metadata = snapshot.get("manifest") if isinstance(snapshot.get("manifest"), dict) else {}
+    manifest_path = Path(str(manifest_metadata.get("path") or ""))
+    manifest = read_json(manifest_path, default={}) if manifest_path.is_file() else {}
+    refs = manifest.get("object_refs") if isinstance(manifest.get("object_refs"), list) else []
+
+    def payload_for(object_type: str, object_id: str, *, expected_branch: str = "") -> dict[str, Any] | None:
+        if not object_id:
+            return None
+        for ref in refs:
+            if not isinstance(ref, dict):
+                continue
+            if str(ref.get("object_id") or "") != object_id:
+                continue
+            ref_type = str(ref.get("object_type") or "")
+            if object_type == "chart":
+                if not str(ref.get("method") or "").startswith("get") or "Chart" not in str(ref.get("method") or ""):
+                    continue
+            elif ref_type != object_type:
+                continue
+            if expected_branch and str(ref.get("branch") or "") != expected_branch:
+                continue
+            path = Path(str(ref.get("path") or ""))
+            value = read_json(path, default={}) if path.is_file() else {}
+            if isinstance(value, dict) and value:
+                return value
+        return None
+
+    dashboard = payload_for("dashboard", dashboard_id, expected_branch=branch)
+    chart_pairs = [
+        (chart_id, payload)
+        for chart_id in chart_ids
+        if (payload := payload_for("chart", chart_id, expected_branch=branch)) is not None
+    ]
+    found_chart_ids = {chart_id for chart_id, _ in chart_pairs}
+    chart_pairs.extend(
+        (
+            chart_id,
+            _readback_rpc(
+                client,
+                "getEditorChart",
+                {"chartId": chart_id, "branch": branch},
+            ),
+        )
+        for chart_id in chart_ids
+        if chart_id not in found_chart_ids
+    )
+    charts = [payload for _, payload in chart_pairs]
+    dataset = payload_for("dataset", dataset_id) if dataset_id else None
+    connection = payload_for("connection", connection_id) if connection_id else None
+    if dataset_id and dataset is None:
+        dataset = _readback_rpc(client, "getDataset", {"datasetId": dataset_id})
+    if connection_id and connection is None:
+        connection = _readback_rpc(client, "getConnection", {"connectionId": connection_id})
+    identity_rows = [
+        _readback_identity_row(value, fallback_id=fallback_id)
+        for value, fallback_id in [
+            (dashboard, dashboard_id),
+            *[(chart, chart_id) for chart_id, chart in chart_pairs],
+            (dataset, dataset_id),
+            (connection, connection_id),
+        ]
+        if isinstance(value, dict) and value
+    ]
+    requested_chart_ids = set(chart_ids)
+    found_chart_ids = {row["object_id"] for row in identity_rows if row["object_id"] in requested_chart_ids}
+    errors = list(snapshot.get("errors") or [])
+    for missing_chart_id in [item for item in chart_ids if item not in found_chart_ids]:
+        errors.append(
+            {
+                "method": "snapshot_artifact_read",
+                "object_id": missing_chart_id,
+                "message": "requested chart is absent from the verified dashboard snapshot",
+            }
+        )
+    return {
+        "target": target,
+        "read_at": build_readback_summary(target=target, mode=readback_mode)["read_at"],
+        "live_readback": bool(dashboard),
+        "mode": readback_mode,
+        "branch": branch,
+        "proof_level": proof_level_for_readback_branch(branch, live_readback=bool(dashboard)),
+        "dashboard": dashboard,
+        "charts": charts,
+        "dataset": dataset,
+        "connection": connection,
+        "object_ids": [row["object_id"] for row in identity_rows if row["object_id"]],
+        "object_revisions": {
+            row["object_id"]: row["revision_id"]
+            for row in identity_rows
+            if row["object_id"] and row["revision_id"]
+        },
+        "counts_by_object_type": snapshot.get("counts_by_object_type") or {},
+        "omitted_chart_ids": [item for item in chart_ids if item not in found_chart_ids],
+        "snapshot_manifest": manifest_metadata,
+        "compact_graph": snapshot.get("compact_graph"),
+        "active_graph_edges": snapshot.get("active_graph_edges", []),
+        "branch_summary": snapshot.get("branch_summary", {}),
+        "branch_comparison": snapshot.get("branch_comparison", {}),
+        "errors": errors,
+        "omissions": snapshot.get("omissions", []),
+        "object_artifact_count": snapshot.get("object_artifact_count", 0),
+        "snapshot_reused": bool(snapshot.get("snapshot_reused")),
+        "snapshot_rpc": {
+            "source_probe_rpc_count": int(snapshot.get("source_probe_rpc_count") or 0),
+            "hydration_rpc_count": int(snapshot.get("hydration_rpc_count") or 0),
+        },
     }
 
 
@@ -3194,6 +3457,8 @@ def _run_dashboard_payload_preflight(root: Path) -> dict[str, Any]:
     seen: set[Path] = set()
     for path in candidate_paths:
         if path in seen or not path.is_file():
+            continue
+        if path.name == "dashboard_payload_preflight.json":
             continue
         seen.add(path)
         payload = read_json(path, default={})

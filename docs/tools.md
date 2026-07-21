@@ -18,7 +18,7 @@
 | Инструмент | Назначение | Когда использовать | Необходимые данные | Результат и класс | Источник |
 | --- | --- | --- | --- | --- | --- |
 | `dl_get_local_config` | Возвращает итоговую локальную конфигурацию без секретов | Проверить рабочую папку и настройки выполнения | При необходимости путь к config и project root | Очищенная конфигурация · `локальная` | [Конфигурация](configuration.md) |
-| `dl_runtime_status` | Показывает состояние API, учётных данных, записи, сохранения, публикации и обновления токена | В начале сессии и при блокировке операции | При необходимости project root и local config | Диагностический отчёт без значений секретов · `локальная` | [Доступ](access.md#7-проверьте-настройки-и-доступ) |
+| `dl_runtime_status` | Показывает состояние API, учётных данных, записи, публикации, limiter и кэшей | В начале сессии и при блокировке операции | При необходимости project root и local config | Агрегированные request/queue/network/429/retry/cache метрики без ID и секретов · `локальная` | [Доступ](access.md#7-проверьте-настройки-и-доступ) |
 | `dl_auth_probe` | Выполняет минимальный `getWorkbooksList` и при необходимости обновляет токен | Перед первым обращением к объектам DataLens | Настройки из `DATALENS_ENV_FILE` | Результат авторизации или точная категория ошибки · `чтение API` | [Public API](https://yandex.cloud/ru/docs/datalens/operations/api-start) |
 
 ## Чтение объектов
@@ -26,7 +26,7 @@
 | Инструмент | Назначение | Когда использовать | Необходимые данные | Результат и класс | Источник |
 | --- | --- | --- | --- | --- | --- |
 | `dl_list_workbooks` | Перечисляет доступные воркбуки | После успешной проверки доступа | Параметры страницы при необходимости | Список воркбуков · `чтение API` | [`getWorkbooksList`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbooksList) |
-| `dl_get_workbook_entries` | Читает объекты выбранного воркбука | Найти дашборды, чарты, датасеты и подключения | `workbook_id`, при необходимости режим ответа | Список объектов или файл с полными данными · `чтение API` | [`getWorkbookEntries`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookEntries) |
+| `dl_get_workbook_entries` | Читает объекты одного или нескольких воркбуков | Найти дашборды, чарты, датасеты и подключения | Ровно один из `workbook_id` или `workbook_ids` (до 100) | Упорядоченный результат; в batch-режиме отдельный artifact и частичная ошибка на воркбук · `чтение API` | [`getWorkbookEntries`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookEntries) |
 | `dl_get_entries_relations` | Читает связи между объектами | Перед изменением или удалением связанных объектов | `entry_ids` | Граф зависимостей · `чтение API` | [`getEntriesRelations`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getEntriesRelations) |
 | `dl_read_object` | Читает объект известного типа по ID | Получить актуальную сохранённую или опубликованную версию | `object_type`, `object_id`, при необходимости branch | Объект или путь к файлу с полным ответом · `чтение API` | [Справочник методов API](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
 | `dl_snapshot_dashboard` | Сохраняет дашборд и связанные с ним объекты | Перед аудитом, изменением, переработкой или резервным копированием | `dashboard_id`, при необходимости `workbook_id` и branch | Файлы, manifest и статус `complete` / `partial` / `unsafe` · `чтение API` + `локальная` | [Модель дашборда](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) |
@@ -35,7 +35,7 @@
 
 | Инструмент | Назначение | Когда использовать | Необходимые данные | Результат и класс | Источник |
 | --- | --- | --- | --- | --- | --- |
-| `dl_validate_editor_runtime_contract` | Проверяет разделы и методы JavaScript-чарта Editor | Перед сохранением объекта Editor | Объект или его sections/source | Ошибки с путём и строкой · `локальная` | [Вкладки](https://yandex.cloud/ru/docs/datalens/charts/editor/tabs) и [методы Editor](https://yandex.cloud/ru/docs/datalens/charts/editor/methods) |
+| `dl_validate_editor_runtime_contract` | Проверяет разделы и методы JavaScript-чарта Editor | Перед сохранением объекта Editor | Inline-объект/sections либо JSON `artifact_paths` внутри project root | Кэшируемые findings; полный список corpus references только по запросу · `локальная` | [Вкладки](https://yandex.cloud/ru/docs/datalens/charts/editor/tabs) и [методы Editor](https://yandex.cloud/ru/docs/datalens/charts/editor/methods) |
 | `dl_classify_source_error` | Определяет этап и тип ошибки источника данных | Когда DataLens вернул очищенное сообщение об ошибке | `error_payload` | Категория, этап и рекомендация · `локальная` | [Документация DataLens](https://yandex.cloud/ru/docs/datalens/) и правила проекта |
 | `dl_diagnose` | Анализирует SQL, уровень детализации, связи и производительность по переданным данным | Найти причину ошибки или риска до записи | `mode`, данные проверки, при необходимости project root | Краткие выводы и пути к отчётам · `локальная` | [Контракты диагностики](mcp/response_contracts.md#диагностика) |
 | `dl_reference` | Ищет правила, рецепты, формулы и сведения о методах API | Уточнить возможность, маршрут, ошибку или источник | `mode`, запрос или имя, лимит ответа | До пяти релевантных записей со ссылками · `локальная` | [Официальные источники](sources.md) |

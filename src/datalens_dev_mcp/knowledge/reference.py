@@ -2,11 +2,19 @@ from __future__ import annotations
 
 import json
 import os
+from copy import deepcopy
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from datalens_dev_mcp.api.scheduler import record_cache_hit
 from datalens_dev_mcp.knowledge.formulas import validate_formula_expression
-from datalens_dev_mcp.runtime_resources import RuntimeResourceError, resource_json, resource_text
+from datalens_dev_mcp.runtime_resources import (
+    RESOURCE_OVERRIDE_ENV,
+    RuntimeResourceError,
+    resource_json,
+    resource_text,
+)
 
 ARTIFACT_DIR = Path(os.environ.get("DATALENS_REFERENCE_ARTIFACT_DIR", "artifacts/reference_runs"))
 KNOWLEDGE_RESOURCE_ROOT = "schemas/datalens-knowledge"
@@ -163,11 +171,26 @@ def _resource_or_file_json(relative: str, default: Any) -> Any:
 
 
 def _load_jsonl(relative: str) -> list[dict[str, Any]]:
+    if not os.getenv(RESOURCE_OVERRIDE_ENV, "").strip():
+        hits_before = _load_packaged_jsonl.cache_info().hits
+        rows = deepcopy(list(_load_packaged_jsonl(relative)))
+        if _load_packaged_jsonl.cache_info().hits > hits_before:
+            record_cache_hit("packaged_jsonl")
+        return rows
     try:
         text = resource_text(f"{KNOWLEDGE_RESOURCE_ROOT}/{relative}")
     except RuntimeResourceError:
         return []
     return [json.loads(line) for line in text.splitlines() if line.strip()]
+
+
+@lru_cache(maxsize=8)
+def _load_packaged_jsonl(relative: str) -> tuple[dict[str, Any], ...]:
+    try:
+        text = resource_text(f"{KNOWLEDGE_RESOURCE_ROOT}/{relative}")
+    except RuntimeResourceError:
+        return ()
+    return tuple(json.loads(line) for line in text.splitlines() if line.strip())
 
 
 def _reference_envelope(mode: str, term: str, result: dict[str, Any]) -> dict[str, Any]:

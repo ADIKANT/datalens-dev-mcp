@@ -38,9 +38,11 @@
     "allow_publish_checks": false
   },
   "api_defaults": {
-    "request_interval_sec": 0.15,
+    "request_interval_sec": 1.05,
     "rate_limit_retries": 6,
-    "request_timeout_sec": 30
+    "request_timeout_sec": 30,
+    "max_read_concurrency": 3,
+    "read_transient_retries": 2
   },
   "routing": {
     "chart_creation_routes": [

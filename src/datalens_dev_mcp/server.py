@@ -14,8 +14,13 @@ from typing import Any
 
 from datalens_dev_mcp import __version__
 from datalens_dev_mcp.api.errors import DataLensApiError, DataLensSafetyError
-from datalens_dev_mcp.config import EXECUTION_SWITCH_ENV_NAMES, load_env_file
+from datalens_dev_mcp.config import EXECUTION_SWITCH_ENV_NAMES, load_env_file, use_api_defaults
 from datalens_dev_mcp.local_config import apply_tool_defaults, load_local_config
+from datalens_dev_mcp.mcp.heavy_response import (
+    DEFAULT_HEAVY_INLINE_CHAR_BUDGET,
+    HEAVY_TOOL_NAMES,
+    project_heavy_tool_response,
+)
 from datalens_dev_mcp.mcp.prompts import get_prompt, list_prompts
 from datalens_dev_mcp.mcp.response_projection import (
     project_public_resource_text,
@@ -307,7 +312,7 @@ TOOL_PROFILE_MEMBERS = TEST_ONLY_TOOL_PROFILE_MEMBERS
 
 PARAM_DESCRIPTIONS: dict[str, str] = {
     "project_root": "Local project root.",
-    "config_path": "Optional path to a local MCP config JSON file.",
+    "config_path": "Optional local MCP config path.",
     "local_config_path": "Resolved local MCP config JSON file used by the current server process.",
     "workbook_id": "DataLens workbook id.",
     "project_id": "Local or external project id placeholder.",
@@ -321,10 +326,12 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "object_id": "DataLens object id.",
     "object_ids": "DataLens object ids.",
     "source_adapter": "Named lifecycle source adapter.",
-    "payload": "Object payload or RPC payload. Must not contain secrets.",
+    "payload": "Payload. Must not contain secrets.",
     "entry": "DataLens entry payload or plan payload. Must not contain secrets.",
     "sections": "Generated or hydrated Editor sections to validate before save or publish.",
     "allow_unknown_warnings": "Audited override for unknown runtime warnings only; known forbidden errors still block.",
+    "artifact_paths": "Editor JSON artifact paths inside project_root; mutually exclusive with entry and sections.",
+    "include_references": "Include full corpus reference rows instead of only the stable reference-set id and URLs.",
     "error_payload": "Structured DataLens source error payload to classify without secrets.",
     "config": "Route or object config payload. Must not contain secrets.",
     "mode": "Save or publish mode. Save is the safe default.",
@@ -332,16 +339,16 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "method": "Curated DataLens API method name.",
     "readback_mode": "Readback depth for saved/published verification.",
     "plan_path": "Path to the guarded safe-apply plan artifact to execute.",
-    "write_manifest": "Write the generated local project manifest instead of returning a preview only.",
-    "confirm_delete": "Confirm exact retire_legacy_objects IDs and the unchanged plan hash returned by the previous call.",
-    "saved_readback_path": "Saved-branch readback artifact used as the only valid publish source.",
+    "write_manifest": "Write generated manifest.",
+    "confirm_delete": "Confirm retire_legacy_objects IDs and unchanged plan hash.",
+    "saved_readback_path": "Saved-branch readback artifact.",
     "workflow_name": "Manifest workflow name.",
     "overwrite_existing": "Allow the generated project manifest to replace an existing manifest.",
     "target_workbook_id": "Target workbook id to include in a generated project manifest.",
     "action": "Project-live action.",
-    "execute_now": "Execute the declared command.",
+    "execute_now": "Execute command.",
     "timeout_sec": "Command timeout seconds.",
-    "publish": "Request publish behavior.",
+    "publish": "Request publish.",
     "summary_path": "Summary JSON path inside project.",
     "requirements_text": "Dashboard requirements text.",
     "markdown_text": "Requirement Markdown to persist.",
@@ -361,8 +368,8 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "operation": "Object operation to validate.",
     "required_fields": "Dataset fields that must exist.",
     "dataset": "Inline dataset payload for offline field validation.",
-    "current_dataset": "Fresh getDataset payload before a guarded updateDataset plan.",
-    "proposed_dataset": "Proposed dataset payload for validateDataset/updateDataset planning.",
+    "current_dataset": "Fresh getDataset payload.",
+    "proposed_dataset": "Proposed dataset payload.",
     "affected_chart_payloads": "Saved chart payloads that depend on dataset field GUIDs.",
     "validate_only": "Plan validateDataset only without updateDataset.",
     "allow_guid_changes": "Allow reviewed dataset field GUID changes; disabled by default.",
@@ -423,7 +430,7 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "classification_path": "Path to Wizard classification JSON.",
     "plan_output_path": "Path for generated plan JSON.",
     "summary_output_path": "Path for generated summary Markdown.",
-    "workbook_ids": "Optional workbook id filter.",
+    "workbook_ids": "Up to 100 workbook ids for one ordered batch read; mutually exclusive with workbook_id.",
     "include_guarded_writes": "Whether to include guarded write methods in the catalog.",
     "scenario": "Pipeline scenario.",
     "dashboard_name": "Dashboard display name placeholder.",
@@ -440,6 +447,7 @@ COMPACT_SCHEMA_DESCRIPTION_PARAMS = {
     # schema. Safety-sensitive payload, configuration, write/delete, readback,
     # and current/proposed-state descriptions intentionally remain visible.
     "action",
+    "artifact_paths",
     "artifact_retention",
     "branch",
     "chart_id",
@@ -453,13 +461,18 @@ COMPACT_SCHEMA_DESCRIPTION_PARAMS = {
     "decision_id",
     "delivery_intent_text",
     "entry_ids",
+    "entries_payload",
     "environment",
+    "error_payload",
     "include_dormant_summary",
     "include_guarded_writes",
+    "include_references",
     "inline_char_budget",
     "limit",
+    "local_config_path",
     "max_chars",
     "max_items",
+    "method",
     "mode",
     "name",
     "object_id",
@@ -471,9 +484,11 @@ COMPACT_SCHEMA_DESCRIPTION_PARAMS = {
     "project_id",
     "project_root",
     "query",
+    "readback_mode",
     "required_fields",
     "response_mode",
     "role",
+    "route",
     "run_id",
     "sample_limit",
     "scenario",
@@ -495,6 +510,7 @@ COMPACT_SCHEMA_DESCRIPTION_PARAMS = {
     "workbook_id",
     "workbook_ids",
     "workflow_name",
+    "planned_objects",
 }
 
 PARAM_OVERRIDES: dict[str, dict[str, Any]] = {
@@ -683,8 +699,7 @@ MAINTENANCE_EVIDENCE_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
     "description": (
-        "Typed evidence only: creation needs create_necessity_proof; publish needs guarded save, "
-        "saved readback, and publish-from-saved; rendering claims need saved/published browser evidence."
+        "Typed create/publish evidence with saved and published runtime proof."
     ),
     "properties": {
         "browser_runtime_required": {
@@ -727,6 +742,35 @@ MAINTENANCE_EVIDENCE_SCHEMA = {
 
 TOOL_PARAM_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
     ("dl_generate_editor_bundle", "selector_contract"): SELECTOR_CONTRACT_SCHEMA,
+    ("dl_get_workbook_entries", "workbook_id"): {
+        "type": "string",
+        "minLength": 1,
+    },
+    ("dl_get_workbook_entries", "workbook_ids"): {
+        "type": "array",
+        "items": {"type": "string", "minLength": 1},
+        "minItems": 1,
+        "maxItems": 100,
+        "uniqueItems": True,
+    },
+    ("dl_get_workbook_entries", "scope"): {
+        "anyOf": [
+            {"type": "string", "minLength": 1},
+            {
+                "type": "array",
+                "items": {"type": "string", "minLength": 1},
+                "minItems": 1,
+                "uniqueItems": True,
+            },
+        ],
+    },
+    ("dl_validate_editor_runtime_contract", "artifact_paths"): {
+        "type": "array",
+        "items": {"type": "string", "minLength": 1},
+        "minItems": 1,
+        "maxItems": 100,
+        "uniqueItems": True,
+    },
     ("dl_diagnose", "mode"): {
         "type": "string",
         "enum": [
@@ -792,7 +836,6 @@ TOOL_PARAM_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
 }
 
 TOOL_REQUIRED_FIELDS: dict[str, list[str]] = {
-    "dl_get_workbook_entries": ["workbook_id"],
     "dl_get_dashboard": ["dashboard_id"],
     "dl_get_editor_chart": ["chart_id"],
     "dl_get_wizard_chart": ["chart_id"],
@@ -1007,6 +1050,15 @@ def _input_schema_for_tool(
             }:
                 continue
             schema_properties.setdefault(param_name, _schema_for_parameter(name, param_name, param))
+        if name in HEAVY_TOOL_NAMES:
+            schema_properties.setdefault(
+                "response_mode",
+                {"type": "string", "enum": ["summary", "full"], "default": "summary"},
+            )
+            schema_properties.setdefault(
+                "inline_char_budget",
+                {"type": "integer", "minimum": 1000, "default": DEFAULT_HEAVY_INLINE_CHAR_BUDGET},
+            )
         if name in PROJECT_CONTEXT_AWARE_TOOLS:
             schema_properties.setdefault(
                 "context_ref",
@@ -1027,6 +1079,18 @@ def _input_schema_for_tool(
     }
     if required_fields:
         schema["required"] = required_fields
+    if name == "dl_get_workbook_entries":
+        schema["properties"]["workbook_id"].pop("default", None)
+        schema["oneOf"] = [
+            {"required": ["workbook_id"]},
+            {"required": ["workbook_ids"]},
+        ]
+    elif name == "dl_validate_editor_runtime_contract":
+        schema["oneOf"] = [
+            {"required": ["entry"]},
+            {"required": ["sections"]},
+            {"required": ["artifact_paths"]},
+        ]
     return schema
 
 
@@ -1087,6 +1151,8 @@ def _json_scalar(value: Any) -> bool:
 
 def _translate_legacy_standard_tool_arguments(name: str, raw: dict[str, Any]) -> dict[str, Any]:
     arguments = dict(raw)
+    if name in {"dl_auth_probe", "dl_validate_object"}:
+        arguments.pop("project_root", None)
     legacy_plan_path = arguments.pop("approved_plan_path", None)
     if legacy_plan_path and not arguments.get("plan_path"):
         arguments["plan_path"] = legacy_plan_path
@@ -1175,7 +1241,7 @@ class JsonRpcServer:
         if name not in STANDARD_TOOL_NAMES and not hidden_tool_calls_enabled():
             raise DataLensSafetyError(f"{name} is not exposed on the standard MCP tool surface")
         fn = TOOLS[name]
-        signature = inspect.signature(fn)
+        signature = _cached_tool_signature(fn)
         raw_arguments = _translate_legacy_standard_tool_arguments(name, params.get("arguments") or {})
         arguments = apply_tool_defaults(
             name,
@@ -1186,6 +1252,14 @@ class JsonRpcServer:
             supports_workbook_id="workbook_id" in signature.parameters,
             supports_readback_mode="readback_mode" in signature.parameters,
         )
+        heavy_response_mode = "summary"
+        heavy_inline_char_budget = DEFAULT_HEAVY_INLINE_CHAR_BUDGET
+        if name in HEAVY_TOOL_NAMES:
+            heavy_response_mode = str(arguments.pop("response_mode", "summary") or "summary")
+            heavy_inline_char_budget = int(
+                arguments.pop("inline_char_budget", DEFAULT_HEAVY_INLINE_CHAR_BUDGET)
+                or DEFAULT_HEAVY_INLINE_CHAR_BUDGET
+            )
         context_ref = arguments.pop("context_ref", None)
         evidence_refs = arguments.pop("evidence_refs", None)
         if "local_config_path" in signature.parameters and not arguments.get("local_config_path"):
@@ -1199,7 +1273,8 @@ class JsonRpcServer:
                     context_ref,
                     evidence_refs,
                 )
-            output = fn(**arguments)
+            with use_api_defaults(self.local_config.get("api_defaults") or {}):
+                output = fn(**arguments)
             if name in PROJECT_CONTEXT_AWARE_TOOLS:
                 output = finalize_project_contract_result(
                     name,
@@ -1207,6 +1282,15 @@ class JsonRpcServer:
                     project_root=arguments.get("project_root", self.project_root),
                     context_ref=normalized_context,
                     consumed_evidence=normalized_evidence,
+                )
+            if name in HEAVY_TOOL_NAMES:
+                output = project_heavy_tool_response(
+                    name,
+                    output,
+                    response_mode=heavy_response_mode,
+                    inline_char_budget=heavy_inline_char_budget,
+                    project_root=arguments.get("project_root", self.project_root),
+                    run_id="",
                 )
         except Exception as exc:  # noqa: BLE001
             public_error = sanitize_response(
@@ -1250,6 +1334,11 @@ class JsonRpcServer:
         return {"jsonrpc": "2.0", "id": message_id, "error": {"code": code, "message": message}}
 
 
+@lru_cache(maxsize=None)
+def _cached_tool_signature(fn: Callable[..., Any]) -> inspect.Signature:
+    return inspect.signature(fn)
+
+
 def _safe_error(exc: Exception) -> str:
     text = redact_text(str(exc))
     return text or exc.__class__.__name__
@@ -1274,7 +1363,12 @@ def _structured_tool_error(name: str, exc: Exception) -> dict[str, Any]:
     elif isinstance(exc, TypeError) and "required positional argument" in str(exc):
         category = "missing_input"
     elif isinstance(exc, ValueError):
-        category = "datalens_validation_error"
+        lowered = str(exc).lower()
+        category = (
+            "missing_input"
+            if "required" in lowered or "must be provided" in lowered
+            else "datalens_validation_error"
+        )
     return {"ok": False, "tool": name, "error": {"category": category, "message": _safe_error(exc)}}
 
 

@@ -4,7 +4,12 @@ import hashlib
 import json
 from typing import Any
 
-from datalens_dev_mcp.validators.redaction import REDACTED, is_sensitive_key, redact_text
+from datalens_dev_mcp.validators.redaction import (
+    REDACTED,
+    is_sensitive_key,
+    redact_text,
+    secret_values_from_mapping,
+)
 
 
 def stable_json_text(value: Any) -> str:
@@ -25,24 +30,25 @@ def serialized_metadata(value: Any) -> dict[str, Any]:
 
 
 def sanitize_response(value: Any) -> Any:
-    return _sanitize_response_value(value)
+    env_secrets = tuple(secret_values_from_mapping())
+    return _sanitize_response_value(value, env_secrets=env_secrets)
 
 
-def _sanitize_response_value(value: Any) -> Any:
+def _sanitize_response_value(value: Any, *, env_secrets: tuple[str, ...]) -> Any:
     if isinstance(value, dict):
         sanitized: dict[Any, Any] = {}
         for key, item in value.items():
             if is_sensitive_key(key) and not _safe_sensitive_metadata(key, item):
                 sanitized[key] = REDACTED
             else:
-                sanitized[key] = _sanitize_response_value(item)
+                sanitized[key] = _sanitize_response_value(item, env_secrets=env_secrets)
         return sanitized
     if isinstance(value, list):
-        return [_sanitize_response_value(item) for item in value]
+        return [_sanitize_response_value(item, env_secrets=env_secrets) for item in value]
     if isinstance(value, tuple):
-        return [_sanitize_response_value(item) for item in value]
+        return [_sanitize_response_value(item, env_secrets=env_secrets) for item in value]
     if isinstance(value, str):
-        return redact_text(value)
+        return redact_text(value, secret_values=env_secrets, include_env=False)
     return value
 
 

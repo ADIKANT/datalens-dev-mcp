@@ -50,9 +50,11 @@ DEFAULT_LOCAL_CONFIG: dict[str, Any] = {
         "allow_publish_checks": False,
     },
     "api_defaults": {
-        "request_interval_sec": 0.15,
+        "request_interval_sec": 1.05,
         "rate_limit_retries": 6,
         "request_timeout_sec": 30,
+        "max_read_concurrency": 3,
+        "read_transient_retries": 2,
     },
     "routing": {
         "chart_creation_routes": ["wizard_native", "advanced_editor_js", "ql_explicit"],
@@ -188,6 +190,10 @@ def validate_local_config(config: dict[str, Any]) -> None:
         raise ValueError("api_defaults.rate_limit_retries must be non-negative")
     if float(api_defaults.get("request_timeout_sec", 0)) <= 0:
         raise ValueError("api_defaults.request_timeout_sec must be positive")
+    if not 1 <= int(api_defaults.get("max_read_concurrency", 0)) <= 3:
+        raise ValueError("api_defaults.max_read_concurrency must be between 1 and 3")
+    if not 0 <= int(api_defaults.get("read_transient_retries", 0)) <= 2:
+        raise ValueError("api_defaults.read_transient_retries must be between 0 and 2")
 
     selectors = config.get("selectors") or {}
     if selectors.get("label_placement") != "left":
@@ -228,7 +234,13 @@ def apply_tool_defaults(
             resolved["project_root"] = str(server_root)
 
     workbook_id = str(defaults.get("workbook_id") or "").strip()
-    if supports_workbook_id and not resolved.get("workbook_id") and workbook_id and not _is_placeholder(workbook_id):
+    if (
+        supports_workbook_id
+        and not resolved.get("workbook_id")
+        and not resolved.get("workbook_ids")
+        and workbook_id
+        and not _is_placeholder(workbook_id)
+    ):
         resolved["workbook_id"] = workbook_id
 
     if supports_readback_mode and not resolved.get("readback_mode"):

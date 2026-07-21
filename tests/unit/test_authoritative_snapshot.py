@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 from datalens_dev_mcp.mcp.tools.pipeline import dl_readback_and_report
 from datalens_dev_mcp.mcp.tools.snapshot import dl_snapshot_dashboard
@@ -26,8 +27,10 @@ def dashboard_tabs():
 
 
 class EventSnapshotClient:
-    def __init__(self):
+    def __init__(self, max_read_concurrency=3):
         self.calls = []
+        self.revision = "inventory_rev_1"
+        self.config = SimpleNamespace(max_read_concurrency=max_read_concurrency)
 
     def rpc(self, method, payload):
         self.calls.append((method, payload))
@@ -46,15 +49,27 @@ class EventSnapshotClient:
             }
         if method == "getWorkbookEntries":
             entries = [
-                {"entryId": "dashboard_events", "scope": "dashboard", "displayKey": "Event Operations"},
+                {
+                    "entryId": "dashboard_events",
+                    "scope": "dashboard",
+                    "displayKey": "Event Operations",
+                    "revId": f"{self.revision}:dashboard_events",
+                },
                 *[
-                    {"entryId": chart_id, "scope": "editor_chart" if index < 10 else "wizard_chart"}
+                    {
+                        "entryId": chart_id,
+                        "scope": "editor_chart" if index < 10 else "wizard_chart",
+                        "revId": f"{self.revision}:{chart_id}",
+                    }
                     for index, chart_id in enumerate(CHART_IDS)
                 ],
-                *[{"entryId": dataset_id, "scope": "dataset"} for dataset_id in DATASET_IDS],
-                {"entryId": CONNECTION_ID, "scope": "connection"},
-                {"entryId": "dormant_editor", "scope": "editor_chart"},
-                {"entryId": "dormant_dataset", "scope": "dataset"},
+                *[
+                    {"entryId": dataset_id, "scope": "dataset", "revId": f"{self.revision}:{dataset_id}"}
+                    for dataset_id in DATASET_IDS
+                ],
+                {"entryId": CONNECTION_ID, "scope": "connection", "revId": f"{self.revision}:{CONNECTION_ID}"},
+                {"entryId": "dormant_editor", "scope": "editor_chart", "revId": f"{self.revision}:dormant_editor"},
+                {"entryId": "dormant_dataset", "scope": "dataset", "revId": f"{self.revision}:dormant_dataset"},
             ]
             return {"entries": entries, "workbookId": payload["workbookId"]}
         if method == "getEntriesRelations":
@@ -309,6 +324,7 @@ class AuthoritativeSnapshotTests(unittest.TestCase):
                 artifact_retention="latest_only",
                 client=client,
             )
+            first_call_count = len(client.calls)
             second = dl_snapshot_dashboard(
                 project_root=tmp,
                 dashboard_id="dashboard_events",
@@ -332,6 +348,10 @@ class AuthoritativeSnapshotTests(unittest.TestCase):
         self.assertEqual(first["counts_by_object_type"]["connection"], 1)
         self.assertEqual(first["dormant_summary"]["count"], 2)
         self.assertEqual(first["manifest"]["sha256"], second["manifest"]["sha256"])
+        self.assertFalse(first["snapshot_reused"])
+        self.assertTrue(second["snapshot_reused"])
+        self.assertEqual(second["hydration_rpc_count"], 0)
+        self.assertEqual(len(client.calls) - first_call_count, 3)
         self.assertTrue(first["branch_comparison"]["available"])
         self.assertTrue(first["branch_comparison"]["same_normalized_structure"])
         self.assertEqual(first["completion"]["status"], "complete")
@@ -350,7 +370,7 @@ class AuthoritativeSnapshotTests(unittest.TestCase):
             for method, payload in client.calls
             if method in {"getEditorChart", "getWizardChart"}
         ]
-        self.assertEqual(len(chart_calls), len(CHART_IDS) * 2 * 2)
+        self.assertEqual(len(chart_calls), len(CHART_IDS) * 2)
         self.assertEqual({payload["branch"] for payload in chart_calls}, {"saved", "published"})
         self.assertEqual(first["api_contract"]["header_name"], "x-dl-api-version")
         self.assertEqual(first["api_contract"]["required_api_header_version"], "2")
@@ -366,6 +386,59 @@ class AuthoritativeSnapshotTests(unittest.TestCase):
         artifact_hashes = [artifact["sha256"] for artifact in artifacts]
         self.assertEqual(len(artifact_hashes), len(set(artifact_hashes)))
         self.assertTrue(all(artifact_paths_exist))
+
+    def test_snapshot_inventory_revision_change_forces_full_rehydration(self):
+        client = EventSnapshotClient()
+        with tempfile.TemporaryDirectory() as tmp:
+            first = dl_snapshot_dashboard(
+                project_root=tmp,
+                dashboard_id="dashboard_events",
+                workbook_id="workbook_events",
+                snapshot_branch="saved",
+                client=client,
+            )
+            first_call_count = len(client.calls)
+            client.revision = "inventory_rev_2"
+            second = dl_snapshot_dashboard(
+                project_root=tmp,
+                dashboard_id="dashboard_events",
+                workbook_id="workbook_events",
+                snapshot_branch="saved",
+                client=client,
+            )
+
+        self.assertTrue(first["ok"])
+        self.assertTrue(second["ok"])
+        self.assertFalse(second["snapshot_reused"])
+        self.assertGreater(second["hydration_rpc_count"], 0)
+        self.assertGreater(len(client.calls) - first_call_count, 2)
+
+    def test_parallel_and_serial_snapshot_have_identical_manifest_and_order(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            serial = dl_snapshot_dashboard(
+                project_root=tmp,
+                dashboard_id="dashboard_events",
+                workbook_id="workbook_events",
+                snapshot_branch="saved",
+                client=EventSnapshotClient(max_read_concurrency=1),
+            )
+            manifest_path = Path(serial["manifest"]["path"])
+            serial_manifest = manifest_path.read_bytes()
+            manifest_path.unlink()
+            parallel = dl_snapshot_dashboard(
+                project_root=tmp,
+                dashboard_id="dashboard_events",
+                workbook_id="workbook_events",
+                snapshot_branch="saved",
+                client=EventSnapshotClient(max_read_concurrency=3),
+            )
+            parallel_manifest = manifest_path.read_bytes()
+
+        self.assertFalse(serial["snapshot_reused"])
+        self.assertFalse(parallel["snapshot_reused"])
+        self.assertEqual(serial_manifest, parallel_manifest)
+        self.assertEqual(serial["manifest"]["sha256"], parallel["manifest"]["sha256"])
+        self.assertEqual(serial["active_graph_edges"], parallel["active_graph_edges"])
 
     def test_dashboard_report_keeps_minimal_readback_cheap_and_full_readback_authoritative(self):
         minimal_client = EventSnapshotClient()
@@ -395,6 +468,7 @@ class AuthoritativeSnapshotTests(unittest.TestCase):
         self.assertEqual(full["readback"]["counts_by_object_type"]["chart"], 18)
         self.assertGreaterEqual(len(full["readback"]["active_graph_edges"]), 18)
         self.assertGreater(len(full_client.calls), len(minimal_client.calls))
+        self.assertEqual(sum(method == "getDashboard" for method, _ in full_client.calls), 1)
 
     def test_snapshot_uses_chart_and_dataset_payload_dependencies_when_relations_are_empty(self):
         client = EventPayloadOnlyDependencyClient()

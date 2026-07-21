@@ -75,11 +75,16 @@ class SafeApplyTests(unittest.TestCase):
         class FakeClient:
             def __init__(self):
                 self.calls = []
+                self.exclusive_reads = []
 
             def rpc(self, method, payload):
                 self.calls.append((method, payload))
                 object_id = payload.get("chartId") or (payload.get("entry") or {}).get("entryId") or "chart_local"
                 return {"method": method, "payload": payload, "entry": {"entryId": object_id, "revId": "rev_1"}}
+
+            def rpc_exclusive_read(self, method, payload):
+                self.exclusive_reads.append((method, payload))
+                return self.rpc(method, payload)
 
         client = FakeClient()
         plan = create_safe_apply_plan(
@@ -102,6 +107,7 @@ class SafeApplyTests(unittest.TestCase):
 
         self.assertTrue(result["executed"])
         self.assertEqual([call[0] for call in client.calls], ["getEditorChart", "updateEditorChart", "getEditorChart"])
+        self.assertEqual([call[0] for call in client.exclusive_reads], ["getEditorChart", "getEditorChart"])
         self.assertEqual(client.calls[1][1]["mode"], "save")
         self.assertNotIn("result", result["actions"][0])
         self.assertIn("write_result", result["actions"][0]["artifacts"])

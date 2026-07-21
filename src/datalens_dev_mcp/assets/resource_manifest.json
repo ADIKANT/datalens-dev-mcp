@@ -47,9 +47,9 @@
       "sha256": "cb06db7296717eecbe82abf763a72fdd081740c0bfd2eaf115885cf94e220d2a"
     },
     {
-      "bytes": 3147,
+      "bytes": 3211,
       "path": "config/datalens_mcp.local.example.json",
-      "sha256": "5d16c9468b9091e06331dfcba2f10bdc7a97fd2ed9bd3782df2cdc7567668613"
+      "sha256": "e39d593bf8b038896569a8882e1c5c2d069de891e92c50a53e05c06f8e94950f"
     },
     {
       "bytes": 1764,
@@ -219,7 +219,7 @@
     {
       "bytes": 12880,
       "path": "schemas/datalens-knowledge/capability-matrix.json",
-      "sha256": "f9c60f32dc755ac3b041c77dd9b93614e862440135ea90e0c145c5fdd1509cfb"
+      "sha256": "38998d524ca8e91d03c979cc8485f0ce07d0288ec186e423cdb7ece5b71651a6"
     },
     {
       "bytes": 2645173,
@@ -254,7 +254,7 @@
     {
       "bytes": 6312,
       "path": "schemas/datalens-knowledge/route-capability-matrix.json",
-      "sha256": "3e088e88fc7bbb565ab315f7a39126ee03401796aa8ce2d7a817f01a19ae1328"
+      "sha256": "faa6d19c204907a5ddb3d48ea9b0ed8cde963c89978382cd00ac35aa52fa8026"
     },
     {
       "bytes": 307536,
@@ -267,9 +267,9 @@
       "sha256": "d3f3b5cea9c1a60729927de5701ce4205ec90fcfc7002302278d982e88072577"
     },
     {
-      "bytes": 7982,
+      "bytes": 8244,
       "path": "schemas/datalens-mcp-local-config.schema.json",
-      "sha256": "a8834666bd9521c8d5d4a087d7f29ce6bc81da27ae052d35bc9958f34d174149"
+      "sha256": "3ec5463127146723e58b68a8dc416a71396a6e2de5e95cb7fb9f3ad4bb75034f"
     },
     {
       "bytes": 957,

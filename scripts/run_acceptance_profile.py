@@ -120,6 +120,7 @@ def standard_profile_steps() -> list[dict[str, Any]]:
             py("-m", "unittest", "discover", "-s", "tests/integration_offline", "-p", "test_*.py", "-v"),
             240,
         ),
+        command_step("server_efficiency_regressions", py("scripts/run_server_efficiency_suite.py", "--strict"), 60),
         command_step("repo_size_budget", py("scripts/check_repo_size_budget.py", "--strict"), 120),
         command_step("sensitive_artifact_scan", py("scripts/scan_sensitive_artifacts.py", "."), 120),
     ]

@@ -84,11 +84,10 @@ class ValidationReadbackModeTests(unittest.TestCase):
                 client=client,
             )
 
-        self.assertEqual(
-            [call[0] for call in client.calls[:3]],
-            ["getDashboard", "getEditorChart", "getEditorChart"],
-        )
-        self.assertGreater(len(client.calls), 3)
+        methods = [call[0] for call in client.calls]
+        self.assertEqual(methods.count("getDashboard"), 1)
+        self.assertEqual(methods.count("getEditorChart"), 2)
+        self.assertEqual(methods.count("getEntriesRelations"), 1)
         self.assertEqual(report["readback"]["omitted_chart_ids"], [])
         self.assertIn("snapshot_manifest", report["readback"])
 

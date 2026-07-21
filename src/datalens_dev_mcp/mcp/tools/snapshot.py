@@ -6,9 +6,11 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from datalens_dev_mcp.api.concurrency import bounded_read_map, configured_read_workers
 from datalens_dev_mcp.api.methods import openapi_lock_summary
+from datalens_dev_mcp.api.scheduler import record_cache_hit
 from datalens_dev_mcp.mcp.response_projection import sanitize_response, serialized_metadata, stable_json_text
-from datalens_dev_mcp.pipeline.artifacts import ensure_project_dirs, write_json
+from datalens_dev_mcp.pipeline.artifacts import ensure_project_dirs, read_json, write_json
 
 
 DASHBOARD_ID_KEYS = (
@@ -37,6 +39,18 @@ EDITOR_NODE_TYPES = ("table_node", "control_node", "markdown_node", "d3_node")
 ACTIVE_GRAPH_EDGE_PREVIEW_LIMIT = 24
 DORMANT_ENTRY_PREVIEW_LIMIT = 12
 INLINE_FAILURE_PREVIEW_LIMIT = 8
+ENTRY_REVISION_KEYS = (
+    "revId",
+    "rev_id",
+    "savedId",
+    "saved_id",
+    "publishedId",
+    "published_id",
+    "updatedAt",
+    "updated_at",
+    "modifiedAt",
+    "modified_at",
+)
 
 
 def dl_snapshot_dashboard(
@@ -73,6 +87,11 @@ def dl_snapshot_dashboard(
     run_dir = root / "artifacts" / "authoritative_hardening" / "snapshots" / safe_dashboard_id / "latest"
     object_dir = run_dir / "objects"
     object_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = run_dir / "manifest.json"
+    try:
+        previous_manifest = read_json(manifest_path, default={})
+    except (OSError, ValueError):
+        previous_manifest = {}
 
     errors: list[dict[str, str]] = []
     omissions: list[dict[str, str]] = []
@@ -85,9 +104,14 @@ def dl_snapshot_dashboard(
     tab_count = 0
     resolved_workbook_id = str(workbook_id or "").strip()
 
-    for branch in branches:
-        payload = {"dashboardId": dashboard_id, "branch": branch}
-        dashboard = _read_rpc(active_client, "getDashboard", payload)
+    dashboard_reads = _read_many(
+        active_client,
+        [
+            ("getDashboard", {"dashboardId": dashboard_id, "branch": branch})
+            for branch in branches
+        ],
+    )
+    for branch, dashboard in zip(branches, dashboard_reads):
         if dashboard["ok"]:
             response = dashboard["response"]
             dashboard_payloads[branch] = response
@@ -158,10 +182,40 @@ def dl_snapshot_dashboard(
         )
         for branch in branches
     }
+    source_state = _snapshot_source_state(
+        dashboard_id=dashboard_id,
+        workbook_id=resolved_workbook_id,
+        snapshot_branch=branch_mode,
+        branch_summaries=branch_summaries,
+        inventory_entries=inventory_entries,
+    )
+    if _snapshot_manifest_is_reusable(
+        previous_manifest,
+        manifest_path=manifest_path,
+        dashboard_id=dashboard_id,
+        workbook_id=resolved_workbook_id,
+        snapshot_branch=branch_mode,
+        include_dormant_summary=include_dormant_summary,
+        artifact_retention=retention,
+        source_state=source_state,
+    ):
+        record_cache_hit("dashboard_snapshot")
+        return _reused_snapshot_response(
+            previous_manifest,
+            manifest_path=manifest_path,
+            dashboard_id=dashboard_id,
+            workbook_id=resolved_workbook_id,
+            snapshot_branch=branch_mode,
+            branch_summaries=branch_summaries,
+            source_probe_rpc_count=len(branches) + (1 if resolved_workbook_id else 0),
+        )
+
+    hydration_rpc_count = 0
     relation_ids = [dashboard_id, *active_chart_ids]
     relations_response: dict[str, Any] = {}
     relation_edges: list[dict[str, Any]] = []
     if relation_ids:
+        hydration_rpc_count += 1
         relations = _read_rpc(active_client, "getEntriesRelations", {"entryIds": relation_ids})
         if relations["ok"]:
             relations_response = relations["response"]
@@ -190,6 +244,7 @@ def dl_snapshot_dashboard(
         for branch in branch_summaries
     }
     hydrated_chart_ids_by_type: dict[str, set[str]] = {}
+    chart_specs: list[tuple[str, str, str, str, dict[str, Any]]] = []
     for branch in branches:
         for chart_id in active_chart_ids_by_branch.get(branch, []):
             object_type = _normalize_chart_type(inventory_types.get(chart_id, "chart"))
@@ -205,30 +260,44 @@ def dl_snapshot_dashboard(
                     }
                 )
                 continue
-            response = _read_rpc(active_client, method, {"chartId": chart_id, "branch": branch})
-            if response["ok"]:
-                hydrated_chart_ids_by_type.setdefault(object_type, set()).add(chart_id)
-                captured_object_branch_pairs.add((object_type, chart_id, branch))
-                _record_object(
-                    object_refs=object_refs,
-                    object_artifacts=object_artifacts,
-                    object_dir=object_dir,
-                    method=method,
-                    object_type=object_type,
-                    object_id=chart_id,
-                    branch=branch,
-                    response=response["response"],
+            chart_specs.append(
+                (
+                    chart_id,
+                    object_type,
+                    method,
+                    branch,
+                    {"chartId": chart_id, "branch": branch},
                 )
-                graph_edges.extend(_chart_dependency_edges(chart_id, response["response"], inventory_types))
-            else:
-                errors.append(
-                    {
-                        "method": method,
-                        "object_id": chart_id,
-                        "branch": branch,
-                        "message": response["message"],
-                    }
-                )
+            )
+    hydration_rpc_count += len(chart_specs)
+    chart_reads = _read_many(
+        active_client,
+        [(method, payload) for _, _, method, _, payload in chart_specs],
+    )
+    for (chart_id, object_type, method, branch, _), response in zip(chart_specs, chart_reads):
+        if response["ok"]:
+            hydrated_chart_ids_by_type.setdefault(object_type, set()).add(chart_id)
+            captured_object_branch_pairs.add((object_type, chart_id, branch))
+            _record_object(
+                object_refs=object_refs,
+                object_artifacts=object_artifacts,
+                object_dir=object_dir,
+                method=method,
+                object_type=object_type,
+                object_id=chart_id,
+                branch=branch,
+                response=response["response"],
+            )
+            graph_edges.extend(_chart_dependency_edges(chart_id, response["response"], inventory_types))
+        else:
+            errors.append(
+                {
+                    "method": method,
+                    "object_id": chart_id,
+                    "branch": branch,
+                    "message": response["message"],
+                }
+            )
 
     dataset_ids = sorted(
         {
@@ -239,11 +308,18 @@ def dl_snapshot_dashboard(
         }
     )
 
+    dataset_specs: list[tuple[str, dict[str, Any]]] = []
     for dataset_id in dataset_ids:
         payload: dict[str, Any] = {"datasetId": dataset_id}
         if resolved_workbook_id:
             payload["workbookId"] = resolved_workbook_id
-        response = _read_rpc(active_client, "getDataset", payload)
+        dataset_specs.append((dataset_id, payload))
+    hydration_rpc_count += len(dataset_specs)
+    dataset_reads = _read_many(
+        active_client,
+        [("getDataset", payload) for _, payload in dataset_specs],
+    )
+    for (dataset_id, _), response in zip(dataset_specs, dataset_reads):
         if response["ok"]:
             _record_object(
                 object_refs=object_refs,
@@ -268,11 +344,18 @@ def dl_snapshot_dashboard(
         }
     )
 
+    connection_specs: list[tuple[str, dict[str, Any]]] = []
     for connection_id in connection_ids:
         payload = {"connectionId": connection_id}
         if resolved_workbook_id:
             payload["workbookId"] = resolved_workbook_id
-        response = _read_rpc(active_client, "getConnection", payload)
+        connection_specs.append((connection_id, payload))
+    hydration_rpc_count += len(connection_specs)
+    connection_reads = _read_many(
+        active_client,
+        [("getConnection", payload) for _, payload in connection_specs],
+    )
+    for (connection_id, _), response in zip(connection_specs, connection_reads):
         if response["ok"]:
             _record_object(
                 object_refs=object_refs,
@@ -375,8 +458,10 @@ def dl_snapshot_dashboard(
         "coverage": coverage,
         "api_contract": api_contract,
         "artifact_retention": retention,
+        "source_fingerprint": source_state["fingerprint"],
+        "inventory_revision_complete": source_state["inventory_revision_complete"],
+        "inventory_entry_count": source_state["inventory_entry_count"],
     }
-    manifest_path = run_dir / "manifest.json"
     _write_stable_json(manifest_path, manifest)
     manifest_metadata = _file_metadata(manifest_path)
     retained_manifest_paths = [str(manifest_path)]
@@ -434,6 +519,190 @@ def dl_snapshot_dashboard(
         "object_artifact_count": len(object_artifacts),
         "dormant_summary": _compact_dormant_preview(dormant),
         "retained_manifest_paths": retained_manifest_paths,
+        "snapshot_reused": False,
+        "snapshot_reuse_eligible": source_state["inventory_revision_complete"],
+        "source_probe_rpc_count": len(branches) + (1 if resolved_workbook_id else 0),
+        "hydration_rpc_count": hydration_rpc_count,
+    }
+    response_metadata = serialized_metadata(response)
+    response["inline_serialized_chars"] = response_metadata["serialized_chars"]
+    response["inline_serialized_bytes"] = response_metadata["serialized_bytes"]
+    return response
+
+
+def _snapshot_source_state(
+    *,
+    dashboard_id: str,
+    workbook_id: str,
+    snapshot_branch: str,
+    branch_summaries: dict[str, dict[str, Any]],
+    inventory_entries: list[dict[str, Any]],
+) -> dict[str, Any]:
+    expected_branch_count = 2 if snapshot_branch == "both" else 1
+    revision_complete = bool(inventory_entries) and all(
+        any(entry.get(key) not in (None, "") for key in ENTRY_REVISION_KEYS) for entry in inventory_entries
+    )
+    fingerprint = ""
+    if revision_complete and len(branch_summaries) == expected_branch_count:
+        inventory_rows = []
+        for entry in inventory_entries:
+            inventory_rows.append(
+                {
+                    "entry_id": _entry_id(entry),
+                    "scope": entry.get("scope"),
+                    "type": entry.get("type"),
+                    "entry_type": entry.get("entryType"),
+                    "object_type": entry.get("objectType"),
+                    "kind": entry.get("kind"),
+                    "display_key": entry.get("displayKey"),
+                    "hidden": entry.get("hidden"),
+                    "deleted": entry.get("isDeleted"),
+                    "revisions": {key: entry.get(key) for key in ENTRY_REVISION_KEYS if entry.get(key) not in (None, "")},
+                }
+            )
+        payload = {
+            "dashboard_id": dashboard_id,
+            "workbook_id": workbook_id,
+            "snapshot_branch": snapshot_branch,
+            "branches": branch_summaries,
+            "inventory": sorted(inventory_rows, key=stable_json_text),
+        }
+        fingerprint = hashlib.sha256(stable_json_text(payload).encode("utf-8")).hexdigest()
+    return {
+        "fingerprint": fingerprint,
+        "inventory_revision_complete": revision_complete,
+        "inventory_entry_count": len(inventory_entries),
+    }
+
+
+def _snapshot_manifest_is_reusable(
+    manifest: Any,
+    *,
+    manifest_path: Path,
+    dashboard_id: str,
+    workbook_id: str,
+    snapshot_branch: str,
+    include_dormant_summary: bool,
+    artifact_retention: str,
+    source_state: dict[str, Any],
+) -> bool:
+    if not isinstance(manifest, dict) or not source_state.get("fingerprint"):
+        return False
+    target = manifest.get("target") if isinstance(manifest.get("target"), dict) else {}
+    if target != {
+        "dashboard_id": dashboard_id,
+        "workbook_id": workbook_id,
+        "snapshot_branch": snapshot_branch,
+    }:
+        return False
+    if manifest.get("source_fingerprint") != source_state["fingerprint"]:
+        return False
+    if not manifest.get("inventory_revision_complete") or manifest.get("errors"):
+        return False
+    dormant = manifest.get("dormant") if isinstance(manifest.get("dormant"), dict) else {}
+    if bool(dormant.get("included")) != bool(include_dormant_summary):
+        return False
+    if manifest.get("artifact_retention") != artifact_retention:
+        return False
+    graph = manifest.get("graph")
+    graph_artifact = manifest.get("compact_graph_artifact")
+    object_artifacts = manifest.get("object_artifacts")
+    if not isinstance(graph, dict) or not isinstance(graph_artifact, dict) or not isinstance(object_artifacts, list):
+        return False
+    if not _artifact_metadata_matches(graph_artifact):
+        return False
+    if not object_artifacts or not all(
+        isinstance(artifact, dict) and _artifact_metadata_matches(artifact) for artifact in object_artifacts
+    ):
+        return False
+    if artifact_retention in {"hash_partitioned", "both"}:
+        latest_metadata = _file_metadata(manifest_path)
+        retained_path = (
+            manifest_path.parent.parent / "by_hash" / latest_metadata["sha256"] / "manifest.json"
+        )
+        if not retained_path.is_file() or _file_metadata(retained_path)["sha256"] != latest_metadata["sha256"]:
+            return False
+    return True
+
+
+def _artifact_metadata_matches(metadata: dict[str, Any]) -> bool:
+    path_value = metadata.get("path")
+    expected_sha256 = str(metadata.get("sha256") or "")
+    if not path_value or not expected_sha256:
+        return False
+    path = Path(str(path_value))
+    try:
+        return path.is_file() and _file_metadata(path)["sha256"] == expected_sha256
+    except OSError:
+        return False
+
+
+def _reused_snapshot_response(
+    manifest: dict[str, Any],
+    *,
+    manifest_path: Path,
+    dashboard_id: str,
+    workbook_id: str,
+    snapshot_branch: str,
+    branch_summaries: dict[str, dict[str, Any]],
+    source_probe_rpc_count: int,
+) -> dict[str, Any]:
+    graph = manifest["graph"]
+    manifest_metadata = _file_metadata(manifest_path)
+    retained_manifest_paths = [str(manifest_path)]
+    if manifest.get("artifact_retention") in {"hash_partitioned", "both"}:
+        retained_manifest_paths.append(
+            str(manifest_path.parent.parent / "by_hash" / manifest_metadata["sha256"] / "manifest.json")
+        )
+    active_chart_ids = graph.get("active_chart_ids") if isinstance(graph.get("active_chart_ids"), list) else []
+    object_artifacts = manifest.get("object_artifacts") if isinstance(manifest.get("object_artifacts"), list) else []
+    graph_edges = graph.get("edges") if isinstance(graph.get("edges"), list) else []
+    active_graph_edge_preview = graph_edges[:ACTIVE_GRAPH_EDGE_PREVIEW_LIMIT]
+    errors = manifest.get("errors") if isinstance(manifest.get("errors"), list) else []
+    omissions = manifest.get("omissions") if isinstance(manifest.get("omissions"), list) else []
+    inline_errors, inline_errors_metadata = _bounded_inline_preview(
+        errors,
+        limit=INLINE_FAILURE_PREVIEW_LIMIT,
+    )
+    inline_omissions, inline_omissions_metadata = _bounded_inline_preview(
+        omissions,
+        limit=INLINE_FAILURE_PREVIEW_LIMIT,
+    )
+    coverage = manifest.get("coverage") if isinstance(manifest.get("coverage"), dict) else {}
+    response = {
+        "ok": True,
+        "model_facing_tool_calls": 1,
+        "target_identity": {"dashboard_id": dashboard_id, "workbook_id": workbook_id},
+        "snapshot_branch": snapshot_branch,
+        "counts_by_object_type": manifest.get("counts_by_object_type") or {},
+        "tab_count": int(manifest.get("tabs") or 0),
+        "active_chart_count": len(active_chart_ids),
+        "active_graph_edges": active_graph_edge_preview,
+        "active_graph_edge_preview": {
+            "total_count": len(graph_edges),
+            "preview_count": len(active_graph_edge_preview),
+            "limit": ACTIVE_GRAPH_EDGE_PREVIEW_LIMIT,
+            "truncated": len(active_graph_edge_preview) < len(graph_edges),
+        },
+        "branch_summary": branch_summaries,
+        "branch_comparison": manifest.get("branch_comparison") or {"available": False},
+        "errors": inline_errors,
+        "errors_preview": inline_errors_metadata,
+        "omissions": inline_omissions,
+        "omissions_preview": inline_omissions_metadata,
+        "completion": manifest.get("completion") or {},
+        "coverage": _compact_inline_coverage(coverage),
+        "api_contract": manifest.get("api_contract") or {},
+        "manifest": manifest_metadata,
+        "compact_graph": manifest["compact_graph_artifact"],
+        "object_artifact_count": len(object_artifacts),
+        "dormant_summary": manifest.get("dormant") or {"included": False},
+        "retained_manifest_paths": retained_manifest_paths,
+        "snapshot_reused": True,
+        "snapshot_reuse_eligible": True,
+        "source_probe_rpc_count": source_probe_rpc_count,
+        "hydration_rpc_count": 0,
+        "reuse_basis": "fresh_dashboard_and_revision_complete_workbook_inventory",
     }
     response_metadata = serialized_metadata(response)
     response["inline_serialized_chars"] = response_metadata["serialized_chars"]
@@ -573,6 +842,17 @@ def _read_rpc(client: Any, method: str, payload: dict[str, Any]) -> dict[str, An
         return {"ok": False, "message": _safe_error_text(exc)}
 
 
+def _read_many(
+    client: Any,
+    specs: list[tuple[str, dict[str, Any]]],
+) -> list[dict[str, Any]]:
+    return bounded_read_map(
+        specs,
+        lambda spec: _read_rpc(client, spec[0], spec[1]),
+        max_workers=configured_read_workers(client),
+    )
+
+
 def _safe_error_text(exc: Exception) -> str:
     text = str(exc) or exc.__class__.__name__
     for marker in ("Authorization", "DATALENS_IAM_TOKEN", "YC_IAM_TOKEN", "Bearer ", "token", "iam"):
@@ -596,7 +876,7 @@ def _record_object(
     sha256 = hashlib.sha256(text.encode("utf-8")).hexdigest()
     path = object_dir / f"{sha256}.json"
     if sha256 not in object_artifacts:
-        path.write_text(text + "\n", encoding="utf-8")
+        _write_text_if_changed(path, text + "\n")
         object_artifacts[sha256] = {
             "path": str(path),
             "sha256": sha256,
@@ -966,8 +1246,18 @@ def _file_metadata(path: Path) -> dict[str, Any]:
 
 
 def _write_stable_json(path: Path, payload: Any) -> None:
+    _write_text_if_changed(path, stable_json_text(payload) + "\n")
+
+
+def _write_text_if_changed(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(stable_json_text(payload) + "\n", encoding="utf-8")
+    if path.is_file():
+        try:
+            if path.read_text(encoding="utf-8") == content:
+                return
+        except (OSError, UnicodeDecodeError):
+            pass
+    path.write_text(content, encoding="utf-8")
 
 
 def _safe_segment(value: str) -> str:

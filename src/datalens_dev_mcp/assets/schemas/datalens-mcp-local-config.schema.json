@@ -104,11 +104,19 @@
     },
     "api_defaults": {
       "type": "object",
-      "required": ["request_interval_sec", "rate_limit_retries", "request_timeout_sec"],
+      "required": [
+        "request_interval_sec",
+        "rate_limit_retries",
+        "request_timeout_sec",
+        "max_read_concurrency",
+        "read_transient_retries"
+      ],
       "properties": {
         "request_interval_sec": {"type": "number", "minimum": 0},
         "rate_limit_retries": {"type": "integer", "minimum": 0},
-        "request_timeout_sec": {"type": "number", "exclusiveMinimum": 0}
+        "request_timeout_sec": {"type": "number", "exclusiveMinimum": 0},
+        "max_read_concurrency": {"type": "integer", "minimum": 1, "maximum": 3},
+        "read_transient_retries": {"type": "integer", "minimum": 0, "maximum": 2}
       },
       "additionalProperties": false
     },

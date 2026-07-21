@@ -712,7 +712,7 @@ def execute_safe_apply(
                     results.append(action_result)
                     break
             else:
-                fresh = client.rpc(fresh_method, fresh_payload) if fresh_method else {}
+                fresh = _exclusive_read(client, fresh_method, fresh_payload) if fresh_method else {}
             guarded_existing_write = action_type in {"update", "publish"}
             dashboard_update = _is_dashboard_action(action) and guarded_existing_write
             if action_type == "create" and fresh_method == "getWorkbookEntries" and not fresh:
@@ -849,7 +849,11 @@ def execute_safe_apply(
                         break
                     readback_method = str(readback_request["method"])
                     readback_payload = dict(readback_request["payload"])
-                readback = client.rpc(readback_method, readback_payload)
+                readback = _exclusive_read(
+                    client,
+                    readback_method,
+                    readback_payload,
+                )
                 action_result["artifacts"]["readback"] = _write_safe_apply_envelope(
                     root=root,
                     run_id=run_id,
@@ -940,6 +944,13 @@ def execute_safe_apply(
         results=results,
     )
     return result
+
+
+def _exclusive_read(client: Any, method: str, payload: dict[str, Any]) -> dict[str, Any]:
+    reader = getattr(client, "rpc_exclusive_read", None)
+    if callable(reader):
+        return reader(method, payload)
+    return client.rpc(method, payload)
 
 
 def write_safe_apply_plan(path: str | Path, plan: dict[str, Any]) -> None:
@@ -1297,7 +1308,7 @@ def _read_complete_workbook_entries_for_create(
         }
 
     while True:
-        raw_page = client.rpc("getWorkbookEntries", request_payload)
+        raw_page = _exclusive_read(client, "getWorkbookEntries", request_payload)
         page_count += 1
         page = sanitize_response(raw_page)
         while isinstance(page, dict) and isinstance(page.get("result"), dict):

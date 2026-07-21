@@ -105,6 +105,7 @@ Call `dl_runtime_status` first. It checks local configuration and reports:
 - whether the organization ID and token are present;
 - whether write, save, and publish are available;
 - whether token refresh through `yc` is available.
+- the shared API limiter settings and aggregate request, 429, retry, and cache-hit counters.
 
 Then call `dl_auth_probe`. It performs a minimal `getWorkbooksList` request with page size 1.
 

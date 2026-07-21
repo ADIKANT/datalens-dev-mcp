@@ -18,7 +18,7 @@ Operation classes:
 | Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
 | `dl_get_local_config` | Return effective local configuration without secret values | Check the workspace and execution settings | Optional config path and project root | Sanitized configuration · `local` | [Configuration](configuration_en.md) |
-| `dl_runtime_status` | Show API, credential, write, save, publish, and token-refresh state | At session start and when an operation is blocked | Optional project root and local config | Diagnostic report without secret values · `local` | [Access](access_en.md#7-check-configuration-and-access) |
+| `dl_runtime_status` | Show API, credential, write/publish, limiter, and cache state | At session start and when an operation is blocked | Optional project root and local config | Aggregate request/queue/network/429/retry/cache metrics without IDs or secrets · `local` | [Access](access_en.md#7-check-configuration-and-access) |
 | `dl_auth_probe` | Run a minimal `getWorkbooksList` and refresh the token when needed | Before the first DataLens object read | Settings from `DATALENS_ENV_FILE` | Authentication result or precise error category · `read-only API` | [Public API](https://yandex.cloud/ru/docs/datalens/operations/api-start) |
 
 ## Object reads
@@ -26,7 +26,7 @@ Operation classes:
 | Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
 | `dl_list_workbooks` | List available workbooks | After a successful access check | Optional pagination | Workbook list · `read-only API` | [`getWorkbooksList`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbooksList) |
-| `dl_get_workbook_entries` | Read objects in one workbook | Find dashboards, charts, datasets, and connections | `workbook_id`, optional response mode | Entry list or a full-data artifact · `read-only API` | [`getWorkbookEntries`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookEntries) |
+| `dl_get_workbook_entries` | Read objects in one or more workbooks | Find dashboards, charts, datasets, and connections | Exactly one of `workbook_id` or up to 100 `workbook_ids` | Ordered result; batch mode has one artifact and partial error per workbook · `read-only API` | [`getWorkbookEntries`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookEntries) |
 | `dl_get_entries_relations` | Read relations between entries | Before changing or deleting related objects | `entry_ids` | Dependency graph · `read-only API` | [`getEntriesRelations`](https://yandex.cloud/ru/docs/datalens/openapi-ref/getEntriesRelations) |
 | `dl_read_object` | Read a known object type by ID | Get current saved or published state | `object_type`, `object_id`, optional branch | Object data or a full-response artifact · `read-only API` | [API method reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) |
 | `dl_snapshot_dashboard` | Store a dashboard and its related objects | Before an audit, change, redesign, or backup | `dashboard_id`, optional `workbook_id` and branch | Files, manifest, and `complete` / `partial` / `unsafe` status · `read-only API` + `local` | [Dashboard model](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) |
@@ -35,7 +35,7 @@ Operation classes:
 
 | Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
-| `dl_validate_editor_runtime_contract` | Check Editor JavaScript sections and methods | Before saving an Editor object | Object or sections/source | Findings with paths and lines · `local` | [Editor tabs](https://yandex.cloud/ru/docs/datalens/charts/editor/tabs) and [methods](https://yandex.cloud/ru/docs/datalens/charts/editor/methods) |
+| `dl_validate_editor_runtime_contract` | Check Editor JavaScript sections and methods | Before saving an Editor object | Inline object/sections or JSON `artifact_paths` inside project root | Cached findings; full corpus references only on request · `local` | [Editor tabs](https://yandex.cloud/ru/docs/datalens/charts/editor/tabs) and [methods](https://yandex.cloud/ru/docs/datalens/charts/editor/methods) |
 | `dl_classify_source_error` | Identify the stage and type of a data-source error | DataLens returned a sanitized error | `error_payload` | Category, stage, and remediation · `local` | [DataLens documentation](https://yandex.cloud/ru/docs/datalens/) and project rules |
 | `dl_diagnose` | Analyze SQL, grain, relations, and performance from supplied data | Locate a cause or risk before writing | `mode`, evidence, optional project root | Concise findings and report paths · `local` | [Diagnostic contracts](mcp/response_contracts.md#diagnostics) |
 | `dl_reference` | Search rules, recipes, formulas, and API method information | Resolve a capability, route, error, or source | `mode`, query or name, response limit | Up to five relevant records with sources · `local` | [Official sources](sources_en.md) |

@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from datalens_dev_mcp import __version__
+from datalens_dev_mcp.mcp.heavy_response import HEAVY_TOOL_NAMES
 from datalens_dev_mcp.mcp.tool_registry_policy import (
     HIDDEN_TOOL_CALLS_ENV,
     LEGACY_TOOL_PROFILE_ENV,
@@ -48,6 +49,8 @@ class ToolSchemaTests(unittest.TestCase):
             }
             if name in PROJECT_CONTEXT_AWARE_TOOLS:
                 expected_params.update({"context_ref", "evidence_refs"})
+            if name in HEAVY_TOOL_NAMES:
+                expected_params.update({"response_mode", "inline_char_budget"})
             self.assertEqual(expected_params, set(schema["properties"]), name)
             self.assertLess(len(listed[name]["description"]), 180, name)
             for required in schema.get("required", []):
@@ -70,11 +73,28 @@ class ToolSchemaTests(unittest.TestCase):
         listed = {tool["name"]: tool for tool in list_tools("all")}
 
         workbook_schema = listed["dl_get_workbook_entries"]["inputSchema"]
-        self.assertEqual(workbook_schema["required"], ["workbook_id"])
+        self.assertNotIn("required", workbook_schema)
         self.assertIn("workbook_id", workbook_schema["properties"])
+        self.assertIn("workbook_ids", workbook_schema["properties"])
+        self.assertEqual(
+            workbook_schema["oneOf"],
+            [{"required": ["workbook_id"]}, {"required": ["workbook_ids"]}],
+        )
 
         safe_apply_schema = listed["dl_create_safe_apply_plan"]["inputSchema"]
         self.assertEqual(safe_apply_schema["properties"]["readback_mode"]["enum"], ["none", "minimal", "full", "debug"])
+        self.assertEqual(safe_apply_schema["properties"]["response_mode"]["default"], "summary")
+        self.assertEqual(safe_apply_schema["properties"]["inline_char_budget"]["default"], 15_000)
+
+        editor_schema = listed["dl_validate_editor_runtime_contract"]["inputSchema"]
+        self.assertEqual(
+            editor_schema["oneOf"],
+            [
+                {"required": ["entry"]},
+                {"required": ["sections"]},
+                {"required": ["artifact_paths"]},
+            ],
+        )
 
         route_schema = listed["dl_generate_editor_bundle"]["inputSchema"]
         self.assertIn("wizard_native", route_schema["properties"]["route"]["enum"])
@@ -305,6 +325,34 @@ class ToolSchemaTests(unittest.TestCase):
         self.assertFalse(body["ok"])
         self.assertEqual(body["error"]["category"], "missing_input")
         self.assertEqual(body["tool"], "dl_get_workbook_entries")
+
+    def test_only_known_obsolete_project_root_arguments_are_ignored(self):
+        server = JsonRpcServer(project_root=".")
+        tolerated = server._call_tool(
+            {
+                "name": "dl_validate_object",
+                "arguments": {
+                    "object_type": "dashboard",
+                    "payload": {},
+                    "project_root": "/legacy/caller/path",
+                },
+            }
+        )
+        rejected = server._call_tool(
+            {
+                "name": "dl_validate_object",
+                "arguments": {
+                    "object_type": "dashboard",
+                    "payload": {},
+                    "unexpected_parameter": True,
+                },
+            }
+        )
+
+        self.assertFalse(tolerated["isError"])
+        self.assertTrue(rejected["isError"])
+        body = json.loads(rejected["content"][0]["text"])
+        self.assertIn("unexpected_parameter", body["error"]["message"])
 
     def test_generic_tool_exception_uses_shared_redaction(self):
         secret = "Bearer " + "abcdefghijklmnop" + "qrstuvwxyz123456"

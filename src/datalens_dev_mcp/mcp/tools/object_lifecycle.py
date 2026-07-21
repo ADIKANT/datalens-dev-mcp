@@ -1433,7 +1433,7 @@ def _project_read_response(
         "object_id": object_id,
         "branch": branch if contract.get("branch_semantics") == "saved_or_published" else "",
     }
-    effective_run_id = run_id or f"r_{stable_sha256([object_type, object_id, branch])[:12]}"
+    effective_run_id = run_id or f"r_{stable_sha256([object_type, object_id, branch])[:8]}"
     last_budget_error: ValueError | None = None
     for contract_variant in _read_contract_variants(contract):
         envelope = {

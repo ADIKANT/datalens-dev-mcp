@@ -90,8 +90,14 @@ class FullCorpusRuntimeIntegrationTests(unittest.TestCase):
     def test_runtime_validation_includes_editor_source_references(self):
         result = dl_validate_editor_runtime_contract(sections={"prepare": "module.exports = {render: () => ''};"})
 
-        self.assertIn("corpus_references", result)
-        self.assertTrue(result["corpus_references"])
+        self.assertNotIn("corpus_references", result)
+        self.assertTrue(result["corpus_reference_set"]["source_urls"])
+        expanded = dl_validate_editor_runtime_contract(
+            sections={"prepare": "module.exports = {render: () => ''};"},
+            include_references=True,
+        )
+        self.assertTrue(expanded["corpus_references"])
+        self.assertTrue(expanded["validation_cache"]["hit"])
 
 
 if __name__ == "__main__":
