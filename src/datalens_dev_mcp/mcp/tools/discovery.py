@@ -18,6 +18,31 @@ from datalens_dev_mcp.mcp.response_projection import (
 )
 
 
+WORKBOOK_ENTRY_SCOPES = {
+    "connection",
+    "dataset",
+    "widget",
+    "dash",
+    "folder",
+    "config",
+    "pdf",
+    "report",
+    "compute",
+    "artifact",
+}
+WORKBOOK_ENTRY_SCOPE_ALIASES = {
+    "chart": "widget",
+    "charts": "widget",
+    "editor_chart": "widget",
+    "wizard_chart": "widget",
+    "dashboard": "dash",
+    "dashboards": "dash",
+    "datasets": "dataset",
+    "connections": "connection",
+    "widgets": "widget",
+}
+
+
 def _client() -> DataLensApiClient:
     return DataLensApiClient(DataLensConfig.from_env())
 
@@ -129,24 +154,35 @@ def _normalized_workbook_scope(scope: str | list[str] | None) -> str | list[str]
     if scope is None:
         return None
     if isinstance(scope, str):
-        normalized = scope.strip()
+        normalized = scope.strip().lower()
         if normalized.lower() in {"all", "*"}:
             return None
         if not normalized:
             raise ValueError("scope must be a non-empty string or list of non-empty strings")
-        return normalized
+        return _validated_workbook_scope(normalized)
     if not isinstance(scope, list) or not scope:
         raise ValueError("scope must be a non-empty string or list of non-empty strings")
-    normalized_items = [str(item or "").strip() for item in scope]
+    normalized_items = [str(item or "").strip().lower() for item in scope]
     if any(not item for item in normalized_items):
         raise ValueError("scope list must contain only non-empty strings")
     if any(item.lower() in {"all", "*"} for item in normalized_items):
         if len(normalized_items) == 1:
             return None
         raise ValueError("scope all/* cannot be combined with specific scopes")
+    normalized_items = [_validated_workbook_scope(item) for item in normalized_items]
     if len(set(normalized_items)) != len(normalized_items):
         raise ValueError("scope list must not contain duplicates")
     return normalized_items
+
+
+def _validated_workbook_scope(value: str) -> str:
+    normalized = WORKBOOK_ENTRY_SCOPE_ALIASES.get(value, value)
+    if normalized not in WORKBOOK_ENTRY_SCOPES:
+        allowed = ", ".join(sorted(WORKBOOK_ENTRY_SCOPES))
+        raise ValueError(
+            f"scope is an API object-type filter, not a workbook entry title; use all/* or one of: {allowed}"
+        )
+    return normalized
 
 
 def _safe_batch_error(exc: Exception) -> str:

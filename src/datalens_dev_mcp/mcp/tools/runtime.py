@@ -34,6 +34,14 @@ from datalens_dev_mcp.validators.source_diagnostics import classify_datalens_sou
 EDITOR_ARTIFACT_MAX_COUNT = 100
 EDITOR_ARTIFACT_MAX_BYTES = 2 * 1024 * 1024
 EDITOR_ARTIFACT_TOTAL_MAX_BYTES = 10 * 1024 * 1024
+EDITOR_TAB_FILE_NAMES = (
+    "meta.json",
+    "params.js",
+    "sources.js",
+    "prepare.js",
+    "controls.js",
+    "config.js",
+)
 
 
 def dl_runtime_status(project_root: str = ".", local_config_path: str = "") -> dict[str, Any]:
@@ -43,6 +51,7 @@ def dl_runtime_status(project_root: str = ".", local_config_path: str = "") -> d
         cfg = DataLensConfig.from_env()
     yc_binary_path = _yc_binary_path(cfg.yc_binary)
     config_defaults = _config_defaults(local_config)
+    local_meta = local_config.get("_meta") if isinstance(local_config.get("_meta"), dict) else {}
     refresh_available = bool(cfg.token_refresh_enabled and yc_binary_path)
     credential_report = cfg.credential_report()
     api_lock = openapi_lock_summary()
@@ -79,6 +88,12 @@ def dl_runtime_status(project_root: str = ".", local_config_path: str = "") -> d
         "request_scheduler": request_scheduler,
         "project_root": str(Path(project_root)),
         "local_config_path": local_config_path,
+        "project_manifest": {
+            "detected": bool(local_meta.get("project_manifest_detected")),
+            "path": str(local_meta.get("project_manifest_path") or ""),
+            "authoring_profile": local_meta.get("project_authoring_profile") or "",
+            "used_as_runtime_config": False,
+        },
         "runtime_env": {
             "write_flags": {
                 "allow_writes": cfg.write_enabled,
@@ -264,9 +279,11 @@ def _validate_editor_artifacts(
     include_references: bool,
 ) -> dict[str, Any]:
     if not artifact_paths or len(artifact_paths) > EDITOR_ARTIFACT_MAX_COUNT:
-        raise ValueError(f"artifact_paths must contain between 1 and {EDITOR_ARTIFACT_MAX_COUNT} JSON paths")
+        raise ValueError(
+            f"artifact_paths must contain between 1 and {EDITOR_ARTIFACT_MAX_COUNT} JSON, JS, or widget-directory paths"
+        )
     root = Path(project_root).expanduser().resolve()
-    resolved: list[tuple[str, Path]] = []
+    resolved: list[tuple[str, Path, str]] = []
     total_bytes = 0
     for raw_path in artifact_paths:
         candidate = Path(str(raw_path or "")).expanduser()
@@ -277,26 +294,33 @@ def _validate_editor_artifacts(
             raise ValueError(f"Editor artifact does not exist: {raw_path}") from exc
         if not path.is_relative_to(root):
             raise ValueError(f"Editor artifact path escapes project_root: {raw_path}")
-        if not path.is_file() or path.suffix.lower() != ".json":
-            raise ValueError(f"Editor artifact must be a JSON file inside project_root: {raw_path}")
-        byte_count = path.stat().st_size
-        if byte_count > EDITOR_ARTIFACT_MAX_BYTES:
-            raise ValueError(f"Editor artifact exceeds {EDITOR_ARTIFACT_MAX_BYTES} bytes: {raw_path}")
-        total_bytes += byte_count
+        if path.is_dir():
+            tab_paths = [path / name for name in EDITOR_TAB_FILE_NAMES if (path / name).is_file()]
+            if not tab_paths:
+                raise ValueError(f"Editor widget directory contains no recognized tab files: {raw_path}")
+            for tab_path in tab_paths:
+                byte_count = tab_path.stat().st_size
+                if byte_count > EDITOR_ARTIFACT_MAX_BYTES:
+                    raise ValueError(f"Editor tab exceeds {EDITOR_ARTIFACT_MAX_BYTES} bytes: {tab_path}")
+                total_bytes += byte_count
+            kind = "widget_directory"
+        elif path.is_file() and path.suffix.lower() in {".json", ".js"}:
+            byte_count = path.stat().st_size
+            if byte_count > EDITOR_ARTIFACT_MAX_BYTES:
+                raise ValueError(f"Editor artifact exceeds {EDITOR_ARTIFACT_MAX_BYTES} bytes: {raw_path}")
+            total_bytes += byte_count
+            kind = "json" if path.suffix.lower() == ".json" else "javascript"
+        else:
+            raise ValueError(f"Editor artifact must be JSON, JavaScript, or a widget directory: {raw_path}")
         if total_bytes > EDITOR_ARTIFACT_TOTAL_MAX_BYTES:
             raise ValueError(f"Editor artifacts exceed {EDITOR_ARTIFACT_TOTAL_MAX_BYTES} total bytes")
-        resolved.append((path.relative_to(root).as_posix(), path))
+        resolved.append((path.relative_to(root).as_posix(), path, kind))
 
     full_items: list[dict[str, Any]] = []
     compact_items: list[dict[str, Any]] = []
     aggregate_findings: list[dict[str, Any]] = []
-    for relative, path in resolved:
-        try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise ValueError(f"Editor artifact is not valid UTF-8 JSON: {relative}") from exc
-        if not isinstance(payload, dict):
-            raise ValueError(f"Editor artifact root must be a JSON object: {relative}")
+    for relative, path, kind in resolved:
+        payload = _load_editor_artifact_payload(path=path, relative=relative, kind=kind)
         result = _cached_editor_validation(
             payload,
             source=relative,
@@ -356,6 +380,27 @@ def _validate_editor_artifacts(
         },
         **_editor_reference_payload(include_references=include_references),
     }
+
+
+def _load_editor_artifact_payload(*, path: Path, relative: str, kind: str) -> dict[str, Any]:
+    try:
+        if kind == "widget_directory":
+            sections = {
+                name: (path / name).read_text(encoding="utf-8")
+                for name in EDITOR_TAB_FILE_NAMES
+                if (path / name).is_file()
+            }
+            return {"sections": sections}
+        text = path.read_text(encoding="utf-8")
+        if kind == "javascript":
+            return {"sections": {path.name: text}}
+        payload = json.loads(text)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        label = "UTF-8 JSON" if kind == "json" else "UTF-8 Editor tabs"
+        raise ValueError(f"Editor artifact is not valid {label}: {relative}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError(f"Editor artifact root must be a JSON object: {relative}")
+    return payload
 
 
 def _editor_reference_payload(*, include_references: bool) -> dict[str, Any]:
@@ -488,6 +533,9 @@ def _config_defaults(local_config: dict[str, Any]) -> dict[str, Any]:
     return {
         "loaded_from_file": bool(meta.get("loaded_from_file")),
         "config_path": str(meta.get("config_path") or ""),
+        "project_manifest_detected": bool(meta.get("project_manifest_detected")),
+        "project_manifest_path": str(meta.get("project_manifest_path") or ""),
+        "project_authoring_profile": meta.get("project_authoring_profile") or "",
         "load_error": str(meta.get("load_error") or ""),
         "execution_default": str(execution.get("default") or ""),
         "writes_default": bool(execution.get("writes", True)),

@@ -5,7 +5,12 @@ import unittest
 from contextlib import contextmanager
 from pathlib import Path
 
-from datalens_dev_mcp.local_config import apply_tool_defaults, load_local_config, sanitize_local_config
+from datalens_dev_mcp.local_config import (
+    apply_tool_defaults,
+    is_project_live_manifest_payload,
+    load_local_config,
+    sanitize_local_config,
+)
 from datalens_dev_mcp.validators.artifact_validator import validate_schema_file
 
 
@@ -27,6 +32,27 @@ def patched_env(values):
 
 
 class LocalConfigTests(unittest.TestCase):
+    def test_project_live_manifest_is_not_misclassified_as_runtime_config(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest_path = Path(tmp) / ".datalens-mcp.json"
+            manifest = {
+                "project_name": "profiled_dashboard",
+                "workbook_id": "workbook_1",
+                "dashboard_ids": ["dashboard_1"],
+                "authoring_profile": {"id": "charging_v2_exact"},
+                "workflows": [{"name": "delivery", "may_execute_command": False}],
+            }
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            config = load_local_config(manifest_path, project_root=tmp)
+
+        self.assertTrue(is_project_live_manifest_payload(manifest))
+        self.assertEqual(config["schema_version"], "2026-07-19.datalens_mcp_local_config.v3")
+        self.assertFalse(config["_meta"]["loaded_from_file"])
+        self.assertTrue(config["_meta"]["project_manifest_detected"])
+        self.assertEqual(config["_meta"]["project_manifest_path"], str(manifest_path))
+        self.assertEqual(config["_meta"]["project_authoring_profile"], {"id": "charging_v2_exact"})
+
     def test_example_config_loads_with_safe_defaults(self):
         config = load_local_config(ROOT / "config" / "datalens_mcp.local.example.json", project_root=ROOT)
 

@@ -186,9 +186,9 @@
   "schema_version": "2026-06-25.semantic_authoring.v2",
   "tool_budget": {
     "all_tool_count": 93,
-    "all_tools_list_bytes": 50256,
+    "all_tools_list_bytes": 50275,
     "default_tool_count": 38,
-    "default_tools_list_bytes": 24475,
-    "default_tools_list_chars": 24475
+    "default_tools_list_bytes": 24494,
+    "default_tools_list_chars": 24494
   }
 }

@@ -2970,6 +2970,7 @@ def _first_identity_candidate(value: dict[str, Any]) -> dict[str, Any]:
 def _candidate_object_id(candidate: dict[str, Any]) -> str:
     return str(
         candidate.get("entryId")
+        or candidate.get("entry_id")
         or candidate.get("id")
         or candidate.get("dashboardId")
         or candidate.get("chartId")
@@ -3251,7 +3252,6 @@ def _normalize_publish_object_type(object_type: str) -> str:
         "chart": "editor_chart",
         "editor": "editor_chart",
         "advanced_editor": "advanced_editor_chart",
-        "advanced_editor": "advanced_editor_chart",
     }
     return aliases.get(normalized, normalized)
 
@@ -3406,34 +3406,25 @@ def _publish_source_issues(*, root: Path, action: dict[str, Any], index: int) ->
 
 
 def _saved_readback_identity(readback: dict[str, Any], *, object_id: str = "") -> dict[str, str]:
-    candidates: list[dict[str, Any]] = []
-    for key in ("dashboard", "chart", "entry", "object"):
-        value = readback.get(key)
-        if isinstance(value, dict):
-            candidates.append(value)
-            nested = value.get("entry")
-            if isinstance(nested, dict):
-                candidates.append(nested)
-    charts = readback.get("charts")
-    if isinstance(charts, list):
-        for chart in charts:
-            if isinstance(chart, dict):
-                candidates.append(chart)
-                nested = chart.get("entry")
-                if isinstance(nested, dict):
-                    candidates.append(nested)
-    candidates.append(readback)
+    candidates = _saved_readback_candidates(readback)
     requested_id = str(object_id or "").strip()
     matched: list[dict[str, str]] = []
     for candidate in candidates:
         candidate_object_id = str(
             candidate.get("entryId")
+            or candidate.get("entry_id")
             or candidate.get("id")
             or candidate.get("dashboardId")
             or candidate.get("chartId")
             or ""
         ).strip()
-        saved_rev_id = str(candidate.get("revId") or candidate.get("savedRevId") or "").strip()
+        saved_rev_id = str(
+            candidate.get("revId")
+            or candidate.get("rev_id")
+            or candidate.get("savedRevId")
+            or candidate.get("saved_rev_id")
+            or ""
+        ).strip()
         saved_id = str(candidate.get("savedId") or candidate.get("saved_id") or "").strip()
         if requested_id and candidate_object_id and candidate_object_id != requested_id:
             continue
@@ -3481,6 +3472,7 @@ def _saved_readback_entry(readback: dict[str, Any], *, object_id: str) -> dict[s
     for candidate in _saved_readback_candidates(readback):
         candidate_object_id = str(
             candidate.get("entryId")
+            or candidate.get("entry_id")
             or candidate.get("id")
             or candidate.get("dashboardId")
             or candidate.get("chartId")
@@ -3519,5 +3511,16 @@ def _saved_readback_candidates(readback: dict[str, Any]) -> list[dict[str, Any]]
             if isinstance(chart, dict):
                 nested = chart.get("entry")
                 candidates.append(nested if isinstance(nested, dict) else chart)
+    objects = readback.get("objects")
+    if isinstance(objects, list):
+        for item in objects:
+            if isinstance(item, dict):
+                nested = item.get("entry")
+                candidates.append(nested if isinstance(nested, dict) else item)
+    summary = readback.get("summary")
+    if isinstance(summary, dict):
+        identity = summary.get("identity")
+        if isinstance(identity, dict):
+            candidates.append(identity)
     candidates.append(readback)
     return candidates

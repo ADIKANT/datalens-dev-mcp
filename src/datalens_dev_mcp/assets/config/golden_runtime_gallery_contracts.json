@@ -439,7 +439,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -601,7 +601,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -1918,7 +1918,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -2078,7 +2078,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -2238,7 +2238,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -2398,7 +2398,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -2558,7 +2558,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -2718,7 +2718,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -2878,7 +2878,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -3864,7 +3864,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -3996,7 +3996,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -4128,7 +4128,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -4260,7 +4260,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -4392,7 +4392,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -4524,7 +4524,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -4671,7 +4671,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -4818,7 +4818,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -4965,7 +4965,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -5112,7 +5112,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -5259,7 +5259,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -5406,7 +5406,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,

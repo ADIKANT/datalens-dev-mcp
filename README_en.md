@@ -18,6 +18,7 @@ The MCP client starts the server on your computer over stdio. The server reaches
 | Discovery | Lists workbooks and entries and reads object relations |
 | Audit | Captures a dashboard together with related charts, datasets, and connections |
 | Development | Plans dashboard, chart, dataset, and connection creation or updates |
+| Exact JS style | Reuses the versioned Charging runtime verbatim and blocks approximate fallback |
 | Validation | Checks API schemas, SQL, relations, selectors, layout, and Editor code |
 | Delivery | Performs a fresh read, saves the change, verifies saved state, publishes it, and verifies the result |
 | Reference | Answers bounded DataLens and API questions with source links |

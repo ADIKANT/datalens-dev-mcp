@@ -61,7 +61,7 @@ class LiveHardeningV2RuntimeContractTests(unittest.TestCase):
         result = validate_editor_runtime_contract(compatible_d3_dom_entry(), source="positive_fixture")
 
         self.assertTrue(result["ok"], result["findings"])
-        self.assertEqual(result["rule_version"], "2026-06-25.datalens_advanced_editor_runtime.v2")
+        self.assertEqual(result["rule_version"], "2026-07-21.datalens_advanced_editor_runtime.v3")
         self.assertEqual(result["performance_budgets_ms"]["ordinary_wrap_fn"], 100)
 
     def test_runtime_contract_blocks_roadmap_fixture_with_paths_and_lines(self):

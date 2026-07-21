@@ -254,7 +254,7 @@ class ServerPerformanceOptimizationTests(unittest.TestCase):
                     project_root=str(root),
                     artifact_paths=[str(outside)],
                 )
-            with self.assertRaisesRegex(ValueError, "must be a JSON file"):
+            with self.assertRaisesRegex(ValueError, "must be JSON, JavaScript, or a widget directory"):
                 dl_validate_editor_runtime_contract(
                     project_root=str(root),
                     artifact_paths=["editor.txt"],

@@ -117,8 +117,12 @@ LEGACY_TOP_LEVEL_KEYS = {"mcp", "safe_mode", "approval_gates"}
 def load_local_config(config_path: str | Path | None = None, *, project_root: str | Path = ".") -> dict[str, Any]:
     path = _resolve_config_path(config_path, project_root=project_root)
     data: dict[str, Any] = {}
+    project_manifest: dict[str, Any] = {}
     if path and path.is_file():
         data = json.loads(path.read_text(encoding="utf-8"))
+        if is_project_live_manifest_payload(data):
+            project_manifest = data
+            data = {}
     data, config_migrations = _migrate_local_config_v2(data)
     data, routing_migrations = _migrate_legacy_routing_config(data)
     migrations = [*config_migrations, *routing_migrations]
@@ -127,10 +131,26 @@ def load_local_config(config_path: str | Path | None = None, *, project_root: st
     config.pop("mcp", None)
     config["_meta"] = {
         "config_path": str(path) if path else "",
-        "loaded_from_file": bool(path and path.is_file()),
+        "loaded_from_file": bool(path and path.is_file() and not project_manifest),
         "compatibility_migrations": migrations,
+        "project_manifest_detected": bool(project_manifest),
+        "project_manifest_path": str(path) if project_manifest and path else "",
+        "project_authoring_profile": project_manifest.get("authoring_profile") if project_manifest else "",
     }
     return config
+
+
+def is_project_live_manifest_payload(value: Any) -> bool:
+    if not isinstance(value, dict):
+        return False
+    workflows = value.get("workflows")
+    project_named = bool(str(value.get("project_name") or value.get("name") or "").strip())
+    target_declared = bool(
+        str(value.get("workbook_id") or "").strip()
+        or value.get("dashboard_ids")
+        or isinstance(value.get("target"), dict)
+    )
+    return bool(isinstance(workflows, list) and workflows and project_named and target_declared)
 
 
 def validate_local_config(config: dict[str, Any]) -> None:

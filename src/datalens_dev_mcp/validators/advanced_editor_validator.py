@@ -45,7 +45,10 @@ ALLOWED_EDITOR_METHODS = {
 METHOD_RE = re.compile(r"\bEditor\.([A-Za-z_][A-Za-z0-9_]*)\s*\(")
 RUNTIME_METHOD_RE = re.compile(r"\b(Editor|ChartEditor)\.([A-Za-z_][A-Za-z0-9_]*)\s*\(")
 D3_ATTR_RE = re.compile(r"\.attr\s*\(\s*([\"'])(?P<name>[^\"']+)\1", re.S)
-HTML_TAG_RE = re.compile(r"<\s*(?P<tag>[A-Za-z][A-Za-z0-9:-]*)\b(?P<attrs>[^<>]*)>", re.S)
+# Real opening tags do not contain whitespace between ``<`` and the tag name.
+# Allowing it made ordinary JavaScript comparisons such as ``index < value``
+# look like one enormous unsupported HTML tag until a later ``>`` operator.
+HTML_TAG_RE = re.compile(r"<(?P<tag>[A-Za-z][A-Za-z0-9:-]*)\b(?P<attrs>[^<>]*)>", re.S)
 HTML_ATTR_RE = re.compile(r"(?P<name>[A-Za-z_:][A-Za-z0-9_:.-]*)\s*=", re.S)
 HTML_URI_ATTR_RE = re.compile(
     r"(?P<name>href|src|xlink:href)\s*=\s*(?P<quote>['\"])(?P<value>.*?)(?P=quote)",
@@ -96,7 +99,7 @@ def validate_advanced_editor_js(text: str, *, source: str = "<memory>") -> Valid
         if "return Editor.generateHtml" not in text:
             issues.append(f"{source}: wrapped render must return Editor.generateHtml(...)")
 
-    if 'data-id="hint"' in text or "tooltip:" in text:
+    if 'data-id="hint"' in text:
         issues.append(f"{source}: top-level dashboard hints must be native dashboard metadata, not chart-body UI")
     if re.search(r"\bdata\.title\b", text):
         issues.append(f"{source}: top-level dashboard titles must be native dashboard metadata, not chart-body UI")

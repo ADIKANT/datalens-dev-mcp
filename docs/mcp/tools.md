@@ -76,7 +76,7 @@
 
 - Required: ровно один из `entry`, `sections` или `artifact_paths`
 - Optional: `source`, `allow_unknown_warnings`, `project_root`, `include_references`
-- Проверяет структуру Editor, JavaScript и вызовы `Editor.*`. `artifact_paths` принимает до 100 JSON-файлов только внутри resolved project root, не более 2 MiB каждый и 10 MiB суммарно. Идентичный payload и версия правил используют validation cache. По умолчанию возвращается стабильный `corpus_reference_set`; полный список доступен при `include_references=true`.
+- Проверяет структуру Editor, JavaScript и вызовы `Editor.*`. `artifact_paths` принимает до 100 JSON-файлов, отдельных `.js` или widget-директорий только внутри resolved project root; один файл не больше 2 MiB, все входы суммарно не больше 10 MiB. Идентичный payload и версия правил используют validation cache. По умолчанию возвращается стабильный `corpus_reference_set`; полный список доступен при `include_references=true`.
 
 ### `dl_classify_source_error`
 
@@ -101,12 +101,15 @@
 ### `dl_generate_editor_bundle`
 
 - Required: —
-- Optional: `project_root`, `widget_id`, `route`, `dataset_alias`, `columns`, `selector_contract`, `dataset_readbacks`, `context_ref`, `evidence_refs`
+- Optional: `project_root`, `widget_id`, `route`, `authoring_profile`, `dataset_alias`, `columns`, `selector_contract`, `dataset_readbacks`, `context_ref`, `evidence_refs`
 - Компилирует Wizard plan или Editor tabs по выбранному маршруту. Для
   `editor_js_control` production-вызов передаёт полный `selector_contract`;
   неполный контракт блокируется без выдуманных параметров или значений.
   `dataset_readbacks`, если они переданы, проверяют Wizard field GUID и роли;
   отсутствие аргумента не подменяется пустым readback.
+  `authoring_profile=charging` или manifest-профиль `charging_v2_exact`
+  дословно встраивает канонический Charging runtime с SHA-256 `5f37…ebf3` через
+  зарегистрированный адаптер и блокирует fallback.
 
 ### `dl_validate_project`
 
@@ -199,7 +202,7 @@
 ### `dl_plan_project_manifest`
 
 - Required: `project_root`
-- Optional: `write_manifest`, `overwrite_existing`, `target_workbook_id`, `dashboard_id`
+- Optional: `write_manifest`, `overwrite_existing`, `target_workbook_id`, `dashboard_id`, `authoring_profile`
 - Возвращает предлагаемый manifest; при `write_manifest=true` записывает его в project root.
 
 ### `dl_plan_project_live_workflow`
@@ -211,15 +214,18 @@
 ### `dl_run_project_live_dry_run`
 
 - Required: `project_root`
-- Optional: `workflow_name`, `execute_now`, `timeout_sec`, `response_mode`, `inline_char_budget`
-- Запускает объявленную dry-run-команду и очищает stdout/stderr.
+- Optional: `workflow_name`, `execute_now`, `timeout_sec`, `execution_id`, `response_mode`, `inline_char_budget`
+- Запускает объявленную dry-run-команду и очищает stdout/stderr. При
+  `timeout_sec > 120` сразу возвращает `execution_id`; повторный вызов с этим ID
+  только проверяет исходный процесс.
 
 ### `dl_run_project_live_apply`
 
 - Required: `project_root`
-- Optional: `workflow_name`, `execute_now`, `publish`, `action`, `timeout_sec`, `delivery_intent_text`, `confirm_delete`, `response_mode`, `inline_char_budget`
+- Optional: `workflow_name`, `execute_now`, `publish`, `action`, `timeout_sec`, `execution_id`, `delivery_intent_text`, `confirm_delete`, `response_mode`, `inline_char_budget`
 - Запускает объявленное apply-действие. `confirm_delete` используется только
-  для `retire_legacy_objects` по совпадающему plan.
+  для `retire_legacy_objects` по совпадающему plan. Длительные действия
+  возвращают `execution_id` и опрашиваются без повторного запуска.
 
 ### `dl_read_project_live_summary`
 

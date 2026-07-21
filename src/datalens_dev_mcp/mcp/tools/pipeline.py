@@ -11,6 +11,11 @@ from types import SimpleNamespace
 from typing import Any
 
 from datalens_dev_mcp.api.scheduler import record_cache_hit
+from datalens_dev_mcp.editor.authoring_profiles import (
+    apply_authoring_profile_bundle,
+    authoring_profile_route_decision,
+    resolve_authoring_profile,
+)
 from datalens_dev_mcp.editor.bundle import generate_editor_bundle
 from datalens_dev_mcp.editor.payload_compiler import compile_editor_payload
 from datalens_dev_mcp.knowledge.recipes import compact_recipe_for_payload, select_authoring_recipe
@@ -44,6 +49,7 @@ from datalens_dev_mcp.pipeline.project_live_workflows import (
     plan_project_live_workflow,
     plan_project_manifest,
     read_project_live_summary,
+    record_project_live_execution_context,
     run_project_live_apply,
     run_project_live_dry_run,
 )
@@ -574,12 +580,19 @@ def dl_generate_editor_bundle(
     project_root: str = ".",
     widget_id: str = "widget_001",
     route: str = "",
+    authoring_profile: str = "",
     dataset_alias: str = "",
     columns: list[str] | None = None,
     selector_contract: dict[str, Any] | None = None,
     dataset_readbacks: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     root = ensure_project_dirs(project_root)
+    profile = resolve_authoring_profile(
+        project_root=root,
+        requested_profile=authoring_profile,
+    )
+    if not profile.get("ok"):
+        return profile
     brief = read_json(root / "artifacts" / "dashboard_brief.json", default={})
     if not brief:
         brief = dl_build_governance_brief(str(root))
@@ -587,7 +600,8 @@ def dl_generate_editor_bundle(
     intent_text = str(requirements_context.get("summary") or "")
     decision = (brief.get("chart_decisions") or [{}])[0]
     decision_record = decision.get("chart_decision_record") if isinstance(decision.get("chart_decision_record"), dict) else {}
-    route_override = normalize_creation_route(route or decision.get("route") or "")
+    explicit_route_override = normalize_creation_route(route) if str(route or "").strip() else ""
+    route_override = explicit_route_override or normalize_creation_route(decision.get("route") or "")
     selected_route = route_override
     requested_family = str(decision.get("family") or "")
     if decision_record:
@@ -617,6 +631,34 @@ def dl_generate_editor_bundle(
             str(decision_record.get("selected_route") or decision.get("route") or "wizard_native")
         )
     requested_family = str(decision_record.get("selected_family") or requested_family or "table_node")
+    profile_route = authoring_profile_route_decision(
+        profile=profile,
+        family=requested_family,
+        explicit_route=explicit_route_override,
+    )
+    if not profile_route.get("ok"):
+        return {
+            **profile_route,
+            "authoring_profile": profile,
+            "requested_route": explicit_route_override,
+            "requested_family": requested_family,
+        }
+    if profile_route.get("active"):
+        selected_route = str(profile_route["route"])
+        requested_family = str(profile_route["family"])
+        decision_record = {
+            **decision_record,
+            "selected_route": selected_route,
+            "selected_family": requested_family,
+            "selection_origin": "authoring_profile_exact_template",
+            "authoring_profile_id": profile["id"],
+        }
+    widget_title = str(
+        decision.get("title")
+        or decision_record.get("title")
+        or brief.get("dashboard_name")
+        or "Untitled Widget"
+    )
     if selected_route == "ql_explicit":
         return {
             "ok": False,
@@ -676,7 +718,7 @@ def dl_generate_editor_bundle(
                 ),
                 "field_bindings": field_bindings,
                 "geo": {"evidence_kind": "validated_map_payload"} if visualization_id == "geolayer" else {},
-                "options": {"title": brief.get("dashboard_name", "Native Wizard Chart")},
+                "options": {"title": widget_title},
             }
         )
         validation_errors = list((plan.get("validation") or {}).get("errors") or [])
@@ -722,7 +764,7 @@ def dl_generate_editor_bundle(
     bundle = generate_editor_bundle(
         widget_id=widget_id,
         route=selected_route,
-        title=brief.get("dashboard_name", "Untitled Widget"),
+        title=widget_title,
         dataset_alias=resolved_dataset_alias or None,
         columns=resolved_columns,
         markdown=intent_text or None,
@@ -731,6 +773,43 @@ def dl_generate_editor_bundle(
         visual_spec=visual_spec,
         chart_decision_record=decision_record,
     )
+    if profile_route.get("active"):
+        bundle = apply_authoring_profile_bundle(
+            bundle=bundle,
+            profile=profile,
+            route_decision=profile_route,
+            title=widget_title,
+        )
+        if bundle.get("status") == "blocked_authoring_profile":
+            return bundle
+        provenance = bundle.get("template_provenance") if isinstance(bundle.get("template_provenance"), dict) else {}
+        exact_match = bool(
+            bundle.get("source_template") == profile_route.get("source_template")
+            and provenance.get("policy") == "exact_registered_asset"
+            and provenance.get("approximate_fallback_used") is False
+            and provenance.get("canonical_runtime_sha256") == profile_route.get("runtime_sha256")
+            and provenance.get("canonical_runtime_embedded_verbatim") is True
+        )
+        if not exact_match:
+            return {
+                "ok": False,
+                "status": "blocked_authoring_profile",
+                "error": {
+                    "category": "exact_template_identity_mismatch",
+                    "message": (
+                        f"profile {profile['id']} expected {profile_route.get('source_template')}; "
+                        "approximate or unregistered output was refused"
+                    ),
+                },
+                "authoring_profile": profile,
+                "profile_route_decision": profile_route,
+            }
+        bundle["authoring_profile"] = {
+            **profile,
+            "enforced": True,
+            "exact_template_reused": True,
+        }
+        bundle["profile_route_decision"] = profile_route
     selected_recipe = select_authoring_recipe(
         intent_text=intent_text,
         route=selected_route,
@@ -1096,6 +1175,7 @@ def dl_plan_project_manifest(
     overwrite_existing: bool = False,
     target_workbook_id: str = "",
     dashboard_id: str = "",
+    authoring_profile: str = "",
 ) -> dict[str, Any]:
     return plan_project_manifest(
         project_root,
@@ -1103,6 +1183,7 @@ def dl_plan_project_manifest(
         overwrite_existing=overwrite_existing,
         target_workbook_id=target_workbook_id,
         dashboard_id=dashboard_id,
+        authoring_profile=authoring_profile,
     )
 
 
@@ -1139,12 +1220,14 @@ def dl_run_project_live_dry_run(
     workflow_name: str = "",
     execute_now: bool = False,
     timeout_sec: int = 120,
+    execution_id: str = "",
 ) -> dict[str, Any]:
     result = run_project_live_dry_run(
         project_root,
         workflow_name=workflow_name,
         execute_now=execute_now,
         timeout_sec=timeout_sec,
+        execution_id=execution_id,
     )
     result["evidence_mode_decision"] = choose_evidence_mode(
         "dry run",
@@ -1171,11 +1254,12 @@ def dl_run_project_live_apply(
     timeout_sec: int = 120,
     delivery_intent_text: str = "",
     confirm_delete: bool = False,
+    execution_id: str = "",
 ) -> dict[str, Any]:
     normalized_action = str(action or "apply").strip().lower().replace("-", "_")
     delete_confirmation: dict[str, Any] = {}
     preview: dict[str, Any] | None = None
-    if execute_now and normalized_action == "retire_legacy_objects":
+    if execute_now and not execution_id and normalized_action == "retire_legacy_objects":
         preview = plan_project_live_workflow(
             project_root,
             workflow_name=workflow_name,
@@ -1206,7 +1290,7 @@ def dl_run_project_live_apply(
         delivery_intent_text or action,
         default_text="implement",
     )
-    if execute_now and normalized_action != "retire_legacy_objects":
+    if execute_now and not execution_id and normalized_action != "retire_legacy_objects":
         preview = preview or plan_project_live_workflow(
             project_root,
             workflow_name=workflow_name,
@@ -1239,6 +1323,7 @@ def dl_run_project_live_apply(
         publish=publish,
         action=action,
         timeout_sec=timeout_sec,
+        execution_id=execution_id,
     )
     result["evidence_mode_decision"] = choose_evidence_mode(
         delivery_intent_text or action,
@@ -1253,14 +1338,41 @@ def dl_run_project_live_apply(
         after_saved=False,
     )
     result["delivery_intent_decision"] = delivery_decision
-    if delivery_decision.get("state") in {"save_then_publish", "publish_from_saved"} and not publish and execute_now:
+    resume_context = result.get("resume_context") if isinstance(result.get("resume_context"), dict) else {}
+    if result.get("status") == "running" and result.get("execution_id"):
+        resume_context = record_project_live_execution_context(
+            project_root,
+            str(result["execution_id"]),
+            context={
+                "auto_publish": delivery_decision.get("state") in {"save_then_publish", "publish_from_saved"}
+                and not publish,
+                "approved": effective_authorized,
+                "delivery_intent_state": delivery_decision.get("state") or "",
+                "publish_expected": delivery_decision.get("publish_expected"),
+            },
+        )
+        result["resume_context"] = resume_context
+    if delivery_intent_text:
+        auto_publish_after_completion = delivery_decision.get("state") in {"save_then_publish", "publish_from_saved"}
+    elif resume_context:
+        auto_publish_after_completion = bool(resume_context.get("auto_publish"))
+    else:
+        auto_publish_after_completion = delivery_decision.get("state") in {"save_then_publish", "publish_from_saved"}
+    if (
+        result.get("status") not in {"running", "detached_running"}
+        and str(result.get("action") or "") != "publish"
+        and not result.get("publish_requested")
+        and auto_publish_after_completion
+        and not publish
+        and (execute_now or bool(execution_id))
+    ):
         result = _continue_project_live_publish(
             project_root=project_root,
             workflow_name=workflow_name,
             action=action,
-            approved=effective_authorized,
+            approved=bool(resume_context.get("approved", effective_authorized)),
             timeout_sec=timeout_sec,
-            delivery_intent_text=delivery_intent_text,
+            delivery_intent_text=delivery_intent_text or ("implement" if auto_publish_after_completion else "save only"),
             apply_result=result,
         )
     elif (
@@ -1387,7 +1499,7 @@ def _continue_project_live_publish(
         approved=approved,
         after_saved=True,
     )
-    if not _project_live_stage_passed(publish_result):
+    if publish_result.get("status") != "running" and not _project_live_stage_passed(publish_result):
         blockers.extend(publish_result.get("blocked_reasons") or ["publish stage did not complete"])
     return _project_live_delivery_result(apply_result, publish_result, blockers)
 
@@ -1407,8 +1519,11 @@ def _project_live_delivery_result(
     published_paths = _project_live_readback_paths(publish_summary, branch="published")
     apply_passed = _project_live_stage_passed(apply_result)
     publish_passed = bool(publish_result and _project_live_stage_passed(publish_result) and not blockers)
+    publish_running = bool(publish_result and publish_result.get("status") == "running" and not blockers)
     if publish_passed:
         status = "completed"
+    elif publish_running:
+        status = "running"
     elif not apply_passed:
         status = str(apply_result.get("status") or "blocked")
     elif apply_result.get("executed"):
@@ -1424,9 +1539,11 @@ def _project_live_delivery_result(
     )
     return {
         **apply_result,
-        "ok": bool(apply_passed and publish_passed),
+        "ok": bool(apply_passed and (publish_passed or publish_running)),
         "status": status,
         "executed": bool(publish_result and publish_result.get("executed") and not blockers),
+        "execution_id": str((publish_result or {}).get("execution_id") or apply_result.get("execution_id") or ""),
+        "execution": (publish_result or {}).get("execution") or apply_result.get("execution") or {},
         "publish_blocked_reasons": blockers,
         "publish_result": publish_result,
         "approval_reuse_for_publish": bool((apply_result.get("delivery_intent_decision") or {}).get("approval_reuse_for_publish")),

@@ -42,6 +42,14 @@ A bubble chart requires a size field and a map requires verified geo data. `wiza
 
 Before save, an Editor object passes `dl_validate_editor_runtime_contract` against official [tabs](https://yandex.cloud/ru/docs/datalens/charts/editor/tabs) and [methods](https://yandex.cloud/ru/docs/datalens/charts/editor/methods).
 
+An explicit project `authoring_profile: {"id": "charging_v2_exact"}` is a
+JavaScript contract for every supported family. It does not change the global
+Wizard-first default: the profile selects only a registered Editor asset,
+embeds the canonical Charging runtime `5f37…ebf3` verbatim, returns the
+runtime/adapter/output SHA-256 values, and refuses approximate fallback.
+Generation is blocked when no exact adapter exists for a family, such as a
+native map.
+
 ## QL
 
 `ql_explicit` is selected only after a direct user request for QL. Creation and updates use an explicit payload or current saved QL object. The server does not generate QL from a general request or select it after a Wizard or Editor failure.

@@ -7,11 +7,19 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
+import time
+import uuid
 from pathlib import Path
+from threading import RLock
 from typing import Any
 
 from datalens_dev_mcp.api.auth import refresh_iam_token_with_yc
 from datalens_dev_mcp.config import DataLensConfig
+from datalens_dev_mcp.editor.authoring_profiles import (
+    resolve_authoring_profile,
+    validate_authoring_profile_declaration,
+)
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.pipeline.project_adapters import (
     MIGRATION_SUMMARY_REQUIRED_FIELDS,
@@ -295,6 +303,10 @@ ACTION_BRANCH_STATUS = {
     "readback": "saved_readback",
 }
 TRACKED_SOURCE_MUTATION_GUARDED_ACTIONS = {"read", "sync", "validate", "dry_run", "readback"}
+MAX_SYNCHRONOUS_PROJECT_LIVE_TIMEOUT_SEC = 120
+PROJECT_LIVE_EXECUTION_ID_RE = re.compile(r"^[a-f0-9]{32}$")
+_PROJECT_LIVE_JOBS: dict[str, dict[str, Any]] = {}
+_PROJECT_LIVE_JOBS_LOCK = RLock()
 
 
 def detect_project_live_workflows(project_root: str | Path = ".") -> dict[str, Any]:
@@ -361,6 +373,7 @@ def plan_project_manifest(
     overwrite_existing: bool = False,
     target_workbook_id: str = "",
     dashboard_id: str = "",
+    authoring_profile: str = "",
 ) -> dict[str, Any]:
     root = Path(project_root).resolve()
     root.mkdir(parents=True, exist_ok=True)
@@ -396,6 +409,11 @@ def plan_project_manifest(
         "publish": False,
     }
     blocked: list[str] = []
+    profile = resolve_authoring_profile(project_root=root, requested_profile=authoring_profile)
+    if authoring_profile and not profile.get("ok"):
+        blocked.append(str((profile.get("error") or {}).get("message") or "invalid authoring profile"))
+    elif profile.get("active"):
+        proposed["authoring_profile"] = {"id": profile["id"]}
     if existing.get("ok") and not overwrite_existing:
         blocked.append("manifest already exists; set overwrite_existing=true and write_manifest=true to replace it")
     written = False
@@ -448,6 +466,7 @@ def plan_project_live_workflow(
         "status": "planned" if not validation else "blocked",
         "project_root": str(root),
         "manifest_path": str(loaded["path"]),
+        "authoring_profile": _safe_authoring_profile_summary(manifest),
         "project_name": manifest.get("project_name") or manifest.get("name") or root.name,
         "workflow_name": workflow["name"],
         "action": normalized_action,
@@ -484,6 +503,7 @@ def run_project_live_dry_run(
     workflow_name: str = "",
     execute_now: bool = False,
     timeout_sec: int = 120,
+    execution_id: str = "",
 ) -> dict[str, Any]:
     return _run_project_live_action(
         project_root=project_root,
@@ -493,6 +513,7 @@ def run_project_live_dry_run(
         timeout_sec=timeout_sec,
         approved=False,
         publish=False,
+        execution_id=execution_id,
     )
 
 
@@ -506,6 +527,7 @@ def run_project_live_apply(
     publish: bool = False,
     action: str = "apply",
     timeout_sec: int = 120,
+    execution_id: str = "",
 ) -> dict[str, Any]:
     return _run_project_live_action(
         project_root=project_root,
@@ -516,6 +538,7 @@ def run_project_live_apply(
         approved=approved,
         confirm_delete=confirm_delete,
         publish=publish,
+        execution_id=execution_id,
     )
 
 
@@ -567,8 +590,11 @@ def _run_project_live_action(
     approved: bool | None,
     confirm_delete: bool = False,
     publish: bool,
+    execution_id: str = "",
 ) -> dict[str, Any]:
     root = Path(project_root).resolve()
+    if execution_id:
+        return _poll_project_live_action(root=root, execution_id=execution_id)
     plan = plan_project_live_workflow(root, workflow_name=workflow_name, action=action, publish=publish)
     if not execute_now:
         return {**plan, "executed": False, "status": "planned_not_executed"}
@@ -595,6 +621,17 @@ def _run_project_live_action(
         if normalized_action in TRACKED_SOURCE_MUTATION_GUARDED_ACTIONS
         else {"available": False, "files": {}}
     )
+    if int(timeout_sec) > MAX_SYNCHRONOUS_PROJECT_LIVE_TIMEOUT_SEC:
+        return _start_project_live_action(
+            root=root,
+            plan=plan,
+            command=command,
+            env=env,
+            env_summary=env_summary,
+            secret_values=secret_values,
+            mutation_guard_before=mutation_guard_before,
+            timeout_sec=timeout_sec,
+        )
     try:
         completed = subprocess.run(
             command,
@@ -654,6 +691,313 @@ def _run_project_live_action(
         "blocked_reasons": summary_blocked_reasons,
         "tracked_source_mutation_guard": mutation_guard,
     }
+
+
+def _start_project_live_action(
+    *,
+    root: Path,
+    plan: dict[str, Any],
+    command: list[str],
+    env: dict[str, str],
+    env_summary: dict[str, Any],
+    secret_values: list[str],
+    mutation_guard_before: dict[str, Any],
+    timeout_sec: int,
+) -> dict[str, Any]:
+    execution_id = uuid.uuid4().hex
+    stdout_file = tempfile.NamedTemporaryFile(
+        mode="w+",
+        encoding="utf-8",
+        prefix=f"datalens-project-live-{execution_id}-stdout-",
+        delete=False,
+    )
+    stderr_file = tempfile.NamedTemporaryFile(
+        mode="w+",
+        encoding="utf-8",
+        prefix=f"datalens-project-live-{execution_id}-stderr-",
+        delete=False,
+    )
+    stdout_path = Path(stdout_file.name)
+    stderr_path = Path(stderr_file.name)
+    try:
+        process = subprocess.Popen(
+            command,
+            cwd=root,
+            env=env,
+            stdout=stdout_file,
+            stderr=stderr_file,
+            text=True,
+        )
+    except Exception:
+        stdout_file.close()
+        stderr_file.close()
+        stdout_path.unlink(missing_ok=True)
+        stderr_path.unlink(missing_ok=True)
+        raise
+    finally:
+        stdout_file.close()
+        stderr_file.close()
+
+    started_epoch = time.time()
+    job = {
+        "execution_id": execution_id,
+        "root": str(root),
+        "plan": plan,
+        "process": process,
+        "stdout_path": stdout_path,
+        "stderr_path": stderr_path,
+        "env_summary": env_summary,
+        "secret_values": secret_values,
+        "mutation_guard_before": mutation_guard_before,
+        "timeout_sec": max(1, int(timeout_sec)),
+        "started_epoch": started_epoch,
+        "started_monotonic": time.monotonic(),
+        "finalizing": False,
+    }
+    with _PROJECT_LIVE_JOBS_LOCK:
+        _PROJECT_LIVE_JOBS[execution_id] = job
+    running = _project_live_running_result(job)
+    try:
+        _write_project_live_execution_state(root=root, execution_id=execution_id, payload={
+            "schema_version": "2026-07-21.project_live_execution.v1",
+            "execution_id": execution_id,
+            "status": "running",
+            "pid": process.pid,
+            "started_epoch": started_epoch,
+            "deadline_epoch": started_epoch + job["timeout_sec"],
+            "workflow_name": plan.get("workflow_name") or "",
+            "action": plan.get("action") or "",
+            "publish_requested": bool(plan.get("publish_requested")),
+        })
+    except Exception:
+        process.terminate()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=5)
+        with _PROJECT_LIVE_JOBS_LOCK:
+            _PROJECT_LIVE_JOBS.pop(execution_id, None)
+        stdout_path.unlink(missing_ok=True)
+        stderr_path.unlink(missing_ok=True)
+        raise
+    return running
+
+
+def _poll_project_live_action(*, root: Path, execution_id: str) -> dict[str, Any]:
+    normalized_id = str(execution_id or "").strip().lower()
+    if not PROJECT_LIVE_EXECUTION_ID_RE.fullmatch(normalized_id):
+        raise ValueError("execution_id must be the 32-character id returned by a project-live running result")
+    with _PROJECT_LIVE_JOBS_LOCK:
+        job = _PROJECT_LIVE_JOBS.get(normalized_id)
+    if job is None:
+        state_path = _project_live_execution_state_path(root, normalized_id)
+        state = read_json(state_path, default={})
+        if isinstance(state.get("result"), dict):
+            return {
+                **state["result"],
+                "execution": {
+                    **(state["result"].get("execution") or {}),
+                    "resumed_from_state": True,
+                },
+            }
+        if state.get("status") == "running":
+            return {
+                "ok": False,
+                "executed": True,
+                "status": "detached_running",
+                "execution_id": normalized_id,
+                "blocked_reasons": [
+                    "the MCP process restarted while the child command was running; the command was not relaunched"
+                ],
+                "execution": {
+                    "id": normalized_id,
+                    "state_path": str(state_path),
+                    "pid": state.get("pid"),
+                    "resumable": False,
+                    "duplicate_launch_prevented": True,
+                },
+            }
+        raise ValueError(f"unknown project-live execution_id: {normalized_id}")
+    if job["root"] != str(root):
+        raise ValueError("execution_id belongs to a different project_root")
+
+    process: subprocess.Popen[str] = job["process"]
+    elapsed = time.monotonic() - float(job["started_monotonic"])
+    if process.poll() is None and elapsed < int(job["timeout_sec"]):
+        return _project_live_running_result(job)
+    with _PROJECT_LIVE_JOBS_LOCK:
+        if job.get("finalizing"):
+            return _project_live_running_result(job)
+        job["finalizing"] = True
+    timed_out = process.poll() is None
+    if timed_out:
+        process.terminate()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=5)
+    result = _finalize_project_live_job(job, timed_out=timed_out)
+    with _PROJECT_LIVE_JOBS_LOCK:
+        _PROJECT_LIVE_JOBS.pop(normalized_id, None)
+    return result
+
+
+def record_project_live_execution_context(
+    project_root: str | Path,
+    execution_id: str,
+    *,
+    context: dict[str, Any],
+) -> dict[str, Any]:
+    root = Path(project_root).resolve()
+    normalized_id = str(execution_id or "").strip().lower()
+    if not PROJECT_LIVE_EXECUTION_ID_RE.fullmatch(normalized_id):
+        raise ValueError("invalid project-live execution_id")
+    safe_context = {
+        "auto_publish": bool(context.get("auto_publish")),
+        "approved": bool(context.get("approved")),
+        "delivery_intent_state": str(context.get("delivery_intent_state") or ""),
+        "publish_expected": bool(context.get("publish_expected")),
+    }
+    with _PROJECT_LIVE_JOBS_LOCK:
+        job = _PROJECT_LIVE_JOBS.get(normalized_id)
+        if job is not None:
+            if job["root"] != str(root):
+                raise ValueError("execution_id belongs to a different project_root")
+            job["resume_context"] = safe_context
+    state_path = _project_live_execution_state_path(root, normalized_id)
+    state = read_json(state_path, default={})
+    if not state:
+        raise ValueError(f"unknown project-live execution_id: {normalized_id}")
+    state["resume_context"] = safe_context
+    _write_project_live_execution_state(root=root, execution_id=normalized_id, payload=state)
+    return safe_context
+
+
+def _finalize_project_live_job(job: dict[str, Any], *, timed_out: bool) -> dict[str, Any]:
+    plan = job["plan"]
+    root = Path(job["root"])
+    process: subprocess.Popen[str] = job["process"]
+    stdout = _consume_project_live_output(Path(job["stdout_path"]), secret_values=job["secret_values"])
+    stderr = _consume_project_live_output(Path(job["stderr_path"]), secret_values=job["secret_values"])
+    mutation_guard = _tracked_source_mutation_result(root, job["mutation_guard_before"])
+    if timed_out:
+        result = {
+            **plan,
+            "ok": False,
+            "executed": True,
+            "status": "tracked_source_mutation_blocked" if mutation_guard["mutated"] else "timeout",
+            "returncode": None,
+            "stdout": stdout,
+            "stderr": stderr,
+            "env_summary": job["env_summary"],
+            "tracked_source_mutation_guard": mutation_guard,
+        }
+    else:
+        summary: dict[str, Any] = {}
+        if process.returncode == 0:
+            summary = read_project_live_summary(
+                root,
+                workflow_name=str(plan.get("workflow_name") or ""),
+                action=str(plan.get("action") or "dry_run"),
+                publish=bool(plan.get("publish_requested")),
+            )
+        summary_required = str(plan.get("action") or "") in {"apply", "publish", RETIRE_ACTION} or bool(
+            plan.get("publish_requested")
+        )
+        summary_ok = not summary_required or summary.get("ok") is True
+        summary_blocked_reasons = _summary_validation_blockers(summary) if summary_required and not summary_ok else []
+        command_ok = process.returncode == 0
+        result = {
+            **plan,
+            "ok": command_ok and summary_ok and not mutation_guard["mutated"],
+            "executed": True,
+            "status": (
+                "tracked_source_mutation_blocked"
+                if mutation_guard["mutated"]
+                else "command_failed"
+                if not command_ok
+                else "summary_blocked"
+                if not summary_ok
+                else "completed"
+            ),
+            "returncode": process.returncode,
+            "stdout": stdout,
+            "stderr": stderr,
+            "env_summary": job["env_summary"],
+            "summary": summary,
+            "blocked_reasons": summary_blocked_reasons,
+            "tracked_source_mutation_guard": mutation_guard,
+        }
+    state_path = _project_live_execution_state_path(root, job["execution_id"])
+    result["execution_id"] = job["execution_id"]
+    result["resume_context"] = dict(job.get("resume_context") or {})
+    result["execution"] = {
+        "id": job["execution_id"],
+        "status": result["status"],
+        "state_path": str(state_path),
+        "resumable": True,
+        "duplicate_launch_prevented": True,
+    }
+    _write_project_live_execution_state(root=root, execution_id=job["execution_id"], payload={
+        "schema_version": "2026-07-21.project_live_execution.v1",
+        "execution_id": job["execution_id"],
+        "status": result["status"],
+        "completed_epoch": time.time(),
+        "result": result,
+    })
+    return result
+
+
+def _project_live_running_result(job: dict[str, Any]) -> dict[str, Any]:
+    plan = job["plan"]
+    state_path = _project_live_execution_state_path(Path(job["root"]), job["execution_id"])
+    return {
+        **plan,
+        "ok": True,
+        "executed": True,
+        "status": "running",
+        "returncode": None,
+        "execution_id": job["execution_id"],
+        "poll_after_sec": 2,
+        "env_summary": job["env_summary"],
+        "resume_context": dict(job.get("resume_context") or {}),
+        "execution": {
+            "id": job["execution_id"],
+            "status": "running",
+            "pid": job["process"].pid,
+            "state_path": str(state_path),
+            "started_epoch": job["started_epoch"],
+            "deadline_epoch": job["started_epoch"] + job["timeout_sec"],
+            "resumable": True,
+            "duplicate_launch_prevented": True,
+            "next_action": "call the same tool with execution_id to poll; do not relaunch the command",
+        },
+    }
+
+
+def _consume_project_live_output(path: Path, *, secret_values: list[str]) -> str:
+    try:
+        with path.open("r", encoding="utf-8", errors="replace") as handle:
+            text = handle.read(32_000)
+            truncated = bool(handle.read(1))
+    except OSError:
+        text = ""
+        truncated = False
+    finally:
+        path.unlink(missing_ok=True)
+    redacted = redact_text(text, secret_values=secret_values)
+    suffix = "\n<output truncated>" if truncated else ""
+    return (redacted[:4000] + suffix)[:4040]
+
+
+def _project_live_execution_state_path(root: Path, execution_id: str) -> Path:
+    return root / "artifacts" / "runtime" / "project_live_jobs" / f"{execution_id}.json"
+
+
+def _write_project_live_execution_state(*, root: Path, execution_id: str, payload: dict[str, Any]) -> None:
+    write_json(_project_live_execution_state_path(root, execution_id), payload)
 
 
 def _summary_validation_blockers(summary: dict[str, Any]) -> list[str]:
@@ -788,6 +1132,14 @@ def _require_manifest(root: Path) -> dict[str, Any]:
 def _validate_manifest(manifest: Any) -> list[str]:
     if not isinstance(manifest, dict):
         return ["manifest root must be an object"]
+    profile_declaration = manifest.get("authoring_profile")
+    profile_issues = validate_authoring_profile_declaration(profile_declaration)
+    if profile_issues:
+        return profile_issues
+    if profile_declaration:
+        profile = resolve_authoring_profile(requested_profile=_profile_declaration_id(profile_declaration))
+        if not profile.get("ok"):
+            return [str((profile.get("error") or {}).get("message") or "invalid authoring_profile")]
     workflows = manifest.get("workflows")
     if not isinstance(workflows, list) or not workflows:
         return ["manifest requires a non-empty workflows list"]
@@ -1775,10 +2127,38 @@ def _safe_manifest_summary(manifest: dict[str, Any]) -> dict[str, Any]:
         "project_name": manifest.get("project_name") or manifest.get("name") or "",
         "workbook_id": manifest.get("workbook_id") or "",
         "dashboard_ids": manifest.get("dashboard_ids") or [],
+        "authoring_profile": _safe_authoring_profile_summary(manifest),
         "workflow_count": len(manifest.get("workflows") or []),
         "required_env_names": required_env_validation["allowed_env_names"],
         "rejected_required_env_names": required_env_validation["rejected_env_names"],
     }
+
+
+def _safe_authoring_profile_summary(manifest: dict[str, Any]) -> dict[str, Any]:
+    declaration = manifest.get("authoring_profile")
+    if not declaration:
+        return {"active": False, "id": "", "selection_origin": "default_route_policy"}
+    resolved = resolve_authoring_profile(requested_profile=_profile_declaration_id(declaration))
+    if not resolved.get("ok"):
+        return {
+            "active": True,
+            "id": _profile_declaration_id(declaration),
+            "status": "invalid",
+            "error": resolved.get("error") or {},
+        }
+    return {
+        "active": True,
+        "id": resolved["id"],
+        "route_policy": resolved.get("route_policy"),
+        "template_policy": resolved.get("template_policy"),
+        "fallback_policy": resolved.get("fallback_policy"),
+    }
+
+
+def _profile_declaration_id(value: Any) -> str:
+    if isinstance(value, dict):
+        return str(value.get("id") or "").strip()
+    return str(value or "").strip()
 
 
 def _workflow_summary(workflow: dict[str, Any]) -> dict[str, Any]:
