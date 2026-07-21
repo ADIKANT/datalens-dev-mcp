@@ -14,6 +14,11 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Typed selector contracts with validated parameter bindings and dashboard
   relation checks.
 - Dataset-backed Wizard role validation and create/readback evidence.
+- A versioned `charging_v2_exact` authoring profile that embeds the canonical
+  Charging JavaScript renderer verbatim, fingerprints its adapter and output,
+  and blocks unregistered visual fallbacks.
+- Resumable project-live execution IDs for commands longer than the synchronous
+  MCP window, with duplicate-launch prevention and replayable final state.
 
 ### Changed
 
@@ -28,6 +33,9 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Strengthened create, update, publish, snapshot, and portable-wheel verification.
 - Aligned whole-object deletion with the manifest-only
   `retire_legacy_objects` contract.
+- Accepted direct JavaScript files and widget directories in Editor validation,
+  removed false HTML/hint positives, normalized workbook-entry scopes, and
+  recognized project manifests separately from runtime configuration.
 
 ## [0.3.0] - 2026-07-15
 

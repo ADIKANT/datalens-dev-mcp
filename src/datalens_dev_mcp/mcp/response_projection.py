@@ -598,7 +598,14 @@ def write_full_artifact(
     path = artifact_root / safe_run_id / f"{kind}.{full_hash[:12]}.full.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     text = stable_json_text(response) + "\n"
-    path.write_text(text, encoding="utf-8")
+    unchanged = False
+    if path.is_file():
+        try:
+            unchanged = path.read_text(encoding="utf-8") == text
+        except (OSError, UnicodeDecodeError):
+            unchanged = False
+    if not unchanged:
+        path.write_text(text, encoding="utf-8")
     resolved_path = path.resolve()
     try:
         display_path = resolved_path.relative_to(Path.cwd().resolve()).as_posix()

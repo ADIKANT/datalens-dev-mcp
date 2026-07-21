@@ -23,6 +23,15 @@ UNRESOLVED_IMPORT_RE = re.compile(r"require\(['\"]\.\./_shared/")
 DECORATIVE_CSS_RE = re.compile(r"(box-shadow|text-shadow|filter\s*:\s*drop-shadow|linear-gradient|radial-gradient)", re.I)
 STALE_KPI_RE = re.compile(r"(previous_value|previous_period|previousPeriod|period_bucket|delta_pct)")
 FORBIDDEN_HTML_RE = re.compile(r"<\s*/?\s*(section|script|iframe|object|embed)\b|\son[a-z]+\s*=|\ssrcdoc\s*=", re.I)
+LOCKED_TEMPLATE_RULE_EXCEPTIONS = {
+    "templates/datalens/authoring_profiles/charging_v2_exact/advanced_editor_runtime.js": {
+        "sha256": "5f37bbd6a7012e90d0567787f006629019a852623b833eb112debe5f8f50ebf3",
+        # The immutable runtime exposes an explicit previous-period selector;
+        # this is not an inferred KPI comparator. Every other sweep rule still
+        # applies, and a byte change is itself a blocking issue.
+        "rules": {"stale_implicit_kpi_comparator"},
+    },
+}
 FIXED_RESPONSIVE_MIN_PATTERNS = (
     re.compile(r"min-width\s*:\s*[1-9]\d*(?:\.\d+)?px", re.I),
     re.compile(r"grid-template-columns\s*:[^;\"']*minmax\(\s*[1-9]\d*(?:\.\d+)?px", re.I),
@@ -251,6 +260,28 @@ def iter_template_files() -> list[Path]:
 def text_issues(path: Path, text: str) -> list[dict[str, Any]]:
     issues = []
     rel = path.relative_to(ROOT).as_posix() if path.is_absolute() else path.as_posix()
+    locked_exception = next(
+        (
+            value
+            for suffix, value in LOCKED_TEMPLATE_RULE_EXCEPTIONS.items()
+            if rel.endswith(suffix)
+        ),
+        None,
+    )
+    excepted_rules: set[str] = set()
+    if locked_exception:
+        actual_sha256 = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        if actual_sha256 != locked_exception["sha256"]:
+            issues.append(
+                {
+                    "rule": "locked_authoring_profile_asset_hash_mismatch",
+                    "path": rel,
+                    "line": 1,
+                    "token": actual_sha256,
+                }
+            )
+        else:
+            excepted_rules = set(locked_exception["rules"])
     checks = [
         ("unresolved_local_shared_require", UNRESOLVED_IMPORT_RE),
         ("decorative_css_token", DECORATIVE_CSS_RE),
@@ -258,6 +289,8 @@ def text_issues(path: Path, text: str) -> list[dict[str, Any]]:
         ("forbidden_advanced_editor_markup", FORBIDDEN_HTML_RE),
     ]
     for rule, pattern in checks:
+        if rule in excepted_rules:
+            continue
         for match in pattern.finditer(text):
             issues.append(
                 {

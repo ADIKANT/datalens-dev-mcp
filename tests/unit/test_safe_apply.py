@@ -75,11 +75,16 @@ class SafeApplyTests(unittest.TestCase):
         class FakeClient:
             def __init__(self):
                 self.calls = []
+                self.exclusive_reads = []
 
             def rpc(self, method, payload):
                 self.calls.append((method, payload))
                 object_id = payload.get("chartId") or (payload.get("entry") or {}).get("entryId") or "chart_local"
                 return {"method": method, "payload": payload, "entry": {"entryId": object_id, "revId": "rev_1"}}
+
+            def rpc_exclusive_read(self, method, payload):
+                self.exclusive_reads.append((method, payload))
+                return self.rpc(method, payload)
 
         client = FakeClient()
         plan = create_safe_apply_plan(
@@ -102,6 +107,7 @@ class SafeApplyTests(unittest.TestCase):
 
         self.assertTrue(result["executed"])
         self.assertEqual([call[0] for call in client.calls], ["getEditorChart", "updateEditorChart", "getEditorChart"])
+        self.assertEqual([call[0] for call in client.exclusive_reads], ["getEditorChart", "getEditorChart"])
         self.assertEqual(client.calls[1][1]["mode"], "save")
         self.assertNotIn("result", result["actions"][0])
         self.assertIn("write_result", result["actions"][0]["artifacts"])
@@ -526,6 +532,69 @@ class SafeApplyTests(unittest.TestCase):
         self.assertNotIn("savedId", action["payload"]["entry"])
         self.assertEqual(action["fresh_read_payload"]["branch"], "saved")
         self.assertEqual(action["readback_payload"]["branch"], "published")
+
+    def test_publish_plan_understands_project_summary_snake_case_identity(self):
+        from datalens_dev_mcp.pipeline.safe_apply import create_publish_safe_apply_plan
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "artifacts" / "readback" / "prepublish.latest.json"
+            path.parent.mkdir(parents=True)
+            path.write_text(
+                json.dumps(
+                    {
+                        "branch": "saved",
+                        "dashboard": {
+                            "entry_id": "dash_1",
+                            "rev_id": "rev_saved",
+                            "saved_id": "saved_123",
+                            "data": {"counter": 1, "salt": "s", "schemeVersion": 8, "tabs": [], "settings": {}},
+                            "meta": {},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            plan = create_publish_safe_apply_plan(
+                project_root=str(root),
+                target="dashboard",
+                object_type="dashboard",
+                saved_readback_path=str(path),
+                approved=True,
+            )
+
+        self.assertTrue(plan["ok"], plan.get("error"))
+        self.assertEqual(plan["actions"][0]["expected_saved_rev_id"], "rev_saved")
+        self.assertEqual(plan["actions"][0]["expected_saved_id"], "saved_123")
+
+    def test_project_summary_identity_reports_incomplete_entry_instead_of_missing_revision(self):
+        from datalens_dev_mcp.pipeline.safe_apply import create_publish_safe_apply_plan
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "artifacts" / "readback" / "prepublish.latest.json"
+            path.parent.mkdir(parents=True)
+            path.write_text(
+                json.dumps(
+                    {
+                        "branch": "saved",
+                        "dashboard": {"entry_id": "dash_1", "rev_id": "rev_saved", "saved_id": "saved_123"},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            plan = create_publish_safe_apply_plan(
+                project_root=str(root),
+                target="dashboard",
+                object_type="dashboard",
+                saved_readback_path=str(path),
+                approved=True,
+            )
+
+        self.assertFalse(plan["ok"])
+        self.assertEqual(plan["error"]["category"], "incomplete_saved_entry")
 
     def test_publish_validation_matches_saved_readback_by_object_id(self):
         from datalens_dev_mcp.pipeline.safe_apply import create_safe_apply_plan, validate_safe_apply_plan

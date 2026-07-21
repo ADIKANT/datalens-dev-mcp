@@ -15,7 +15,16 @@ python3 scripts/run_offline_acceptance.py
 ```bash
 python3 scripts/run_quick_checks.py
 python3 scripts/smoke_mcp_stdio.py
+python3 scripts/run_server_efficiency_suite.py --strict
 ```
+
+Последняя команда проверяет детерминированные бюджеты самого сервера: общий
+интервал 1,05 секунды и эффективную частоту 57,14 старта/мин, reuse
+runtime-manifest, revision-aware snapshot, кэши project/Editor validation,
+15-КБ проекцию тяжёлых ответов и отсутствие дублирования delivery-блоков.
+Масштабированный синтетический сценарий с логической задержкой чтения 1,5
+секунды сравнивает serial и трёхпоточный snapshot, требует ускорение не менее
+25% и одинаковый SHA compact graph. Live-записи не выполняются.
 
 ## Installed stdio smoke
 

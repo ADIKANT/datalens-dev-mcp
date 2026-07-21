@@ -41,18 +41,31 @@
 {
   "ok": true,
   "project_root": "/absolute/path/to/project",
-  "credentials": {
-    "organization_id_present": true,
-    "token_present": true
-  },
-  "capabilities": {
-    "allow_writes": true,
-    "allow_save": true,
-    "allow_publish": true,
-    "refresh_available": true
+  "token_present": true,
+  "org_id_set": true,
+  "allow_writes": true,
+  "allow_save": true,
+  "allow_publish": true,
+  "request_scheduler": {
+    "scope": "process_per_api_base_url",
+    "request_interval_sec": 1.05,
+    "effective_request_starts_per_minute": 57.14,
+    "max_read_concurrency": 3,
+    "totals": {
+      "requests": 12,
+      "queue_wait_ms": 3400.0,
+      "network_ms": 8200.0,
+      "rate_limit_429": 0,
+      "transient_retries": 1
+    },
+    "cache_hits": {
+      "dashboard_snapshot": 2
+    }
   }
 }
 ```
+
+Метрики агрегируются по процессу и методу. В них отсутствуют ID объектов, payload, заголовки и значения учётных данных.
 
 `dl_auth_probe` выполняет минимальный live-read. Ошибки разделяются по действию пользователя:
 
@@ -83,6 +96,8 @@
 ```
 
 При превышении inline-бюджета полные данные сохраняются в `artifact_path`; `summary`, ID и поля, необходимые следующему инструменту, остаются в ответе.
+
+Batch-вызов `dl_get_workbook_entries(workbook_ids=[...])` возвращает элементы в исходном порядке. Ошибка одного воркбука не удаляет artifacts успешных элементов и не превращает 404 в повторяемую ошибку.
 
 ## Снимок дашборда
 
@@ -118,6 +133,31 @@
 `partial` — доступный снимок с пропусками, `unsafe` — отсутствие корневой
 ветки дашборда. Эти же блоки записываются в manifest.
 
+## Тяжёлые планы и workflow
+
+Safe-apply/publish plans, guarded RPC и manifest-backed workflow используют `response_mode="summary"` по умолчанию. Типичный inline-бюджет — 15 КБ:
+
+```json
+{
+  "ok": true,
+  "status": "planned",
+  "response_mode": "summary",
+  "summary": {
+    "action_count": 3
+  },
+  "canonical_artifact": {
+    "path": "artifacts/runtime/mcp_runs/<RUN>/create_safe_apply_plan.<SHA>.full.json",
+    "sha256": "<SHA256>"
+  },
+  "full_response": {
+    "serialized_chars": 120000,
+    "sha256": "<SHA256>"
+  }
+}
+```
+
+Канонический очищенный результат записывается один раз; повторная выдача того же SHA не меняет файл. `response_mode="full"` сохраняет обратную совместимость и возвращает полные поля inline.
+
 ## Диагностика
 
 `dl_diagnose`, `dl_validate_project`, `dl_validate_object` и проверки Editor возвращают findings:
@@ -142,6 +182,8 @@
 ```
 
 Пустая проверка не возвращается как успешная: `coverage.checked_items` должен отражать реально проверенные элементы.
+
+Editor-валидация по умолчанию возвращает стабильный `corpus_reference_set` вместо повторяющегося списка ссылок. `include_references=true` добавляет полный список. Для одинакового payload и версии правил `validation_cache.hit=true`; JSON artifacts можно передать путями только внутри project root.
 
 ## Object plan
 

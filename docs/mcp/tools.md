@@ -27,7 +27,7 @@
 
 - Required: —
 - Optional: `project_root`, `local_config_path`
-- Возвращает project root, API-настройки, наличие учётных данных, write/save/publish, `refresh_available` и сведения о загруженной конфигурации.
+- Возвращает project root, API-настройки, наличие учётных данных, write/save/publish, `refresh_available` и сведения о загруженной конфигурации. `request_scheduler` содержит только агрегированные настройки и счётчики: эффективную частоту, concurrency, queue/network time, HTTP 429, transient retries и cache hits без object IDs, payload или секретов.
 
 ### `dl_auth_probe`
 
@@ -45,9 +45,9 @@
 
 ### `dl_get_workbook_entries`
 
-- Required: `workbook_id`
+- Required: ровно один из `workbook_id` или `workbook_ids`
 - Optional: `scope`, `response_mode`, `inline_char_budget`, `project_root`, `run_id`
-- Читает объекты воркбука. Большой `full`-ответ сохраняется как artifact.
+- Читает один воркбук как раньше или до 100 воркбуков одним MCP-вызовом. Batch сохраняет исходный порядок, возвращает частичный результат при item-level 404/ошибке и пишет отдельный полный artifact для каждого успешного воркбука. `scope="all"` и `"*"` означают отсутствие scope-фильтра; остальные некорректные формы блокируются до HTTP.
 
 ### `dl_get_entries_relations`
 
@@ -65,7 +65,7 @@
 
 - Required: `dashboard_id`
 - Optional: `project_root`, `workbook_id`, `snapshot_branch`, `include_dormant_summary`, `artifact_retention`
-- Читает дашборд и связанные объекты, затем сохраняет manifest и файлы снимка.
+- Читает дашборд и связанные объекты, затем сохраняет manifest и файлы снимка. Повторный вызов может пропустить полную гидратацию только после свежего чтения дашборда, полного revision-вектора inventory и проверки SHA-256 предыдущих артефактов.
 - Возвращает одинаковые блоки `completion`, `coverage` и `api_contract` в
   manifest и inline-ответе. `completion.status` принимает `complete`, `partial`
   или `unsafe`; область покрытия ограничена графом зависимостей дашборда.
@@ -74,9 +74,9 @@
 
 ### `dl_validate_editor_runtime_contract`
 
-- Required: один из источников данных Editor
-- Optional: `entry`, `sections`, `source`, `allow_unknown_warnings`
-- Проверяет структуру Editor, JavaScript и вызовы `Editor.*`.
+- Required: ровно один из `entry`, `sections` или `artifact_paths`
+- Optional: `source`, `allow_unknown_warnings`, `project_root`, `include_references`
+- Проверяет структуру Editor, JavaScript и вызовы `Editor.*`. `artifact_paths` принимает до 100 JSON-файлов, отдельных `.js` или widget-директорий только внутри resolved project root; один файл не больше 2 MiB, все входы суммарно не больше 10 MiB. Идентичный payload и версия правил используют validation cache. По умолчанию возвращается стабильный `corpus_reference_set`; полный список доступен при `include_references=true`.
 
 ### `dl_classify_source_error`
 
@@ -101,18 +101,21 @@
 ### `dl_generate_editor_bundle`
 
 - Required: —
-- Optional: `project_root`, `widget_id`, `route`, `dataset_alias`, `columns`, `selector_contract`, `dataset_readbacks`, `context_ref`, `evidence_refs`
+- Optional: `project_root`, `widget_id`, `route`, `authoring_profile`, `dataset_alias`, `columns`, `selector_contract`, `dataset_readbacks`, `context_ref`, `evidence_refs`
 - Компилирует Wizard plan или Editor tabs по выбранному маршруту. Для
   `editor_js_control` production-вызов передаёт полный `selector_contract`;
   неполный контракт блокируется без выдуманных параметров или значений.
   `dataset_readbacks`, если они переданы, проверяют Wizard field GUID и роли;
   отсутствие аргумента не подменяется пустым readback.
+  `authoring_profile=charging` или manifest-профиль `charging_v2_exact`
+  дословно встраивает канонический Charging runtime с SHA-256 `5f37…ebf3` через
+  зарегистрированный адаптер и блокирует fallback.
 
 ### `dl_validate_project`
 
 - Required: —
 - Optional: `project_root`, `context_ref`, `evidence_refs`
-- Проверяет проектные файлы, маршруты, payload, SQL, связи и секреты.
+- Проверяет проектные файлы, маршруты, payload, SQL, связи и секреты. В одном процессе неизменившееся дерево файлов возвращает тот же проверенный отчёт по metadata-fingerprint; любое изменение дерева запускает полную проверку.
 
 ### `dl_build_payload_plan`
 
@@ -167,8 +170,8 @@
 ### `dl_create_safe_apply_plan`
 
 - Required: —
-- Optional: `project_root`, `readback_mode`, `entries_payload`, `existing_update_actions`, `delivery_intent_text`, `target_known`, `target_dashboard_id`, `target_chart_id`, `target_url`, `context_ref`, `evidence_refs`
-- Создаёт plan с режимом задачи, SHA-256 пользовательского запроса, target lock, действиями и блокировками.
+- Optional: `project_root`, `readback_mode`, `entries_payload`, `existing_update_actions`, `delivery_intent_text`, `target_known`, `target_dashboard_id`, `target_chart_id`, `target_url`, `context_ref`, `evidence_refs`, `response_mode`, `inline_char_budget`
+- Создаёт plan с режимом задачи, SHA-256 пользовательского запроса, target lock, действиями и блокировками. По умолчанию inline возвращается `summary` до типичного бюджета 15 КБ, а канонический полный результат сохраняется с SHA-256.
 
 ### `dl_execute_safe_apply`
 
@@ -179,14 +182,14 @@
 ### `dl_create_publish_from_saved_plan`
 
 - Required: `project_root`, `target`, `object_type`
-- Optional: `object_id`, `object_ids`, `saved_readback_path`, `readback_mode`, `delivery_intent_text`, `target_dashboard_id`, `target_chart_id`, `target_url`
+- Optional: `object_id`, `object_ids`, `saved_readback_path`, `readback_mode`, `delivery_intent_text`, `target_dashboard_id`, `target_chart_id`, `target_url`, `response_mode`, `inline_char_budget`
 - Создаёт publish-plan только из saved readback и фиксирует ожидаемые `revId` и `savedId`.
 
 ### `dl_readback_and_report`
 
 - Required: цель, достаточная для выбранного object type
 - Optional: `project_root`, `target`, `dashboard_id`, `chart_ids`, `dataset_id`, `connection_id`, `branch`, `readback_mode`, `delivery_intent_text`, `target_workbook_id`, `target_url`, `context_ref`, `evidence_refs`
-- Читает saved или published состояние и создаёт deployment report.
+- Читает saved или published состояние и создаёт deployment report. Для dashboard full/debug readback используется уже проверенный snapshot manifest и его object artifacts без повторного чтения тех же charts.
 
 ## Проектный manifest
 
@@ -199,32 +202,35 @@
 ### `dl_plan_project_manifest`
 
 - Required: `project_root`
-- Optional: `write_manifest`, `overwrite_existing`, `target_workbook_id`, `dashboard_id`
+- Optional: `write_manifest`, `overwrite_existing`, `target_workbook_id`, `dashboard_id`, `authoring_profile`
 - Возвращает предлагаемый manifest; при `write_manifest=true` записывает его в project root.
 
 ### `dl_plan_project_live_workflow`
 
 - Required: `project_root`
-- Optional: `workflow_name`, `action`, `publish`, `delivery_intent_text`
+- Optional: `workflow_name`, `action`, `publish`, `delivery_intent_text`, `response_mode`, `inline_char_budget`
 - Разбирает действие и возвращает команду, цели, окружение, ожидаемые файлы и блокировки.
 
 ### `dl_run_project_live_dry_run`
 
 - Required: `project_root`
-- Optional: `workflow_name`, `execute_now`, `timeout_sec`
-- Запускает объявленную dry-run-команду и очищает stdout/stderr.
+- Optional: `workflow_name`, `execute_now`, `timeout_sec`, `execution_id`, `response_mode`, `inline_char_budget`
+- Запускает объявленную dry-run-команду и очищает stdout/stderr. При
+  `timeout_sec > 120` сразу возвращает `execution_id`; повторный вызов с этим ID
+  только проверяет исходный процесс.
 
 ### `dl_run_project_live_apply`
 
 - Required: `project_root`
-- Optional: `workflow_name`, `execute_now`, `publish`, `action`, `timeout_sec`, `delivery_intent_text`, `confirm_delete`
+- Optional: `workflow_name`, `execute_now`, `publish`, `action`, `timeout_sec`, `execution_id`, `delivery_intent_text`, `confirm_delete`, `response_mode`, `inline_char_budget`
 - Запускает объявленное apply-действие. `confirm_delete` используется только
-  для `retire_legacy_objects` по совпадающему plan.
+  для `retire_legacy_objects` по совпадающему plan. Длительные действия
+  возвращают `execution_id` и опрашиваются без повторного запуска.
 
 ### `dl_read_project_live_summary`
 
 - Required: `project_root`
-- Optional: `workflow_name`, `action`, `publish`, `summary_path`
+- Optional: `workflow_name`, `action`, `publish`, `summary_path`, `response_mode`, `inline_char_budget`
 - Проверяет JSON summary, цели, количество изменений и полноту результатов.
 
 ## Обслуживание и источники

@@ -5,7 +5,12 @@ import unittest
 from contextlib import contextmanager
 from pathlib import Path
 
-from datalens_dev_mcp.local_config import apply_tool_defaults, load_local_config, sanitize_local_config
+from datalens_dev_mcp.local_config import (
+    apply_tool_defaults,
+    is_project_live_manifest_payload,
+    load_local_config,
+    sanitize_local_config,
+)
 from datalens_dev_mcp.validators.artifact_validator import validate_schema_file
 
 
@@ -27,6 +32,27 @@ def patched_env(values):
 
 
 class LocalConfigTests(unittest.TestCase):
+    def test_project_live_manifest_is_not_misclassified_as_runtime_config(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest_path = Path(tmp) / ".datalens-mcp.json"
+            manifest = {
+                "project_name": "profiled_dashboard",
+                "workbook_id": "workbook_1",
+                "dashboard_ids": ["dashboard_1"],
+                "authoring_profile": {"id": "charging_v2_exact"},
+                "workflows": [{"name": "delivery", "may_execute_command": False}],
+            }
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            config = load_local_config(manifest_path, project_root=tmp)
+
+        self.assertTrue(is_project_live_manifest_payload(manifest))
+        self.assertEqual(config["schema_version"], "2026-07-19.datalens_mcp_local_config.v3")
+        self.assertFalse(config["_meta"]["loaded_from_file"])
+        self.assertTrue(config["_meta"]["project_manifest_detected"])
+        self.assertEqual(config["_meta"]["project_manifest_path"], str(manifest_path))
+        self.assertEqual(config["_meta"]["project_authoring_profile"], {"id": "charging_v2_exact"})
+
     def test_example_config_loads_with_safe_defaults(self):
         config = load_local_config(ROOT / "config" / "datalens_mcp.local.example.json", project_root=ROOT)
 
@@ -43,7 +69,9 @@ class LocalConfigTests(unittest.TestCase):
         self.assertTrue(config["safe_apply"]["require_safe_apply_plan"])
         self.assertTrue(config["safe_apply"]["require_readback_after_save"])
         self.assertFalse(config["live_testing"]["run_live_tests_by_default"])
-        self.assertEqual(config["api_defaults"]["request_interval_sec"], 0.15)
+        self.assertEqual(config["api_defaults"]["request_interval_sec"], 1.05)
+        self.assertEqual(config["api_defaults"]["max_read_concurrency"], 3)
+        self.assertEqual(config["api_defaults"]["read_transient_retries"], 2)
         self.assertEqual(
             config["routing"]["chart_creation_routes"],
             ["wizard_native", "advanced_editor_js", "ql_explicit"],
@@ -291,6 +319,23 @@ class LocalConfigTests(unittest.TestCase):
             )
 
         self.assertEqual(resolved["project_root"], str(root / "explicit"))
+
+    def test_batch_workbook_ids_are_not_mixed_with_configured_single_default(self):
+        config = load_local_config(project_root=ROOT)
+        config["defaults"]["workbook_id"] = "configured_workbook"
+
+        resolved = apply_tool_defaults(
+            "dl_get_workbook_entries",
+            {"workbook_ids": ["workbook_a", "workbook_b"]},
+            config,
+            project_root=str(ROOT),
+            supports_project_root=True,
+            supports_workbook_id=True,
+            supports_readback_mode=False,
+        )
+
+        self.assertNotIn("workbook_id", resolved)
+        self.assertEqual(resolved["workbook_ids"], ["workbook_a", "workbook_b"])
 
 
 if __name__ == "__main__":

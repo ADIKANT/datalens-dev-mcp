@@ -439,6 +439,8 @@ class RuntimeDiagnosticsTests(unittest.TestCase):
                 "DATALENS_IAM_TOKEN=super-secret-token-value\n"
                 "DATALENS_ORG_ID=org_synthetic\n"
                 "DATALENS_REQUEST_TIMEOUT_SEC=12.5\n"
+                "DATALENS_MAX_READ_CONCURRENCY=2\n"
+                "DATALENS_READ_TRANSIENT_RETRIES=1\n"
                 "DATALENS_AUTH_MODE=authorization\n",
                 encoding="utf-8",
             )
@@ -454,6 +456,8 @@ class RuntimeDiagnosticsTests(unittest.TestCase):
         self.assertIn("DATALENS_MCP_LIVE_ALLOW_PUBLISH=1", text)
         self.assertIn("DATALENS_ENABLE_TOKEN_REFRESH_ON_401=1", text)
         self.assertIn("DATALENS_REQUEST_TIMEOUT_SEC=12.5", text)
+        self.assertIn("DATALENS_MAX_READ_CONCURRENCY=2", text)
+        self.assertIn("DATALENS_READ_TRANSIENT_RETRIES=1", text)
         self.assertNotIn("DATALENS_AUTH_MODE", text)
         self.assertIn("DATALENS_AUTH_MODE", result["unsupported_keys_skipped"])
         self.assertNotIn("super-secret-token-value", dumped)

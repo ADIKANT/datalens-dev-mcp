@@ -169,6 +169,8 @@ def lint_project_editor_sql(project_root: str | Path = ".") -> EditorSqlLintResu
     for candidate in candidates:
         if candidate in seen or not candidate.is_file():
             continue
+        if candidate.name == "editor_sql_lint.json":
+            continue
         seen.add(candidate)
         unique_candidates.append(candidate)
     for candidate in unique_candidates:

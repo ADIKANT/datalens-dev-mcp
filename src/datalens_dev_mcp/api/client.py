@@ -2,17 +2,24 @@ from __future__ import annotations
 
 import json
 import os
+import random
+import socket
 import sys
 import tempfile
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, replace
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
+from http.client import RemoteDisconnected
 from pathlib import Path
+from threading import RLock
 from typing import Any, Protocol
 from urllib import error, request
 
 from datalens_dev_mcp.api.auth import is_auth_failure, is_missing_credentials, refresh_iam_token_with_yc
 from datalens_dev_mcp.api.errors import DataLensApiError
+from datalens_dev_mcp.api.scheduler import REQUEST_SCHEDULER, TOKEN_REFRESH_COORDINATOR
 from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.validators.redaction import redact_text, sanitize_value
 
@@ -139,27 +146,40 @@ class DataLensApiClient:
         self.config = config
         self.transport = transport or UrlLibTransport(config.request_timeout_sec)
         self.token_refresher = token_refresher
-        self._last_request_at = 0.0
+        self._state_lock = RLock()
         self._selected_api_version = ""
         self._api_version_selection_reason = ""
 
     def headers(self, *, api_version: str | None = None) -> dict[str, str]:
-        self.config.require_auth()
+        with self._state_lock:
+            config = self.config
+        config.require_auth()
         return {
             "accept": "application/json",
             "content-type": "application/json",
-            "x-dl-api-version": api_version or self.config.api_version,
-            "x-dl-org-id": self.config.org_id,
-            "Authorization": f"Bearer {self.config.iam_token}",
+            "x-dl-api-version": api_version or config.api_version,
+            "x-dl-org-id": config.org_id,
+            "Authorization": f"Bearer {config.iam_token}",
         }
 
-    def rpc(self, method: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    def rpc(
+        self,
+        method: str,
+        payload: dict[str, Any] | None = None,
+        *,
+        exclusive: bool = False,
+    ) -> dict[str, Any]:
         self._reload_canonical_env_file("reloaded_before_rpc", require_token=False)
         self._bootstrap_missing_token()
         compacted_payload = compact_rpc_payload(payload or {}, method=method) or {}
         selected_api_version = self._resolve_api_version(method)
         try:
-            return self._rpc_once(method, compacted_payload, api_version=selected_api_version)
+            return self._rpc_once(
+                method,
+                compacted_payload,
+                api_version=selected_api_version,
+                exclusive=exclusive,
+            )
         except Exception as first_exc:  # noqa: BLE001
             fallback_result = self._maybe_retry_readonly_legacy_version(
                 method=method,
@@ -187,7 +207,12 @@ class DataLensApiClient:
                 if self._reload_canonical_env_file("reloaded_after_401"):
                     try:
                         selected_api_version = self._resolve_api_version(method)
-                        return self._rpc_once(method, compacted_payload, api_version=selected_api_version)
+                        return self._rpc_once(
+                            method,
+                            compacted_payload,
+                            api_version=selected_api_version,
+                            exclusive=exclusive,
+                        )
                     except Exception as reload_exc:  # noqa: BLE001
                         fallback_result = self._maybe_retry_readonly_legacy_version(
                             method=method,
@@ -210,7 +235,12 @@ class DataLensApiClient:
                         self._reload_canonical_env_file("reloaded_after_refresh")
                         try:
                             selected_api_version = self._resolve_api_version(method)
-                            return self._rpc_once(method, compacted_payload, api_version=selected_api_version)
+                            return self._rpc_once(
+                                method,
+                                compacted_payload,
+                                api_version=selected_api_version,
+                                exclusive=exclusive,
+                            )
                         except Exception as retry_exc:  # noqa: BLE001
                             fallback_result = self._maybe_retry_readonly_legacy_version(
                                 method=method,
@@ -237,25 +267,54 @@ class DataLensApiClient:
                 "canonical_env_reload_failed_or_unavailable"
             ) from first_exc
 
-    def _rpc_once(self, method: str, compacted_payload: dict[str, Any], *, api_version: str | None = None) -> dict[str, Any]:
+    def _rpc_once(
+        self,
+        method: str,
+        compacted_payload: dict[str, Any],
+        *,
+        api_version: str | None = None,
+        exclusive: bool = False,
+    ) -> dict[str, Any]:
         url = f"{self.config.base_url.rstrip('/')}/rpc/{method}"
         body = json.dumps(compacted_payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-        attempts = 0
+        rate_limit_attempts = 0
+        transient_attempts = 0
+        readonly = _is_readonly_method(method)
         if self.config.request_debug:
             self._log_request_debug(method, url, compacted_payload, api_version=api_version or self.config.api_version)
         while True:
             try:
-                raw = self._post_json(url, body, api_version=api_version)
+                raw = self._post_json(
+                    method,
+                    url,
+                    body,
+                    api_version=api_version,
+                    exclusive=exclusive,
+                )
             except error.HTTPError as exc:
                 raw_text = exc.read().decode("utf-8", errors="replace")
-                if exc.code == 429 and attempts < self.config.rate_limit_retries:
-                    retry_after = exc.headers.get("Retry-After")
-                    try:
-                        backoff = float(retry_after) if retry_after else min(2**attempts, 10)
-                    except ValueError:
-                        backoff = min(2**attempts, 10)
-                    time.sleep(backoff)
-                    attempts += 1
+                if exc.code == 429:
+                    retry_after = exc.headers.get("Retry-After") if exc.headers else None
+                    backoff = _retry_after_seconds(
+                        retry_after,
+                        fallback=min(2**rate_limit_attempts, 10),
+                    )
+                    REQUEST_SCHEDULER.note_rate_limit(
+                        key=self._scheduler_key(),
+                        method=method,
+                        retry_after_sec=backoff,
+                    )
+                    if readonly and rate_limit_attempts < self.config.rate_limit_retries:
+                        rate_limit_attempts += 1
+                        continue
+                if (
+                    readonly
+                    and exc.code in {502, 503, 504}
+                    and transient_attempts < self.config.read_transient_retries
+                ):
+                    transient_attempts += 1
+                    REQUEST_SCHEDULER.note_transient_retry(key=self._scheduler_key(), method=method)
+                    _transient_retry_pause(transient_attempts)
                     continue
                 if exc.code == 401:
                     raise DataLensApiError(
@@ -272,8 +331,23 @@ class DataLensApiClient:
                     f"{method} failed with HTTP {exc.code}: {short_error_detail(raw_text)}; "
                     f"compacted_payload_keys={compact_payload_keys(compacted_payload)}"
                 ) from exc
-            except error.URLError as exc:
-                raise DataLensApiError(f"{method} failed before HTTP response: {exc.reason}") from exc
+            except Exception as exc:
+                if (
+                    readonly
+                    and _is_transient_read_error(exc)
+                    and transient_attempts < self.config.read_transient_retries
+                ):
+                    transient_attempts += 1
+                    REQUEST_SCHEDULER.note_transient_retry(key=self._scheduler_key(), method=method)
+                    _transient_retry_pause(transient_attempts)
+                    continue
+                if isinstance(exc, error.URLError):
+                    raise DataLensApiError(f"{method} failed before HTTP response: {exc.reason}") from exc
+                if _is_transient_read_error(exc):
+                    raise DataLensApiError(
+                        f"{method} failed before HTTP response: {exc.__class__.__name__}"
+                    ) from exc
+                raise
 
             try:
                 return json.loads(raw.decode("utf-8"))
@@ -302,24 +376,25 @@ class DataLensApiClient:
             raise DataLensApiError(f"initial_token_bootstrap_failed: {_safe_auth_error(exc)}") from exc
 
     def _resolve_api_version(self, method: str) -> str:
-        configured = str(self.config.api_version or "auto").strip().lower()
-        if configured and configured != "auto":
-            compiled = _compiled_api_version()
-            if not _is_readonly_method(method) and configured != compiled:
-                detail = "unlocked_api_version_for_write; " if configured == "latest" else ""
-                raise DataLensApiError(
-                    f"{method} blocked before HTTP: api_version_mismatch_for_write; {detail}"
-                    f"configured={configured}; compiled={compiled}"
-                )
-            self._selected_api_version = configured
-            self._api_version_selection_reason = "explicit"
-            return configured
-        if self._selected_api_version and _is_readonly_method(method):
-            return self._selected_api_version
-        current = _compiled_api_version()
-        self._selected_api_version = current
-        self._api_version_selection_reason = "compiled_current_direct"
-        return current
+        with self._state_lock:
+            configured = str(self.config.api_version or "auto").strip().lower()
+            if configured and configured != "auto":
+                compiled = _compiled_api_version()
+                if not _is_readonly_method(method) and configured != compiled:
+                    detail = "unlocked_api_version_for_write; " if configured == "latest" else ""
+                    raise DataLensApiError(
+                        f"{method} blocked before HTTP: api_version_mismatch_for_write; {detail}"
+                        f"configured={configured}; compiled={compiled}"
+                    )
+                self._selected_api_version = configured
+                self._api_version_selection_reason = "explicit"
+                return configured
+            if self._selected_api_version and _is_readonly_method(method):
+                return self._selected_api_version
+            current = _compiled_api_version()
+            self._selected_api_version = current
+            self._api_version_selection_reason = "compiled_current_direct"
+            return current
 
     def _maybe_retry_readonly_legacy_version(
         self,
@@ -334,17 +409,20 @@ class DataLensApiClient:
         return None
 
     def _refresh_token_once(self) -> str:
-        refresher = self.token_refresher
-        if refresher is None and self.config.token_refresh_enabled:
+        with self._state_lock:
+            config = self.config
+            refresher = self.token_refresher
+        if refresher is None and config.token_refresh_enabled:
             refresher = lambda: refresh_iam_token_with_yc(
-                yc_binary=self.config.yc_binary,
-                timeout_sec=self.config.token_refresh_timeout_sec,
+                yc_binary=config.yc_binary,
+                timeout_sec=config.token_refresh_timeout_sec,
             )
         if refresher is None:
             return ""
-        refreshed = refresher()
+        refreshed = TOKEN_REFRESH_COORDINATOR.refresh(self._token_refresh_key(), refresher)
         if refreshed:
-            self.config = replace(self.config, iam_token=refreshed, credential_source="token_refresh")
+            with self._state_lock:
+                self.config = replace(self.config, iam_token=refreshed, credential_source="token_refresh")
         return refreshed
 
     def _minimal_auth_probe(self) -> dict[str, Any]:
@@ -358,18 +436,21 @@ class DataLensApiClient:
             return {"ok": False, "error": _safe_auth_error(exc)}
 
     def _reload_canonical_env_file(self, reload_state: str, *, require_token: bool = True) -> bool:
-        if not self.config.env_file_path:
-            return False
-        reloaded = self.config.reload_canonical_env(reload_state=reload_state)
-        if require_token and not reloaded.iam_token:
-            return False
-        self.config = reloaded
-        return reloaded.env_file_loaded
+        with self._state_lock:
+            if not self.config.env_file_path:
+                return False
+            reloaded = self.config.reload_canonical_env(reload_state=reload_state)
+            if require_token and not reloaded.iam_token:
+                return False
+            self.config = reloaded
+            return reloaded.env_file_loaded
 
     def _persist_refreshed_token(self, token: str) -> None:
-        if not token or not self.config.env_file_path:
+        with self._state_lock:
+            config = self.config
+        if not token or not config.env_file_path:
             return
-        env_path = Path(self.config.env_file_path)
+        env_path = Path(config.env_file_path)
         env_path.parent.mkdir(parents=True, exist_ok=True)
         lines = env_path.read_text(encoding="utf-8").splitlines() if env_path.is_file() else []
         rendered: list[str] = []
@@ -380,15 +461,15 @@ class DataLensApiClient:
             if stripped.startswith("DATALENS_IAM_TOKEN="):
                 rendered.append(f"DATALENS_IAM_TOKEN={token}")
                 replaced_token = True
-            elif stripped.startswith("DATALENS_ORG_ID=") and self.config.org_id:
-                rendered.append(f"DATALENS_ORG_ID={self.config.org_id}")
+            elif stripped.startswith("DATALENS_ORG_ID=") and config.org_id:
+                rendered.append(f"DATALENS_ORG_ID={config.org_id}")
                 replaced_org = True
             else:
                 rendered.append(line)
         if not replaced_token:
             rendered.append(f"DATALENS_IAM_TOKEN={token}")
-        if self.config.org_id and not replaced_org:
-            rendered.append(f"DATALENS_ORG_ID={self.config.org_id}")
+        if config.org_id and not replaced_org:
+            rendered.append(f"DATALENS_ORG_ID={config.org_id}")
         fd, tmp_name = tempfile.mkstemp(prefix=f".{env_path.name}.", suffix=".tmp", dir=env_path.parent)
         tmp_path = Path(tmp_name)
         try:
@@ -401,13 +482,42 @@ class DataLensApiClient:
             if tmp_path.exists():
                 tmp_path.unlink()
 
-    def _post_json(self, url: str, body: bytes, *, api_version: str | None = None) -> bytes:
-        now = time.monotonic()
-        delay = self.config.request_interval_sec - (now - self._last_request_at)
-        if delay > 0:
-            time.sleep(delay)
-        self._last_request_at = time.monotonic()
-        return self.transport.post_json(url, body, self.headers(api_version=api_version))
+    def _post_json(
+        self,
+        method: str,
+        url: str,
+        body: bytes,
+        *,
+        api_version: str | None = None,
+        exclusive: bool = False,
+    ) -> bytes:
+        with self._state_lock:
+            config = self.config
+        return REQUEST_SCHEDULER.execute(
+            key=self._scheduler_key(),
+            method=method,
+            readonly=_is_readonly_method(method),
+            exclusive=exclusive,
+            interval_sec=config.request_interval_sec,
+            max_read_concurrency=config.max_read_concurrency,
+            operation=lambda: self.transport.post_json(url, body, self.headers(api_version=api_version)),
+        )
+
+    def _scheduler_key(self) -> str:
+        with self._state_lock:
+            # A process normally represents one DataLens user. Keep all clients
+            # for the same API endpoint behind one limiter even when a workflow
+            # touches more than one organization.
+            return self.config.base_url.rstrip("/")
+
+    def _token_refresh_key(self) -> str:
+        with self._state_lock:
+            config = self.config
+        custom_refresher = f"custom:{id(self.token_refresher)}" if self.token_refresher is not None else "yc"
+        return (
+            f"{config.base_url.rstrip('/')}|{config.org_id or '<missing-org>'}|"
+            f"{config.env_file_path or '<no-env-file>'}|{custom_refresher}"
+        )
 
     def _log_request_debug(self, method: str, url: str, payload: dict[str, Any], *, api_version: str) -> None:
         debug_payload = {
@@ -423,7 +533,13 @@ class DataLensApiClient:
     def get_workbooks_list(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         return self.rpc("getWorkbooksList", payload or {"page": 1, "pageSize": 100})
 
-    def rpc_readonly(self, method: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    def rpc_readonly(
+        self,
+        method: str,
+        payload: dict[str, Any] | None = None,
+        *,
+        exclusive: bool = False,
+    ) -> dict[str, Any]:
         from datalens_dev_mcp.api.methods import is_readonly_method
         from datalens_dev_mcp.api.request_compiler import validate_method_request
 
@@ -435,7 +551,14 @@ class DataLensApiClient:
             raise DataLensApiError(
                 f"{method} blocked before HTTP: datalens_validation_error: {'; '.join(validation['issues'])}"
             )
-        return self.rpc(method, rpc_payload)
+        return self.rpc(method, rpc_payload, exclusive=exclusive)
+
+    def rpc_exclusive_read(
+        self,
+        method: str,
+        payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self.rpc_readonly(method, payload, exclusive=True)
 
 
 def _safe_auth_error(exc: Exception) -> str:
@@ -466,3 +589,41 @@ def _is_version_specific_failure(exc: Exception) -> bool:
         or "version is not supported" in text
         or "invalid api version" in text
     )
+
+
+def _retry_after_seconds(value: str | None, *, fallback: float, wall_time: float | None = None) -> float:
+    raw = str(value or "").strip()
+    if not raw:
+        return max(0.0, float(fallback))
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        pass
+    try:
+        parsed = parsedate_to_datetime(raw)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        now = datetime.fromtimestamp(time.time() if wall_time is None else wall_time, tz=timezone.utc)
+        return max(0.0, (parsed - now).total_seconds())
+    except (TypeError, ValueError, OverflowError):
+        return max(0.0, float(fallback))
+
+
+def _is_transient_read_error(exc: Exception) -> bool:
+    if isinstance(exc, (RemoteDisconnected, ConnectionResetError, ConnectionAbortedError, TimeoutError, socket.timeout)):
+        return True
+    if isinstance(exc, error.URLError):
+        reason = exc.reason
+        return isinstance(
+            reason,
+            (RemoteDisconnected, ConnectionResetError, ConnectionAbortedError, TimeoutError, socket.timeout),
+        ) or any(
+            marker in str(reason).lower()
+            for marker in ("timed out", "connection reset", "remote end closed", "temporarily unavailable")
+        )
+    return False
+
+
+def _transient_retry_pause(attempt: int) -> None:
+    backoff = min(0.25 * (2 ** max(0, attempt - 1)), 1.0)
+    time.sleep(backoff + random.uniform(0.0, 0.1))

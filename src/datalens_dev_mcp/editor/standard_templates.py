@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from typing import Any
 
@@ -249,6 +250,11 @@ def load_standard_template_bundle(
         tabs["controls.js"] = "module.exports = {};\n"
 
     route_spec = ROUTE_CONTRACT.spec(route)
+    template_provenance = _template_provenance(
+        template_dir=template_dir,
+        required_files=list(spec["required_files"]),
+        tabs=tabs,
+    )
     return {
         "schema_version": "2026-06-03.standard_template_bundle.v1",
         "widget_id": widget_id,
@@ -266,12 +272,42 @@ def load_standard_template_bundle(
         "renderer_visual_spec": visual_spec or {},
         "source_template": spec["template_dir"],
         "source_gallery": spec["template_dir"],
+        "template_provenance": template_provenance,
         "generation_status": (
             "ready" if source_contract["status"] in {"ready", "not_required"} else source_contract["status"]
         ),
         "source_contract": source_contract,
         "blocking_issues": [] if source_contract["status"] in {"ready", "fixture_only"} else source_contract["issues"],
         "tabs": tabs,
+    }
+
+
+def _template_provenance(
+    *,
+    template_dir: str,
+    required_files: list[str],
+    tabs: dict[str, str],
+) -> dict[str, Any]:
+    resource_paths = [f"{template_dir}/{name}" for name in required_files]
+    if "prepare.js" in tabs:
+        resource_paths.extend(SHARED_PLACEHOLDERS.values())
+    resource_paths = list(dict.fromkeys(path for path in resource_paths if resource_exists(path)))
+    asset_rows = [
+        {
+            "path": path,
+            "sha256": hashlib.sha256(resource_text(path).encode("utf-8")).hexdigest(),
+        }
+        for path in resource_paths
+    ]
+    asset_canonical = json.dumps(asset_rows, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    tabs_canonical = json.dumps(tabs, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return {
+        "policy": "exact_registered_asset",
+        "approximate_fallback_used": False,
+        "source_template": template_dir,
+        "asset_count": len(asset_rows),
+        "template_asset_sha256": hashlib.sha256(asset_canonical.encode("utf-8")).hexdigest(),
+        "compiled_tabs_sha256": hashlib.sha256(tabs_canonical.encode("utf-8")).hexdigest(),
     }
 
 

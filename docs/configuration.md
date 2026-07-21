@@ -56,6 +56,9 @@ DATALENS_ORG_ID=<ID_ОРГАНИЗАЦИИ>
 DATALENS_IAM_TOKEN=<IAM_ТОКЕН>
 DATALENS_API_BASE_URL=https://api.datalens.tech
 DATALENS_API_VERSION=auto
+DATALENS_REQUEST_INTERVAL_SEC=1.05
+DATALENS_MAX_READ_CONCURRENCY=3
+DATALENS_READ_TRANSIENT_RETRIES=2
 DATALENS_MCP_ENABLE_WRITES=1
 DATALENS_MCP_LIVE_ALLOW_SAVE=1
 DATALENS_MCP_LIVE_ALLOW_PUBLISH=1
@@ -67,6 +70,20 @@ DATALENS_MCP_ENABLE_EXPERT_RPC=0
 Передайте абсолютный путь к файлу в `DATALENS_ENV_FILE`. Основной env-файл перечитывается при проверке доступа и перед операциями записи. Для write/save/publish значение `0` в файле или в окружении процесса всегда имеет приоритет над значением `1`.
 
 Если `yc` отсутствует в `PATH` MCP-процесса, задайте `DATALENS_YC_BINARY`. `dl_runtime_status` показывает `refresh_available`, не раскрывая путь к токену или его значение.
+
+## Планировщик API-запросов
+
+Все клиенты внутри одного процесса используют общий планировщик для одного API endpoint. Настройки выбираются в порядке: явная env-переменная, `api_defaults` local config, встроенное значение.
+
+| Настройка local config | Env-переменная | По умолчанию | Назначение |
+| --- | --- | --- | --- |
+| `request_interval_sec` | `DATALENS_REQUEST_INTERVAL_SEC` | `1.05` | Минимальный интервал между стартами API-запросов |
+| `max_read_concurrency` | `DATALENS_MAX_READ_CONCURRENCY` | `3` | От 1 до 3 одновременно выполняющихся независимых чтений |
+| `read_transient_retries` | `DATALENS_READ_TRANSIENT_RETRIES` | `2` | От 0 до 2 повторов безопасного чтения после timeout, обрыва соединения или HTTP 502/503/504 |
+| `rate_limit_retries` | `DATALENS_RATE_LIMIT_RETRIES` | `6` | Повторы чтения после общего cooldown по HTTP 429 |
+| `request_timeout_sec` | `DATALENS_REQUEST_TIMEOUT_SEC` | `30` | Timeout одного HTTP-запроса |
+
+Интервал `1.05` соответствует примерно 57 стартам в минуту и оставляет запас относительно [лимита 60 запросов в минуту на пользователя](https://yandex.cloud/ru/docs/datalens/concepts/limits). Независимые чтения могут перекрываться по времени, но каждый старт проходит через общий limiter. Запись, fresh read/write/save/readback/publish выполняются эксклюзивно; неоднозначно завершившийся write не повторяется автоматически. HTTP 429 приостанавливает все новые старты на `Retry-After` и временно снижает read concurrency до одного worker.
 
 ## Жёсткие выключатели
 
@@ -89,7 +106,7 @@ DATALENS_MCP_ENABLE_EXPERT_RPC=0
 - `readback` — объём контрольного чтения;
 - `validation` — строгость, проверка маршрута, связей, шаблонов и секретов;
 - `live_testing` — запуск проверок на специально выбранных объектах;
-- `api_defaults` — интервалы, повторные попытки и timeout;
+- `api_defaults` — общий интервал, read concurrency, повторные попытки и timeout;
 - `routing` — выбор Wizard, Editor и QL;
 - `style`, `naming`, `selectors` — оформление и компоновка объектов.
 

@@ -1,5 +1,5 @@
 {
-  "rule_version": "2026-06-25.datalens_advanced_editor_runtime.v2",
+  "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
   "official_sanitizer": {
     "allowlist_artifact": "schemas/datalens-api/editor-runtime-allowlist.json",
     "layers": [
@@ -57,7 +57,7 @@
   "project_governance": {
     "warning_patterns": {
       "duplicate_inline_title": "<\\s*h[12]\\b[^>]*>\\s*(title|hint|roadmap|dashboard)",
-      "inline_hint_ui": "(data-id\\s*=\\s*[\"']hint[\"']|tooltip\\s*:)",
+      "inline_hint_ui": "data-id\\s*=\\s*[\"']hint[\"']",
       "unserializable_d3_pattern": "\\.data\\s*\\(\\s*(new\\s+Map|new\\s+Set|function\\s*\\*)"
     }
   },

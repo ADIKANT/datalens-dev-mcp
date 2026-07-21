@@ -23,8 +23,7 @@ def ensure_project_dirs(project_root: str | Path) -> Path:
 
 def write_json(path: str | Path, payload: Any) -> None:
     target = Path(path)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    _write_if_changed(target, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
 
 
 def read_json(path: str | Path, default: Any = None) -> Any:
@@ -36,10 +35,22 @@ def read_json(path: str | Path, default: Any = None) -> Any:
 
 def write_text(path: str | Path, content: str) -> None:
     target = Path(path)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(content, encoding="utf-8")
+    _write_if_changed(target, content)
 
 
 def read_text(path: str | Path, default: str = "") -> str:
     target = Path(path)
     return target.read_text(encoding="utf-8") if target.is_file() else default
+
+
+def _write_if_changed(target: Path, content: str) -> None:
+    """Avoid rewriting stable artifacts and invalidating downstream caches."""
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if target.is_file():
+        try:
+            if target.read_text(encoding="utf-8") == content:
+                return
+        except (OSError, UnicodeDecodeError):
+            pass
+    target.write_text(content, encoding="utf-8")

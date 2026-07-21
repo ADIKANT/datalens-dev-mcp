@@ -21,7 +21,18 @@ Budget rules:
 - `dl_read_object` and discovery helpers: summary by default; full or artifact
   modes must be explicit.
 - Safe apply execution: inline status plus artifact metadata; raw envelopes are
-  written once under `artifacts/safe_apply/`.
+  written once under `artifacts/safe_apply/`. Nested save/publish delivery
+  summaries do not duplicate full action payloads, command output, or publish
+  plans already present at the top level or in artifacts.
+- Safe-apply/publish planners, guarded RPC, and project workflow tools: `summary`
+  by default with a typical 15K inline ceiling. The canonical sanitized result
+  is stored once with its SHA-256; `full` remains explicit and compatible.
+- Editor validation: stable `corpus_reference_set` by default. Full corpus
+  reference rows require `include_references=true`; repeated payloads reuse the
+  validation result for the same rule-resource version.
+- Repeated dashboard snapshots may reuse hydrated artifacts only after fresh
+  dashboard reads, a revision-complete workbook inventory match, and artifact
+  hash verification.
 - SQL/performance diagnostics: compact findings inline; full evidence under
   `artifacts/sql_performance/`.
 

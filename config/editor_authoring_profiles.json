@@ -1,0 +1,52 @@
+{
+  "schema_version": "2026-07-21.editor_authoring_profiles.v1",
+  "source_basis": [
+    "distilled project-authored Charging App Dash v2 runtime reuse contract",
+    "distilled DATA-5211 exact-marker copy and refuse-approximation contract",
+    "templates/datalens/standard_chart_templates.json"
+  ],
+  "profiles": {
+    "charging_v2_exact": {
+      "aliases": [
+        "charging",
+        "charging_v2",
+        "charging_style",
+        "charging_dashboard_v2"
+      ],
+      "description": "Use only registered JavaScript Editor assets and refuse prompt-invented or approximate fallback output.",
+      "route_policy": "registered_editor_only",
+      "template_policy": "exact_registered_asset",
+      "fallback_policy": "block",
+      "allowed_routes": [
+        "editor_advanced"
+      ],
+      "runtime_asset": "templates/datalens/authoring_profiles/charging_v2_exact/advanced_editor_runtime.js",
+      "runtime_sha256": "5f37bbd6a7012e90d0567787f006629019a852623b833eb112debe5f8f50ebf3",
+      "adapter_asset": "templates/datalens/authoring_profiles/charging_v2_exact/prepare_adapter.js",
+      "adapter_sha256": "8eb49556c6c5a226eddcf86362e5824e5df4de37ef5aad4c7a9adaa65d24fe33",
+      "family_adapters": {
+        "kpi_value_only": "metric_tile",
+        "kpi_value_delta": "metric_tile",
+        "kpi_value_sparkline": "metric_tile",
+        "kpi_value_delta_sparkline": "metric_tile",
+        "line_chart": "combo_line",
+        "multiline_chart": "combo_line",
+        "vertical_bar_time_bucket": "combo_bar",
+        "combo_time_series_combo": "combo_mixed",
+        "horizontal_bar": "horizontal",
+        "grouped_bar": "horizontal_grouped"
+      },
+      "style_contract": {
+        "theme_aware": true,
+        "responsive_svg": true,
+        "compact_context_once": true,
+        "direct_labels": true,
+        "future_empty_buckets": "omit",
+        "missing_value": "N/A",
+        "tooltip": "business_context_current_vs_reference",
+        "selector_apply_button": false,
+        "template_identity": "sha256"
+      }
+    }
+  }
+}

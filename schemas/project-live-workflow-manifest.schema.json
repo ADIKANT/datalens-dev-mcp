@@ -21,6 +21,25 @@
         "minLength": 1
       }
     },
+    "authoring_profile": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "object",
+          "required": ["id"],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
     "target": {
       "type": "object",
       "properties": {

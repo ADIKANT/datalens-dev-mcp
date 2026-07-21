@@ -50,9 +50,11 @@ DEFAULT_LOCAL_CONFIG: dict[str, Any] = {
         "allow_publish_checks": False,
     },
     "api_defaults": {
-        "request_interval_sec": 0.15,
+        "request_interval_sec": 1.05,
         "rate_limit_retries": 6,
         "request_timeout_sec": 30,
+        "max_read_concurrency": 3,
+        "read_transient_retries": 2,
     },
     "routing": {
         "chart_creation_routes": ["wizard_native", "advanced_editor_js", "ql_explicit"],
@@ -115,8 +117,12 @@ LEGACY_TOP_LEVEL_KEYS = {"mcp", "safe_mode", "approval_gates"}
 def load_local_config(config_path: str | Path | None = None, *, project_root: str | Path = ".") -> dict[str, Any]:
     path = _resolve_config_path(config_path, project_root=project_root)
     data: dict[str, Any] = {}
+    project_manifest: dict[str, Any] = {}
     if path and path.is_file():
         data = json.loads(path.read_text(encoding="utf-8"))
+        if is_project_live_manifest_payload(data):
+            project_manifest = data
+            data = {}
     data, config_migrations = _migrate_local_config_v2(data)
     data, routing_migrations = _migrate_legacy_routing_config(data)
     migrations = [*config_migrations, *routing_migrations]
@@ -125,10 +131,26 @@ def load_local_config(config_path: str | Path | None = None, *, project_root: st
     config.pop("mcp", None)
     config["_meta"] = {
         "config_path": str(path) if path else "",
-        "loaded_from_file": bool(path and path.is_file()),
+        "loaded_from_file": bool(path and path.is_file() and not project_manifest),
         "compatibility_migrations": migrations,
+        "project_manifest_detected": bool(project_manifest),
+        "project_manifest_path": str(path) if project_manifest and path else "",
+        "project_authoring_profile": project_manifest.get("authoring_profile") if project_manifest else "",
     }
     return config
+
+
+def is_project_live_manifest_payload(value: Any) -> bool:
+    if not isinstance(value, dict):
+        return False
+    workflows = value.get("workflows")
+    project_named = bool(str(value.get("project_name") or value.get("name") or "").strip())
+    target_declared = bool(
+        str(value.get("workbook_id") or "").strip()
+        or value.get("dashboard_ids")
+        or isinstance(value.get("target"), dict)
+    )
+    return bool(isinstance(workflows, list) and workflows and project_named and target_declared)
 
 
 def validate_local_config(config: dict[str, Any]) -> None:
@@ -188,6 +210,10 @@ def validate_local_config(config: dict[str, Any]) -> None:
         raise ValueError("api_defaults.rate_limit_retries must be non-negative")
     if float(api_defaults.get("request_timeout_sec", 0)) <= 0:
         raise ValueError("api_defaults.request_timeout_sec must be positive")
+    if not 1 <= int(api_defaults.get("max_read_concurrency", 0)) <= 3:
+        raise ValueError("api_defaults.max_read_concurrency must be between 1 and 3")
+    if not 0 <= int(api_defaults.get("read_transient_retries", 0)) <= 2:
+        raise ValueError("api_defaults.read_transient_retries must be between 0 and 2")
 
     selectors = config.get("selectors") or {}
     if selectors.get("label_placement") != "left":
@@ -228,7 +254,13 @@ def apply_tool_defaults(
             resolved["project_root"] = str(server_root)
 
     workbook_id = str(defaults.get("workbook_id") or "").strip()
-    if supports_workbook_id and not resolved.get("workbook_id") and workbook_id and not _is_placeholder(workbook_id):
+    if (
+        supports_workbook_id
+        and not resolved.get("workbook_id")
+        and not resolved.get("workbook_ids")
+        and workbook_id
+        and not _is_placeholder(workbook_id)
+    ):
         resolved["workbook_id"] = workbook_id
 
     if supports_readback_mode and not resolved.get("readback_mode"):

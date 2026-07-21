@@ -1,12 +1,24 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import re
+from collections import OrderedDict
+from copy import deepcopy
+from functools import lru_cache
+from threading import RLock
 from typing import Any
 
-from datalens_dev_mcp.runtime_resources import resource_json
-from datalens_dev_mcp.validators.uri_safety import assess_uri
+from datalens_dev_mcp.api.scheduler import record_cache_hit
+from datalens_dev_mcp.runtime_resources import (
+    RESOURCE_OVERRIDE_ENV,
+    RuntimeResourceError,
+    resource_json,
+    resource_text,
+)
 from datalens_dev_mcp.validators.route_validator import ValidationResult
+from datalens_dev_mcp.validators.uri_safety import assess_uri
 
 
 ALLOWED_EDITOR_METHODS = {
@@ -33,7 +45,10 @@ ALLOWED_EDITOR_METHODS = {
 METHOD_RE = re.compile(r"\bEditor\.([A-Za-z_][A-Za-z0-9_]*)\s*\(")
 RUNTIME_METHOD_RE = re.compile(r"\b(Editor|ChartEditor)\.([A-Za-z_][A-Za-z0-9_]*)\s*\(")
 D3_ATTR_RE = re.compile(r"\.attr\s*\(\s*([\"'])(?P<name>[^\"']+)\1", re.S)
-HTML_TAG_RE = re.compile(r"<\s*(?P<tag>[A-Za-z][A-Za-z0-9:-]*)\b(?P<attrs>[^<>]*)>", re.S)
+# Real opening tags do not contain whitespace between ``<`` and the tag name.
+# Allowing it made ordinary JavaScript comparisons such as ``index < value``
+# look like one enormous unsupported HTML tag until a later ``>`` operator.
+HTML_TAG_RE = re.compile(r"<(?P<tag>[A-Za-z][A-Za-z0-9:-]*)\b(?P<attrs>[^<>]*)>", re.S)
 HTML_ATTR_RE = re.compile(r"(?P<name>[A-Za-z_:][A-Za-z0-9_:.-]*)\s*=", re.S)
 HTML_URI_ATTR_RE = re.compile(
     r"(?P<name>href|src|xlink:href)\s*=\s*(?P<quote>['\"])(?P<value>.*?)(?P=quote)",
@@ -53,6 +68,10 @@ URI_ESCAPE_WRAPPER_NAMES = {"esc", "escapeHtml"}
 RENDER_WRAP_RE = re.compile(r"render\s*:\s*Editor\.wrapFn\s*\(\s*\{", re.S)
 CONTRACT_RESOURCE = "validators/editor_runtime_contract.json"
 ALLOWLIST_RESOURCE = "schemas/datalens-api/editor-runtime-allowlist.json"
+EDITOR_VALIDATION_CACHE_VERSION = "2026-07-20.editor_validation_cache.v1"
+EDITOR_VALIDATION_CACHE_MAX_ENTRIES = 128
+_EDITOR_VALIDATION_CACHE: OrderedDict[str, dict[str, Any]] = OrderedDict()
+_EDITOR_VALIDATION_CACHE_LOCK = RLock()
 
 
 def validate_advanced_editor_js(text: str, *, source: str = "<memory>") -> ValidationResult:
@@ -80,7 +99,7 @@ def validate_advanced_editor_js(text: str, *, source: str = "<memory>") -> Valid
         if "return Editor.generateHtml" not in text:
             issues.append(f"{source}: wrapped render must return Editor.generateHtml(...)")
 
-    if 'data-id="hint"' in text or "tooltip:" in text:
+    if 'data-id="hint"' in text:
         issues.append(f"{source}: top-level dashboard hints must be native dashboard metadata, not chart-body UI")
     if re.search(r"\bdata\.title\b", text):
         issues.append(f"{source}: top-level dashboard titles must be native dashboard metadata, not chart-body UI")
@@ -94,6 +113,59 @@ def validate_editor_runtime_contract(
     source: str = "<memory>",
     allow_unknown_warnings: bool = False,
 ) -> dict[str, Any]:
+    canonical = json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    payload_sha256 = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    rule_token = _editor_validation_rule_token()
+    cache_key = f"{payload_sha256}:{rule_token}"
+    with _EDITOR_VALIDATION_CACHE_LOCK:
+        cached = _EDITOR_VALIDATION_CACHE.get(cache_key)
+        if cached is not None:
+            base = deepcopy(cached)
+            _EDITOR_VALIDATION_CACHE.move_to_end(cache_key)
+            cache_hit = True
+        else:
+            base = {}
+            cache_hit = False
+    if not base:
+        computed = _validate_editor_runtime_contract_uncached(value)
+        with _EDITOR_VALIDATION_CACHE_LOCK:
+            cached = _EDITOR_VALIDATION_CACHE.get(cache_key)
+            if cached is not None:
+                base = deepcopy(cached)
+                cache_hit = True
+            else:
+                base = computed
+                _EDITOR_VALIDATION_CACHE[cache_key] = deepcopy(base)
+                while len(_EDITOR_VALIDATION_CACHE) > EDITOR_VALIDATION_CACHE_MAX_ENTRIES:
+                    _EDITOR_VALIDATION_CACHE.popitem(last=False)
+            _EDITOR_VALIDATION_CACHE.move_to_end(cache_key)
+    if cache_hit:
+        record_cache_hit("editor_validation")
+    base["source"] = source
+    for finding in base.get("findings") or []:
+        if isinstance(finding, dict):
+            finding["source"] = source
+    warnings = sum(1 for finding in base.get("findings") or [] if finding.get("severity") == "warning")
+    errors = sum(1 for finding in base.get("findings") or [] if finding.get("severity") == "error")
+    blocking = errors if allow_unknown_warnings else errors + warnings
+    base["allow_unknown_warnings"] = bool(allow_unknown_warnings)
+    base["ok"] = blocking == 0
+    base["summary"] = {
+        "findings": len(base.get("findings") or []),
+        "errors": errors,
+        "warnings": warnings,
+        "blocking_findings": blocking,
+    }
+    base["payload_sha256"] = payload_sha256
+    base["validation_cache"] = {
+        "hit": cache_hit,
+        "strategy": "canonical_payload_and_rule_resources",
+        "rule_token": rule_token,
+    }
+    return base
+
+
+def _validate_editor_runtime_contract_uncached(value: dict[str, Any]) -> dict[str, Any]:
     contract = _load_runtime_contract()
     allowlist = _load_editor_allowlist()
     uri_policy = _uri_policy(value)
@@ -103,28 +175,34 @@ def validate_editor_runtime_contract(
             _runtime_findings_for_text(
                 text,
                 path=path,
-                source=source,
+                source="<payload>",
                 contract=contract,
                 allowlist=allowlist,
                 uri_policy=uri_policy,
             )
         )
     for path, html_object in _iter_html_objects(value):
-        findings.extend(_runtime_findings_for_html_object(html_object, path=path, source=source, contract=contract))
-    findings.extend(_selector_value_findings(value, source=source, contract=contract))
-    findings.extend(_editor_payload_shape_findings(value, source=source, contract=contract))
-    findings.extend(_advanced_editor_semantic_findings(value, source=source, contract=contract))
+        findings.extend(
+            _runtime_findings_for_html_object(
+                html_object,
+                path=path,
+                source="<payload>",
+                contract=contract,
+            )
+        )
+    findings.extend(_selector_value_findings(value, source="<payload>", contract=contract))
+    findings.extend(_editor_payload_shape_findings(value, source="<payload>", contract=contract))
+    findings.extend(_advanced_editor_semantic_findings(value, source="<payload>", contract=contract))
     findings = _dedupe_findings(findings)
     blocking = [finding for finding in findings if finding["severity"] == "error"]
     warnings = [finding for finding in findings if finding["severity"] == "warning"]
-    if warnings and not allow_unknown_warnings:
-        blocking.extend(warnings)
+    blocking.extend(warnings)
     return {
         "ok": not blocking,
         "schema_version": "2026-06-25.editor_runtime_contract.result.v2",
         "rule_version": contract["rule_version"],
-        "source": source,
-        "allow_unknown_warnings": allow_unknown_warnings,
+        "source": "<payload>",
+        "allow_unknown_warnings": False,
         "official_sanitizer": {
             "allowlist_artifact": contract["official_sanitizer"]["allowlist_artifact"],
             "allowed_tag_count": len(allowlist["html_tags"]),
@@ -141,6 +219,28 @@ def validate_editor_runtime_contract(
         },
         "findings": findings,
     }
+
+
+def _editor_validation_rule_token() -> str:
+    if os.getenv(RESOURCE_OVERRIDE_ENV, "").strip():
+        return _build_editor_validation_rule_token()
+    return _packaged_editor_validation_rule_token()
+
+
+@lru_cache(maxsize=1)
+def _packaged_editor_validation_rule_token() -> str:
+    return _build_editor_validation_rule_token()
+
+
+def _build_editor_validation_rule_token() -> str:
+    digest = hashlib.sha256()
+    digest.update(EDITOR_VALIDATION_CACHE_VERSION.encode("utf-8"))
+    for relative in (CONTRACT_RESOURCE, ALLOWLIST_RESOURCE):
+        try:
+            digest.update(resource_text(relative).encode("utf-8"))
+        except RuntimeResourceError:
+            digest.update(f"<missing:{relative}>".encode("utf-8"))
+    return digest.hexdigest()
 
 
 def _load_runtime_contract() -> dict[str, Any]:

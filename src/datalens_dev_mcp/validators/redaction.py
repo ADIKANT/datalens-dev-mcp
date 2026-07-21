@@ -111,15 +111,20 @@ def redact_text(
 
 
 def sanitize_value(value: Any) -> Any:
+    env_secrets = tuple(secret_values_from_mapping())
+    return _sanitize_value(value, env_secrets=env_secrets)
+
+
+def _sanitize_value(value: Any, *, env_secrets: tuple[str, ...]) -> Any:
     if isinstance(value, dict):
         sanitized = {}
         for key, item in value.items():
-            sanitized[key] = REDACTED if is_sensitive_key(key) else sanitize_value(item)
+            sanitized[key] = REDACTED if is_sensitive_key(key) else _sanitize_value(item, env_secrets=env_secrets)
         return sanitized
     if isinstance(value, list):
-        return [sanitize_value(item) for item in value]
+        return [_sanitize_value(item, env_secrets=env_secrets) for item in value]
     if isinstance(value, str):
-        return redact_text(value)
+        return redact_text(value, secret_values=env_secrets, include_env=False)
     return value
 
 
