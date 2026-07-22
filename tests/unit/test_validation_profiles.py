@@ -49,9 +49,17 @@ class ValidationProfileTests(unittest.TestCase):
         names = {step["name"] for step in steps}
 
         self.assertIn("package_wheel_build", names)
+        self.assertIn("package_wheel_public_release_scan", names)
         self.assertIn("portable_wheel_smoke", names)
         self.assertIn("golden_runtime_gallery_fixtures", names)
         self.assertIn("controlled_live_proof", names)
+
+    def test_wheel_source_snapshot_excludes_ignored_build_outputs(self):
+        paths = {path.as_posix() for path in self.profiles.publication_snapshot_files()}
+
+        self.assertIn("pyproject.toml", paths)
+        self.assertIn("src/datalens_dev_mcp/server.py", paths)
+        self.assertFalse(any(path.startswith(("build/", "dist/", "artifacts/", ".git/")) for path in paths))
 
     def test_smoke_script_reports_timings(self):
         result = subprocess.run(

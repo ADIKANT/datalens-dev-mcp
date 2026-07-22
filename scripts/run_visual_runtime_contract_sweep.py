@@ -23,15 +23,7 @@ UNRESOLVED_IMPORT_RE = re.compile(r"require\(['\"]\.\./_shared/")
 DECORATIVE_CSS_RE = re.compile(r"(box-shadow|text-shadow|filter\s*:\s*drop-shadow|linear-gradient|radial-gradient)", re.I)
 STALE_KPI_RE = re.compile(r"(previous_value|previous_period|previousPeriod|period_bucket|delta_pct)")
 FORBIDDEN_HTML_RE = re.compile(r"<\s*/?\s*(section|script|iframe|object|embed)\b|\son[a-z]+\s*=|\ssrcdoc\s*=", re.I)
-LOCKED_TEMPLATE_RULE_EXCEPTIONS = {
-    "templates/datalens/authoring_profiles/charging_v2_exact/advanced_editor_runtime.js": {
-        "sha256": "5f37bbd6a7012e90d0567787f006629019a852623b833eb112debe5f8f50ebf3",
-        # The immutable runtime exposes an explicit previous-period selector;
-        # this is not an inferred KPI comparator. Every other sweep rule still
-        # applies, and a byte change is itself a blocking issue.
-        "rules": {"stale_implicit_kpi_comparator"},
-    },
-}
+LOCKED_TEMPLATE_RULE_EXCEPTIONS: dict[str, dict[str, Any]] = {}
 FIXED_RESPONSIVE_MIN_PATTERNS = (
     re.compile(r"min-width\s*:\s*[1-9]\d*(?:\.\d+)?px", re.I),
     re.compile(r"grid-template-columns\s*:[^;\"']*minmax\(\s*[1-9]\d*(?:\.\d+)?px", re.I),

@@ -39,7 +39,7 @@ class LocalConfigTests(unittest.TestCase):
                 "project_name": "profiled_dashboard",
                 "workbook_id": "workbook_1",
                 "dashboard_ids": ["dashboard_1"],
-                "authoring_profile": {"id": "charging_v2_exact"},
+                "authoring_profile": {"id": "standard_editor_v1"},
                 "workflows": [{"name": "delivery", "may_execute_command": False}],
             }
             manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
@@ -51,7 +51,7 @@ class LocalConfigTests(unittest.TestCase):
         self.assertFalse(config["_meta"]["loaded_from_file"])
         self.assertTrue(config["_meta"]["project_manifest_detected"])
         self.assertEqual(config["_meta"]["project_manifest_path"], str(manifest_path))
-        self.assertEqual(config["_meta"]["project_authoring_profile"], {"id": "charging_v2_exact"})
+        self.assertEqual(config["_meta"]["project_authoring_profile"], {"id": "standard_editor_v1"})
 
     def test_example_config_loads_with_safe_defaults(self):
         config = load_local_config(ROOT / "config" / "datalens_mcp.local.example.json", project_root=ROOT)

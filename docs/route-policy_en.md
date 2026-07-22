@@ -42,13 +42,12 @@ A bubble chart requires a size field and a map requires verified geo data. `wiza
 
 Before save, an Editor object passes `dl_validate_editor_runtime_contract` against official [tabs](https://yandex.cloud/ru/docs/datalens/charts/editor/tabs) and [methods](https://yandex.cloud/ru/docs/datalens/charts/editor/methods).
 
-An explicit project `authoring_profile: {"id": "charging_v2_exact"}` is a
+An explicit project `authoring_profile: {"id": "standard_editor_v1"}` is a
 JavaScript contract for every supported family. It does not change the global
 Wizard-first default: the profile selects only a registered Editor asset,
-embeds the canonical Charging runtime `5f37…ebf3` verbatim, returns the
-runtime/adapter/output SHA-256 values, and refuses approximate fallback.
-Generation is blocked when no exact adapter exists for a family, such as a
-native map.
+returns SHA-256 identities for the template set, selected assets, style
+contract, and compiled tabs, and refuses approximate fallback. Generation is
+blocked for an unregistered family or a native map.
 
 ## QL
 

@@ -650,7 +650,7 @@ def dl_generate_editor_bundle(
             **decision_record,
             "selected_route": selected_route,
             "selected_family": requested_family,
-            "selection_origin": "authoring_profile_exact_template",
+            "selection_origin": "authoring_profile_registered_template",
             "authoring_profile_id": profile["id"],
         }
     widget_title = str(
@@ -778,17 +778,18 @@ def dl_generate_editor_bundle(
             bundle=bundle,
             profile=profile,
             route_decision=profile_route,
-            title=widget_title,
         )
         if bundle.get("status") == "blocked_authoring_profile":
             return bundle
         provenance = bundle.get("template_provenance") if isinstance(bundle.get("template_provenance"), dict) else {}
         exact_match = bool(
             bundle.get("source_template") == profile_route.get("source_template")
+            and bundle.get("route") == profile_route.get("route")
+            and bundle.get("family") == profile_route.get("family")
             and provenance.get("policy") == "exact_registered_asset"
             and provenance.get("approximate_fallback_used") is False
-            and provenance.get("canonical_runtime_sha256") == profile_route.get("runtime_sha256")
-            and provenance.get("canonical_runtime_embedded_verbatim") is True
+            and provenance.get("profile_template_set_sha256") == profile.get("template_set_sha256")
+            and provenance.get("profile_style_contract_sha256") == profile.get("style_contract_sha256")
         )
         if not exact_match:
             return {
@@ -798,7 +799,7 @@ def dl_generate_editor_bundle(
                     "category": "exact_template_identity_mismatch",
                     "message": (
                         f"profile {profile['id']} expected {profile_route.get('source_template')}; "
-                        "approximate or unregistered output was refused"
+                        "approximate, changed, or unregistered output was refused"
                     ),
                 },
                 "authoring_profile": profile,

@@ -361,7 +361,10 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "chart_plan": "Chart plan payload to validate.",
     "widget_id": "Local widget id.",
     "route": "Editor route override.",
-    "authoring_profile": "Versioned exact-template profile; charging aliases select charging_v2_exact and block fallback generation.",
+    "authoring_profile": (
+        "Versioned registered-template profile; standard_editor_v1 reuses exact Editor assets "
+        "and blocks fallback generation."
+    ),
     "target": "Readback target kind.",
     "chart_ids": "Chart ids to read back.",
     "page": "Result page number.",

@@ -1,72 +1,74 @@
 import json
-import shutil
-import subprocess
+import os
 import sys
 import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from datalens_dev_mcp.editor.authoring_profiles import (
-    apply_authoring_profile_bundle,
+    _packaged_template_set_identity,
     authoring_profile_route_decision,
+    authoring_profile_template_set_identity,
     resolve_authoring_profile,
 )
 from datalens_dev_mcp.mcp.tools.pipeline import dl_generate_editor_bundle
 from datalens_dev_mcp.mcp.tools.runtime import dl_validate_editor_runtime_contract
-from datalens_dev_mcp.pipeline.project_live_workflows import (
-    run_project_live_dry_run,
-)
-from datalens_dev_mcp.runtime_resources import resource_text
+from datalens_dev_mcp.pipeline.project_live_workflows import run_project_live_dry_run
+from datalens_dev_mcp.runtime_resources import RESOURCE_OVERRIDE_ENV, resource_json
 
 
-class ChargingExactAuthoringProfileTests(unittest.TestCase):
-    def test_profile_alias_selects_registered_editor_route_and_blocks_conflicts(self):
-        profile = resolve_authoring_profile(requested_profile="charging")
+PROFILE_ID = "standard_editor_v1"
+TEMPLATE_SET_SHA256 = "f1b2848350bc9dc0119149a50fdeb41bbd79faf0adee376f9ca5ab4f79bb4ed9"
 
-        selected = authoring_profile_route_decision(profile=profile, family="line_chart")
+
+class StandardEditorAuthoringProfileTests(unittest.TestCase):
+    def test_profile_alias_selects_every_registered_family_and_blocks_route_drift(self):
+        profile = resolve_authoring_profile(requested_profile="standard_js")
+        registry = resource_json("templates/datalens/standard_chart_templates.json")
+
+        self.assertTrue(profile["active"])
+        self.assertEqual(profile["id"], PROFILE_ID)
+        self.assertEqual(profile["registered_family_count"], 38)
+        self.assertEqual(profile["template_asset_count"], 74)
+        self.assertEqual(profile["template_set_sha256"], TEMPLATE_SET_SHA256)
+        for family, spec in registry["families"].items():
+            with self.subTest(family=family):
+                selected = authoring_profile_route_decision(profile=profile, family=family)
+                self.assertTrue(selected["ok"])
+                self.assertEqual(selected["route"], spec["route"])
+                self.assertEqual(selected["source_template"], spec["template_dir"])
+
         conflict = authoring_profile_route_decision(
             profile=profile,
             family="line_chart",
             explicit_route="wizard_native",
         )
-
-        self.assertTrue(profile["active"])
-        self.assertEqual(profile["id"], "charging_v2_exact")
-        self.assertEqual(selected["route"], "editor_advanced")
-        self.assertEqual(
-            selected["source_template"],
-            "templates/datalens/authoring_profiles/charging_v2_exact/prepare_adapter.js#line_chart",
-        )
-        self.assertEqual(
-            selected["runtime_sha256"],
-            "5f37bbd6a7012e90d0567787f006629019a852623b833eb112debe5f8f50ebf3",
-        )
+        unsupported = authoring_profile_route_decision(profile=profile, family="unregistered_map")
         self.assertFalse(conflict["ok"])
         self.assertEqual(conflict["error"]["category"], "authoring_profile_route_conflict")
-
-        unsupported = authoring_profile_route_decision(profile=profile, family="pie")
         self.assertFalse(unsupported["ok"])
-        self.assertEqual(unsupported["error"]["category"], "exact_template_not_registered")
+        self.assertEqual(unsupported["error"]["category"], "profile_family_requires_review")
 
-    def test_project_profile_reuses_one_fingerprinted_template_without_fallback(self):
+    def test_project_profile_reuses_registered_template_without_fallback(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "artifacts").mkdir()
             (root / ".datalens-mcp.json").write_text(
-                json.dumps({"authoring_profile": {"id": "charging_v2_exact"}}),
+                json.dumps({"authoring_profile": {"id": PROFILE_ID}}),
                 encoding="utf-8",
             )
             brief = {
-                "dashboard_name": "Exact time series",
+                "dashboard_name": "Synthetic time series",
                 "dashboard_type": "operational",
                 "audience": ["operator"],
-                "requirements": [{"text": "Show the trend"}],
+                "requirements": [{"text": "Show a trend"}],
                 "data_contract": {"fields": []},
                 "chart_decisions": [
                     {
                         "decision_id": "trend",
-                        "title": "Exact chart title",
+                        "title": "Synthetic chart title",
                         "family": "line_chart",
                         "route": "wizard_native",
                         "renderer_visual_spec": {},
@@ -94,28 +96,52 @@ class ChargingExactAuthoringProfileTests(unittest.TestCase):
             )
 
         self.assertEqual(first["route"], "editor_advanced")
-        self.assertEqual(first["display_title"], "Exact chart title")
-        self.assertIn('"title":"Exact chart title"', first["tabs"]["prepare.js"])
+        self.assertEqual(first["display_title"], "Synthetic chart title")
+        self.assertEqual(first["source_template"], "templates/datalens/advanced_editor/time_series")
         self.assertTrue(first["authoring_profile"]["exact_template_reused"])
-        self.assertEqual(first["template_provenance"]["policy"], "exact_registered_asset")
-        self.assertFalse(first["template_provenance"]["approximate_fallback_used"])
-        self.assertTrue(first["template_provenance"]["canonical_runtime_embedded_verbatim"])
-        self.assertEqual(first["template_provenance"]["canonical_runtime_bytes"], 93916)
+        self.assertEqual(first["authoring_profile"]["registered_family_count"], 38)
+        provenance = first["template_provenance"]
+        self.assertEqual(provenance["policy"], "exact_registered_asset")
+        self.assertFalse(provenance["approximate_fallback_used"])
+        self.assertEqual(provenance["profile_template_set_sha256"], TEMPLATE_SET_SHA256)
+        self.assertNotIn("canonical_runtime_asset", provenance)
         self.assertEqual(
-            first["template_provenance"]["canonical_runtime_sha256"],
-            "5f37bbd6a7012e90d0567787f006629019a852623b833eb112debe5f8f50ebf3",
-        )
-        canonical_runtime = resource_text(
-            "templates/datalens/authoring_profiles/charging_v2_exact/advanced_editor_runtime.js"
-        )
-        self.assertEqual(first["tabs"]["prepare.js"].count(canonical_runtime), 1)
-        self.assertEqual(
-            first["template_provenance"]["template_asset_sha256"],
+            provenance["template_asset_sha256"],
             second["template_provenance"]["template_asset_sha256"],
         )
         self.assertEqual(
-            first["template_provenance"]["compiled_tabs_sha256"],
+            provenance["compiled_tabs_sha256"],
             second["template_provenance"]["compiled_tabs_sha256"],
+        )
+
+    def test_template_set_identity_is_cached_for_packaged_assets(self):
+        with patch.dict(os.environ, {RESOURCE_OVERRIDE_ENV: ""}, clear=False):
+            _packaged_template_set_identity.cache_clear()
+            first = authoring_profile_template_set_identity(
+                "templates/datalens/standard_chart_templates.json"
+            )
+            second = authoring_profile_template_set_identity(
+                "templates/datalens/standard_chart_templates.json"
+            )
+            cache = _packaged_template_set_identity.cache_info()
+
+        self.assertEqual(first, second)
+        self.assertEqual(first["sha256"], TEMPLATE_SET_SHA256)
+        self.assertEqual(cache.misses, 1)
+        self.assertEqual(cache.hits, 1)
+
+    def test_changed_template_set_fails_closed(self):
+        with patch(
+            "datalens_dev_mcp.editor.authoring_profiles.authoring_profile_template_set_identity",
+            return_value={"sha256": "0" * 64, "asset_count": 74, "family_count": 38},
+        ):
+            profile = resolve_authoring_profile(requested_profile=PROFILE_ID)
+
+        self.assertFalse(profile["ok"])
+        self.assertEqual(profile["status"], "blocked_authoring_profile")
+        self.assertEqual(
+            profile["error"]["category"],
+            "authoring_profile_template_set_hash_mismatch",
         )
 
     def test_validator_accepts_javascript_paths_directories_comparisons_and_tooltips(self):
@@ -146,58 +172,6 @@ class ChargingExactAuthoringProfileTests(unittest.TestCase):
         self.assertTrue(directory["ok"])
         self.assertNotIn("unsupported_html_tag", direct_rules | directory_rules)
         self.assertNotIn("inline_hint_ui", direct_rules | directory_rules)
-
-    @unittest.skipUnless(shutil.which("node"), "node is required for exact Charging render probe")
-    def test_exact_runtime_renders_profile_adapter_rows(self):
-        profile = resolve_authoring_profile(requested_profile="charging")
-        decision = authoring_profile_route_decision(profile=profile, family="line_chart")
-        bundle = apply_authoring_profile_bundle(
-            bundle={
-                "route": "editor_advanced",
-                "family": "line_chart",
-                "source_template": "base",
-                "tabs": {},
-            },
-            profile=profile,
-            route_decision=decision,
-            title="Canonical Charging line",
-        )
-        probe = r"""
-const payload = JSON.parse(require('fs').readFileSync(0, 'utf8'));
-global.Editor = {
-  getLoadedData: () => ({rows: payload.rows}),
-  getParam: () => [],
-  getParams: () => ({}),
-  wrapFn: (value) => value,
-  generateHtml: (value) => value,
-};
-const moduleObject = {exports: {}};
-new Function('module', 'exports', 'Editor', payload.source)(moduleObject, moduleObject.exports, global.Editor);
-const renderer = moduleObject.exports.render;
-const html = renderer.fn({width: 700, height: 320}, ...renderer.args);
-process.stdout.write(html);
-"""
-        completed = subprocess.run(
-            [str(shutil.which("node")), "-e", probe],
-            input=json.dumps(
-                {
-                    "source": bundle["tabs"]["prepare.js"],
-                    "rows": [
-                        {"event": "metadata", "data": {"names": ["bucket", "value"]}},
-                        {"event": "row", "data": ["2026-07-20", 12]},
-                        {"event": "row", "data": ["2026-07-21", 18]},
-                    ],
-                }
-            ),
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-        )
-
-        self.assertEqual(completed.returncode, 0, completed.stderr)
-        self.assertIn("Canonical Charging line", completed.stdout)
-        self.assertIn("<svg", completed.stdout)
 
     def test_long_project_command_returns_execution_id_and_polls_without_relaunch(self):
         with tempfile.TemporaryDirectory() as tmp:
