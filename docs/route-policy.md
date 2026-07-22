@@ -42,13 +42,12 @@
 
 Перед сохранением Editor-объект проходит `dl_validate_editor_runtime_contract` по официальным [вкладкам](https://yandex.cloud/ru/docs/datalens/charts/editor/tabs) и [методам](https://yandex.cloud/ru/docs/datalens/charts/editor/methods).
 
-Явный проектный `authoring_profile: {"id": "charging_v2_exact"}` является
+Явный проектный `authoring_profile: {"id": "standard_editor_v1"}` является
 контрактом на JavaScript для всех поддержанных семейств. Он не меняет общий
 Wizard-first default: профиль выбирает только зарегистрированный Editor-asset,
-дословно встраивает канонический Charging runtime `5f37…ebf3`, возвращает
-SHA-256 runtime/adapter/результата и запрещает приблизительный fallback. Если
-для семейства нет точного адаптера (например, для native map), генерация
-блокируется.
+возвращает SHA-256 набора шаблонов, выбранных assets, style-контракта и
+скомпилированных вкладок и запрещает приблизительный fallback. Если семейство
+не зарегистрировано или требует native map, генерация через профиль блокируется.
 
 ## QL
 

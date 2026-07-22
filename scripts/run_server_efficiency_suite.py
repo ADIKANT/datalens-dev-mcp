@@ -125,6 +125,10 @@ def run_suite() -> dict[str, Any]:
         dl_validate_project,
     )
     from datalens_dev_mcp.api.scheduler import DataLensRequestScheduler
+    from datalens_dev_mcp.editor.authoring_profiles import (
+        _packaged_template_set_identity,
+        authoring_profile_template_set_identity,
+    )
     from datalens_dev_mcp.mcp.heavy_response import project_heavy_tool_response
     from datalens_dev_mcp.mcp.response_projection import stable_json_text
     from datalens_dev_mcp.mcp.tools.runtime import _EDITOR_VALIDATION_CACHE, dl_validate_editor_runtime_contract
@@ -138,6 +142,30 @@ def run_suite() -> dict[str, Any]:
     manifest_cache = _package_manifest.cache_info()
     if manifest_cache.misses != 1 or manifest_cache.hits < 1:
         issues.append(f"runtime resource manifest cache contract failed: {manifest_cache}")
+
+    _packaged_template_set_identity.cache_clear()
+    profile_template_set_cold, profile_template_set_cold_ms = _timed(
+        lambda: authoring_profile_template_set_identity(
+            "templates/datalens/standard_chart_templates.json"
+        )
+    )
+    profile_template_set_warm, profile_template_set_warm_ms = _timed(
+        lambda: authoring_profile_template_set_identity(
+            "templates/datalens/standard_chart_templates.json"
+        )
+    )
+    profile_template_set_cache = _packaged_template_set_identity.cache_info()
+    if (
+        profile_template_set_cold != profile_template_set_warm
+        or profile_template_set_cache.misses != 1
+        or profile_template_set_cache.hits < 1
+        or profile_template_set_warm_ms >= profile_template_set_cold_ms
+    ):
+        issues.append(
+            "authoring-profile template-set cache changed identity or missed the warm path: "
+            f"cold={profile_template_set_cold_ms}ms warm={profile_template_set_warm_ms}ms "
+            f"cache={profile_template_set_cache}"
+        )
 
     with tempfile.TemporaryDirectory() as tmp:
         client = RevisionedSnapshotClient()
@@ -286,6 +314,14 @@ def run_suite() -> dict[str, Any]:
             "warm_ms": manifest_warm_ms,
             "cache_hits": manifest_cache.hits,
             "cache_misses": manifest_cache.misses,
+        },
+        "authoring_profile_template_set": {
+            "cold_ms": profile_template_set_cold_ms,
+            "warm_ms": profile_template_set_warm_ms,
+            "cache_hits": profile_template_set_cache.hits,
+            "cache_misses": profile_template_set_cache.misses,
+            "identity_preserved": profile_template_set_cold == profile_template_set_warm,
+            **profile_template_set_warm,
         },
         "snapshot": {
             "cold_ms": snapshot_cold_ms,

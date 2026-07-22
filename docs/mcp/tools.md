@@ -107,9 +107,9 @@
   неполный контракт блокируется без выдуманных параметров или значений.
   `dataset_readbacks`, если они переданы, проверяют Wizard field GUID и роли;
   отсутствие аргумента не подменяется пустым readback.
-  `authoring_profile=charging` или manifest-профиль `charging_v2_exact`
-  дословно встраивает канонический Charging runtime с SHA-256 `5f37…ebf3` через
-  зарегистрированный адаптер и блокирует fallback.
+  `authoring_profile=standard_js` или manifest-профиль `standard_editor_v1`
+  выбирает точный asset из стандартного реестра, сверяет SHA-256 набора
+  шаблонов и результата и блокирует незарегистрированный fallback.
 
 ### `dl_validate_project`
 

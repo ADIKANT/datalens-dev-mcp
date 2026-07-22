@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -137,6 +138,13 @@ def full_profile_steps() -> list[dict[str, Any]]:
             "heavy_artifacts": True,
         },
         {
+            "kind": "wheel_scan",
+            "name": "package_wheel_public_release_scan",
+            "timeout_sec": 180,
+            "proof_levels": ["installed_static"],
+            "heavy_artifacts": False,
+        },
+        {
             "kind": "wheel_smoke",
             "name": "portable_wheel_smoke",
             "timeout_sec": 180,
@@ -177,6 +185,42 @@ def git_status() -> list[str]:
     if result.returncode != 0:
         return [f"<git status failed: {result.stderr.strip()}>"]
     return result.stdout.splitlines()
+
+
+def publication_snapshot_files() -> list[Path]:
+    result = subprocess.run(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"git publication snapshot failed: {result.stderr.decode('utf-8', errors='replace').strip()}")
+    paths: list[Path] = []
+    for raw in result.stdout.split(b"\0"):
+        if not raw:
+            continue
+        relative = Path(raw.decode("utf-8"))
+        if relative.is_absolute() or ".." in relative.parts:
+            raise RuntimeError(f"unsafe publication snapshot path: {relative}")
+        source = ROOT / relative
+        if source.is_symlink():
+            raise RuntimeError(f"publication snapshot contains a symlink: {relative}")
+        if source.is_file():
+            paths.append(relative)
+    return sorted(set(paths), key=lambda item: item.as_posix())
+
+
+def copy_publication_snapshot(destination: Path) -> int:
+    destination.mkdir(parents=True, exist_ok=True)
+    paths = publication_snapshot_files()
+    for relative in paths:
+        source = ROOT / relative
+        target = destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+    return len(paths)
 
 
 def artifact_metadata(path: Path) -> dict[str, Any]:
@@ -224,8 +268,24 @@ def run_command_step(step: dict[str, Any], *, env: dict[str, str], run_dir: Path
     if step["kind"] == "wheel_build":
         wheelhouse = run_dir / "wheelhouse"
         wheelhouse.mkdir(parents=True, exist_ok=True)
-        step = {**step, "kind": "command", "command": py("-m", "pip", "wheel", ".", "--no-deps", "--wheel-dir", str(wheelhouse))}
-        result = run_subprocess_step(step, env=env, run_dir=run_dir, index=index)
+        with tempfile.TemporaryDirectory(prefix="datalens-clean-wheel-source-") as tmp:
+            clean_source = Path(tmp) / "source"
+            snapshot_file_count = copy_publication_snapshot(clean_source)
+            step = {
+                **step,
+                "kind": "command",
+                "command": py(
+                    "-m",
+                    "pip",
+                    "wheel",
+                    str(clean_source),
+                    "--no-deps",
+                    "--wheel-dir",
+                    str(wheelhouse),
+                ),
+            }
+            result = run_subprocess_step(step, env=env, run_dir=run_dir, index=index)
+        result["source_snapshot_file_count"] = snapshot_file_count
         wheels = sorted(wheelhouse.glob("datalens_dev_mcp-*.whl"))
         if result["status"] == "passed" and wheels:
             context["wheel_path"] = str(wheels[-1])
@@ -235,6 +295,13 @@ def run_command_step(step: dict[str, Any], *, env: dict[str, str], run_dir: Path
             result["returncode"] = 1
             result["stderr_tail"] = "wheel build passed but no datalens_dev_mcp wheel was produced"
         return result
+    if step["kind"] == "wheel_scan":
+        wheel_path = context.get("wheel_path")
+        if not wheel_path:
+            return skipped_result(step, "package_wheel_build did not produce a wheel")
+        command = py("scripts/check_public_release.py", "--archive", str(wheel_path))
+        step = {**step, "kind": "command", "command": command}
+        return run_subprocess_step(step, env=env, run_dir=run_dir, index=index)
     if step["kind"] == "wheel_smoke":
         wheel_path = context.get("wheel_path")
         if not wheel_path:

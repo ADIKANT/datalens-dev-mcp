@@ -1,49 +1,41 @@
 {
-  "schema_version": "2026-07-21.editor_authoring_profiles.v1",
+  "schema_version": "2026-07-22.editor_authoring_profiles.v2",
   "source_basis": [
-    "distilled project-authored Charging App Dash v2 runtime reuse contract",
-    "distilled DATA-5211 exact-marker copy and refuse-approximation contract",
-    "templates/datalens/standard_chart_templates.json"
+    "templates/datalens/standard_chart_templates.json",
+    "templates/datalens/advanced_editor/_shared/style_tokens.js",
+    "templates/datalens/advanced_editor/_shared/render_helpers.js"
   ],
   "profiles": {
-    "charging_v2_exact": {
+    "standard_editor_v1": {
       "aliases": [
-        "charging",
-        "charging_v2",
-        "charging_style",
-        "charging_dashboard_v2"
+        "standard_editor",
+        "standard_js",
+        "registered_editor"
       ],
-      "description": "Use only registered JavaScript Editor assets and refuse prompt-invented or approximate fallback output.",
-      "route_policy": "registered_editor_only",
+      "description": "Reuse registered Editor templates for every supported family and refuse prompt-generated approximations.",
+      "route_policy": "registered_editor_family",
       "template_policy": "exact_registered_asset",
       "fallback_policy": "block",
+      "family_registry": "templates/datalens/standard_chart_templates.json",
+      "template_set_sha256": "f1b2848350bc9dc0119149a50fdeb41bbd79faf0adee376f9ca5ab4f79bb4ed9",
       "allowed_routes": [
-        "editor_advanced"
+        "editor_advanced",
+        "editor_table",
+        "editor_markdown",
+        "editor_js_control"
       ],
-      "runtime_asset": "templates/datalens/authoring_profiles/charging_v2_exact/advanced_editor_runtime.js",
-      "runtime_sha256": "5f37bbd6a7012e90d0567787f006629019a852623b833eb112debe5f8f50ebf3",
-      "adapter_asset": "templates/datalens/authoring_profiles/charging_v2_exact/prepare_adapter.js",
-      "adapter_sha256": "8eb49556c6c5a226eddcf86362e5824e5df4de37ef5aad4c7a9adaa65d24fe33",
-      "family_adapters": {
-        "kpi_value_only": "metric_tile",
-        "kpi_value_delta": "metric_tile",
-        "kpi_value_sparkline": "metric_tile",
-        "kpi_value_delta_sparkline": "metric_tile",
-        "line_chart": "combo_line",
-        "multiline_chart": "combo_line",
-        "vertical_bar_time_bucket": "combo_bar",
-        "combo_time_series_combo": "combo_mixed",
-        "horizontal_bar": "horizontal",
-        "grouped_bar": "horizontal_grouped"
-      },
       "style_contract": {
-        "theme_aware": true,
-        "responsive_svg": true,
-        "compact_context_once": true,
-        "direct_labels": true,
+        "theme": "host_context",
+        "layout": "responsive_container",
+        "density": "compact",
+        "typography": "shared_tokens",
+        "labels": "direct_when_unambiguous",
+        "signed_values": "preserve_sign",
         "future_empty_buckets": "omit",
         "missing_value": "N/A",
-        "tooltip": "business_context_current_vs_reference",
+        "empty_state": "explicit",
+        "tooltip": "business_context",
+        "selector_update": "on_change",
         "selector_apply_button": false,
         "template_identity": "sha256"
       }

@@ -1,5 +1,5 @@
 {
-  "resource_count": 259,
+  "resource_count": 257,
   "resources": [
     {
       "bytes": 81731,
@@ -67,9 +67,9 @@
       "sha256": "30bec90c72eea8d102758626d837139a91f009a7d7e0b61d247b48d81fadc0cd"
     },
     {
-      "bytes": 2053,
+      "bytes": 1549,
       "path": "config/editor_authoring_profiles.json",
-      "sha256": "ff5dffb331f127e16bc45d5013cec05eb57fbf5e2fb5473e8d294adf3660d0c6"
+      "sha256": "0736bbdaed8803f93a845a676943e10eeddabadd8c0aba613803e9d750084be1"
     },
     {
       "bytes": 199562,
@@ -790,16 +790,6 @@
       "bytes": 447,
       "path": "templates/datalens/advanced_editor/time_series/sources.js",
       "sha256": "840dad94c56918f6a901c9bb7c459afda4b59ee88d2c709f426442a19fefa285"
-    },
-    {
-      "bytes": 93916,
-      "path": "templates/datalens/authoring_profiles/charging_v2_exact/advanced_editor_runtime.js",
-      "sha256": "5f37bbd6a7012e90d0567787f006629019a852623b833eb112debe5f8f50ebf3"
-    },
-    {
-      "bytes": 7001,
-      "path": "templates/datalens/authoring_profiles/charging_v2_exact/prepare_adapter.js",
-      "sha256": "8eb49556c6c5a226eddcf86362e5824e5df4de37ef5aad4c7a9adaa65d24fe33"
     },
     {
       "bytes": 988,
