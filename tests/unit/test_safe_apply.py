@@ -835,6 +835,121 @@ class SafeApplyTests(unittest.TestCase):
         self.assertEqual(plan["error"]["category"], "duplicate_partial_create")
         self.assertEqual(plan["reconciliation"]["objects"][0]["status"], "duplicate")
 
+    def test_editor_publish_aliases_normalize_to_editor_chart(self):
+        from datalens_dev_mcp.pipeline.safe_apply import create_publish_safe_apply_plan
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "saved.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "branch": "saved",
+                        "object_ids": ["editor_synthetic"],
+                        "response": {
+                            "entry": {
+                                "entryId": "editor_synthetic",
+                                "revId": "rev_saved",
+                                "savedId": "saved_synthetic",
+                                "data": self.full_editor_data(),
+                            }
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            plans = [
+                create_publish_safe_apply_plan(
+                    project_root=tmp,
+                    target="chart",
+                    object_type=alias,
+                    object_id="editor_synthetic",
+                    saved_readback_path=str(path),
+                    approved=True,
+                )
+                for alias in (
+                    "control_node",
+                    "control",
+                    "table_node",
+                    "table",
+                    "markdown_node",
+                    "markdown",
+                    "d3_node",
+                    "d3",
+                )
+            ]
+
+        self.assertTrue(all(plan["ok"] for plan in plans), plans)
+        self.assertTrue(
+            all(plan["actions"][0]["method"] == "updateEditorChart" for plan in plans)
+        )
+
+    def test_publish_readback_object_ids_without_entry_fails_closed(self):
+        from datalens_dev_mcp.pipeline.safe_apply import create_publish_safe_apply_plan
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "saved.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "branch": "saved",
+                        "object_ids": ["editor_synthetic"],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            plan = create_publish_safe_apply_plan(
+                project_root=tmp,
+                target="chart",
+                object_type="editor_chart",
+                object_id="editor_synthetic",
+                saved_readback_path=str(path),
+                approved=True,
+            )
+
+        self.assertFalse(plan["ok"])
+        self.assertEqual(plan["error"]["category"], "missing_saved_revision")
+
+    def test_action_set_preflight_blocks_missing_or_extra_target(self):
+        from datalens_dev_mcp.pipeline.safe_apply import (
+            create_safe_apply_plan,
+            validate_safe_apply_plan_exhaustive,
+        )
+
+        plan = create_safe_apply_plan(
+            project_root="/tmp/synthetic-project",
+            approved=True,
+            actions=[
+                {
+                    "action": "update_editor_chart",
+                    "method": "updateEditorChart",
+                    "payload": {
+                        "mode": "save",
+                        "entry": {"entryId": "editor_synthetic", "revId": "rev_synthetic"},
+                    },
+                    "fresh_read_method": "getEditorChart",
+                    "fresh_read_payload": {
+                        "chartId": "editor_synthetic",
+                        "branch": "saved",
+                    },
+                    "readback_method": "getEditorChart",
+                    "readback_payload": {
+                        "chartId": "editor_synthetic",
+                        "branch": "saved",
+                    },
+                }
+            ],
+        )
+        plan["target_lock"]["target_objects"].append(
+            {"method": "updateDashboard", "object_id": "dashboard_extra"}
+        )
+        result = validate_safe_apply_plan_exhaustive(plan)
+
+        self.assertFalse(result["ok"])
+        self.assertTrue(
+            any("exactly match" in issue for issue in result["issues"]),
+            result,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -170,8 +170,9 @@
 ### `dl_create_safe_apply_plan`
 
 - Required: —
-- Optional: `project_root`, `readback_mode`, `entries_payload`, `existing_update_actions`, `delivery_intent_text`, `target_known`, `target_dashboard_id`, `target_chart_id`, `target_url`, `context_ref`, `evidence_refs`, `response_mode`, `inline_char_budget`
+- Optional: `project_root`, `readback_mode`, `entries_payload`, `existing_update_actions`, `maintenance_contract`, `delivery_intent_text`, `target_known`, `target_workbook_id`, `target_dashboard_id`, `target_chart_id`, `target_url`, `context_ref`, `evidence_refs`, `response_mode`, `inline_char_budget`
 - Создаёт plan с режимом задачи, SHA-256 пользовательского запроса, target lock, действиями и блокировками. По умолчанию inline возвращается `summary` до типичного бюджета 15 КБ, а канонический полный результат сохраняется с SHA-256.
+- `existing_update_actions` принимает прежний полный payload либо `readback_path` + `desired_overlay`. `maintenance_contract.kind=date_range_selector_merge` компилирует связанные selector/dashboard updates и обязательный runtime smoke.
 
 ### `dl_execute_safe_apply`
 
@@ -182,8 +183,8 @@
 ### `dl_create_publish_from_saved_plan`
 
 - Required: `project_root`, `target`, `object_type`
-- Optional: `object_id`, `object_ids`, `saved_readback_path`, `readback_mode`, `delivery_intent_text`, `target_dashboard_id`, `target_chart_id`, `target_url`, `response_mode`, `inline_char_budget`
-- Создаёт publish-plan только из saved readback и фиксирует ожидаемые `revId` и `savedId`.
+- Optional: `object_id`, `object_ids`, `saved_readback_path`, `readback_mode`, `delivery_intent_text`, `target_workbook_id`, `target_dashboard_id`, `target_chart_id`, `target_url`, `response_mode`, `inline_char_budget`
+- Создаёт явный resume publish-plan только из saved readback и фиксирует ожидаемые `revId` и `savedId`. Обычный update публикуется тем же executor без отдельного вызова.
 
 ### `dl_readback_and_report`
 
@@ -277,7 +278,10 @@
 
 ## Выполнение операций
 
-Обычная команда create/fix/update/enhance/redesign проходит `dl_create_safe_apply_plan` → `dl_execute_safe_apply` → saved `dl_readback_and_report` → `dl_create_publish_from_saved_plan` → `dl_execute_safe_apply` → published `dl_readback_and_report`.
+Обычная команда create/fix/update/enhance/redesign проходит
+`dl_create_safe_apply_plan` → один `dl_execute_safe_apply`, который выполняет
+save, saved readbacks, общий publish preflight, publish и published readbacks.
+`dl_create_publish_from_saved_plan` используется только для явного resume.
 
 Plan-only не вызывает executor. Save-only останавливается после saved readback.
 Произвольное удаление целого объекта недоступно; manifest action

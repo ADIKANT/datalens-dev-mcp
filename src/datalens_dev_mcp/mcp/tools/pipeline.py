@@ -7,6 +7,7 @@ from collections import OrderedDict
 from copy import deepcopy
 from pathlib import Path
 from threading import RLock
+from time import monotonic
 from types import SimpleNamespace
 from typing import Any
 
@@ -27,7 +28,10 @@ from datalens_dev_mcp.mcp.response_projection import (
     serialized_metadata,
 )
 from datalens_dev_mcp.pipeline.artifacts import ensure_project_dirs, read_json, read_text, write_json, write_text
-from datalens_dev_mcp.pipeline.baseline_preservation import build_object_reuse_decision
+from datalens_dev_mcp.pipeline.baseline_preservation import (
+    build_baseline_diff_contract,
+    build_object_reuse_decision,
+)
 from datalens_dev_mcp.pipeline.dashboard_relations import (
     build_default_dashboard_relations,
     validate_dashboard_relations,
@@ -75,8 +79,13 @@ from datalens_dev_mcp.pipeline.safe_apply import (
     create_safe_apply_plan,
     execute_safe_apply,
     load_safe_apply_stage_value,
+    normalize_publish_object_type,
     readback_artifact_path,
     validate_safe_apply_plan_exhaustive,
+)
+from datalens_dev_mcp.pipeline.selector_maintenance import (
+    DATE_RANGE_MAINTENANCE_KIND,
+    compile_date_range_selector_merge,
 )
 from datalens_dev_mcp.pipeline.scenarios import normalize_scenario
 from datalens_dev_mcp.pipeline.sql_performance import validate_project_sql_performance
@@ -1840,6 +1849,7 @@ def dl_create_safe_apply_plan(
     readback_mode: str = "minimal",
     entries_payload: dict[str, Any] | None = None,
     existing_update_actions: list[dict[str, Any]] | None = None,
+    maintenance_contract: dict[str, Any] | None = None,
     delivery_intent_text: str = "",
     target_known: bool = False,
     target_workbook_id: str = "",
@@ -1853,6 +1863,47 @@ def dl_create_safe_apply_plan(
     )
     root_path = Path(project_root)
     adapter = detect_project_adapter(root_path)
+    if maintenance_contract is not None:
+        if existing_update_actions:
+            return {
+                "ok": False,
+                "status": "maintenance_contract_blocked",
+                "actions": [],
+                "blocked_reasons": ["maintenance_contract_conflicts_with_existing_update_actions"],
+            }
+        if str(maintenance_contract.get("kind") or "") != DATE_RANGE_MAINTENANCE_KIND:
+            return {
+                "ok": False,
+                "status": "maintenance_contract_blocked",
+                "actions": [],
+                "blocked_reasons": ["maintenance_contract.kind_unsupported"],
+            }
+        if not str(target_workbook_id or "").strip():
+            return {
+                "ok": False,
+                "status": "maintenance_contract_blocked",
+                "actions": [],
+                "blocked_reasons": ["maintenance_contract.target_workbook_id_missing"],
+            }
+        compiled_maintenance = compile_date_range_selector_merge(
+            project_root=project_root,
+            maintenance_contract=maintenance_contract,
+        )
+        if not compiled_maintenance.get("ok"):
+            result = {
+                "ok": False,
+                "status": "maintenance_contract_blocked",
+                "schema_version": compiled_maintenance.get("schema_version"),
+                "project_root": str(root_path.resolve()),
+                "maintenance_contract": compiled_maintenance,
+                "actions": [],
+                "blocked_reasons": list(compiled_maintenance.get("blocked_reasons") or []),
+                "workflow_metrics": compiled_maintenance.get("workflow_metrics") or {},
+            }
+            root = ensure_project_dirs(project_root)
+            write_json(root / "artifacts" / "safe_apply_plan.json", result)
+            return result
+        existing_update_actions = list(compiled_maintenance.get("actions") or [])
     early_target_lock = create_target_lock(
         delivery_intent_text,
         target_source="user_url" if target_url else "manual",
@@ -1862,15 +1913,23 @@ def dl_create_safe_apply_plan(
         target_url=target_url,
     )
     if existing_update_actions:
-        return _create_existing_object_update_safe_apply_plan(
+        result = _create_existing_object_update_safe_apply_plan(
             project_root=project_root,
             approved=effective_authorized,
-            readback_mode=readback_mode,
+            readback_mode="minimal" if maintenance_contract is not None else readback_mode,
             existing_update_actions=existing_update_actions,
             delivery_intent_text=delivery_intent_text,
             target_known=target_known,
             target_lock=early_target_lock.to_dict(),
+            target_workbook_id=target_workbook_id,
         )
+        if maintenance_contract is not None:
+            result["maintenance_contract"] = compiled_maintenance
+            result["workflow_metrics"] = compiled_maintenance.get("workflow_metrics") or {}
+            result["runtime_smoke"] = compiled_maintenance.get("runtime_smoke") or {}
+            root = ensure_project_dirs(project_root)
+            write_json(root / "artifacts" / "safe_apply_plan.json", result)
+        return result
     if adapter["adapter"] != "standard_bundle" and not (root_path / "artifacts" / "payload_plan.json").is_file():
         return {
             "ok": False,
@@ -2205,6 +2264,7 @@ def _create_existing_object_update_safe_apply_plan(
     delivery_intent_text: str,
     target_known: bool,
     target_lock: dict[str, Any],
+    target_workbook_id: str = "",
 ) -> dict[str, Any]:
     root = ensure_project_dirs(project_root)
     normalized_readback_mode = normalize_readback_mode(readback_mode)
@@ -2212,17 +2272,55 @@ def _create_existing_object_update_safe_apply_plan(
     plan_actions: list[dict[str, Any]] = []
     blocked_reasons: list[str] = []
     for index, item in enumerate(existing_update_actions):
-        built = _existing_update_action(item, index=index, readback_mode=normalized_readback_mode, target_lock=target_lock)
+        built = _existing_update_action(
+            item,
+            index=index,
+            readback_mode=normalized_readback_mode,
+            target_lock=target_lock,
+            project_root=root,
+        )
         if built.get("blocked_reasons"):
             blocked_reasons.extend(str(reason) for reason in built["blocked_reasons"])
         if built.get("action"):
             actions.append(built["action"])
             plan_actions.append(built["plan_action"])
+    if actions:
+        target_objects = _existing_update_target_objects(actions)
+        if target_workbook_id:
+            dashboard_ids = [
+                item["object_id"]
+                for item in target_objects
+                if item["method"] == "updateDashboard"
+            ]
+            chart_ids = [
+                item["object_id"]
+                for item in target_objects
+                if item["method"] != "updateDashboard"
+            ]
+            action_set_lock = create_target_lock(
+                delivery_intent_text,
+                target_source=str(target_lock.get("target_source") or "manual"),
+                target_workbook_id=target_workbook_id,
+                target_dashboard_id=dashboard_ids[0] if len(dashboard_ids) == 1 else "",
+                target_chart_id=chart_ids[0] if len(chart_ids) == 1 else "",
+                target_url=str(target_lock.get("target_url") or ""),
+                target_object_type="safe_apply_action_set",
+                target_object_key="|".join(
+                    f"{item['method']}:{item['object_id']}" for item in target_objects
+                ),
+                target_objects=target_objects,
+            ).to_dict()
+        else:
+            action_set_lock = _local_action_set_target_lock(target_objects)
+        target_lock = action_set_lock
+        for action in actions:
+            action["target_lock_hash"] = str(target_lock.get("lock_hash") or "")
     update_plan = {
         "schema_version": "datalens.existing-object-update-plan.v1",
         "project_root": str(root),
         "actions": plan_actions,
         "blocked_reasons": blocked_reasons,
+        "target_lock": target_lock,
     }
     write_json(root / "artifacts" / "existing_object_update_plan.json", update_plan)
     if blocked_reasons or not actions:
@@ -2273,6 +2371,7 @@ def _create_existing_object_update_safe_apply_plan(
     if not safe_plan["ok"]:
         safe_plan["blocked_reasons"] = list(preflight.get("issues") or ["safe_apply_preflight_failed"])
     write_json(root / "artifacts" / "safe_apply_plan.json", safe_plan)
+    write_json(root / "artifacts" / "delivery" / "target_lock.json", target_lock)
     return safe_plan
 
 
@@ -2282,27 +2381,55 @@ def _existing_update_action(
     index: int,
     readback_mode: str,
     target_lock: dict[str, Any],
+    project_root: Path,
 ) -> dict[str, Any]:
     object_type = str(item.get("object_type") or item.get("type") or "").strip().lower()
     method_spec = _existing_update_method_spec(object_type)
     payload = dict(item.get("payload") or item.get("updated_payload") or item.get("readback_payload") or {})
     envelope = item.get("readback") if isinstance(item.get("readback"), dict) else {}
-    if not payload and envelope:
+    readback_path = str(item.get("readback_path") or "").strip()
+    blocked: list[str] = []
+    if readback_path:
+        loaded = _load_existing_update_readback(project_root, readback_path)
+        if not loaded["ok"]:
+            blocked.append(f"existing_update[{index}].{loaded['reason']}")
+        else:
+            envelope = loaded["readback"]
+            artifact_payload = _payload_from_readback_envelope(envelope)
+            if payload and payload != artifact_payload:
+                blocked.append(f"existing_update[{index}].payload_conflicts_with_readback_path")
+            payload = artifact_payload
+    elif not payload and envelope:
         payload = _payload_from_readback_envelope(envelope)
     if not method_spec:
         return {"blocked_reasons": [f"existing_update[{index}].unsupported_object_type:{object_type}"]}
-    object_id = str(item.get("object_id") or _object_id_from_update_payload(payload, method_spec["id_key"]) or "").strip()
-    base_revision = str(item.get("base_revision") or item.get("rev_id") or _revision_from_update_payload(payload) or "").strip()
-    blocked: list[str] = []
+    artifact_object_id = _object_id_from_update_payload(payload, method_spec["id_key"])
+    artifact_revision = _revision_from_update_payload(payload)
+    requested_object_id = str(item.get("object_id") or "").strip()
+    requested_revision = str(item.get("base_revision") or item.get("rev_id") or "").strip()
+    object_id = requested_object_id or artifact_object_id
+    base_revision = requested_revision or artifact_revision
+    if requested_object_id and artifact_object_id and requested_object_id != artifact_object_id:
+        blocked.append(f"existing_update[{index}].readback_object_id_mismatch")
+    if requested_revision and artifact_revision and requested_revision != artifact_revision:
+        blocked.append(f"existing_update[{index}].readback_revision_mismatch")
     if not object_id:
         blocked.append(f"existing_update[{index}].missing_object_id")
     if not base_revision:
         blocked.append(f"existing_update[{index}].missing_base_revision")
     payload.setdefault("mode", "save")
-    payload.setdefault(method_spec["id_key"], object_id)
+    if not isinstance(payload.get("entry"), dict):
+        payload.setdefault(method_spec["id_key"], object_id)
     _inject_revision(payload, base_revision)
+    desired_overlay = item.get("desired_overlay")
+    if desired_overlay is not None and not isinstance(desired_overlay, dict):
+        blocked.append(f"existing_update[{index}].desired_overlay_invalid")
+        desired_overlay = None
+    if desired_overlay is None:
+        desired_overlay = deepcopy(payload)
+    preview = _merge_existing_update_overlay(payload, desired_overlay)
     if method_spec["method"] == "updateEditorChart":
-        validation = validate_editor_runtime_contract(payload, source=f"existing_update[{index}]")
+        validation = validate_editor_runtime_contract(preview, source=f"existing_update[{index}]")
         errors = [finding for finding in validation.get("findings") or [] if finding.get("severity") == "error"]
         if errors and not item.get("validator_required_cleanup"):
             blocked.append(f"existing_update[{index}].full_object_editor_validation_failed")
@@ -2352,11 +2479,26 @@ def _existing_update_action(
         "readback_required": readback_mode != "none",
         "readback_method": method_spec["read_method"],
         "readback_payload": {method_spec["id_key"]: object_id, "branch": "saved"},
-        "payload": payload,
+        "payload": preview,
+        "desired_overlay": desired_overlay,
         "changed_sections": plan_action["changed_sections"],
         "base_revision": base_revision,
         "validator_required_cleanup": plan_action["validator_required_cleanup"],
     }
+    if method_spec["method"] == "updateDashboard":
+        baseline_source = {
+            "kind": "saved_readback",
+            "path": readback_path,
+        }
+        action["current_dashboard"] = deepcopy(payload)
+        action["baseline_dashboard"] = deepcopy(payload)
+        action["baseline_diff_contract"] = build_baseline_diff_contract(
+            dashboard_id=object_id,
+            baseline_source=baseline_source,
+            baseline_dashboard=payload,
+            proposed_dashboard=preview,
+            changed_objects=[],
+        )
     if wizard_dataset_readbacks is not None:
         action["dataset_readbacks"] = wizard_dataset_readbacks
         plan_action["dataset_readbacks"] = wizard_dataset_readbacks
@@ -2367,15 +2509,102 @@ def _existing_update_action(
 
 
 def _existing_update_method_spec(object_type: str) -> dict[str, str]:
-    specs = {
-        "dashboard": {"method": "updateDashboard", "read_method": "getDashboard", "id_key": "dashboardId"},
-        "editor_chart": {"method": "updateEditorChart", "read_method": "getEditorChart", "id_key": "chartId"},
-        "advanced_editor_chart": {"method": "updateEditorChart", "read_method": "getEditorChart", "id_key": "chartId"},
-        "control": {"method": "updateEditorChart", "read_method": "getEditorChart", "id_key": "chartId"},
-        "control_node": {"method": "updateEditorChart", "read_method": "getEditorChart", "id_key": "chartId"},
-        "wizard_chart": {"method": "updateWizardChart", "read_method": "getWizardChart", "id_key": "chartId"},
+    normalized = normalize_publish_object_type(object_type)
+    if normalized == "dashboard":
+        return {"method": "updateDashboard", "read_method": "getDashboard", "id_key": "dashboardId"}
+    if normalized == "editor_chart":
+        return {"method": "updateEditorChart", "read_method": "getEditorChart", "id_key": "chartId"}
+    if normalized == "wizard_chart":
+        return {"method": "updateWizardChart", "read_method": "getWizardChart", "id_key": "chartId"}
+    return {}
+
+
+def _existing_update_target_objects(actions: list[dict[str, Any]]) -> list[dict[str, str]]:
+    targets: list[dict[str, str]] = []
+    for action in actions:
+        fresh = action.get("fresh_read_payload") if isinstance(action.get("fresh_read_payload"), dict) else {}
+        object_id = str(
+            fresh.get("dashboardId")
+            or fresh.get("chartId")
+            or fresh.get("datasetId")
+            or fresh.get("connectionId")
+            or ""
+        ).strip()
+        targets.append(
+            {
+                "method": str(action.get("method") or "").strip(),
+                "object_id": object_id,
+            }
+        )
+    targets.sort(key=lambda item: (item["method"], item["object_id"]))
+    return targets
+
+
+def _local_action_set_target_lock(target_objects: list[dict[str, str]]) -> dict[str, Any]:
+    lock_hash = serialized_metadata({"targets": target_objects})["sha256"]
+    target_ids = [item["object_id"] for item in target_objects if item.get("object_id")]
+    all_targets_known = bool(target_objects) and len(target_ids) == len(target_objects)
+    dashboard_ids = [
+        item["object_id"]
+        for item in target_objects
+        if item["method"] == "updateDashboard" and item.get("object_id")
+    ]
+    chart_ids = [
+        item["object_id"]
+        for item in target_objects
+        if item["method"] != "updateDashboard" and item.get("object_id")
+    ]
+    return {
+        "target_source": "manual",
+        "target_workbook_id": "",
+        "target_dashboard_id": dashboard_ids[0] if len(target_objects) == 1 and len(dashboard_ids) == 1 else "",
+        "target_chart_id": chart_ids[0] if len(target_objects) == 1 and len(chart_ids) == 1 else "",
+        "target_object_type": "safe_apply_action_set",
+        "target_object_key": "|".join(
+            f"{item['method']}:{item['object_id']}" for item in target_objects
+        ),
+        "target_objects": target_objects,
+        "target_url": "",
+        "lock_hash": lock_hash,
+        "status": "locked" if all_targets_known else "missing",
+        "evidence": [
+            f"action_target:{item['method']}:{item['object_id']}"
+            for item in target_objects
+            if item.get("object_id")
+        ],
     }
-    return specs.get(object_type, {})
+
+
+def _load_existing_update_readback(project_root: Path, readback_path: str) -> dict[str, Any]:
+    path = Path(readback_path)
+    if not path.is_absolute():
+        path = project_root / path
+    try:
+        resolved = path.resolve()
+        resolved.relative_to(project_root.resolve())
+    except (OSError, ValueError):
+        return {"ok": False, "reason": "readback_path_outside_project"}
+    if not resolved.is_file():
+        return {"ok": False, "reason": "readback_path_missing"}
+    loaded = read_json(resolved, default=None)
+    if not isinstance(loaded, dict):
+        return {"ok": False, "reason": "readback_path_invalid"}
+    return {"ok": True, "readback": loaded}
+
+
+def _merge_existing_update_overlay(base: Any, overlay: Any) -> Any:
+    if isinstance(base, dict) and isinstance(overlay, dict):
+        merged = deepcopy(base)
+        for key, value in overlay.items():
+            merged[key] = (
+                _merge_existing_update_overlay(base.get(key), value)
+                if key in base
+                else deepcopy(value)
+            )
+        return merged
+    if isinstance(base, list) and isinstance(overlay, list):
+        return deepcopy(overlay)
+    return deepcopy(overlay)
 
 
 def _payload_from_readback_envelope(envelope: dict[str, Any]) -> dict[str, Any]:
@@ -2386,6 +2615,21 @@ def _payload_from_readback_envelope(envelope: dict[str, Any]) -> dict[str, Any]:
             if isinstance(nested, dict):
                 return {"entry": nested}
             return dict(value)
+    response = envelope.get("response")
+    if isinstance(response, dict):
+        nested = response.get("entry")
+        if isinstance(nested, dict):
+            return {"entry": nested}
+        for key in ("dashboard", "chart", "object"):
+            value = response.get(key)
+            if isinstance(value, dict):
+                nested = value.get("entry")
+                return {"entry": nested} if isinstance(nested, dict) else dict(value)
+    for key in ("entries", "charts", "objects"):
+        values = envelope.get(key)
+        if isinstance(values, list) and len(values) == 1 and isinstance(values[0], dict):
+            nested = values[0].get("entry")
+            return {"entry": nested} if isinstance(nested, dict) else dict(values[0])
     return dict(envelope)
 
 
@@ -2415,6 +2659,7 @@ def dl_execute_safe_apply(
 ) -> dict[str, Any]:
     from datalens_dev_mcp.config import DataLensConfig
 
+    started_at = monotonic()
     root = ensure_project_dirs(project_root)
     resolved_plan_path = Path(plan_path) if plan_path else root / "artifacts" / "safe_apply_plan.json"
     plan = read_json(resolved_plan_path, default={})
@@ -2450,6 +2695,11 @@ def dl_execute_safe_apply(
     )
     if delivery_decision.get("state") in {"read_only", "plan_only", "blocked"}:
         result = _nonexecuted_safe_apply_result(plan, delivery_decision)
+        _attach_fast_path_execution_metrics(
+            result=result,
+            plan=plan,
+            elapsed_seconds=monotonic() - started_at,
+        )
         write_json(root / "artifacts" / "safe_apply_result.json", result)
         return result
     result = execute_safe_apply(plan, config=config)
@@ -2501,8 +2751,81 @@ def dl_execute_safe_apply(
         if publish_disabled:
             result["status"] = "saved_not_published"
             result["publish_blocked_reasons"] = ["publish_enabled"]
+    _attach_fast_path_execution_metrics(
+        result=result,
+        plan=plan,
+        elapsed_seconds=monotonic() - started_at,
+    )
     write_json(root / "artifacts" / "safe_apply_result.json", result)
     return result
+
+
+def _attach_fast_path_execution_metrics(
+    *,
+    result: dict[str, Any],
+    plan: dict[str, Any],
+    elapsed_seconds: float,
+) -> None:
+    configured = plan.get("workflow_metrics")
+    if not isinstance(configured, dict) or configured.get("mode") != "date_range_selector_fast_path":
+        return
+    save_actions = result.get("actions") if isinstance(result.get("actions"), list) else []
+    publish_actions = [
+        action
+        for item in result.get("publish_results") or []
+        if isinstance(item, dict) and isinstance(item.get("result"), dict)
+        for action in item["result"].get("actions") or []
+        if isinstance(action, dict)
+    ]
+    executor_rpc_count = _safe_apply_result_rpc_count(save_actions) + _safe_apply_result_rpc_count(
+        publish_actions
+    )
+    initial_read_count = int(configured.get("initial_exact_read_count") or 0)
+    total_rpc_count = initial_read_count + executor_rpc_count
+    max_rpc_count = int(configured.get("max_datalens_rpc_count") or 0)
+    metrics = deepcopy(configured)
+    metrics.update(
+        {
+            "executor_elapsed_seconds": round(max(0.0, elapsed_seconds), 3),
+            "executor_rpc_count": executor_rpc_count,
+            "observed_total_rpc_count": total_rpc_count,
+            "budget_met": bool(max_rpc_count and total_rpc_count <= max_rpc_count),
+            "snapshot_call_count": 0,
+            "workbook_inventory_call_count": 0,
+            "publish_group_count": len(result.get("publish_results") or []),
+        }
+    )
+    result["workflow_metrics"] = metrics
+    runtime_smoke = plan.get("runtime_smoke")
+    if isinstance(runtime_smoke, dict) and runtime_smoke.get("required"):
+        smoke = deepcopy(runtime_smoke)
+        smoke["status"] = (
+            "required"
+            if result.get("status") == "completed" and result.get("executed")
+            else "blocked_until_safe_apply_completes"
+        )
+        result["runtime_smoke"] = smoke
+        result["maintenance_completion"] = {
+            "complete": False,
+            "status": (
+                "runtime_smoke_required"
+                if smoke["status"] == "required"
+                else "safe_apply_incomplete"
+            ),
+        }
+
+
+def _safe_apply_result_rpc_count(actions: list[dict[str, Any]]) -> int:
+    count = 0
+    for action in actions:
+        artifacts = action.get("artifacts") if isinstance(action.get("artifacts"), dict) else {}
+        if artifacts.get("pre_write"):
+            count += 1
+        if action.get("write_attempted"):
+            count += 1
+        if artifacts.get("readback"):
+            count += 1
+    return count
 
 
 def _authorize_safe_apply_plan_from_request(plan: dict[str, Any], delivery_intent_text: str) -> dict[str, Any]:
@@ -2607,10 +2930,11 @@ def _execute_publish_after_save(
     if not saved_readbacks.get("items"):
         publish_blockers.append("saved readback artifact is required before publish")
 
+    prepared_plans: list[dict[str, Any]] = []
     for item in saved_readbacks.get("items") or []:
         if publish_blockers:
             break
-        publish_plan = create_publish_safe_apply_plan(
+        candidate = create_publish_safe_apply_plan(
             project_root=str(root),
             target=item["target"],
             object_type=item["object_type"],
@@ -2620,41 +2944,63 @@ def _execute_publish_after_save(
             readback_mode=item.get("readback_mode", "minimal"),
             user_request_text=delivery_intent_text,
         )
-        inherited_target_lock = plan.get("target_lock") if isinstance(plan.get("target_lock"), dict) else {}
-        inherited_target_lock_hash = str(inherited_target_lock.get("lock_hash") or "").strip()
-        if inherited_target_lock_hash:
-            publish_plan["target_lock"] = deepcopy(inherited_target_lock)
-            for publish_action in publish_plan.get("actions") or []:
-                if isinstance(publish_action, dict):
-                    publish_action["target_lock_hash"] = inherited_target_lock_hash
-        if isinstance(plan.get("request_intent"), dict):
-            inherited_intent = deepcopy(plan["request_intent"])
-            publish_plan["request_intent"] = inherited_intent
-            request_digest = str(inherited_intent.get("request_sha256") or "")
-            if isinstance(publish_plan.get("approval_provenance"), dict):
-                publish_plan["approval_provenance"]["request_digest"] = request_digest
-            for publish_action in publish_plan.get("actions") or []:
-                if isinstance(publish_action, dict) and isinstance(publish_action.get("approval_provenance"), dict):
-                    publish_action["approval_provenance"]["request_digest"] = request_digest
-        publish_plan["approval_reuse_for_publish"] = approval_reuse
-        publish_plan["approval_reuse"] = {
-            "reused_from_plan_path": str(plan_path),
-            "source_approval": (plan.get("approval_provenance") or {}),
-        }
-        for action in publish_plan.get("actions") or []:
-            if isinstance(action, dict):
-                action["approval_reuse_for_publish"] = approval_reuse
-                if isinstance(action.get("approval_provenance"), dict):
-                    action["approval_provenance"]["reused_for_publish"] = approval_reuse
-                    action["approval_provenance"]["source_plan_path"] = str(plan_path)
-        if not publish_plan.get("ok"):
+        _inherit_publish_plan_context(
+            publish_plan=candidate,
+            source_plan=plan,
+            source_plan_path=plan_path,
+            approval_reuse=approval_reuse,
+        )
+        if not candidate.get("ok"):
             publish_blockers.append(
                 f"publish plan blocked for {item.get('object_id') or item['path']}: "
-                f"{(publish_plan.get('error') or {}).get('message') or publish_plan.get('status')}"
+                f"{(candidate.get('error') or {}).get('message') or candidate.get('status')}"
             )
-            publish_results.append({"plan": publish_plan, "result": None})
+            publish_results.append({"plan": candidate, "result": None})
             break
-        publish_result = execute_safe_apply(publish_plan, config=config)
+        prepared_plans.append(candidate)
+
+    grouped_publish_plan: dict[str, Any] | None = None
+    if prepared_plans and not publish_blockers:
+        grouped_actions = [
+            deepcopy(action)
+            for prepared in prepared_plans
+            for action in prepared.get("actions") or []
+            if isinstance(action, dict)
+        ]
+        grouped_publish_plan = create_safe_apply_plan(
+            project_root=str(root),
+            actions=grouped_actions,
+            approved=bool(plan.get("approved")),
+            user_request_text=delivery_intent_text,
+        )
+        grouped_publish_plan["ok"] = True
+        grouped_publish_plan["status"] = "grouped_publish_plan_created"
+        grouped_publish_plan["publish_sources"] = [
+            deepcopy(source)
+            for prepared in prepared_plans
+            for source in prepared.get("publish_sources") or []
+            if isinstance(source, dict)
+        ]
+        grouped_publish_plan["object_count"] = len(grouped_actions)
+        grouped_publish_plan["transaction_policy"]["publish_preflight_scope"] = "all_saved_objects"
+        _inherit_publish_plan_context(
+            publish_plan=grouped_publish_plan,
+            source_plan=plan,
+            source_plan_path=plan_path,
+            approval_reuse=approval_reuse,
+        )
+        grouped_preflight = validate_safe_apply_plan_exhaustive(grouped_publish_plan)
+        grouped_publish_plan["grouped_preflight"] = grouped_preflight
+        write_json(root / "artifacts" / "publish_safe_apply_plan.json", grouped_publish_plan)
+        publish_results.append({"plan": grouped_publish_plan, "result": None})
+        if not grouped_preflight.get("ok"):
+            publish_blockers.extend(
+                f"grouped publish preflight: {issue}"
+                for issue in grouped_preflight.get("issues") or ["validation failed"]
+            )
+
+    if grouped_publish_plan is not None and not publish_blockers:
+        publish_result = execute_safe_apply(grouped_publish_plan, config=config)
         publish_result["delivery_intent_decision"] = _delivery_intent_decision(
             delivery_intent_text,
             default_text="implement",
@@ -2668,10 +3014,10 @@ def _execute_publish_after_save(
             target_lock=plan.get("target_lock") if isinstance(plan.get("target_lock"), dict) else None,
         )
         publish_result["approval_reuse_for_publish"] = approval_reuse
-        publish_results.append({"plan": publish_plan, "result": publish_result})
+        publish_results[0]["result"] = publish_result
         published = _persist_result_readbacks(
             root=root,
-            plan=publish_plan,
+            plan=grouped_publish_plan,
             result=publish_result,
             branch="published",
         )
@@ -2679,7 +3025,6 @@ def _execute_publish_after_save(
         publish_blockers.extend(published.get("errors") or [])
         if publish_result.get("status") != "completed" or not publish_result.get("executed"):
             publish_blockers.append("publish execution did not complete")
-            break
 
     aggregate = dict(save_result)
     aggregate["delivery_result"] = _delivery_result_summary(
@@ -2714,6 +3059,49 @@ def _execute_publish_after_save(
         aggregate["executed"] = all(bool(item.get("result", {}).get("executed")) for item in publish_results)
         aggregate["status"] = "completed" if aggregate["executed"] else "partial"
     return aggregate
+
+
+def _inherit_publish_plan_context(
+    *,
+    publish_plan: dict[str, Any],
+    source_plan: dict[str, Any],
+    source_plan_path: Path,
+    approval_reuse: bool,
+) -> None:
+    inherited_target_lock = (
+        source_plan.get("target_lock")
+        if isinstance(source_plan.get("target_lock"), dict)
+        else {}
+    )
+    inherited_target_lock_hash = str(inherited_target_lock.get("lock_hash") or "").strip()
+    if inherited_target_lock_hash:
+        publish_plan["target_lock"] = deepcopy(inherited_target_lock)
+        for publish_action in publish_plan.get("actions") or []:
+            if isinstance(publish_action, dict):
+                publish_action["target_lock_hash"] = inherited_target_lock_hash
+    if isinstance(source_plan.get("request_intent"), dict):
+        inherited_intent = deepcopy(source_plan["request_intent"])
+        publish_plan["request_intent"] = inherited_intent
+        request_digest = str(inherited_intent.get("request_sha256") or "")
+        if isinstance(publish_plan.get("approval_provenance"), dict):
+            publish_plan["approval_provenance"]["request_digest"] = request_digest
+        for publish_action in publish_plan.get("actions") or []:
+            if isinstance(publish_action, dict) and isinstance(
+                publish_action.get("approval_provenance"),
+                dict,
+            ):
+                publish_action["approval_provenance"]["request_digest"] = request_digest
+    publish_plan["approval_reuse_for_publish"] = approval_reuse
+    publish_plan["approval_reuse"] = {
+        "reused_from_plan_path": str(source_plan_path),
+        "source_approval": (source_plan.get("approval_provenance") or {}),
+    }
+    for action in publish_plan.get("actions") or []:
+        if isinstance(action, dict):
+            action["approval_reuse_for_publish"] = approval_reuse
+            if isinstance(action.get("approval_provenance"), dict):
+                action["approval_provenance"]["reused_for_publish"] = approval_reuse
+                action["approval_provenance"]["source_plan_path"] = str(source_plan_path)
 
 
 def _persist_result_readbacks(
@@ -2934,6 +3322,7 @@ def dl_create_publish_from_saved_plan(
     saved_readback_path: str = "",
     readback_mode: str = "minimal",
     delivery_intent_text: str = "",
+    target_workbook_id: str = "",
     target_dashboard_id: str = "",
     target_chart_id: str = "",
     target_url: str = "",
@@ -2967,13 +3356,36 @@ def dl_create_publish_from_saved_plan(
     if plan.get("ok"):
         root = ensure_project_dirs(project_root)
         existing_target_lock = read_json(root / "artifacts" / "delivery" / "target_lock.json", default={})
+        plan_target_lock = plan.get("target_lock") if isinstance(plan.get("target_lock"), dict) else {}
+        target_objects = (
+            plan_target_lock.get("target_objects")
+            if isinstance(plan_target_lock.get("target_objects"), list)
+            else []
+        )
+        normalized_object_type = normalize_publish_object_type(object_type)
+        resolved_object_id = str(object_id or "").strip()
         target_lock = create_target_lock(
             delivery_intent_text,
             target_source="user_url" if target_url else str(existing_target_lock.get("target_source") or "manual"),
-            target_workbook_id=str(existing_target_lock.get("target_workbook_id") or ""),
-            target_dashboard_id=target_dashboard_id or str(existing_target_lock.get("target_dashboard_id") or ""),
-            target_chart_id=target_chart_id or str(existing_target_lock.get("target_chart_id") or object_id or ""),
+            target_workbook_id=target_workbook_id or str(existing_target_lock.get("target_workbook_id") or ""),
+            target_dashboard_id=(
+                target_dashboard_id
+                or str(existing_target_lock.get("target_dashboard_id") or "")
+                or (resolved_object_id if normalized_object_type == "dashboard" else "")
+            ),
+            target_chart_id=(
+                target_chart_id
+                or str(existing_target_lock.get("target_chart_id") or "")
+                or (resolved_object_id if normalized_object_type != "dashboard" else "")
+            ),
             target_url=target_url or str(existing_target_lock.get("target_url") or ""),
+            target_object_type="safe_apply_action_set",
+            target_object_key="|".join(
+                f"{item.get('method', '')}:{item.get('object_id', '')}"
+                for item in target_objects
+                if isinstance(item, dict)
+            ),
+            target_objects=target_objects,
         )
         plan["target_lock"] = target_lock.to_dict()
         for action in plan.get("actions") or []:
@@ -2992,6 +3404,7 @@ def dl_create_publish_from_saved_plan(
             target_lock=target_lock.to_dict(),
         )
         write_json(root / "artifacts" / "publish_safe_apply_plan.json", plan)
+        write_json(root / "artifacts" / "delivery" / "target_lock.json", target_lock.to_dict())
     return plan
 
 

@@ -14,8 +14,9 @@ Safe Apply connects the original user request, exact target, current revision, D
 6. Re-check write/save/publish settings immediately before writing.
 7. Save.
 8. Read saved state and verify the result.
-9. If the task requires publishing, build a publish plan from saved readback.
-10. Publish and read published state.
+9. If the task requires publishing, first build and validate publish actions
+   for the complete group from saved readbacks.
+10. Execute the validated publish group and read every published object.
 11. Verify visible changes in the DataLens UI.
 
 An explicit create, fix, update, enhance, or redesign request for a known object authorizes ordinary save and publish within this sequence. The server does not ask again before those steps.
@@ -67,7 +68,15 @@ Saved and published state are read separately. Their reports and artifacts use d
 
 ## Publish from saved state
 
-`dl_create_publish_from_saved_plan` receives saved readback, object type, and ID. The plan records `revId`, `savedId`, and the saved-result path. Publishing is blocked when saved readback is missing, stale, or belongs to another target.
+Normal updates build publishing from saved readbacks inside
+`dl_execute_safe_apply`. Before the first publish RPC, the server validates
+every object's saved artifact and the complete action set. A preparation
+failure for one object blocks publishing for the whole group.
+
+`dl_create_publish_from_saved_plan` is an explicit resume tool. It receives
+saved readback, object type and ID, plus an optional `target_workbook_id`. The
+plan records `revId`, `savedId`, and the saved-result path. Publishing is
+blocked when saved readback is missing, stale, or belongs to another target.
 
 After publishing, `dl_readback_and_report` reads published state and creates a deployment report. For a UI change, API readback verifies structure and the DataLens check verifies rendering.
 
@@ -76,6 +85,20 @@ After publishing, `dl_readback_and_report` reads published state and creates a d
 For updates, desired changes remain separate from the current object. Immediately before writing, the server overlays them on fresh saved state. A dashboard content change preserves untouched widget coordinates; a layout change must declare expected geometry.
 
 A related action group is fully saved and verified first. Publishing begins only after every affected object has successful saved readback.
+
+### Semantic date-range merge
+
+`dl_create_safe_apply_plan` accepts
+`maintenance_contract.kind=date_range_selector_merge` for a bounded update to
+an existing Editor selector and its dashboard mount. The compiler replaces
+exactly two static `datepicker` controls with one `range-datepicker`, changes
+only two string array values in Params, synchronizes dashboard defaults, and
+preserves other controls, layout, technology, and unknown fields.
+
+The plan includes a sorted selector+dashboard `target_objects` lock,
+`workflow_metrics` with a 14-RPC limit, and required `runtime_smoke`. The
+maintenance result remains `runtime_smoke_required` until that browser check
+is completed.
 
 ## Conflicts and unknown outcomes
 

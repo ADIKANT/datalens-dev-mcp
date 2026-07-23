@@ -68,8 +68,9 @@ URI_ESCAPE_WRAPPER_NAMES = {"esc", "escapeHtml"}
 RENDER_WRAP_RE = re.compile(r"render\s*:\s*Editor\.wrapFn\s*\(\s*\{", re.S)
 CONTRACT_RESOURCE = "validators/editor_runtime_contract.json"
 ALLOWLIST_RESOURCE = "schemas/datalens-api/editor-runtime-allowlist.json"
-EDITOR_VALIDATION_CACHE_VERSION = "2026-07-20.editor_validation_cache.v1"
+EDITOR_VALIDATION_CACHE_VERSION = "2026-07-23.editor_validation_cache.v2"
 EDITOR_VALIDATION_CACHE_MAX_ENTRIES = 128
+NONBLOCKING_WARNING_RULES = {"date_range_controls_rerender_risk"}
 _EDITOR_VALIDATION_CACHE: OrderedDict[str, dict[str, Any]] = OrderedDict()
 _EDITOR_VALIDATION_CACHE_LOCK = RLock()
 
@@ -147,7 +148,13 @@ def validate_editor_runtime_contract(
             finding["source"] = source
     warnings = sum(1 for finding in base.get("findings") or [] if finding.get("severity") == "warning")
     errors = sum(1 for finding in base.get("findings") or [] if finding.get("severity") == "error")
-    blocking = errors if allow_unknown_warnings else errors + warnings
+    blocking_warnings = sum(
+        1
+        for finding in base.get("findings") or []
+        if finding.get("severity") == "warning"
+        and finding.get("rule") not in NONBLOCKING_WARNING_RULES
+    )
+    blocking = errors if allow_unknown_warnings else errors + blocking_warnings
     base["allow_unknown_warnings"] = bool(allow_unknown_warnings)
     base["ok"] = blocking == 0
     base["summary"] = {
@@ -179,6 +186,14 @@ def _validate_editor_runtime_contract_uncached(value: dict[str, Any]) -> dict[st
                 contract=contract,
                 allowlist=allowlist,
                 uri_policy=uri_policy,
+            )
+        )
+        findings.extend(
+            _date_range_rerender_findings(
+                text,
+                path=path,
+                source="<payload>",
+                contract=contract,
             )
         )
     for path, html_object in _iter_html_objects(value):
@@ -882,6 +897,34 @@ def _finding(
         "source": source,
         "message": str((contract.get("messages") or {}).get(rule) or f"{rule} is not supported by the runtime"),
     }
+
+
+def _date_range_rerender_findings(
+    text: str,
+    *,
+    path: str,
+    source: str,
+    contract: dict[str, Any],
+) -> list[dict[str, Any]]:
+    from datalens_dev_mcp.pipeline.selector_maintenance import date_range_rerender_findings
+
+    warnings = date_range_rerender_findings(text)
+    if not warnings:
+        return []
+    line = _line_for_offset(text, text.find("updateControlsOnChange"))
+    return [
+        {
+            "severity": "warning",
+            "layer": "selector_runtime_safety",
+            "rule": str(item["rule"]),
+            "rule_version": contract["rule_version"],
+            "path": path,
+            "line": line,
+            "source": source,
+            "message": str(item["message"]),
+        }
+        for item in warnings
+    ]
 
 
 def _iter_strings(value: Any, path: str = "$"):
