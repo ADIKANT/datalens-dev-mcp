@@ -8,6 +8,8 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Standalone HTML artifact generation and strict sandbox validation through the
+  existing bounded authoring and runtime-validation tools.
 - Versioned responsive browser evidence for compact and wide dashboard layouts.
 - Deterministic visual, value-semantics, hint, and layout-ownership contracts.
 - Explicit complete, partial, and unsafe classifications for dashboard snapshots.
@@ -22,6 +24,15 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Refreshed the compact documentation/OpenAPI knowledge layer to 91 operations
+  and kept the new entry-lock RPCs unsupported until a validated workflow is
+  implemented.
+- Removed a duplicate full OpenAPI schema map from the runtime package while
+  retaining the source-tree reconciliation artifact and the closed validation
+  bundle used at runtime.
+- Runtime ZIP export now uses the Git publication snapshot and excludes local
+  evidence, memory transactions, generated state, and other release-forbidden
+  roots.
 - Added a bounded semantic maintenance path for merging paired date selectors:
   artifact-backed overlays, exact multi-object locks, all-object publish
   preflight, grouped save/publish readbacks, and runtime-smoke requirements.

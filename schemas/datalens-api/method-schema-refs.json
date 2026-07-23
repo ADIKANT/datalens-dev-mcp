@@ -69,6 +69,13 @@
     "response_schema_ref": "CreateEmbeddingSecretResult",
     "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
   },
+  "createEntryLock": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateEntryLockArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CreateEntryLockResult",
+    "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+  },
   "createFolder": {
     "request_schema_kind": "ref",
     "request_schema_ref": "CreateFolderArgs",
@@ -160,6 +167,13 @@
     "response_schema_ref": "DeleteEmbeddingSecretResult",
     "support_status": "READ_ONLY_REFERENCE"
   },
+  "deleteEntryLock": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteEntryLockArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DeleteEntryLockResult",
+    "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+  },
   "deleteFolder": {
     "request_schema_kind": "ref",
     "request_schema_ref": "DeleteFolderArgs",
@@ -208,6 +222,13 @@
     "response_schema_kind": "ref",
     "response_schema_ref": "DlsSuggestResult",
     "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "extendEntryLock": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "ExtendEntryLockArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "ExtendEntryLockResult",
+    "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
   },
   "getAuditEntriesUpdates": {
     "request_schema_kind": "ref",

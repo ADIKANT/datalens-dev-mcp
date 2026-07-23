@@ -57,6 +57,20 @@
       "update_supported": true
     },
     {
+      "blocked_reason": "",
+      "create_supported": true,
+      "evidence": "Public skill contract; local generation and validation only because no Public API upload RPC is documented",
+      "executable_fixture_tested": true,
+      "live_read_verified": false,
+      "live_write_verified_in_test_workspace": false,
+      "official_documented": false,
+      "plan_supported": true,
+      "publish_supported": false,
+      "read_supported": true,
+      "route_id": "standalone_html_artifact",
+      "update_supported": false
+    },
+    {
       "blocked_reason": "missing safe MCP route contract",
       "create_supported": false,
       "evidence": "missing safe MCP route contract",
@@ -186,9 +200,9 @@
   "schema_version": "2026-06-25.semantic_authoring.v2",
   "tool_budget": {
     "all_tool_count": 93,
-    "all_tools_list_bytes": 50284,
+    "all_tools_list_bytes": 50190,
     "default_tool_count": 38,
-    "default_tools_list_bytes": 24497,
-    "default_tools_list_chars": 24497
+    "default_tools_list_bytes": 24403,
+    "default_tools_list_chars": 24403
   }
 }

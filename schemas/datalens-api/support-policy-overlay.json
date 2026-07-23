@@ -83,8 +83,11 @@
     "createCollection",
     "createEmbed",
     "createEmbeddingSecret",
+    "createEntryLock",
     "createFolder",
     "createReport",
+    "deleteEntryLock",
+    "extendEntryLock",
     "updateCollection",
     "updateEmbed",
     "updateReport"

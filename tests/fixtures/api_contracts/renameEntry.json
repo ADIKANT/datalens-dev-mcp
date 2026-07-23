@@ -11,8 +11,9 @@
   "request_schema_hash": "7d60c83bfa0cc6af6931ddff244d6b755b19425d9a8d492dc2e949b2987f92fd",
   "request_schema_ref": "RenameEntryArgs",
   "response_payload": {},
-  "response_schema_closure_hash": "9e0e41fbcafa9b931ab57ba9221ddf083b6b26d6b5e08ce2e9a7b8a7596e20c6",
+  "response_schema_closure_hash": "630ce4e77b92f1b511a6d63f56ee5316c8399e41dfae29f06a078177de1daf21",
   "response_schema_closure_refs": [
+    "EntryScope",
     "RenameEntryResult",
     "RenameEntryResultEntry"
   ],

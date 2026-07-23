@@ -4,7 +4,7 @@
   "operation_id": "updateDashboard",
   "path": "/rpc/updateDashboard",
   "request_payload": {},
-  "request_schema_closure_hash": "9f76c19a9379faacbbd4e3c21c61ee1ce05459800e75ce0951ada9ca254f72a4",
+  "request_schema_closure_hash": "cdcb0a2d000d13b03c5e891e06ea28d6dced6a606230658a90e0f0fdc6666307",
   "request_schema_closure_refs": [
     "DashboardData",
     "DashboardMeta",
@@ -15,7 +15,7 @@
   "request_schema_hash": "cd98dfb16280dd694ab280212e99ce18dc91616ecaf6ca1a88f1a248f55db8dc",
   "request_schema_ref": "UpdateDashboardV1Args",
   "response_payload": {},
-  "response_schema_closure_hash": "7eeba5e7f5a9700de2eb7444bd2712ec19aa0066da15cd574d0c685b818defa3",
+  "response_schema_closure_hash": "9ff44951ec52d13ba49945a665fc00ba604e7a571015b89883775e36ea67ee90",
   "response_schema_closure_refs": [
     "DashboardData",
     "DashboardMeta",

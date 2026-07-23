@@ -58,3 +58,20 @@ write-safety policy remains Apache-2.0.
 
 Yandex Cloud, Yandex DataLens, and related marks belong to their respective
 owners. Their use here is solely descriptive.
+
+## DataLens skills-derived authoring rules
+
+The standalone HTML sandbox, CSP, theme/language, export, and link-integration
+rules are distilled from the public
+[`datalens-html-pages`](https://github.com/datalens-tech/datalens-skills/tree/8fbb3aabac6b09d4c44f053fa63affea1dc386f7/skills/datalens-html-pages)
+skill in `datalens-tech/datalens-skills`.
+
+- Upstream repository: <https://github.com/datalens-tech/datalens-skills>
+- Reviewed commit: `8fbb3aabac6b09d4c44f053fa63affea1dc386f7`
+- License: Apache License 2.0
+- License text: [`LICENSE`](LICENSE)
+
+The raw skill, its template, and its test corpus are not redistributed. The
+project contains a compact independent implementation and retains a pinned
+source URL and content hash for provenance. No endorsement by the upstream
+project is implied.

@@ -150,7 +150,7 @@ class ResponseProjectionTests(unittest.TestCase):
         self.assertLessEqual(len(serialized), 6000)
         self.assertIn("dl_get_api_method_schema", compact["detail_tool"])
         self.assertEqual(compact["source_trace"]["compiled_openapi"]["required_api_header_version"], "2")
-        self.assertEqual(compact["source_trace"]["compiled_openapi"]["operation_count"], 88)
+        self.assertEqual(compact["source_trace"]["compiled_openapi"]["operation_count"], 91)
         self.assertEqual(dl_list_api_methods(include_guarded_writes="bad")["error"]["category"], "invalid_input")
 
     def test_dataset_rpc_wrapper_summary_preserves_identity_revision_and_bounded_shape(self):

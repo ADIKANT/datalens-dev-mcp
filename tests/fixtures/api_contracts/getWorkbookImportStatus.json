@@ -24,8 +24,9 @@
     "status": "pending",
     "workbookId": "workbook_1"
   },
-  "response_schema_closure_hash": "317c65c9842b8bae6e93defaeed5178a2145107befa7d94232018a83340ae411",
+  "response_schema_closure_hash": "75ffcf3097e925266516a20d8d0029fa097018133bb2cd81c71eac74aae33d38",
   "response_schema_closure_refs": [
+    "EntryScope",
     "GetWorkbookImportStatusResult",
     "WorkbookTransferNotification",
     "WorkbookTransferNotificationLevel",

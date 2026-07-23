@@ -11,10 +11,9 @@
   "request_schema_hash": "7346d0509d45681ab02e6bd66688939d2732cebc4046ebde9720050e7449b4ad",
   "request_schema_ref": "GetLicensesArgs",
   "response_payload": {},
-  "response_schema_closure_hash": "cffd4e1518939767831cdcadc7d899c254ef0887c9bb09ccda16cfc70e8a03b0",
+  "response_schema_closure_hash": "ccc3a2b00797a44810b689211128ac8dd1f89df1671a136f3353da715484ab8b",
   "response_schema_closure_refs": [
     "GetLicensesResult",
-    "License",
     "LicenseWithLastLogin"
   ],
   "response_schema_hash": "c7f2d834593b40e932163c2a495910465f29b30fec1e98c10b328c4310f31e77",

@@ -35,7 +35,7 @@ Operation classes:
 
 | Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
-| `dl_validate_editor_runtime_contract` | Check Editor JavaScript sections and methods | Before saving an Editor object | Inline object/sections or JSON, JS, or widget-directory `artifact_paths` | Cached findings; full corpus references only on request · `local` | [Editor tabs](https://yandex.cloud/ru/docs/datalens/charts/editor/tabs) and [methods](https://yandex.cloud/ru/docs/datalens/charts/editor/methods) |
+| `dl_validate_editor_runtime_contract` | Check Editor runtime or a standalone HTML sandbox | Before saving Editor or after HTML generation | Inline object/sections or JSON, JS, HTML, or widget-directory `artifact_paths` | Cached Editor findings or strict HTML validation · `local` | [Editor](https://yandex.cloud/ru/docs/datalens/charts/editor/methods) · [HTML](datalens/html_pages_en.md) |
 | `dl_classify_source_error` | Identify the stage and type of a data-source error | DataLens returned a sanitized error | `error_payload` | Category, stage, and remediation · `local` | [DataLens documentation](https://yandex.cloud/ru/docs/datalens/) and project rules |
 | `dl_diagnose` | Analyze SQL, grain, relations, and performance from supplied data | Locate a cause or risk before writing | `mode`, evidence, optional project root | Concise findings and report paths · `local` | [Diagnostic contracts](mcp/response_contracts.md#diagnostics) |
 | `dl_reference` | Search rules, recipes, formulas, and API method information | Resolve a capability, route, error, or source | `mode`, query or name, response limit | Up to five relevant records with sources · `local` | [Official sources](sources_en.md) |
@@ -44,7 +44,7 @@ Operation classes:
 
 | Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
-| `dl_generate_editor_bundle` | Compile a Wizard plan or exact profiled Editor bundle | After visualization selection and before project validation | Project root, route/profile, field bindings, and optional selector/readback contract | Deterministic bundle with template SHA-256 · `local` | [Standard templates](datalens/standard_chart_templates.md) |
+| `dl_generate_editor_bundle` | Compile a Wizard/Editor bundle or standalone HTML artifact | After chart selection or an explicit HTML-page request | Chart inputs or a mutually exclusive `html_page` spec | Deterministic SHA-256 artifact; HTML is not returned inline · `local` | [Standard templates](datalens/standard_chart_templates.md) · [HTML](datalens/html_pages_en.md) |
 | `dl_validate_project` | Check project files, requests, SQL, relations, and secrets | Before building an apply plan | Project root and optional context references | Findings and warnings · `local` | [Architecture](architecture.md) |
 | `dl_build_payload_plan` | Compile validated materials into a DataLens request plan | After project and object validation | Project root, target, and request text | Methods, targets, and payloads without writing · `local` | [Safe apply](safe-apply_en.md) |
 | `dl_build_validation_evidence_report` | Collect validation results by stage | Before handoff and after apply | Project root and report paths | Unified evidence report · `local` | [Response contracts](mcp/response_contracts.md) |

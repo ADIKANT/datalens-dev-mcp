@@ -64,6 +64,27 @@ Prompt:
 
 > Audit dashboard `<DASHBOARD_ID>` in workbook `<WORKBOOK_ID>`. Read the current saved version, capture it with related objects, inspect relations, and identify risks. Return concise findings and report paths. Do not save or publish anything.
 
+## Fast standalone HTML generation
+
+A self-contained HTML page does not require workbook discovery, snapshots,
+inventory, or DataLens API calls. Use one local cycle:
+
+```text
+dl_generate_editor_bundle with html_page
+  -> dl_validate_editor_runtime_contract for the generated .html
+  -> ready local artifact
+```
+
+The generator returns the path, size, hash, and validation result without
+duplicating HTML in the MCP response. Publication stays blocked until the public
+DataLens API documents a standalone HTML-page create/upload method. See the
+[HTML-page guide](datalens/html_pages_en.md) for constraints and the sandbox
+contract.
+
+Prompt:
+
+> Create a local self-contained HTML page `<PAGE_ID>`: `<REQUIREMENT>`. Use `html_page` in `dl_generate_editor_bundle`, then validate the generated file with `dl_validate_editor_runtime_contract`. Do not discover, snapshot, or publish DataLens objects.
+
 ## Plan without writing
 
 Use `plan-only` to inspect the future API request and validation results.

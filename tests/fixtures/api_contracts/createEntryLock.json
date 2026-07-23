@@ -1,0 +1,22 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "createEntryLock",
+  "operation_id": "createEntryLock",
+  "path": "/rpc/createEntryLock",
+  "request_payload": {},
+  "request_schema_closure_hash": "9adc837f7fac8906770f1474b8c5de705db9a04958530be9f33f06ad37003928",
+  "request_schema_closure_refs": [
+    "CreateEntryLockArgs"
+  ],
+  "request_schema_hash": "4932318428eeaef8eca4d8c6799a20e505d9a1edfbf086ab65982d97d75ad1b1",
+  "request_schema_ref": "CreateEntryLockArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "34f0a05d21e184879236a8976abd93ea9afbd3e3164e6283159f657654240175",
+  "response_schema_closure_refs": [
+    "CreateEntryLockResult"
+  ],
+  "response_schema_hash": "3256e30a8c99219c1faf5692824a73b4623a317e1ee3b255eec4baebdcc8e485",
+  "response_schema_ref": "CreateEntryLockResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "unsupported_explicit"
+}

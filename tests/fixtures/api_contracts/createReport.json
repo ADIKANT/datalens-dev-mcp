@@ -4,7 +4,7 @@
   "operation_id": "createReport",
   "path": "/rpc/createReport",
   "request_payload": {},
-  "request_schema_closure_hash": "123220b6fda51390ed2b5c7bc7a67647faa399eac6ff0c74b641c6316770ee68",
+  "request_schema_closure_hash": "76dccc60e9392b64963ddc86a2ef20d01bc8bcb20fb7a76eeba66a9ef4d2d7f0",
   "request_schema_closure_refs": [
     "CreateReportV1Args",
     "DashboardMeta",
@@ -12,18 +12,19 @@
     "EntryLocationIdentifiers",
     "ReportData"
   ],
-  "request_schema_hash": "21591e6c27d6876d7f5715bf59390422288edcc60f478d6f3aa239b0e5351e86",
+  "request_schema_hash": "c2c7229d18bfecfab4a0e382afd7517dd76f3601979325a377c4bdd00cd0ee54",
   "request_schema_ref": "CreateReportV1Args",
   "response_payload": {},
-  "response_schema_closure_hash": "1d023cb74e187b01523039533afcad4f8fd73b6164bc6975078eb436d7828555",
+  "response_schema_closure_hash": "5fe8c42b24794195c5362f01314897d54d5cea329c012263de4df7db45dce95f",
   "response_schema_closure_refs": [
     "CreateReportV1Result",
     "DashboardMeta",
     "EntryAnnotation",
+    "EntryPermissions",
     "ReportData",
     "ReportV1"
   ],
-  "response_schema_hash": "c42fe0fc6759c3c02c48ac30722da13e8d4ed2be34f29b118ac12300fa33bee7",
+  "response_schema_hash": "0bcccf70e7e1bca9d7c7850b892a5aa76bb1a758a79a6abeaac0b13d1e811eda",
   "response_schema_ref": "CreateReportV1Result",
   "schema_version": "2026-06-30.api_contract_fixture.v1",
   "status": "unsupported_explicit"

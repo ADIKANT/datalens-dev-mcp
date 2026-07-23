@@ -54,7 +54,7 @@ class FullCorpusKnowledgeTests(unittest.TestCase):
 
         self.assertTrue(check["ok"], check["issues"])
         self.assertEqual(sum(check["classification_counts"].values()), EXPECTED_COUNTS["pages"])
-        self.assertEqual(check["recipe_count"], 15)
+        self.assertEqual(check["recipe_count"], 16)
 
     def test_formula_validator_detects_unknown_function(self):
         registry = self.compiled["formula_registry"]

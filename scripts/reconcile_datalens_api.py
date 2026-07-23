@@ -33,8 +33,8 @@ PACKAGE_SCHEMA_DIR = ROOT / "src" / "datalens_dev_mcp" / "assets" / "schemas" / 
 SOURCE = "https://api.datalens.tech/json/"
 LEGACY_API_HEADER_VERSION = "1"
 SCHEMA_VERSION = "2026-06-25.datalens_api_methods.v3"
-EXPECTED_OPERATION_COUNT = 88
-EXPECTED_PATH_COUNT = 88
+EXPECTED_OPERATION_COUNT = 91
+EXPECTED_PATH_COUNT = 91
 
 GUARDED_WRITE_METHODS = {
     "createConnection",
@@ -63,8 +63,11 @@ UNSUPPORTED_METHODS = {
     "createCollection",
     "createEmbed",
     "createEmbeddingSecret",
+    "createEntryLock",
     "createFolder",
     "createReport",
+    "deleteEntryLock",
+    "extendEntryLock",
     "updateCollection",
     "updateEmbed",
     "updateReport",
@@ -234,12 +237,12 @@ def required_api_header_version(spec: dict[str, Any]) -> str:
 
 
 def infer_mode(method: str, tag: str) -> str:
+    if method in UNSUPPORTED_METHODS:
+        return "unsupported"
     if method in FORBIDDEN_METHODS or method.startswith(FORBIDDEN_PREFIXES):
         return "forbidden"
     if method in GUARDED_WRITE_METHODS:
         return "guarded_write"
-    if method in UNSUPPORTED_METHODS:
-        return "unsupported"
     if method.startswith(("get", "list", "batchList", "dlsSuggest")) or method == "validateDataset":
         return "readonly"
     if tag in {"Audit", "Access"}:
@@ -503,6 +506,15 @@ def build_editor_allowlist(corpus_root: Path) -> dict[str, Any]:
         "html_tags": tags,
         "html_attributes": attributes,
         "advanced_widget_doc_sha256": sha256_bytes(advanced_path.read_bytes()) if advanced_path.is_file() else "",
+        "implementation_reference": {
+            "source_url": (
+                "https://github.com/datalens-tech/datalens-ui/blob/"
+                "f581b7c31d6e9189ebeb1e1632b5fe7570534fb8/"
+                "src/ui/libs/DatalensChartkit/modules/html-generator/index.ts"
+            ),
+            "commit": "f581b7c31d6e9189ebeb1e1632b5fe7570534fb8",
+            "sha256": "31522ca9c9f732befddcbe708da232c8beb6aa46e0f611021e209a08c9caf85c",
+        },
     }
 
 
@@ -829,6 +841,7 @@ def render_outputs(corpus_root: Path) -> dict[Path, str]:
             source_path: PACKAGE_SCHEMA_DIR / source_path.name
             for source_path in json_outputs
             if source_path.parent == SCHEMA_DIR
+            and source_path.name != "selected-openapi-schema-refs.json"
         },
     }
     for source_path, packaged_path in packaged_sources.items():

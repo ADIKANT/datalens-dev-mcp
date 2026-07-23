@@ -29,6 +29,14 @@ assets, style-контракта и итоговых вкладок.
 
 Имена методов, формы запросов и схемы валидации соответствуют официальному [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/). Публичная OpenAPI-схема используется при компиляции и преобразуется в компактные контракты. Машинные сведения об источнике и преобразованиях хранятся в `schemas/datalens-api/source-trace.json`.
 
+## Public DataLens skills
+
+Контракт standalone HTML distilled из public
+[`datalens-html-pages`](https://github.com/datalens-tech/datalens-skills/tree/main/skills/datalens-html-pages)
+на commit `8fbb3aabac6b09d4c44f053fa63affea1dc386f7`. В пакет не
+копируются raw skill, template или eval corpus. Runtime и recipe сохраняют
+точную source URL и SHA-256; правила проекта остаются под Apache License 2.0.
+
 ## Обновление справочных данных
 
 Полный корпус документации используется только при явном запуске компилятора. Обычная установка и работа сервера используют готовые компактные индексы из Python-пакета.

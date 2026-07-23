@@ -1,0 +1,61 @@
+{
+  "algorithmic_bound": "O(n)",
+  "aliases": [
+    "generate html",
+    "html page",
+    "standalone html",
+    "standalone html page",
+    "standalone html sandbox",
+    "интерактивная html страница",
+    "сгенерировать html"
+  ],
+  "cardinality_limits": {},
+  "executable_bundle": {
+    "behavior_test": "tests.unit.test_semantic_authoring_acceptance",
+    "bundle_files": [
+      "expected_output.json",
+      "fixture_input.json",
+      "index.html"
+    ],
+    "generator": "datalens_dev_mcp.knowledge.recipes.build_recipe_bundle",
+    "status": "executable_fixture_tested"
+  },
+  "implementation_status": "implemented_tested",
+  "local_policy_status": "allowed_local_artifact",
+  "native_table_contract": false,
+  "observed_runtime_overrides": [],
+  "official_status": "public_skill",
+  "output_contract": [
+    "complete_utf8_document",
+    "inline_data",
+    "theme_and_language_query_params",
+    "EXPORT_and_OPEN_URL_postMessage",
+    "strict_sandbox_validation"
+  ],
+  "publication_status": "blocked_without_documented_public_api",
+  "recipe_id": "standalone_html_page",
+  "required_tabs": [
+    "index.html"
+  ],
+  "route": "standalone_html_artifact",
+  "source_contract": "standalone_html_sandbox",
+  "source_traces": [
+    {
+      "anchor": "standalone-html-pages",
+      "chunk_id": "github:datalens-tech/datalens-skills@8fbb3aabac6b09d4c44f053fa63affea1dc386f7#datalens-html-pages",
+      "mirror_path": "datalens-tech/datalens-skills/skills/datalens-html-pages/SKILL.md",
+      "sha256": "5a6585649bdc052fe1db5acc9704a5737ec2de99916034d16bd6f210da787c3f",
+      "source_url": "https://github.com/datalens-tech/datalens-skills/blob/8fbb3aabac6b09d4c44f053fa63affea1dc386f7/skills/datalens-html-pages/SKILL.md"
+    }
+  ],
+  "title": "Standalone HTML page",
+  "uses_generate_html": false,
+  "validation_checklist": [
+    "complete_document_and_utf8",
+    "strict_sandbox_and_csp_contract",
+    "no_network_or_persistent_storage",
+    "responsive_theme_and_language",
+    "artifact_privacy_scan"
+  ],
+  "widget_contract": "html_page"
+}

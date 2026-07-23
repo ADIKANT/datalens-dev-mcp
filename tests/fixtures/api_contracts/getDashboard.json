@@ -12,7 +12,7 @@
   "request_schema_hash": "3faff663bd9c0841f870008a0341470d3ae70a64c93031dd9cc237db7b2267e5",
   "request_schema_ref": "GetDashboardV1Args",
   "response_payload": {},
-  "response_schema_closure_hash": "b9622ef1cda7534a2ba14da03aecf993f7ad40005075d0d67649587bbae6a401",
+  "response_schema_closure_hash": "84516388979fba00a299c6bbebca4e6add268973a4af268043023be896efb9d7",
   "response_schema_closure_refs": [
     "DashboardData",
     "DashboardMeta",

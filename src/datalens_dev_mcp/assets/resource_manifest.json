@@ -2,14 +2,14 @@
   "resource_count": 257,
   "resources": [
     {
-      "bytes": 81731,
+      "bytes": 84379,
       "path": "config/datalens_api_methods.json",
-      "sha256": "85267bb65a5246a1c42b047b946a296687642e62e941e958892079233c38db7b"
+      "sha256": "7f4ba652e4278adc7b7622d6156e59d97bc5f312a890d9b3f04be48316f0d9b2"
     },
     {
-      "bytes": 154457,
+      "bytes": 158566,
       "path": "config/datalens_api_operation_policy.json",
-      "sha256": "82c995def83380d984bf18011e39ae2a773450003c94dcb3cee8b83c359b4e93"
+      "sha256": "2d426c9bbf237745894ecf6aca5da46b5a7a5b70257273eb06e15df8c968c7bf"
     },
     {
       "bytes": 3895,
@@ -42,9 +42,9 @@
       "sha256": "f03d6d3382ec10401ebf7ee1d1282d48e13f1a492c879cbece4c7099ebcc8513"
     },
     {
-      "bytes": 24270,
+      "bytes": 24213,
       "path": "config/datalens_docs_feature_policy.json",
-      "sha256": "cb06db7296717eecbe82abf763a72fdd081740c0bfd2eaf115885cf94e220d2a"
+      "sha256": "37df90bea787e7dfc0f25005c5caf08d7a14ef1c9337c2e8b4888cde7a1936ad"
     },
     {
       "bytes": 3211,
@@ -167,29 +167,29 @@
       "sha256": "841ccdaa64860031a810cdc916df114f0f954ab72c025582c677498d1d2b98cf"
     },
     {
-      "bytes": 769572,
+      "bytes": 918680,
       "path": "schemas/datalens-api/closed-schema-bundle.json",
-      "sha256": "10126dc032092233d2c41769b11c1943d72a68510509944b173ed034b442831d"
+      "sha256": "a5103fa3bf4f11164e4b835e25a911cc1f16d103aa760f5615afc33126649005"
     },
     {
-      "bytes": 3413,
+      "bytes": 3762,
       "path": "schemas/datalens-api/editor-runtime-allowlist.json",
-      "sha256": "61e873bfb7210c5169978b4ae1a3ad0b5fcaa599a48a48cb4efc8607b28dc000"
+      "sha256": "ad21ec8f83c0e5f61fc5bade38fb8f9abd2ba11ba2670ac95e0abe76ab3fcce4"
     },
     {
-      "bytes": 21811,
+      "bytes": 22573,
       "path": "schemas/datalens-api/method-schema-refs.json",
-      "sha256": "86867992a70b90d028cd2540e1884341d53bf46f0ed07d6a48e991f83fc9f505"
+      "sha256": "f4c3940e59746a0d48c5c993f096ef2c0a950544f1b197cd2019afe90df250fe"
     },
     {
       "bytes": 1217,
       "path": "schemas/datalens-api/openapi.lock.json",
-      "sha256": "41bdeb1c97dc24038cafb9eea1413aafc4c56b1c0bc121ddcb773466ad75a361"
+      "sha256": "f3db7ea7b4978f4a100dc70a6d472d3b02477ca1e2e35acd6a8f3f40aeae5d99"
     },
     {
-      "bytes": 17503,
+      "bytes": 18094,
       "path": "schemas/datalens-api/operation-schema-index.json",
-      "sha256": "582fb6ced87e3ab9b8b57298c21adb48a11b5aeb92a5c8ffc30f96fa1be94067"
+      "sha256": "4c0bd5b4ac0a53923ba099aa8ae860f264faa0dab796de9b7168273a993f5285"
     },
     {
       "bytes": 768,
@@ -197,39 +197,34 @@
       "sha256": "33f10dfbbc36bccebff873a6baf8b33c7f2251f33de7b7371a1565a5d24ae1ab"
     },
     {
-      "bytes": 709211,
-      "path": "schemas/datalens-api/selected-openapi-schema-refs.json",
-      "sha256": "d623b068b4041619109d041ebc4ee0d3e1dad5aa0d21ae3f80f344911cec7bd1"
-    },
-    {
       "bytes": 1475,
       "path": "schemas/datalens-api/source-trace.json",
-      "sha256": "77cc6e966d2c95d23ad617c7b9c37000c3f16e3cb1f7eed5e537533aaef043f8"
+      "sha256": "fe5060f63adc9d2e6e5120f5d4621804c61bf713a7f3a7d3c9309d27c8267f7d"
     },
     {
-      "bytes": 3328,
+      "bytes": 3397,
       "path": "schemas/datalens-api/support-policy-overlay.json",
-      "sha256": "62cca659f0264c4bd1358dbc796d1622faa294e42a0d79bfd27101a9eb7a1811"
+      "sha256": "224018f28ad9ad3f19eefd4138d6200a138733b5ca58c6bec8d6ea26d2db6c08"
     },
     {
-      "bytes": 26010,
+      "bytes": 26850,
       "path": "schemas/datalens-api/tool-support-matrix.json",
-      "sha256": "9f2ada040fadd1b15be94b04c5650ce78605dc7911c5083f86e46cd1d9c62c04"
+      "sha256": "4681565631a38941cfc2e179ba48d218d1575677aab60c63aa4bcb22fac5c809"
     },
     {
       "bytes": 1455,
       "path": "schemas/datalens-knowledge/PROVENANCE.json",
-      "sha256": "0181f68a70f6de33a3a1567666303faf0935ec6a983bfe26976d084d8a638f39"
+      "sha256": "6a240c1c974bfebf27a6726b6576baad5fb55487400eee3da304433cdd5d6084"
     },
     {
       "bytes": 12880,
       "path": "schemas/datalens-knowledge/capability-matrix.json",
-      "sha256": "c0ad9a4b34df3332322c3419795d9c1e131b61585b9f8ab988df1cf8be54c2c8"
+      "sha256": "83801301cc5644813b2d6c0437e073680308f4ba36d838799b8898ae7bc74bdc"
     },
     {
-      "bytes": 2645173,
+      "bytes": 2645174,
       "path": "schemas/datalens-knowledge/chunk-registry.jsonl",
-      "sha256": "aebf5073ea4acaf67b24f29b7dd082ca3f969f95604661136c56464e42a8d283"
+      "sha256": "53d8c322e1b4d1c5256f63a04598a656dfebfb30c25ec7eba336f09d00141538"
     },
     {
       "bytes": 118087,
@@ -247,24 +242,24 @@
       "sha256": "c0fa8a607f58a4d7707b4b0d521acbff07ac894c30078ee521985f75ebb597e0"
     },
     {
-      "bytes": 1679,
+      "bytes": 1720,
       "path": "schemas/datalens-knowledge/knowledge.lock.json",
-      "sha256": "0dc7f18cc73c2e80f75fae9c3b4ee624ec9c4d715b607ba8342e73fa8b9e61cc"
+      "sha256": "85ceb35ba6365f85df39700b477bfce53da67092e8d949dd15fb2d3e57fc03d9"
     },
     {
       "bytes": 902369,
       "path": "schemas/datalens-knowledge/page-registry.json",
-      "sha256": "4bbff7e831e74cbb70bd45c605aea5bc55da993b2197fc659666a4d79014fdb7"
+      "sha256": "c61f1569bcccd1f855ca8acea39b1d2fe7dd5139f4ea196d6eba4ddfcb73f4ae"
     },
     {
-      "bytes": 6312,
+      "bytes": 6851,
       "path": "schemas/datalens-knowledge/route-capability-matrix.json",
-      "sha256": "40b1dc8116e635e947bc949c0a6cae6f6407cf89b9a91bb546fb5f53056582be"
+      "sha256": "d8016fa4b8049e2790af666cebec0e81466309ce8d26773a092c03cf90d5f6ce"
     },
     {
-      "bytes": 307536,
+      "bytes": 309198,
       "path": "schemas/datalens-knowledge/rule-cards.jsonl",
-      "sha256": "d29e4a48a5cd070035ded665cc19fb6aef6da40fc1cfbf381ff7f4a9396bdde0"
+      "sha256": "ac5fd74d88543efcb4bed78aac1f3d12ab88b3532b0c1b925c4040c95c4b3965"
     },
     {
       "bytes": 33717,
@@ -942,14 +937,19 @@
       "sha256": "6330caf81608e1f7cfe4b7b1cbc479bb84b79111169cfb4ecd77901876fc6d3c"
     },
     {
-      "bytes": 36189,
+      "bytes": 38517,
       "path": "templates/datalens/recipes/recipe-registry.json",
-      "sha256": "25fe80c47506b0fba27fc7ef3b12524034a6ff34590e9f3c6dae215f2961e7e6"
+      "sha256": "745663e7ce0715ec9b0a56f55574ef0442aae1e46ba401b7ce50492246e2b2ed"
     },
     {
       "bytes": 2479,
       "path": "templates/datalens/recipes/resource_schedule_exception.json",
       "sha256": "a5581199724e826c20bc987914cf15c75c6966651a62e43183beb6c5470efe13"
+    },
+    {
+      "bytes": 2083,
+      "path": "templates/datalens/recipes/standalone_html_page.json",
+      "sha256": "6f176073fbcf7bb7ea92409eab3b6945a6b610bacf9d906f65f5bd3e1e82edc0"
     },
     {
       "bytes": 2242,

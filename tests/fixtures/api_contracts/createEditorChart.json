@@ -4,7 +4,7 @@
   "operation_id": "createEditorChart",
   "path": "/rpc/createEditorChart",
   "request_payload": {},
-  "request_schema_closure_hash": "47159f8a05ba6fdff651d83c89199e730792dbdf5376e757d43d5f076ead1ad5",
+  "request_schema_closure_hash": "0d4e2c1603f57b354c043e9a813ed6c908ac77082183791d10b3a2ee10f6d960",
   "request_schema_closure_refs": [
     "CreateEditorAdvancedChartNodeEntry",
     "CreateEditorChartArgs",
@@ -12,7 +12,6 @@
     "CreateEditorMarkdownNodeEntry",
     "CreateEditorSelectorNodeEntry",
     "CreateEditorTableNodeEntry",
-    "EntryAnnotationArg",
     "EntryLocationIdentifiers"
   ],
   "request_schema_hash": "c519003ba6df09d2020e98547a13a2836fe3b010c515e54e5e48f0e48735550e",

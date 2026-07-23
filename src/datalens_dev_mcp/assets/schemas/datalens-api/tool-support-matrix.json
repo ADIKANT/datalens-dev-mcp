@@ -83,6 +83,14 @@
     {
       "mcp_route": "unsupported",
       "mcp_tool": "",
+      "method": "createEntryLock",
+      "mode": "unsupported",
+      "support_reason": "No validated MCP workflow or payload contract is implemented.",
+      "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+    },
+    {
+      "mcp_route": "unsupported",
+      "mcp_tool": "",
       "method": "createFolder",
       "mode": "unsupported",
       "support_reason": "No validated MCP workflow or payload contract is implemented.",
@@ -185,6 +193,14 @@
       "support_status": "READ_ONLY_REFERENCE"
     },
     {
+      "mcp_route": "unsupported",
+      "mcp_tool": "",
+      "method": "deleteEntryLock",
+      "mode": "unsupported",
+      "support_reason": "No validated MCP workflow or payload contract is implemented.",
+      "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+    },
+    {
       "mcp_route": "forbidden",
       "mcp_tool": "",
       "method": "deleteFolder",
@@ -239,6 +255,14 @@
       "mode": "readonly",
       "support_reason": "Curated read-only RPC can be called without enabling writes.",
       "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "unsupported",
+      "mcp_tool": "",
+      "method": "extendEntryLock",
+      "mode": "unsupported",
+      "support_reason": "No validated MCP workflow or payload contract is implemented.",
+      "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
     },
     {
       "mcp_route": "read_only",

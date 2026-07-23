@@ -13,7 +13,7 @@ class PublicApiContractTests(unittest.TestCase):
         )
 
     def test_catalog_covers_compiled_api_inventory(self):
-        self.assertEqual(self.catalog["operation_count"], 88)
+        self.assertEqual(self.catalog["operation_count"], 91)
         self.assertEqual(self.catalog["required_api_header_version"], "2")
         methods = {method["method"]: method for method in self.catalog["methods"]}
         for method in (

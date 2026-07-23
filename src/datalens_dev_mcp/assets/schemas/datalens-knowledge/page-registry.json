@@ -14819,7 +14819,7 @@
         "создание-подключения-к-clickhouse-в-yandex-datalens"
       ],
       "asset_count": 2,
-      "bytes": 21232,
+      "bytes": 21233,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -14827,12 +14827,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:49:46.180379Z",
+      "fetched_at": "2026-07-23T08:53:38.737272Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
+      "last_modified": "Wed, 22 Jul 2026 13:43:58 GMT",
       "link_count": 37,
       "local_path": "raw/md/datalens/operations/connection/create-clickhouse.md",
       "mirror_path": "datalens/operations/connection/create-clickhouse.md",
@@ -14843,7 +14843,7 @@
         "connection",
         "create-clickhouse"
       ],
-      "sha256": "b5c48d05f3f47db535f4e22da6ff5173e3391c201130b57a43f680da1e210098",
+      "sha256": "4c494f68cd7f5649da2d1a79cf908d809897040d81c6b69c5ca9b4c8d80b97f0",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/create-clickhouse",
       "title": "Создание подключения к ClickHouse® в Yandex DataLens"
     },
@@ -19139,7 +19139,7 @@
         "роли-в-yandex-datalens"
       ],
       "asset_count": 0,
-      "bytes": 28296,
+      "bytes": 30237,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -19147,12 +19147,12 @@
         "reason": "security page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:51:14.612688Z",
+      "fetched_at": "2026-07-23T08:55:55.269086Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:14 GMT",
+      "last_modified": "Wed, 22 Jul 2026 13:44:04 GMT",
       "link_count": 67,
       "local_path": "raw/md/datalens/security/roles.md",
       "mirror_path": "datalens/security/roles.md",
@@ -19162,7 +19162,7 @@
         "security",
         "roles"
       ],
-      "sha256": "c0551ddc5f81232e416735fcc1fb1c91fda5ffcbff72104ef6586ebe4c505658",
+      "sha256": "37163db779367f61767411dc968bce74f026669a6b8a376b33c34432da9ea15f",
       "source_url": "https://yandex.cloud/ru/docs/datalens/security/roles",
       "title": "Роли в Yandex DataLens"
     },
@@ -23464,7 +23464,7 @@
         "мониторинг-состояния-географически-распределенных-устройств"
       ],
       "asset_count": 3,
-      "bytes": 47901,
+      "bytes": 47922,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -23472,12 +23472,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:50:51.074100Z",
+      "fetched_at": "2026-07-23T08:52:56.424587Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Wed, 22 Jul 2026 13:44:04 GMT",
       "link_count": 91,
       "local_path": "raw/md/datalens/tutorials/datalens.md",
       "mirror_path": "datalens/tutorials/datalens.md",
@@ -23487,7 +23487,7 @@
         "tutorials",
         "datalens"
       ],
-      "sha256": "00cc2a99e43a123ad260c50b3dce803e5d6fb8746535999ecf76a0682f5e7722",
+      "sha256": "4b885fdbb4d735d0f7c2846d0c868584ee84122bbb9740ed73eecc4bdd90fff9",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/datalens",
       "title": "Мониторинг состояния географически распределенных устройств"
     },
@@ -23525,7 +23525,7 @@
         "передача-событий-yandex-cloud-postbox-в-yandex-data-streams-и-их-анализ-с-помощью-yandex-datalens"
       ],
       "asset_count": 11,
-      "bytes": 43105,
+      "bytes": 43322,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -23533,13 +23533,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:49:55.985220Z",
+      "fetched_at": "2026-07-23T08:54:52.820034Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
-      "link_count": 101,
+      "last_modified": "Wed, 22 Jul 2026 13:44:04 GMT",
+      "link_count": 106,
       "local_path": "raw/md/datalens/tutorials/events-from-postbox-to-yds.md",
       "mirror_path": "datalens/tutorials/events-from-postbox-to-yds.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/tutorials/events-from-postbox-to-yds.md",
@@ -23548,7 +23548,7 @@
         "tutorials",
         "events-from-postbox-to-yds"
       ],
-      "sha256": "61a07f19e31117d38de99a5f2198d29e6a0701482b85c997ff47fc5b7c66d6f2",
+      "sha256": "8a08c7fc304caade7d68829e55173ae4283deddfbe461f6ecbed5c094c6f4b88",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/events-from-postbox-to-yds",
       "title": "Передача событий Yandex Cloud Postbox в Yandex Data Streams и их анализ с помощью Yandex DataLens"
     },

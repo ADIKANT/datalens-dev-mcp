@@ -143,6 +143,7 @@ class ApiSchemaRequestResponseContractsTests(unittest.TestCase):
                 self.assertEqual(policy[method]["owning_mcp_tool"], "dl_reference")
 
     def test_generated_api_source_and_package_resources_have_byte_parity(self):
+        source_only = {"selected-openapi-schema-refs.json"}
         pairs = [
             (
                 ROOT / "config" / "datalens_api_methods.json",
@@ -160,12 +161,16 @@ class ApiSchemaRequestResponseContractsTests(unittest.TestCase):
         ]
         package_schema_dir = ROOT / "src" / "datalens_dev_mcp" / "assets" / "schemas" / "datalens-api"
         for source in sorted((ROOT / "schemas" / "datalens-api").glob("*.json")):
+            if source.name in source_only:
+                self.assertFalse((package_schema_dir / source.name).exists())
+                continue
             pairs.append((source, package_schema_dir / source.name))
 
         for source, packaged in pairs:
             with self.subTest(resource=source.name):
                 self.assertTrue(packaged.is_file())
                 self.assertEqual(packaged.read_bytes(), source.read_bytes())
+        self.assertEqual(self.schemas, self.closed_schemas)
 
 
 if __name__ == "__main__":

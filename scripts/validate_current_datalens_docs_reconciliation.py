@@ -21,7 +21,7 @@ SCHEMA_VERSION = "2026-06-30.current_docs_feature_policy.v1"
 DELTA_REPORT_NAME = "update_report_delta_2026-07-13.md"
 EXPECTED_FINAL_COUNTS = {"pages": 651, "chunks": 4999, "assets": 886, "manifest": 1545}
 EXPECTED_DELTA_COUNTS = {"changed": 12, "new": 3}
-EXPECTED_OPENAPI_SHA256 = "c0dec7cb5cd14da09a6fe3a9388201a6639f4ec97cf0e93e2a7888281537cc91"
+EXPECTED_OPENAPI_SHA256 = "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
 
 VALID_STATUSES = {
     "supported",
@@ -277,20 +277,20 @@ def build_clusters() -> list[dict[str, Any]]:
         _cluster(
             "workbook_access_basic",
             "Workbook access basic",
-            "guarded_plan_only",
+            "unsupported_explicit",
             [f"{base}/security/workbooks-access-basic.md", f"{base}/security/workbooks-access.md"],
-            "access binding planners",
-            "Workbook access changes require guarded plans and explicit approval.",
-            "Access docs inform policy; no blind permission mutation is generated.",
+            "reference only",
+            "Use DataLens or Yandex Cloud access management for workbook permission changes.",
+            "Permission mutation is outside the MCP route contract.",
         ),
         _cluster(
             "workbook_access_advanced",
             "Workbook access advanced",
-            "guarded_plan_only",
+            "unsupported_explicit",
             [f"{base}/security/workbooks-access-advanced.md"],
-            "access binding planners",
-            "Advanced workbook access is policy-aware but still guarded.",
-            "Permission changes remain outside default delivery and require explicit approval.",
+            "reference only",
+            "Advanced access changes are outside this MCP server.",
+            "Permission mutation is outside the MCP route contract.",
         ),
         _cluster(
             "embedded_objects",
@@ -352,7 +352,7 @@ def build_clusters() -> list[dict[str, Any]]:
             "supported",
             [f"{base}/charts/editor/widgets/advanced.md"],
             "editor_advanced route",
-            "Advanced widgets are the primary approved custom chart route.",
+            "Advanced widgets use the supported custom chart route.",
             "Bundle output must pass runtime contract validation before save/publish.",
         ),
         _cluster(
@@ -738,10 +738,10 @@ def validate(corpus_root: Path, *, strict: bool = False) -> dict[str, Any]:
             issues.append(f"final snapshot {key} mismatch: {actual_final_counts[key]} != {expected}")
     if asset_count != assets["current_count"]:
         issues.append(f"assets.jsonl count mismatch: {asset_count} != {assets['current_count']}")
-    if snapshot["api"].get("new_operations") != 88 or inventory["stats"]["operations"] != 88:
-        issues.append("OpenAPI operation count must be 88 for this update report")
-    if inventory["stats"]["paths"] != 88:
-        issues.append("OpenAPI path count must be 88 for this update report")
+    if snapshot["api"].get("new_operations") != 91 or inventory["stats"]["operations"] != 91:
+        issues.append("OpenAPI operation count must be 91 for this update report")
+    if inventory["stats"]["paths"] != 91:
+        issues.append("OpenAPI path count must be 91 for this update report")
     if str(inventory.get("openapi_sha256") or "") != EXPECTED_OPENAPI_SHA256:
         issues.append("OpenAPI SHA-256 does not match the current locked snapshot")
     if not validation_summary.get("required_checks_ok"):

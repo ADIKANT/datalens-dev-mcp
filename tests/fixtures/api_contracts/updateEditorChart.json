@@ -4,9 +4,8 @@
   "operation_id": "updateEditorChart",
   "path": "/rpc/updateEditorChart",
   "request_payload": {},
-  "request_schema_closure_hash": "c9a3c250668ba2151f0734828b7524559918adb5588a925f7fa11ada6dd66dc2",
+  "request_schema_closure_hash": "3cec941855ada8c527304f2d902c5169e9dd00804c401c009114c1771c6c64d5",
   "request_schema_closure_refs": [
-    "EntryAnnotationArg",
     "EntryUpdateMode",
     "UpdateEditorAdvancedChartNodeEntry",
     "UpdateEditorChartArgs",

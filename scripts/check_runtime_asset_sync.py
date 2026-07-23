@@ -15,6 +15,9 @@ RAW_PACKAGED_SUFFIXES = {".pdf", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".zip
 EXCLUDED_SOURCE_FILES = {
     "config/datalens_mcp.local.json",
 }
+SOURCE_ONLY_RESOURCES = {
+    "schemas/datalens-api/selected-openapi-schema-refs.json",
+}
 IGNORED_ASSET_FILES = {
     "__init__.py",
     "resource_manifest.json",
@@ -35,6 +38,8 @@ def expected_pairs() -> list[tuple[Path, Path]]:
             continue
         pairs.append((ROOT / rel, ASSETS_ROOT / rel))
     for rel in _source_files("schemas"):
+        if rel.as_posix() in SOURCE_ONLY_RESOURCES:
+            continue
         pairs.append((ROOT / rel, ASSETS_ROOT / rel))
     for rel in _source_files("templates"):
         pairs.append((ROOT / rel, ASSETS_ROOT / rel))

@@ -4,7 +4,7 @@
   "operation_id": "getEntriesRelations",
   "path": "/rpc/getEntriesRelations",
   "request_payload": {},
-  "request_schema_closure_hash": "1c6549444758c350507a01d512d0d3cd4287153c324712ea31fe79e6817882bd",
+  "request_schema_closure_hash": "61b9bc7b8381f6c0eae624f63cca151efebd34af50caf88361ca99f028580288",
   "request_schema_closure_refs": [
     "EntryScope",
     "GetEntriesRelationsArgs"
@@ -20,13 +20,11 @@
       }
     ]
   },
-  "response_schema_closure_hash": "fc4527e9ea2bb9cc9160a56dbdf88ea61f9916e4dd7b63bfcacd9591719736f2",
+  "response_schema_closure_hash": "dfb2f0ba860d1800495c097f747fa25f18f42cdd74610be32b3561e885cfb09f",
   "response_schema_closure_refs": [
-    "EntryPermissions",
     "EntryScope",
     "GetEntriesRelationsEntry",
-    "GetEntriesRelationsResult",
-    "SharedEntryPermissions"
+    "GetEntriesRelationsResult"
   ],
   "response_schema_hash": "d1a7d7196c41fc41464989b20eca58dff8b55fae6381d2b1768fd3cb4422a691",
   "response_schema_ref": "GetEntriesRelationsResult",

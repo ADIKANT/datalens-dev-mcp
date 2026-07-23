@@ -1,3 +1,4 @@
+import importlib.util
 import subprocess
 import sys
 import tempfile
@@ -7,6 +8,16 @@ import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def load_script_module(name: str):
+    path = ROOT / "scripts" / f"{name}.py"
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 class LocalRuntimeCleanupTests(unittest.TestCase):
@@ -57,6 +68,13 @@ class LocalRuntimeCleanupTests(unittest.TestCase):
             generated = root / "artifacts" / "validation"
             generated.mkdir(parents=True)
             (generated / "report.json").write_text("{}", encoding="utf-8")
+            (root / ".metadata-fetch" / "raw").mkdir(parents=True)
+            (root / ".metadata-fetch" / "raw" / "evidence.json").write_text("{}", encoding="utf-8")
+            (root / "memory-bank" / ".transactions").mkdir(parents=True)
+            (root / "memory-bank" / ".transactions" / "tx.json").write_text("{}", encoding="utf-8")
+            (root / "datalens_mapping").mkdir()
+            (root / "datalens_mapping" / "live.json").write_text("{}", encoding="utf-8")
+            (root / "RUN_STATE.md").write_text("local state\n", encoding="utf-8")
             output = root / "runtime.zip"
 
             result = subprocess.run(
@@ -84,6 +102,25 @@ class LocalRuntimeCleanupTests(unittest.TestCase):
             self.assertNotIn("datalens-dev-mcp/.env", names)
             self.assertNotIn("datalens-dev-mcp/artifacts/sql_performance/run.json", names)
             self.assertNotIn("datalens-dev-mcp/artifacts/validation/report.json", names)
+            self.assertNotIn("datalens-dev-mcp/.metadata-fetch/raw/evidence.json", names)
+            self.assertNotIn("datalens-dev-mcp/memory-bank/.transactions/tx.json", names)
+            self.assertNotIn("datalens-dev-mcp/datalens_mapping/live.json", names)
+            self.assertNotIn("datalens-dev-mcp/RUN_STATE.md", names)
+
+    def test_runtime_export_exclusions_cover_public_release_forbidden_paths(self):
+        exporter = load_script_module("export_clean_archive")
+        release_gate = load_script_module("check_public_release")
+
+        self.assertLessEqual(set(release_gate.FORBIDDEN_TOP_LEVEL), set(exporter.EXCLUDED_PREFIXES))
+        self.assertLessEqual(
+            {"/".join(parts) for parts in release_gate.FORBIDDEN_PATH_PREFIXES},
+            set(exporter.EXCLUDED_PREFIXES),
+        )
+        covered_root_files = {
+            *exporter.LOCAL_SECRET_FILES,
+            *exporter.EXCLUDED_ROOT_FILES,
+        }
+        self.assertLessEqual(set(release_gate.FORBIDDEN_ROOT_FILES), {item.lower() for item in covered_root_files})
 
 
 if __name__ == "__main__":

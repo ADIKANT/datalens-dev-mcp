@@ -330,7 +330,7 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "entry": "DataLens entry payload or plan payload. Must not contain secrets.",
     "sections": "Generated or hydrated Editor sections to validate before save or publish.",
     "allow_unknown_warnings": "Audited override for unknown runtime warnings only; known forbidden errors still block.",
-    "artifact_paths": "Editor JSON artifact paths inside project_root; mutually exclusive with entry and sections.",
+    "artifact_paths": "Editor or standalone HTML artifacts inside project_root; mutually exclusive with entry and sections.",
     "include_references": "Include full corpus reference rows instead of only the stable reference-set id and URLs.",
     "error_payload": "Structured DataLens source error payload to classify without secrets.",
     "config": "Route or object config payload. Must not contain secrets.",
@@ -392,6 +392,7 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
         "Explicit selector parameter, option-source, default, and reset contract. "
         "Required for production editor_js_control generation."
     ),
+    "html_page": "Standalone HTML document specification.",
     "maintenance_contract": (
         "Typed semantic maintenance contract compiled into guarded existing-object updates."
     ),
@@ -471,6 +472,7 @@ COMPACT_SCHEMA_DESCRIPTION_PARAMS = {
     "dashboard_name",
     "dataset_id",
     "dataset_alias",
+    "dataset_readbacks",
     "decision_id",
     "delivery_intent_text",
     "entry_ids",
@@ -479,6 +481,7 @@ COMPACT_SCHEMA_DESCRIPTION_PARAMS = {
     "environment",
     "error_payload",
     "execution_id",
+    "html_page",
     "include_dormant_summary",
     "include_guarded_writes",
     "include_references",
@@ -578,7 +581,6 @@ PARAM_OVERRIDES: dict[str, dict[str, Any]] = {
     "route": {
         "type": "string",
         "enum": [
-            "",
             "wizard_native",
             "wizard_map_native",
             "editor_advanced",
@@ -587,7 +589,6 @@ PARAM_OVERRIDES: dict[str, dict[str, Any]] = {
             "editor_js_control",
             "ql_explicit",
         ],
-        "default": "",
     },
     "target": {"type": "string", "enum": ["dashboard", "editor_chart", "wizard_chart", "dataset", "connection"], "default": "dashboard"},
     "scenario": {"type": "string", "enum": ["new_dashboard", "redesign_existing", "enhance_existing", "wizard_to_js"]},
@@ -962,7 +963,7 @@ def _all_tool_schemas() -> tuple[dict[str, Any], ...]:
             "dl_validate_chart_plan_against_requirements",
             "Validate chart plan metrics, fields, selectors, and chart families against persisted requirements.",
         ),
-        _tool_schema("dl_generate_editor_bundle", "Generate route-specific JS Editor bundle files."),
+        _tool_schema("dl_generate_editor_bundle", "Generate chart or HTML artifacts."),
         _tool_schema("dl_validate_project", "Run offline route/editor/artifact/privacy validation."),
         _tool_schema("dl_build_payload_plan", "Compile generated bundles into dry-run DataLens payload plan."),
         _tool_schema("dl_detect_project_adapter", "Detect standard bundle or unsupported custom project layout."),
