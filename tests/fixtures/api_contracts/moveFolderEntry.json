@@ -11,8 +11,9 @@
   "request_schema_hash": "fff2d5de074abc35ce10c70ac180d26dd3f5b83e7c57760742ef2d3c9cfe0d7a",
   "request_schema_ref": "MoveEntryArgs",
   "response_payload": {},
-  "response_schema_closure_hash": "2182e1f6acb4c01e77b0d3a347dc2e3d6b42a31eaa741a511eb7620454f35ca6",
+  "response_schema_closure_hash": "e42d571340b69d7d0f5f9037b26b8cc579b6503b1a7affed4174143f0408708f",
   "response_schema_closure_refs": [
+    "EntryScope",
     "MoveEntryResult",
     "MoveEntryResultEntry"
   ],

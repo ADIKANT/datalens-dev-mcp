@@ -38,6 +38,7 @@ class PortableRuntimeResourceTests(unittest.TestCase):
         self.assertEqual(declared["resources"], current)
         self.assertEqual(declared["resource_count"], len(current))
         self.assertNotIn("config/datalens_mcp.local.json", paths)
+        self.assertNotIn("schemas/datalens-api/selected-openapi-schema-refs.json", paths)
         for required in {
             "config/datalens_api_methods.json",
             "schemas/datalens-api/openapi.lock.json",

@@ -44,7 +44,19 @@ def select_authoring_recipe(intent_text: str = "", route: str = "", source_type:
             "конфликты бронирования ресурсов",
         )
     )
-    if explicit_schedule:
+    standalone_html = any(
+        phrase in text
+        for phrase in (
+            "generate html",
+            "html page",
+            "standalone html",
+            "интерактивная html",
+            "сгенерировать html",
+        )
+    )
+    if standalone_html:
+        recipe_id = "standalone_html_page"
+    elif explicit_schedule:
         recipe_id = "resource_schedule_exception"
     elif "api connector" in text or "api_connector" in text:
         recipe_id = "table_flat_api_connector"
@@ -90,6 +102,7 @@ def compact_recipe_for_payload(recipe: dict[str, Any]) -> dict[str, Any]:
         "official_status": recipe.get("official_status") or "",
         "local_policy_status": recipe.get("local_policy_status") or "",
         "implementation_status": recipe.get("implementation_status") or "",
+        "publication_status": recipe.get("publication_status") or "",
         "source_traces": recipe.get("source_traces") or [],
     }
 
@@ -106,6 +119,8 @@ def build_recipe_bundle(recipe_id: str) -> dict[str, Any]:
             "status": bundle.get("status") or "not_executable",
             "blocked_reason": recipe.get("implementation_status") or "documented_reference",
         }
+    if recipe_id == "standalone_html_page":
+        return _standalone_html_recipe_bundle(recipe)
     files = _bundle_files(recipe)
     fixture = _fixture_for(recipe_id)
     expected = _expected_for(recipe_id, fixture)
@@ -122,6 +137,40 @@ def build_recipe_bundle(recipe_id: str) -> dict[str, Any]:
             or recipe_id in {"resource_schedule_exception", "advanced_dom_d3", "notifications"},
             "algorithmic_bound": recipe.get("algorithmic_bound") or "",
             "cardinality_limits": recipe.get("cardinality_limits") or {},
+        },
+        "validation_checklist": recipe.get("validation_checklist") or [],
+    }
+
+
+def _standalone_html_recipe_bundle(recipe: dict[str, Any]) -> dict[str, Any]:
+    from datalens_dev_mcp.html_pages import render_standalone_html_page
+
+    fixture = {
+        "title": "Synthetic HTML report",
+        "summary": "Portable, responsive, and self-contained.",
+        "data": {"metrics": [{"label": "Quality", "value": 100}]},
+    }
+    rendered = render_standalone_html_page(fixture)
+    return {
+        "ok": rendered["ok"],
+        "recipe_id": recipe["recipe_id"],
+        "route": recipe["route"],
+        "files": {
+            "index.html": rendered["html"],
+            "fixture_input.json": fixture,
+            "expected_output.json": {
+                "strict_validation_ok": True,
+                "theme_and_language_supported": True,
+                "parent_message_protocols": ["EXPORT", "OPEN_URL"],
+                "public_upload_rpc": None,
+            },
+        },
+        "source_traces": recipe.get("source_traces") or [],
+        "constraints": {
+            "standalone_not_editor_generate_html": True,
+            "publication_status": recipe.get("publication_status") or "",
+            "bytes": rendered["bytes"],
+            "sha256": rendered["sha256"],
         },
         "validation_checklist": recipe.get("validation_checklist") or [],
     }

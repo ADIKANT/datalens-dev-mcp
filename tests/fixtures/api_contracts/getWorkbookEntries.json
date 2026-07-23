@@ -4,11 +4,12 @@
   "operation_id": "getWorkbookEntries",
   "path": "/rpc/getWorkbookEntries",
   "request_payload": {},
-  "request_schema_closure_hash": "899417a47f4c6910dd65c72b4143ff1c4780c4ae169057cd586e25b4b44897ac",
+  "request_schema_closure_hash": "dce30653e612af726c7647456036f06fc6182bac35519610088b644611c4845c",
   "request_schema_closure_refs": [
+    "EntryScope",
     "GetWorkbookEntriesArgs"
   ],
-  "request_schema_hash": "7412df5c30db9e10d8e092a174ea0a30a82e8b94b97271341c33aba9a273058b",
+  "request_schema_hash": "0c9f9b759e5d5afbf1746929fdc6884d76a0ed80b971c48bf62a5b7aa77e7ced",
   "request_schema_ref": "GetWorkbookEntriesArgs",
   "response_payload": {
     "entries": [
@@ -19,9 +20,10 @@
       }
     ]
   },
-  "response_schema_closure_hash": "4924c48a06fee8a3ea1d71ae20b4d49043e39c727721f1542454f3ff1710322d",
+  "response_schema_closure_hash": "f42cbab9a77d0d1753cd4e7a04889c4f4c9a0c9515ecb5ee53cf393239962450",
   "response_schema_closure_refs": [
     "EntryPermissions",
+    "EntryScope",
     "GetWorkbookEntriesEntry",
     "GetWorkbookEntriesResult"
   ],

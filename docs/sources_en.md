@@ -16,6 +16,7 @@ The server is based on official DataLens documentation, the public OpenAPI contr
 | API methods | [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) | Method names and request/response fields |
 | Editor | [Editor tabs](https://yandex.cloud/ru/docs/datalens/charts/editor/tabs) | JavaScript Editor object structure |
 | Editor runtime | [Editor methods](https://yandex.cloud/ru/docs/datalens/charts/editor/methods) | Validation of allowed `Editor.*` calls |
+| Standalone HTML | [`datalens-html-pages`](https://github.com/datalens-tech/datalens-skills/tree/main/skills/datalens-html-pages) | Sandbox/CSP, theme/lang, and parent-message protocols; not a Public API upload source |
 | Dashboards | [Dashboard model](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) | Tabs, widgets, selectors, relations, and layout |
 | Workbooks | [Workbooks and collections](https://yandex.cloud/ru/docs/datalens/workbooks-collections/) | Object location and access control |
 | Datasets | [Dataset documentation](https://yandex.cloud/ru/docs/datalens/dataset/) | Fields, relations, calculations, and data model |
@@ -56,6 +57,11 @@ Machine-readable generation data is stored in:
 - [`datalens-api/source-trace.json`](../schemas/datalens-api/source-trace.json).
 
 `dl_reference` uses these local records. Normal runtime does not download the documentation corpus.
+
+The public `datalens-tech/datalens-skills` repository is used only as a compact
+standalone-HTML authoring contract. Its raw skill, template, and eval corpus are
+not packaged. The reviewed source commit and hash are retained in the recipe
+and runtime result.
 
 ## Licenses and attribution
 

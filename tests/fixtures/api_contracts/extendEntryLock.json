@@ -1,0 +1,22 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "extendEntryLock",
+  "operation_id": "extendEntryLock",
+  "path": "/rpc/extendEntryLock",
+  "request_payload": {},
+  "request_schema_closure_hash": "4c0ec93f6387e693bfeea8ef892ede8b301f81cce484bbf58df2f43d7553882d",
+  "request_schema_closure_refs": [
+    "ExtendEntryLockArgs"
+  ],
+  "request_schema_hash": "fe5425ea6679fc3679b8b63ab289bedb0af5e0968d740e4e391d7c9a3e1c6514",
+  "request_schema_ref": "ExtendEntryLockArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "ff8b66880eeda3e56072cacaaa4d49d2591deb4459be85507cf5ebc3e2182c76",
+  "response_schema_closure_refs": [
+    "ExtendEntryLockResult"
+  ],
+  "response_schema_hash": "20cd59c80bc5b04609425529746addbddb0b4f0063a33ac17f63090f571bc877",
+  "response_schema_ref": "ExtendEntryLockResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "unsupported_explicit"
+}

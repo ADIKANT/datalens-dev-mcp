@@ -11,13 +11,12 @@
   "request_schema_hash": "8cde2b778dffa0dc44fdcfaec0ddf7339a6b0b28f45128e17ce67fd48626c4e6",
   "request_schema_ref": "CreateCollectionArgs",
   "response_payload": {},
-  "response_schema_closure_hash": "a23aa97f0c94246f4599c137a8185b8ae1b76b1b68b4d389b8b4514ba679a291",
+  "response_schema_closure_hash": "f4e371cd883171df39bf2ce6fc5523f30b26725dbdaa0c37795acec7df980d6a",
   "response_schema_closure_refs": [
-    "Collection",
     "CreateCollectionResult",
     "DatalensOperation"
   ],
-  "response_schema_hash": "ab6d0a3eefce232744bd066a435706cbb819b685cad4bc413c52dd43423ade87",
+  "response_schema_hash": "f15d2bbc9f5d8a447644650f732f483c46ea7d6e2683ee4ebf44a01c898e8664",
   "response_schema_ref": "CreateCollectionResult",
   "schema_version": "2026-06-30.api_contract_fixture.v1",
   "status": "unsupported_explicit"

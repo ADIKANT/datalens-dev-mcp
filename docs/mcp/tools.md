@@ -76,7 +76,13 @@
 
 - Required: ровно один из `entry`, `sections` или `artifact_paths`
 - Optional: `source`, `allow_unknown_warnings`, `project_root`, `include_references`
-- Проверяет структуру Editor, JavaScript и вызовы `Editor.*`. `artifact_paths` принимает до 100 JSON-файлов, отдельных `.js` или widget-директорий только внутри resolved project root; один файл не больше 2 MiB, все входы суммарно не больше 10 MiB. Идентичный payload и версия правил используют validation cache. По умолчанию возвращается стабильный `corpus_reference_set`; полный список доступен при `include_references=true`.
+- Проверяет структуру Editor, JavaScript и вызовы `Editor.*`.
+  `artifact_paths` также автоматически распознаёт standalone `.html`: для него
+  проверяются UTF-8/full-document shape, sandbox, CSP origins, blocked browser
+  APIs, theme/lang и parent message protocols. Editor-файл ограничен 2 MiB,
+  HTML — 10 MiB, все входы суммарно — 10 MiB. Идентичный Editor payload и
+  версия правил используют validation cache. Подробности:
+  [HTML generation](../datalens/html_pages.md).
 
 ### `dl_classify_source_error`
 
@@ -101,7 +107,7 @@
 ### `dl_generate_editor_bundle`
 
 - Required: —
-- Optional: `project_root`, `widget_id`, `route`, `authoring_profile`, `dataset_alias`, `columns`, `selector_contract`, `dataset_readbacks`, `context_ref`, `evidence_refs`
+- Optional: `project_root`, `widget_id`, `route`, `authoring_profile`, `dataset_alias`, `columns`, `selector_contract`, `dataset_readbacks`, `html_page`, `context_ref`, `evidence_refs`
 - Компилирует Wizard plan или Editor tabs по выбранному маршруту. Для
   `editor_js_control` production-вызов передаёт полный `selector_contract`;
   неполный контракт блокируется без выдуманных параметров или значений.
@@ -110,6 +116,10 @@
   `authoring_profile=standard_js` или manifest-профиль `standard_editor_v1`
   выбирает точный asset из стандартного реестра, сверяет SHA-256 набора
   шаблонов и результата и блокирует незарегистрированный fallback.
+- `html_page` взаимоисключающий с chart/selector inputs. Он создаёт полный
+  self-contained HTML artifact, проводит строгую sandbox/privacy-проверку и
+  возвращает только путь, размер и SHA-256. Standalone upload не выполняется:
+  в текущем Public API нет документированного create/upload RPC.
 
 ### `dl_validate_project`
 

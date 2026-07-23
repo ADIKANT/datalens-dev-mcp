@@ -54,9 +54,9 @@ EXPECTED_COUNTS = {
     "visualization_pages": 22,
     "troubleshooting_error_pages": 86,
     "release_note_pages": 31,
-    "openapi_operations": 88,
-    "openapi_paths": 88,
-    "openapi_component_schemas": 483,
+    "openapi_operations": 91,
+    "openapi_paths": 91,
+    "openapi_component_schemas": 487,
 }
 
 CLASSIFICATION_STATUSES = {
@@ -73,6 +73,7 @@ SOURCE_PRECEDENCE = [
     "current_official_documentation",
     "release_notes_and_dated_changes",
     "observed_live_runtime_evidence",
+    "public_datalens_skills_repository",
     "local_safety_governance_policy",
 ]
 
@@ -92,6 +93,7 @@ MANDATORY_RECIPE_IDS = [
     "cross_filter",
     "links",
     "notifications",
+    "standalone_html_page",
 ]
 
 BENCHMARK_QUERIES = [
@@ -102,6 +104,7 @@ BENCHMARK_QUERIES = [
     ("cross-filter", "recipe", "cross_filter"),
     ("selector", "recipe", "control_dynamic"),
     ("notification", "recipe", "notifications"),
+    ("standalone HTML page", "recipe", "standalone_html_page"),
     ("Editor.setRawData", "search", "Editor.setRawData"),
     ("dataset update envelope", "capability", "dataset_update"),
     ("LOD formula", "formula", "LOD"),
@@ -1703,6 +1706,53 @@ def build_recipes(corpus: dict[str, Any]) -> dict[str, Any]:
             source_contract="advanced_editor",
         ),
     ]
+    standalone_html = recipe(
+        "standalone_html_page",
+        "Standalone HTML page",
+        "standalone_html_artifact",
+        "html_page",
+        ["index.html"],
+        [
+            "complete_utf8_document",
+            "inline_data",
+            "theme_and_language_query_params",
+            "EXPORT_and_OPEN_URL_postMessage",
+            "strict_sandbox_validation",
+        ],
+        [
+            {
+                "source_url": (
+                    "https://github.com/datalens-tech/datalens-skills/blob/"
+                    "8fbb3aabac6b09d4c44f053fa63affea1dc386f7/skills/datalens-html-pages/SKILL.md"
+                ),
+                "mirror_path": "datalens-tech/datalens-skills/skills/datalens-html-pages/SKILL.md",
+                "anchor": "standalone-html-pages",
+                "chunk_id": (
+                    "github:datalens-tech/datalens-skills@"
+                    "8fbb3aabac6b09d4c44f053fa63affea1dc386f7#datalens-html-pages"
+                ),
+                "sha256": "5a6585649bdc052fe1db5acc9704a5737ec2de99916034d16bd6f210da787c3f",
+            }
+        ],
+        source_contract="standalone_html_sandbox",
+    )
+    standalone_html.update(
+        {
+            "official_status": "public_skill",
+            "local_policy_status": "allowed_local_artifact",
+            "publication_status": "blocked_without_documented_public_api",
+            "uses_generate_html": False,
+            "native_table_contract": False,
+            "validation_checklist": [
+                "complete_document_and_utf8",
+                "strict_sandbox_and_csp_contract",
+                "no_network_or_persistent_storage",
+                "responsive_theme_and_language",
+                "artifact_privacy_scan",
+            ],
+        }
+    )
+    recipes.append(standalone_html)
     return {"schema_version": COMPILER_VERSION, "recipes": recipes}
 
 
@@ -1799,11 +1849,20 @@ def recipe_aliases(recipe_id: str, title: str, source_contract: str) -> list[str
         "cross_filter": ["cross filter", "кросс фильтр", "chart chart filtration"],
         "links": ["dashboard links", "actions", "ссылки", "действия"],
         "notifications": ["notifications", "уведомления", "insights"],
+        "standalone_html_page": [
+            "generate html",
+            "html page",
+            "standalone html",
+            "интерактивная html страница",
+            "сгенерировать html",
+        ],
     }.get(recipe_id, [])
     return sorted(base | set(extra))
 
 
 def recipe_bundle_files(recipe_id: str, required_tabs: list[str]) -> list[str]:
+    if recipe_id == "standalone_html_page":
+        return ["expected_output.json", "fixture_input.json", "index.html"]
     files = ["meta.json", "params.js", "sources.js", "fixture_input.json", "expected_output.json"]
     if "Config" in required_tabs:
         files.append("config.js")
@@ -2308,6 +2367,17 @@ def build_route_capability_matrix(compiled: dict[str, Any]) -> dict[str, Any]:
         route_row("table_node", True, True, True, True, True, True, False, "Editor table contract and tests"),
         route_row("control_node", True, True, True, True, True, True, False, "Editor controls contract and tests"),
         route_row("markdown_node", True, True, True, True, True, True, False, "Editor markdown contract and tests"),
+        route_row(
+            "standalone_html_artifact",
+            False,
+            True,
+            True,
+            True,
+            False,
+            True,
+            False,
+            "Public skill contract; local generation and validation only because no Public API upload RPC is documented",
+        ),
         route_row("gravity_ui_chart", True, True, False, False, False, False, False, "missing safe MCP route contract"),
         route_row("wizard_native", True, True, True, True, True, True, False, "16 canonical templates plus matching fresh saved seeds"),
         route_row("regular_editor_chart", True, True, False, False, False, False, False, "not in closed route policy"),

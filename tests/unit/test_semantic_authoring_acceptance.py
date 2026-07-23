@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from datalens_dev_mcp.knowledge.formulas import parse_formula_expression, validate_formula_expression
+from datalens_dev_mcp.html_pages import validate_standalone_html_page
 from datalens_dev_mcp.knowledge.reference import build_reference_response
 from datalens_dev_mcp.knowledge.recipes import build_recipe_bundle, load_recipe_registry
 from datalens_dev_mcp.runtime_resources import resource_json
@@ -65,7 +66,11 @@ class SemanticAuthoringAcceptanceTests(unittest.TestCase):
             with self.subTest(recipe=recipe["recipe_id"]):
                 bundle = build_recipe_bundle(recipe["recipe_id"])
                 self.assertTrue(bundle["ok"], bundle)
-                self.assertIn("meta.json", bundle["files"])
+                if recipe["recipe_id"] == "standalone_html_page":
+                    self.assertIn("index.html", bundle["files"])
+                    self.assertTrue(validate_standalone_html_page(bundle["files"]["index.html"])["ok"])
+                else:
+                    self.assertIn("meta.json", bundle["files"])
                 self.assertIn("fixture_input.json", bundle["files"])
                 if "prepare.js" in bundle["files"]:
                     self._node_check(bundle["files"]["prepare.js"], node)

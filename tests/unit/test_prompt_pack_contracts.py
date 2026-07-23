@@ -268,14 +268,14 @@ class PromptPackDocsOpenApiContractsTests(unittest.TestCase):
         catalog = json.loads((assets / "config" / "datalens_api_methods.json").read_text(encoding="utf-8"))
         api_schemas = assets / "schemas" / "datalens-api"
         lock = json.loads((api_schemas / "openapi.lock.json").read_text(encoding="utf-8"))
-        schemas = json.loads((api_schemas / "selected-openapi-schema-refs.json").read_text(encoding="utf-8"))
+        schemas = json.loads((api_schemas / "closed-schema-bundle.json").read_text(encoding="utf-8"))["schemas"]
 
         methods = {item["method"]: item for item in catalog["methods"]}
         bulk_args = schemas["GetPermissionsBulkArgs"]["properties"]
 
-        self.assertEqual(catalog["operation_count"], 88)
-        self.assertEqual(lock["operation_count"], 88)
-        self.assertEqual(lock["component_schema_count"], 483)
+        self.assertEqual(catalog["operation_count"], 91)
+        self.assertEqual(lock["operation_count"], 91)
+        self.assertEqual(lock["component_schema_count"], 487)
         self.assertEqual(methods["getPermissionsBulk"]["mcp_tool"], "dl_rpc_readonly")
         self.assertEqual(methods["getPermissionsBulk"]["support_status"], "EXECUTABLE_TOOL_SUPPORTED")
         for key in ("entryIds", "workbookIds", "collectionIds"):

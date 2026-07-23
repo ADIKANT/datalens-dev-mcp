@@ -1,14 +1,14 @@
 {
   "compiler_version": "2026-06-25.semantic_authoring.v2",
   "content_hashes": {
-    "api_content_hash": "950a5bc436d6912e81be25946bdb99b0422dc1f38b16ee70d15199e1bdbebe1d",
+    "api_content_hash": "7c488d2bcabfabe3865844577678be595248b920ec2685b2d82f3a9fc5ff6f22",
     "asset_count": 886,
     "assets_content_hash": "4719cb457f410d44f23760ace51e1c095adaec59f366d2ac6f00de74bb26031f",
-    "generated_at": "2026-07-19T12:10:32.026583Z",
+    "generated_at": "2026-07-23T08:57:48.613960Z",
     "manifest_count": 1545,
-    "manifest_stable_hash": "78238ee97c3e05e5f3af7487be5108fd737b1e380fe3e55f8b9f2a8e19ca1bf2",
+    "manifest_stable_hash": "d0cd3204b0bcc3fbfc707d4f134538f8f3c762c83e0f7c201efa17a4520ccbef",
     "page_count": 651,
-    "pages_content_hash": "32870a8ea0dc568e7881907e5abb3a6b583d4b16847002f1fcb1683b895b3213"
+    "pages_content_hash": "8cd8bbd440e18e7c9bd15ea7b75824081682547cd7d1706fc36a89248d40c940"
   },
   "corpus_root_hint": "<DATALENS_DOCS_CORPUS_ROOT>",
   "counts": {
@@ -17,25 +17,26 @@
     "editor_pages": 20,
     "function_pages": 221,
     "manifest": 1545,
-    "openapi_component_schemas": 483,
-    "openapi_operations": 88,
-    "openapi_paths": 88,
+    "openapi_component_schemas": 487,
+    "openapi_operations": 91,
+    "openapi_paths": 91,
     "pages": 651,
     "release_note_pages": 31,
     "troubleshooting_error_pages": 86,
     "visualization_pages": 22
   },
-  "coverage_report_sha256": "0d99238464c5aa549c8037c9b0ee1db0b7bab8c0aa420845ab5a59ed7c10f24c",
-  "deterministic_hash": "7e57f31c4c6eded270e536f08c14f90a2096c8a8703b3930d3d70768e33154d1",
-  "latest_source_timestamp": "2026-07-19T12:10:31.828176Z",
-  "openapi_sha256": "c0dec7cb5cd14da09a6fe3a9388201a6639f4ec97cf0e93e2a7888281537cc91",
+  "coverage_report_sha256": "753a2b4a0f39e6a1d234851c424deeca4f73e85dbd60718987a57d112c1fd982",
+  "deterministic_hash": "9ad70895669846581786a064ee77ce577a970151508f8894b35849da0348de09",
+  "latest_source_timestamp": "2026-07-23T08:57:48.445725Z",
+  "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8",
   "schema_version": "2026-06-25.semantic_authoring.v2",
   "source_precedence": [
     "current_openapi",
     "current_official_documentation",
     "release_notes_and_dated_changes",
     "observed_live_runtime_evidence",
+    "public_datalens_skills_repository",
     "local_safety_governance_policy"
   ],
-  "validation_report_sha256": "570d72ea05ab20490af0d2f3c2462b24a3d640881bb8d9062441c7b818683ab1"
+  "validation_report_sha256": "552e0570e8e567bfc1a69e10c983d098958e4a2476082c57acc8e64c9b48b557"
 }

@@ -11,7 +11,7 @@
   "request_schema_hash": "17fb71e89fa26df00e8c12fe692d380f47b40d48dc7c85864425ce11e9367dc7",
   "request_schema_ref": "GetReportV1Args",
   "response_payload": {},
-  "response_schema_closure_hash": "94c1eb54636991a752bb05fed61a5f8292d08decb941a6c0c08177ae5e62ba15",
+  "response_schema_closure_hash": "f8eac298283957582bc606649dea9a037e338d29a11c9fe80799f4144867af12",
   "response_schema_closure_refs": [
     "DashboardMeta",
     "EntryAnnotation",

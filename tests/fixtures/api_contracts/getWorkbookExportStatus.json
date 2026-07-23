@@ -23,8 +23,9 @@
     "progress": 0,
     "status": "pending"
   },
-  "response_schema_closure_hash": "c9ce09de63536a928368d56c6aa0c99dc3d533251487e0059285bf64021459c1",
+  "response_schema_closure_hash": "60d727476559b185ff91900bc11360faa0f5969ff8ea3a77101b12de947c2d55",
   "response_schema_closure_refs": [
+    "EntryScope",
     "GetWorkbookExportStatusResult",
     "WorkbookTransferNotification",
     "WorkbookTransferNotificationLevel",

@@ -16,6 +16,7 @@
 | Методы API | [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) | Имена методов, поля запросов и ответов |
 | Editor | [Вкладки Editor](https://yandex.cloud/ru/docs/datalens/charts/editor/tabs) | Состав JavaScript-объекта Editor |
 | Editor runtime | [Методы Editor](https://yandex.cloud/ru/docs/datalens/charts/editor/methods) | Проверка разрешённых вызовов `Editor.*` |
+| Standalone HTML | [`datalens-html-pages`](https://github.com/datalens-tech/datalens-skills/tree/main/skills/datalens-html-pages) | Sandbox/CSP, theme/lang и parent message protocols; не источник Public API upload RPC |
 | Дашборды | [Устройство дашборда](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) | Вкладки, виджеты, селекторы, связи и компоновка |
 | Воркбуки | [Воркбуки и коллекции](https://yandex.cloud/ru/docs/datalens/workbooks-collections/) | Расположение объектов и управление доступом |
 | Датасеты | [Документация по датасетам](https://yandex.cloud/ru/docs/datalens/dataset/) | Поля, связи, вычисления и модель данных |
@@ -56,6 +57,11 @@
 - [`datalens-api/source-trace.json`](../schemas/datalens-api/source-trace.json).
 
 Сервер использует эти локальные данные для `dl_reference`; во время обычной работы загрузка корпуса документации не выполняется.
+
+Public `datalens-tech/datalens-skills` используется только как компактный
+authoring contract для standalone HTML. Сырой skill, его template и eval corpus
+не входят в пакет. Версия и hash источника закреплены в recipe и runtime
+результате.
 
 ## Лицензии и атрибуция
 

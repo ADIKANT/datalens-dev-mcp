@@ -11,15 +11,11 @@
   "request_schema_hash": "6f7b52ee1aacbeba16f1f80b635698fb5035a697f2325099605c6f7670eb76da",
   "request_schema_ref": "GetPermissionsBulkArgs",
   "response_payload": {},
-  "response_schema_closure_hash": "9295317a0ec3332010056bf068d8660a59673f4a1c315ddf8defe1b17591acb2",
+  "response_schema_closure_hash": "62e02964e19c105364e7bb5a7e404a249aa1ee6edcd0b7a28a104a9d706d6963",
   "response_schema_closure_refs": [
-    "CollectionPermissions",
-    "EntryPermissions",
-    "GetPermissionsBulkResult",
-    "SharedEntryPermissions",
-    "WorkbookPermissions"
+    "GetPermissionsBulkResult"
   ],
-  "response_schema_hash": "3021db010c59087ca7471900e054499278bf284770cdd7c53536c3a4b7869680",
+  "response_schema_hash": "086545bfa95835309c152e6c6389b8508e8e42668d32ef2f90c3d4dd3f4d1dc2",
   "response_schema_ref": "GetPermissionsBulkResult",
   "schema_version": "2026-06-30.api_contract_fixture.v1",
   "status": "supported_tool"

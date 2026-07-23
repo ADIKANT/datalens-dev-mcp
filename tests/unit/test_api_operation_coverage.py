@@ -29,16 +29,16 @@ class ApiOperationCoverageTests(unittest.TestCase):
         report = self.validator.validate(strict=True)
 
         self.assertTrue(report["ok"], report["issues"])
-        self.assertEqual(report["checked"]["operation_count"], 88)
-        self.assertEqual(report["checked"]["path_count"], 88)
-        self.assertEqual(report["checked"]["fixture_count"], 88)
+        self.assertEqual(report["checked"]["operation_count"], 91)
+        self.assertEqual(report["checked"]["path_count"], 91)
+        self.assertEqual(report["checked"]["fixture_count"], 91)
 
     def test_every_operation_has_stable_status_owner_and_fixture(self):
         records = self.policy["operations"]
 
-        self.assertEqual(len(records), 88)
-        self.assertEqual(len({record["operation_id"] for record in records}), 88)
-        self.assertEqual(len({record["path"] for record in records}), 88)
+        self.assertEqual(len(records), 91)
+        self.assertEqual(len({record["operation_id"] for record in records}), 91)
+        self.assertEqual(len({record["path"] for record in records}), 91)
         for record in records:
             self.assertIn(record["status"], self.policy["status_enum"])
             self.assertTrue(record["owning_mcp_tool"])
@@ -54,7 +54,15 @@ class ApiOperationCoverageTests(unittest.TestCase):
 
         self.assertTrue(listed["ok"])
         self.assertEqual(runtime_names, policy_names)
-        self.assertEqual(listed["method_count"], 88)
+        self.assertEqual(listed["method_count"], 91)
+
+    def test_entry_lock_operations_are_known_but_fail_closed(self):
+        by_method = {record["method_name"]: record for record in self.policy["operations"]}
+
+        for method in ("createEntryLock", "extendEntryLock", "deleteEntryLock"):
+            with self.subTest(method=method):
+                self.assertEqual(by_method[method]["status"], "unsupported_explicit")
+                self.assertEqual(by_method[method]["owning_mcp_tool"], "explicit_unavailable_method_spec")
 
 
 if __name__ == "__main__":

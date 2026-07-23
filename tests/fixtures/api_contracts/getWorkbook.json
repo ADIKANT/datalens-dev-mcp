@@ -11,13 +11,12 @@
   "request_schema_hash": "2a90bb5975c91b834c685b42126e53c1cfab82b754e8f14c39a5eed640d74290",
   "request_schema_ref": "GetWorkbookArgs",
   "response_payload": {},
-  "response_schema_closure_hash": "78da9dce8758a029577cb377de7d2678870595b0efab42b95fb90228196f1e2b",
+  "response_schema_closure_hash": "dc60be8bf383accc94b5838d8b10bc59ff8f67ae701748f26d1dd653581c954f",
   "response_schema_closure_refs": [
     "GetWorkbookResult",
-    "Workbook",
     "WorkbookPermissions"
   ],
-  "response_schema_hash": "e64a3804f76de7bf3dc55180fa2bbcaddc3be2dad450042953bb6acb43192ec1",
+  "response_schema_hash": "7cee7e4702979b07c2893bc5838eade539a1dacbd7b75f3fa6c1b9d78227a5bb",
   "response_schema_ref": "GetWorkbookResult",
   "schema_version": "2026-06-30.api_contract_fixture.v1",
   "status": "supported_tool"

@@ -11,9 +11,9 @@
   "request_schema_hash": "f6d2a601231097f75387308b8d9f53a8be2a3f0386870f90f698fbea2935cd52",
   "request_schema_ref": "ListDirectoryArgs",
   "response_payload": {},
-  "response_schema_closure_hash": "c840ccb42c3794f3991f3b51b990e04c27bfde489886cebe253da921423f908e",
+  "response_schema_closure_hash": "24ba518c8c0a3f19fd2a64235a7ea72477a6f5c2117708fbe6d8da854b3d6d02",
   "response_schema_closure_refs": [
-    "EntryPermissions",
+    "EntryScope",
     "ListDirectoryBreadCrumb",
     "ListDirectoryEntry",
     "ListDirectoryResult"

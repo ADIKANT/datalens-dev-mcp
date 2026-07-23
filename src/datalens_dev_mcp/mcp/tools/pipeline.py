@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import re
 from collections import OrderedDict
 from copy import deepcopy
 from pathlib import Path
@@ -19,6 +20,7 @@ from datalens_dev_mcp.editor.authoring_profiles import (
 )
 from datalens_dev_mcp.editor.bundle import generate_editor_bundle
 from datalens_dev_mcp.editor.payload_compiler import compile_editor_payload
+from datalens_dev_mcp.html_pages import render_standalone_html_page, validate_standalone_html_page
 from datalens_dev_mcp.knowledge.recipes import compact_recipe_for_payload, select_authoring_recipe
 from datalens_dev_mcp.mcp.response_projection import (
     project_connection_response,
@@ -106,7 +108,7 @@ from datalens_dev_mcp.validators.dashboard_payload import validate_dashboard_pay
 from datalens_dev_mcp.validators.advanced_editor_validator import validate_editor_runtime_contract
 from datalens_dev_mcp.validators.editor_sql_lint import lint_project_editor_sql
 from datalens_dev_mcp.validators.route_validator import validate_route_payload
-from datalens_dev_mcp.validators.security_validator import scan_path
+from datalens_dev_mcp.validators.security_validator import scan_path, scan_text
 
 PLACEHOLDER_TARGETS = {
     "",
@@ -594,8 +596,23 @@ def dl_generate_editor_bundle(
     columns: list[str] | None = None,
     selector_contract: dict[str, Any] | None = None,
     dataset_readbacks: list[dict[str, Any]] | None = None,
+    html_page: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     root = ensure_project_dirs(project_root)
+    if html_page is not None:
+        incompatible = bool(
+            str(route or "").strip()
+            or str(authoring_profile or "").strip()
+            or str(dataset_alias or "").strip()
+            or columns is not None
+            or selector_contract is not None
+            or dataset_readbacks is not None
+        )
+        if incompatible:
+            raise ValueError(
+                "html_page is mutually exclusive with route, authoring_profile, dataset bindings, and selector inputs"
+            )
+        return _generate_standalone_html_artifact(root=root, page_id=widget_id, spec=html_page)
     profile = resolve_authoring_profile(
         project_root=root,
         requested_profile=authoring_profile,
@@ -855,6 +872,61 @@ def dl_generate_editor_bundle(
     return bundle
 
 
+def _generate_standalone_html_artifact(
+    *,
+    root: Path,
+    page_id: str,
+    spec: dict[str, Any],
+) -> dict[str, Any]:
+    normalized_id = str(page_id or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9._-]{0,126}[A-Za-z0-9])?", normalized_id):
+        raise ValueError("widget_id must be a safe 1..128 character artifact id")
+    rendered = render_standalone_html_page(spec)
+    privacy = scan_text(rendered["html"], source=f"html_pages/{normalized_id}.html")
+    if not rendered["ok"] or not privacy.ok:
+        return {
+            "ok": False,
+            "schema_version": rendered["schema_version"],
+            "kind": "standalone_html_page",
+            "generation_status": "blocked_validation",
+            "page_id": normalized_id,
+            "validation": rendered["validation"],
+            "privacy": {"ok": privacy.ok, "issues": privacy.issues},
+            "source_contract": rendered["source_contract"],
+        }
+    artifact_relative = Path("artifacts") / "html_pages" / f"{normalized_id}.html"
+    manifest_relative = Path("artifacts") / "html_pages" / f"{normalized_id}.manifest.json"
+    write_text(root / artifact_relative, rendered["html"])
+    manifest = {
+        "schema_version": rendered["schema_version"],
+        "kind": "standalone_html_page",
+        "page_id": normalized_id,
+        "artifact": {
+            "path": artifact_relative.as_posix(),
+            "bytes": rendered["bytes"],
+            "sha256": rendered["sha256"],
+        },
+        "validation": rendered["validation"],
+        "source_contract": rendered["source_contract"],
+    }
+    write_json(root / manifest_relative, manifest)
+    return {
+        "ok": True,
+        "schema_version": rendered["schema_version"],
+        "kind": "standalone_html_page",
+        "generation_status": "ready_local_artifact",
+        "page_id": normalized_id,
+        "artifact": manifest["artifact"],
+        "manifest_path": manifest_relative.as_posix(),
+        "validation": {
+            "ok": True,
+            "summary": rendered["validation"]["summary"],
+        },
+        "publication": rendered["source_contract"]["publication"],
+        "source_contract": rendered["source_contract"],
+    }
+
+
 def dl_validate_project(project_root: str = ".") -> dict[str, Any]:
     root = Path(project_root)
     cache_key = str(root.expanduser().resolve())
@@ -894,27 +966,85 @@ def dl_validate_project(project_root: str = ".") -> dict[str, Any]:
                 issues.extend(f"{wizard_plan_path}: generation blocked: {error}" for error in validation_errors)
             else:
                 issues.append(f"{wizard_plan_path}: generation blocked: {generation_status or 'invalid Wizard plan'}")
+    html_page_results = []
+    for html_path in sorted(root.glob("artifacts/html_pages/*.html")):
+        result = validate_standalone_html_page(
+            html_path.read_bytes(),
+            source=html_path.relative_to(root).as_posix(),
+            strict=True,
+        )
+        html_page_results.append(
+            {
+                "path": html_path.relative_to(root).as_posix(),
+                "ok": result["ok"],
+                "summary": result["summary"],
+                "sha256": result["sha256"],
+            }
+        )
+        for finding in result["findings"]:
+            if finding["severity"] in {"error", "warning"}:
+                issues.append(
+                    f"{html_path}: {finding['rule']}: {finding['message']}"
+                )
     relations_path = root / "artifacts" / "dashboard_object_relations.json"
     if bundle_paths and not relations_path.is_file():
         issues.append("artifacts/dashboard_object_relations.json is required when dashboard bundles exist")
     elif relations_path.is_file():
         relation_result = validate_dashboard_relations(read_json(relations_path, default={}))
         issues.extend([f"{relations_path}: {issue}" for issue in relation_result.issues])
-    dashboard_preflight = _run_dashboard_payload_preflight(root)
+    standalone_html_only = bool(html_page_results) and not bundle_paths and not wizard_plan_paths
+    if standalone_html_only:
+        dashboard_preflight = {
+            "ok": True,
+            "applicability": "not_applicable_standalone_html",
+            "checked_paths": [],
+            "issues": [],
+        }
+        write_json(root / "artifacts" / "dashboard_payload_preflight.json", dashboard_preflight)
+    else:
+        dashboard_preflight = _run_dashboard_payload_preflight(root)
     for issue in dashboard_preflight["issues"]:
         if issue.get("severity") == "error":
             issues.append(f"{issue.get('path')}: {issue.get('rule')}: {issue.get('message')}")
-    visual_quality = _run_renderer_visual_quality_preflight(root, bundle_paths)
+    if standalone_html_only:
+        visual_quality = {
+            "ok": True,
+            "applicability": "not_applicable_standalone_html",
+            "checked_paths": [],
+            "issues": [],
+        }
+        write_json(root / "artifacts" / "renderer_visual_quality.json", visual_quality)
+    else:
+        visual_quality = _run_renderer_visual_quality_preflight(root, bundle_paths)
     for issue in visual_quality["issues"]:
         if issue.get("severity") == "error":
             issues.append(f"{issue.get('path')}: {issue.get('rule')}: {issue.get('message')}")
-    sql_lint = lint_project_editor_sql(root)
-    sql_lint_report = sql_lint.to_dict()
+    if standalone_html_only:
+        sql_lint_report = {
+            "ok": True,
+            "applicability": "not_applicable_standalone_html",
+            "checked_paths": [],
+            "issues": [],
+        }
+    else:
+        sql_lint_report = lint_project_editor_sql(root).to_dict()
     write_json(root / "artifacts" / "editor_sql_lint.json", sql_lint_report)
     for issue in sql_lint_report["issues"]:
         if issue.get("severity") == "error":
             issues.append(f"{issue.get('path')}: {issue.get('rule')}: {issue.get('message')}")
-    sql_performance = validate_project_sql_performance(root)
+    if standalone_html_only:
+        sql_performance = {
+            "ok": True,
+            "schema_version": "2026-06-25.sql_performance.v1",
+            "applicability": "not_applicable_standalone_html",
+            "checked_sql_count": 0,
+            "sql_hashes": [],
+            "issues": [],
+            "reports": [],
+        }
+        write_json(root / "artifacts" / "sql_performance" / "project_semantic_validation.json", sql_performance)
+    else:
+        sql_performance = validate_project_sql_performance(root)
     for issue in sql_performance["issues"]:
         issues.append(f"sql_performance: {issue}")
     negative_drift = validate_no_negative_requirement_drift(root)
@@ -934,6 +1064,7 @@ def dl_validate_project(project_root: str = ".") -> dict[str, Any]:
             "routes",
             "editor_bundles",
             "wizard_payload_plans",
+            "standalone_html_pages",
             "dashboard_object_relations",
             "dashboard_payload_preflight",
             "renderer_visual_quality",
@@ -944,6 +1075,7 @@ def dl_validate_project(project_root: str = ".") -> dict[str, Any]:
         ],
         "dashboard_payload_preflight": dashboard_preflight,
         "renderer_visual_quality": visual_quality,
+        "standalone_html_pages": html_page_results,
         "static_sql_lint": sql_lint_report,
         "sql_performance_semantics": {
             "ok": sql_performance["ok"],

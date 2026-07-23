@@ -15,6 +15,7 @@ from datalens_dev_mcp.api.client import DataLensApiClient
 from datalens_dev_mcp.api.methods import compiled_api_version, openapi_lock_summary
 from datalens_dev_mcp.api.scheduler import record_cache_hit, scheduler_status
 from datalens_dev_mcp.config import DataLensConfig, use_api_defaults
+from datalens_dev_mcp.html_pages import HTML_PAGE_HARD_MAX_BYTES, validate_standalone_html_page
 from datalens_dev_mcp.local_config import load_local_config
 from datalens_dev_mcp.knowledge.reference import build_reference_response
 from datalens_dev_mcp.mcp.response_projection import serialized_metadata, stable_json_text
@@ -280,7 +281,7 @@ def _validate_editor_artifacts(
 ) -> dict[str, Any]:
     if not artifact_paths or len(artifact_paths) > EDITOR_ARTIFACT_MAX_COUNT:
         raise ValueError(
-            f"artifact_paths must contain between 1 and {EDITOR_ARTIFACT_MAX_COUNT} JSON, JS, or widget-directory paths"
+            f"artifact_paths must contain between 1 and {EDITOR_ARTIFACT_MAX_COUNT} JSON, JS, HTML, or widget-directory paths"
         )
     root = Path(project_root).expanduser().resolve()
     resolved: list[tuple[str, Path, str]] = []
@@ -304,14 +305,19 @@ def _validate_editor_artifacts(
                     raise ValueError(f"Editor tab exceeds {EDITOR_ARTIFACT_MAX_BYTES} bytes: {tab_path}")
                 total_bytes += byte_count
             kind = "widget_directory"
-        elif path.is_file() and path.suffix.lower() in {".json", ".js"}:
+        elif path.is_file() and path.suffix.lower() in {".json", ".js", ".html"}:
             byte_count = path.stat().st_size
-            if byte_count > EDITOR_ARTIFACT_MAX_BYTES:
-                raise ValueError(f"Editor artifact exceeds {EDITOR_ARTIFACT_MAX_BYTES} bytes: {raw_path}")
+            max_bytes = HTML_PAGE_HARD_MAX_BYTES if path.suffix.lower() == ".html" else EDITOR_ARTIFACT_MAX_BYTES
+            if byte_count > max_bytes:
+                raise ValueError(f"Runtime artifact exceeds {max_bytes} bytes: {raw_path}")
             total_bytes += byte_count
-            kind = "json" if path.suffix.lower() == ".json" else "javascript"
+            kind = {
+                ".json": "json",
+                ".js": "javascript",
+                ".html": "standalone_html_page",
+            }[path.suffix.lower()]
         else:
-            raise ValueError(f"Editor artifact must be JSON, JavaScript, or a widget directory: {raw_path}")
+            raise ValueError(f"Runtime artifact must be JSON, JavaScript, HTML, or a widget directory: {raw_path}")
         if total_bytes > EDITOR_ARTIFACT_TOTAL_MAX_BYTES:
             raise ValueError(f"Editor artifacts exceed {EDITOR_ARTIFACT_TOTAL_MAX_BYTES} total bytes")
         resolved.append((path.relative_to(root).as_posix(), path, kind))
@@ -320,20 +326,33 @@ def _validate_editor_artifacts(
     compact_items: list[dict[str, Any]] = []
     aggregate_findings: list[dict[str, Any]] = []
     for relative, path, kind in resolved:
-        payload = _load_editor_artifact_payload(path=path, relative=relative, kind=kind)
-        result = _cached_editor_validation(
-            payload,
-            source=relative,
-            allow_unknown_warnings=allow_unknown_warnings,
-        )
-        full_items.append({"path": relative, "result": result})
+        if kind == "standalone_html_page":
+            result = validate_standalone_html_page(
+                path.read_bytes(),
+                source=relative,
+                strict=not allow_unknown_warnings,
+            )
+        else:
+            payload = _load_editor_artifact_payload(path=path, relative=relative, kind=kind)
+            result = _cached_editor_validation(
+                payload,
+                source=relative,
+                allow_unknown_warnings=allow_unknown_warnings,
+            )
+        payload_sha256 = str(result.get("payload_sha256") or result.get("sha256") or "")
+        validation_cache = result.get("validation_cache") or {
+            "hit": False,
+            "strategy": "single_pass_html_parser",
+        }
+        full_items.append({"path": relative, "kind": kind, "result": result})
         compact_items.append(
             {
                 "path": relative,
+                "kind": kind,
                 "ok": result["ok"],
-                "payload_sha256": result["payload_sha256"],
+                "payload_sha256": payload_sha256,
                 "summary": result["summary"],
-                "validation_cache": result["validation_cache"],
+                "validation_cache": validation_cache,
             }
         )
         aggregate_findings.extend(

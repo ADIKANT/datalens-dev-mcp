@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import subprocess
 import zipfile
 
 
@@ -34,10 +35,21 @@ LOCAL_SECRET_FILES = {
 }
 LOCAL_SECRET_SUFFIXES = {".local.json", ".local.env"}
 EXCLUDED_PREFIXES = {
-    "artifacts",
     ".external",
+    ".metadata-fetch",
+    "artifacts",
+    "datalens_mapping",
+    "docs/knowledge_base",
+    "docs/reports",
+    "dry-runs",
+    "live-exports",
     "materials",
+    "memory-bank",
+    "raw",
+    "shareable",
+    "sync-local",
 }
+EXCLUDED_ROOT_FILES = {"RUN_STATE.md", "run_state.md"}
 
 
 def should_exclude(path: Path, root: Path, *, output_path: Path | None = None) -> bool:
@@ -48,6 +60,8 @@ def should_exclude(path: Path, root: Path, *, output_path: Path | None = None) -
     if any(part in ROOT_EXCLUDED_DIR_NAMES for part in parts):
         return True
     if rel in LOCAL_SECRET_FILES:
+        return True
+    if rel in EXCLUDED_ROOT_FILES:
         return True
     if path.name in EXCLUDED_FILE_NAMES:
         return True
@@ -64,6 +78,9 @@ def should_exclude(path: Path, root: Path, *, output_path: Path | None = None) -
 
 def iter_export_files(root: Path, *, output_path: Path | None = None) -> list[Path]:
     root = root.resolve()
+    git_files = _git_publication_files(root, output_path=output_path)
+    if git_files is not None:
+        return git_files
     files: list[Path] = []
     for path in sorted(root.rglob("*")):
         if should_exclude(path, root, output_path=output_path):
@@ -71,6 +88,30 @@ def iter_export_files(root: Path, *, output_path: Path | None = None) -> list[Pa
         if path.is_file():
             files.append(path)
     return files
+
+
+def _git_publication_files(root: Path, *, output_path: Path | None = None) -> list[Path] | None:
+    result = subprocess.run(
+        ["git", "-C", str(root), "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if result.returncode != 0:
+        return None
+    files: list[Path] = []
+    for raw in result.stdout.split(b"\0"):
+        if not raw:
+            continue
+        relative = Path(raw.decode("utf-8"))
+        if relative.is_absolute() or ".." in relative.parts:
+            raise RuntimeError(f"unsafe publication snapshot path: {relative}")
+        candidate = root / relative
+        if candidate.is_symlink():
+            raise RuntimeError(f"publication snapshot contains a symlink: {relative}")
+        if candidate.is_file() and not should_exclude(candidate, root, output_path=output_path):
+            files.append(candidate)
+    return sorted(set(files), key=lambda path: path.relative_to(root).as_posix())
 
 
 def export_archive(root: Path, output: Path, *, prefix: str = "datalens-dev-mcp") -> dict[str, object]:
@@ -93,6 +134,7 @@ def export_archive(root: Path, output: Path, *, prefix: str = "datalens-dev-mcp"
         "excluded": {
             "directories": sorted(ROOT_EXCLUDED_DIR_NAMES),
             "prefixes": sorted(EXCLUDED_PREFIXES),
+            "root_files": sorted(EXCLUDED_ROOT_FILES),
             "local_secret_files": sorted(LOCAL_SECRET_FILES),
         },
     }

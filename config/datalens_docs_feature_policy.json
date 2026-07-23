@@ -145,11 +145,11 @@
       "title": "Dashboard AI/reference tab"
     },
     {
-      "classification": "guarded_plan_only",
+      "classification": "unsupported_explicit",
       "id": "workbook_access_basic",
-      "mcp_surface": "access binding planners",
-      "runtime_contract": "Access docs inform policy; no blind permission mutation is generated.",
-      "server_decision": "Workbook access changes require guarded plans and explicit approval.",
+      "mcp_surface": "reference only",
+      "runtime_contract": "Permission mutation is outside the MCP route contract.",
+      "server_decision": "Use DataLens or Yandex Cloud access management for workbook permission changes.",
       "source_urls": [
         "https://docs.yandex.cloud/ru/ru/datalens/security/workbooks-access-basic.md",
         "https://docs.yandex.cloud/ru/ru/datalens/security/workbooks-access.md"
@@ -157,11 +157,11 @@
       "title": "Workbook access basic"
     },
     {
-      "classification": "guarded_plan_only",
+      "classification": "unsupported_explicit",
       "id": "workbook_access_advanced",
-      "mcp_surface": "access binding planners",
-      "runtime_contract": "Permission changes remain outside default delivery and require explicit approval.",
-      "server_decision": "Advanced workbook access is policy-aware but still guarded.",
+      "mcp_surface": "reference only",
+      "runtime_contract": "Permission mutation is outside the MCP route contract.",
+      "server_decision": "Advanced access changes are outside this MCP server.",
       "source_urls": [
         "https://docs.yandex.cloud/ru/ru/datalens/security/workbooks-access-advanced.md"
       ],
@@ -238,7 +238,7 @@
       "id": "editor_widgets_advanced",
       "mcp_surface": "editor_advanced route",
       "runtime_contract": "Bundle output must pass runtime contract validation before save/publish.",
-      "server_decision": "Advanced widgets are the primary approved custom chart route.",
+      "server_decision": "Advanced widgets use the supported custom chart route.",
       "source_urls": [
         "https://docs.yandex.cloud/ru/ru/datalens/charts/editor/widgets/advanced.md"
       ],
@@ -507,8 +507,8 @@
     "docs_new_pages": 3,
     "docs_removed_candidates": 0,
     "manifest_current_records": 1545,
-    "openapi_operations": 88,
-    "openapi_paths": 88,
+    "openapi_operations": 91,
+    "openapi_paths": 91,
     "validation_failure_count": 0,
     "validation_required_checks_ok": true
   },
@@ -518,9 +518,9 @@
     "applied_delta_report": "reports/update_report_delta_2026-07-13.md",
     "corpus_root_hint": "<DATALENS_DOCS_CORPUS_ROOT>",
     "mode": "apply-updates",
-    "openapi_sha256": "c0dec7cb5cd14da09a6fe3a9388201a6639f4ec97cf0e93e2a7888281537cc91",
+    "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8",
     "update_report": "reports/update_report.md",
-    "update_report_generated_at": "2026-07-13T13:37:44.377945Z"
+    "update_report_generated_at": "2026-07-23T08:52:16.413874Z"
   },
   "status_enum": [
     "guarded_plan_only",

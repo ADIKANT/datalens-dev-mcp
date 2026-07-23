@@ -59,6 +59,12 @@
     "response_schema_kind": "ref",
     "response_schema_ref": "CreateEmbeddingSecretResult"
   },
+  "createEntryLock": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateEntryLockArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CreateEntryLockResult"
+  },
   "createFolder": {
     "request_schema_kind": "ref",
     "request_schema_ref": "CreateFolderArgs",
@@ -137,6 +143,12 @@
     "response_schema_kind": "ref",
     "response_schema_ref": "DeleteEmbeddingSecretResult"
   },
+  "deleteEntryLock": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteEntryLockArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "DeleteEntryLockResult"
+  },
   "deleteFolder": {
     "request_schema_kind": "ref",
     "request_schema_ref": "DeleteFolderArgs",
@@ -178,6 +190,12 @@
     "request_schema_ref": "DlsSuggestArgs",
     "response_schema_kind": "ref",
     "response_schema_ref": "DlsSuggestResult"
+  },
+  "extendEntryLock": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "ExtendEntryLockArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "ExtendEntryLockResult"
   },
   "getAuditEntriesUpdates": {
     "request_schema_kind": "ref",

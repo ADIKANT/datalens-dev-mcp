@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-19T12:10:31.828176Z",
+  "generated_at": "2026-07-23T08:57:48.445725Z",
   "methods": [
     {
       "auth": [
@@ -240,6 +240,30 @@
       "support_reason": "No validated MCP workflow or payload contract is implemented.",
       "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD",
       "tag": "EmbeddingSecrets"
+    },
+    {
+      "auth": [
+        "IAM token",
+        "Organization ID",
+        "x-dl-api-version: 2"
+      ],
+      "description": "DataLens RPC method `createEntryLock`.",
+      "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createEntryLock",
+      "experimental": false,
+      "http_method": "POST",
+      "markdown_ref": null,
+      "mcp_route": "unsupported",
+      "mcp_tool": "",
+      "method": "createEntryLock",
+      "mode": "unsupported",
+      "path": "/rpc/createEntryLock",
+      "request_schema_ref": "CreateEntryLockArgs",
+      "response_schema_ref": "CreateEntryLockResult",
+      "source": "https://api.datalens.tech/json/",
+      "summary": "Create Entry Lock",
+      "support_reason": "No validated MCP workflow or payload contract is implemented.",
+      "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD",
+      "tag": "EntryLock"
     },
     {
       "auth": [
@@ -559,6 +583,30 @@
         "Organization ID",
         "x-dl-api-version: 2"
       ],
+      "description": "DataLens RPC method `deleteEntryLock`.",
+      "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteEntryLock",
+      "experimental": false,
+      "http_method": "POST",
+      "markdown_ref": null,
+      "mcp_route": "unsupported",
+      "mcp_tool": "",
+      "method": "deleteEntryLock",
+      "mode": "unsupported",
+      "path": "/rpc/deleteEntryLock",
+      "request_schema_ref": "DeleteEntryLockArgs",
+      "response_schema_ref": "DeleteEntryLockResult",
+      "source": "https://api.datalens.tech/json/",
+      "summary": "Delete Entry Lock",
+      "support_reason": "No validated MCP workflow or payload contract is implemented.",
+      "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD",
+      "tag": "EntryLock"
+    },
+    {
+      "auth": [
+        "IAM token",
+        "Organization ID",
+        "x-dl-api-version: 2"
+      ],
       "description": "DataLens RPC method `deleteFolder`.",
       "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteFolder",
       "experimental": false,
@@ -720,6 +768,30 @@
       "support_reason": "Curated read-only RPC can be called without enabling writes.",
       "support_status": "EXECUTABLE_TOOL_SUPPORTED",
       "tag": "Folder"
+    },
+    {
+      "auth": [
+        "IAM token",
+        "Organization ID",
+        "x-dl-api-version: 2"
+      ],
+      "description": "DataLens RPC method `extendEntryLock`.",
+      "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/extendEntryLock",
+      "experimental": false,
+      "http_method": "POST",
+      "markdown_ref": null,
+      "mcp_route": "unsupported",
+      "mcp_tool": "",
+      "method": "extendEntryLock",
+      "mode": "unsupported",
+      "path": "/rpc/extendEntryLock",
+      "request_schema_ref": "ExtendEntryLockArgs",
+      "response_schema_ref": "ExtendEntryLockResult",
+      "source": "https://api.datalens.tech/json/",
+      "summary": "Extend Entry Lock",
+      "support_reason": "No validated MCP workflow or payload contract is implemented.",
+      "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD",
+      "tag": "EntryLock"
     },
     {
       "auth": [
@@ -2115,7 +2187,7 @@
     }
   ],
   "openapi_version": "3.1.0",
-  "operation_count": 88,
+  "operation_count": 91,
   "required_api_header_version": "2",
   "schema_version": "2026-06-25.datalens_api_methods.v3",
   "source": "https://api.datalens.tech/json/",
@@ -2123,7 +2195,7 @@
     "EXECUTABLE_TOOL_SUPPORTED": 38,
     "PLAN_ONLY_SUPPORTED": 18,
     "READ_ONLY_REFERENCE": 22,
-    "UNSUPPORTED_NO_VALIDATED_METHOD": 10
+    "UNSUPPORTED_NO_VALIDATED_METHOD": 13
   },
   "tag_counts": {
     "Access": 1,
@@ -2136,6 +2208,7 @@
     "EmbeddingSecrets": 4,
     "Embeds": 4,
     "Entries": 3,
+    "EntryLock": 3,
     "Folder": 6,
     "Licensing": 4,
     "Navigation": 2,

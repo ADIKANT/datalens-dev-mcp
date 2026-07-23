@@ -34,8 +34,8 @@ class CurrentDataLensDocsReconciliationTests(unittest.TestCase):
         self.assertEqual(report["checked"]["chunks"], 4999)
         self.assertEqual(report["checked"]["assets"], 886)
         self.assertEqual(report["checked"]["new_pages"], 3)
-        self.assertEqual(report["checked"]["openapi_operations"], 88)
-        self.assertEqual(report["checked"]["openapi_paths"], 88)
+        self.assertEqual(report["checked"]["openapi_operations"], 91)
+        self.assertEqual(report["checked"]["openapi_paths"], 91)
 
     def test_required_clusters_and_new_pages_are_explicit(self):
         cluster_ids = {item["id"] for item in self.policy["clusters"]}
@@ -58,7 +58,7 @@ class CurrentDataLensDocsReconciliationTests(unittest.TestCase):
         reports = self.validator.load_update_reports(self.corpus_root)
         policy = self.validator.build_policy(self.corpus_root)
 
-        self.assertEqual(reports["snapshot_summary"]["docs"]["changed_count"], 1)
+        self.assertEqual(reports["snapshot_summary"]["docs"]["changed_count"], 4)
         self.assertEqual(reports["snapshot_summary"]["docs"]["new_count"], 0)
         self.assertEqual(reports["delta_summary"]["docs"]["changed_count"], 12)
         self.assertEqual(reports["delta_summary"]["docs"]["new_count"], 3)

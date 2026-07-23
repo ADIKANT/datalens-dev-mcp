@@ -17,8 +17,8 @@ PACKAGE_POLICY_PATH = ROOT / "src" / "datalens_dev_mcp" / "assets" / "config" / 
 DOC_PATH = ROOT / "docs" / "datalens" / "api_contract_coverage.md"
 FIXTURE_DIR = ROOT / "tests" / "fixtures" / "api_contracts"
 SCHEMA_VERSION = "2026-06-30.api_operation_policy.v1"
-EXPECTED_OPERATIONS = 88
-EXPECTED_PATHS = 88
+EXPECTED_OPERATIONS = 91
+EXPECTED_PATHS = 91
 
 VALID_STATUSES = {
     "supported_tool",

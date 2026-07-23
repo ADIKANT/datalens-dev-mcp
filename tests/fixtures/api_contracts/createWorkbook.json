@@ -11,13 +11,12 @@
   "request_schema_hash": "e65bc1afce4f01900fc2931a84ec7038591463bc4aa3b50bdb9c76f92807f4d4",
   "request_schema_ref": "CreateWorkbookArgs",
   "response_payload": {},
-  "response_schema_closure_hash": "cfbe555c35376be109ad4d24630ad70faebf5b001783f4a6c5d6b675bb11e86b",
+  "response_schema_closure_hash": "474cdc7a71a98fee1e0fda7e1aedcdaedd61d9d96242317a0ca2a50cf75337de",
   "response_schema_closure_refs": [
     "CreateWorkbookResult",
-    "DatalensOperation",
-    "Workbook"
+    "DatalensOperation"
   ],
-  "response_schema_hash": "f504d12d8ccf986230cbbb6cc205abb544ecf9c0abb26ad4f846706901afef9e",
+  "response_schema_hash": "0a140119dfdc152a5ad45a24e4115ebadaf4b84a603a51a5cefa58e53e36690f",
   "response_schema_ref": "CreateWorkbookResult",
   "schema_version": "2026-06-30.api_contract_fixture.v1",
   "status": "guarded_plan_only"

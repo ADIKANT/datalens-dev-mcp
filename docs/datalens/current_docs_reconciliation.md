@@ -1,6 +1,7 @@
 # Current DataLens Docs Reconciliation
 
-Machine-readable source and delta information is stored in the packaged provenance files described in [`docs/sources.md`](../sources.md).
+Source update report: `reports/update_report.md` generated at `2026-07-23T08:52:16.413874Z`.
+Applied delta report: `reports/update_report_delta_2026-07-13.md` generated at `2026-07-13T13:26:50.349248Z`.
 
 This file is a distilled policy matrix. It does not copy raw documentation pages into the repository.
 
@@ -12,7 +13,7 @@ This file is a distilled policy matrix. It does not copy raw documentation pages
 - New pages: `3`.
 - Removed candidates: `0`.
 - Failed page checks: `0`.
-- OpenAPI operations/paths: `88` / `88`.
+- OpenAPI operations/paths: `91` / `91`.
 - Required validation checks OK: `True`.
 
 ## New Pages Covered
@@ -46,7 +47,7 @@ This file is a distilled policy matrix. It does not copy raw documentation pages
 | `editor_tabs` | `supported` | Advanced Editor bundle generator | Generated payloads use current tab contracts for sources, params, prepare, and config. |
 | `editor_sources` | `supported` | Editor source validators and SQL diagnostics | Generated source SQL is statically linted and tied to source artifacts. |
 | `editor_code_helper` | `read_only` | dl_reference | AI helper docs are reference-only for authoring guidance. |
-| `editor_widgets_advanced` | `supported` | editor_advanced route | Advanced widgets use the primary supported custom chart route. |
+| `editor_widgets_advanced` | `supported` | editor_advanced route | Advanced widgets use the supported custom chart route. |
 | `editor_widgets_gravity_ui` | `unsupported_explicit` | dl_reference | Gravity UI Charts remain documented-reference only under local route policy. |
 | `editor_cross_filtration` | `guarded_plan_only` | selector and relation planning | Cross-filtration informs selector wiring and relation validation. |
 | `editor_notifications` | `supported` | Advanced Editor validator | Notification APIs are allowed only where current Editor runtime allows them. |
@@ -72,9 +73,11 @@ This file is a distilled policy matrix. It does not copy raw documentation pages
 
 ## Unsupported Or Reference-Only Decisions
 
-- `release_notes_2605`: StarRocks, mailings, shared objects, roles, cache invalidation, and non-visible tabs do not enable guessed mutations.
+- `release_notes_2605`: StarRocks, mailings, shared objects, roles, cache invalidation, and hidden tabs do not enable guessed mutations.
 - `dashboard_ai_widget`: Unsupported route returns explicit policy instead of a guessed payload.
 - `dashboard_ai_reference_tab`: Unsupported route remains explicit and tested.
+- `workbook_access_basic`: Permission mutation is outside the MCP route contract.
+- `workbook_access_advanced`: Permission mutation is outside the MCP route contract.
 - `embedded_objects`: No embedding secret or embed write route is exposed by default.
 - `roles`: Role docs do not enable permission mutation.
 - `editor_code_helper`: MCP does not depend on DataLens UI AI behavior.
