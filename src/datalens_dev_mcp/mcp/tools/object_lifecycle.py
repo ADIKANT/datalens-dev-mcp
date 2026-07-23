@@ -384,10 +384,23 @@ def dl_validate_object(
         }
     }
     result["execute_now"] = False
-    result["validation_result"] = {"executed": False}
+    result["validation_result"] = {
+        "executed": False,
+        "ok": True,
+        "applicability": "static_validation",
+    }
     if execute_validation:
         if plan["method"] != "validateDataset":
-            return _error("unsupported_validation", f"live validation is only available for validateDataset, not {plan['method']}")
+            result["validation_result"] = {
+                "executed": False,
+                "ok": True,
+                "applicability": "static_validation_only",
+                "reason": (
+                    "DataLens exposes live validate execution only for datasets; "
+                    f"{plan['method']} uses the completed static payload/runtime validation."
+                ),
+            }
+            return result
         try:
             active_client = client or DataLensApiClient(DataLensConfig.from_env())
             response = active_client.rpc("validateDataset", plan["payload"])

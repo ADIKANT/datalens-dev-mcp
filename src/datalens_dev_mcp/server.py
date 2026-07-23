@@ -344,7 +344,7 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "saved_readback_path": "Saved-branch readback artifact.",
     "workflow_name": "Manifest workflow name.",
     "overwrite_existing": "Allow the generated project manifest to replace an existing manifest.",
-    "target_workbook_id": "Target workbook id to include in a generated project manifest.",
+    "target_workbook_id": "Known target workbook id used by generated manifests and exact multi-object target locks.",
     "action": "Project-live action.",
     "execute_now": "Execute command.",
     "timeout_sec": "Command timeout seconds.",
@@ -391,6 +391,13 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "selector_contract": (
         "Explicit selector parameter, option-source, default, and reset contract. "
         "Required for production editor_js_control generation."
+    ),
+    "maintenance_contract": (
+        "Typed semantic maintenance contract compiled into guarded existing-object updates."
+    ),
+    "existing_update_actions": (
+        "Existing-object updates. Each action accepts a legacy full payload or an artifact-backed "
+        "readback_path plus desired_overlay."
     ),
     "dataset_readbacks": "Fresh dataset readbacks used to validate Wizard field GUID and role bindings.",
     "where_clause": "Optional bounded WHERE predicate for read-only data probes.",
@@ -468,6 +475,7 @@ COMPACT_SCHEMA_DESCRIPTION_PARAMS = {
     "delivery_intent_text",
     "entry_ids",
     "entries_payload",
+    "existing_update_actions",
     "environment",
     "error_payload",
     "execution_id",
@@ -479,6 +487,7 @@ COMPACT_SCHEMA_DESCRIPTION_PARAMS = {
     "local_config_path",
     "max_chars",
     "max_items",
+    "maintenance_contract",
     "method",
     "mode",
     "name",
@@ -500,6 +509,7 @@ COMPACT_SCHEMA_DESCRIPTION_PARAMS = {
     "sample_limit",
     "scenario",
     "scope",
+    "selector_contract",
     "snapshot_branch",
     "source_adapter",
     "summary_path",
@@ -647,39 +657,21 @@ LIFECYCLE_OBJECT_TYPE_SCHEMA = {
 }
 PUBLISH_OBJECT_TYPE_SCHEMA = {
     "type": "string",
-    "enum": ["dashboard", "editor_chart", "wizard_chart", "ql_chart"],
-    "description": "Saved-branch publish object type.",
+    "pattern": (
+        "^(dashboard|chart|(advanced_)?editor_chart|"
+        "(control|table|markdown|d3)(_node)?|wizard_chart|ql_chart)$"
+    ),
 }
 SELECTOR_CONTRACT_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
-    "description": (
-        "Complete Editor selector contract. Date ranges use either param or the "
-        "param_from/param_to pair; Params values are generated only as arrays of strings."
-    ),
     "properties": {
-        "param": {"type": "string", "minLength": 1},
-        "param_from": {"type": "string", "minLength": 1},
-        "param_to": {"type": "string", "minLength": 1},
-        "label": {"type": "string", "minLength": 1},
+        "param": {"type": "string"},
+        "param_from": {"type": "string"},
+        "param_to": {"type": "string"},
+        "label": {"type": "string"},
         "option_source": {"type": "string", "enum": ["static", "dataset", "dynamic", "none"]},
-        "options": {
-            "type": "array",
-            "items": {
-                "oneOf": [
-                    {"type": "string", "minLength": 1},
-                    {
-                        "type": "object",
-                        "additionalProperties": False,
-                        "required": ["title", "value"],
-                        "properties": {
-                            "title": {"type": "string", "minLength": 1},
-                            "value": {"type": "string", "minLength": 1},
-                        },
-                    },
-                ]
-            },
-        },
+        "options": {"type": "array"},
         "default_values": {"type": "array", "items": {"type": "string"}},
         "default_from": {"type": "string"},
         "default_to": {"type": "string"},
@@ -701,6 +693,46 @@ SELECTOR_CONTRACT_SCHEMA = {
             "not": {"required": ["param"]},
         },
     ],
+}
+DATE_RANGE_MAINTENANCE_CONTRACT_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": [
+        "kind",
+        "selector_readback_path",
+        "dashboard_readback_path",
+        "selector_object_id",
+        "dashboard_id",
+        "selector_contract",
+    ],
+    "properties": {
+        "kind": {"const": "date_range_selector_merge"},
+        "selector_readback_path": {"type": "string"},
+        "dashboard_readback_path": {"type": "string"},
+        "selector_object_id": {"type": "string"},
+        "dashboard_id": {"type": "string"},
+        "selector_contract": {
+            "type": "object",
+            "additionalProperties": {"type": "string"},
+            "required": [
+                "param_from",
+                "param_to",
+                "label",
+                "default_from",
+                "default_to",
+                "option_source",
+                "reset_behavior",
+            ],
+        },
+        "mounted_control_id": {"type": "string"},
+    },
+}
+EXISTING_UPDATE_ACTIONS_SCHEMA = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "required": ["object_type"],
+    },
 }
 MAINTENANCE_EVIDENCE_SCHEMA = {
     "type": "object",
@@ -749,6 +781,8 @@ MAINTENANCE_EVIDENCE_SCHEMA = {
 
 TOOL_PARAM_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
     ("dl_generate_editor_bundle", "selector_contract"): SELECTOR_CONTRACT_SCHEMA,
+    ("dl_create_safe_apply_plan", "maintenance_contract"): DATE_RANGE_MAINTENANCE_CONTRACT_SCHEMA,
+    ("dl_create_safe_apply_plan", "existing_update_actions"): EXISTING_UPDATE_ACTIONS_SCHEMA,
     ("dl_get_workbook_entries", "workbook_id"): {
         "type": "string",
         "minLength": 1,
@@ -837,6 +871,7 @@ TOOL_PARAM_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
     ("dl_plan_object_update", "object_type"): LIFECYCLE_OBJECT_TYPE_SCHEMA,
     ("dl_validate_object", "object_type"): LIFECYCLE_OBJECT_TYPE_SCHEMA,
     ("dl_plan_publish_from_saved", "object_type"): PUBLISH_OBJECT_TYPE_SCHEMA,
+    ("dl_create_publish_from_saved_plan", "object_type"): PUBLISH_OBJECT_TYPE_SCHEMA,
     ("dl_save_object_plan", "object_type"): LIFECYCLE_OBJECT_TYPE_SCHEMA,
     ("dl_publish_object_plan", "object_type"): PUBLISH_OBJECT_TYPE_SCHEMA,
     ("dl_plan_object_update", "lifecycle_operation"): {"type": "string", "enum": ["update"], "default": "update"},
@@ -948,7 +983,7 @@ def _all_tool_schemas() -> tuple[dict[str, Any], ...]:
         _tool_schema("dl_build_dashboard_source_availability_matrix", "Build Delta v7 supplied-evidence source availability matrix."),
         _tool_schema("dl_validate_source_availability_consumers", "Validate dashboard consumers against one source availability matrix."),
         _tool_schema("dl_plan_source_availability_patch", "Plan source availability corrections without querying source systems."),
-        _tool_schema("dl_create_safe_apply_plan", "Create a target-locked guarded safe-apply plan from the user request."),
+        _tool_schema("dl_create_safe_apply_plan", "Create a target-locked safe-apply plan from the user request."),
         _tool_schema("dl_execute_safe_apply", "Execute target-locked guarded safe apply when runtime write gates are enabled."),
         _tool_schema("dl_create_publish_from_saved_plan", "Create publish plan only from a saved-branch readback artifact."),
         _tool_schema("dl_readback_and_report", "Create readback summary and deployment report."),

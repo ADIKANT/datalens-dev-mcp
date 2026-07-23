@@ -23,6 +23,7 @@ class TargetLock:
     target_chart_id: str = ""
     target_object_type: str = ""
     target_object_key: str = ""
+    target_objects: list[dict[str, str]] = field(default_factory=list)
     evidence: list[str] = field(default_factory=list)
 
     @property
@@ -43,6 +44,7 @@ def create_target_lock(
     target_url: str = "",
     target_object_type: str = "",
     target_object_key: str = "",
+    target_objects: list[dict[str, Any]] | None = None,
 ) -> TargetLock:
     if isinstance(request, NormalizedUserRequest):
         normalized = request
@@ -56,6 +58,7 @@ def create_target_lock(
     chart_id = target_chart_id or normalized.target_chart_id
     object_type = target_object_type or normalized.target_object_type or ("dashboard" if dashboard_id else "chart" if chart_id else "")
     object_key = str(target_object_key or "").strip()
+    normalized_target_objects, target_objects_valid = _normalize_target_objects(target_objects or [])
     url = target_url or normalized.target_url
     source = _target_source(target_source, url=url, normalized=normalized)
     evidence = list(normalized.evidence)
@@ -67,12 +70,18 @@ def create_target_lock(
         evidence.append(f"target_chart_id:{chart_id}")
     if object_key:
         evidence.append(f"target_object_key:{object_key}")
+    evidence.extend(
+        f"action_target:{item['method']}:{item['object_id']}"
+        for item in normalized_target_objects
+    )
     status = _target_status(
         workbook_id=workbook_id,
         dashboard_id=dashboard_id,
         chart_id=chart_id,
         object_type=object_type,
         object_key=object_key,
+        target_objects=normalized_target_objects,
+        target_objects_valid=target_objects_valid,
     )
     payload = {
         "target_source": source,
@@ -82,6 +91,7 @@ def create_target_lock(
         "target_chart_id": chart_id,
         "target_object_type": object_type,
         "target_object_key": object_key,
+        "target_objects": normalized_target_objects,
     }
     return TargetLock(
         target_source=source,
@@ -91,6 +101,7 @@ def create_target_lock(
         target_chart_id=chart_id,
         target_object_type=object_type,
         target_object_key=object_key,
+        target_objects=normalized_target_objects,
         lock_hash=_hash_payload(payload),
         status=status,
         evidence=sorted(dict.fromkeys(evidence)),
@@ -103,18 +114,30 @@ def validate_action_target_lock(lock: TargetLock | dict[str, Any], action: dict[
     findings: list[str] = []
     if not lock_obj.known:
         findings.append(f"target lock is not locked: {lock_obj.status}")
-    for key, expected in (
-        ("workbook_id", lock_obj.target_workbook_id),
-        ("dashboard_id", lock_obj.target_dashboard_id),
-        ("chart_id", lock_obj.target_chart_id),
-    ):
-        if not expected:
-            continue
-        actual = observed.get(key)
-        if actual and actual != expected:
-            findings.append(f"{key} mismatch: expected {expected}, got {actual}")
-    if lock_obj.target_dashboard_id and not observed.get("dashboard_id") and not observed.get("chart_id"):
-        findings.append("action does not carry dashboard_id or chart_id target evidence")
+    if lock_obj.target_objects:
+        expected_targets = {
+            (item["method"], item["object_id"])
+            for item in lock_obj.target_objects
+        }
+        observed_target = (observed.get("method", ""), observed.get("object_id", ""))
+        if observed_target not in expected_targets:
+            findings.append(
+                "action target is outside the locked action set: "
+                f"{observed_target[0]}:{observed_target[1]}"
+            )
+    else:
+        for key, expected in (
+            ("workbook_id", lock_obj.target_workbook_id),
+            ("dashboard_id", lock_obj.target_dashboard_id),
+            ("chart_id", lock_obj.target_chart_id),
+        ):
+            if not expected:
+                continue
+            actual = observed.get(key)
+            if actual and actual != expected:
+                findings.append(f"{key} mismatch: expected {expected}, got {actual}")
+        if lock_obj.target_dashboard_id and not observed.get("dashboard_id") and not observed.get("chart_id"):
+            findings.append("action does not carry dashboard_id or chart_id target evidence")
     return {
         "ok": not findings,
         "target_lock_hash": lock_obj.lock_hash,
@@ -128,15 +151,37 @@ def validate_readback_target_lock(lock: TargetLock | dict[str, Any], readback: d
     lock_obj = _lock_obj(lock)
     observed = _extract_readback_ids(readback)
     findings: list[str] = []
-    if lock_obj.target_dashboard_id:
+    expected_object_ids = {
+        item["object_id"]
+        for item in lock_obj.target_objects
+        if item.get("object_id")
+    }
+    observed_object_ids = set(observed.get("object_ids") or [])
+    if expected_object_ids:
+        if not observed_object_ids:
+            findings.append("readback does not expose an action-set object identity")
+        extra = sorted(observed_object_ids - expected_object_ids)
+        if extra:
+            findings.append("readback exposes objects outside target lock: " + ", ".join(extra))
+    if lock_obj.target_dashboard_id and not lock_obj.target_objects:
         actual_dashboard = observed.get("dashboard_id")
         if actual_dashboard and actual_dashboard != lock_obj.target_dashboard_id:
             findings.append(f"dashboard_id mismatch: expected {lock_obj.target_dashboard_id}, got {actual_dashboard}")
-    if lock_obj.target_chart_id:
+        elif observed_object_ids and lock_obj.target_dashboard_id not in observed_object_ids and not lock_obj.target_objects:
+            findings.append(
+                f"dashboard_id mismatch: expected {lock_obj.target_dashboard_id}, "
+                f"got {', '.join(sorted(observed_object_ids))}"
+            )
+    if lock_obj.target_chart_id and not lock_obj.target_objects:
         actual_chart = observed.get("chart_id")
         if actual_chart and actual_chart != lock_obj.target_chart_id:
             findings.append(f"chart_id mismatch: expected {lock_obj.target_chart_id}, got {actual_chart}")
-    if not observed.get("dashboard_id") and not observed.get("chart_id"):
+        elif observed_object_ids and lock_obj.target_chart_id not in observed_object_ids and not lock_obj.target_objects:
+            findings.append(
+                f"chart_id mismatch: expected {lock_obj.target_chart_id}, "
+                f"got {', '.join(sorted(observed_object_ids))}"
+            )
+    if not observed.get("dashboard_id") and not observed.get("chart_id") and not observed_object_ids:
         findings.append("readback does not expose a dashboard or chart identity")
     return {
         "ok": not findings,
@@ -196,7 +241,15 @@ def _target_status(
     chart_id: str,
     object_type: str,
     object_key: str,
+    target_objects: list[dict[str, str]],
+    target_objects_valid: bool,
 ) -> TargetStatus:
+    if target_objects:
+        if not target_objects_valid:
+            return "ambiguous"
+        if not workbook_id:
+            return "missing"
+        return "locked"
     if dashboard_id and chart_id:
         return "ambiguous"
     if not (dashboard_id or chart_id) and not (object_type and object_key):
@@ -228,6 +281,7 @@ def _lock_obj(lock: TargetLock | dict[str, Any]) -> TargetLock:
         "target_chart_id": str(lock.get("target_chart_id") or ""),
         "target_object_type": str(lock.get("target_object_type") or ""),
         "target_object_key": str(lock.get("target_object_key") or ""),
+        "target_objects": _normalize_target_objects(lock.get("target_objects") or [])[0],
     }
     return TargetLock(
         target_source=source,  # type: ignore[arg-type]
@@ -237,6 +291,7 @@ def _lock_obj(lock: TargetLock | dict[str, Any]) -> TargetLock:
         target_chart_id=payload["target_chart_id"],
         target_object_type=payload["target_object_type"],
         target_object_key=payload["target_object_key"],
+        target_objects=payload["target_objects"],
         lock_hash=str(lock.get("lock_hash") or _hash_payload(payload)),
         status=status,  # type: ignore[arg-type]
         evidence=list(lock.get("evidence") or []),
@@ -249,33 +304,110 @@ def _extract_action_ids(action: dict[str, Any]) -> dict[str, str]:
     fresh = action.get("fresh_read_payload") if isinstance(action.get("fresh_read_payload"), dict) else {}
     readback = action.get("readback_payload") if isinstance(action.get("readback_payload"), dict) else {}
     values = {**payload, **entry, **fresh, **readback, **action}
+    dashboard_id = _first(values, "dashboardId", "dashboard_id")
+    chart_id = _first(values, "chartId", "chart_id", "entryId", "object_id")
     return {
+        "method": str(action.get("method") or ""),
+        "object_id": dashboard_id or chart_id,
         "workbook_id": _first(values, "workbookId", "workbook_id"),
-        "dashboard_id": _first(values, "dashboardId", "dashboard_id"),
-        "chart_id": _first(values, "chartId", "chart_id", "entryId", "object_id"),
+        "dashboard_id": dashboard_id,
+        "chart_id": chart_id,
     }
 
 
-def _extract_readback_ids(readback: dict[str, Any]) -> dict[str, str]:
+def _extract_readback_ids(readback: dict[str, Any]) -> dict[str, Any]:
     values: dict[str, Any] = dict(readback)
-    for key in ("dashboard", "chart", "entry", "object", "summary"):
+    object_ids: set[str] = set()
+    for key in ("dashboard", "chart", "entry", "object", "summary", "response"):
         item = readback.get(key)
         if isinstance(item, dict):
             values.update(item)
             nested = item.get("entry")
             if isinstance(nested, dict):
                 values.update(nested)
+    for key in ("charts", "objects", "entries"):
+        items = readback.get(key)
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            nested = item.get("entry")
+            if isinstance(nested, dict):
+                item = nested
+            response = item.get("response")
+            if isinstance(response, dict) and isinstance(response.get("entry"), dict):
+                item = response["entry"]
+            object_id = _first(item, "entryId", "entry_id", "dashboardId", "dashboard_id", "chartId", "chart_id", "id")
+            if object_id:
+                object_ids.add(object_id)
+    supplied_object_ids = readback.get("object_ids")
+    if isinstance(supplied_object_ids, list):
+        for item in supplied_object_ids:
+            if isinstance(item, dict):
+                object_id = _first(
+                    item,
+                    "entryId",
+                    "entry_id",
+                    "dashboardId",
+                    "dashboard_id",
+                    "chartId",
+                    "chart_id",
+                    "object_id",
+                    "id",
+                )
+            else:
+                object_id = str(item or "").strip()
+            if object_id:
+                object_ids.add(object_id)
     compact = readback.get("compact_graph")
     if isinstance(compact, dict):
         values.update(compact)
     branch_summary = readback.get("branch_summary")
     if isinstance(branch_summary, dict):
         values.update(branch_summary)
+    dashboard_id = _first(values, "dashboardId", "dashboard_id")
+    chart_id = _first(values, "chartId", "chart_id")
+    direct_entry_id = _first(values, "entryId", "entry_id", "id")
+    if dashboard_id:
+        object_ids.add(dashboard_id)
+    if chart_id:
+        object_ids.add(chart_id)
+    if direct_entry_id:
+        object_ids.add(direct_entry_id)
     return {
         "workbook_id": _first(values, "workbookId", "workbook_id"),
-        "dashboard_id": _first(values, "dashboardId", "dashboard_id", "entryId"),
-        "chart_id": _first(values, "chartId", "chart_id"),
+        "dashboard_id": dashboard_id or (direct_entry_id if "dashboard" in readback else ""),
+        "chart_id": chart_id,
+        "object_ids": sorted(object_ids),
     }
+
+
+def _normalize_target_objects(
+    target_objects: Any,
+) -> tuple[list[dict[str, str]], bool]:
+    if not isinstance(target_objects, list):
+        return [], False
+    normalized: list[dict[str, str]] = []
+    valid = True
+    for item in target_objects:
+        if not isinstance(item, dict):
+            valid = False
+            continue
+        method = str(item.get("method") or "").strip()
+        object_id = str(item.get("object_id") or item.get("id") or "").strip()
+        if not method or not object_id:
+            valid = False
+            continue
+        normalized.append({"method": method, "object_id": object_id})
+    normalized.sort(key=lambda item: (item["method"], item["object_id"]))
+    unique = {
+        (item["method"], item["object_id"])
+        for item in normalized
+    }
+    if len(unique) != len(normalized):
+        valid = False
+    return normalized, valid
 
 
 def _first(values: dict[str, Any], *keys: str) -> str:

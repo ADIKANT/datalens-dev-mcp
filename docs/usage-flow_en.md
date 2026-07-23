@@ -111,21 +111,52 @@ If publishing is hard-disabled with `DATALENS_MCP_LIVE_ALLOW_PUBLISH=0`, the ser
 current readback and relations
   -> planning and validation
   -> dl_create_safe_apply_plan
-  -> dl_execute_safe_apply
-  -> dl_readback_and_report for saved state
-  -> dl_create_publish_from_saved_plan
-  -> dl_execute_safe_apply
-  -> dl_readback_and_report for published state
+  -> dl_execute_safe_apply:
+       save the complete group
+       saved readback for the complete group
+       one all-object publish preflight
+       publish the complete group
+       published readback for the complete group
   -> verify the changed area in DataLens
 ```
 
 Publishing is built from the saved readback result. The server checks the ID, revision, and saved version before every write request.
+`dl_create_publish_from_saved_plan` is an explicit resume tool for a previously
+stopped saved artifact, not a required second plan in the normal flow.
 
 Prompt:
 
 > Fix `<OBJECT_TYPE>` `<OBJECT_ID>` in workbook `<WORKBOOK_ID>`: `<REQUIREMENT>`. Read current saved state and relations, plan and validate the change, save it, verify saved state, publish from the saved version, and verify the published result. Do not ask for another confirmation before save or publish. If UI verification is unavailable, state that limitation in the result.
 
 For a visible chart or dashboard change, final verification should cover the changed tab or object. API readback verifies structure; UI verification confirms rendering.
+
+## Fast path for merging date selectors
+
+When the selector and dashboard IDs are known, two static date controls can be
+merged with
+`maintenance_contract.kind=date_range_selector_merge`.
+
+```text
+exact selector saved-read + exact dashboard saved-read
+  -> one dl_create_safe_apply_plan with maintenance_contract
+  -> one dl_execute_safe_apply with saved/published readbacks
+  -> one targeted browser smoke and one capture
+```
+
+The contract takes two readback artifact paths, exact object IDs,
+`param_from`/`param_to`, label, defaults, `option_source=none`, reset policy,
+and an optional `mounted_control_id`. Without an explicit mount ID, exactly one
+mount may match the source selector ID. Dynamic or ambiguous JavaScript,
+mismatched IDs/revisions, multiple mounts, Params/default drift, and
+`updateControlsOnChange: true` on the canonical range block the plan before
+writing.
+
+The budget is two initial exact reads and at most 14 RPCs including
+save/readback/publish/readback, with one plan and one executor.
+`dl_snapshot_dashboard`, workbook inventory, dataset live validation, and
+reference search are outside this path. Runtime smoke must see one range,
+apply both boundaries, verify them after rerender and reload, check for no
+DOM/console errors, and store one capture.
 
 ## Delete a complete object
 

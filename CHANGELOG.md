@@ -22,6 +22,9 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Added a bounded semantic maintenance path for merging paired date selectors:
+  artifact-backed overlays, exact multi-object locks, all-object publish
+  preflight, grouped save/publish readbacks, and runtime-smoke requirements.
 - Reduced the standard tool-schema payload while preserving safety-critical
   parameter guidance.
 - Exposed validated Wizard/Editor bundle generation on the standard surface

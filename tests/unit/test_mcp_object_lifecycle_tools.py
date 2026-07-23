@@ -567,6 +567,39 @@ class McpObjectLifecycleToolTests(unittest.TestCase):
         self.assertEqual(publish["payload"]["mode"], "publish")
         self.assertFalse(publish["publish_separate"])
 
+    def test_editor_live_validation_request_reports_static_applicability(self):
+        from datalens_dev_mcp.mcp.tools.object_lifecycle import dl_validate_object
+
+        class NoRpcClient:
+            def rpc(self, method, payload):
+                raise AssertionError(f"unexpected RPC: {method} {payload}")
+
+        result = dl_validate_object(
+            "control_node",
+            {
+                "entry": {
+                    "entryId": "selector_synthetic",
+                    "revId": "rev_synthetic",
+                    "data": {
+                        "meta": "module.exports = {};",
+                        "params": "module.exports = {};",
+                        "sources": "module.exports = {};",
+                        "controls": "module.exports = {controls: []};",
+                        "prepare": "module.exports = {};",
+                    },
+                }
+            },
+            execute_validation=True,
+            client=NoRpcClient(),
+        )
+
+        self.assertTrue(result["ok"], result)
+        self.assertFalse(result["validation_result"]["executed"])
+        self.assertEqual(
+            result["validation_result"]["applicability"],
+            "static_validation_only",
+        )
+
     def test_docs_exist(self):
         from pathlib import Path
 

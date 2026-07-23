@@ -55,6 +55,21 @@ PUBLISH_OBJECT_METHODS: dict[str, dict[str, str]] = {
     "wizard_chart": {"read": "getWizardChart", "write": "updateWizardChart", "id_key": "chartId"},
     "ql_chart": {"read": "getQLChart", "write": "updateQLChart", "id_key": "chartId"},
 }
+EDITOR_PUBLISH_ALIASES = {
+    "chart",
+    "editor",
+    "editor_chart",
+    "advanced_editor",
+    "advanced_editor_chart",
+    "table",
+    "table_node",
+    "control",
+    "control_node",
+    "markdown",
+    "markdown_node",
+    "d3",
+    "d3_node",
+}
 CREATE_READBACK_ID_KEYS: dict[str, str] = {
     "getConnection": "connectionId",
     "getDashboard": "dashboardId",
@@ -203,6 +218,7 @@ def _default_action_target_lock(actions: list[dict[str, Any]]) -> dict[str, Any]
         "target_chart_id": single_object_id if "Chart" in single_method else "",
         "target_object_type": "safe_apply_action_set",
         "target_object_key": ",".join(target_ids),
+        "target_objects": targets,
         "target_url": "",
         "lock_hash": lock_hash,
         "status": "locked" if all_targets_known else "missing",
@@ -212,6 +228,49 @@ def _default_action_target_lock(actions: list[dict[str, Any]]) -> dict[str, Any]
             if item["object_id"]
         ],
     }
+
+
+def _target_action_set_issues(
+    target_lock: dict[str, Any],
+    actions: list[dict[str, Any]],
+) -> list[str]:
+    expected_raw = target_lock.get("target_objects")
+    if not isinstance(expected_raw, list) or not expected_raw:
+        return []
+    expected: list[tuple[str, str]] = []
+    issues: list[str] = []
+    for item in expected_raw:
+        if not isinstance(item, dict):
+            issues.append("target_lock.target_objects must contain objects")
+            continue
+        method = str(item.get("method") or "").strip()
+        object_id = str(item.get("object_id") or "").strip()
+        if not method or not object_id:
+            issues.append("target_lock.target_objects require method and object_id")
+            continue
+        expected.append((method, object_id))
+    actual: list[tuple[str, str]] = []
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        payload = _payload_for_action(action)
+        if _action_type(action, payload) not in {"update", "publish"}:
+            continue
+        actual.append(
+            (
+                str(action.get("method") or "").strip(),
+                _action_object_id(action, payload),
+            )
+        )
+    if len(set(expected)) != len(expected):
+        issues.append("target_lock.target_objects contain duplicate targets")
+    if len(set(actual)) != len(actual):
+        issues.append("safe apply actions contain duplicate locked targets")
+    if sorted(set(expected)) != sorted(set(actual)):
+        issues.append("safe apply actions do not exactly match target_lock.target_objects")
+    if str(target_lock.get("status") or "").strip().lower() != "locked":
+        issues.append("action-set target_lock status must be locked")
+    return issues
 
 
 def load_safe_apply_stage_value(
@@ -359,6 +418,7 @@ def validate_safe_apply_plan_exhaustive(plan: dict[str, Any]) -> dict[str, Any]:
     ):
         issues.append("safe apply plan has no changed actions")
     issues.extend(_transaction_group_issues(actions))
+    issues.extend(_target_action_set_issues(target_lock, actions))
     for index, action in enumerate(actions):
         action_issues: list[str] = []
         payload = _payload_for_action(action)
@@ -392,16 +452,17 @@ def validate_safe_apply_plan_exhaustive(plan: dict[str, Any]) -> dict[str, Any]:
                 action_issues.append(
                     f"action {index} update/publish target_lock status must not be {target_lock_status}"
                 )
-            locked_chart_id = str(target_lock.get("target_chart_id") or "").strip()
-            locked_dashboard_id = str(target_lock.get("target_dashboard_id") or "").strip()
-            if locked_chart_id and object_id and object_id != locked_chart_id:
-                action_issues.append(
-                    f"action {index} target object_id {object_id} does not match locked chart {locked_chart_id}"
-                )
-            if locked_dashboard_id and _is_dashboard_action(action) and object_id and object_id != locked_dashboard_id:
-                action_issues.append(
-                    f"action {index} target object_id {object_id} does not match locked dashboard {locked_dashboard_id}"
-                )
+            if not target_lock.get("target_objects"):
+                locked_chart_id = str(target_lock.get("target_chart_id") or "").strip()
+                locked_dashboard_id = str(target_lock.get("target_dashboard_id") or "").strip()
+                if locked_chart_id and object_id and object_id != locked_chart_id:
+                    action_issues.append(
+                        f"action {index} target object_id {object_id} does not match locked chart {locked_chart_id}"
+                    )
+                if locked_dashboard_id and _is_dashboard_action(action) and object_id and object_id != locked_dashboard_id:
+                    action_issues.append(
+                        f"action {index} target object_id {object_id} does not match locked dashboard {locked_dashboard_id}"
+                    )
         payload_mode = str(payload.get("mode") or action.get("mode", "save"))
         if payload_mode == "publish":
             action_issues.extend(_publish_source_issues(root=Path(str(plan.get("project_root") or ".")), action=action, index=index))
@@ -1570,7 +1631,12 @@ def apply_desired_overlay_to_fresh_readback(
     if _action_type(action, planned_payload) == "create":
         merged = deepcopy(planned_payload)
     else:
-        merged = _merge_overlay_value(fresh_readback, overlay)
+        merge_base = _request_shaped_fresh_readback(
+            method=method,
+            planned_payload=planned_payload,
+            fresh_readback=fresh_readback,
+        )
+        merged = _merge_overlay_value(merge_base, overlay)
         for key in REQUEST_CONTROL_IDENTITY_KEYS:
             if key in planned_payload:
                 merged[key] = deepcopy(planned_payload[key])
@@ -1578,7 +1644,14 @@ def apply_desired_overlay_to_fresh_readback(
     scope = str(action.get("change_scope") or "content").strip().lower()
     if _is_dashboard_action(action):
         if scope == "content":
-            _restore_fresh_geometry(merged, fresh_readback)
+            _restore_fresh_geometry(
+                merged,
+                _request_shaped_fresh_readback(
+                    method=method,
+                    planned_payload=planned_payload,
+                    fresh_readback=fresh_readback,
+                ),
+            )
         else:
             geometry_error = _geometry_expectation_error(action, fresh=fresh_readback, merged=merged)
             if geometry_error:
@@ -1594,6 +1667,22 @@ def apply_desired_overlay_to_fresh_readback(
             "wizard_visualization_token": _wizard_visualization_token(merged) if method == "updateWizardChart" else "",
         },
     }
+
+
+def _request_shaped_fresh_readback(
+    *,
+    method: str,
+    planned_payload: dict[str, Any],
+    fresh_readback: dict[str, Any],
+) -> dict[str, Any]:
+    if method not in {"updateDashboard", "updateEditorChart"}:
+        return deepcopy(fresh_readback)
+    if not isinstance(planned_payload.get("entry"), dict):
+        return deepcopy(fresh_readback)
+    candidate = _first_identity_candidate(deepcopy(fresh_readback))
+    if not isinstance(candidate, dict) or not candidate:
+        return deepcopy(fresh_readback)
+    return {"entry": candidate}
 
 
 def _merge_overlay_value(base: Any, overlay: Any) -> Any:
@@ -3246,14 +3335,13 @@ def _normalize_readback_branch(branch: str) -> str:
     return normalized
 
 
-def _normalize_publish_object_type(object_type: str) -> str:
+def normalize_publish_object_type(object_type: str) -> str:
     normalized = str(object_type or "").strip().lower().replace("-", "_")
-    aliases = {
-        "chart": "editor_chart",
-        "editor": "editor_chart",
-        "advanced_editor": "advanced_editor_chart",
-    }
-    return aliases.get(normalized, normalized)
+    return "editor_chart" if normalized in EDITOR_PUBLISH_ALIASES else normalized
+
+
+def _normalize_publish_object_type(object_type: str) -> str:
+    return normalize_publish_object_type(object_type)
 
 
 def _publish_plan_error(category: str, message: str) -> dict[str, Any]:
@@ -3408,7 +3496,7 @@ def _publish_source_issues(*, root: Path, action: dict[str, Any], index: int) ->
 def _saved_readback_identity(readback: dict[str, Any], *, object_id: str = "") -> dict[str, str]:
     candidates = _saved_readback_candidates(readback)
     requested_id = str(object_id or "").strip()
-    matched: list[dict[str, str]] = []
+    matched: list[tuple[dict[str, str], bool]] = []
     for candidate in candidates:
         candidate_object_id = str(
             candidate.get("entryId")
@@ -3430,15 +3518,20 @@ def _saved_readback_identity(readback: dict[str, Any], *, object_id: str = "") -
             continue
         if candidate_object_id or saved_rev_id or saved_id:
             matched.append(
-                {
-                    "object_id": candidate_object_id or requested_id,
-                    "saved_rev_id": saved_rev_id,
-                    "saved_id": saved_id,
-                }
+                (
+                    {
+                        "object_id": candidate_object_id or requested_id,
+                        "saved_rev_id": saved_rev_id,
+                        "saved_id": saved_id,
+                    },
+                    isinstance(candidate.get("data"), dict),
+                )
             )
+    full_matches = [item for item, complete in matched if complete]
+    identity_matches = full_matches or [item for item, _complete in matched]
     unique = {
         (item["object_id"], item["saved_rev_id"], item["saved_id"]): item
-        for item in matched
+        for item in identity_matches
         if item["object_id"] or item["saved_rev_id"] or item["saved_id"]
     }
     if requested_id:
@@ -3500,23 +3593,32 @@ def _saved_entry_completeness_issues(saved_entry: dict[str, Any], *, method: str
 
 def _saved_readback_candidates(readback: dict[str, Any]) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
+
+    def append_envelope(value: Any) -> None:
+        if not isinstance(value, dict):
+            return
+        nested = value.get("entry")
+        candidates.append(nested if isinstance(nested, dict) else value)
+
     for key in ("dashboard", "chart", "entry", "object"):
-        value = readback.get(key)
-        if isinstance(value, dict):
-            nested = value.get("entry")
-            candidates.append(nested if isinstance(nested, dict) else value)
-    charts = readback.get("charts")
-    if isinstance(charts, list):
-        for chart in charts:
-            if isinstance(chart, dict):
-                nested = chart.get("entry")
-                candidates.append(nested if isinstance(nested, dict) else chart)
-    objects = readback.get("objects")
-    if isinstance(objects, list):
-        for item in objects:
-            if isinstance(item, dict):
-                nested = item.get("entry")
-                candidates.append(nested if isinstance(nested, dict) else item)
+        append_envelope(readback.get(key))
+    response = readback.get("response")
+    if isinstance(response, dict):
+        append_envelope(response)
+        for key in ("dashboard", "chart", "entry", "object"):
+            append_envelope(response.get(key))
+    for key in ("charts", "objects", "entries"):
+        values = readback.get(key)
+        if isinstance(values, list):
+            for value in values:
+                append_envelope(value)
+    object_ids = readback.get("object_ids")
+    if isinstance(object_ids, list):
+        for value in object_ids:
+            if isinstance(value, dict):
+                append_envelope(value)
+            elif isinstance(value, str) and value.strip():
+                candidates.append({"entryId": value.strip()})
     summary = readback.get("summary")
     if isinstance(summary, dict):
         identity = summary.get("identity")

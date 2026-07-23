@@ -112,21 +112,52 @@ dl_runtime_status
 актуальное чтение и связи
   -> планирование и проверка
   -> dl_create_safe_apply_plan
-  -> dl_execute_safe_apply
-  -> dl_readback_and_report для saved
-  -> dl_create_publish_from_saved_plan
-  -> dl_execute_safe_apply
-  -> dl_readback_and_report для published
+  -> dl_execute_safe_apply:
+       save всей группы
+       saved readback всей группы
+       единый preflight публикации
+       publish всей группы
+       published readback всей группы
   -> проверка изменённой области в DataLens
 ```
 
 Публикация создаётся из результата контрольного чтения saved-версии. Сервер сверяет ID, ревизию и сохранённую версию перед каждым запросом записи.
+`dl_create_publish_from_saved_plan` нужен для явного возобновления уже
+остановленного цикла из сохранённого artifact, а не для штатного второго plan.
 
 Промпт:
 
 > Исправь `<OBJECT_TYPE>` `<OBJECT_ID>` в воркбуке `<WORKBOOK_ID>`: `<ТРЕБОВАНИЕ>`. Прочитай актуальную сохранённую версию и связи объекта, составь и проверь изменение, сохрани его, выполни контрольное чтение, опубликуй сохранённую версию и проверь опубликованный результат. Не запрашивай отдельное подтверждение перед сохранением или публикацией. Если проверка интерфейса недоступна, явно укажи это в результате.
 
 Для видимого изменения чарта или дашборда итоговая проверка должна охватывать изменённую вкладку или объект. Контрольное чтение API подтверждает структуру; проверка интерфейса подтверждает отображение.
+
+## Быстрый путь для объединения селекторов дат
+
+Если известны ID селектора и дашборда, два статических date-контрола можно
+объединить через
+`maintenance_contract.kind=date_range_selector_merge`.
+
+```text
+exact saved-read селектора + exact saved-read дашборда
+  -> один dl_create_safe_apply_plan с maintenance_contract
+  -> один dl_execute_safe_apply с saved/published readbacks
+  -> один целевой browser smoke и один capture
+```
+
+Контракт принимает пути к двум readback artifacts, точные object IDs,
+`param_from`/`param_to`, label, defaults, `option_source=none`, reset policy и
+необязательный `mounted_control_id`. Без явного mount ID допускается только
+единственное совпадение по source selector ID. План блокируется до записи при
+динамическом или неоднозначном JS, несовпавшем ID/revision, нескольких mounts,
+расхождении Params/defaults или `updateControlsOnChange: true` у канонического
+диапазона.
+
+Бюджет режима: два исходных exact-read, не более 14 RPC вместе с
+save/readback/publish/readback, один plan и один executor.
+`dl_snapshot_dashboard`, workbook inventory, dataset live validation и
+reference search в этот путь не входят. Runtime smoke должен увидеть один
+диапазон, применить обе границы, проверить их после перерисовки и reload,
+убедиться в отсутствии DOM/console errors и сохранить один capture.
 
 ## Удаление целого объекта
 
