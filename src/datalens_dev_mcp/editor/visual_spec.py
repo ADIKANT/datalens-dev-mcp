@@ -30,7 +30,7 @@ class RendererVisualSpec:
     advanced_runtime_budget: dict[str, Any]
     style_tokens: dict[str, Any] = field(default_factory=dict)
     runtime_constraints: dict[str, Any] = field(default_factory=dict)
-    schema_version: str = "2026-07-19.renderer_visual_spec.v2"
+    schema_version: str = "2026-07-23.renderer_visual_spec.v3"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -68,9 +68,15 @@ def build_renderer_visual_spec(
     }
     kpi_context = {
         "comparator": comparator,
+        "comparator_explicit": True,
         "implicit_comparator_default": False,
         "period_required": analytical_task == "kpi_monitoring",
         "sparkline_allowed": family in {"kpi_value_sparkline", "kpi_value_delta_sparkline"},
+        "surface": {
+            "background": "transparent_or_profile",
+            "border": "none_or_profile",
+            "shadow": False,
+        },
     }
     style_colors = dict(tokens.get("colors") or {})
     if "red_green_palette" in negative_requirements:
@@ -101,6 +107,7 @@ def build_renderer_visual_spec(
             "include_comparator": bool(comparator),
             "include_values": True,
             "comparison_interval_and_value": bool(comparator),
+            "bucket_label": "single_interval",
             "avoid_redundant_metric_name": True,
         },
         kpi_context=kpi_context,
@@ -224,6 +231,19 @@ def _color_spec(
             "positive": "",
             "negative": "",
             "alternative_pair": [colors.get("focus", "#2f80ed"), colors.get("warning", "#f9a825")],
+            "semantic_roles": {
+                "success": "",
+                "failure": "",
+                "warning": colors.get("warning", "#f9a825"),
+                "neutral": colors.get("neutral", "#c7ccd4"),
+                "focus": colors.get("focus", "#2f80ed"),
+                "comparison": colors.get("neutral_dark", "#8a919c"),
+                "track": colors.get("gridline", "#e5e7eb"),
+            },
+            "track_contract": {
+                "lighter_than_primary": True,
+                "distinct_from_focus_and_comparison": True,
+            },
             "reason": "red/green semantic palette was forbidden; use neutral or blue-orange contrast",
         }
     return {
@@ -232,6 +252,19 @@ def _color_spec(
         "semantic_allowed": semantic_allowed,
         "positive": colors.get("positive", "#2e7d32") if semantic_allowed else "",
         "negative": colors.get("negative", "#c62828") if semantic_allowed else "",
+        "semantic_roles": {
+            "success": colors.get("positive", "#2e7d32"),
+            "failure": colors.get("negative", "#c62828"),
+            "warning": colors.get("warning", "#f9a825"),
+            "neutral": colors.get("neutral", "#c7ccd4"),
+            "focus": colors.get("focus", "#2f80ed"),
+            "comparison": colors.get("neutral_dark", "#8a919c"),
+            "track": colors.get("gridline", "#e5e7eb"),
+        },
+        "track_contract": {
+            "lighter_than_primary": True,
+            "distinct_from_focus_and_comparison": True,
+        },
         "reason": "semantic direction declared" if semantic_allowed else "neutral first; no decorative color",
     }
 
@@ -253,6 +286,8 @@ def _label_spec(analytical_task: str, *, family: str, blocked: list[str]) -> dic
         or any(term in family_text for term in ("bar", "column", "line", "timeseries", "time_series"))
         or "legend" in blocked,
         "density_limit": "low_only",
+        "overflow_strategy": "wrap_or_expand",
+        "ellipsis": "explicit_only",
         "native_title_hint_only": True,
     }
 

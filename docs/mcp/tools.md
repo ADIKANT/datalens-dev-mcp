@@ -2,7 +2,7 @@
 
 [Пользовательский справочник на русском](../tools.md) · [User guide in English](../tools_en.md) · [Контракты ответов](response_contracts.md)
 
-Источник точной схемы установленной версии — ответ MCP `tools/list`. Стандартная поверхность содержит 38 инструментов. Все аргументы передаются как JSON-объект; неизвестные поля отклоняются схемой инструмента.
+Источник точной схемы установленной версии — ответ MCP `tools/list`. Стандартная поверхность содержит 39 инструментов. Все аргументы передаются как JSON-объект; неизвестные поля отклоняются схемой инструмента.
 
 ## Общие правила
 
@@ -81,7 +81,9 @@
   проверяются UTF-8/full-document shape, sandbox, CSP origins, blocked browser
   APIs, theme/lang и parent message protocols. Editor-файл ограничен 2 MiB,
   HTML — 10 MiB, все входы суммарно — 10 MiB. Идентичный Editor payload и
-  версия правил используют validation cache. Подробности:
+  версия правил используют validation cache. Findings `severity=warning`
+  advisory по умолчанию; блокируют только ошибки и warning rules, явно
+  перечисленные в `blocking_warning_rules` runtime-контракта. Подробности:
   [HTML generation](../datalens/html_pages.md).
 
 ### `dl_classify_source_error`
@@ -126,6 +128,16 @@
 - Required: —
 - Optional: `project_root`, `context_ref`, `evidence_refs`
 - Проверяет проектные файлы, маршруты, payload, SQL, связи и секреты. В одном процессе неизменившееся дерево файлов возвращает тот же проверенный отчёт по metadata-fingerprint; любое изменение дерева запускает полную проверку.
+
+### `dl_update_user_decision`
+
+- Required: `decision_text`
+- Optional: `project_root`, `decision_id`, `decision_patch`
+- Записывает читаемую коррекцию в `requirements/user_decisions.md`.
+  `decision_patch` дополнительно создаёт hash-bound ledger v2 со scope
+  `project`, `family` или `object`, metric/Visual Spec overlay, semantic roles
+  и `supersedes`. Неизвестные поля, роли и ссылки на отсутствующие решения
+  отклоняются до записи.
 
 ### `dl_build_payload_plan`
 
@@ -225,18 +237,20 @@
 ### `dl_run_project_live_dry_run`
 
 - Required: `project_root`
-- Optional: `workflow_name`, `execute_now`, `timeout_sec`, `execution_id`, `response_mode`, `inline_char_budget`
-- Запускает объявленную dry-run-команду и очищает stdout/stderr. При
-  `timeout_sec > 120` сразу возвращает `execution_id`; повторный вызов с этим ID
-  только проверяет исходный процесс.
+- Optional: `workflow_name`, `execute_now`, `timeout_sec`, `wait_for_completion_sec`, `execution_id`, `response_mode`, `inline_char_budget`
+- Запускает объявленную dry-run-команду через durable worker и очищает
+  stdout/stderr. `wait_for_completion_sec=0..30` задаёт время ожидания ответа;
+  незавершённый процесс возвращает `execution_id`. Повторный вызов с этим ID
+  или тем же execution key только проверяет исходный процесс.
 
 ### `dl_run_project_live_apply`
 
 - Required: `project_root`
-- Optional: `workflow_name`, `execute_now`, `publish`, `action`, `timeout_sec`, `execution_id`, `delivery_intent_text`, `confirm_delete`, `response_mode`, `inline_char_budget`
+- Optional: `workflow_name`, `execute_now`, `publish`, `action`, `timeout_sec`, `wait_for_completion_sec`, `execution_id`, `delivery_intent_text`, `confirm_delete`, `response_mode`, `inline_char_budget`
 - Запускает объявленное apply-действие. `confirm_delete` используется только
-  для `retire_legacy_objects` по совпадающему plan. Длительные действия
-  возвращают `execution_id` и опрашиваются без повторного запуска.
+  для `retire_legacy_objects` по совпадающему plan. Все действия имеют
+  heartbeat/deadline и атомарный result; polling после перезапуска MCP
+  продолжается без повторного запуска.
 
 ### `dl_read_project_live_summary`
 

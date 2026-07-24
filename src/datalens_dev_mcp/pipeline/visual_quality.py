@@ -49,6 +49,11 @@ def validate_visual_quality_contract(
     responsive_layout = spec.get("responsive_layout") if isinstance(spec.get("responsive_layout"), dict) else {}
     hint_contract = spec.get("hint_contract") if isinstance(spec.get("hint_contract"), dict) else {}
     layout_contract = spec.get("layout_contract") if isinstance(spec.get("layout_contract"), dict) else {}
+    semantic_roles_contract = (
+        spec.get("semantic_roles_contract")
+        if isinstance(spec.get("semantic_roles_contract"), dict)
+        else {}
+    )
 
     if _is_bar_like(family, analytical_task):
         direct_labels = bool(labels.get("direct_labels") or labels.get("show_values") or labels.get("showLabels"))
@@ -124,7 +129,11 @@ def validate_visual_quality_contract(
     for key in ("decorative_css", "shadows", "gradients", "three_d"):
         if runtime_constraints.get(key):
             findings.append(_finding("chartjunk_forbidden", f"$.runtime_constraints.{key}", f"{key} is forbidden"))
-    if spec.get("schema_version") == "2026-07-19.renderer_visual_spec.v2":
+    schema_version = str(spec.get("schema_version") or "")
+    if schema_version in {
+        "2026-07-19.renderer_visual_spec.v2",
+        "2026-07-23.renderer_visual_spec.v3",
+    }:
         findings.extend(
             _v2_renderer_contract_findings(
                 value_semantics=value_semantics,
@@ -143,12 +152,22 @@ def validate_visual_quality_contract(
                     "comparison tooltips must identify both intervals and both values",
                 )
             )
+        if schema_version == "2026-07-23.renderer_visual_spec.v3":
+            findings.extend(
+                _v3_renderer_contract_findings(
+                    colors=colors,
+                    labels=labels,
+                    tooltip=tooltip,
+                    kpi_context=kpi_context,
+                    semantic_roles_contract=semantic_roles_contract,
+                )
+            )
     elif spec:
         findings.append(
             _finding(
-                "renderer_visual_spec_v2_missing",
+                "renderer_visual_spec_current_contract_missing",
                 "$.schema_version",
-                "legacy visual spec has no responsive, formatting, and missing-value v2 contract",
+                "legacy visual spec has no current responsive, formatting, semantic-role, and missing-value contract",
                 severity="warning",
             )
         )
@@ -433,6 +452,111 @@ def _v2_renderer_contract_findings(
                     "a semantic no-op must not change dashboard geometry",
                 )
             )
+    return findings
+
+
+def _v3_renderer_contract_findings(
+    *,
+    colors: dict[str, Any],
+    labels: dict[str, Any],
+    tooltip: dict[str, Any],
+    kpi_context: dict[str, Any],
+    semantic_roles_contract: dict[str, Any],
+) -> list[VisualQualityFinding]:
+    findings: list[VisualQualityFinding] = []
+    semantic_roles = colors.get("semantic_roles") if isinstance(colors.get("semantic_roles"), dict) else {}
+    required_role_names = {
+        "success",
+        "failure",
+        "warning",
+        "neutral",
+        "focus",
+        "comparison",
+        "track",
+    }
+    if not required_role_names <= set(semantic_roles):
+        findings.append(
+            _finding(
+                "semantic_color_roles",
+                "$.colors.semantic_roles",
+                "visual spec v3 requires success, failure, warning, neutral, focus, comparison, and track roles",
+            )
+        )
+    track_contract = colors.get("track_contract") if isinstance(colors.get("track_contract"), dict) else {}
+    if (
+        track_contract.get("lighter_than_primary") is not True
+        or track_contract.get("distinct_from_focus_and_comparison") is not True
+        or (
+            semantic_roles.get("track")
+            and semantic_roles.get("track")
+            in {semantic_roles.get("focus"), semantic_roles.get("comparison")}
+        )
+    ):
+        findings.append(
+            _finding(
+                "semantic_track_contrast",
+                "$.colors.track_contract",
+                "track must be lighter and distinct from focus and comparison colors",
+            )
+        )
+    if labels.get("overflow_strategy") != "wrap_or_expand":
+        findings.append(
+            _finding(
+                "label_overflow_strategy",
+                "$.labels.overflow_strategy",
+                "labels must wrap or expand before truncation",
+            )
+        )
+    if labels.get("ellipsis") != "explicit_only":
+        findings.append(
+            _finding(
+                "label_ellipsis_policy",
+                "$.labels.ellipsis",
+                "ellipsis is allowed only when explicitly requested",
+            )
+        )
+    if tooltip.get("bucket_label") != "single_interval":
+        findings.append(
+            _finding(
+                "tooltip_bucket_label",
+                "$.tooltip.bucket_label",
+                "tooltip bucket labels must identify one exact interval",
+            )
+        )
+    surface = kpi_context.get("surface") if isinstance(kpi_context.get("surface"), dict) else {}
+    if (
+        kpi_context.get("comparator_explicit") is not True
+        or surface.get("background") != "transparent_or_profile"
+        or surface.get("border") != "none_or_profile"
+        or surface.get("shadow") is not False
+    ):
+        findings.append(
+            _finding(
+                "kpi_surface_defaults",
+                "$.kpi_context",
+                "KPI comparator and surface defaults must remain explicit and profile-controlled",
+            )
+        )
+    required = {str(item) for item in semantic_roles_contract.get("required") or []}
+    forbidden = {str(item) for item in semantic_roles_contract.get("forbidden") or []}
+    missing_required = sorted(role for role in required if not semantic_roles.get(role))
+    present_forbidden = sorted(role for role in forbidden if semantic_roles.get(role))
+    if missing_required:
+        findings.append(
+            _finding(
+                "required_semantic_roles",
+                "$.semantic_roles_contract.required",
+                "required semantic roles are not available: " + ", ".join(missing_required),
+            )
+        )
+    if present_forbidden:
+        findings.append(
+            _finding(
+                "forbidden_semantic_roles",
+                "$.semantic_roles_contract.forbidden",
+                "forbidden semantic roles remain active: " + ", ".join(present_forbidden),
+            )
+        )
     return findings
 
 

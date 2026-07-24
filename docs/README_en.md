@@ -14,7 +14,7 @@ These guides cover installation, DataLens access, and the complete workflow from
 | Prepare an IAM token, organization ID, and roles | [DataLens access](access_en.md) |
 | Connect Codex | [Codex setup](codex_setup_en.md) |
 | Connect Claude or another stdio client | [Client examples](../examples/clients/README.md) |
-| Find the right tool | [Guide to all 38 tools](tools_en.md) |
+| Find the right tool | [Guide to all 39 tools](tools_en.md) |
 | Create a standalone HTML artifact | [HTML generation for DataLens](datalens/html_pages_en.md) |
 | Audit without writing | [Read-only audit](usage-flow_en.md#read-only-audit) |
 | Build a plan without applying it | [Plan without writing](usage-flow_en.md#plan-without-writing) |
@@ -60,4 +60,4 @@ The user request selects the mode. Audits and diagnostics do not mutate DataLens
 - [DataLens API coverage](datalens/api_contract_coverage.md)
 - [Reference-data provenance](source_provenance.md)
 
-The standard `tools/list` contains 38 tools. Exact JSON schemas for the installed version are available directly through the MCP client and are summarized in the [technical catalog](mcp/tools.md).
+The standard `tools/list` contains 39 tools. Exact JSON schemas for the installed version are available directly through the MCP client and are summarized in the [technical catalog](mcp/tools.md).

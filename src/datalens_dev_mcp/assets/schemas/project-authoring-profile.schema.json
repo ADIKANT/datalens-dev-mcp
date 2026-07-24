@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/project-authoring-profile.schema.json",
+  "title": "Hash-locked project-local authoring profile",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "allowed_routes",
+    "family_registry",
+    "template_set_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "2026-07-23.project_authoring_profile.v1"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string"
+    },
+    "route_policy": {
+      "const": "project_registered_editor_family"
+    },
+    "template_policy": {
+      "const": "exact_registered_asset"
+    },
+    "fallback_policy": {
+      "const": "block"
+    },
+    "allowed_routes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "editor_advanced",
+          "editor_table",
+          "editor_markdown",
+          "editor_js_control"
+        ]
+      }
+    },
+    "family_registry": {
+      "type": "string",
+      "minLength": 1
+    },
+    "template_set_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "shared_assets": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "style_contract": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}

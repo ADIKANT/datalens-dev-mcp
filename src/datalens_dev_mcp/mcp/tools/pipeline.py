@@ -16,6 +16,7 @@ from datalens_dev_mcp.api.scheduler import record_cache_hit
 from datalens_dev_mcp.editor.authoring_profiles import (
     apply_authoring_profile_bundle,
     authoring_profile_route_decision,
+    load_project_authoring_profile_bundle,
     resolve_authoring_profile,
 )
 from datalens_dev_mcp.editor.bundle import generate_editor_bundle
@@ -40,6 +41,7 @@ from datalens_dev_mcp.pipeline.dashboard_relations import (
 )
 from datalens_dev_mcp.pipeline.deployment_report import build_deployment_report
 from datalens_dev_mcp.pipeline.delivery_intent import resolve_delivery_intent_from_env
+from datalens_dev_mcp.pipeline.decision_patches import apply_decision_contract_to_chart_plan
 from datalens_dev_mcp.pipeline.evidence_mode import choose_evidence_mode
 from datalens_dev_mcp.pipeline.governance import build_governance_brief
 from datalens_dev_mcp.pipeline.governance_bundle import build_governance_bundle
@@ -572,9 +574,19 @@ def dl_build_dashboard_blueprint_plan(project_root: str = ".") -> dict[str, Any]
     return build_dashboard_blueprint_plan(root)
 
 
-def dl_update_user_decision(project_root: str = ".", decision_text: str = "", decision_id: str = "") -> dict[str, Any]:
+def dl_update_user_decision(
+    project_root: str = ".",
+    decision_text: str = "",
+    decision_id: str = "",
+    decision_patch: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     root = ensure_project_dirs(project_root)
-    return update_user_decision(root, decision_text=decision_text, decision_id=decision_id)
+    return update_user_decision(
+        root,
+        decision_text=decision_text,
+        decision_id=decision_id,
+        decision_patch=decision_patch,
+    )
 
 
 def dl_summarize_implementation_plan(project_root: str = ".") -> dict[str, Any]:
@@ -591,7 +603,7 @@ def dl_generate_editor_bundle(
     project_root: str = ".",
     widget_id: str = "widget_001",
     route: str = "",
-    authoring_profile: str = "",
+    authoring_profile: str | dict[str, Any] = "",
     dataset_alias: str = "",
     columns: list[str] | None = None,
     selector_contract: dict[str, Any] | None = None,
@@ -679,6 +691,18 @@ def dl_generate_editor_bundle(
             "selection_origin": "authoring_profile_registered_template",
             "authoring_profile_id": profile["id"],
         }
+    patched_decision = apply_decision_contract_to_chart_plan(
+        root,
+        {
+            "widget_id": widget_id,
+            "family": requested_family,
+            "selected_family": requested_family,
+            "chart_decision_record": decision_record,
+        },
+    )
+    decision_record = patched_decision["chart_plan"]["chart_decision_record"]
+    decision["chart_decision_record"] = decision_record
+    decision["renderer_visual_spec"] = decision_record.get("renderer_visual_spec") or {}
     widget_title = str(
         decision.get("title")
         or decision_record.get("title")
@@ -787,18 +811,30 @@ def dl_generate_editor_bundle(
             contract_columns.append(str(value).strip())
     resolved_dataset_alias = dataset_alias.strip() or str(data_contract.get("dataset_alias") or "").strip()
     resolved_columns = list(columns) if columns is not None else contract_columns
-    bundle = generate_editor_bundle(
-        widget_id=widget_id,
-        route=selected_route,
-        title=widget_title,
-        dataset_alias=resolved_dataset_alias or None,
-        columns=resolved_columns,
-        markdown=intent_text or None,
-        selector_contract=selector_contract,
-        family=decision_record.get("selected_family") or decision.get("family"),
-        visual_spec=visual_spec,
-        chart_decision_record=decision_record,
-    )
+    if profile_route.get("active") and profile.get("source_kind") == "project_local":
+        bundle = load_project_authoring_profile_bundle(
+            profile=profile,
+            route_decision=profile_route,
+            widget_id=widget_id,
+            title=widget_title,
+            dataset_alias=resolved_dataset_alias or None,
+            columns=resolved_columns,
+            visual_spec=visual_spec,
+        )
+        bundle["chart_decision_record"] = decision_record
+    else:
+        bundle = generate_editor_bundle(
+            widget_id=widget_id,
+            route=selected_route,
+            title=widget_title,
+            dataset_alias=resolved_dataset_alias or None,
+            columns=resolved_columns,
+            markdown=intent_text or None,
+            selector_contract=selector_contract,
+            family=decision_record.get("selected_family") or decision.get("family"),
+            visual_spec=visual_spec,
+            chart_decision_record=decision_record,
+        )
     if profile_route.get("active"):
         bundle = apply_authoring_profile_bundle(
             bundle=bundle,
@@ -1362,6 +1398,7 @@ def dl_run_project_live_dry_run(
     workflow_name: str = "",
     execute_now: bool = False,
     timeout_sec: int = 120,
+    wait_for_completion_sec: int = 5,
     execution_id: str = "",
 ) -> dict[str, Any]:
     result = run_project_live_dry_run(
@@ -1369,6 +1406,7 @@ def dl_run_project_live_dry_run(
         workflow_name=workflow_name,
         execute_now=execute_now,
         timeout_sec=timeout_sec,
+        wait_for_completion_sec=wait_for_completion_sec,
         execution_id=execution_id,
     )
     result["evidence_mode_decision"] = choose_evidence_mode(
@@ -1394,6 +1432,7 @@ def dl_run_project_live_apply(
     publish: bool = False,
     action: str = "apply",
     timeout_sec: int = 120,
+    wait_for_completion_sec: int = 5,
     delivery_intent_text: str = "",
     confirm_delete: bool = False,
     execution_id: str = "",
@@ -1465,6 +1504,7 @@ def dl_run_project_live_apply(
         publish=publish,
         action=action,
         timeout_sec=timeout_sec,
+        wait_for_completion_sec=wait_for_completion_sec,
         execution_id=execution_id,
     )
     result["evidence_mode_decision"] = choose_evidence_mode(
@@ -1514,6 +1554,7 @@ def dl_run_project_live_apply(
             action=action,
             approved=bool(resume_context.get("approved", effective_authorized)),
             timeout_sec=timeout_sec,
+            wait_for_completion_sec=wait_for_completion_sec,
             delivery_intent_text=delivery_intent_text or ("implement" if auto_publish_after_completion else "save only"),
             apply_result=result,
         )
@@ -1612,6 +1653,7 @@ def _continue_project_live_publish(
     action: str,
     approved: bool,
     timeout_sec: int,
+    wait_for_completion_sec: int,
     delivery_intent_text: str,
     apply_result: dict[str, Any],
 ) -> dict[str, Any]:
@@ -1633,6 +1675,9 @@ def _continue_project_live_publish(
         publish=True,
         action=action,
         timeout_sec=timeout_sec,
+        wait_for_completion_sec=wait_for_completion_sec,
+        parent_execution_id=str(apply_result.get("execution_id") or ""),
+        parent_saved_summary_sha256=_project_live_summary_sha256(apply_result),
     )
     publish_result["delivery_intent_decision"] = _project_live_delivery_decision(
         publish_result,
@@ -1644,6 +1689,11 @@ def _continue_project_live_publish(
     if publish_result.get("status") != "running" and not _project_live_stage_passed(publish_result):
         blockers.extend(publish_result.get("blocked_reasons") or ["publish stage did not complete"])
     return _project_live_delivery_result(apply_result, publish_result, blockers)
+
+
+def _project_live_summary_sha256(result: dict[str, Any]) -> str:
+    summary = result.get("summary") if isinstance(result.get("summary"), dict) else {}
+    return serialized_metadata(summary)["sha256"] if summary else ""
 
 
 def _project_live_delivery_result(
@@ -2086,7 +2136,7 @@ def dl_create_safe_apply_plan(
         result = {
             "ok": False,
             "status": "payload_plan_blocked",
-            "schema_version": "2026-05-25.safe_apply_plan.v1",
+            "schema_version": "2026-07-23.safe_apply_plan.v2",
             "project_root": str(root),
             "actions": [],
             "blocked_reasons": ["payload_plan_has_blocking_issues"],

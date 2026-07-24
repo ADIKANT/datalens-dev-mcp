@@ -125,6 +125,26 @@ def short_error_detail(raw: str) -> str:
     return "; ".join(details) if details else json.dumps(sanitized, ensure_ascii=False)[:600]
 
 
+def remote_error_code(raw: str) -> str:
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return ""
+    if not isinstance(parsed, dict):
+        return ""
+    for key in ("code", "errorCode", "error_code", "status"):
+        value = parsed.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()[:120]
+    nested = parsed.get("error")
+    if isinstance(nested, dict):
+        for key in ("code", "errorCode", "error_code"):
+            value = nested.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()[:120]
+    return ""
+
+
 def is_validation_error(raw: str) -> bool:
     if "VALIDATION_ERROR" in raw:
         return True
@@ -293,6 +313,12 @@ class DataLensApiClient:
                 )
             except error.HTTPError as exc:
                 raw_text = exc.read().decode("utf-8", errors="replace")
+                error_details = {
+                    "http_status": int(exc.code),
+                    "remote_code": remote_error_code(raw_text),
+                    "request_phase": "response",
+                    "response_received": True,
+                }
                 if exc.code == 429:
                     retry_after = exc.headers.get("Retry-After") if exc.headers else None
                     backoff = _retry_after_seconds(
@@ -320,16 +346,22 @@ class DataLensApiClient:
                     raise DataLensApiError(
                         f"{method} failed with HTTP 401: auth_invalid_or_expired; "
                         f"compacted_payload_keys={compact_payload_keys(compacted_payload)}; "
-                        f"detail={short_error_detail(raw_text)}"
+                        f"detail={short_error_detail(raw_text)}",
+                        **error_details,
                     ) from exc
                 if exc.code == 400 and is_validation_error(raw_text):
                     raise DataLensApiError(
                         f"{method} failed with HTTP 400 VALIDATION_ERROR: {short_error_detail(raw_text)}; "
-                        f"compacted_payload_keys={compact_payload_keys(compacted_payload)}"
+                        f"compacted_payload_keys={compact_payload_keys(compacted_payload)}",
+                        remote_code=error_details["remote_code"] or "VALIDATION_ERROR",
+                        http_status=400,
+                        request_phase="response",
+                        response_received=True,
                     ) from exc
                 raise DataLensApiError(
                     f"{method} failed with HTTP {exc.code}: {short_error_detail(raw_text)}; "
-                    f"compacted_payload_keys={compact_payload_keys(compacted_payload)}"
+                    f"compacted_payload_keys={compact_payload_keys(compacted_payload)}",
+                    **error_details,
                 ) from exc
             except Exception as exc:
                 if (
@@ -342,17 +374,27 @@ class DataLensApiClient:
                     _transient_retry_pause(transient_attempts)
                     continue
                 if isinstance(exc, error.URLError):
-                    raise DataLensApiError(f"{method} failed before HTTP response: {exc.reason}") from exc
+                    raise DataLensApiError(
+                        f"{method} failed before HTTP response: {exc.reason}",
+                        request_phase="transport",
+                        response_received=False,
+                    ) from exc
                 if _is_transient_read_error(exc):
                     raise DataLensApiError(
-                        f"{method} failed before HTTP response: {exc.__class__.__name__}"
+                        f"{method} failed before HTTP response: {exc.__class__.__name__}",
+                        request_phase="transport",
+                        response_received=False,
                     ) from exc
                 raise
 
             try:
                 return json.loads(raw.decode("utf-8"))
             except json.JSONDecodeError as exc:
-                raise DataLensApiError(f"{method} returned non-JSON response.") from exc
+                raise DataLensApiError(
+                    f"{method} returned non-JSON response.",
+                    request_phase="response_decode",
+                    response_received=True,
+                ) from exc
 
     def _can_refresh_token(self) -> bool:
         return self.token_refresher is not None or self.config.token_refresh_enabled

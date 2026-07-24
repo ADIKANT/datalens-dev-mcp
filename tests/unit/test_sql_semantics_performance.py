@@ -233,7 +233,7 @@ class SqlSemanticsPerformanceTests(unittest.TestCase):
         names = {tool["name"] for tool in tools}
 
         self.assertEqual(names, STANDARD_TOOL_NAMES)
-        self.assertEqual(len(tools), 38)
+        self.assertEqual(len(tools), 39)
         compact_payload = json.dumps({"tools": tools}, ensure_ascii=False, separators=(",", ":"))
         self.assertLessEqual(len(compact_payload), 34_000)
         self.assertIn("dl_diagnose", names)

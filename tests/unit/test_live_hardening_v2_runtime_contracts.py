@@ -168,9 +168,17 @@ module.exports = {{
         rules = {finding["rule"] for finding in result["findings"]}
         layers = {finding["layer"] for finding in result["findings"]}
 
-        self.assertFalse(result["ok"])
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["summary"]["blocking_findings"], 0)
         self.assertIn("performance_diagnostics", layers)
         self.assertLessEqual({"wrapfn_argument_bytes", "heavy_loop_budget_risk", "data_multiplication_budget_risk"}, rules)
+        self.assertTrue(
+            all(
+                finding["blocking"] is False
+                for finding in result["findings"]
+                if finding["rule"] in rules
+            )
+        )
 
     def test_safe_apply_preflight_blocks_forbidden_editor_runtime_even_with_warning_override(self):
         plan = create_safe_apply_plan(

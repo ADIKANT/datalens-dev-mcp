@@ -34,3 +34,9 @@ Browser evidence версии `datalens.browser_capture.v2` фиксирует
 Каждый профиль подтверждает размеры viewport, привязку изменённых ID,
 отсутствие горизонтального overflow более 2 px, видимость без clipping и
 декодируемый screenshot с совпадающим SHA-256.
+
+Версия `datalens.browser_capture.v3` сохраняет этот контракт и дополнительно
+требует для каждого viewport явные массивы `truncated_text_object_ids` и
+`overlap_pairs`. Для успешного evidence оба массива пусты. Наличие обрезанного
+текста или пересечения объектов блокирует visual runtime gate. V1/V2 остаются
+доступны для чтения исторических evidence.

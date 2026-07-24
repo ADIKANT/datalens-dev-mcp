@@ -22,7 +22,7 @@ default_tools_approval_mode = "approve"
 - Логи, диагностические сведения и traceback пишутся в `stderr`.
 - `initialize` возвращает версию протокола, capabilities и server info.
 - `notifications/initialized` не создаёт ответ в stdout.
-- `tools/list` возвращает 38 инструментов с `name`, `description` и
+- `tools/list` возвращает 39 инструментов с `name`, `description` и
   `inputSchema`; избыточный `title` не передаётся.
 - `tools/call` возвращает MCP content и `isError`; прикладная ошибка кодируется как JSON с `ok: false`.
 

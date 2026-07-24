@@ -36,7 +36,7 @@ class PublicToolGuideTests(unittest.TestCase):
         for rel in ("docs/tools.md", "docs/tools_en.md"):
             text = (ROOT / rel).read_text(encoding="utf-8")
             rows = TOOL_ROW_RE.findall(text)
-            self.assertEqual(len(rows), 38, rel)
+            self.assertEqual(len(rows), 39, rel)
             self.assertEqual(len(rows), len(set(rows)), rel)
             self.assertEqual(set(rows), STANDARD_TOOL_NAMES, rel)
             table_rows = [line for line in text.splitlines() if TOOL_ROW_RE.match(line)]
@@ -44,7 +44,7 @@ class PublicToolGuideTests(unittest.TestCase):
 
     def test_public_schema_is_exact_and_has_no_approval_fields(self):
         tools = list_tools()
-        self.assertEqual(len(tools), 38)
+        self.assertEqual(len(tools), 39)
         self.assertEqual({tool["name"] for tool in tools}, STANDARD_TOOL_NAMES)
         forbidden = {"approved", "approval_source", "approved_plan_path", "approve_guid_changes"}
         for tool in tools:

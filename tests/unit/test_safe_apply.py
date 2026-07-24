@@ -331,9 +331,11 @@ class SafeApplyTests(unittest.TestCase):
         result = execute_safe_apply(plan, config=DataLensConfig(write_enabled=True), client=client)
 
         self.assertFalse(result["executed"])
-        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["status"], "partial")
         self.assertEqual(result["actions"][0]["error"]["category"], "readback_object_id_mismatch")
         self.assertTrue(result["actions"][0]["write_attempted"])
+        self.assertEqual(result["actions"][0]["write_outcome"], "confirmed_write")
+        self.assertEqual(result["actions"][0]["verification_outcome"], "mismatch")
 
     def test_safe_apply_exception_message_uses_shared_redaction(self):
         from datalens_dev_mcp.config import DataLensConfig

@@ -4,7 +4,7 @@
 
 [Быстрый старт](../README.md#быстрый-старт) · [Доступ к DataLens](access.md) · [Подключение](codex_setup.md) · **Инструменты** · [Сценарии](usage-flow.md) · [Источники](sources.md) · [Безопасность](local-only-safety-model.md) · [English](tools_en.md)
 
-Стандартный `tools/list` содержит **38 инструментов**. Точная JSON-схема каждого вызова доступна MCP-клиенту и приведена в [техническом каталоге](mcp/tools.md). Контракты общих ответов описаны в [response contracts](mcp/response_contracts.md).
+Стандартный `tools/list` содержит **39 инструментов**. Точная JSON-схема каждого вызова доступна MCP-клиенту и приведена в [техническом каталоге](mcp/tools.md). Контракты общих ответов описаны в [response contracts](mcp/response_contracts.md).
 
 Классы операций:
 
@@ -45,6 +45,7 @@
 | Инструмент | Назначение | Когда использовать | Необходимые данные | Результат и класс | Источник |
 | --- | --- | --- | --- | --- | --- |
 | `dl_generate_editor_bundle` | Компилирует Wizard/Editor bundle или standalone HTML artifact | После выбора визуализации либо при явном запросе HTML page | Chart inputs или взаимоисключающий `html_page` spec | Детерминированный artifact с SHA-256; HTML не возвращается inline · `локальная` | [Стандартные шаблоны](datalens/standard_chart_templates.md) · [HTML](datalens/html_pages.md) |
+| `dl_update_user_decision` | Записывает scoped коррекцию требований | После уточнения метрики, визуального правила или объекта | Текст решения и необязательный structured patch | Markdown + hash-bound decision ledger · `локальная запись` | [Проектный процесс](project_workflow.md#пользовательские-решения) |
 | `dl_validate_project` | Проверяет проектные файлы, запросы, SQL, связи и секреты | Перед сборкой плана применения | Project root и при необходимости ссылки на контекст | Отчёт с ошибками и предупреждениями · `локальная` | [Архитектура](architecture.md) |
 | `dl_build_payload_plan` | Собирает проверенные материалы в план запросов DataLens | После проектной и объектной проверки | Project root, цель и формулировка задачи | Методы, цели и данные запросов без записи · `локальная` | [Защищённое применение](safe-apply.md) |
 | `dl_build_validation_evidence_report` | Собирает результаты проверок по этапам | Перед передачей результата и после применения | Project root и пути к отчётам | Единый отчёт о подтверждённых этапах · `локальная` | [Контракты ответов](mcp/response_contracts.md) |
@@ -71,8 +72,8 @@
 | `dl_detect_project_live_workflows` | Находит manifest с командами проекта | Когда проект уже умеет проверять и применять изменения | `project_root` | Список найденных процессов или запрос на создание manifest · `локальная` | [Проектный процесс](project_workflow.md) |
 | `dl_plan_project_manifest` | Готовит или записывает manifest проекта | Когда manifest отсутствует | `project_root`, `write_manifest`, IDs целей при наличии | Предпросмотр или записанный manifest · `локальная` | [Проектный процесс](project_workflow.md) |
 | `dl_plan_project_live_workflow` | Разбирает выбранное действие без запуска | Перед dry-run или применением | Project root, workflow, action и задача | Команда, цели, окружение, отчёты и блокировки · `локальная` | [Проектный процесс](project_workflow.md) |
-| `dl_run_project_live_dry_run` | Запускает объявленную команду проверки | После просмотра плана | Project root, workflow и `execute_now` | Очищенный вывод и пути к отчётам · `локальная команда` | [Проектный процесс](project_workflow.md) |
-| `dl_run_project_live_apply` | Запускает или опрашивает объявленное сохранение/публикацию | Когда формулировка задачи требует применения | Project root, workflow/action либо `execution_id` | Итог или возобновляемый running ID · `защищённая запись` + `локальная команда` | [Проектный процесс](project_workflow.md) |
+| `dl_run_project_live_dry_run` | Запускает объявленную команду проверки | После просмотра плана | Project root, workflow, `execute_now`, ожидание `0..30` секунд | Очищенный итог или durable running ID · `локальная команда` | [Проектный процесс](project_workflow.md) |
+| `dl_run_project_live_apply` | Запускает или опрашивает объявленное сохранение/публикацию | Когда формулировка задачи требует применения | Project root, workflow/action, ожидание либо `execution_id` | Итог или restart-safe running ID · `защищённая запись` + `локальная команда` | [Проектный процесс](project_workflow.md) |
 | `dl_read_project_live_summary` | Читает и проверяет итоговый JSON-отчёт проекта | После dry-run, сохранения или публикации | Project root, action или путь к summary | Изменённые объекты, состояние и ошибки · `локальная` | [Проектный процесс](project_workflow.md) |
 
 ## Обслуживание и доступность источников

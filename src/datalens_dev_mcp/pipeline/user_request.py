@@ -98,10 +98,12 @@ class UserRequestNormalizer:
         re.compile(
             r"\b(?:do\s+not|don't|never)\s+"
             r"(?:implement\w*|build\w*|create\w*|make|apply\w*|publish\w*|save\w*|fix\w*|repair\w*|"
-            r"enhance\w*|improve\w*|extend\w*|redesign\w*|update\w*|change\w*|modify\w*)"
+            r"enhance\w*|improve\w*|extend\w*|redesign\w*|update\w*|change\w*|modify\w*|"
+            r"delete\w*|remove\w*)"
             r"(?:\s+(?:or|and)\s+"
             r"(?:implement\w*|build\w*|create\w*|make|apply\w*|publish\w*|save\w*|fix\w*|repair\w*|"
-            r"enhance\w*|improve\w*|extend\w*|redesign\w*|update\w*|change\w*|modify\w*))*",
+            r"enhance\w*|improve\w*|extend\w*|redesign\w*|update\w*|change\w*|modify\w*|"
+            r"delete\w*|remove\w*))*",
             re.IGNORECASE,
         ),
         re.compile(
@@ -113,11 +115,11 @@ class UserRequestNormalizer:
             r"(?<!\w)(?:не|никогда\s+не|ничего\s+не)\s+"
             r"(?:созда\w*|сдела\w*|реализ\w*|примен\w*|сохран\w*|опубли\w*|добав\w*|исправ\w*|"
             r"почин\w*|устран\w*|доработ\w*|улучш\w*|расшир\w*|переработ\w*|обнов\w*|измени\w*|"
-            r"замен\w*|помен\w*|настро\w*)"
+            r"замен\w*|помен\w*|настро\w*|удал\w*)"
             r"(?:\s+и\s+не\s+"
             r"(?:созда\w*|сдела\w*|реализ\w*|примен\w*|сохран\w*|опубли\w*|добав\w*|исправ\w*|"
             r"почин\w*|устран\w*|доработ\w*|улучш\w*|расшир\w*|переработ\w*|обнов\w*|измени\w*|"
-            r"замен\w*|помен\w*|настро\w*))*",
+            r"замен\w*|помен\w*|настро\w*|удал\w*))*",
             re.IGNORECASE,
         ),
     )
@@ -302,14 +304,15 @@ class UserRequestNormalizer:
         )
 
     def _destructive_actions(self, lowered: str) -> list[str]:
+        positive_text = self._positive_mutation_text(lowered)
         destructive = [
             action
             for action, terms in self.DESTRUCTIVE_TERMS.items()
-            if any(self._matches_destructive_term(lowered, term) for term in terms)
+            if any(self._matches_destructive_term(positive_text, term) for term in terms)
         ]
         if "delete" not in destructive:
             return destructive
-        partial_content_update = self._is_partial_content_update(lowered)
+        partial_content_update = self._is_partial_content_update(positive_text)
         if partial_content_update:
             destructive.remove("delete")
         return destructive
@@ -327,9 +330,7 @@ class UserRequestNormalizer:
         return bool(has_removal_verb and any(term in lowered for term in self.PARTIAL_CONTENT_TERMS))
 
     def _task_intent(self, lowered: str) -> TaskIntent:
-        positive_text = lowered
-        for pattern in self.NEGATED_MUTATION_PATTERNS:
-            positive_text = pattern.sub(" ", positive_text)
+        positive_text = self._positive_mutation_text(lowered)
         for intent, terms in self.IMPLEMENT_TERMS.items():
             if any(self._matches_intent_term(positive_text, term) for term in terms):
                 return intent  # type: ignore[return-value]
@@ -338,6 +339,12 @@ class UserRequestNormalizer:
         if any(term in lowered for term in self.PLAN_TERMS):
             return "plan"
         return "unknown"
+
+    def _positive_mutation_text(self, lowered: str) -> str:
+        positive_text = lowered
+        for pattern in self.NEGATED_MUTATION_PATTERNS:
+            positive_text = pattern.sub(" ", positive_text)
+        return positive_text
 
     @staticmethod
     def _matches_intent_term(text: str, term: str) -> bool:

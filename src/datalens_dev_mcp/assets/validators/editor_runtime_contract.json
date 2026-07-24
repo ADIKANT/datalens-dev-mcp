@@ -1,5 +1,6 @@
 {
   "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+  "blocking_warning_rules": [],
   "official_sanitizer": {
     "allowlist_artifact": "schemas/datalens-api/editor-runtime-allowlist.json",
     "layers": [
@@ -66,8 +67,7 @@
     "heavy_iteration_warning": 100000,
     "data_multiplication_patterns": [
       "\\.flatMap\\s*\\(",
-      "Array\\.from\\s*\\([^)]*\\.keys\\s*\\(",
-      "\\.map\\s*\\([^)]*\\)\\.join\\s*\\("
+      "Array\\.from\\s*\\([^)]*\\.keys\\s*\\("
     ]
   },
   "messages": {

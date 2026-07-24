@@ -27,7 +27,7 @@ class InstructionModelTests(unittest.TestCase):
             self.assertIn(phrase, model_text)
         for phrase in (
             "python3 scripts/run_offline_acceptance.py",
-            "38 инструментов",
+            "39 инструментов",
             "save-only",
             "confirm_delete",
         ):

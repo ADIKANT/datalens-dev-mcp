@@ -70,7 +70,6 @@ CONTRACT_RESOURCE = "validators/editor_runtime_contract.json"
 ALLOWLIST_RESOURCE = "schemas/datalens-api/editor-runtime-allowlist.json"
 EDITOR_VALIDATION_CACHE_VERSION = "2026-07-23.editor_validation_cache.v2"
 EDITOR_VALIDATION_CACHE_MAX_ENTRIES = 128
-NONBLOCKING_WARNING_RULES = {"date_range_controls_rerender_risk"}
 _EDITOR_VALIDATION_CACHE: OrderedDict[str, dict[str, Any]] = OrderedDict()
 _EDITOR_VALIDATION_CACHE_LOCK = RLock()
 
@@ -148,13 +147,21 @@ def validate_editor_runtime_contract(
             finding["source"] = source
     warnings = sum(1 for finding in base.get("findings") or [] if finding.get("severity") == "warning")
     errors = sum(1 for finding in base.get("findings") or [] if finding.get("severity") == "error")
-    blocking_warnings = sum(
+    blocking_warning_rules = set(base.get("blocking_warning_rules") or [])
+    for finding in base.get("findings") or []:
+        if isinstance(finding, dict):
+            finding["blocking"] = bool(
+                finding.get("severity") == "error"
+                or (
+                    finding.get("severity") == "warning"
+                    and finding.get("rule") in blocking_warning_rules
+                )
+            )
+    blocking = sum(
         1
         for finding in base.get("findings") or []
-        if finding.get("severity") == "warning"
-        and finding.get("rule") not in NONBLOCKING_WARNING_RULES
+        if isinstance(finding, dict) and finding.get("blocking") is True
     )
-    blocking = errors if allow_unknown_warnings else errors + blocking_warnings
     base["allow_unknown_warnings"] = bool(allow_unknown_warnings)
     base["ok"] = blocking == 0
     base["summary"] = {
@@ -209,15 +216,28 @@ def _validate_editor_runtime_contract_uncached(value: dict[str, Any]) -> dict[st
     findings.extend(_editor_payload_shape_findings(value, source="<payload>", contract=contract))
     findings.extend(_advanced_editor_semantic_findings(value, source="<payload>", contract=contract))
     findings = _dedupe_findings(findings)
-    blocking = [finding for finding in findings if finding["severity"] == "error"]
+    blocking_warning_rules = {
+        str(item)
+        for item in contract.get("blocking_warning_rules") or []
+        if str(item).strip()
+    }
+    blocking = [
+        finding
+        for finding in findings
+        if finding["severity"] == "error"
+        or (
+            finding["severity"] == "warning"
+            and finding["rule"] in blocking_warning_rules
+        )
+    ]
     warnings = [finding for finding in findings if finding["severity"] == "warning"]
-    blocking.extend(warnings)
     return {
         "ok": not blocking,
         "schema_version": "2026-06-25.editor_runtime_contract.result.v2",
         "rule_version": contract["rule_version"],
         "source": "<payload>",
         "allow_unknown_warnings": False,
+        "blocking_warning_rules": sorted(blocking_warning_rules),
         "official_sanitizer": {
             "allowlist_artifact": contract["official_sanitizer"]["allowlist_artifact"],
             "allowed_tag_count": len(allowlist["html_tags"]),

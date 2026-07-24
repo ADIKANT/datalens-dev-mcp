@@ -7,7 +7,7 @@ payloads.
 
 Budget rules:
 
-- `tools/list` standard surface: exactly 38 tools and at most 25,000 UTF-8
+- `tools/list` standard surface: exactly 39 tools and at most 25,000 UTF-8
   JSON bytes. Tool schemas omit descriptions only for self-evident identifiers
   and bounded knobs; safety-critical payload, configuration, write/delete,
   readback, and current/proposed-state guidance remains inline. Schemas are

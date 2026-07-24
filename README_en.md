@@ -34,7 +34,7 @@ Write, save, and publish capabilities are available in the standard configuratio
   `retire_legacy_objects` action requires separate confirmation of the
   unchanged plan and exact IDs.
 
-The [guide to all 38 tools](docs/tools_en.md) describes the purpose, inputs, result, and operation class of every call.
+The [guide to all 39 tools](docs/tools_en.md) describes the purpose, inputs, result, and operation class of every call.
 
 ## Requirements
 

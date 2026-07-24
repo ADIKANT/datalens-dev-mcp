@@ -49,6 +49,12 @@ returns SHA-256 identities for the template set, selected assets, style
 contract, and compiled tabs, and refuses approximate fallback. Generation is
 blocked for an unregistered family or a native map.
 
+A project-local profile is declared with `id`, `descriptor_path`, and
+`descriptor_sha256`. Its descriptor registers exact Editor-family assets; the
+descriptor and every dependency must stay inside the project root, and the
+complete template-set fingerprint is checked before generation. This profile
+does not expand supported technologies or permit fallback.
+
 ## QL
 
 `ql_explicit` is selected only after a direct user request for QL. Creation and updates use an explicit payload or current saved QL object. The server does not generate QL from a general request or select it after a Wizard or Editor failure.

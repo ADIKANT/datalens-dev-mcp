@@ -320,8 +320,8 @@ def _check_public_tool_schemas() -> list[str]:
     issues: list[str] = []
     tools = list_tools()
     names = {str(tool.get("name") or "") for tool in tools}
-    if names != STANDARD_TOOL_NAMES or len(tools) != 38:
-        issues.append("tools/list: public tool surface is not the exact 38 STANDARD_TOOL_NAMES")
+    if names != STANDARD_TOOL_NAMES or len(tools) != 39:
+        issues.append("tools/list: public tool surface is not the exact 39 STANDARD_TOOL_NAMES")
     forbidden_fields = {"approved", "approval_source", "approved_plan_path", "approve_guid_changes"}
     for tool in tools:
         properties = set(((tool.get("inputSchema") or {}).get("properties") or {}))

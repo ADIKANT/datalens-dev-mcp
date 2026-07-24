@@ -323,7 +323,8 @@ class ToolSchemaTests(unittest.TestCase):
 
         self.assertTrue(result["isError"])
         self.assertFalse(body["ok"])
-        self.assertEqual(body["error"]["category"], "missing_input")
+        self.assertEqual(body["error"]["category"], "invalid_tool_arguments")
+        self.assertIn("workbook_id", body["error"]["missing"])
         self.assertEqual(body["tool"], "dl_get_workbook_entries")
 
     def test_only_known_obsolete_project_root_arguments_are_ignored(self):

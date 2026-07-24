@@ -20,7 +20,7 @@ class VisualQualityGateTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertIn("visual_qa_unavailable_marked_as_pass", {finding.rule for finding in result.findings})
 
-    def test_generated_v2_spec_carries_responsive_and_value_semantics(self):
+    def test_generated_v3_spec_carries_responsive_semantic_roles_and_value_semantics(self):
         from datalens_dev_mcp.editor.visual_spec import build_renderer_visual_spec
         from datalens_dev_mcp.pipeline.visual_quality import validate_visual_quality_contract
 
@@ -32,14 +32,21 @@ class VisualQualityGateTests(unittest.TestCase):
         result = validate_visual_quality_contract(spec)
 
         self.assertTrue(result.ok, [finding.to_dict() for finding in result.findings])
-        self.assertEqual(spec["schema_version"], "2026-07-19.renderer_visual_spec.v2")
+        self.assertEqual(spec["schema_version"], "2026-07-23.renderer_visual_spec.v3")
         self.assertEqual(spec["value_semantics"]["missing_label"], "N/A")
         self.assertTrue(spec["value_semantics"]["observed_zero_distinct_from_missing"])
         self.assertEqual(spec["formatting"]["axis_tick_strategy"], "nice_1_2_2_5_5_10")
         self.assertFalse(spec["responsive_layout"]["fixed_min_width"])
         self.assertTrue(spec["layout_contract"]["preserve_existing_geometry"])
+        self.assertEqual(spec["labels"]["overflow_strategy"], "wrap_or_expand")
+        self.assertEqual(spec["labels"]["ellipsis"], "explicit_only")
+        self.assertEqual(spec["tooltip"]["bucket_label"], "single_interval")
+        self.assertNotEqual(
+            spec["colors"]["semantic_roles"]["track"],
+            spec["colors"]["semantic_roles"]["focus"],
+        )
 
-    def test_v2_spec_blocks_future_zero_fill_and_fixed_min_width(self):
+    def test_v3_spec_blocks_future_zero_fill_fixed_min_width_and_implicit_ellipsis(self):
         from datalens_dev_mcp.editor.visual_spec import build_renderer_visual_spec
         from datalens_dev_mcp.pipeline.visual_quality import validate_visual_quality_contract
 
@@ -50,12 +57,14 @@ class VisualQualityGateTests(unittest.TestCase):
         ).to_dict()
         spec["value_semantics"]["future_periods"] = "zero_fill"
         spec["responsive_layout"]["fixed_min_width"] = True
+        spec["labels"]["ellipsis"] = "always"
         result = validate_visual_quality_contract(spec)
         rules = {finding.rule for finding in result.findings}
 
         self.assertFalse(result.ok)
         self.assertIn("future_period_zero_fill", rules)
         self.assertIn("fixed_desktop_min_width", rules)
+        self.assertIn("label_ellipsis_policy", rules)
 
 
 if __name__ == "__main__":

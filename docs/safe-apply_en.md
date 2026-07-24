@@ -47,6 +47,20 @@ The mode is stored in the plan and inherited by publish-from-saved. Publishing d
 
 `dl_execute_safe_apply` receives `plan_path`. Before RPC, it reads the target again, verifies the target lock, and overlays the requested change on current state. IDs, revision, chart technology, and unknown fields are preserved.
 
+After the fresh merge, the request is conservatively projected through the
+specific API method schema. Read-only fields are removed only where a closed
+schema requires it; extensible `data` remains intact. Execution evidence records
+RFC 6901 `dropped_paths` and the final request SHA-256.
+
+Lists merge only through an explicit `overlay_merge_contract`: `replace`,
+`merge_by_identity`, or `preserve` at an exact JSON Pointer. Layout and redesign
+changes replace declared layout lists by default, so stale widgets cannot be
+appended to the reviewed layout.
+
+When `requirements/user_decisions.v2.json` exists, the plan is bound to its
+`decision_ledger_sha256`. A later user correction makes the old plan stale and
+requires regeneration.
+
 ## Hard-off switches
 
 - `DATALENS_MCP_ENABLE_WRITES=0` blocks all write requests.
@@ -104,8 +118,15 @@ is completed.
 
 - Object locks and uniqueness failures return a conflict without another write.
 - A stale revision requires a new read and plan.
+- A received HTTP 4xx with an API code is `remote_rejected_no_write` and does
+  not trigger reconciliation because the server confirmed rejection.
 - An error after sending a write without a confirmed result returns `write_outcome_unknown`; current state is read before continuing.
 - A retry after an interrupted create begins with `dl_reconcile_partial_creates` to avoid duplicates.
+
+Every action reports `execution_stage`, `write_outcome`, and
+`verification_outcome` independently. A confirmed write with a mismatched
+readback returns aggregate `status=partial` instead of being flattened into a
+no-write failure.
 
 ## Delete a complete object
 
