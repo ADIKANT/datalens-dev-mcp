@@ -76,7 +76,7 @@ codex mcp list
 
 ## 5. Restart Codex
 
-After installing the package or changing `config.toml`, restart Codex app, the CLI session, or the IDE extension. Open `/mcp` in a new task and confirm that `datalens_dev` is connected and exposes 38 tools.
+After installing the package or changing `config.toml`, restart Codex app, the CLI session, or the IDE extension. Open `/mcp` in a new task and confirm that `datalens_dev` is connected and exposes 39 tools.
 
 ## 6. Check configuration and access
 

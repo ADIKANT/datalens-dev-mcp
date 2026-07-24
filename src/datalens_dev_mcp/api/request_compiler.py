@@ -99,6 +99,63 @@ def compile_method_request(
     return {"ok": True, "method": method, "schema_ref": validation["schema_ref"], "payload": payload, "issues": []}
 
 
+def project_method_request(
+    method: str,
+    value: dict[str, Any] | None,
+    *,
+    object_type: str = "",
+    operation: str = "",
+    object_id: str = "",
+    workbook_id: str = "",
+    mode: str = "save",
+) -> dict[str, Any]:
+    """Project a fresh-readback-derived value onto the writable method schema.
+
+    Projection is deliberately conservative: fields are removed only from
+    schema nodes that explicitly set ``additionalProperties`` to ``false`` or
+    mark a property as read-only. Extensible DataLens payload nodes remain
+    byte-for-byte equivalent.
+    """
+
+    if not isinstance(value, dict) or not value:
+        return _error("missing_input", "payload is required")
+    adapted = _adapt_method_payload(
+        method,
+        value,
+        object_type=object_type,
+        operation=operation,
+        object_id=object_id,
+        workbook_id=workbook_id,
+        mode=mode,
+    )
+    dropped_paths: list[str] = []
+    projected = _project_writable_value(
+        adapted,
+        _schema_for_method(method),
+        path="",
+        method=method,
+        dropped_paths=dropped_paths,
+    )
+    if not isinstance(projected, dict):
+        return _error("datalens_validation_error", "projected request payload must be an object")
+    validation = validate_method_request(method, projected)
+    result = {
+        "ok": bool(validation["ok"]),
+        "method": method,
+        "schema_ref": validation["schema_ref"],
+        "payload": projected,
+        "issues": validation["issues"],
+        "dropped_paths": list(dict.fromkeys(dropped_paths)),
+        "final_request_sha256": _payload_sha256(projected),
+    }
+    if not validation["ok"]:
+        result["error"] = {
+            "category": "datalens_validation_error",
+            "message": "; ".join(validation["issues"]),
+        }
+    return result
+
+
 def compile_guarded_rpc_request(
     method: str,
     value: dict[str, Any] | None,
@@ -646,6 +703,155 @@ def _schema_has_property(schema: dict[str, Any], key: str) -> bool:
             if _schema_has_property(item, key):
                 return True
     return False
+
+
+def _project_writable_value(
+    value: Any,
+    schema: dict[str, Any],
+    *,
+    path: str,
+    method: str,
+    dropped_paths: list[str],
+) -> Any:
+    schema = _projection_schema_for_value(value, schema, method=method)
+    if not schema:
+        return value
+    if schema.get("readOnly") is True:
+        dropped_paths.append(path)
+        return _DROP_PROJECTED_VALUE
+    if isinstance(value, dict):
+        properties = schema.get("properties") if isinstance(schema.get("properties"), dict) else {}
+        additional = schema.get("additionalProperties", True)
+        projected: dict[str, Any] = {}
+        for key, item in value.items():
+            child_path = f"{path}/{_json_pointer_token(str(key))}"
+            child_schema = properties.get(key)
+            if isinstance(child_schema, dict):
+                child = _project_writable_value(
+                    item,
+                    child_schema,
+                    path=child_path,
+                    method=method,
+                    dropped_paths=dropped_paths,
+                )
+                if child is not _DROP_PROJECTED_VALUE:
+                    projected[key] = child
+                continue
+            if additional is False:
+                dropped_paths.append(child_path)
+                continue
+            if isinstance(additional, dict):
+                child = _project_writable_value(
+                    item,
+                    additional,
+                    path=child_path,
+                    method=method,
+                    dropped_paths=dropped_paths,
+                )
+                if child is not _DROP_PROJECTED_VALUE:
+                    projected[key] = child
+            else:
+                projected[key] = item
+        return projected
+    if isinstance(value, list):
+        item_schema = schema.get("items")
+        if not isinstance(item_schema, dict):
+            return value
+        return [
+            _project_writable_value(
+                item,
+                item_schema,
+                path=f"{path}/{index}",
+                method=method,
+                dropped_paths=dropped_paths,
+            )
+            for index, item in enumerate(value)
+        ]
+    return value
+
+
+def _projection_schema_for_value(value: Any, schema: dict[str, Any], *, method: str) -> dict[str, Any]:
+    schema = _resolve_schema(schema)
+    if not schema:
+        return {}
+    if schema.get("allOf"):
+        return _merge_projection_schemas(
+            [schema, *[item for item in schema.get("allOf") or [] if isinstance(item, dict)]]
+        )
+    options = schema.get("oneOf") or schema.get("anyOf")
+    if isinstance(options, list) and options:
+        selected = _select_projection_option(value, schema, options, method=method)
+        if selected:
+            return _merge_projection_schemas([schema, selected])
+    return schema
+
+
+def _select_projection_option(
+    value: Any,
+    parent_schema: dict[str, Any],
+    options: list[Any],
+    *,
+    method: str,
+) -> dict[str, Any]:
+    discriminator = parent_schema.get("discriminator")
+    if isinstance(value, dict) and isinstance(discriminator, dict):
+        property_name = str(discriminator.get("propertyName") or "")
+        mapping = discriminator.get("mapping") if isinstance(discriminator.get("mapping"), dict) else {}
+        token = value.get(property_name)
+        mapped = mapping.get(str(token)) if token not in (None, "") else None
+        if isinstance(mapped, str):
+            return _resolve_schema({"$ref": mapped})
+    resolved_options = [_resolve_schema(item) for item in options if isinstance(item, dict)]
+    for option in resolved_options:
+        if not _validate_type(value, option, path="$"):
+            enum = option.get("enum")
+            if not enum or value in enum:
+                if isinstance(value, dict):
+                    required = option.get("required") or []
+                    if all(key in value for key in required):
+                        return option
+                else:
+                    return option
+    for option in resolved_options:
+        if not _validate_value(value, option, path="$", method=method, depth=0):
+            return option
+    return resolved_options[0] if resolved_options else {}
+
+
+def _merge_projection_schemas(schemas: list[dict[str, Any]]) -> dict[str, Any]:
+    merged: dict[str, Any] = {}
+    properties: dict[str, Any] = {}
+    required: list[str] = []
+    additional_values: list[Any] = []
+    for raw in schemas:
+        schema = _resolve_schema(raw)
+        if not schema:
+            continue
+        for key, value in schema.items():
+            if key in {"allOf", "oneOf", "anyOf", "properties", "required", "additionalProperties"}:
+                continue
+            merged.setdefault(key, value)
+        if isinstance(schema.get("properties"), dict):
+            properties.update(schema["properties"])
+        required.extend(str(item) for item in schema.get("required") or [])
+        if "additionalProperties" in schema:
+            additional_values.append(schema["additionalProperties"])
+    if properties:
+        merged["properties"] = properties
+    if required:
+        merged["required"] = list(dict.fromkeys(required))
+    if False in additional_values:
+        merged["additionalProperties"] = False
+    elif additional_values:
+        merged["additionalProperties"] = additional_values[-1]
+    return merged
+
+
+def _json_pointer_token(value: str) -> str:
+    return value.replace("~", "~0").replace("/", "~1")
+
+
+_DROP_PROJECTED_VALUE = object()
 
 
 def _first_string(value: dict[str, Any], keys: tuple[str, ...]) -> str:

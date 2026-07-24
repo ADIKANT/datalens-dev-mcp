@@ -34,7 +34,19 @@
             "id": {
               "type": "string",
               "minLength": 1
+            },
+            "descriptor_path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "descriptor_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
             }
+          },
+          "dependentRequired": {
+            "descriptor_path": ["descriptor_sha256"],
+            "descriptor_sha256": ["descriptor_path"]
           },
           "additionalProperties": false
         }

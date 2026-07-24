@@ -159,7 +159,10 @@
       ],
       "properties": {
         "schema_version": {
-          "const": "2026-07-19.renderer_visual_spec.v2"
+          "enum": [
+            "2026-07-19.renderer_visual_spec.v2",
+            "2026-07-23.renderer_visual_spec.v3"
+          ]
         },
         "style_tokens": {
           "type": "object"

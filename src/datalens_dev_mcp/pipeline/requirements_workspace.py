@@ -8,6 +8,13 @@ from typing import Any
 
 from datalens_dev_mcp.pipeline.chart_param_matrix import get_chart_param_spec
 from datalens_dev_mcp.pipeline.artifacts import read_text, write_text
+from datalens_dev_mcp.pipeline.decision_patches import (
+    apply_decision_contract_to_chart_plan,
+    decision_contract_drift_issues,
+    load_user_decision_ledger,
+    normalize_decision_patch,
+    record_user_decision_patch,
+)
 from datalens_dev_mcp.pipeline.negative_requirements import (
     load_negative_requirement_ledger,
     record_negative_requirements,
@@ -406,17 +413,43 @@ def update_user_decision(
     *,
     decision_text: str,
     decision_id: str = "",
+    decision_patch: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not decision_text.strip():
         return {"ok": False, "error": {"category": "missing_input", "message": "decision_text is required"}}
     initialize_requirements_workspace(project_root)
     root = Path(project_root)
     identifier = decision_id or f"DEC-{_timestamp().replace(':', '').replace('-', '')}"
+    normalized_patch: dict[str, Any] | None = None
+    if decision_patch is not None:
+        normalized_patch, patch_issues = normalize_decision_patch(
+            decision_patch,
+            ledger=load_user_decision_ledger(root),
+        )
+        if patch_issues:
+            return {
+                "ok": False,
+                "error": {
+                    "category": "invalid_decision_patch",
+                    "message": "; ".join(patch_issues),
+                },
+                "issues": patch_issues,
+            }
     negative_requirements = record_negative_requirements(root, decision_text, decision_id=identifier)
     stored_decision_text = sanitize_user_decision_line(decision_text, negative_requirements)
     line = f"- `{identifier}`: {stored_decision_text}\n"
     path = root / "requirements" / "user_decisions.md"
     write_text(path, read_text(path) + "\n" + line)
+    patch_result: dict[str, Any] | None = None
+    if normalized_patch is not None:
+        patch_result = record_user_decision_patch(
+            root,
+            decision_id=identifier,
+            decision_text=stored_decision_text,
+            decision_patch=normalized_patch,
+        )
+        if not patch_result["ok"]:
+            return patch_result
     _append_change(root, f"Recorded user decision `{identifier}`.")
     update_implementation_plan(project_root)
     return {
@@ -424,6 +457,7 @@ def update_user_decision(
         "decision_id": identifier,
         "path": "requirements/user_decisions.md",
         "negative_requirements": negative_requirements,
+        **({"decision_patch": patch_result} if patch_result is not None else {}),
     }
 
 
@@ -499,15 +533,16 @@ def build_dashboard_blueprint_plan(
             requested_family=spec.family,
             source_evidence_refs=["requirements_workspace"],
         )
+        chart_item = {
+            "family": spec.family,
+            "route": spec.route,
+            "intent": spec.intent,
+            "required_parameters": list(spec.required_parameters),
+            "fallback_family": spec.fallback_family,
+            "chart_decision_record": decision.to_dict(),
+        }
         chart_plan.append(
-            {
-                "family": spec.family,
-                "route": spec.route,
-                "intent": spec.intent,
-                "required_parameters": list(spec.required_parameters),
-                "fallback_family": spec.fallback_family,
-                "chart_decision_record": decision.to_dict(),
-            }
+            apply_decision_contract_to_chart_plan(root, chart_item)["chart_plan"]
         )
     source_inputs = read_text(req / "source_inputs.md")
     critical_questions = _critical_requirement_questions(source_inputs or text)
@@ -562,6 +597,7 @@ def validate_chart_plan_against_requirements(
         )
         decision_record = decision.to_dict()
     decision_validation = validate_chart_decision_record(decision_record)
+    decision_contract_issues = decision_contract_drift_issues(root, chart_plan)
     checks = []
     for key in ("metrics", "fields", "selectors", "charts"):
         for item in chart_plan.get(key) or []:
@@ -570,14 +606,15 @@ def validate_chart_plan_against_requirements(
                 checks.append({"kind": key, "value": value, "present": value.lower() in combined})
     missing = [item for item in checks if not item["present"]]
     return {
-        "ok": not missing and decision_validation["ok"],
+        "ok": not missing and decision_validation["ok"] and not decision_contract_issues,
         "chart_decision_record": decision_record,
         "decision_validation": decision_validation,
         "checks": checks,
         "missing": missing,
+        "decision_contract_issues": decision_contract_issues,
         "question": _targeted_question(missing, combined)
         if missing
-        else "; ".join(decision_validation["issues"]),
+        else "; ".join([*decision_validation["issues"], *decision_contract_issues]),
     }
 
 

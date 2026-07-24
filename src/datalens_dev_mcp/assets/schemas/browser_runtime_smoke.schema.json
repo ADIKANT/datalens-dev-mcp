@@ -20,7 +20,8 @@
       "enum": [
         "",
         "datalens.browser_capture.v1",
-        "datalens.browser_capture.v2"
+        "datalens.browser_capture.v2",
+        "datalens.browser_capture.v3"
       ]
     },
     "change_scope": {"enum": ["", "content", "layout", "dashboard"]},
@@ -153,6 +154,23 @@
           "type": "array",
           "maxItems": 0,
           "items": {"type": "string", "minLength": 1}
+        },
+        "truncated_text_object_ids": {
+          "type": "array",
+          "maxItems": 0,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "overlap_pairs": {
+          "type": "array",
+          "maxItems": 0,
+          "items": {
+            "type": "object",
+            "required": ["first_object_id", "second_object_id"],
+            "properties": {
+              "first_object_id": {"type": "string", "minLength": 1},
+              "second_object_id": {"type": "string", "minLength": 1}
+            }
+          }
         },
         "screenshot_artifact": {"$ref": "#/$defs/imageArtifact"}
       }

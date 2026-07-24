@@ -245,6 +245,23 @@ Save-ответ фиксирует выполненный метод и путь
 }
 ```
 
+Safe Apply не смешивает отправку записи и её последующую проверку. Каждый
+`action_result` содержит:
+
+```json
+{
+  "execution_stage": "verified",
+  "write_outcome": "confirmed_write",
+  "verification_outcome": "matched"
+}
+```
+
+Полученный отказ API до записи возвращает
+`write_outcome=remote_rejected_no_write`. Потеря ответа после отправки остаётся
+`write_outcome=unknown` и требует reconciliation. Если запись подтверждена, но
+readback не совпал, общий результат имеет `status=partial` и сохраняет список
+`confirmed_write_action_indices`.
+
 Если publish жёстко выключен, разрешённое сохранение возвращает:
 
 ```json
@@ -323,7 +340,34 @@ Published readback сохраняется отдельно:
 }
 ```
 
-Execution response содержит очищенные stdout/stderr, exit code, timeout, путь к summary и достигнутый этап. `dl_read_project_live_summary` проверяет совпадение target IDs и непустое покрытие. Нулевой exit code не заменяет эту проверку: отсутствующий или заблокированный apply/publish summary возвращает `summary_blocked`, а следующий publish-этап не запускается.
+Execution response содержит `execution_id`, `execution_key`, phase, heartbeat,
+deadline, очищенные stdout/stderr, exit code, timeout, путь к summary и
+достигнутый этап. Все команды выполняются durable worker-процессом; повторный
+эквивалентный вызов присоединяется к текущему execution, а polling после
+перезапуска MCP читает атомарный state/result без relaunch.
+`dl_read_project_live_summary` проверяет совпадение target IDs и непустое
+покрытие. Нулевой exit code не заменяет эту проверку: отсутствующий или
+заблокированный apply/publish summary возвращает `summary_blocked`, а следующий
+publish-этап не запускается.
+
+## Ошибки аргументов инструмента
+
+До вызова функции сервер проверяет набор аргументов. Неизвестное или
+отсутствующее поле возвращает структурированную ошибку:
+
+```json
+{
+  "ok": false,
+  "error": {
+    "category": "invalid_tool_arguments",
+    "unknown_arguments": ["unexpected"],
+    "missing_arguments": ["required_field"],
+    "allowed_arguments": ["required_field"]
+  }
+}
+```
+
+Текст Python `TypeError` и traceback в MCP-ответ не попадают.
 
 ## Source availability
 

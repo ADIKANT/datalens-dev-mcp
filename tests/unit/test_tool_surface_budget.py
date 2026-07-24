@@ -17,7 +17,7 @@ class ToolSurfaceBudgetTests(unittest.TestCase):
         )
 
         self.assertEqual(names, STANDARD_TOOL_NAMES)
-        self.assertEqual(len(names), 38)
+        self.assertEqual(len(names), 39)
         self.assertLessEqual(len(names), 40)
         self.assertLessEqual(payload_bytes, 25_000)
         self.assertGreaterEqual(25_000 - payload_bytes, 500)

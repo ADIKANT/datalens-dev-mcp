@@ -592,6 +592,7 @@ def validate_browser_capture_artifact(
     if document and capture_schema_version not in {
         "datalens.browser_capture.v1",
         "datalens.browser_capture.v2",
+        "datalens.browser_capture.v3",
     }:
         issues.append(
             {
@@ -667,7 +668,7 @@ def validate_browser_capture_artifact(
             )
     if document:
         issues.extend(_browser_interaction_issues(document, path=sidecar_path))
-        if capture_schema_version == "datalens.browser_capture.v2":
+        if capture_schema_version in {"datalens.browser_capture.v2", "datalens.browser_capture.v3"}:
             issues.extend(_responsive_viewport_issues(document, path=sidecar_path))
     capture_time_issue = _capture_time_issue(str(document.get("captured_at") or "")) if document else ""
     if capture_time_issue:
@@ -691,7 +692,7 @@ def validate_browser_capture_artifact(
         image_details = dict(image_validation.get("image_details") or {})
     viewport_validations: list[dict[str, Any]] = []
     viewport_image_details: list[dict[str, Any]] = []
-    if capture_schema_version == "datalens.browser_capture.v2":
+    if capture_schema_version in {"datalens.browser_capture.v2", "datalens.browser_capture.v3"}:
         viewport_checks = document.get("viewport_checks")
         if isinstance(viewport_checks, list):
             for index, check in enumerate(viewport_checks):
@@ -743,12 +744,12 @@ def validate_browser_capture_artifact(
                             **dict(validation["image_details"]),
                         }
                     )
-    if capture_schema_version == "datalens.browser_capture.v2" and not viewport_validations:
+    if capture_schema_version in {"datalens.browser_capture.v2", "datalens.browser_capture.v3"} and not viewport_validations:
         issues.append(
             {
                 "rule": "browser_capture_viewport_screenshot_binding",
                 "path": str(sidecar_path),
-                "message": "browser capture v2 requires a hash-bound screenshot for every viewport check",
+                "message": "responsive browser capture requires a hash-bound screenshot for every viewport check",
             }
         )
     verified_artifacts = [
@@ -1031,13 +1032,14 @@ def _responsive_viewport_issues(
     path: Path,
 ) -> list[dict[str, str]]:
     issues: list[dict[str, str]] = []
+    capture_schema_version = str(document.get("schema_version") or "")
     change_scope = str(document.get("change_scope") or "").strip()
     if change_scope not in {"content", "layout", "dashboard"}:
         issues.append(
             _capture_issue(
                 "browser_capture_change_scope",
                 path,
-                "browser capture v2 change_scope must be content, layout, or dashboard",
+                "responsive browser capture change_scope must be content, layout, or dashboard",
             )
         )
     changed_ids = _unique_strings(document.get("changed_object_ids") or [])
@@ -1048,7 +1050,7 @@ def _responsive_viewport_issues(
             _capture_issue(
                 "browser_capture_viewport_checks",
                 path,
-                "browser capture v2 requires at least one viewport check",
+                "responsive browser capture requires at least one viewport check",
             ),
         ]
     widths: list[float] = []
@@ -1158,6 +1160,50 @@ def _responsive_viewport_issues(
                     f"{label} reports missing objects: {', '.join(missing_ids)}",
                 )
             )
+        if capture_schema_version == "datalens.browser_capture.v3":
+            truncated_ids = item.get("truncated_text_object_ids")
+            overlap_pairs = item.get("overlap_pairs")
+            if not isinstance(truncated_ids, list):
+                issues.append(
+                    _capture_issue(
+                        "browser_capture_text_truncation_evidence",
+                        path,
+                        f"{label}.truncated_text_object_ids must be an array",
+                    )
+                )
+            elif _unique_strings(truncated_ids):
+                issues.append(
+                    _capture_issue(
+                        "browser_capture_text_truncation",
+                        path,
+                        f"{label} reports truncated text objects: "
+                        + ", ".join(_unique_strings(truncated_ids)),
+                    )
+                )
+            if not isinstance(overlap_pairs, list):
+                issues.append(
+                    _capture_issue(
+                        "browser_capture_overlap_evidence",
+                        path,
+                        f"{label}.overlap_pairs must be an array",
+                    )
+                )
+            elif overlap_pairs:
+                pair_labels = []
+                for pair in overlap_pairs:
+                    if isinstance(pair, dict):
+                        first = str(pair.get("first_object_id") or "").strip()
+                        second = str(pair.get("second_object_id") or "").strip()
+                        pair_labels.append(f"{first}<->{second}".strip("<->"))
+                    else:
+                        pair_labels.append(str(pair))
+                issues.append(
+                    _capture_issue(
+                        "browser_capture_object_overlap",
+                        path,
+                        f"{label} reports overlapping objects: " + ", ".join(pair_labels),
+                    )
+                )
         screenshot = item.get("screenshot_artifact")
         if not isinstance(screenshot, dict):
             issues.append(

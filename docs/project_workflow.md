@@ -36,11 +36,44 @@ Manifest должен содержать точные команды, идент
 изменившийся набор или незарегистрированное семейство. Повторный вызов использует
 кэшированный fingerprint неизменившихся пакетных ресурсов.
 
-Если `timeout_sec` больше 120 секунд, project-live команда запускается как
-возобновляемая операция и сразу возвращает `status=running` и `execution_id`.
-Повторный вызов того же инструмента с этим `execution_id` только проверяет
-состояние и никогда не запускает команду второй раз. Это отделяет длительный
-save/readback/publish от 180-секундного MCP client timeout.
+Проект может зарегистрировать собственный профиль без изменения пакета:
+
+```json
+{
+  "authoring_profile": {
+    "id": "project_style_v1",
+    "descriptor_path": "profiles/project_style_v1/profile.json",
+    "descriptor_sha256": "<SHA256>"
+  }
+}
+```
+
+Descriptor и каждый объявленный asset должны находиться внутри project root.
+Сервер проверяет SHA-256 descriptor, fingerprint полного template set,
+поддержанные Editor routes и `fallback_policy=block`. Path escape, symlink
+escape, изменившийся asset или незарегистрированное семейство блокируют
+генерацию.
+
+Все project-live команды запускаются durable worker-процессом. Параметр
+`wait_for_completion_sec` (`0..30`, по умолчанию `5`) задаёт только время
+ожидания ответа MCP: незавершённая команда возвращает `status=running`,
+`execution_id`, heartbeat и deadline. Повторный эквивалентный запуск
+присоединяется к тому же execution key; вызов с `execution_id` только читает
+состояние. После перезапуска MCP polling продолжается по атомарным state/result
+files и никогда не перезапускает исходную команду.
+
+## Пользовательские решения
+
+`dl_update_user_decision` по-прежнему сохраняет читаемое решение в
+`requirements/user_decisions.md`. Необязательный `decision_patch` добавляет
+машиночитаемую запись в `requirements/user_decisions.v2.json` со scope
+`project`, `family` или `object`, изменениями metric semantics/Visual Spec,
+семантическими ролями и `supersedes`.
+
+Активные решения применяются детерминированно в порядке
+project → family → object. Генерация записывает hash ledger в chart decision,
+валидация выявляет drift, а Safe Apply блокирует план, созданный до последней
+коррекции.
 
 ## Удаление
 

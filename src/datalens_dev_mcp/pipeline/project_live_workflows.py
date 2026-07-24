@@ -7,7 +7,7 @@ import os
 import re
 import shutil
 import subprocess
-import tempfile
+import sys
 import time
 import uuid
 from pathlib import Path
@@ -303,7 +303,8 @@ ACTION_BRANCH_STATUS = {
     "readback": "saved_readback",
 }
 TRACKED_SOURCE_MUTATION_GUARDED_ACTIONS = {"read", "sync", "validate", "dry_run", "readback"}
-MAX_SYNCHRONOUS_PROJECT_LIVE_TIMEOUT_SEC = 120
+DEFAULT_PROJECT_LIVE_WAIT_FOR_COMPLETION_SEC = 5
+MAX_PROJECT_LIVE_WAIT_FOR_COMPLETION_SEC = 30
 PROJECT_LIVE_EXECUTION_ID_RE = re.compile(r"^[a-f0-9]{32}$")
 _PROJECT_LIVE_JOBS: dict[str, dict[str, Any]] = {}
 _PROJECT_LIVE_JOBS_LOCK = RLock()
@@ -503,6 +504,7 @@ def run_project_live_dry_run(
     workflow_name: str = "",
     execute_now: bool = False,
     timeout_sec: int = 120,
+    wait_for_completion_sec: int = DEFAULT_PROJECT_LIVE_WAIT_FOR_COMPLETION_SEC,
     execution_id: str = "",
 ) -> dict[str, Any]:
     return _run_project_live_action(
@@ -511,6 +513,7 @@ def run_project_live_dry_run(
         action="dry_run",
         execute_now=execute_now,
         timeout_sec=timeout_sec,
+        wait_for_completion_sec=wait_for_completion_sec,
         approved=False,
         publish=False,
         execution_id=execution_id,
@@ -527,7 +530,10 @@ def run_project_live_apply(
     publish: bool = False,
     action: str = "apply",
     timeout_sec: int = 120,
+    wait_for_completion_sec: int = DEFAULT_PROJECT_LIVE_WAIT_FOR_COMPLETION_SEC,
     execution_id: str = "",
+    parent_execution_id: str = "",
+    parent_saved_summary_sha256: str = "",
 ) -> dict[str, Any]:
     return _run_project_live_action(
         project_root=project_root,
@@ -535,10 +541,13 @@ def run_project_live_apply(
         action=action,
         execute_now=execute_now,
         timeout_sec=timeout_sec,
+        wait_for_completion_sec=wait_for_completion_sec,
         approved=approved,
         confirm_delete=confirm_delete,
         publish=publish,
         execution_id=execution_id,
+        parent_execution_id=parent_execution_id,
+        parent_saved_summary_sha256=parent_saved_summary_sha256,
     )
 
 
@@ -587,14 +596,21 @@ def _run_project_live_action(
     action: str,
     execute_now: bool,
     timeout_sec: int,
+    wait_for_completion_sec: int,
     approved: bool | None,
     confirm_delete: bool = False,
     publish: bool,
     execution_id: str = "",
+    parent_execution_id: str = "",
+    parent_saved_summary_sha256: str = "",
 ) -> dict[str, Any]:
     root = Path(project_root).resolve()
     if execution_id:
-        return _poll_project_live_action(root=root, execution_id=execution_id)
+        return _poll_project_live_action(
+            root=root,
+            execution_id=execution_id,
+            wait_for_completion_sec=wait_for_completion_sec,
+        )
     plan = plan_project_live_workflow(root, workflow_name=workflow_name, action=action, publish=publish)
     if not execute_now:
         return {**plan, "executed": False, "status": "planned_not_executed"}
@@ -616,81 +632,19 @@ def _run_project_live_action(
         return {**plan, "executed": False, "status": "blocked", "blocked_reasons": blocked}
     command = plan["command"]
     env, env_summary, secret_values = _safe_project_env(manifest, workflow, action_spec)
-    mutation_guard_before = (
-        _tracked_source_snapshot(root)
-        if normalized_action in TRACKED_SOURCE_MUTATION_GUARDED_ACTIONS
-        else {"available": False, "files": {}}
+    return _start_project_live_action(
+        root=root,
+        plan=plan,
+        command=command,
+        env=env,
+        env_summary=env_summary,
+        secret_values=secret_values,
+        mutation_guarded=normalized_action in TRACKED_SOURCE_MUTATION_GUARDED_ACTIONS,
+        timeout_sec=timeout_sec,
+        wait_for_completion_sec=wait_for_completion_sec,
+        parent_execution_id=parent_execution_id,
+        parent_saved_summary_sha256=parent_saved_summary_sha256,
     )
-    if int(timeout_sec) > MAX_SYNCHRONOUS_PROJECT_LIVE_TIMEOUT_SEC:
-        return _start_project_live_action(
-            root=root,
-            plan=plan,
-            command=command,
-            env=env,
-            env_summary=env_summary,
-            secret_values=secret_values,
-            mutation_guard_before=mutation_guard_before,
-            timeout_sec=timeout_sec,
-        )
-    try:
-        completed = subprocess.run(
-            command,
-            cwd=root,
-            env=env,
-            check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=max(1, int(timeout_sec)),
-        )
-    except subprocess.TimeoutExpired as exc:
-        mutation_guard = _tracked_source_mutation_result(root, mutation_guard_before)
-        return {
-            **plan,
-            "ok": False,
-            "executed": True,
-            "status": "tracked_source_mutation_blocked" if mutation_guard["mutated"] else "timeout",
-            "returncode": None,
-            "stdout": redact_text(exc.stdout or "", secret_values=secret_values),
-            "stderr": redact_text(exc.stderr or "", secret_values=secret_values),
-            "env_summary": env_summary,
-            "tracked_source_mutation_guard": mutation_guard,
-        }
-    stdout = redact_text(completed.stdout, secret_values=secret_values)
-    stderr = redact_text(completed.stderr, secret_values=secret_values)
-    summary = {}
-    if completed.returncode == 0:
-        summary = read_project_live_summary(
-            root,
-            workflow_name=workflow["name"],
-            action=_summary_action_label(action, publish=publish),
-        )
-    mutation_guard = _tracked_source_mutation_result(root, mutation_guard_before)
-    summary_required = normalized_action in {"apply", "publish", RETIRE_ACTION} or publish
-    summary_ok = not summary_required or summary.get("ok") is True
-    summary_blocked_reasons = _summary_validation_blockers(summary) if summary_required and not summary_ok else []
-    command_ok = completed.returncode == 0
-    return {
-        **plan,
-        "ok": command_ok and summary_ok and not mutation_guard["mutated"],
-        "executed": True,
-        "status": (
-            "tracked_source_mutation_blocked"
-            if mutation_guard["mutated"]
-            else "command_failed"
-            if not command_ok
-            else "summary_blocked"
-            if not summary_ok
-            else "completed"
-        ),
-        "returncode": completed.returncode,
-        "stdout": stdout[:4000],
-        "stderr": stderr[:4000],
-        "env_summary": env_summary,
-        "summary": summary,
-        "blocked_reasons": summary_blocked_reasons,
-        "tracked_source_mutation_guard": mutation_guard,
-    }
 
 
 def _start_project_live_action(
@@ -701,147 +655,182 @@ def _start_project_live_action(
     env: dict[str, str],
     env_summary: dict[str, Any],
     secret_values: list[str],
-    mutation_guard_before: dict[str, Any],
+    mutation_guarded: bool,
     timeout_sec: int,
+    wait_for_completion_sec: int,
+    parent_execution_id: str = "",
+    parent_saved_summary_sha256: str = "",
 ) -> dict[str, Any]:
-    execution_id = uuid.uuid4().hex
-    stdout_file = tempfile.NamedTemporaryFile(
-        mode="w+",
-        encoding="utf-8",
-        prefix=f"datalens-project-live-{execution_id}-stdout-",
-        delete=False,
+    wait_seconds = _normalized_project_live_wait(wait_for_completion_sec)
+    timeout_seconds = max(1, int(timeout_sec))
+    execution_key = _project_live_execution_key(
+        root=root,
+        plan=plan,
+        command=command,
+        parent_execution_id=parent_execution_id,
+        parent_saved_summary_sha256=parent_saved_summary_sha256,
     )
-    stderr_file = tempfile.NamedTemporaryFile(
-        mode="w+",
-        encoding="utf-8",
-        prefix=f"datalens-project-live-{execution_id}-stderr-",
-        delete=False,
-    )
-    stdout_path = Path(stdout_file.name)
-    stderr_path = Path(stderr_file.name)
-    try:
-        process = subprocess.Popen(
-            command,
-            cwd=root,
-            env=env,
-            stdout=stdout_file,
-            stderr=stderr_file,
-            text=True,
+    existing_id = _find_inflight_project_live_execution(root, execution_key)
+    if existing_id:
+        attached = _poll_project_live_action(
+            root=root,
+            execution_id=existing_id,
+            wait_for_completion_sec=wait_seconds,
+            attached_to_existing=True,
         )
-    except Exception:
-        stdout_file.close()
-        stderr_file.close()
-        stdout_path.unlink(missing_ok=True)
-        stderr_path.unlink(missing_ok=True)
-        raise
-    finally:
-        stdout_file.close()
-        stderr_file.close()
+        return attached
 
+    execution_id = uuid.uuid4().hex
+    job_root = root / "artifacts" / "runtime" / "project_live_jobs" / execution_id
+    spec_path = job_root / "worker_spec.json"
+    worker_status_path = job_root / "worker_status.json"
+    worker_result_path = job_root / "worker_result.json"
+    stdout_path = job_root / "stdout.txt"
+    stderr_path = job_root / "stderr.txt"
     started_epoch = time.time()
-    job = {
+    package_root = str(Path(__file__).resolve().parents[2])
+    worker_env = dict(env)
+    existing_pythonpath = str(worker_env.get("PYTHONPATH") or "").strip()
+    worker_env["PYTHONPATH"] = (
+        f"{package_root}{os.pathsep}{existing_pythonpath}"
+        if existing_pythonpath
+        else package_root
+    )
+    worker_spec = {
+        "schema_version": "2026-07-23.project_live_worker_spec.v1",
         "execution_id": execution_id,
-        "root": str(root),
-        "plan": plan,
-        "process": process,
-        "stdout_path": stdout_path,
-        "stderr_path": stderr_path,
-        "env_summary": env_summary,
-        "secret_values": secret_values,
-        "mutation_guard_before": mutation_guard_before,
-        "timeout_sec": max(1, int(timeout_sec)),
+        "project_root": str(root),
+        "command": command,
+        "timeout_sec": timeout_seconds,
         "started_epoch": started_epoch,
-        "started_monotonic": time.monotonic(),
-        "finalizing": False,
+        "mutation_guarded": bool(mutation_guarded),
+        "worker_status_path": str(worker_status_path),
+        "worker_result_path": str(worker_result_path),
+        "stdout_path": str(stdout_path),
+        "stderr_path": str(stderr_path),
     }
-    with _PROJECT_LIVE_JOBS_LOCK:
-        _PROJECT_LIVE_JOBS[execution_id] = job
-    running = _project_live_running_result(job)
+    write_json(spec_path, worker_spec)
+    state: dict[str, Any] = {
+        "schema_version": "2026-07-23.project_live_execution.v2",
+        "execution_id": execution_id,
+        "execution_key": execution_key,
+        "project_root": str(root),
+        "status": "starting",
+        "phase": str(plan.get("action") or ""),
+        "parent_execution_id": str(parent_execution_id or ""),
+        "parent_saved_summary_sha256": str(parent_saved_summary_sha256 or ""),
+        "started_epoch": started_epoch,
+        "heartbeat_epoch": started_epoch,
+        "deadline_epoch": started_epoch + timeout_seconds,
+        "timeout_sec": timeout_seconds,
+        "poll_count": 0,
+        "workflow_name": plan.get("workflow_name") or "",
+        "action": plan.get("action") or "",
+        "publish_requested": bool(plan.get("publish_requested")),
+        "plan": plan,
+        "env_summary": env_summary,
+        "worker_spec_path": str(spec_path),
+        "worker_status_path": str(worker_status_path),
+        "worker_result_path": str(worker_result_path),
+        "stdout_path": str(stdout_path),
+        "stderr_path": str(stderr_path),
+    }
+    _write_project_live_execution_state(
+        root=root,
+        execution_id=execution_id,
+        payload=state,
+    )
     try:
-        _write_project_live_execution_state(root=root, execution_id=execution_id, payload={
-            "schema_version": "2026-07-21.project_live_execution.v1",
+        worker = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "datalens_dev_mcp.pipeline.project_live_worker",
+                str(spec_path),
+            ],
+            cwd=root,
+            env=worker_env,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            start_new_session=True,
+        )
+    except Exception as exc:
+        failed = {
+            **plan,
+            "ok": False,
+            "executed": False,
+            "status": "worker_launch_failed",
+            "blocked_reasons": [redact_text(str(exc), secret_values=secret_values)[:500]],
             "execution_id": execution_id,
-            "status": "running",
-            "pid": process.pid,
-            "started_epoch": started_epoch,
-            "deadline_epoch": started_epoch + job["timeout_sec"],
-            "workflow_name": plan.get("workflow_name") or "",
-            "action": plan.get("action") or "",
-            "publish_requested": bool(plan.get("publish_requested")),
-        })
-    except Exception:
-        process.terminate()
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait(timeout=5)
-        with _PROJECT_LIVE_JOBS_LOCK:
-            _PROJECT_LIVE_JOBS.pop(execution_id, None)
-        stdout_path.unlink(missing_ok=True)
-        stderr_path.unlink(missing_ok=True)
+            "execution": {
+                "id": execution_id,
+                "status": "worker_launch_failed",
+                "state_path": str(_project_live_execution_state_path(root, execution_id)),
+                "resumable": False,
+                "duplicate_launch_prevented": True,
+            },
+        }
+        state.update(
+            {
+                "status": "worker_launch_failed",
+                "completed_epoch": time.time(),
+                "result": failed,
+            }
+        )
+        _write_project_live_execution_state(root=root, execution_id=execution_id, payload=state)
         raise
-    return running
+    state.update(
+        {
+            "status": "running",
+            "worker_pid": worker.pid,
+            "heartbeat_epoch": time.time(),
+        }
+    )
+    _write_project_live_execution_state(root=root, execution_id=execution_id, payload=state)
+    with _PROJECT_LIVE_JOBS_LOCK:
+        _PROJECT_LIVE_JOBS[execution_id] = {"state": state, "process": worker}
+    return _wait_for_project_live_result(
+        root=root,
+        state=state,
+        wait_for_completion_sec=wait_seconds,
+        resumed_from_state=False,
+        attached_to_existing=False,
+    )
 
 
-def _poll_project_live_action(*, root: Path, execution_id: str) -> dict[str, Any]:
+def _poll_project_live_action(
+    *,
+    root: Path,
+    execution_id: str,
+    wait_for_completion_sec: int = DEFAULT_PROJECT_LIVE_WAIT_FOR_COMPLETION_SEC,
+    attached_to_existing: bool = False,
+) -> dict[str, Any]:
     normalized_id = str(execution_id or "").strip().lower()
     if not PROJECT_LIVE_EXECUTION_ID_RE.fullmatch(normalized_id):
         raise ValueError("execution_id must be the 32-character id returned by a project-live running result")
-    with _PROJECT_LIVE_JOBS_LOCK:
-        job = _PROJECT_LIVE_JOBS.get(normalized_id)
-    if job is None:
-        state_path = _project_live_execution_state_path(root, normalized_id)
-        state = read_json(state_path, default={})
-        if isinstance(state.get("result"), dict):
-            return {
-                **state["result"],
-                "execution": {
-                    **(state["result"].get("execution") or {}),
-                    "resumed_from_state": True,
-                },
-            }
-        if state.get("status") == "running":
-            return {
-                "ok": False,
-                "executed": True,
-                "status": "detached_running",
-                "execution_id": normalized_id,
-                "blocked_reasons": [
-                    "the MCP process restarted while the child command was running; the command was not relaunched"
-                ],
-                "execution": {
-                    "id": normalized_id,
-                    "state_path": str(state_path),
-                    "pid": state.get("pid"),
-                    "resumable": False,
-                    "duplicate_launch_prevented": True,
-                },
-            }
+    state_path = _project_live_execution_state_path(root, normalized_id)
+    state = read_json(state_path, default={})
+    if not state:
         raise ValueError(f"unknown project-live execution_id: {normalized_id}")
-    if job["root"] != str(root):
+    if str(state.get("project_root") or root) != str(root):
         raise ValueError("execution_id belongs to a different project_root")
-
-    process: subprocess.Popen[str] = job["process"]
-    elapsed = time.monotonic() - float(job["started_monotonic"])
-    if process.poll() is None and elapsed < int(job["timeout_sec"]):
-        return _project_live_running_result(job)
-    with _PROJECT_LIVE_JOBS_LOCK:
-        if job.get("finalizing"):
-            return _project_live_running_result(job)
-        job["finalizing"] = True
-    timed_out = process.poll() is None
-    if timed_out:
-        process.terminate()
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait(timeout=5)
-    result = _finalize_project_live_job(job, timed_out=timed_out)
-    with _PROJECT_LIVE_JOBS_LOCK:
-        _PROJECT_LIVE_JOBS.pop(normalized_id, None)
-    return result
+    if isinstance(state.get("result"), dict):
+        return {
+            **state["result"],
+            "execution": {
+                **(state["result"].get("execution") or {}),
+                "resumed_from_state": True,
+                "attached_to_existing": bool(attached_to_existing),
+            },
+        }
+    return _wait_for_project_live_result(
+        root=root,
+        state=state,
+        wait_for_completion_sec=_normalized_project_live_wait(wait_for_completion_sec),
+        resumed_from_state=True,
+        attached_to_existing=attached_to_existing,
+    )
 
 
 def record_project_live_execution_context(
@@ -863,9 +852,10 @@ def record_project_live_execution_context(
     with _PROJECT_LIVE_JOBS_LOCK:
         job = _PROJECT_LIVE_JOBS.get(normalized_id)
         if job is not None:
-            if job["root"] != str(root):
+            job_state = job.get("state") if isinstance(job.get("state"), dict) else {}
+            if str(job_state.get("project_root") or "") != str(root):
                 raise ValueError("execution_id belongs to a different project_root")
-            job["resume_context"] = safe_context
+            job_state["resume_context"] = safe_context
     state_path = _project_live_execution_state_path(root, normalized_id)
     state = read_json(state_path, default={})
     if not state:
@@ -875,13 +865,53 @@ def record_project_live_execution_context(
     return safe_context
 
 
-def _finalize_project_live_job(job: dict[str, Any], *, timed_out: bool) -> dict[str, Any]:
-    plan = job["plan"]
-    root = Path(job["root"])
-    process: subprocess.Popen[str] = job["process"]
-    stdout = _consume_project_live_output(Path(job["stdout_path"]), secret_values=job["secret_values"])
-    stderr = _consume_project_live_output(Path(job["stderr_path"]), secret_values=job["secret_values"])
-    mutation_guard = _tracked_source_mutation_result(root, job["mutation_guard_before"])
+def _wait_for_project_live_result(
+    *,
+    root: Path,
+    state: dict[str, Any],
+    wait_for_completion_sec: int,
+    resumed_from_state: bool,
+    attached_to_existing: bool,
+) -> dict[str, Any]:
+    deadline = time.monotonic() + wait_for_completion_sec
+    while True:
+        worker_result = read_json(Path(str(state.get("worker_result_path") or "")), default={})
+        if isinstance(worker_result, dict) and worker_result:
+            return _finalize_project_live_state(root=root, state=state, worker_result=worker_result)
+        worker_status = read_json(Path(str(state.get("worker_status_path") or "")), default={})
+        if isinstance(worker_status, dict) and worker_status:
+            state["heartbeat_epoch"] = worker_status.get("heartbeat_epoch") or state.get("heartbeat_epoch")
+            state["target_pid"] = worker_status.get("target_pid")
+        worker_pid = int(state.get("worker_pid") or 0)
+        if not _process_alive(worker_pid):
+            result = _missing_project_live_worker_result(root=root, state=state)
+            return result
+        if time.monotonic() >= deadline:
+            return _project_live_running_result(
+                root=root,
+                state=state,
+                resumed_from_state=resumed_from_state,
+                attached_to_existing=attached_to_existing,
+            )
+        time.sleep(min(0.05, max(0.0, deadline - time.monotonic())))
+
+
+def _finalize_project_live_state(
+    *,
+    root: Path,
+    state: dict[str, Any],
+    worker_result: dict[str, Any],
+) -> dict[str, Any]:
+    plan = state.get("plan") if isinstance(state.get("plan"), dict) else {}
+    stdout = _consume_project_live_output(Path(str(worker_result.get("stdout_path") or state.get("stdout_path") or "")))
+    stderr = _consume_project_live_output(Path(str(worker_result.get("stderr_path") or state.get("stderr_path") or "")))
+    mutation_guard = (
+        worker_result.get("tracked_source_mutation_guard")
+        if isinstance(worker_result.get("tracked_source_mutation_guard"), dict)
+        else {"available": False, "mutated": False, "changed_paths": []}
+    )
+    timed_out = bool(worker_result.get("timed_out"))
+    worker_failed = str(worker_result.get("status") or "") == "worker_failed"
     if timed_out:
         result = {
             **plan,
@@ -891,12 +921,26 @@ def _finalize_project_live_job(job: dict[str, Any], *, timed_out: bool) -> dict[
             "returncode": None,
             "stdout": stdout,
             "stderr": stderr,
-            "env_summary": job["env_summary"],
+            "env_summary": state.get("env_summary") or {},
+            "tracked_source_mutation_guard": mutation_guard,
+        }
+    elif worker_failed:
+        result = {
+            **plan,
+            "ok": False,
+            "executed": True,
+            "status": "worker_failed",
+            "returncode": None,
+            "stdout": stdout,
+            "stderr": stderr,
+            "env_summary": state.get("env_summary") or {},
+            "blocked_reasons": [str(worker_result.get("error") or "project-live worker failed")],
             "tracked_source_mutation_guard": mutation_guard,
         }
     else:
         summary: dict[str, Any] = {}
-        if process.returncode == 0:
+        returncode = worker_result.get("returncode")
+        if returncode == 0:
             summary = read_project_live_summary(
                 root,
                 workflow_name=str(plan.get("workflow_name") or ""),
@@ -908,7 +952,7 @@ def _finalize_project_live_job(job: dict[str, Any], *, timed_out: bool) -> dict[
         )
         summary_ok = not summary_required or summary.get("ok") is True
         summary_blocked_reasons = _summary_validation_blockers(summary) if summary_required and not summary_ok else []
-        command_ok = process.returncode == 0
+        command_ok = returncode == 0
         result = {
             **plan,
             "ok": command_ok and summary_ok and not mutation_guard["mutated"],
@@ -922,62 +966,133 @@ def _finalize_project_live_job(job: dict[str, Any], *, timed_out: bool) -> dict[
                 if not summary_ok
                 else "completed"
             ),
-            "returncode": process.returncode,
+            "returncode": returncode,
             "stdout": stdout,
             "stderr": stderr,
-            "env_summary": job["env_summary"],
+            "env_summary": state.get("env_summary") or {},
             "summary": summary,
             "blocked_reasons": summary_blocked_reasons,
             "tracked_source_mutation_guard": mutation_guard,
         }
-    state_path = _project_live_execution_state_path(root, job["execution_id"])
-    result["execution_id"] = job["execution_id"]
-    result["resume_context"] = dict(job.get("resume_context") or {})
+    execution_id = str(state["execution_id"])
+    state_path = _project_live_execution_state_path(root, execution_id)
+    result["execution_id"] = execution_id
+    result["resume_context"] = dict(state.get("resume_context") or {})
     result["execution"] = {
-        "id": job["execution_id"],
+        "id": execution_id,
         "status": result["status"],
+        "phase": str(state.get("phase") or ""),
+        "parent_execution_id": str(state.get("parent_execution_id") or ""),
         "state_path": str(state_path),
         "resumable": True,
         "duplicate_launch_prevented": True,
+        "terminal_result": True,
     }
-    _write_project_live_execution_state(root=root, execution_id=job["execution_id"], payload={
-        "schema_version": "2026-07-21.project_live_execution.v1",
-        "execution_id": job["execution_id"],
+    terminal_state = {
+        **state,
+        "schema_version": "2026-07-23.project_live_execution.v2",
         "status": result["status"],
-        "completed_epoch": time.time(),
+        "heartbeat_epoch": worker_result.get("completed_epoch") or time.time(),
+        "completed_epoch": worker_result.get("completed_epoch") or time.time(),
         "result": result,
-    })
+    }
+    _write_project_live_execution_state(root=root, execution_id=execution_id, payload=terminal_state)
+    with _PROJECT_LIVE_JOBS_LOCK:
+        live_job = _PROJECT_LIVE_JOBS.pop(execution_id, None)
+    worker = live_job.get("process") if isinstance(live_job, dict) else None
+    if isinstance(worker, subprocess.Popen):
+        try:
+            worker.wait(timeout=1)
+        except subprocess.TimeoutExpired:
+            pass
     return result
 
 
-def _project_live_running_result(job: dict[str, Any]) -> dict[str, Any]:
-    plan = job["plan"]
-    state_path = _project_live_execution_state_path(Path(job["root"]), job["execution_id"])
+def _project_live_running_result(
+    *,
+    root: Path,
+    state: dict[str, Any],
+    resumed_from_state: bool,
+    attached_to_existing: bool,
+) -> dict[str, Any]:
+    plan = state.get("plan") if isinstance(state.get("plan"), dict) else {}
+    execution_id = str(state["execution_id"])
+    poll_count = int(state.get("poll_count") or 0)
+    poll_after_sec = (5, 10, 20, 30)[min(poll_count, 3)]
+    state["poll_count"] = poll_count + 1
+    state["next_poll_not_before"] = time.time() + poll_after_sec
+    _write_project_live_execution_state(root=root, execution_id=execution_id, payload=state)
     return {
         **plan,
         "ok": True,
         "executed": True,
         "status": "running",
         "returncode": None,
-        "execution_id": job["execution_id"],
-        "poll_after_sec": 2,
-        "env_summary": job["env_summary"],
-        "resume_context": dict(job.get("resume_context") or {}),
+        "execution_id": execution_id,
+        "poll_after_sec": poll_after_sec,
+        "next_poll_not_before": state["next_poll_not_before"],
+        "env_summary": state.get("env_summary") or {},
+        "resume_context": dict(state.get("resume_context") or {}),
         "execution": {
-            "id": job["execution_id"],
+            "id": execution_id,
             "status": "running",
-            "pid": job["process"].pid,
-            "state_path": str(state_path),
-            "started_epoch": job["started_epoch"],
-            "deadline_epoch": job["started_epoch"] + job["timeout_sec"],
+            "phase": str(state.get("phase") or ""),
+            "parent_execution_id": str(state.get("parent_execution_id") or ""),
+            "worker_pid": state.get("worker_pid"),
+            "target_pid": state.get("target_pid"),
+            "state_path": str(_project_live_execution_state_path(root, execution_id)),
+            "started_epoch": state.get("started_epoch"),
+            "heartbeat_epoch": state.get("heartbeat_epoch"),
+            "deadline_epoch": state.get("deadline_epoch"),
+            "next_poll_not_before": state["next_poll_not_before"],
             "resumable": True,
             "duplicate_launch_prevented": True,
+            "resumed_from_state": bool(resumed_from_state),
+            "attached_to_existing": bool(attached_to_existing),
             "next_action": "call the same tool with execution_id to poll; do not relaunch the command",
         },
     }
 
 
-def _consume_project_live_output(path: Path, *, secret_values: list[str]) -> str:
+def _missing_project_live_worker_result(*, root: Path, state: dict[str, Any]) -> dict[str, Any]:
+    plan = state.get("plan") if isinstance(state.get("plan"), dict) else {}
+    execution_id = str(state["execution_id"])
+    result = {
+        **plan,
+        "ok": False,
+        "executed": True,
+        "status": "worker_result_missing",
+        "returncode": None,
+        "stdout": "",
+        "stderr": "",
+        "env_summary": state.get("env_summary") or {},
+        "blocked_reasons": [
+            "the durable project-live worker exited without a terminal result; the command was not relaunched"
+        ],
+        "execution_id": execution_id,
+        "execution": {
+            "id": execution_id,
+            "status": "worker_result_missing",
+            "phase": str(state.get("phase") or ""),
+            "state_path": str(_project_live_execution_state_path(root, execution_id)),
+            "resumable": True,
+            "duplicate_launch_prevented": True,
+            "relaunch_blocked": True,
+        },
+    }
+    terminal_state = {
+        **state,
+        "status": "worker_result_missing",
+        "completed_epoch": time.time(),
+        "result": result,
+    }
+    _write_project_live_execution_state(root=root, execution_id=execution_id, payload=terminal_state)
+    with _PROJECT_LIVE_JOBS_LOCK:
+        _PROJECT_LIVE_JOBS.pop(execution_id, None)
+    return result
+
+
+def _consume_project_live_output(path: Path) -> str:
     try:
         with path.open("r", encoding="utf-8", errors="replace") as handle:
             text = handle.read(32_000)
@@ -987,9 +1102,63 @@ def _consume_project_live_output(path: Path, *, secret_values: list[str]) -> str
         truncated = False
     finally:
         path.unlink(missing_ok=True)
-    redacted = redact_text(text, secret_values=secret_values)
     suffix = "\n<output truncated>" if truncated else ""
-    return (redacted[:4000] + suffix)[:4040]
+    return (text[:4000] + suffix)[:4040]
+
+
+def _normalized_project_live_wait(value: int) -> int:
+    return max(0, min(MAX_PROJECT_LIVE_WAIT_FOR_COMPLETION_SEC, int(value)))
+
+
+def _project_live_execution_key(
+    *,
+    root: Path,
+    plan: dict[str, Any],
+    command: list[str],
+    parent_execution_id: str,
+    parent_saved_summary_sha256: str,
+) -> str:
+    canonical = json.dumps(
+        {
+            "project_root": str(root),
+            "workflow_name": plan.get("workflow_name") or "",
+            "action": plan.get("action") or "",
+            "publish_requested": bool(plan.get("publish_requested")),
+            "command": command,
+            "parent_execution_id": str(parent_execution_id or ""),
+            "parent_saved_summary_sha256": str(parent_saved_summary_sha256 or ""),
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _find_inflight_project_live_execution(root: Path, execution_key: str) -> str:
+    state_root = root / "artifacts" / "runtime" / "project_live_jobs"
+    for state_path in sorted(state_root.glob("*.json")):
+        state = read_json(state_path, default={})
+        if not isinstance(state, dict):
+            continue
+        if state.get("execution_key") != execution_key:
+            continue
+        if state.get("status") not in {"starting", "running"}:
+            continue
+        return str(state.get("execution_id") or "")
+    return ""
+
+
+def _process_alive(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
 
 
 def _project_live_execution_state_path(root: Path, execution_id: str) -> Path:
@@ -1116,7 +1285,7 @@ def _load_manifest(root: Path) -> dict[str, Any]:
                 manifest = json.loads(path.read_text(encoding="utf-8"))
         except Exception as exc:  # noqa: BLE001
             return {"ok": False, "path": path, "errors": [f"{path.name}: invalid manifest: {exc}"]}
-        errors = _validate_manifest(manifest)
+        errors = _validate_manifest(manifest, project_root=root)
         return {"ok": not errors, "path": path, "manifest": manifest, "errors": errors}
     return {"ok": False, "path": None, "errors": []}
 
@@ -1129,7 +1298,7 @@ def _require_manifest(root: Path) -> dict[str, Any]:
     return loaded
 
 
-def _validate_manifest(manifest: Any) -> list[str]:
+def _validate_manifest(manifest: Any, *, project_root: Path | None = None) -> list[str]:
     if not isinstance(manifest, dict):
         return ["manifest root must be an object"]
     profile_declaration = manifest.get("authoring_profile")
@@ -1137,7 +1306,10 @@ def _validate_manifest(manifest: Any) -> list[str]:
     if profile_issues:
         return profile_issues
     if profile_declaration:
-        profile = resolve_authoring_profile(requested_profile=_profile_declaration_id(profile_declaration))
+        profile = resolve_authoring_profile(
+            project_root=project_root or ".",
+            requested_profile=profile_declaration,
+        )
         if not profile.get("ok"):
             return [str((profile.get("error") or {}).get("message") or "invalid authoring_profile")]
     workflows = manifest.get("workflows")
@@ -1650,6 +1822,7 @@ def _parse_summary(
     payload = read_json(summary_path, default={})
     if not isinstance(payload, dict):
         payload = {}
+    payload = _normalized_summary_payload(payload, manifest)
     artifact_validation = _validate_summary_artifacts(
         root,
         payload,
@@ -2109,7 +2282,46 @@ def _summary_target_ids(payload: dict[str, Any], manifest: dict[str, Any]) -> di
         ids["object_ids"] = object_ids
     if not ids and _exact_id(manifest.get("workbook_id")):
         ids["workbook_id"] = manifest.get("workbook_id")
+    manifest_dashboard_ids = manifest.get("dashboard_ids")
+    if (
+        "dashboard_ids" not in ids
+        and isinstance(manifest_dashboard_ids, list)
+        and manifest_dashboard_ids
+        and all(_exact_id(item) for item in manifest_dashboard_ids)
+    ):
+        ids["dashboard_ids"] = [str(item) for item in manifest_dashboard_ids]
     return ids
+
+
+def _normalized_summary_payload(
+    payload: dict[str, Any],
+    manifest: dict[str, Any],
+) -> dict[str, Any]:
+    normalized = dict(payload)
+    if not _exact_id(normalized.get("workbook_id")) and _exact_id(manifest.get("workbook_id")):
+        normalized["workbook_id"] = manifest["workbook_id"]
+    dashboard_ids = normalized.get("dashboard_ids")
+    if not (
+        isinstance(dashboard_ids, list)
+        and dashboard_ids
+        and all(_exact_id(item) for item in dashboard_ids)
+    ):
+        manifest_ids = manifest.get("dashboard_ids")
+        if (
+            isinstance(manifest_ids, list)
+            and manifest_ids
+            and all(_exact_id(item) for item in manifest_ids)
+        ):
+            normalized["dashboard_ids"] = [str(item) for item in manifest_ids]
+    if not _exact_id(normalized.get("dashboard_id")):
+        exact_ids = normalized.get("dashboard_ids")
+        if isinstance(exact_ids, list) and len(exact_ids) == 1:
+            normalized["dashboard_id"] = exact_ids[0]
+    if not isinstance(normalized.get("target_ids"), dict) or not normalized.get("target_ids"):
+        derived = _summary_target_ids(normalized, manifest)
+        if derived:
+            normalized["target_ids"] = derived
+    return normalized
 
 
 def _exact_id(value: Any) -> bool:
@@ -2138,6 +2350,14 @@ def _safe_authoring_profile_summary(manifest: dict[str, Any]) -> dict[str, Any]:
     declaration = manifest.get("authoring_profile")
     if not declaration:
         return {"active": False, "id": "", "selection_origin": "default_route_policy"}
+    if isinstance(declaration, dict) and declaration.get("descriptor_path"):
+        return {
+            "active": True,
+            "id": _profile_declaration_id(declaration),
+            "source_kind": "project_local",
+            "descriptor_sha256": str(declaration.get("descriptor_sha256") or ""),
+            "fallback_policy": "block",
+        }
     resolved = resolve_authoring_profile(requested_profile=_profile_declaration_id(declaration))
     if not resolved.get("ok"):
         return {

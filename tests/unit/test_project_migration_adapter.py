@@ -167,7 +167,11 @@ class Goal10ProjectMigrationAdapterTests(unittest.TestCase):
         self.assertEqual(summary["status"], "summary_blocked")
         self.assertIn("branch_status", fields)
         self.assertIn("changed_object_counts", fields)
-        self.assertIn("target_ids", fields)
+        self.assertNotIn("target_ids", fields)
+        self.assertEqual(
+            summary["target_ids"],
+            {"workbook_id": "workbook_1", "dashboard_ids": ["dashboard_1"]},
+        )
 
     def test_summary_requirements_pass_with_declared_evidence(self):
         from datalens_dev_mcp.mcp.tools.pipeline import dl_read_project_live_summary

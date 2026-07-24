@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/user-decision-patch.schema.json",
+  "title": "Scoped user decision patch",
+  "type": "object",
+  "required": ["scope"],
+  "properties": {
+    "schema_version": {
+      "const": "2026-07-23.user_decision_patch.v1"
+    },
+    "scope": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "enum": ["project", "family", "object"]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "metric_semantics": {
+      "type": "object"
+    },
+    "visual_spec_overlay": {
+      "type": "object",
+      "properties": {
+        "colors": {"type": "object"},
+        "labels": {"type": "object"},
+        "tooltip": {"type": "object"},
+        "kpi_context": {"type": "object"},
+        "comparison_context": {"type": "object"},
+        "responsive_layout": {"type": "object"},
+        "layout_contract": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "required_semantic_roles": {
+      "$ref": "#/$defs/semanticRoles"
+    },
+    "forbidden_semantic_roles": {
+      "$ref": "#/$defs/semanticRoles"
+    },
+    "supersedes": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "semanticRoles": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "success",
+          "failure",
+          "warning",
+          "neutral",
+          "focus",
+          "comparison",
+          "track"
+        ]
+      }
+    }
+  }
+}

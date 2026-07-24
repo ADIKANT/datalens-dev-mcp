@@ -6,6 +6,8 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-23
+
 ### Added
 
 - Standalone HTML artifact generation and strict sandbox validation through the
@@ -21,6 +23,12 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   template set and compiled output, and blocks unregistered visual fallbacks.
 - Resumable project-live execution IDs for commands longer than the synchronous
   MCP window, with duplicate-launch prevention and replayable final state.
+- Hash-locked project-local authoring profiles with exact registered assets,
+  portable path containment, and blocked fallback.
+- Scoped user-decision patches with project/family/object precedence,
+  supersession, deterministic resolution, and plan drift hashes.
+- Renderer visual-spec v3 and browser-capture v3 contracts for semantic color
+  roles, label overflow, exact tooltip buckets, text truncation, and overlap.
 
 ### Changed
 
@@ -52,6 +60,16 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   recognized project manifests separately from runtime configuration.
 - Built release wheels from the current non-ignored publication snapshot and
   added an archive-level public-release scan before portable wheel smoke.
+- Project-live commands now always use durable worker state with heartbeat,
+  restart-safe polling, bounded attachment, and duplicate execution keys.
+- Safe Apply now projects fresh merged requests through method schemas,
+  distinguishes confirmed writes from verification, and treats received 4xx
+  responses as rejected writes rather than unknown outcomes.
+- Overlay list handling is explicit and path-scoped, so reviewed layout
+  replacement cannot append stale widgets.
+- Editor performance findings are advisory unless a runtime contract marks a
+  warning rule as blocking; sanitizer and unsupported-runtime errors remain
+  blocking.
 
 ## [0.3.0] - 2026-07-15
 
@@ -72,5 +90,6 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Private workbooks, execution evidence, credentials, and local operator state
   are excluded from the public distribution.
 
-[Unreleased]: https://github.com/ADIKANT/datalens-dev-mcp/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/ADIKANT/datalens-dev-mcp/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/ADIKANT/datalens-dev-mcp/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ADIKANT/datalens-dev-mcp/releases/tag/v0.3.0

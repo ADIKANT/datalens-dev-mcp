@@ -27,6 +27,12 @@
     "approved": {"type": "boolean"},
     "approval_note": {"type": "string"},
     "approval_provenance": {"$ref": "#/$defs/approvalProvenance"},
+    "decision_ledger_sha256": {
+      "oneOf": [
+        {"$ref": "#/$defs/sha256"},
+        {"const": ""}
+      ]
+    },
     "target_lock": {"$ref": "#/$defs/targetLock"},
     "branch_semantics": {"$ref": "#/$defs/planBranchSemantics"},
     "transaction_policy": {
@@ -218,6 +224,21 @@
         "h": {"type": "integer"}
       }
     },
+    "overlayMergeContract": {
+      "type": "object",
+      "required": ["schema_version", "list_policies"],
+      "properties": {
+        "schema_version": {"const": "2026-07-23.safe_apply_overlay_merge.v2"},
+        "list_policies": {
+          "type": "object",
+          "propertyNames": {"pattern": "^/"},
+          "additionalProperties": {
+            "enum": ["replace", "merge_by_identity", "preserve"]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "action": {
       "type": "object",
       "required": [
@@ -247,6 +268,7 @@
         "mode": {"const": "save"},
         "transaction_group_id": {"type": "string", "minLength": 1},
         "change_scope": {"enum": ["content", "layout", "redesign"]},
+        "layout_intent": {"enum": ["preserve", "update"]},
         "semantic_role": {"type": "string"},
         "shared_object_key": {"type": "string"},
         "publish_required": {"type": "boolean"},
@@ -255,6 +277,7 @@
         "payload_contract": {"$ref": "#/$defs/payloadContract"},
         "payload": {"type": "object"},
         "desired_overlay": {"type": "object"},
+        "overlay_merge_contract": {"$ref": "#/$defs/overlayMergeContract"},
         "geometry_expectations": {
           "type": "array",
           "items": {

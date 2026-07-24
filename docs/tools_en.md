@@ -4,7 +4,7 @@
 
 [Quick start](../README_en.md#quick-start) · [DataLens access](access_en.md) · [Connect](codex_setup_en.md) · **Tools** · [Workflows](usage-flow_en.md) · [Sources](sources_en.md) · [Safety](local-only-safety-model_en.md) · [Русский](tools.md)
 
-The standard `tools/list` contains **38 tools**. Each exact JSON schema is available to the MCP client and summarized in the [technical catalog](mcp/tools.md). Common response shapes are documented in [response contracts](mcp/response_contracts.md).
+The standard `tools/list` contains **39 tools**. Each exact JSON schema is available to the MCP client and summarized in the [technical catalog](mcp/tools.md). Common response shapes are documented in [response contracts](mcp/response_contracts.md).
 
 Operation classes:
 
@@ -45,6 +45,7 @@ Operation classes:
 | Tool | Purpose | When to use | Required data | Result and class | Source |
 | --- | --- | --- | --- | --- | --- |
 | `dl_generate_editor_bundle` | Compile a Wizard/Editor bundle or standalone HTML artifact | After chart selection or an explicit HTML-page request | Chart inputs or a mutually exclusive `html_page` spec | Deterministic SHA-256 artifact; HTML is not returned inline · `local` | [Standard templates](datalens/standard_chart_templates.md) · [HTML](datalens/html_pages_en.md) |
+| `dl_update_user_decision` | Record a scoped requirements correction | After a metric, visual rule, or object clarification | Decision text and an optional structured patch | Markdown plus a hash-bound decision ledger · `local write` | [Project workflow](project_workflow.md#пользовательские-решения) |
 | `dl_validate_project` | Check project files, requests, SQL, relations, and secrets | Before building an apply plan | Project root and optional context references | Findings and warnings · `local` | [Architecture](architecture.md) |
 | `dl_build_payload_plan` | Compile validated materials into a DataLens request plan | After project and object validation | Project root, target, and request text | Methods, targets, and payloads without writing · `local` | [Safe apply](safe-apply_en.md) |
 | `dl_build_validation_evidence_report` | Collect validation results by stage | Before handoff and after apply | Project root and report paths | Unified evidence report · `local` | [Response contracts](mcp/response_contracts.md) |
@@ -71,8 +72,8 @@ Operation classes:
 | `dl_detect_project_live_workflows` | Find the project's command manifest | A project already owns validation and apply commands | `project_root` | Available workflows or a manifest request · `local` | [Project workflow](project_workflow.md) |
 | `dl_plan_project_manifest` | Prepare or write the project manifest | No manifest exists | `project_root`, `write_manifest`, optional target IDs | Preview or written manifest · `local` | [Project workflow](project_workflow.md) |
 | `dl_plan_project_live_workflow` | Resolve one declared action without running it | Before dry-run or apply | Project root, workflow, action, and request | Command, targets, environment, reports, and blockers · `local` | [Project workflow](project_workflow.md) |
-| `dl_run_project_live_dry_run` | Run the declared validation command | After inspecting the plan | Project root, workflow, and `execute_now` | Sanitized output and report paths · `local command` | [Project workflow](project_workflow.md) |
-| `dl_run_project_live_apply` | Start or poll the declared save/publish action | The request requires applying a change | Project root plus workflow/action or `execution_id` | Final summary or resumable running id · `guarded write` + `local command` | [Project workflow](project_workflow.md) |
+| `dl_run_project_live_dry_run` | Run the declared validation command | After inspecting the plan | Project root, workflow, `execute_now`, and a `0..30` second wait | Sanitized result or durable running id · `local command` | [Project workflow](project_workflow.md) |
+| `dl_run_project_live_apply` | Start or poll the declared save/publish action | The request requires applying a change | Project root, workflow/action, wait, or `execution_id` | Final summary or restart-safe running id · `guarded write` + `local command` | [Project workflow](project_workflow.md) |
 | `dl_read_project_live_summary` | Read and validate the project's JSON summary | After dry-run, save, or publish | Project root, action, or summary path | Changed objects, state, and errors · `local` | [Project workflow](project_workflow.md) |
 
 ## Maintenance and source availability

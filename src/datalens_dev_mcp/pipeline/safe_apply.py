@@ -8,13 +8,15 @@ from pathlib import Path
 import re
 from typing import Any
 
+from datalens_dev_mcp.api.errors import DataLensApiError
 from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.api.methods import is_write_method
-from datalens_dev_mcp.api.request_compiler import validate_method_request
+from datalens_dev_mcp.api.request_compiler import project_method_request, validate_method_request
 from datalens_dev_mcp.serialization import sanitize_response, serialized_metadata, stable_json_text
 from datalens_dev_mcp.pipeline.proof_levels import proof_level_for_readback_branch
 from datalens_dev_mcp.pipeline.readback import normalize_readback_mode
 from datalens_dev_mcp.pipeline.baseline_preservation import build_baseline_diff_contract, create_necessity_proof
+from datalens_dev_mcp.pipeline.decision_patches import decision_ledger_sha256
 from datalens_dev_mcp.pipeline.reconciliation import (
     reconcile_partial_creates,
     validate_entries_reconciliation_evidence,
@@ -95,6 +97,7 @@ def create_safe_apply_plan(
 ) -> dict[str, Any]:
     normalized_actions = []
     created_at = now_utc()
+    active_decision_ledger_sha256 = decision_ledger_sha256(project_root)
     request_intent = _request_intent_binding(user_request_text, approved=approved)
     approval_source = (
         "current_user_request"
@@ -123,6 +126,17 @@ def create_safe_apply_plan(
             item.setdefault("change_scope", "content")
         else:
             item.setdefault("change_scope", "content")
+        item.setdefault(
+            "layout_intent",
+            "update" if item["change_scope"] in {"layout", "redesign"} else "preserve",
+        )
+        item.setdefault(
+            "overlay_merge_contract",
+            _default_overlay_merge_contract(
+                item["desired_overlay"],
+                change_scope=str(item["change_scope"]),
+            ),
+        )
         item["publish_required"] = bool(
             item.get("publish_required") or _saved_published_identity_diverges(item, payload)
         )
@@ -152,7 +166,7 @@ def create_safe_apply_plan(
         }
         normalized_actions.append(item)
     return {
-        "schema_version": "2026-05-25.safe_apply_plan.v1",
+        "schema_version": "2026-07-23.safe_apply_plan.v2",
         "created_at": created_at,
         "project_root": project_root,
         "read_only_default": True,
@@ -169,6 +183,7 @@ def create_safe_apply_plan(
             request_digest=request_intent["request_sha256"],
         ),
         "request_intent": request_intent,
+        "decision_ledger_sha256": active_decision_ledger_sha256,
         "target_lock": default_target_lock,
         "branch_semantics": {
             "default_write_mode": "save",
@@ -188,6 +203,38 @@ def create_safe_apply_plan(
             "partial_create_retry_requires_reconciliation": True,
         },
         "actions": normalized_actions,
+    }
+
+
+def _default_overlay_merge_contract(
+    overlay: dict[str, Any],
+    *,
+    change_scope: str,
+) -> dict[str, Any]:
+    policies: dict[str, str] = {}
+
+    def visit(value: Any, path: str) -> None:
+        if isinstance(value, dict):
+            for key, child in value.items():
+                visit(child, f"{path}/{_json_pointer_token(str(key))}")
+            return
+        if not isinstance(value, list):
+            return
+        leaf = path.rsplit("/", 1)[-1] if path else ""
+        identities = [_merge_identity(item) for item in value]
+        if change_scope in {"layout", "redesign"} and leaf in {"layout", "items", "globalItems"}:
+            policies[path or "/"] = "replace"
+        elif value and all(identities):
+            policies[path or "/"] = "merge_by_identity"
+        else:
+            policies[path or "/"] = "replace"
+        for child in value:
+            visit(child, f"{path}/*")
+
+    visit(overlay, "")
+    return {
+        "schema_version": "2026-07-23.safe_apply_overlay_merge.v2",
+        "list_policies": policies,
     }
 
 
@@ -403,6 +450,20 @@ def validate_safe_apply_plan(plan: dict[str, Any]) -> ValidationResult:
 def validate_safe_apply_plan_exhaustive(plan: dict[str, Any]) -> dict[str, Any]:
     issues: list[str] = []
     action_checks: list[dict[str, Any]] = []
+    project_root = Path(str(plan.get("project_root") or "."))
+    expected_decision_ledger_sha256 = str(plan.get("decision_ledger_sha256") or "")
+    try:
+        current_decision_ledger_sha256 = decision_ledger_sha256(project_root)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        current_decision_ledger_sha256 = ""
+        issues.append(
+            "active user decision ledger is invalid: "
+            f"{exc.__class__.__name__}"
+        )
+    if current_decision_ledger_sha256 != expected_decision_ledger_sha256:
+        issues.append(
+            "safe apply decision_ledger_sha256 is stale; regenerate the plan from current user decisions"
+        )
     target_lock = plan.get("target_lock") if isinstance(plan.get("target_lock"), dict) else {}
     plan_target_lock_hash = str(target_lock.get("lock_hash") or "").strip()
     if not plan.get("approved"):
@@ -576,7 +637,7 @@ def validate_safe_apply_plan_exhaustive(plan: dict[str, Any]) -> dict[str, Any]:
                 ),
             )
             for finding in runtime_preflight["findings"]:
-                if finding["severity"] == "error" or not runtime_preflight["allow_unknown_warnings"]:
+                if finding.get("blocking") is True:
                     action_issues.append(
                         "action "
                         f"{index} editor runtime contract {finding['rule']}: "
@@ -696,6 +757,7 @@ def execute_safe_apply(
     if blocked:
         transaction_groups = _transaction_group_summary(plan, [])
         return {
+            "ok": False,
             "executed": False,
             "status": "blocked",
             "proof_level": "source_static",
@@ -842,6 +904,7 @@ def execute_safe_apply(
                 if (
                     overlay_summary.get("fresh_geometry_preserved")
                     or overlay_summary.get("wizard_visualization_token")
+                    or overlay_summary.get("list_policies_applied")
                     or overlay_summary.get("change_scope") != "content"
                 ):
                     action_result["overlay_application"] = overlay_summary
@@ -856,6 +919,44 @@ def execute_safe_apply(
                         action_result["error"] = dashboard_error
                         results.append(action_result)
                         break
+            request_projection = project_method_request(
+                str(action.get("method") or ""),
+                write_payload,
+                object_type=str(action.get("object_type") or ""),
+                operation=action_type,
+                object_id=_action_object_id(action, write_payload),
+                workbook_id=str(
+                    write_payload.get("workbookId")
+                    or (
+                        write_payload.get("entry", {}).get("workbookId")
+                        if isinstance(write_payload.get("entry"), dict)
+                        else ""
+                    )
+                    or ""
+                ),
+                mode=str(write_payload.get("mode") or action.get("mode") or "save"),
+            )
+            action_result["request_projection"] = {
+                "schema_ref": request_projection.get("schema_ref") or "",
+                "dropped_paths": request_projection.get("dropped_paths") or [],
+                "final_request_sha256": request_projection.get("final_request_sha256") or "",
+            }
+            if not request_projection.get("ok"):
+                action_result["status"] = "failed"
+                action_result["error"] = {
+                    "category": "request_projection_failed",
+                    "message": str(
+                        (request_projection.get("error") or {}).get("message")
+                        or "final schema-driven request projection failed"
+                    ),
+                    "issues": request_projection.get("issues") or [],
+                    "write_outcome": "no_write",
+                    "retry_safe": True,
+                }
+                results.append(action_result)
+                break
+            write_payload = dict(request_projection["payload"])
+            action_result["execution_stage"] = "request_validated"
             cfg = cfg.reload_canonical_env(reload_state="reloaded_immediately_before_write")
             runtime_gate_issues = _runtime_write_gate_issues(cfg, write_payload)
             if runtime_gate_issues:
@@ -867,7 +968,11 @@ def execute_safe_apply(
                 results.append(action_result)
                 break
             action_result["write_attempted"] = True
+            action_result["execution_stage"] = "write_dispatched"
+            action_result["write_outcome"] = "unknown"
             write_result = client.rpc(action["method"], write_payload)
+            action_result["execution_stage"] = "write_confirmed"
+            action_result["write_outcome"] = "confirmed_write"
             action_result["artifacts"]["write_result"] = _write_safe_apply_envelope(
                 root=root,
                 run_id=run_id,
@@ -888,9 +993,11 @@ def execute_safe_apply(
                             "create response did not return an object identity; exact post-write readback "
                             "cannot be addressed"
                         ),
-                        "write_outcome": "unknown",
+                        "write_outcome": "confirmed_write",
                         "retry_safe": False,
+                        "reconciliation_required": True,
                     }
+                    action_result["verification_outcome"] = "mismatch"
                     results.append(action_result)
                     break
             if readback_mode != "none" and fresh_method:
@@ -905,7 +1012,12 @@ def execute_safe_apply(
                     )
                     if not readback_request["ok"]:
                         action_result["status"] = "failed"
-                        action_result["error"] = readback_request["error"]
+                        action_result["error"] = {
+                            **readback_request["error"],
+                            "write_outcome": "confirmed_write",
+                            "reconciliation_required": True,
+                        }
+                        action_result["verification_outcome"] = "mismatch"
                         results.append(action_result)
                         break
                     readback_method = str(readback_request["method"])
@@ -924,6 +1036,7 @@ def execute_safe_apply(
                 )
                 action_result["summaries"]["readback"] = _safe_apply_envelope_summary(readback, readback_mode)
                 action_result["revisions"]["readback"] = _revision_id(readback)
+                action_result["execution_stage"] = "readback_observed"
                 readback_verification = _post_write_readback_verification(
                     action=action,
                     payload=payload,
@@ -940,11 +1053,19 @@ def execute_safe_apply(
                 readback_error = readback_verification.get("error")
                 if readback_error:
                     action_result["status"] = "failed"
-                    action_result["error"] = readback_error
+                    action_result["error"] = {
+                        **readback_error,
+                        "write_outcome": "confirmed_write",
+                        "retry_safe": False,
+                        "reconciliation_required": True,
+                    }
+                    action_result["verification_outcome"] = "mismatch"
                     results.append(action_result)
                     break
             action_result["executed"] = True
             action_result["status"] = "executed"
+            action_result["execution_stage"] = "verified"
+            action_result["verification_outcome"] = "verified"
         except Exception as exc:  # noqa: BLE001
             action_result["executed"] = False
             action_result["status"] = "failed"
@@ -952,12 +1073,18 @@ def execute_safe_apply(
                 exc,
                 write_attempted=bool(action_result.get("write_attempted")),
             )
+            action_result["write_outcome"] = action_result["error"].get("write_outcome", "no_write")
             results.append(action_result)
             break
         results.append(action_result)
     failed_index = next((item["index"] for item in results if item.get("status") == "failed"), None)
     completed_indices = [int(item["index"]) for item in results if item.get("executed")]
     completed_count = len(completed_indices)
+    confirmed_write_indices = [
+        int(item["index"])
+        for item in results
+        if item.get("write_outcome") == "confirmed_write"
+    ]
     failed_indices = [] if failed_index is None else [int(failed_index)]
     observed_indices = {int(item["index"]) for item in results}
     skipped_indices = [
@@ -967,15 +1094,17 @@ def execute_safe_apply(
     ]
     status = "completed"
     if failed_index is not None:
-        status = "partial" if completed_count else "failed"
+        status = "partial" if completed_count or confirmed_write_indices else "failed"
     proof_levels = _result_proof_levels(results, plan.get("actions") or [])
     result = {
+        "ok": failed_index is None,
         "executed": failed_index is None,
         "status": status,
         "proof_level": "controlled_live_write" if completed_count else "source_static",
         "proof_levels": proof_levels,
         "completed_action_count": completed_count,
         "completed_action_indices": completed_indices,
+        "confirmed_write_action_indices": confirmed_write_indices,
         "failed_action_index": failed_index,
         "failed_action_indices": failed_indices,
         "skipped_action_indices": skipped_indices,
@@ -1036,6 +1165,9 @@ def _base_action_result(
         "object_id": _action_object_id(action, payload),
         "executed": False,
         "write_attempted": False,
+        "execution_stage": "preflight",
+        "write_outcome": "no_write",
+        "verification_outcome": "not_run",
         "changed": action.get("changed", True),
         "status": "planned",
         "readback_mode": normalize_readback_mode(action.get("readback_mode")),
@@ -1630,13 +1762,26 @@ def apply_desired_overlay_to_fresh_readback(
             return {"ok": False, "error": wizard_error}
     if _action_type(action, planned_payload) == "create":
         merged = deepcopy(planned_payload)
+        list_policies_applied: dict[str, str] = {}
     else:
         merge_base = _request_shaped_fresh_readback(
             method=method,
             planned_payload=planned_payload,
             fresh_readback=fresh_readback,
         )
-        merged = _merge_overlay_value(merge_base, overlay)
+        merge_contract = action.get("overlay_merge_contract")
+        contract_result = _normalize_overlay_merge_contract(merge_contract)
+        if not contract_result["ok"]:
+            return {"ok": False, "error": contract_result["error"]}
+        list_policies_applied = {}
+        merged = _merge_overlay_value(
+            merge_base,
+            overlay,
+            path="",
+            list_policies=contract_result["list_policies"],
+            list_policies_applied=list_policies_applied,
+            change_scope=str(action.get("change_scope") or "content"),
+        )
         for key in REQUEST_CONTROL_IDENTITY_KEYS:
             if key in planned_payload:
                 merged[key] = deepcopy(planned_payload[key])
@@ -1665,6 +1810,7 @@ def apply_desired_overlay_to_fresh_readback(
             "unknown_fields_preserved": True,
             "fresh_geometry_preserved": bool(_is_dashboard_action(action) and scope == "content"),
             "wizard_visualization_token": _wizard_visualization_token(merged) if method == "updateWizardChart" else "",
+            "list_policies_applied": list_policies_applied,
         },
     }
 
@@ -1685,20 +1831,62 @@ def _request_shaped_fresh_readback(
     return {"entry": candidate}
 
 
-def _merge_overlay_value(base: Any, overlay: Any) -> Any:
+def _merge_overlay_value(
+    base: Any,
+    overlay: Any,
+    *,
+    path: str = "",
+    list_policies: dict[str, str] | None = None,
+    list_policies_applied: dict[str, str] | None = None,
+    change_scope: str = "content",
+) -> Any:
     if isinstance(base, dict) and isinstance(overlay, dict):
         merged = deepcopy(base)
         for key, value in overlay.items():
-            merged[key] = _merge_overlay_value(base.get(key), value) if key in base else deepcopy(value)
+            child_path = f"{path}/{_json_pointer_token(str(key))}"
+            merged[key] = (
+                _merge_overlay_value(
+                    base.get(key),
+                    value,
+                    path=child_path,
+                    list_policies=list_policies,
+                    list_policies_applied=list_policies_applied,
+                    change_scope=change_scope,
+                )
+                if key in base
+                else deepcopy(value)
+            )
         return merged
     if isinstance(base, list) and isinstance(overlay, list):
+        policy = _list_merge_policy(
+            path,
+            base=base,
+            overlay=overlay,
+            configured=list_policies or {},
+            change_scope=change_scope,
+        )
+        if list_policies_applied is not None:
+            list_policies_applied[path or "/"] = policy
+        if policy == "preserve":
+            return deepcopy(base)
+        if policy == "replace":
+            return deepcopy(overlay)
         base_identities = [_merge_identity(item) for item in base]
         overlay_identities = [_merge_identity(item) for item in overlay]
         if all(base_identities) and all(overlay_identities):
             overlay_by_id = {identity: item for identity, item in zip(overlay_identities, overlay)}
             merged_list = [
-                _merge_overlay_value(item, overlay_by_id[identity]) if identity in overlay_by_id else deepcopy(item)
-                for identity, item in zip(base_identities, base)
+                _merge_overlay_value(
+                    item,
+                    overlay_by_id[identity],
+                    path=f"{path}/{index}",
+                    list_policies=list_policies,
+                    list_policies_applied=list_policies_applied,
+                    change_scope=change_scope,
+                )
+                if identity in overlay_by_id
+                else deepcopy(item)
+                for index, (identity, item) in enumerate(zip(base_identities, base))
             ]
             known = set(base_identities)
             merged_list.extend(
@@ -1707,7 +1895,81 @@ def _merge_overlay_value(base: Any, overlay: Any) -> Any:
                 if identity not in known
             )
             return merged_list
+        return deepcopy(overlay)
     return deepcopy(overlay)
+
+
+def _normalize_overlay_merge_contract(value: Any) -> dict[str, Any]:
+    if value in (None, {}):
+        return {"ok": True, "list_policies": {}}
+    if not isinstance(value, dict):
+        return {
+            "ok": False,
+            "error": {
+                "category": "invalid_overlay_merge_contract",
+                "message": "overlay_merge_contract must be an object",
+                "write_outcome": "no_write",
+                "retry_safe": True,
+            },
+        }
+    raw_policies = value.get("list_policies") or {}
+    if not isinstance(raw_policies, dict):
+        return {
+            "ok": False,
+            "error": {
+                "category": "invalid_overlay_merge_contract",
+                "message": "overlay_merge_contract.list_policies must be an object",
+                "write_outcome": "no_write",
+                "retry_safe": True,
+            },
+        }
+    allowed = {"replace", "merge_by_identity", "preserve"}
+    invalid = sorted(
+        str(path)
+        for path, policy in raw_policies.items()
+        if not str(path).startswith("/") or str(policy) not in allowed
+    )
+    if invalid:
+        return {
+            "ok": False,
+            "error": {
+                "category": "invalid_overlay_merge_contract",
+                "message": f"invalid RFC6901 list policy paths or values: {', '.join(invalid)}",
+                "write_outcome": "no_write",
+                "retry_safe": True,
+            },
+        }
+    return {
+        "ok": True,
+        "list_policies": {str(path): str(policy) for path, policy in raw_policies.items()},
+    }
+
+
+def _list_merge_policy(
+    path: str,
+    *,
+    base: list[Any],
+    overlay: list[Any],
+    configured: dict[str, str],
+    change_scope: str,
+) -> str:
+    if path in configured:
+        return configured[path]
+    wildcard_path = re.sub(r"/\d+(?=/|$)", "/*", path)
+    if wildcard_path in configured:
+        return configured[wildcard_path]
+    normalized_scope = str(change_scope or "content").strip().lower()
+    if normalized_scope in {"layout", "dashboard", "redesign"} and path.endswith("/layout"):
+        return "replace"
+    base_identities = [_merge_identity(item) for item in base]
+    overlay_identities = [_merge_identity(item) for item in overlay]
+    if base and overlay and all(base_identities) and all(overlay_identities):
+        return "merge_by_identity"
+    return "replace"
+
+
+def _json_pointer_token(value: str) -> str:
+    return value.replace("~", "~0").replace("/", "~1")
 
 
 def _merge_identity(value: Any) -> str:
@@ -1913,7 +2175,7 @@ def _created_object_readback_request(
                 "error": {
                     "category": "created_readback_not_addressable",
                     "message": "getWorkbookEntries create readback requires workbookId",
-                    "write_outcome": "written_unverified",
+                    "write_outcome": "confirmed_write",
                     "retry_safe": False,
                 },
             }
@@ -1926,7 +2188,7 @@ def _created_object_readback_request(
                     f"readback method {method or '<missing>'} cannot address or enumerate the "
                     "created object deterministically"
                 ),
-                "write_outcome": "written_unverified",
+                "write_outcome": "confirmed_write",
                 "retry_safe": False,
             },
         }
@@ -1969,11 +2231,12 @@ def _post_write_readback_verification(
     fresh_revision = _revision_id(sanitize_response(fresh))
     write_revision = _revision_id(sanitize_response(write_result))
     readback_revision = _revision_id(sanitized)
-    content_equivalent = _write_payload_matches_readback(
+    content_comparison = _write_payload_readback_comparison(
         method=str(action.get("method") or ""),
         write_payload=write_payload,
         readback=sanitized,
     )
+    content_equivalent = bool(content_comparison["equivalent"])
     api_noop_proven = _api_noop_proven(
         action_type=action_type,
         method=str(action.get("method") or ""),
@@ -1986,6 +2249,7 @@ def _post_write_readback_verification(
     verification: dict[str, Any] = {
         "verified": False,
         "content_equivalent": content_equivalent,
+        "content_diff_paths": content_comparison["diff_paths"],
         "revision_advanced": bool(
             fresh_revision and readback_revision and fresh_revision != readback_revision
         ),
@@ -2135,9 +2399,28 @@ def _write_payload_matches_readback(
     write_payload: dict[str, Any],
     readback: dict[str, Any],
 ) -> bool:
+    return bool(
+        _write_payload_readback_comparison(
+            method=method,
+            write_payload=write_payload,
+            readback=readback,
+        )["equivalent"]
+    )
+
+
+def _write_payload_readback_comparison(
+    *,
+    method: str,
+    write_payload: dict[str, Any],
+    readback: dict[str, Any],
+) -> dict[str, Any]:
     expected = _semantic_object_payload(write_payload, method=method)
     actual = _semantic_object_payload(readback, method=method)
-    return _semantic_subset(actual=actual, expected=expected)
+    equivalent = _semantic_subset(actual=actual, expected=expected)
+    return {
+        "equivalent": equivalent,
+        "diff_paths": [] if equivalent else _semantic_diff_paths(actual=actual, expected=expected),
+    }
 
 
 def _semantic_object_payload(value: dict[str, Any], *, method: str) -> Any:
@@ -2169,6 +2452,14 @@ def _semantic_object_payload(value: dict[str, Any], *, method: str) -> Any:
 
     if not isinstance(current, dict):
         return current
+    if method.startswith("create"):
+        create_name = str(current.get("name") or "").strip()
+        if not create_name:
+            display_value = str(current.get("key") or current.get("displayKey") or "").strip().rstrip("/")
+            if display_value:
+                create_name = display_value.rsplit("/", 1)[-1]
+        if create_name:
+            current["name"] = create_name
     return {
         key: deepcopy(item)
         for key, item in sorted(current.items())
@@ -2197,6 +2488,54 @@ def _semantic_subset(*, actual: Any, expected: Any) -> bool:
     return actual == expected
 
 
+def _semantic_diff_paths(
+    *,
+    actual: Any,
+    expected: Any,
+    path: str = "$",
+    limit: int = 20,
+) -> list[str]:
+    if limit <= 0:
+        return []
+    if isinstance(expected, dict):
+        if not isinstance(actual, dict):
+            return [path]
+        paths: list[str] = []
+        for key, expected_value in expected.items():
+            child_path = f"{path}.{key}"
+            if key not in actual:
+                paths.append(child_path)
+            else:
+                paths.extend(
+                    _semantic_diff_paths(
+                        actual=actual[key],
+                        expected=expected_value,
+                        path=child_path,
+                        limit=limit - len(paths),
+                    )
+                )
+            if len(paths) >= limit:
+                break
+        return paths[:limit]
+    if isinstance(expected, list):
+        if not isinstance(actual, list) or len(actual) != len(expected):
+            return [path]
+        paths = []
+        for index, (actual_item, expected_item) in enumerate(zip(actual, expected, strict=True)):
+            paths.extend(
+                _semantic_diff_paths(
+                    actual=actual_item,
+                    expected=expected_item,
+                    path=f"{path}[{index}]",
+                    limit=limit - len(paths),
+                )
+            )
+            if len(paths) >= limit:
+                break
+        return paths[:limit]
+    return [] if actual == expected else [path]
+
+
 def _api_noop_proven(
     *,
     action_type: str,
@@ -2223,7 +2562,10 @@ def _api_noop_proven(
     intended = _semantic_object_payload(write_payload, method=method)
     before = _semantic_object_payload(fresh, method=method)
     after = _semantic_object_payload(readback, method=method)
-    return intended == before == after
+    return bool(
+        _semantic_subset(actual=before, expected=intended)
+        and _semantic_subset(actual=after, expected=intended)
+    )
 
 
 def _expected_revision(action: dict[str, Any], payload: dict[str, Any]) -> str:
@@ -3102,6 +3444,21 @@ def _classify_safe_apply_error(exc: Exception, *, write_attempted: bool) -> dict
         "message": message,
         "exception_type": exc.__class__.__name__,
     }
+    http_status = getattr(exc, "http_status", None)
+    if not isinstance(http_status, int):
+        http_match = re.search(r"\bHTTP\s+(\d{3})\b", message, flags=re.IGNORECASE)
+        http_status = int(http_match.group(1)) if http_match else None
+    remote_code = str(getattr(exc, "remote_code", "") or "")
+    response_received = getattr(exc, "response_received", None)
+    request_phase = str(getattr(exc, "request_phase", "") or "")
+    if http_status is not None:
+        base["http_status"] = http_status
+    if remote_code:
+        base["remote_code"] = remote_code
+    if request_phase:
+        base["request_phase"] = request_phase
+    if response_received is not None:
+        base["response_received"] = bool(response_received)
     if "ENTRY_IS_LOCKED" in upper:
         return {
             **base,
@@ -3122,6 +3479,15 @@ def _classify_safe_apply_error(exc: Exception, *, write_attempted: bool) -> dict
             "retry_safe": False,
             "reconciliation_required": True,
             "resume_after": ["entries_reconciliation", "fresh_read", "new_safe_apply_plan"],
+        }
+    if isinstance(exc, DataLensApiError) and http_status in {400, 401, 403, 404, 409, 412, 422, 429}:
+        return {
+            **base,
+            "category": "remote_rejected_no_write",
+            "write_outcome": "no_write",
+            "retry_safe": http_status in {409, 412, 429},
+            "reconciliation_required": False,
+            "resume_after": ["correct_request", "fresh_read", "new_safe_apply_plan"],
         }
     if write_attempted:
         return {

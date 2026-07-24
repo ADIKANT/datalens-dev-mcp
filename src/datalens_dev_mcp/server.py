@@ -57,6 +57,25 @@ MCP_PROTOCOL_VERSION = "2025-06-18"
 DEFAULT_TOOL_SURFACE = "standard"
 
 
+class ToolArgumentsError(ValueError):
+    def __init__(
+        self,
+        *,
+        unknown: list[str],
+        missing: list[str],
+        allowed: list[str],
+    ) -> None:
+        details = []
+        if unknown:
+            details.append(f"unknown arguments: {', '.join(unknown)}")
+        if missing:
+            details.append(f"missing required arguments: {', '.join(missing)}")
+        super().__init__("; ".join(details) or "invalid tool arguments")
+        self.unknown = unknown
+        self.missing = missing
+        self.allowed = allowed
+
+
 def _tool_schema(
     name: str,
     description: str,
@@ -175,6 +194,7 @@ STANDARD_TOOL_NAMES = {
     "dl_diagnose",
     "dl_reference",
     "dl_generate_editor_bundle",
+    "dl_update_user_decision",
     "dl_validate_project",
     "dl_build_payload_plan",
     "dl_create_safe_apply_plan",
@@ -216,6 +236,7 @@ CORE_PROFILE_TOOLS = {
     "dl_build_dashboard_blueprint_plan",
     "dl_validate_chart_plan_against_requirements",
     "dl_generate_editor_bundle",
+    "dl_update_user_decision",
     "dl_validate_project",
     "dl_build_payload_plan",
     "dl_create_safe_apply_plan",
@@ -327,9 +348,9 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "object_ids": "DataLens object ids.",
     "source_adapter": "Named lifecycle source adapter.",
     "payload": "Payload. Must not contain secrets.",
-    "entry": "DataLens entry payload or plan payload. Must not contain secrets.",
-    "sections": "Generated or hydrated Editor sections to validate before save or publish.",
-    "allow_unknown_warnings": "Audited override for unknown runtime warnings only; known forbidden errors still block.",
+    "entry": "Editor entry; no secrets.",
+    "sections": "Editor sections to validate.",
+    "allow_unknown_warnings": "Known runtime errors still block.",
     "artifact_paths": "Editor or standalone HTML artifacts inside project_root; mutually exclusive with entry and sections.",
     "include_references": "Include full corpus reference rows instead of only the stable reference-set id and URLs.",
     "error_payload": "Structured DataLens source error payload to classify without secrets.",
@@ -338,16 +359,20 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "branch": "DataLens branch to read.",
     "method": "Curated DataLens API method name.",
     "readback_mode": "Readback depth for saved/published verification.",
-    "plan_path": "Path to the guarded safe-apply plan artifact to execute.",
+    "plan_path": "Guarded safe-apply plan path.",
     "write_manifest": "Write generated manifest.",
     "confirm_delete": "Confirm retire_legacy_objects IDs and unchanged plan hash.",
     "saved_readback_path": "Saved-branch readback artifact.",
     "workflow_name": "Manifest workflow name.",
-    "overwrite_existing": "Allow the generated project manifest to replace an existing manifest.",
+    "overwrite_existing": "Allow manifest overwrite.",
     "target_workbook_id": "Known target workbook id used by generated manifests and exact multi-object target locks.",
     "action": "Project-live action.",
     "execute_now": "Execute command.",
     "timeout_sec": "Command timeout seconds.",
+    "wait_for_completion_sec": (
+        "Seconds to wait for a durable project-live job before returning running; "
+        "0 returns immediately and the maximum is 30."
+    ),
     "execution_id": "Poll a running project-live command by id; never relaunches it.",
     "publish": "Request publish.",
     "summary_path": "Summary JSON path inside project.",
@@ -375,11 +400,11 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "dataset": "Inline dataset payload for offline field validation.",
     "current_dataset": "Fresh getDataset payload.",
     "proposed_dataset": "Proposed dataset payload.",
-    "affected_chart_payloads": "Saved chart payloads that depend on dataset field GUIDs.",
-    "validate_only": "Plan validateDataset only without updateDataset.",
-    "allow_guid_changes": "Allow reviewed dataset field GUID changes; disabled by default.",
-    "current_dashboard": "Fresh getDashboard payload before a guarded dashboard tab update.",
-    "tab": "Dashboard tab payload to append or replace.",
+    "affected_chart_payloads": "Dependent saved chart payloads.",
+    "validate_only": "Validate without update.",
+    "allow_guid_changes": "Allow reviewed field GUID changes.",
+    "current_dashboard": "Fresh getDashboard payload.",
+    "tab": "Tab to append or replace.",
     "tab_operation": "Dashboard tab operation.",
     "tab_id": "Existing tab id, tabId, or title for replace operations.",
     "entries_payload": "getWorkbookEntries response payload.",
@@ -452,6 +477,7 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "append": "Append to the target file instead of replacing it.",
     "decision_text": "User decision or correction text.",
     "decision_id": "Stable decision id.",
+    "decision_patch": "Structured project, family, or object-scoped correction patch.",
 }
 
 COMPACT_SCHEMA_DESCRIPTION_PARAMS = {
@@ -474,6 +500,8 @@ COMPACT_SCHEMA_DESCRIPTION_PARAMS = {
     "dataset_alias",
     "dataset_readbacks",
     "decision_id",
+    "decision_patch",
+    "decision_text",
     "delivery_intent_text",
     "entry_ids",
     "entries_payload",
@@ -526,14 +554,17 @@ COMPACT_SCHEMA_DESCRIPTION_PARAMS = {
     "target_url",
     "target_workbook_id",
     "timeout_sec",
+    "wait_for_completion_sec",
     "widget_id",
     "workbook_id",
     "workbook_ids",
     "workflow_name",
     "planned_objects",
+    "write_manifest",
 }
 
 PARAM_OVERRIDES: dict[str, dict[str, Any]] = {
+    "authoring_profile": {"type": ["string", "object"]},
     "object_type": {
         "type": "string",
         "enum": [
@@ -738,9 +769,7 @@ EXISTING_UPDATE_ACTIONS_SCHEMA = {
 MAINTENANCE_EVIDENCE_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
-    "description": (
-        "Typed create/publish evidence with saved and published runtime proof."
-    ),
+    "description": "Typed runtime evidence.",
     "properties": {
         "browser_runtime_required": {
             "type": "boolean",
@@ -867,6 +896,18 @@ TOOL_PARAM_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
         "minimum": 800,
     },
     ("dl_read_object", "object_type"): READ_OBJECT_TYPE_SCHEMA,
+    ("dl_run_project_live_dry_run", "wait_for_completion_sec"): {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 30,
+        "default": 5,
+    },
+    ("dl_run_project_live_apply", "wait_for_completion_sec"): {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 30,
+        "default": 5,
+    },
     ("dl_validate_object_payload", "object_type"): LIFECYCLE_OBJECT_TYPE_SCHEMA,
     ("dl_plan_object_create", "object_type"): LIFECYCLE_OBJECT_TYPE_SCHEMA,
     ("dl_plan_object_update", "object_type"): LIFECYCLE_OBJECT_TYPE_SCHEMA,
@@ -957,7 +998,7 @@ def _all_tool_schemas() -> tuple[dict[str, Any], ...]:
         _tool_schema("dl_list_wizard_templates", "List canonical native Wizard visualization templates and seed policy."),
         _tool_schema("dl_build_wizard_payload_template", "Compile a validated native Wizard payload from bindings or a saved seed."),
         _tool_schema("dl_build_dashboard_blueprint_plan", "Build dashboard blueprint and chart plan from persisted requirements."),
-        _tool_schema("dl_update_user_decision", "Record a user correction in requirements/user_decisions.md and change_log.md."),
+        _tool_schema("dl_update_user_decision", "Record a scoped user decision."),
         _tool_schema("dl_summarize_implementation_plan", "Summarize the generated implementation plan from persisted requirements."),
         _tool_schema(
             "dl_validate_chart_plan_against_requirements",
@@ -1295,6 +1336,9 @@ class JsonRpcServer:
             supports_workbook_id="workbook_id" in signature.parameters,
             supports_readback_mode="readback_mode" in signature.parameters,
         )
+        argument_error = _tool_argument_contract_error(name, raw_arguments, arguments)
+        if argument_error is not None:
+            return _tool_error_content(name, argument_error)
         heavy_response_mode = "summary"
         heavy_inline_char_budget = DEFAULT_HEAVY_INLINE_CHAR_BUDGET
         if name in HEAVY_TOOL_NAMES:
@@ -1336,26 +1380,7 @@ class JsonRpcServer:
                     run_id="",
                 )
         except Exception as exc:  # noqa: BLE001
-            public_error = sanitize_response(
-                project_public_response(
-                    _structured_tool_error(name, exc),
-                    allowed_tool_names=STANDARD_TOOL_NAMES,
-                )
-            )
-            return {
-                "content": [
-                    {
-                        "type": "text",
-                        "text": json.dumps(
-                            public_error,
-                            ensure_ascii=False,
-                            separators=(",", ":"),
-                            sort_keys=True,
-                        ),
-                    }
-                ],
-                "isError": True,
-            }
+            return _tool_error_content(name, exc)
         public_output = sanitize_response(
             project_public_response(
                 output,
@@ -1387,8 +1412,87 @@ def _safe_error(exc: Exception) -> str:
     return text or exc.__class__.__name__
 
 
+def _tool_argument_contract_error(
+    name: str,
+    raw_arguments: dict[str, Any],
+    resolved_arguments: dict[str, Any],
+) -> ToolArgumentsError | None:
+    schema = _input_schema_for_tool(name, properties=None, required=None)
+    properties = schema.get("properties") if isinstance(schema.get("properties"), dict) else {}
+    allowed = sorted(str(key) for key in properties)
+    unknown = sorted(str(key) for key in raw_arguments if key not in properties)
+    alternative_required = {
+        str(key)
+        for option in schema.get("oneOf") or []
+        if isinstance(option, dict)
+        for key in option.get("required") or []
+    }
+    missing = [
+        str(key)
+        for key in schema.get("required") or []
+        if key not in alternative_required and _missing_tool_argument(resolved_arguments.get(key))
+    ]
+    options = [option for option in schema.get("oneOf") or [] if isinstance(option, dict)]
+    if options and not any(
+        all(not _missing_tool_argument(resolved_arguments.get(key)) for key in option.get("required") or [])
+        for option in options
+    ):
+        missing.extend(
+            sorted(
+                {
+                    str(key)
+                    for option in options
+                    for key in option.get("required") or []
+                }
+            )
+        )
+    missing = list(dict.fromkeys(missing))
+    if not unknown and not missing:
+        return None
+    return ToolArgumentsError(unknown=unknown, missing=missing, allowed=allowed)
+
+
+def _missing_tool_argument(value: Any) -> bool:
+    return value is None or value == "" or value == []
+
+
+def _tool_error_content(name: str, exc: Exception) -> dict[str, Any]:
+    public_error = sanitize_response(
+        project_public_response(
+            _structured_tool_error(name, exc),
+            allowed_tool_names=STANDARD_TOOL_NAMES,
+        )
+    )
+    return {
+        "content": [
+            {
+                "type": "text",
+                "text": json.dumps(
+                    public_error,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+            }
+        ],
+        "isError": True,
+    }
+
+
 def _structured_tool_error(name: str, exc: Exception) -> dict[str, Any]:
     category = "unknown_runtime_error"
+    if isinstance(exc, ToolArgumentsError):
+        return {
+            "ok": False,
+            "tool": name,
+            "error": {
+                "category": "invalid_tool_arguments",
+                "message": _safe_error(exc),
+                "unknown": exc.unknown,
+                "missing": exc.missing,
+                "allowed": exc.allowed,
+            },
+        }
     if isinstance(exc, DataLensSafetyError):
         category = "unsafe_sensitive_input"
     elif isinstance(exc, RuntimeResourceError):

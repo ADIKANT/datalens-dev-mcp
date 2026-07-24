@@ -85,8 +85,8 @@ def main() -> int:
     if responses[1]["result"].get("tool_surface") != "standard":
         print("tools/list did not report the standard surface", file=sys.stderr)
         return 1
-    if len(tools) != 38:
-        print(f"tools/list returned {len(tools)} tools instead of 38", file=sys.stderr)
+    if len(tools) != 39:
+        print(f"tools/list returned {len(tools)} tools instead of 39", file=sys.stderr)
         return 1
     if tool_payload_bytes > 25_000:
         print(f"tools/list payload exceeds budget: {tool_payload_bytes} bytes", file=sys.stderr)

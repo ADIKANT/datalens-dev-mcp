@@ -38,3 +38,44 @@ The profile's template-set fingerprint is
 Changing any registered asset requires a reviewed profile version and updated
 fingerprint. Native maps remain on the Wizard route and are not part of this
 JavaScript-only profile.
+
+## Project-local exact profiles
+
+A project can bind its own reviewed template registry without modifying the
+installed package:
+
+```json
+{
+  "authoring_profile": {
+    "id": "project_style_v1",
+    "descriptor_path": "profiles/project_style_v1/profile.json",
+    "descriptor_sha256": "<SHA256>"
+  }
+}
+```
+
+The descriptor uses
+`2026-07-23.project_authoring_profile.v1`, declares supported Editor routes,
+the project-relative family registry, `fallback_policy: "block"`, and the
+SHA-256 of the complete registry/template/shared-asset set. Both the descriptor
+and every referenced asset must resolve inside the project root. Path or
+symlink escape, a changed hash, a route conflict, or a missing family blocks
+generation.
+
+Project templates are loaded exactly and support only bounded substitutions for
+the widget ID, title, registered variant, and renderer Visual Spec. The
+generated bundle records descriptor, template-set, selected-asset, and compiled
+tab hashes.
+
+## Renderer Visual Spec v3
+
+New decisions emit `2026-07-23.renderer_visual_spec.v3`. It preserves v2 value,
+formatting, responsive, hint, and layout contracts and adds:
+
+- semantic color roles for success, failure, warning, neutral, focus,
+  comparison, and a lighter distinct track;
+- wrap-or-expand labels with ellipsis only by explicit request;
+- one exact interval label per tooltip bucket;
+- explicit comparator and profile-controlled KPI surface/border defaults.
+
+Visual Spec v2 remains accepted for existing saved artifacts.

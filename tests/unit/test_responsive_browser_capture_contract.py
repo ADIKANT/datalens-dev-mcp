@@ -33,6 +33,7 @@ def _png_bytes(*, width: int = 2, height: int = 2) -> bytes:
 def _write_v2_capture(
     root: Path,
     *,
+    schema_version: str = "datalens.browser_capture.v2",
     change_scope: str = "layout",
     widths: tuple[int, ...] = (1200, 1440),
     device_pixel_ratio: float = 1.0,
@@ -40,6 +41,8 @@ def _write_v2_capture(
     horizontal_overflow_px: float = 0,
     clipped_object_ids: list[str] | None = None,
     missing_object_ids: list[str] | None = None,
+    truncated_text_object_ids: list[str] | None = None,
+    overlap_pairs: list[dict[str, str]] | None = None,
 ) -> Path:
     object_ids = ["chart_alpha", "chart_beta"]
     viewport_checks: list[dict[str, object]] = []
@@ -50,8 +53,7 @@ def _write_v2_capture(
             round(900 * device_pixel_ratio),
         )
         screenshot.write_bytes(_png_bytes(width=image_width, height=image_height))
-        viewport_checks.append(
-            {
+        viewport_check = {
                 "label": f"desktop-{width}",
                 "width": width,
                 "height": 900,
@@ -67,9 +69,12 @@ def _write_v2_capture(
                     "sha256": hashlib.sha256(screenshot.read_bytes()).hexdigest(),
                 },
             }
-        )
+        if schema_version == "datalens.browser_capture.v3":
+            viewport_check["truncated_text_object_ids"] = truncated_text_object_ids or []
+            viewport_check["overlap_pairs"] = overlap_pairs or []
+        viewport_checks.append(viewport_check)
     capture = {
-        "schema_version": "datalens.browser_capture.v2",
+        "schema_version": schema_version,
         "status": "passed",
         "captured_at": datetime.now(timezone.utc).isoformat(),
         "target_url": "https://datalens.example/dashboard",
@@ -205,6 +210,40 @@ class ResponsiveBrowserCaptureContractTests(unittest.TestCase):
         self.assertIn("browser_capture_viewport_clipping", rules)
         self.assertIn("browser_capture_viewport_missing", rules)
 
+    def test_v3_requires_and_blocks_text_truncation_and_overlap_evidence(self):
+        from datalens_dev_mcp.pipeline.runtime_gate import validate_browser_capture_artifact
+
+        with tempfile.TemporaryDirectory() as tmp:
+            capture = _write_v2_capture(
+                Path(tmp),
+                schema_version="datalens.browser_capture.v3",
+                truncated_text_object_ids=["chart_alpha"],
+                overlap_pairs=[
+                    {
+                        "first_object_id": "chart_alpha",
+                        "second_object_id": "chart_beta",
+                    }
+                ],
+            )
+            validation = validate_browser_capture_artifact(str(capture))
+
+        rules = {issue["rule"] for issue in validation["issues"]}
+        self.assertFalse(validation["ok"])
+        self.assertIn("browser_capture_text_truncation", rules)
+        self.assertIn("browser_capture_object_overlap", rules)
+
+    def test_v3_accepts_explicit_empty_text_truncation_and_overlap_evidence(self):
+        from datalens_dev_mcp.pipeline.runtime_gate import validate_browser_capture_artifact
+
+        with tempfile.TemporaryDirectory() as tmp:
+            capture = _write_v2_capture(
+                Path(tmp),
+                schema_version="datalens.browser_capture.v3",
+            )
+            validation = validate_browser_capture_artifact(str(capture))
+
+        self.assertTrue(validation["ok"], validation["issues"])
+
     def test_every_viewport_screenshot_is_hash_bound_and_verified(self):
         from datalens_dev_mcp.pipeline.runtime_gate import validate_browser_capture_artifact
 
@@ -253,7 +292,7 @@ class ResponsiveBrowserCaptureContractTests(unittest.TestCase):
             2,
         )
 
-    def test_schema_accepts_v1_and_v2_and_packaged_mirrors_match(self):
+    def test_schema_accepts_v1_v2_v3_and_packaged_mirrors_match(self):
         schema_path = REPO_ROOT / "schemas" / "browser_capture.schema.json"
         packaged_path = (
             REPO_ROOT
@@ -272,6 +311,11 @@ class ResponsiveBrowserCaptureContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             v2_path = _write_v2_capture(Path(tmp))
             v2 = json.loads(v2_path.read_text(encoding="utf-8"))
+            v3_path = _write_v2_capture(
+                Path(tmp),
+                schema_version="datalens.browser_capture.v3",
+            )
+            v3 = json.loads(v3_path.read_text(encoding="utf-8"))
             v1 = {
                 **v2,
                 "schema_version": "datalens.browser_capture.v1",
@@ -282,6 +326,7 @@ class ResponsiveBrowserCaptureContractTests(unittest.TestCase):
 
         self.assertEqual(list(validator.iter_errors(v1)), [])
         self.assertEqual(list(validator.iter_errors(v2)), [])
+        self.assertEqual(list(validator.iter_errors(v3)), [])
 
 
 if __name__ == "__main__":
