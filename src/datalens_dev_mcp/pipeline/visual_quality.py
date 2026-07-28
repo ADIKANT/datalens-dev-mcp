@@ -133,6 +133,7 @@ def validate_visual_quality_contract(
     if schema_version in {
         "2026-07-19.renderer_visual_spec.v2",
         "2026-07-23.renderer_visual_spec.v3",
+        "2026-07-28.renderer_visual_spec.v4",
     }:
         findings.extend(
             _v2_renderer_contract_findings(
@@ -162,6 +163,8 @@ def validate_visual_quality_contract(
                     semantic_roles_contract=semantic_roles_contract,
                 )
             )
+        elif schema_version == "2026-07-28.renderer_visual_spec.v4":
+            findings.extend(_v4_renderer_contract_findings(spec))
     elif spec:
         findings.append(
             _finding(
@@ -558,6 +561,55 @@ def _v3_renderer_contract_findings(
             )
         )
     return findings
+
+
+def _v4_renderer_contract_findings(
+    spec: dict[str, Any],
+) -> list[VisualQualityFinding]:
+    from datalens_dev_mcp.editor.render_contract import (
+        DashboardRenderContractError,
+        resolve_dashboard_render_contract,
+        validate_renderer_visual_spec_v4,
+    )
+
+    binding = (
+        spec.get("render_contract")
+        if isinstance(spec.get("render_contract"), dict)
+        else {}
+    )
+    profile_id = str(binding.get("profile_id") or "")
+    family = str(binding.get("family") or spec.get("family") or "")
+    overrides = (
+        binding.get("overrides")
+        if isinstance(binding.get("overrides"), dict)
+        else {}
+    )
+    try:
+        contract = resolve_dashboard_render_contract(
+            profile_id=profile_id,
+            family=family,
+            overrides=overrides,
+        )
+        issue_codes = validate_renderer_visual_spec_v4(
+            spec,
+            render_contract=contract,
+        )
+    except DashboardRenderContractError as exc:
+        return [
+            _finding(
+                "renderer_v4_render_contract_resolution",
+                "$.render_contract",
+                str(exc),
+            )
+        ]
+    return [
+        _finding(
+            "renderer_v4_render_contract",
+            "$." + issue.replace(".", ".", 1),
+            issue,
+        )
+        for issue in issue_codes
+    ]
 
 
 def _active_widget_count(value: dict[str, Any]) -> int:

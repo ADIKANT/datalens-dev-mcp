@@ -109,15 +109,21 @@
 ### `dl_generate_editor_bundle`
 
 - Required: —
-- Optional: `project_root`, `widget_id`, `route`, `authoring_profile`, `dataset_alias`, `columns`, `selector_contract`, `dataset_readbacks`, `html_page`, `context_ref`, `evidence_refs`
+- Optional: `project_root`, `widget_id`, `route`, `authoring_profile`, `dataset_alias`, `columns`, `selector_contract`, `dataset_readbacks`, `chart_specs`, `render_overrides`, `html_page`, `context_ref`, `evidence_refs`
 - Компилирует Wizard plan или Editor tabs по выбранному маршруту. Для
   `editor_js_control` production-вызов передаёт полный `selector_contract`;
   неполный контракт блокируется без выдуманных параметров или значений.
   `dataset_readbacks`, если они переданы, проверяют Wizard field GUID и роли;
   отсутствие аргумента не подменяется пустым readback.
-  `authoring_profile=standard_js` или manifest-профиль `standard_editor_v1`
-  выбирает точный asset из стандартного реестра, сверяет SHA-256 набора
-  шаблонов и результата и блокирует незарегистрированный fallback.
+  `authoring_profile=strict_dashboard` выбирает `standard_editor_v2`: точный
+  asset из стандартного реестра плюс hash-locked render contract. Legacy
+  `standard_editor_v1` остаётся побайтно совместимым. Оба профиля блокируют
+  незарегистрированный fallback.
+- `chart_specs` выполняет до 100 виджетов одним batch-вызовом и возвращает
+  компактные статусы и artifact paths вместо содержимого tabs. Strict
+  comparison-batch начинается с `date_range_selector` и содержит ровно один
+  `md_methodology_block` с `comparison_context.method`, `selected_range` и
+  `comparison_range`.
 - `html_page` взаимоисключающий с chart/selector inputs. Он создаёт полный
   self-contained HTML artifact, проводит строгую sandbox/privacy-проверку и
   возвращает только путь, размер и SHA-256. Standalone upload не выполняется:

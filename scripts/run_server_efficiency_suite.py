@@ -189,7 +189,7 @@ def run_suite() -> dict[str, Any]:
             )
         )
         warm_rpc_count = len(client.calls) - cold_rpc_count
-    if not second.get("snapshot_reused") or warm_rpc_count != 2 or second.get("hydration_rpc_count") != 0:
+    if not second.get("snapshot_reused") or warm_rpc_count != 3 or second.get("hydration_rpc_count") != 0:
         issues.append(
             "revision-validated snapshot reuse failed: "
             f"reused={second.get('snapshot_reused')} warm_rpc_count={warm_rpc_count}"

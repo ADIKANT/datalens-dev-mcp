@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 CORE_DIRECTIVE = (
-    "Core: object route before chart route; templates-first; no removed chart routes; Wizard path is separate; "
-    "use standard template registry; follow Advanced Editor contract; do not invent Editor methods; "
-    "use VisualDecisionEngine and RendererVisualSpec; apply negative requirements; "
-    "use style tokens; persistent Markdown requirements; resolve delivery intent before writes; "
-    "clear missing-input diagnostics; no legacy cache sync. "
+    "Core: object route before chart; templates-first; no removed chart routes; Wizard path is separate; "
+    "use the standard registry; obey Advanced Editor and never invent methods; "
+    "use VisualDecisionEngine, RendererVisualSpec, and negative requirements; "
+    "use strict_dashboard for registered Editor families; persistent Markdown requirements; "
+    "delivery intent before writes; one fresh scoped baseline; batch generation with artifact summaries; "
+    "clear blockers; no legacy cache sync. "
 )
 
 
@@ -17,13 +18,10 @@ PROMPTS: dict[str, dict[str, str]] = {
     "datalens.develop_dashboard": {
         "description": "One-prompt lane for a new governed dashboard from requirements and data evidence.",
         "text": _core(
-            "Develop dashboards from the user's requirements. "
-            "Use context_ref and dl_reference; for known targets "
-            "use dl_snapshot_dashboard or dl_read_object. Then call dl_build_payload_plan, "
-            "dl_validate_project, dl_plan_object_create or dl_plan_object_update, and "
-            "dl_create_safe_apply_plan. For an explicit implementation request, continue through guarded save without "
-            "asking again. After save, use "
-            "dl_readback_and_report and dl_create_publish_from_saved_plan, then runtime evidence."
+            "Develop from persisted requirements and one scoped target baseline. "
+            "Call dl_generate_editor_bundle once with all widgets in chart_specs, validate locally, and build the safe-apply plan. "
+            "For implementation, call dl_execute_safe_apply once; it owns save, both readbacks, and publish-from-saved. "
+            "Use publish-plan only to resume a stopped run and use one generated browser QA pass."
         ),
     },
     "datalens.redesign_existing": {

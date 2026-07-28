@@ -22,6 +22,13 @@ HEAVY_TOOL_NAMES = frozenset(
         "dl_read_project_live_summary",
     }
 )
+COMPACT_ONLY_HEAVY_TOOL_NAMES = frozenset(
+    {
+        "dl_generate_editor_bundle",
+        "dl_execute_safe_apply",
+    }
+)
+PROJECTED_HEAVY_TOOL_NAMES = HEAVY_TOOL_NAMES | COMPACT_ONLY_HEAVY_TOOL_NAMES
 DEFAULT_HEAVY_INLINE_CHAR_BUDGET = 15_000
 
 
@@ -34,7 +41,7 @@ def project_heavy_tool_response(
     project_root: str | Path,
     run_id: str = "",
 ) -> Any:
-    if tool_name not in HEAVY_TOOL_NAMES or not isinstance(output, dict):
+    if tool_name not in PROJECTED_HEAVY_TOOL_NAMES or not isinstance(output, dict):
         return output
     mode = normalize_response_mode(response_mode)
     sanitized = sanitize_response(output)
@@ -68,7 +75,7 @@ def project_heavy_tool_response(
             envelope[key] = sanitized[key]
     if mode == "artifact":
         return envelope
-    envelope["summary"] = _heavy_summary(sanitized)
+    envelope["summary"] = _heavy_summary(tool_name, sanitized)
     if mode == "structure":
         envelope["structure"] = {
             "top_level_keys": sorted(sanitized),
@@ -97,7 +104,11 @@ def project_heavy_tool_response(
     return envelope
 
 
-def _heavy_summary(value: dict[str, Any]) -> dict[str, Any]:
+def _heavy_summary(tool_name: str, value: dict[str, Any]) -> dict[str, Any]:
+    if tool_name == "dl_generate_editor_bundle":
+        return _editor_bundle_summary(value)
+    if tool_name == "dl_execute_safe_apply":
+        return _safe_apply_execution_summary(value)
     keys = (
         "ok",
         "status",
@@ -120,6 +131,17 @@ def _heavy_summary(value: dict[str, Any]) -> dict[str, Any]:
         "errors",
         "next_actions",
         "delivery_intent_decision",
+        "generation_status",
+        "route",
+        "family",
+        "widget_id",
+        "display_title",
+        "source_template",
+        "source_contract",
+        "authoring_profile",
+        "render_contract",
+        "batch_summary",
+        "browser_qa_plan",
     )
     summary = {key: value[key] for key in keys if key in value}
     actions = value.get("actions") if isinstance(value.get("actions"), list) else []
@@ -134,6 +156,170 @@ def _heavy_summary(value: dict[str, Any]) -> dict[str, Any]:
         rows = value.get(key)
         if isinstance(rows, list):
             summary[key] = rows[:100]
+    tabs = value.get("tabs") if isinstance(value.get("tabs"), dict) else {}
+    if tabs:
+        summary["tab_names"] = sorted(tabs)
+        summary["tab_count"] = len(tabs)
+    results = value.get("results") if isinstance(value.get("results"), list) else []
+    if results:
+        summary["result_count"] = len(results)
+        summary["results"] = [
+            {
+                key: item[key]
+                for key in (
+                    "widget_id",
+                    "ok",
+                    "generation_status",
+                    "route",
+                    "family",
+                    "bundle_path",
+                    "compiled_tabs_sha256",
+                )
+                if key in item
+            }
+            for item in results[:100]
+            if isinstance(item, dict)
+        ]
+    return summary
+
+
+def _editor_bundle_summary(value: dict[str, Any]) -> dict[str, Any]:
+    profile = value.get("authoring_profile") if isinstance(value.get("authoring_profile"), dict) else {}
+    render_contract = value.get("render_contract") if isinstance(value.get("render_contract"), dict) else {}
+    source_contract = value.get("source_contract") if isinstance(value.get("source_contract"), dict) else {}
+    provenance = value.get("template_provenance") if isinstance(value.get("template_provenance"), dict) else {}
+    browser_plan = value.get("browser_qa_plan") if isinstance(value.get("browser_qa_plan"), dict) else {}
+    results = value.get("results") if isinstance(value.get("results"), list) else []
+    summary: dict[str, Any] = {
+        key: value[key]
+        for key in (
+            "ok",
+            "status",
+            "generation_status",
+            "widget_id",
+            "display_title",
+            "route",
+            "family",
+            "source_template",
+            "manifest_path",
+            "full_bundles",
+            "batch_summary",
+        )
+        if key in value
+    }
+    tabs = value.get("tabs") if isinstance(value.get("tabs"), dict) else {}
+    if tabs:
+        summary["tabs"] = sorted(tabs)
+        summary["tab_count"] = len(tabs)
+    if profile:
+        summary["authoring_profile"] = {
+            key: profile[key]
+            for key in (
+                "id",
+                "enforced",
+                "exact_template_reused",
+                "template_set_sha256",
+                "style_contract_sha256",
+            )
+            if key in profile
+        }
+    if render_contract:
+        summary["render_contract"] = {
+            key: render_contract[key]
+            for key in (
+                "profile_id",
+                "adapter_id",
+                "density",
+                "composite_sha256",
+            )
+            if key in render_contract
+        }
+    if source_contract:
+        summary["source_contract"] = {
+            "status": source_contract.get("status"),
+            "production_ready": source_contract.get("production_ready"),
+            "issue_count": len(source_contract.get("issues") or []),
+            "missing_output_columns": list(source_contract.get("missing_output_columns") or [])[:20],
+        }
+    if provenance:
+        summary["compiled_tabs_sha256"] = provenance.get("compiled_tabs_sha256")
+    if browser_plan:
+        summary["browser_qa_plan"] = {
+            key: browser_plan[key]
+            for key in ("schema_version", "plan_sha256", "artifact_path", "max_browser_calls")
+            if key in browser_plan
+        }
+    if results:
+        summary["results"] = [
+            {
+                key: item[key]
+                for key in (
+                    "widget_id",
+                    "ok",
+                    "generation_status",
+                    "route",
+                    "family",
+                    "bundle_path",
+                    "compiled_tabs_sha256",
+                    "render_contract_sha256",
+                )
+                if key in item
+            }
+            for item in results[:100]
+            if isinstance(item, dict)
+        ]
+    return summary
+
+
+def _safe_apply_execution_summary(value: dict[str, Any]) -> dict[str, Any]:
+    delivery = value.get("delivery_result") if isinstance(value.get("delivery_result"), dict) else {}
+    save_results = value.get("results") if isinstance(value.get("results"), list) else []
+    publish_results = (
+        delivery.get("publish_results")
+        if isinstance(delivery.get("publish_results"), list)
+        else value.get("publish_results")
+        if isinstance(value.get("publish_results"), list)
+        else []
+    )
+    summary: dict[str, Any] = {
+        key: value[key]
+        for key in (
+            "ok",
+            "status",
+            "executed",
+            "plan_path",
+            "safe_apply_id",
+            "saved_readback_paths",
+            "published_readback_paths",
+            "saved_readback_errors",
+            "published_readback_errors",
+            "publish_blocked_reasons",
+            "proof_levels",
+            "execution_metrics",
+        )
+        if key in value
+    }
+    summary["counts"] = {
+        "save_results": len(save_results),
+        "publish_results": len(publish_results),
+        "saved_readbacks": len(value.get("saved_readback_paths") or []),
+        "published_readbacks": len(value.get("published_readback_paths") or []),
+        "errors": len(value.get("errors") or [])
+        + len(value.get("saved_readback_errors") or [])
+        + len(value.get("published_readback_errors") or []),
+    }
+    if delivery:
+        summary["delivery"] = {
+            key: delivery[key]
+            for key in (
+                "state",
+                "saved",
+                "published",
+                "publish_blocked_reasons",
+                "approval_reuse",
+            )
+            if key in delivery
+        }
     return summary
 
 

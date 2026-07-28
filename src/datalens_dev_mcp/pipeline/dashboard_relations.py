@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import json
 import re
+from copy import deepcopy
 from typing import Any
 
 from datalens_dev_mcp.editor.selector_contract import selector_params
 from datalens_dev_mcp.pipeline.layout_contract import (
     SELECTOR_ROW_WIDTH_TARGET,
     layout_blueprint_for_dashboard_type,
+    plan_selector_row_widths,
     validate_selector_controls,
 )
 from datalens_dev_mcp.validators.route_validator import ValidationResult
@@ -26,8 +29,7 @@ def build_default_dashboard_relations(
     fields = [name for item in raw_fields if (name := _field_name(item))]
     field_names = set(fields)
     contract_id = (brief.get("data_contract") or {}).get("contract_id") or "DATA-001"
-    decisions = brief.get("chart_decisions") or []
-    decision = decisions[0] if decisions else {}
+    decision = dashboard_decision_for_widget(brief, widget_id=widget_id)
     chart_id = decision.get("widget_id") or widget_id
     route = decision.get("route") or "editor_advanced"
     family = decision.get("family") or "kpi_value_sparkline"
@@ -150,6 +152,207 @@ def build_default_dashboard_relations(
             }
         ],
     }
+
+
+def dashboard_decision_for_widget(
+    brief: dict[str, Any],
+    *,
+    widget_id: str,
+) -> dict[str, Any]:
+    decisions = [
+        item
+        for item in (brief.get("chart_decisions") or [])
+        if isinstance(item, dict)
+    ]
+    if not decisions:
+        return {}
+    matches = []
+    for decision in decisions:
+        record = (
+            decision.get("chart_decision_record")
+            if isinstance(decision.get("chart_decision_record"), dict)
+            else {}
+        )
+        identifiers = {
+            str(decision.get("widget_id") or "").strip(),
+            str(decision.get("decision_id") or "").strip(),
+            str(decision.get("metric_id") or "").strip(),
+            str(record.get("chart_id") or "").strip(),
+            str(record.get("widget_id") or "").strip(),
+        }
+        if widget_id in identifiers:
+            matches.append(decision)
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        raise ValueError(
+            f"multiple chart decisions match widget_id {widget_id!r}; identifiers must be unique"
+        )
+    if len(decisions) == 1:
+        return decisions[0]
+    raise ValueError(
+        f"no chart decision matches widget_id {widget_id!r}; "
+        "multi-widget relations require an exact widget_id or decision_id"
+    )
+
+
+def merge_dashboard_relations(
+    existing: dict[str, Any],
+    incoming: dict[str, Any],
+) -> dict[str, Any]:
+    """Merge one generated widget relation without losing prior widgets."""
+    if not existing:
+        return deepcopy(incoming)
+    if existing.get("schema_version") != incoming.get("schema_version"):
+        raise ValueError("dashboard relation schema versions must match before merge")
+    merged = deepcopy(existing)
+    merged["dashboard"] = deepcopy(incoming.get("dashboard") or existing.get("dashboard") or {})
+    merged["layout_blueprint"] = deepcopy(
+        incoming.get("layout_blueprint") or existing.get("layout_blueprint") or {}
+    )
+    merged["tabs"] = _merge_relation_rows(
+        existing.get("tabs"),
+        incoming.get("tabs"),
+        key_fields=("tab_id",),
+        list_fields=("widgets",),
+    )
+    merged["widgets"] = _merge_relation_rows(
+        existing.get("widgets"),
+        incoming.get("widgets"),
+        key_fields=("widget_id",),
+    )
+    merged["charts"] = _merge_relation_rows(
+        existing.get("charts"),
+        incoming.get("charts"),
+        key_fields=("chart_id",),
+        list_fields=(
+            "dataset_dependencies",
+            "field_dependencies",
+            "calculated_field_dependencies",
+        ),
+    )
+    merged["chart_relations"] = _merge_relation_rows(
+        existing.get("chart_relations"),
+        incoming.get("chart_relations"),
+        key_fields=("source_chart_id", "target_chart_id", "relation_kind"),
+    )
+    merged["selectors"] = _merge_relation_rows(
+        existing.get("selectors"),
+        incoming.get("selectors"),
+        key_fields=("selector_id",),
+        list_fields=("params", "targets", "source_fields"),
+    )
+    merged["dashboard_filters"] = _merge_relation_rows(
+        existing.get("dashboard_filters"),
+        incoming.get("dashboard_filters"),
+        key_fields=("selector_id", "param"),
+        list_fields=("targets",),
+    )
+    merged["navigation_relations"] = _merge_relation_rows(
+        existing.get("navigation_relations"),
+        incoming.get("navigation_relations"),
+        key_fields=("source_id", "target_id", "relation_kind"),
+    )
+    merged["datasets"] = _merge_relation_rows(
+        existing.get("datasets"),
+        incoming.get("datasets"),
+        key_fields=("dataset_id",),
+        list_fields=("fields", "calculated_fields"),
+    )
+    _reflow_merged_selector_layout(merged)
+    result = validate_dashboard_relations(merged)
+    if not result.ok:
+        raise ValueError(
+            "merged dashboard relations are invalid: " + "; ".join(result.issues)
+        )
+    return merged
+
+
+def _merge_relation_rows(
+    existing: Any,
+    incoming: Any,
+    *,
+    key_fields: tuple[str, ...],
+    list_fields: tuple[str, ...] = (),
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    positions: dict[tuple[str, ...], int] = {}
+    for raw in [*(existing or []), *(incoming or [])]:
+        if not isinstance(raw, dict):
+            continue
+        row = deepcopy(raw)
+        key = tuple(str(row.get(field) or "") for field in key_fields)
+        if key not in positions:
+            positions[key] = len(rows)
+            rows.append(row)
+            continue
+        current = rows[positions[key]]
+        for field, value in row.items():
+            if field in list_fields:
+                combined = [*(current.get(field) or []), *(value or [])]
+                current[field] = _stable_unique_json(combined)
+            elif value not in (None, "", [], {}):
+                current[field] = value
+    return rows
+
+
+def _reflow_merged_selector_layout(relations: dict[str, Any]) -> None:
+    selectors = [
+        item
+        for item in (relations.get("selectors") or [])
+        if isinstance(item, dict)
+    ]
+    if len(selectors) < 2 or validate_selector_controls(selectors).ok:
+        return
+    if not all(validate_selector_controls([selector]).ok for selector in selectors):
+        return
+
+    max_controls_per_row = max(1, SELECTOR_ROW_WIDTH_TARGET // 8)
+    selector_widgets = {
+        str(item.get("selector_id") or item.get("widget_id") or ""): item
+        for item in (relations.get("widgets") or [])
+        if isinstance(item, dict) and item.get("selector_id")
+    }
+    for offset in range(0, len(selectors), max_controls_per_row):
+        row_index = (offset // max_controls_per_row) + 1
+        row = selectors[offset : offset + max_controls_per_row]
+        selector_ids = [str(item.get("selector_id") or "") for item in row]
+        widths = plan_selector_row_widths(selector_ids)
+        x = 0
+        for selector in row:
+            selector_id = str(selector.get("selector_id") or "")
+            width = widths[selector_id]
+            width_percent = int(width.removesuffix("%"))
+            selector["row"] = f"row-{row_index}"
+            selector["width"] = width
+            widget = selector_widgets.get(selector_id)
+            if widget is not None:
+                widget["layout"] = {
+                    "x": x,
+                    "y": (row_index - 1) * 4,
+                    "w": width_percent,
+                    "h": 4,
+                    "width": width,
+                }
+            x += width_percent
+
+
+def _stable_unique_json(values: list[Any]) -> list[Any]:
+    unique: list[Any] = []
+    seen: set[str] = set()
+    for value in values:
+        marker = json.dumps(
+            value,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        if marker in seen:
+            continue
+        seen.add(marker)
+        unique.append(value)
+    return unique
 
 
 def validate_dashboard_relations(relations: dict[str, Any]) -> ValidationResult:
