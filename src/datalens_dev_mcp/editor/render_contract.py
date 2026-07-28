@@ -183,6 +183,9 @@ def upgrade_renderer_visual_spec_v4(
     _require_resolved_contract(render_contract)
     result = copy.deepcopy(_jsonable(visual_spec or {}))
     tokens = _jsonable(render_contract["effective_tokens"])
+    if comparison_enabled is None:
+        comparison_enabled = _comparison_is_enabled(result)
+    comparison_enabled = bool(comparison_enabled)
     result["schema_version"] = RENDERER_VISUAL_SPEC_V4
     result["render_contract"] = {
         "profile_id": str(render_contract["profile_id"]),
@@ -233,6 +236,8 @@ def upgrade_renderer_visual_spec_v4(
     kpi_context["padding_px"] = copy.deepcopy(kpi.get("padding_px") or {})
     kpi_context["label_typography"] = copy.deepcopy(kpi.get("label_typography") or {})
     kpi_context["value_typography"] = copy.deepcopy(kpi.get("value_typography") or {})
+    kpi_context["content"] = copy.deepcopy(kpi.get("content") or {})
+    kpi_context["layout"] = copy.deepcopy(kpi.get("layout") or {})
 
     legend = _dict_at(result, "legend")
     for key in _INLINE_LEGEND_TYPOGRAPHY_KEYS:
@@ -254,6 +259,16 @@ def upgrade_renderer_visual_spec_v4(
     tooltip["redundant_row_title"] = bool(
         tooltip_tokens.get("redundant_row_title")
     )
+    tooltip["comparison_mode"] = (
+        "comparison" if comparison_enabled else "single_period"
+    )
+    tooltip["period_value_source"] = str(
+        tooltip_tokens.get("period_value_source") or ""
+    )
+    tooltip["show_current_label"] = comparison_enabled
+    tooltip["show_vs_separator"] = comparison_enabled
+    tooltip["show_comparison_period"] = comparison_enabled
+    tooltip["allow_empty_comparison_period"] = False
 
     selector_contract = _dict_at(result, "selector_contract")
     selector = _mapping_at(tokens, "selector")
@@ -269,11 +284,19 @@ def upgrade_renderer_visual_spec_v4(
     selector_contract["blank_multiselect_semantics"] = str(
         selector.get("blank_multiselect_semantics") or ""
     )
+    selector_contract["period_first_if_present"] = bool(
+        selector.get("period_first_if_present")
+    )
+    selector_contract["single_row"] = bool(selector.get("single_row"))
+    selector_contract["row_target_width_percent"] = int(
+        selector.get("row_target_width_percent") or 0
+    )
+    selector_contract["row_width_tolerance_percent"] = int(
+        selector.get("row_width_tolerance_percent") or 0
+    )
 
     comparison = _dict_at(result, "comparison_context")
-    if comparison_enabled is None:
-        comparison_enabled = _comparison_is_enabled(result)
-    comparison["enabled"] = bool(comparison_enabled)
+    comparison["enabled"] = comparison_enabled
     comparison["block_count"] = 1 if comparison_enabled else 0
     comparison["render_mode"] = "single_text_block" if comparison_enabled else "none"
     comparison["placement"] = str(
@@ -381,6 +404,30 @@ def validate_renderer_visual_spec_v4(
         issues.append("kpi.surface.profile_token_mismatch")
     if kpi_context.get("padding_px") != expected_kpi.get("padding_px"):
         issues.append("kpi.padding.profile_token_mismatch")
+    if kpi_context.get("content") != expected_kpi.get("content"):
+        issues.append("kpi.content.profile_token_mismatch")
+    if kpi_context.get("layout") != expected_kpi.get("layout"):
+        issues.append("kpi.layout.profile_token_mismatch")
+    kpi_layout = (
+        kpi_context.get("layout")
+        if isinstance(kpi_context.get("layout"), dict)
+        else {}
+    )
+    kpi_heights = [
+        kpi_layout.get("min_height_px"),
+        kpi_layout.get("preferred_height_px"),
+        kpi_layout.get("max_height_px"),
+    ]
+    if (
+        any(
+            not isinstance(value, int)
+            or isinstance(value, bool)
+            or value <= 0
+            for value in kpi_heights
+        )
+        or kpi_heights != sorted(kpi_heights)
+    ):
+        issues.append("kpi.layout.invalid_height_range")
 
     legend = spec.get("legend") if isinstance(spec.get("legend"), dict) else {}
     legend_tokens = _mapping_at(_mapping_at(tokens, "typography"), "legend")
@@ -407,6 +454,28 @@ def validate_renderer_visual_spec_v4(
         issues.append("tooltip.surface_profile_token_mismatch")
     if tooltip.get("redundant_row_title") is not False:
         issues.append("tooltip.redundant_row_title_must_be_false")
+    comparison = (
+        spec.get("comparison_context")
+        if isinstance(spec.get("comparison_context"), dict)
+        else {}
+    )
+    comparison_enabled = comparison.get("enabled") is True
+    expected_tooltip_mode = "comparison" if comparison_enabled else "single_period"
+    if tooltip.get("comparison_mode") != expected_tooltip_mode:
+        issues.append("tooltip.comparison_mode_mismatch")
+    if tooltip.get("period_value_source") != expected_tooltip.get(
+        "period_value_source"
+    ):
+        issues.append("tooltip.period_value_source_mismatch")
+    for key in (
+        "show_current_label",
+        "show_vs_separator",
+        "show_comparison_period",
+    ):
+        if tooltip.get(key) is not comparison_enabled:
+            issues.append(f"tooltip.{key}_must_match_comparison_mode")
+    if tooltip.get("allow_empty_comparison_period") is not False:
+        issues.append("tooltip.empty_comparison_period_forbidden")
 
     selector = (
         spec.get("selector_contract")
@@ -437,13 +506,13 @@ def validate_renderer_visual_spec_v4(
         != expected_selector.get("blank_multiselect_semantics")
     ):
         issues.append("selector.blank_multiselect_profile_token_mismatch")
+    for key in ("period_first_if_present", "single_row"):
+        if selector.get(key) is not expected_selector.get(key):
+            issues.append(f"selector.{key}_profile_token_mismatch")
+    for key in ("row_target_width_percent", "row_width_tolerance_percent"):
+        if selector.get(key) != expected_selector.get(key):
+            issues.append(f"selector.{key}_profile_token_mismatch")
 
-    comparison = (
-        spec.get("comparison_context")
-        if isinstance(spec.get("comparison_context"), dict)
-        else {}
-    )
-    comparison_enabled = comparison.get("enabled") is True
     expected_block_count = 1 if comparison_enabled else 0
     if comparison.get("block_count") != expected_block_count:
         issues.append("comparison_context.exactly_one_block_when_enabled")

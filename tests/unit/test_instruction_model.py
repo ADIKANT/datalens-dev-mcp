@@ -38,6 +38,7 @@ class InstructionModelTests(unittest.TestCase):
             text = prompt["text"]
             self.assertLess(len(text), 900, name)
             self.assertIn("templates-first", text, name)
+            self.assertIn("acceptance_criteria", text, name)
             self.assertIn("no legacy cache sync", text, name)
 
     def test_develop_prompt_only_names_standard_tools(self):

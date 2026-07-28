@@ -39,6 +39,7 @@ _PATCH_FIELDS = {
     "visual_spec_overlay",
     "required_semantic_roles",
     "forbidden_semantic_roles",
+    "acceptance_criteria",
     "supersedes",
 }
 
@@ -182,6 +183,10 @@ def normalize_decision_patch(
         field="forbidden_semantic_roles",
         issues=issues,
     )
+    acceptance_criteria = _normalize_acceptance_criteria(
+        value.get("acceptance_criteria"),
+        issues=issues,
+    )
     conflicts = sorted(set(required_roles) & set(forbidden_roles))
     if conflicts:
         issues.append(
@@ -221,6 +226,7 @@ def normalize_decision_patch(
         },
         "required_semantic_roles": required_roles,
         "forbidden_semantic_roles": forbidden_roles,
+        "acceptance_criteria": acceptance_criteria,
         "supersedes": supersedes,
     }
     if not any(
@@ -229,6 +235,7 @@ def normalize_decision_patch(
             normalized["visual_spec_overlay"],
             normalized["required_semantic_roles"],
             normalized["forbidden_semantic_roles"],
+            normalized["acceptance_criteria"],
             normalized["supersedes"],
         )
     ):
@@ -265,6 +272,7 @@ def resolve_active_decision_contract(
     visual_spec_overlay: dict[str, Any] = {}
     required_roles: set[str] = set()
     forbidden_roles: set[str] = set()
+    acceptance_criteria: list[str] = []
     for _precedence, _index, revision in matching:
         patch = revision["patch"]
         metric_semantics = _deep_merge(metric_semantics, patch.get("metric_semantics") or {})
@@ -278,6 +286,9 @@ def resolve_active_decision_contract(
         for role in patch.get("forbidden_semantic_roles") or []:
             forbidden_roles.add(role)
             required_roles.discard(role)
+        for criterion in patch.get("acceptance_criteria") or []:
+            if criterion not in acceptance_criteria:
+                acceptance_criteria.append(criterion)
     return {
         "schema_version": "2026-07-23.active_user_decision_contract.v1",
         "decision_ledger_sha256": _ledger_sha256(ledger) if revisions else "",
@@ -289,6 +300,7 @@ def resolve_active_decision_contract(
         "visual_spec_overlay": visual_spec_overlay,
         "required_semantic_roles": sorted(required_roles),
         "forbidden_semantic_roles": sorted(forbidden_roles),
+        "acceptance_criteria": acceptance_criteria,
     }
 
 
@@ -333,6 +345,7 @@ def apply_decision_contract_to_chart_plan(
         visual_spec["colors"] = colors
     visual_spec["decision_ledger_sha256"] = contract["decision_ledger_sha256"]
     record["renderer_visual_spec"] = visual_spec
+    record["acceptance_criteria"] = list(contract["acceptance_criteria"])
     record["decision_ledger_sha256"] = contract["decision_ledger_sha256"]
     record["active_decision_revision_ids"] = contract["matched_revision_ids"]
     if record is not patched:
@@ -376,6 +389,8 @@ def decision_contract_drift_issues(
         issues.append("chart plan required semantic roles drift from active user decision patches")
     if sorted(role_contract.get("forbidden") or []) != contract["forbidden_semantic_roles"]:
         issues.append("chart plan forbidden semantic roles drift from active user decision patches")
+    if list(record.get("acceptance_criteria") or []) != contract["acceptance_criteria"]:
+        issues.append("chart plan acceptance criteria drift from active user decision patches")
     return issues
 
 
@@ -448,6 +463,33 @@ def _normalize_roles(value: Any, *, field: str, issues: list[str]) -> list[str]:
     if unknown:
         issues.append(f"decision_patch.{field} has unsupported roles: {', '.join(unknown)}")
     return [item for item in normalized if item in SEMANTIC_ROLES]
+
+
+def _normalize_acceptance_criteria(value: Any, *, issues: list[str]) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        issues.append("decision_patch.acceptance_criteria must be an array")
+        return []
+    normalized: list[str] = []
+    for index, item in enumerate(value):
+        if not isinstance(item, str) or not item.strip():
+            issues.append(
+                f"decision_patch.acceptance_criteria[{index}] must be a non-empty string"
+            )
+            continue
+        criterion = " ".join(item.split())
+        if len(criterion) > 500:
+            issues.append(
+                f"decision_patch.acceptance_criteria[{index}] exceeds 500 characters"
+            )
+            continue
+        if criterion not in normalized:
+            normalized.append(criterion)
+    if len(normalized) > 100:
+        issues.append("decision_patch.acceptance_criteria exceeds 100 items")
+        return normalized[:100]
+    return normalized
 
 
 def _deep_merge(base: Any, overlay: Any) -> Any:

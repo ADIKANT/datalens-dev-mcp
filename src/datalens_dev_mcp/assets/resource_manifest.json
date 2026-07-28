@@ -2,9 +2,9 @@
   "resource_count": 260,
   "resources": [
     {
-      "bytes": 12106,
+      "bytes": 13106,
       "path": "config/dashboard_render_profiles.json",
-      "sha256": "2e1ecdb661350b64dfdc9996b52256e415eacffcc0d263f38cd274f9e5f8f262"
+      "sha256": "cc2e47cdeb661b27896ba4a19c4e4229c9199e477af99be07ef6b2aed9a5a5f8"
     },
     {
       "bytes": 84379,
@@ -74,7 +74,7 @@
     {
       "bytes": 2742,
       "path": "config/editor_authoring_profiles.json",
-      "sha256": "ee5322bc935953d0ea20b020dd5ce4832bdc5ed03282fbbe02cc39de7ad2a3c3"
+      "sha256": "c77c02d243dc023fc181ac7cb9ab9f7741d73cbfbd826d8738710f0df68a6f02"
     },
     {
       "bytes": 199562,
@@ -447,9 +447,9 @@
       "sha256": "29768ced594b58e682086cbf40c5a8b0e9a454dd6f44a94a79264ad53b3f24d2"
     },
     {
-      "bytes": 2133,
+      "bytes": 2342,
       "path": "schemas/user-decision-patch.schema.json",
-      "sha256": "5e3a4489eccfd08270967ad7e69b63fc5e794c7b36d396b78615f6d3761c0016"
+      "sha256": "1dea055c25aaa86624fbec7d4cfe16093e3b0df7a1c22f5a07c0502b1ec6f063"
     },
     {
       "bytes": 2714,
@@ -507,9 +507,9 @@
       "sha256": "b9038df17e80893d9d85de6ff4bd51175d6a245faa70b7b5cb28c56e41f58c0d"
     },
     {
-      "bytes": 965,
+      "bytes": 2361,
       "path": "templates/advanced/tooltip.js",
-      "sha256": "2b83b994538e25ceee99e6bf73d588de0a528922fba79e80170f4211cf846b1c"
+      "sha256": "88fb2b7a1c7e8d4e5a0f90778d715a7b80dadf5890e26c3ba31aedd735c8bbdb"
     },
     {
       "bytes": 4209,
@@ -732,14 +732,14 @@
       "sha256": "5622c24eae07b79484222585d7ec1958dc5540b86608852057a2d298a0c1c87a"
     },
     {
-      "bytes": 1289,
+      "bytes": 1769,
       "path": "templates/datalens/advanced_editor/resource_schedule_exception/README.md",
-      "sha256": "948cfdd1a37ccd5818b91493b581a0e5c2a220c867ba4359dc28973323e88f5c"
+      "sha256": "8bd7b48f07a8dc32414ed083d9dc44d3b8736d25a0322d9d36db24833afe8831"
     },
     {
-      "bytes": 669,
+      "bytes": 708,
       "path": "templates/datalens/advanced_editor/resource_schedule_exception/example_input.json",
-      "sha256": "8d30676ea6165e6cbba7ecf71a6664062e7c831bb75d85cd2407e72cf64748ca"
+      "sha256": "5557bacf57b0b193b3e1ebbd11f92cb3c184a38b6f6b6ec330aba3f1a5de6ff2"
     },
     {
       "bytes": 81,
@@ -747,19 +747,19 @@
       "sha256": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed"
     },
     {
-      "bytes": 410,
+      "bytes": 434,
       "path": "templates/datalens/advanced_editor/resource_schedule_exception/params.json",
-      "sha256": "1341d46b1b8544e9922bfacab6b69ab25e6c8f9b1d128605b242c434d560ebaa"
+      "sha256": "4fffc4df36b6fbe082de95812451e959169781126382f1db348c84cd1f527872"
     },
     {
-      "bytes": 14240,
+      "bytes": 16036,
       "path": "templates/datalens/advanced_editor/resource_schedule_exception/prepare.js",
-      "sha256": "8a52db182f0ea1b9e70d6f48bb1fc8a13fc1b34eece8b9991c03098eafeab69b"
+      "sha256": "1eaab3b605e0b9782815ee7bea659459a2dfd799e248bc7d91a03161b9580f5c"
     },
     {
-      "bytes": 1080,
+      "bytes": 1131,
       "path": "templates/datalens/advanced_editor/resource_schedule_exception/schema.json",
-      "sha256": "ee4cac369950ed502f31c9895bfddadbfaa6e2b143eb9cfa7ab9a7c6351faed3"
+      "sha256": "6a37a1e40f576203fccd1ed7d1f13d4c00be951462478531f15bf794e48486c0"
     },
     {
       "bytes": 751,
@@ -957,9 +957,9 @@
       "sha256": "745663e7ce0715ec9b0a56f55574ef0442aae1e46ba401b7ce50492246e2b2ed"
     },
     {
-      "bytes": 2479,
+      "bytes": 2601,
       "path": "templates/datalens/recipes/resource_schedule_exception.json",
-      "sha256": "a5581199724e826c20bc987914cf15c75c6966651a62e43183beb6c5470efe13"
+      "sha256": "8171ecd01070e94e57756c7805badd63218908e6e114f5b884686c55fd3717b0"
     },
     {
       "bytes": 2083,

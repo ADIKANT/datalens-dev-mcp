@@ -48,6 +48,10 @@ class UserDecisionPatchTests(unittest.TestCase):
                     "visual_spec_overlay": {"colors": {"focus": "#333333"}},
                     "required_semantic_roles": ["success"],
                     "forbidden_semantic_roles": ["warning"],
+                    "acceptance_criteria": [
+                        "The period selector is first.",
+                        "The KPI value remains visible.",
+                    ],
                 },
             )
 
@@ -60,6 +64,13 @@ class UserDecisionPatchTests(unittest.TestCase):
         self.assertEqual(contract["visual_spec_overlay"]["colors"]["focus"], "#333333")
         self.assertEqual(contract["required_semantic_roles"], ["neutral", "success"])
         self.assertEqual(contract["forbidden_semantic_roles"], ["warning"])
+        self.assertEqual(
+            contract["acceptance_criteria"],
+            [
+                "The period selector is first.",
+                "The KPI value remains visible.",
+            ],
+        )
         self.assertEqual(len(contract["matched_revision_ids"]), 3)
 
     def test_supersedes_removes_old_revision_from_active_contract(self):
@@ -99,6 +110,9 @@ class UserDecisionPatchTests(unittest.TestCase):
                     "metric_semantics": {"semantic_direction": "higher_is_better"},
                     "visual_spec_overlay": {"tooltip": {"bucket_label": "single_interval"}},
                     "required_semantic_roles": ["success"],
+                    "acceptance_criteria": [
+                        "Tooltip uses only the normalized selected period."
+                    ],
                 },
             )
             source = {
@@ -113,6 +127,10 @@ class UserDecisionPatchTests(unittest.TestCase):
             }
             applied = apply_decision_contract_to_chart_plan(root, source)["chart_plan"]
             self.assertEqual(decision_contract_drift_issues(root, applied), [])
+            self.assertEqual(
+                applied["chart_decision_record"]["acceptance_criteria"],
+                ["Tooltip uses only the normalized selected period."],
+            )
             applied["chart_decision_record"]["renderer_visual_spec"]["tooltip"]["bucket_label"] = "range"
             issues = decision_contract_drift_issues(root, applied)
 

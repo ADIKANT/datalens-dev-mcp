@@ -583,6 +583,14 @@ class EditorBundleBatchTests(unittest.TestCase):
             qa_plan["comparison_context_object_ids"],
             ["comparison_context"],
         )
+        self.assertEqual(
+            qa_plan["selector_contracts"][0]["role"],
+            "period",
+        )
+        self.assertEqual(
+            qa_plan["tooltip_comparison_modes"],
+            {"delta_kpi": "comparison"},
+        )
 
     def test_v2_comparison_preflight_blocks_invalid_context_before_writes(self):
         cases = [
@@ -678,6 +686,60 @@ class EditorBundleBatchTests(unittest.TestCase):
                     )
 
                 self._assert_no_batch_generation_artifacts(root)
+
+    def test_v2_period_selector_must_be_first_even_without_comparison(self):
+        decisions = [
+            {
+                "widget_id": "period_selector",
+                "title": "Synthetic period",
+                "family": "date_range_selector",
+                "route": "editor_js_control",
+            },
+            {
+                "widget_id": "trend",
+                "title": "Synthetic trend",
+                "family": "line_chart",
+                "route": "editor_advanced",
+            },
+        ]
+        specs = [
+            {
+                "widget_id": "trend",
+                "dataset_alias": "trend_source",
+                "columns": ["bucket", "value"],
+            },
+            {
+                "widget_id": "period_selector",
+                "selector_contract": {
+                    "param_from": "period_from",
+                    "param_to": "period_to",
+                    "label": "Period",
+                    "option_source": "none",
+                    "default_from": "2026-07-01",
+                    "default_to": "2026-07-28",
+                    "reset_behavior": "initial",
+                },
+            },
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_brief(
+                root,
+                decisions=decisions,
+                fields=["bucket", "value", "period_from", "period_to"],
+            )
+
+            with self.assertRaisesRegex(
+                ValueError,
+                "date_range_selector as the first chart_spec when present",
+            ):
+                dl_generate_editor_bundle(
+                    project_root=tmp,
+                    authoring_profile="standard_editor_v2",
+                    chart_specs=specs,
+                )
+
+            self._assert_no_batch_generation_artifacts(root)
 
     def test_batch_manifest_records_ready_and_blocked_artifact_only_results(self):
         decisions = [

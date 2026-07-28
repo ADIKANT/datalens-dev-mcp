@@ -38,7 +38,7 @@ An unknown family, a conflicting route, a changed fingerprint, an inapplicable
 override, or an approximate fallback blocks generation.
 
 `standard_editor_v2` retains the reviewed template-set fingerprint
-`f1b2848350bc9dc0119149a50fdeb41bbd79faf0adee376f9ca5ab4f79bb4ed9`.
+`0f52998c57443651845ab73718df1669d01c5b5e87d10e0bf6bd29d6ee4cd4d4`.
 Its render profile is separately fingerprinted, and each resolved family plus
 bounded overrides receives a `composite_sha256`. Changing a registered asset or
 render token requires a reviewed profile version and updated fingerprint.
@@ -61,12 +61,12 @@ registered templates but does not apply the v2 cross-chart render compiler.
 | Shell | Compact vertical/horizontal padding `9/10` px and gap `7` px; normal padding `11/13` px and gap `9` px |
 | Font | `Inter`, then `Arial`, then `sans-serif` |
 | Typography | Title `16/20` compact and `17/21` normal; body, axis, legend, and tooltip `12/16`; table `12/17` |
-| KPI | Padding `11 11 7 11` px (top/right/bottom/left); label `12/15`; value `31/34` compact and `34/38` normal at weight `750` |
+| KPI | Padding `11 11 7 11` px; label `12/15`; value `31/34` compact and `34/38` normal at weight `750`; visible marked value; height `88..112` px with `96` px preferred |
 | KPI surface | Transparent background; zero border, radius, outline, and shadow |
-| Selector | Left label, immediate update, no Apply button, height `44` px, width at most `94%`; blank multiselect means all |
+| Selector | Left label, immediate update, no Apply button, height `44` px, each control at most `94%`; period first when present; one row targeting `95%` aggregate width; blank multiselect means all |
 | Comparison context | Exactly one shared text block below selectors when comparison is enabled, none otherwise; method, selected range, and comparison range are required |
 | Legend | One shared typography token across a chart; default and compact are `12/16` |
-| Tooltip | Native owner, maximum width `340` px, vertical/horizontal padding `10/12` px, zero border and radius, meaningful value/range titles preserved, and no redundant row-title tooltip |
+| Tooltip | Native owner, normalized period values, comparison labels only in comparison mode, no empty comparison period, maximum width `340` px, padding `10/12` px, flat surface, and no redundant row-title tooltip |
 | Horizontal rank | Label `184` px, value `106` px, preferred bar `234` px, minimum row `32` px, row gap `4` px, bar radius `0.75` px, wrapped labels, stable secondary sort |
 | Scroll variant | Stable scrollbar gutter and `4` px right padding |
 
@@ -193,8 +193,8 @@ tab hashes.
 the semantic value and formatting fields, then binds scale, typography,
 spacing, KPI, legend, selector, comparison, and tooltip fields to the resolved
 render contract. Any conflicting inline legend typography, multiple tooltip
-owners, KPI surface decoration, selector width above 94%, or comparison-block
-cardinality drift blocks generation.
+owners, KPI surface/content drift, selector order or geometry drift, tooltip
+comparison-mode drift, or comparison-block cardinality drift blocks generation.
 
 `standard_editor_v1` continues to emit
 `2026-07-23.renderer_visual_spec.v3`. It preserves v2 value, formatting,

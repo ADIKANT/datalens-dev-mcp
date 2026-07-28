@@ -211,6 +211,22 @@ class DashboardRenderContractTests(unittest.TestCase):
             {"style": "none", "width_px": 0},
         )
         self.assertEqual(upgraded["kpi_context"]["surface"]["shadow"], "none")
+        self.assertEqual(
+            upgraded["kpi_context"]["content"],
+            {
+                "value_marker": "kpi-value",
+                "value_required": True,
+                "value_must_be_visible": True,
+            },
+        )
+        self.assertEqual(
+            upgraded["kpi_context"]["layout"],
+            {
+                "min_height_px": 88,
+                "preferred_height_px": 96,
+                "max_height_px": 112,
+            },
+        )
         self.assertEqual(upgraded["legend"]["typography_token"], "legend.default")
         self.assertNotIn("font_size_px", upgraded["legend"])
         self.assertEqual(upgraded["tooltip"]["owner"], "native")
@@ -221,6 +237,12 @@ class DashboardRenderContractTests(unittest.TestCase):
         )
         self.assertEqual(upgraded["tooltip"]["surface"]["shadow"], "none")
         self.assertFalse(upgraded["tooltip"]["redundant_row_title"])
+        self.assertEqual(upgraded["tooltip"]["comparison_mode"], "comparison")
+        self.assertEqual(upgraded["tooltip"]["period_value_source"], "normalized")
+        self.assertTrue(upgraded["tooltip"]["show_current_label"])
+        self.assertTrue(upgraded["tooltip"]["show_vs_separator"])
+        self.assertTrue(upgraded["tooltip"]["show_comparison_period"])
+        self.assertFalse(upgraded["tooltip"]["allow_empty_comparison_period"])
         self.assertEqual(upgraded["selector_contract"]["update_mode"], "immediate")
         self.assertEqual(
             upgraded["selector_contract"]["control_max_width_percent"],
@@ -231,6 +253,16 @@ class DashboardRenderContractTests(unittest.TestCase):
         self.assertEqual(
             upgraded["selector_contract"]["blank_multiselect_semantics"],
             "all",
+        )
+        self.assertTrue(upgraded["selector_contract"]["period_first_if_present"])
+        self.assertTrue(upgraded["selector_contract"]["single_row"])
+        self.assertEqual(
+            upgraded["selector_contract"]["row_target_width_percent"],
+            95,
+        )
+        self.assertEqual(
+            upgraded["selector_contract"]["row_width_tolerance_percent"],
+            1,
         )
         self.assertEqual(upgraded["comparison_context"]["block_count"], 1)
         self.assertEqual(
@@ -265,14 +297,26 @@ class DashboardRenderContractTests(unittest.TestCase):
         }
         broken["legend"]["font_size_px"] = 15
         broken["tooltip"]["owners"] = ["native", "renderer"]
+        broken["tooltip"]["comparison_mode"] = "single_period"
+        broken["tooltip"]["show_vs_separator"] = False
         broken["selector_contract"]["control_max_width_percent"] = 95
+        broken["selector_contract"]["period_first_if_present"] = False
         broken["comparison_context"]["block_count"] = 2
         issues = validate_renderer_visual_spec_v4(broken, render_contract=contract)
 
         self.assertIn("kpi.surface.border_must_be_none", issues)
         self.assertIn("legend.inline_typography_forbidden", issues)
         self.assertIn("tooltip.multiple_owner_fields_forbidden", issues)
+        self.assertIn("tooltip.comparison_mode_mismatch", issues)
+        self.assertIn(
+            "tooltip.show_vs_separator_must_match_comparison_mode",
+            issues,
+        )
         self.assertIn("selector.control_max_width_must_not_exceed_94", issues)
+        self.assertIn(
+            "selector.period_first_if_present_profile_token_mismatch",
+            issues,
+        )
         self.assertIn("comparison_context.exactly_one_block_when_enabled", issues)
 
     def test_composite_hash_changes_with_adapter_and_bounded_override(self):
@@ -305,6 +349,35 @@ class DashboardRenderContractTests(unittest.TestCase):
         self.assertEqual(len(hashes), 4)
         self.assertFalse(generic["effective_tokens"]["horizontal_rank"]["scroll"])
         self.assertTrue(scroll["effective_tokens"]["horizontal_rank"]["scroll"])
+
+    def test_single_period_tooltip_removes_all_comparison_chrome(self):
+        contract = resolve_dashboard_render_contract(
+            profile_id=PROFILE_ID,
+            family="line_chart",
+        )
+        upgraded = upgrade_renderer_visual_spec_v4(
+            {
+                "tooltip": {
+                    "comparison_mode": "comparison",
+                    "show_current_label": True,
+                    "show_vs_separator": True,
+                    "show_comparison_period": True,
+                }
+            },
+            render_contract=contract,
+            comparison_enabled=False,
+        )
+
+        self.assertEqual(upgraded["tooltip"]["comparison_mode"], "single_period")
+        self.assertEqual(upgraded["tooltip"]["period_value_source"], "normalized")
+        self.assertFalse(upgraded["tooltip"]["show_current_label"])
+        self.assertFalse(upgraded["tooltip"]["show_vs_separator"])
+        self.assertFalse(upgraded["tooltip"]["show_comparison_period"])
+        self.assertFalse(upgraded["tooltip"]["allow_empty_comparison_period"])
+        self.assertEqual(
+            validate_renderer_visual_spec_v4(upgraded, render_contract=contract),
+            (),
+        )
 
     def test_typography_and_spacing_tokens_are_consistent_across_families(self):
         family_contracts = [
@@ -349,6 +422,14 @@ class DashboardRenderContractTests(unittest.TestCase):
         self.assertEqual(
             metric["effective_tokens"]["component"]["preferred_height_px"],
             96,
+        )
+        self.assertEqual(
+            _plain(metric["effective_tokens"]["kpi"]["layout"]),
+            {
+                "min_height_px": 88,
+                "preferred_height_px": 96,
+                "max_height_px": 112,
+            },
         )
         self.assertEqual(
             _plain(family_contracts[0]["effective_tokens"]["semantic_colors"]),

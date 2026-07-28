@@ -484,7 +484,10 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "append": "Append to the target file instead of replacing it.",
     "decision_text": "User decision or correction text.",
     "decision_id": "Stable decision id.",
-    "decision_patch": "Structured project, family, or object-scoped correction patch.",
+    "decision_patch": (
+        "Structured project, family, or object-scoped correction patch with optional "
+        "hash-bound acceptance_criteria."
+    ),
 }
 
 COMPACT_SCHEMA_DESCRIPTION_PARAMS = {

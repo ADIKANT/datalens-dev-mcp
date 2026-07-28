@@ -10,11 +10,14 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - A versioned strict dashboard render profile, batch Editor generation, and
   bounded one-pass browser QA.
+- Hash-bound acceptance criteria for scoped user and browser review corrections.
 
 ### Changed
 
 - Reduced authoring round trips through compact execution responses and
   target-scoped snapshot reuse.
+- Hardened strict rendering around visible compact KPI values, selector order,
+  comparison-adaptive tooltips, and schedule scrolling and interval tooltips.
 
 ## [0.4.0] - 2026-07-23
 

@@ -142,8 +142,10 @@
 - Записывает читаемую коррекцию в `requirements/user_decisions.md`.
   `decision_patch` дополнительно создаёт hash-bound ledger v2 со scope
   `project`, `family` или `object`, metric/Visual Spec overlay, semantic roles
-  и `supersedes`. Неизвестные поля, роли и ссылки на отсутствующие решения
-  отклоняются до записи.
+  и `supersedes`. Поле `acceptance_criteria` сохраняет проверяемые коррекции
+  из пользовательского или browser review и привязывает их к последующей
+  генерации и Safe Apply. Неизвестные поля, роли и ссылки на отсутствующие
+  решения отклоняются до записи.
 
 ### `dl_build_payload_plan`
 
