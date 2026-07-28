@@ -19,6 +19,7 @@ from datalens_dev_mcp.local_config import apply_tool_defaults, load_local_config
 from datalens_dev_mcp.mcp.heavy_response import (
     DEFAULT_HEAVY_INLINE_CHAR_BUDGET,
     HEAVY_TOOL_NAMES,
+    PROJECTED_HEAVY_TOOL_NAMES,
     project_heavy_tool_response,
 )
 from datalens_dev_mcp.mcp.prompts import get_prompt, list_prompts
@@ -387,8 +388,14 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "widget_id": "Local widget id.",
     "route": "Editor route override.",
     "authoring_profile": (
-        "Versioned registered-template profile; standard_editor_v1 reuses exact Editor assets "
-        "and blocks fallback generation."
+        "Profile: strict_dashboard=v2; standard_editor_v1=legacy bytes."
+    ),
+    "chart_specs": (
+        "Batch (max 100) of exact-decision widgets with widget_id and optional route, "
+        "bindings, selector, overrides, and comparison context."
+    ),
+    "render_overrides": (
+        "v2 tokens: density, legend_typography, horizontal_adapter, tooltip_owner."
     ),
     "target": "Readback target kind.",
     "chart_ids": "Chart ids to read back.",
@@ -492,6 +499,7 @@ COMPACT_SCHEMA_DESCRIPTION_PARAMS = {
     "branch",
     "chart_id",
     "chart_ids",
+    "chart_specs",
     "columns",
     "connection_id",
     "dashboard_id",
@@ -533,6 +541,7 @@ COMPACT_SCHEMA_DESCRIPTION_PARAMS = {
     "query",
     "readback_mode",
     "required_fields",
+    "render_overrides",
     "response_mode",
     "role",
     "route",
@@ -986,7 +995,7 @@ def _all_tool_schemas() -> tuple[dict[str, Any], ...]:
         _tool_schema("dl_auth_probe", "Probe live auth with minimal getWorkbooksList read without secrets."),
         _tool_schema("dl_validate_editor_runtime_contract", "Validate Editor runtime before write."),
         _tool_schema("dl_classify_source_error", "Classify DataLens source/runtime errors without exposing query or secrets."),
-        _tool_schema("dl_diagnose", "Bounded SQL/grain/graph/performance diagnostics with artifact-backed evidence."),
+        _tool_schema("dl_diagnose", "Run bounded artifact-backed diagnostics."),
         _tool_schema("dl_reference", "Return bounded source-traced guidance."),
         _tool_schema("dl_start_pipeline", "Scaffold governed DataLens requirements and planning artifacts."),
         _tool_schema("dl_ingest_requirements", "Ingest requirements/S2T/data evidence into governed artifacts."),
@@ -1004,7 +1013,7 @@ def _all_tool_schemas() -> tuple[dict[str, Any], ...]:
             "dl_validate_chart_plan_against_requirements",
             "Validate chart plan metrics, fields, selectors, and chart families against persisted requirements.",
         ),
-        _tool_schema("dl_generate_editor_bundle", "Generate chart or HTML artifacts."),
+        _tool_schema("dl_generate_editor_bundle", "Generate chart artifacts; chart_specs batches exact widget_ids."),
         _tool_schema("dl_validate_project", "Run offline route/editor/artifact/privacy validation."),
         _tool_schema("dl_build_payload_plan", "Compile generated bundles into dry-run DataLens payload plan."),
         _tool_schema("dl_detect_project_adapter", "Detect standard bundle or unsupported custom project layout."),
@@ -1013,10 +1022,7 @@ def _all_tool_schemas() -> tuple[dict[str, Any], ...]:
         _tool_schema("dl_plan_project_manifest", "Preview or write a local project workflow manifest."),
         _tool_schema("dl_plan_project_live_workflow", "Plan a manifest-declared project live workflow without execution."),
         _tool_schema("dl_run_project_live_dry_run", "Run manifest dry-run command with secret-safe env."),
-        _tool_schema(
-            "dl_run_project_live_apply",
-            "Run a guarded manifest apply/publish command; retire_legacy_objects alone needs confirmation.",
-        ),
+        _tool_schema("dl_run_project_live_apply", "Run a guarded manifest apply or publish."),
         _tool_schema("dl_read_project_live_summary", "Read and normalize a project live workflow summary JSON."),
         _tool_schema(
             "dl_run_live_maintenance_update",
@@ -1026,7 +1032,7 @@ def _all_tool_schemas() -> tuple[dict[str, Any], ...]:
         _tool_schema("dl_validate_source_availability_consumers", "Validate dashboard consumers against one source availability matrix."),
         _tool_schema("dl_plan_source_availability_patch", "Plan source availability corrections without querying source systems."),
         _tool_schema("dl_create_safe_apply_plan", "Create a target-locked safe-apply plan from the user request."),
-        _tool_schema("dl_execute_safe_apply", "Execute target-locked guarded safe apply when runtime write gates are enabled."),
+        _tool_schema("dl_execute_safe_apply", "Execute a target-locked safe apply."),
         _tool_schema("dl_create_publish_from_saved_plan", "Create publish plan only from a saved-branch readback artifact."),
         _tool_schema("dl_readback_and_report", "Create readback summary and deployment report."),
         _tool_schema("dl_snapshot_dashboard", "Snapshot dashboard graph and sanitized object artifacts."),
@@ -1341,7 +1347,7 @@ class JsonRpcServer:
             return _tool_error_content(name, argument_error)
         heavy_response_mode = "summary"
         heavy_inline_char_budget = DEFAULT_HEAVY_INLINE_CHAR_BUDGET
-        if name in HEAVY_TOOL_NAMES:
+        if name in PROJECTED_HEAVY_TOOL_NAMES:
             heavy_response_mode = str(arguments.pop("response_mode", "summary") or "summary")
             heavy_inline_char_budget = int(
                 arguments.pop("inline_char_budget", DEFAULT_HEAVY_INLINE_CHAR_BUDGET)
@@ -1370,7 +1376,7 @@ class JsonRpcServer:
                     context_ref=normalized_context,
                     consumed_evidence=normalized_evidence,
                 )
-            if name in HEAVY_TOOL_NAMES:
+            if name in PROJECTED_HEAVY_TOOL_NAMES:
                 output = project_heavy_tool_response(
                     name,
                     output,

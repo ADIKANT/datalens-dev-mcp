@@ -6,6 +6,16 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- A versioned strict dashboard render profile, batch Editor generation, and
+  bounded one-pass browser QA.
+
+### Changed
+
+- Reduced authoring round trips through compact execution responses and
+  target-scoped snapshot reuse.
+
 ## [0.4.0] - 2026-07-23
 
 ### Added

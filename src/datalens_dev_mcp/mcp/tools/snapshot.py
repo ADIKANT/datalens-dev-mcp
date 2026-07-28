@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import re
 from collections import Counter
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -51,6 +52,11 @@ ENTRY_REVISION_KEYS = (
     "modifiedAt",
     "modified_at",
 )
+ENTRY_CANONICAL_REVISION_KEYS = ("revId", "rev_id")
+WORKBOOK_INVENTORY_PAGE_SIZE = 200
+WORKBOOK_INVENTORY_MAX_PAGES = 25
+WORKBOOK_INVENTORY_MAX_ENTRIES = 10_000
+SOURCE_FINGERPRINT_SCOPE = "2026-07-28.dashboard_dependency_graph.v2"
 
 
 def dl_snapshot_dashboard(
@@ -148,12 +154,20 @@ def dl_snapshot_dashboard(
     inventory_response: dict[str, Any] = {}
     inventory_entries: list[dict[str, Any]] = []
     inventory_types: dict[str, str] = {}
+    inventory_complete = False
+    inventory_page_count = 0
     if resolved_workbook_id:
-        inventory = _read_rpc(active_client, "getWorkbookEntries", {"workbookId": resolved_workbook_id})
+        inventory = _read_complete_workbook_inventory(active_client, resolved_workbook_id)
+        inventory_entries = inventory["entries"]
+        inventory_page_count = int(inventory["page_count"])
+        inventory_types = {
+            _entry_id(entry): _classify_entry_type(entry)
+            for entry in inventory_entries
+            if _entry_id(entry)
+        }
         if inventory["ok"]:
             inventory_response = inventory["response"]
-            inventory_entries = _extract_entries(inventory_response)
-            inventory_types = {_entry_id(entry): _classify_entry_type(entry) for entry in inventory_entries if _entry_id(entry)}
+            inventory_complete = True
             _record_object(
                 object_refs=object_refs,
                 object_artifacts=object_artifacts,
@@ -182,42 +196,18 @@ def dl_snapshot_dashboard(
         )
         for branch in branches
     }
-    source_state = _snapshot_source_state(
-        dashboard_id=dashboard_id,
-        workbook_id=resolved_workbook_id,
-        snapshot_branch=branch_mode,
-        branch_summaries=branch_summaries,
-        inventory_entries=inventory_entries,
-    )
-    if _snapshot_manifest_is_reusable(
-        previous_manifest,
-        manifest_path=manifest_path,
-        dashboard_id=dashboard_id,
-        workbook_id=resolved_workbook_id,
-        snapshot_branch=branch_mode,
-        include_dormant_summary=include_dormant_summary,
-        artifact_retention=retention,
-        source_state=source_state,
-    ):
-        record_cache_hit("dashboard_snapshot")
-        return _reused_snapshot_response(
-            previous_manifest,
-            manifest_path=manifest_path,
-            dashboard_id=dashboard_id,
-            workbook_id=resolved_workbook_id,
-            snapshot_branch=branch_mode,
-            branch_summaries=branch_summaries,
-            source_probe_rpc_count=len(branches) + (1 if resolved_workbook_id else 0),
-        )
 
     hydration_rpc_count = 0
     relation_ids = [dashboard_id, *active_chart_ids]
     relations_response: dict[str, Any] = {}
     relation_edges: list[dict[str, Any]] = []
+    relations_complete = False
+    relation_probe_rpc_count = 0
     if relation_ids:
-        hydration_rpc_count += 1
+        relation_probe_rpc_count = 1
         relations = _read_rpc(active_client, "getEntriesRelations", {"entryIds": relation_ids})
         if relations["ok"]:
+            relations_complete = True
             relations_response = relations["response"]
             relation_edges = _extract_relation_edges(relations_response, inventory_types)
             _record_object(
@@ -232,6 +222,63 @@ def dl_snapshot_dashboard(
             )
         else:
             errors.append({"method": "getEntriesRelations", "message": relations["message"]})
+
+    previous_graph_entry_ids = _manifest_active_graph_ids(
+        previous_manifest,
+        dashboard_id=dashboard_id,
+        workbook_id=resolved_workbook_id,
+        snapshot_branch=branch_mode,
+    )
+    probe_entry_ids = {
+        dashboard_id,
+        *active_chart_ids,
+        *_relation_entry_ids(relation_edges),
+        *previous_graph_entry_ids,
+    }
+    source_state = _snapshot_source_state(
+        dashboard_id=dashboard_id,
+        workbook_id=resolved_workbook_id,
+        snapshot_branch=branch_mode,
+        branch_summaries=branch_summaries,
+        inventory_entries=inventory_entries,
+        inventory_complete=inventory_complete,
+        relevant_entry_ids=probe_entry_ids,
+        relation_edges=relation_edges,
+        relations_complete=relations_complete,
+    )
+    source_probe_rpc_count = len(branches) + inventory_page_count + relation_probe_rpc_count
+    if _snapshot_manifest_is_reusable(
+        previous_manifest,
+        manifest_path=manifest_path,
+        dashboard_id=dashboard_id,
+        workbook_id=resolved_workbook_id,
+        snapshot_branch=branch_mode,
+        include_dormant_summary=include_dormant_summary,
+        artifact_retention=retention,
+        source_state=source_state,
+    ):
+        refreshed_manifest = _refresh_reused_manifest(
+            previous_manifest,
+            manifest_path=manifest_path,
+            branch_summaries=branch_summaries,
+            source_state=source_state,
+            inventory_entries=inventory_entries,
+            inventory_page_count=inventory_page_count,
+            include_dormant_summary=include_dormant_summary,
+            fresh_object_refs=object_refs,
+            fresh_object_artifacts=object_artifacts,
+        )
+        if refreshed_manifest is not None:
+            record_cache_hit("dashboard_snapshot")
+            return _reused_snapshot_response(
+                refreshed_manifest,
+                manifest_path=manifest_path,
+                dashboard_id=dashboard_id,
+                workbook_id=resolved_workbook_id,
+                snapshot_branch=branch_mode,
+                branch_summaries=branch_summaries,
+                source_probe_rpc_count=source_probe_rpc_count,
+            )
 
     graph_edges = _dashboard_edges(dashboard_id, active_chart_ids, inventory_types) + relation_edges
 
@@ -432,6 +479,23 @@ def dl_snapshot_dashboard(
         "edges": _dedupe_edges(graph_edges),
         "unresolved_edges": [],
     }
+    source_state = _snapshot_source_state(
+        dashboard_id=dashboard_id,
+        workbook_id=resolved_workbook_id,
+        snapshot_branch=branch_mode,
+        branch_summaries=branch_summaries,
+        inventory_entries=inventory_entries,
+        inventory_complete=inventory_complete,
+        relevant_entry_ids={
+            dashboard_id,
+            *active_chart_ids,
+            *dataset_ids,
+            *connection_ids,
+            *_relation_entry_ids(relation_edges),
+        },
+        relation_edges=relation_edges,
+        relations_complete=relations_complete,
+    )
     graph_path = run_dir / "compact_graph.json"
     write_json(graph_path, compact_graph)
     graph_metadata = _file_metadata(graph_path)
@@ -459,7 +523,12 @@ def dl_snapshot_dashboard(
         "api_contract": api_contract,
         "artifact_retention": retention,
         "source_fingerprint": source_state["fingerprint"],
+        "source_fingerprint_scope": source_state["scope"],
+        "source_fingerprint_entry_count": source_state["relevant_entry_count"],
+        "inventory_complete": source_state["inventory_complete"],
+        "inventory_page_count": inventory_page_count,
         "inventory_revision_complete": source_state["inventory_revision_complete"],
+        "target_revision_complete": source_state["target_revision_complete"],
         "inventory_entry_count": source_state["inventory_entry_count"],
     }
     _write_stable_json(manifest_path, manifest)
@@ -520,9 +589,11 @@ def dl_snapshot_dashboard(
         "dormant_summary": _compact_dormant_preview(dormant),
         "retained_manifest_paths": retained_manifest_paths,
         "snapshot_reused": False,
-        "snapshot_reuse_eligible": source_state["inventory_revision_complete"],
-        "source_probe_rpc_count": len(branches) + (1 if resolved_workbook_id else 0),
+        "snapshot_reuse_eligible": bool(source_state["fingerprint"]),
+        "source_probe_rpc_count": source_probe_rpc_count,
         "hydration_rpc_count": hydration_rpc_count,
+        "inventory_complete": source_state["inventory_complete"],
+        "inventory_page_count": inventory_page_count,
     }
     response_metadata = serialized_metadata(response)
     response["inline_serialized_chars"] = response_metadata["serialized_chars"]
@@ -537,16 +608,36 @@ def _snapshot_source_state(
     snapshot_branch: str,
     branch_summaries: dict[str, dict[str, Any]],
     inventory_entries: list[dict[str, Any]],
+    inventory_complete: bool,
+    relevant_entry_ids: set[str],
+    relation_edges: list[dict[str, Any]],
+    relations_complete: bool,
 ) -> dict[str, Any]:
     expected_branch_count = 2 if snapshot_branch == "both" else 1
-    revision_complete = bool(inventory_entries) and all(
-        any(entry.get(key) not in (None, "") for key in ENTRY_REVISION_KEYS) for entry in inventory_entries
+    inventory_by_id = {
+        entry_id: entry
+        for entry in inventory_entries
+        if (entry_id := _entry_id(entry))
+    }
+    canonical_revision_complete = bool(inventory_entries) and inventory_complete and all(
+        any(entry.get(key) not in (None, "") for key in ENTRY_CANONICAL_REVISION_KEYS)
+        for entry in inventory_entries
+    )
+    relevant_ids = sorted({str(entry_id) for entry_id in relevant_entry_ids if str(entry_id)})
+    missing_relevant_ids = [entry_id for entry_id in relevant_ids if entry_id not in inventory_by_id]
+    target_revision_complete = bool(relevant_ids) and inventory_complete and not missing_relevant_ids and all(
+        any(inventory_by_id[entry_id].get(key) not in (None, "") for key in ENTRY_CANONICAL_REVISION_KEYS)
+        for entry_id in relevant_ids
     )
     fingerprint = ""
-    if revision_complete and len(branch_summaries) == expected_branch_count:
-        inventory_rows = []
+    if (
+        target_revision_complete
+        and relations_complete
+        and len(branch_summaries) == expected_branch_count
+    ):
+        inventory_structure = []
         for entry in inventory_entries:
-            inventory_rows.append(
+            inventory_structure.append(
                 {
                     "entry_id": _entry_id(entry),
                     "scope": entry.get("scope"),
@@ -557,20 +648,39 @@ def _snapshot_source_state(
                     "display_key": entry.get("displayKey"),
                     "hidden": entry.get("hidden"),
                     "deleted": entry.get("isDeleted"),
-                    "revisions": {key: entry.get(key) for key in ENTRY_REVISION_KEYS if entry.get(key) not in (None, "")},
                 }
             )
+        relevant_revisions = [
+            {
+                "entry_id": entry_id,
+                "revisions": {
+                    key: inventory_by_id[entry_id].get(key)
+                    for key in ENTRY_REVISION_KEYS
+                    if inventory_by_id[entry_id].get(key) not in (None, "")
+                },
+            }
+            for entry_id in relevant_ids
+        ]
         payload = {
+            "scope": SOURCE_FINGERPRINT_SCOPE,
             "dashboard_id": dashboard_id,
             "workbook_id": workbook_id,
             "snapshot_branch": snapshot_branch,
             "branches": branch_summaries,
-            "inventory": sorted(inventory_rows, key=stable_json_text),
+            "inventory_structure": sorted(inventory_structure, key=stable_json_text),
+            "relevant_revisions": relevant_revisions,
+            "relations": _dedupe_edges(relation_edges),
         }
         fingerprint = hashlib.sha256(stable_json_text(payload).encode("utf-8")).hexdigest()
     return {
         "fingerprint": fingerprint,
-        "inventory_revision_complete": revision_complete,
+        "scope": SOURCE_FINGERPRINT_SCOPE,
+        "inventory_complete": inventory_complete,
+        "relations_complete": relations_complete,
+        "inventory_revision_complete": canonical_revision_complete,
+        "target_revision_complete": target_revision_complete,
+        "relevant_entry_count": len(relevant_ids),
+        "missing_relevant_entry_count": len(missing_relevant_ids),
         "inventory_entry_count": len(inventory_entries),
     }
 
@@ -597,7 +707,19 @@ def _snapshot_manifest_is_reusable(
         return False
     if manifest.get("source_fingerprint") != source_state["fingerprint"]:
         return False
-    if not manifest.get("inventory_revision_complete") or manifest.get("errors"):
+    if manifest.get("source_fingerprint_scope") != SOURCE_FINGERPRINT_SCOPE:
+        return False
+    if (
+        not source_state.get("inventory_complete")
+        or not source_state.get("target_revision_complete")
+        or not source_state.get("relations_complete")
+    ):
+        return False
+    if (
+        not manifest.get("inventory_complete")
+        or not manifest.get("target_revision_complete")
+        or manifest.get("errors")
+    ):
         return False
     dormant = manifest.get("dormant") if isinstance(manifest.get("dormant"), dict) else {}
     if bool(dormant.get("included")) != bool(include_dormant_summary):
@@ -623,6 +745,111 @@ def _snapshot_manifest_is_reusable(
         if not retained_path.is_file() or _file_metadata(retained_path)["sha256"] != latest_metadata["sha256"]:
             return False
     return True
+
+
+def _refresh_reused_manifest(
+    manifest: dict[str, Any],
+    *,
+    manifest_path: Path,
+    branch_summaries: dict[str, dict[str, Any]],
+    source_state: dict[str, Any],
+    inventory_entries: list[dict[str, Any]],
+    inventory_page_count: int,
+    include_dormant_summary: bool,
+    fresh_object_refs: list[dict[str, Any]],
+    fresh_object_artifacts: dict[str, dict[str, Any]],
+) -> dict[str, Any] | None:
+    refreshed = deepcopy(manifest)
+    graph = refreshed.get("graph")
+    old_refs = refreshed.get("object_refs")
+    old_artifacts = refreshed.get("object_artifacts")
+    if not isinstance(graph, dict) or not isinstance(old_refs, list) or not isinstance(old_artifacts, list):
+        return None
+
+    def ref_identity(ref: dict[str, Any]) -> tuple[str, str, str, str]:
+        return (
+            str(ref.get("method") or ""),
+            str(ref.get("object_type") or ""),
+            str(ref.get("object_id") or ""),
+            str(ref.get("branch") or ""),
+        )
+
+    fresh_ref_identities = {
+        ref_identity(ref)
+        for ref in fresh_object_refs
+        if isinstance(ref, dict)
+    }
+    preserved_refs = [
+        ref
+        for ref in old_refs
+        if isinstance(ref, dict) and ref_identity(ref) not in fresh_ref_identities
+    ]
+    merged_refs = [*fresh_object_refs, *preserved_refs]
+    referenced_hashes = {
+        str(ref.get("sha256") or "")
+        for ref in merged_refs
+        if isinstance(ref, dict) and ref.get("sha256")
+    }
+    artifacts_by_hash = {
+        str(artifact.get("sha256") or ""): artifact
+        for artifact in old_artifacts
+        if isinstance(artifact, dict) and artifact.get("sha256")
+    }
+    artifacts_by_hash.update(fresh_object_artifacts)
+    if not referenced_hashes or not referenced_hashes.issubset(artifacts_by_hash):
+        return None
+    merged_artifacts = [
+        artifacts_by_hash[sha256]
+        for sha256 in sorted(referenced_hashes)
+    ]
+    if not all(_artifact_metadata_matches(artifact) for artifact in merged_artifacts):
+        return None
+
+    active_ids = {
+        str(entry_id)
+        for key in ("active_chart_ids", "dataset_ids", "connection_ids")
+        for entry_id in (graph.get(key) if isinstance(graph.get(key), list) else [])
+        if entry_id not in (None, "")
+    }
+    dashboard_id = str(graph.get("dashboard_id") or "")
+    if dashboard_id:
+        active_ids.add(dashboard_id)
+    dormant = (
+        _dormant_summary(inventory_entries, active_ids)
+        if include_dormant_summary
+        else {"included": False}
+    )
+    counts = deepcopy(refreshed.get("counts_by_object_type") or {})
+    if include_dormant_summary:
+        counts["dormant"] = int(dormant.get("count") or 0)
+    else:
+        counts.pop("dormant", None)
+
+    refreshed.update(
+        {
+            "branches": branch_summaries,
+            "branch_comparison": _branch_comparison(branch_summaries),
+            "counts_by_object_type": counts,
+            "dormant": dormant,
+            "object_refs": merged_refs,
+            "object_artifacts": merged_artifacts,
+            "source_fingerprint": source_state["fingerprint"],
+            "source_fingerprint_scope": source_state["scope"],
+            "source_fingerprint_entry_count": source_state["relevant_entry_count"],
+            "inventory_complete": source_state["inventory_complete"],
+            "inventory_page_count": inventory_page_count,
+            "inventory_revision_complete": source_state["inventory_revision_complete"],
+            "target_revision_complete": source_state["target_revision_complete"],
+            "inventory_entry_count": source_state["inventory_entry_count"],
+        }
+    )
+    _write_stable_json(manifest_path, refreshed)
+    manifest_metadata = _file_metadata(manifest_path)
+    if refreshed.get("artifact_retention") in {"hash_partitioned", "both"}:
+        retained_dir = manifest_path.parent.parent / "by_hash" / manifest_metadata["sha256"]
+        retained_dir.mkdir(parents=True, exist_ok=True)
+        _write_stable_json(retained_dir / "manifest.json", refreshed)
+    return refreshed
 
 
 def _artifact_metadata_matches(metadata: dict[str, Any]) -> bool:
@@ -696,13 +923,17 @@ def _reused_snapshot_response(
         "manifest": manifest_metadata,
         "compact_graph": manifest["compact_graph_artifact"],
         "object_artifact_count": len(object_artifacts),
-        "dormant_summary": manifest.get("dormant") or {"included": False},
+        "dormant_summary": _compact_dormant_preview(
+            manifest.get("dormant") if isinstance(manifest.get("dormant"), dict) else {"included": False}
+        ),
         "retained_manifest_paths": retained_manifest_paths,
         "snapshot_reused": True,
         "snapshot_reuse_eligible": True,
         "source_probe_rpc_count": source_probe_rpc_count,
         "hydration_rpc_count": 0,
-        "reuse_basis": "fresh_dashboard_and_revision_complete_workbook_inventory",
+        "inventory_complete": bool(manifest.get("inventory_complete")),
+        "inventory_page_count": int(manifest.get("inventory_page_count") or 0),
+        "reuse_basis": "fresh_dashboard_relations_and_target_revision_complete_inventory",
     }
     response_metadata = serialized_metadata(response)
     response["inline_serialized_chars"] = response_metadata["serialized_chars"]
@@ -905,16 +1136,164 @@ def _dashboard_active_candidates(data: dict[str, Any], *, dashboard_id: str) -> 
     return candidates
 
 
-def _extract_entries(response: dict[str, Any]) -> list[dict[str, Any]]:
-    for key in ("entries", "items", "result"):
-        value = response.get(key)
-        if isinstance(value, list):
-            return [item for item in value if isinstance(item, dict)]
-        if isinstance(value, dict):
-            nested = value.get("entries") or value.get("items")
-            if isinstance(nested, list):
-                return [item for item in nested if isinstance(item, dict)]
-    return []
+def _read_complete_workbook_inventory(client: Any, workbook_id: str) -> dict[str, Any]:
+    entries_by_id: dict[str, tuple[str, dict[str, Any]]] = {}
+    seen_cursors: set[str] = set()
+    page_count = 0
+    duplicate_entry_count = 0
+    expected_total: int | None = None
+    first_page: dict[str, Any] = {}
+
+    def failure(message: str) -> dict[str, Any]:
+        return {
+            "ok": False,
+            "entries": [
+                entry
+                for _entry_id_value, (_serialized, entry) in sorted(entries_by_id.items())
+            ],
+            "page_count": page_count,
+            "message": message,
+        }
+
+    while True:
+        page_number = page_count + 1
+        page_result = _read_rpc(
+            client,
+            "getWorkbookEntries",
+            {
+                "workbookId": workbook_id,
+                "page": page_number,
+                "pageSize": WORKBOOK_INVENTORY_PAGE_SIZE,
+            },
+        )
+        page_count += 1
+        if not page_result["ok"]:
+            return failure(f"workbook inventory page {page_number} failed: {page_result['message']}")
+
+        page = _inventory_page_payload(page_result["response"])
+        raw_entries = page.get("entries") if isinstance(page, dict) else None
+        if not isinstance(raw_entries, list) or not all(isinstance(entry, dict) for entry in raw_entries):
+            return failure(f"workbook inventory page {page_number} did not return an entries array")
+        if not first_page:
+            first_page = deepcopy(page)
+
+        raw_total = page.get("total")
+        if raw_total not in (None, ""):
+            if isinstance(raw_total, bool):
+                return failure(f"workbook inventory page {page_number} returned an invalid total")
+            try:
+                page_total = int(raw_total)
+                numeric_total = float(raw_total)
+            except (TypeError, ValueError, OverflowError):
+                return failure(f"workbook inventory page {page_number} returned an invalid total")
+            if page_total < 0 or not numeric_total.is_integer() or page_total != numeric_total:
+                return failure(f"workbook inventory page {page_number} returned an invalid total")
+            if expected_total is None:
+                expected_total = page_total
+            elif expected_total != page_total:
+                return failure("workbook inventory total changed during pagination")
+
+        for raw_entry in raw_entries:
+            entry = sanitize_response(raw_entry)
+            entry_id = _entry_id(entry)
+            if not entry_id:
+                return failure(f"workbook inventory page {page_number} contains an entry without identity")
+            serialized = stable_json_text(entry)
+            previous = entries_by_id.get(entry_id)
+            if previous is not None:
+                if previous[0] != serialized:
+                    return failure("workbook inventory contains a conflicting duplicate entry")
+                duplicate_entry_count += 1
+                continue
+            entries_by_id[entry_id] = (serialized, entry)
+            if len(entries_by_id) > WORKBOOK_INVENTORY_MAX_ENTRIES:
+                return failure(
+                    f"workbook inventory exceeded the bounded entry cap of {WORKBOOK_INVENTORY_MAX_ENTRIES}"
+                )
+
+        next_cursor = str(page.get("nextPageToken") or "").strip()
+        if not next_cursor:
+            if expected_total is not None and len(entries_by_id) < expected_total:
+                return failure(
+                    "workbook inventory ended before the declared total entry count was reached"
+                )
+            entries = [
+                entry
+                for _entry_id_value, (_serialized, entry) in sorted(entries_by_id.items())
+            ]
+            response = deepcopy(first_page)
+            response["entries"] = entries
+            response.pop("nextPageToken", None)
+            response["pagination"] = {
+                "complete": True,
+                "page_count": page_count,
+                "entry_count": len(entries),
+                "duplicate_entry_count": duplicate_entry_count,
+                "page_size": WORKBOOK_INVENTORY_PAGE_SIZE,
+            }
+            return {
+                "ok": True,
+                "response": response,
+                "entries": entries,
+                "page_count": page_count,
+            }
+        if next_cursor in seen_cursors:
+            return failure("workbook inventory pagination repeated a cursor")
+        seen_cursors.add(next_cursor)
+        if page_count >= WORKBOOK_INVENTORY_MAX_PAGES:
+            return failure(
+                f"workbook inventory exceeded the bounded page cap of {WORKBOOK_INVENTORY_MAX_PAGES}"
+            )
+
+
+def _inventory_page_payload(response: dict[str, Any]) -> dict[str, Any]:
+    page: Any = sanitize_response(response)
+    while isinstance(page, dict):
+        if isinstance(page.get("result"), dict):
+            page = page["result"]
+            continue
+        if isinstance(page.get("response"), dict):
+            page = page["response"]
+            continue
+        break
+    return page if isinstance(page, dict) else {}
+
+
+def _relation_entry_ids(edges: list[dict[str, Any]]) -> set[str]:
+    return {
+        str(value)
+        for edge in edges
+        for value in (edge.get("source"), edge.get("target"))
+        if value not in (None, "")
+    }
+
+
+def _manifest_active_graph_ids(
+    manifest: Any,
+    *,
+    dashboard_id: str,
+    workbook_id: str,
+    snapshot_branch: str,
+) -> set[str]:
+    if not isinstance(manifest, dict):
+        return set()
+    if manifest.get("target") != {
+        "dashboard_id": dashboard_id,
+        "workbook_id": workbook_id,
+        "snapshot_branch": snapshot_branch,
+    }:
+        return set()
+    graph = manifest.get("graph")
+    if not isinstance(graph, dict):
+        return set()
+    entry_ids = {
+        str(entry_id)
+        for key in ("active_chart_ids", "dataset_ids", "connection_ids")
+        for entry_id in (graph.get(key) if isinstance(graph.get(key), list) else [])
+        if entry_id not in (None, "")
+    }
+    entry_ids.add(dashboard_id)
+    return entry_ids
 
 
 def _extract_relation_edges(response: dict[str, Any], inventory_types: dict[str, str]) -> list[dict[str, Any]]:

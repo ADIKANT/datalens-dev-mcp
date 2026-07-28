@@ -2,7 +2,9 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+import datalens_dev_mcp.server as server_module
 from datalens_dev_mcp.mcp.response_projection import (
     dashboard_summary,
     editor_chart_summary,
@@ -65,6 +67,177 @@ def editor_chart_fixture():
 
 
 class ResponseProjectionTests(unittest.TestCase):
+    def _dispatch_tool(
+        self,
+        server: JsonRpcServer,
+        *,
+        name: str,
+        arguments: dict | None = None,
+    ) -> tuple[str, dict]:
+        response = server.handle(
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {
+                    "name": name,
+                    "arguments": arguments or {},
+                },
+            }
+        )
+        self.assertIsNotNone(response)
+        self.assertNotIn("error", response)
+        result = response["result"]
+        self.assertFalse(result["isError"], result)
+        text = result["content"][0]["text"]
+        return text, json.loads(text)
+
+    def _assert_canonical_artifact(
+        self,
+        projected: dict,
+        *,
+        expected_full_response: dict,
+    ) -> None:
+        artifact = projected["canonical_artifact"]
+        artifact_path = Path(artifact["path"])
+        self.assertTrue(artifact_path.is_file(), artifact_path)
+        artifact_response = json.loads(artifact_path.read_text(encoding="utf-8"))
+        expected_sanitized = sanitize_response(expected_full_response)
+
+        self.assertEqual(artifact_response, expected_sanitized)
+        self.assertEqual(artifact["sha256"], stable_sha256(expected_sanitized))
+        self.assertEqual(projected["full_response"]["sha256"], artifact["sha256"])
+        self.assertEqual(
+            projected["full_response"]["serialized_chars"],
+            len(json.dumps(expected_sanitized, ensure_ascii=False, separators=(",", ":"), sort_keys=True)),
+        )
+
+    def test_editor_bundle_jsonrpc_summary_is_under_2048_and_artifact_backed(self):
+        prepare_marker = "prepare-body-marker-" + ("p" * 32_000)
+        params_marker = "params-body-marker-" + ("q" * 8_000)
+        full_response = {
+            "ok": True,
+            "status": "ready",
+            "generation_status": "ready",
+            "widget_id": "trend_widget",
+            "display_title": "Synthetic trend",
+            "route": "editor_advanced",
+            "family": "line_chart",
+            "tabs": {
+                "prepare.js": prepare_marker,
+                "params.js": params_marker,
+            },
+            "template_provenance": {
+                "compiled_tabs_sha256": "a" * 64,
+            },
+            "diagnostics": {
+                "api_token": "fixture-canonical-secret-token-value",
+            },
+        }
+
+        def fake_generate_editor_bundle(project_root: str = "."):
+            return full_response
+
+        with tempfile.TemporaryDirectory() as tmp:
+            server = JsonRpcServer(project_root=tmp)
+            with patch.dict(
+                server_module.TOOLS,
+                {"dl_generate_editor_bundle": fake_generate_editor_bundle},
+            ):
+                text, projected = self._dispatch_tool(
+                    server,
+                    name="dl_generate_editor_bundle",
+                )
+            self._assert_canonical_artifact(
+                projected,
+                expected_full_response=full_response,
+            )
+
+        self.assertLess(len(text), 2_048)
+        self.assertNotIn(prepare_marker[:64], text)
+        self.assertNotIn(params_marker[:64], text)
+        self.assertEqual(projected["summary"]["tabs"], ["params.js", "prepare.js"])
+        self.assertEqual(projected["summary"]["tab_count"], 2)
+
+    def test_safe_apply_jsonrpc_summary_is_under_2048_and_artifact_backed(self):
+        saved_payload_marker = "saved-payload-body-" + ("s" * 30_000)
+        published_payload_marker = "published-payload-body-" + ("u" * 30_000)
+        full_response = {
+            "ok": True,
+            "status": "published",
+            "executed": True,
+            "plan_path": "artifacts/safe_apply_plan.json",
+            "safe_apply_id": "safe_apply_fixture",
+            "results": [
+                {
+                    "method": "updateEditorChart",
+                    "payload": {
+                        "entry": {
+                            "data": {
+                                "tabs": {
+                                    "prepare.js": saved_payload_marker,
+                                }
+                            }
+                        }
+                    },
+                }
+            ],
+            "saved_readback_paths": ["artifacts/readbacks/saved_chart.json"],
+            "published_readback_paths": ["artifacts/readbacks/published_chart.json"],
+            "delivery_result": {
+                "state": "published",
+                "saved": True,
+                "published": True,
+                "publish_results": [
+                    {
+                        "method": "updateEditorChart",
+                        "payload": {
+                            "entry": {
+                                "data": {
+                                    "tabs": {
+                                        "prepare.js": published_payload_marker,
+                                    }
+                                }
+                            }
+                        },
+                    }
+                ],
+            },
+        }
+
+        def fake_execute_safe_apply(project_root: str = "."):
+            return full_response
+
+        with tempfile.TemporaryDirectory() as tmp:
+            server = JsonRpcServer(project_root=tmp)
+            with patch.dict(
+                server_module.TOOLS,
+                {"dl_execute_safe_apply": fake_execute_safe_apply},
+            ):
+                text, projected = self._dispatch_tool(
+                    server,
+                    name="dl_execute_safe_apply",
+                )
+            self._assert_canonical_artifact(
+                projected,
+                expected_full_response=full_response,
+            )
+
+        self.assertLess(len(text), 2_048)
+        self.assertNotIn(saved_payload_marker[:64], text)
+        self.assertNotIn(published_payload_marker[:64], text)
+        self.assertNotIn('"payload"', json.dumps(projected["summary"], sort_keys=True))
+        self.assertEqual(
+            projected["summary"]["counts"],
+            {
+                "save_results": 1,
+                "publish_results": 1,
+                "saved_readbacks": 1,
+                "published_readbacks": 1,
+                "errors": 0,
+            },
+        )
+
     def test_dashboard_summary_omits_entry_data_but_keeps_structure(self):
         summary = dashboard_summary(dashboard_fixture())
         serialized = json.dumps(summary, sort_keys=True)

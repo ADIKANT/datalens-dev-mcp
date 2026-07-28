@@ -5,6 +5,7 @@ import hashlib
 import json
 import re
 from collections import OrderedDict
+from contextvars import ContextVar
 from copy import deepcopy
 from pathlib import Path
 from threading import RLock
@@ -21,6 +22,17 @@ from datalens_dev_mcp.editor.authoring_profiles import (
 )
 from datalens_dev_mcp.editor.bundle import generate_editor_bundle
 from datalens_dev_mcp.editor.payload_compiler import compile_editor_payload
+from datalens_dev_mcp.editor.render_compiler import (
+    RenderContractCompileError,
+    compile_bundle_render_contract,
+)
+from datalens_dev_mcp.editor.render_contract import (
+    DashboardRenderContractError,
+    render_contract_to_dict,
+    resolve_dashboard_render_contract,
+    upgrade_renderer_visual_spec_v4,
+)
+from datalens_dev_mcp.editor.selector_contract import SELECTOR_FAMILIES
 from datalens_dev_mcp.html_pages import render_standalone_html_page, validate_standalone_html_page
 from datalens_dev_mcp.knowledge.recipes import compact_recipe_for_payload, select_authoring_recipe
 from datalens_dev_mcp.mcp.response_projection import (
@@ -35,8 +47,13 @@ from datalens_dev_mcp.pipeline.baseline_preservation import (
     build_baseline_diff_contract,
     build_object_reuse_decision,
 )
+from datalens_dev_mcp.pipeline.browser_qa import (
+    build_browser_qa_plan,
+    validate_browser_qa_plan,
+)
 from datalens_dev_mcp.pipeline.dashboard_relations import (
     build_default_dashboard_relations,
+    merge_dashboard_relations,
     validate_dashboard_relations,
 )
 from datalens_dev_mcp.pipeline.deployment_report import build_deployment_report
@@ -133,6 +150,11 @@ PLACEHOLDER_TARGETS = {
 }
 
 _PROJECT_VALIDATION_CACHE_MAX_ENTRIES = 8
+_BATCH_BUNDLE_GENERATION = ContextVar("datalens_batch_bundle_generation", default=False)
+_BATCH_COMPARISON_CONTEXT = ContextVar(
+    "datalens_batch_comparison_context",
+    default=None,
+)
 _PROJECT_VALIDATION_CACHE: OrderedDict[str, tuple[str, dict[str, Any]]] = OrderedDict()
 _PROJECT_VALIDATION_CACHE_LOCK = RLock()
 _PROJECT_VALIDATION_CACHE_SKIP_DIRS = {
@@ -609,8 +631,32 @@ def dl_generate_editor_bundle(
     selector_contract: dict[str, Any] | None = None,
     dataset_readbacks: list[dict[str, Any]] | None = None,
     html_page: dict[str, Any] | None = None,
+    chart_specs: list[dict[str, Any]] | None = None,
+    render_overrides: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     root = ensure_project_dirs(project_root)
+    if chart_specs is not None:
+        if html_page is not None:
+            raise ValueError("chart_specs is mutually exclusive with html_page")
+        if (
+            widget_id != "widget_001"
+            or str(route or "").strip()
+            or str(dataset_alias or "").strip()
+            or columns is not None
+            or selector_contract is not None
+            or dataset_readbacks is not None
+        ):
+            raise ValueError(
+                "chart_specs owns widget_id, route, dataset bindings, selectors, and readbacks; "
+                "only project_root, authoring_profile, and render_overrides may be shared"
+            )
+        return _generate_editor_bundle_batch(
+            root=root,
+            authoring_profile=authoring_profile,
+            chart_specs=chart_specs,
+            shared_render_overrides=render_overrides,
+        )
+    _validate_widget_id(widget_id)
     if html_page is not None:
         incompatible = bool(
             str(route or "").strip()
@@ -619,11 +665,12 @@ def dl_generate_editor_bundle(
             or columns is not None
             or selector_contract is not None
             or dataset_readbacks is not None
+            or render_overrides
         )
         if incompatible:
             raise ValueError(
-                "html_page is mutually exclusive with route, authoring_profile, dataset bindings, and selector inputs"
-            )
+            "html_page is mutually exclusive with route, authoring_profile, dataset bindings, and selector inputs"
+        )
         return _generate_standalone_html_artifact(root=root, page_id=widget_id, spec=html_page)
     profile = resolve_authoring_profile(
         project_root=root,
@@ -636,7 +683,7 @@ def dl_generate_editor_bundle(
         brief = dl_build_governance_brief(str(root))
     requirements_context = summarize_implementation_plan(root)
     intent_text = str(requirements_context.get("summary") or "")
-    decision = (brief.get("chart_decisions") or [{}])[0]
+    decision = _select_chart_decision(brief, widget_id=widget_id)
     decision_record = decision.get("chart_decision_record") if isinstance(decision.get("chart_decision_record"), dict) else {}
     explicit_route_override = normalize_creation_route(route) if str(route or "").strip() else ""
     route_override = explicit_route_override or normalize_creation_route(decision.get("route") or "")
@@ -703,6 +750,70 @@ def dl_generate_editor_bundle(
     decision_record = patched_decision["chart_plan"]["chart_decision_record"]
     decision["chart_decision_record"] = decision_record
     decision["renderer_visual_spec"] = decision_record.get("renderer_visual_spec") or {}
+    resolved_render_contract: dict[str, Any] = {}
+    style_contract = (
+        profile.get("style_contract")
+        if isinstance(profile.get("style_contract"), dict)
+        else {}
+    )
+    render_profile_id = str(style_contract.get("render_profile_id") or "").strip()
+    if render_overrides and not render_profile_id:
+        return {
+            "ok": False,
+            "status": "blocked_render_contract",
+            "error": {
+                "category": "render_profile_required",
+                "message": (
+                    "render_overrides require an authoring profile with a registered render_profile_id"
+                ),
+            },
+            "authoring_profile": profile,
+        }
+    if render_profile_id:
+        try:
+            resolved = resolve_dashboard_render_contract(
+                profile_id=render_profile_id,
+                family=requested_family,
+                overrides=render_overrides,
+            )
+            resolved_render_contract = render_contract_to_dict(resolved)
+            expected_profile_sha256 = str(
+                style_contract.get("render_profile_sha256") or ""
+            )
+            if (
+                expected_profile_sha256
+                and resolved_render_contract.get("profile_sha256")
+                != expected_profile_sha256
+            ):
+                raise DashboardRenderContractError(
+                    "render_profile_hash_mismatch",
+                    (
+                        f"authoring profile expected render profile {expected_profile_sha256}; "
+                        f"resolved {resolved_render_contract.get('profile_sha256')}"
+                    ),
+                )
+            visual_spec = upgrade_renderer_visual_spec_v4(
+                decision_record.get("renderer_visual_spec")
+                or decision.get("renderer_visual_spec")
+                or {},
+                render_contract=resolved,
+                comparison_enabled=_render_comparison_enabled(
+                    decision_record,
+                    family=requested_family,
+                ),
+            )
+            decision_record["renderer_visual_spec"] = visual_spec
+            decision["renderer_visual_spec"] = visual_spec
+        except DashboardRenderContractError as exc:
+            return {
+                "ok": False,
+                "status": "blocked_render_contract",
+                "generation_status": "blocked_render_contract",
+                "error": exc.as_dict(),
+                "authoring_profile": profile,
+                "requested_family": requested_family,
+                "render_overrides": dict(render_overrides or {}),
+            }
     widget_title = str(
         decision.get("title")
         or decision_record.get("title")
@@ -823,18 +934,45 @@ def dl_generate_editor_bundle(
         )
         bundle["chart_decision_record"] = decision_record
     else:
+        batch_comparison_context = _BATCH_COMPARISON_CONTEXT.get()
         bundle = generate_editor_bundle(
             widget_id=widget_id,
             route=selected_route,
             title=widget_title,
             dataset_alias=resolved_dataset_alias or None,
             columns=resolved_columns,
-            markdown=intent_text or None,
+            markdown=(
+                _comparison_context_markdown(batch_comparison_context)
+                if isinstance(batch_comparison_context, dict)
+                else intent_text or None
+            ),
             selector_contract=selector_contract,
             family=decision_record.get("selected_family") or decision.get("family"),
             visual_spec=visual_spec,
             chart_decision_record=decision_record,
         )
+        if isinstance(batch_comparison_context, dict):
+            bundle["comparison_context_contract"] = dict(
+                batch_comparison_context
+            )
+    if resolved_render_contract:
+        try:
+            bundle = compile_bundle_render_contract(
+                bundle,
+                render_contract=resolved_render_contract,
+            )
+        except RenderContractCompileError as exc:
+            return {
+                "ok": False,
+                "status": "blocked_render_contract",
+                "generation_status": "blocked_render_contract",
+                "error": {
+                    "category": "render_contract_compile_failed",
+                    "message": str(exc),
+                },
+                "authoring_profile": profile,
+                "render_contract": resolved_render_contract,
+            }
     if profile_route.get("active"):
         bundle = apply_authoring_profile_bundle(
             bundle=bundle,
@@ -852,6 +990,15 @@ def dl_generate_editor_bundle(
             and provenance.get("approximate_fallback_used") is False
             and provenance.get("profile_template_set_sha256") == profile.get("template_set_sha256")
             and provenance.get("profile_style_contract_sha256") == profile.get("style_contract_sha256")
+            and (
+                not resolved_render_contract
+                or (
+                    provenance.get("render_contract_composite_sha256")
+                    == resolved_render_contract.get("composite_sha256")
+                    and provenance.get("render_compiler_version")
+                    == style_contract.get("render_compiler_version")
+                )
+            )
         )
         if not exact_match:
             return {
@@ -888,6 +1035,28 @@ def dl_generate_editor_bundle(
         "implementation_plan": requirements_context["path"],
         "summary_preview": requirements_context["summary"][:1200],
     }
+    if not _BATCH_BUNDLE_GENERATION.get():
+        bundle["browser_qa_plan"] = _write_bundle_browser_qa_plan(
+            root=root,
+            widget_ids=[widget_id],
+            selector_contracts=[
+                {
+                    "selector_id": widget_id,
+                    "label": str(
+                        (bundle.get("selector_contract") or {}).get("label") or ""
+                    ),
+                }
+            ]
+            if isinstance(bundle.get("selector_contract"), dict)
+            and bundle["selector_contract"].get("ok") is True
+            else [],
+            comparison_enabled=_render_comparison_enabled(
+                decision_record,
+                family=requested_family,
+            ),
+            render_contract=resolved_render_contract,
+            artifact_stem=widget_id,
+        )
     bundle_dir = root / "dashboard" / widget_id
     for tab, content in bundle["tabs"].items():
         write_text(bundle_dir / tab, content)
@@ -906,6 +1075,631 @@ def dl_generate_editor_bundle(
     )
     update_implemented_charts_catalog(root, bundle=bundle, relations=relations, brief=brief)
     return bundle
+
+
+_BATCH_CHART_SPEC_FIELDS = {
+    "widget_id",
+    "route",
+    "dataset_alias",
+    "columns",
+    "selector_contract",
+    "dataset_readbacks",
+    "render_overrides",
+    "comparison_context",
+}
+
+
+def _select_chart_decision(
+    brief: dict[str, Any],
+    *,
+    widget_id: str,
+    require_exact: bool = False,
+) -> dict[str, Any]:
+    decisions = [
+        item
+        for item in (brief.get("chart_decisions") or [])
+        if isinstance(item, dict)
+    ]
+    if not decisions:
+        if require_exact:
+            raise ValueError(
+                "batch generation requires persisted chart decisions with exact widget_id or decision_id values"
+            )
+        return {}
+    matches = []
+    for decision in decisions:
+        record = (
+            decision.get("chart_decision_record")
+            if isinstance(decision.get("chart_decision_record"), dict)
+            else {}
+        )
+        keys = {
+            str(decision.get("widget_id") or "").strip(),
+            str(decision.get("decision_id") or "").strip(),
+            str(decision.get("metric_id") or "").strip(),
+            str(record.get("chart_id") or "").strip(),
+            str(record.get("widget_id") or "").strip(),
+        }
+        if widget_id in keys:
+            matches.append(decision)
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        raise ValueError(
+            f"multiple chart decisions match widget_id {widget_id!r}; decision identifiers must be unique"
+        )
+    if len(decisions) == 1 and not require_exact:
+        return decisions[0]
+    raise ValueError(
+        f"no chart decision matches widget_id {widget_id!r}; "
+        "multi-widget generation requires an exact widget_id or decision_id"
+    )
+
+
+def _render_comparison_enabled(
+    decision_record: dict[str, Any],
+    *,
+    family: str,
+) -> bool:
+    if family in {"kpi_value_delta", "kpi_value_delta_sparkline"}:
+        return True
+    visual_spec = (
+        decision_record.get("renderer_visual_spec")
+        if isinstance(decision_record.get("renderer_visual_spec"), dict)
+        else {}
+    )
+    comparison = (
+        visual_spec.get("comparison_context")
+        if isinstance(visual_spec.get("comparison_context"), dict)
+        else {}
+    )
+    kpi = (
+        visual_spec.get("kpi_context")
+        if isinstance(visual_spec.get("kpi_context"), dict)
+        else {}
+    )
+    tooltip = (
+        visual_spec.get("tooltip")
+        if isinstance(visual_spec.get("tooltip"), dict)
+        else {}
+    )
+    return bool(
+        comparison.get("enabled")
+        or comparison.get("block_count")
+        or str(kpi.get("comparator") or "").strip()
+        or tooltip.get("include_comparator")
+    )
+
+
+def _normalize_batch_comparison_context(
+    value: Any,
+    *,
+    widget_id: str,
+    family: str,
+) -> dict[str, str]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError(
+            f"chart_specs[{widget_id}].comparison_context must be an object"
+        )
+    if family != "md_methodology_block":
+        raise ValueError(
+            f"chart_specs[{widget_id}].comparison_context is valid only for md_methodology_block"
+        )
+    required = ("method", "selected_range", "comparison_range")
+    unknown = sorted(set(value) - set(required))
+    if unknown:
+        raise ValueError(
+            f"chart_specs[{widget_id}].comparison_context has unsupported fields: "
+            + ", ".join(unknown)
+        )
+    normalized = {
+        key: str(value.get(key) or "").strip()
+        for key in required
+    }
+    missing = [key for key, item in normalized.items() if not item]
+    if missing:
+        raise ValueError(
+            f"chart_specs[{widget_id}].comparison_context requires non-empty "
+            + ", ".join(missing)
+        )
+    return normalized
+
+
+def _comparison_context_markdown(context: dict[str, Any]) -> str:
+    return (
+        f"**Comparison method:** {context['method']}  \n"
+        f"**Selected period:** {context['selected_range']}  \n"
+        f"**Comparison period:** {context['comparison_range']}"
+    )
+
+
+def _aggregate_batch_browser_render_contract(
+    contract_rows: list[tuple[str, dict[str, Any]]],
+) -> dict[str, Any]:
+    """Aggregate only browser-relevant tokens and block dashboard-wide drift."""
+
+    if not contract_rows:
+        return {
+            "schema_version": "2026-07-28.browser_render_contract_aggregation.v1",
+            "ok": True,
+            "issues": [],
+            "render_contract": {},
+            "legend_typography": {},
+            "horizontal_scroll_widget_ids": [],
+            "per_widget_density": {},
+        }
+
+    issues: list[str] = []
+    combined_tokens: dict[str, Any] = {}
+    baseline_legend: dict[str, Any] = {}
+    baseline_widget_id = ""
+    selected_horizontal: dict[str, Any] = {}
+    horizontal_scroll_widget_ids: list[str] = []
+    per_widget_density: dict[str, dict[str, Any]] = {}
+
+    for widget_id, contract in contract_rows:
+        effective_tokens = (
+            contract.get("effective_tokens")
+            if isinstance(contract.get("effective_tokens"), dict)
+            else {}
+        )
+        if not effective_tokens:
+            issues.append(f"browser_render_contract_missing_effective_tokens:{widget_id}")
+            continue
+        if not combined_tokens:
+            combined_tokens = deepcopy(effective_tokens)
+
+        typography = (
+            effective_tokens.get("typography")
+            if isinstance(effective_tokens.get("typography"), dict)
+            else {}
+        )
+        legend = (
+            typography.get("legend")
+            if isinstance(typography.get("legend"), dict)
+            else {}
+        )
+        active_legend = (
+            legend.get("active")
+            if isinstance(legend.get("active"), dict)
+            else {}
+        )
+        legend_signature = {
+            "token": str(legend.get("active_token") or ""),
+            "font_size_px": active_legend.get("font_size_px"),
+            "line_height_px": active_legend.get("line_height_px"),
+        }
+        if (
+            not legend_signature["token"]
+            or not isinstance(legend_signature["font_size_px"], (int, float))
+            or isinstance(legend_signature["font_size_px"], bool)
+            or not isinstance(legend_signature["line_height_px"], (int, float))
+            or isinstance(legend_signature["line_height_px"], bool)
+        ):
+            issues.append(f"legend_typography_missing:{widget_id}")
+        elif not baseline_legend:
+            baseline_legend = legend_signature
+            baseline_widget_id = widget_id
+        elif legend_signature != baseline_legend:
+            issues.append(
+                f"legend_typography_mismatch:{baseline_widget_id}:{widget_id}"
+            )
+
+        density = (
+            effective_tokens.get("density")
+            if isinstance(effective_tokens.get("density"), dict)
+            else {}
+        )
+        overrides = (
+            contract.get("overrides")
+            if isinstance(contract.get("overrides"), dict)
+            else {}
+        )
+        per_widget_density[widget_id] = {
+            "override": str(overrides.get("density") or ""),
+            "mode": str(density.get("mode") or ""),
+            "active_variant": str(density.get("active_variant") or ""),
+        }
+
+        horizontal = (
+            effective_tokens.get("horizontal_rank")
+            if isinstance(effective_tokens.get("horizontal_rank"), dict)
+            else {}
+        )
+        if not horizontal:
+            continue
+        if not selected_horizontal:
+            selected_horizontal = deepcopy(horizontal)
+        if horizontal.get("scroll") is True:
+            horizontal_scroll_widget_ids.append(widget_id)
+            selected_horizontal = deepcopy(horizontal)
+            if horizontal.get("stable_scrollbar_gutter") is not True:
+                issues.append(
+                    f"horizontal_scroll_stable_gutter_required:{widget_id}"
+                )
+
+    horizontal_scroll_widget_ids = sorted(set(horizontal_scroll_widget_ids))
+    if selected_horizontal:
+        selected_horizontal["scroll"] = bool(horizontal_scroll_widget_ids)
+        selected_horizontal["stable_scrollbar_gutter"] = bool(
+            horizontal_scroll_widget_ids
+        )
+        selected_horizontal["scroll_object_ids"] = horizontal_scroll_widget_ids
+        combined_tokens["horizontal_rank"] = selected_horizontal
+
+    render_contract = (
+        {
+            "schema_version": "2026-07-28.batch_browser_render_contract.v1",
+            "effective_tokens": combined_tokens,
+        }
+        if combined_tokens
+        else {}
+    )
+    return {
+        "schema_version": "2026-07-28.browser_render_contract_aggregation.v1",
+        "ok": not issues,
+        "issues": issues,
+        "render_contract": render_contract,
+        "legend_typography": baseline_legend,
+        "horizontal_scroll_widget_ids": horizontal_scroll_widget_ids,
+        "per_widget_density": per_widget_density,
+    }
+
+
+def _write_bundle_browser_qa_plan(
+    *,
+    root: Path,
+    widget_ids: list[str],
+    selector_contracts: list[dict[str, Any]],
+    comparison_enabled: bool,
+    comparison_context_object_ids: list[str] | None = None,
+    render_contract: dict[str, Any],
+    artifact_stem: str,
+) -> dict[str, Any]:
+    browser_render_contract = (
+        render_contract.get("effective_tokens")
+        if isinstance(render_contract.get("effective_tokens"), dict)
+        else {}
+    )
+    plan = build_browser_qa_plan(
+        dashboard_id="dashboard_target",
+        tab_ids=["main"],
+        expected_object_ids=widget_ids,
+        selector_contracts=selector_contracts,
+        comparison_enabled=comparison_enabled,
+        comparison_context_object_ids=comparison_context_object_ids or [],
+        render_contract=browser_render_contract,
+    )
+    validation = validate_browser_qa_plan(plan)
+    if not validation["ok"]:
+        raise ValueError(
+            "generated browser QA plan is invalid: "
+            + ", ".join(validation["issues"])
+        )
+    safe_stem = re.sub(r"[^A-Za-z0-9._-]+", "_", artifact_stem).strip("._-")
+    plan_path = root / "artifacts" / "browser_qa" / f"{safe_stem or 'dashboard'}.plan.json"
+    write_json(plan_path, plan)
+    return {
+        "schema_version": plan["schema_version"],
+        "plan_sha256": plan["canonical_sha256"],
+        "artifact_path": str(plan_path),
+        "max_browser_calls": plan["execution"]["max_browser_calls"],
+        "viewports": [
+            {
+                "id": item["id"],
+                "width": item["width"],
+                "height": item["height"],
+            }
+            for item in plan["viewports"]
+        ],
+        "assertion_count": len(plan["evaluate"]["assertions"]),
+        "read_only": plan["evaluate"]["read_only"],
+    }
+
+
+def _generate_editor_bundle_batch(
+    *,
+    root: Path,
+    authoring_profile: str | dict[str, Any],
+    chart_specs: list[dict[str, Any]],
+    shared_render_overrides: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if not isinstance(chart_specs, list) or not chart_specs:
+        raise ValueError("chart_specs must be a non-empty array")
+    if len(chart_specs) > 100:
+        raise ValueError("chart_specs supports at most 100 widgets per call")
+    normalized: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    for index, raw in enumerate(chart_specs):
+        if not isinstance(raw, dict):
+            raise ValueError(f"chart_specs[{index}] must be an object")
+        unknown = sorted(set(raw) - _BATCH_CHART_SPEC_FIELDS)
+        if unknown:
+            raise ValueError(
+                f"chart_specs[{index}] has unsupported fields: {', '.join(unknown)}"
+            )
+        item = dict(raw)
+        item_id = str(item.get("widget_id") or "").strip()
+        _validate_widget_id(item_id)
+        if item_id in seen_ids:
+            raise ValueError(f"chart_specs contains duplicate widget_id {item_id!r}")
+        seen_ids.add(item_id)
+        item["widget_id"] = item_id
+        normalized.append(item)
+
+    brief = read_json(root / "artifacts" / "dashboard_brief.json", default={})
+    if not brief:
+        brief = dl_build_governance_brief(str(root))
+    decisions_by_widget: dict[str, dict[str, Any]] = {}
+    for item in normalized:
+        decisions_by_widget[item["widget_id"]] = _select_chart_decision(
+            brief,
+            widget_id=item["widget_id"],
+            require_exact=True,
+        )
+    batch_profile = resolve_authoring_profile(
+        project_root=root,
+        requested_profile=authoring_profile,
+    )
+    if not batch_profile.get("ok"):
+        return batch_profile
+    strict_render_profile = bool(
+        (
+            batch_profile.get("style_contract")
+            if isinstance(batch_profile.get("style_contract"), dict)
+            else {}
+        ).get("render_profile_id")
+    )
+    normalized_contexts: list[tuple[str, dict[str, str]]] = []
+    ordered_families: list[str] = []
+    comparison_required = False
+    for item in normalized:
+        decision = decisions_by_widget[item["widget_id"]]
+        record = (
+            decision.get("chart_decision_record")
+            if isinstance(decision.get("chart_decision_record"), dict)
+            else decision
+        )
+        family = str(
+            record.get("selected_family")
+            or decision.get("family")
+            or ""
+        )
+        ordered_families.append(family)
+        comparison_required = comparison_required or _render_comparison_enabled(
+            record,
+            family=family,
+        )
+        context = _normalize_batch_comparison_context(
+            item.get("comparison_context"),
+            widget_id=item["widget_id"],
+            family=family,
+        )
+        if context:
+            item["comparison_context"] = context
+            normalized_contexts.append((item["widget_id"], context))
+    if strict_render_profile:
+        if comparison_required and len(normalized_contexts) != 1:
+            raise ValueError(
+                "strict comparison dashboards require exactly one md_methodology_block "
+                "chart_spec with comparison_context"
+            )
+        if comparison_required and (
+            not ordered_families
+            or ordered_families[0] != "date_range_selector"
+        ):
+            raise ValueError(
+                "strict comparison dashboards require date_range_selector as the first chart_spec"
+            )
+        if comparison_required:
+            selector_prefix_length = 0
+            for family in ordered_families:
+                if family not in SELECTOR_FAMILIES:
+                    break
+                selector_prefix_length += 1
+            if any(
+                family in SELECTOR_FAMILIES
+                for family in ordered_families[selector_prefix_length:]
+            ):
+                raise ValueError(
+                    "strict comparison dashboards require one contiguous selector prefix"
+                )
+            context_widget_id = normalized_contexts[0][0]
+            context_index = next(
+                index
+                for index, item in enumerate(normalized)
+                if item["widget_id"] == context_widget_id
+            )
+            if context_index != selector_prefix_length:
+                raise ValueError(
+                    "strict comparison dashboards require the comparison context "
+                    "immediately after the selector prefix and before KPI or chart widgets"
+                )
+        if not comparison_required and normalized_contexts:
+            raise ValueError(
+                "comparison_context is allowed only when a persisted chart decision enables comparison"
+            )
+
+    results: list[dict[str, Any]] = []
+    for item in normalized:
+        item_overrides = item.get("render_overrides")
+        if item_overrides is not None and not isinstance(item_overrides, dict):
+            raise ValueError(
+                f"chart_specs[{item['widget_id']}].render_overrides must be an object"
+            )
+        merged_overrides = {
+            **(shared_render_overrides or {}),
+            **(item_overrides or {}),
+        }
+        batch_token = _BATCH_BUNDLE_GENERATION.set(True)
+        comparison_token = _BATCH_COMPARISON_CONTEXT.set(
+            item.get("comparison_context")
+            if isinstance(item.get("comparison_context"), dict)
+            else None
+        )
+        try:
+            generated = dl_generate_editor_bundle(
+                project_root=str(root),
+                widget_id=item["widget_id"],
+                route=str(item.get("route") or ""),
+                authoring_profile=authoring_profile,
+                dataset_alias=str(item.get("dataset_alias") or ""),
+                columns=item.get("columns"),
+                selector_contract=item.get("selector_contract"),
+                dataset_readbacks=item.get("dataset_readbacks"),
+                render_overrides=merged_overrides or None,
+            )
+        finally:
+            _BATCH_COMPARISON_CONTEXT.reset(comparison_token)
+            _BATCH_BUNDLE_GENERATION.reset(batch_token)
+        generation_status = str(
+            generated.get("generation_status")
+            or generated.get("status")
+            or ("ready" if generated.get("ok") is True else "")
+        )
+        is_ready = generation_status == "ready"
+        if generated.get("route") == "wizard_native":
+            is_ready = bool(generated.get("ok")) and generation_status == "ready"
+        provenance = (
+            generated.get("template_provenance")
+            if isinstance(generated.get("template_provenance"), dict)
+            else {}
+        )
+        is_wizard = generated.get("route") == "wizard_native"
+        artifact_path = (
+            root / "artifacts" / f"{item['widget_id']}.wizard_payload_plan.json"
+            if is_wizard
+            else root / "dashboard" / item["widget_id"] / "bundle.json"
+        )
+        results.append(
+            {
+                "widget_id": item["widget_id"],
+                "ok": is_ready,
+                "generation_status": generation_status or "blocked",
+                "route": str(generated.get("route") or ""),
+                "family": str(
+                    generated.get("family")
+                    or generated.get("semantic_family")
+                    or generated.get("visualization_id")
+                    or ""
+                ),
+                "bundle_path": str(artifact_path),
+                "compiled_tabs_sha256": str(
+                    provenance.get("compiled_tabs_sha256")
+                    or generated.get("compiled_payload_sha256")
+                    or ""
+                ),
+                "authoring_profile_id": str(
+                    (generated.get("authoring_profile") or {}).get("id")
+                    if isinstance(generated.get("authoring_profile"), dict)
+                    else ""
+                ),
+                "render_contract_sha256": str(
+                    (generated.get("render_contract") or {}).get("composite_sha256")
+                    if isinstance(generated.get("render_contract"), dict)
+                    else ""
+                ),
+                "blocking_issues": list(generated.get("blocking_issues") or [])[:20],
+            }
+        )
+    ready_count = sum(1 for item in results if item["ok"])
+    browser_contract_rows: list[tuple[str, dict[str, Any]]] = []
+    combined_selectors: list[dict[str, Any]] = []
+    combined_comparison_context_ids: list[str] = []
+    combined_comparison = False
+    for spec, result in zip(normalized, results, strict=True):
+        if not result["ok"]:
+            continue
+        selector = spec.get("selector_contract")
+        if isinstance(selector, dict):
+            combined_selectors.append(
+                {
+                    "selector_id": result["widget_id"],
+                    "label": str(selector.get("label") or ""),
+                }
+            )
+        path = Path(str(result.get("bundle_path") or ""))
+        if not path.is_file() or path.name != "bundle.json":
+            continue
+        persisted = read_json(path, default={})
+        if isinstance(persisted.get("comparison_context_contract"), dict):
+            combined_comparison_context_ids.append(result["widget_id"])
+        if isinstance(persisted.get("render_contract"), dict) and persisted["render_contract"]:
+            browser_contract_rows.append(
+                (result["widget_id"], persisted["render_contract"])
+            )
+        visual_spec = (
+            persisted.get("renderer_visual_spec")
+            if isinstance(persisted.get("renderer_visual_spec"), dict)
+            else {}
+        )
+        comparison = (
+            visual_spec.get("comparison_context")
+            if isinstance(visual_spec.get("comparison_context"), dict)
+            else {}
+        )
+        combined_comparison = combined_comparison or bool(
+            comparison.get("enabled") or comparison.get("block_count")
+        )
+    browser_contract_aggregation = _aggregate_batch_browser_render_contract(
+        browser_contract_rows
+    )
+    combined_contract = browser_contract_aggregation["render_contract"]
+    batch_browser_plan = _write_bundle_browser_qa_plan(
+        root=root,
+        widget_ids=[item["widget_id"] for item in results if item["ok"]],
+        selector_contracts=combined_selectors,
+        comparison_enabled=combined_comparison,
+        comparison_context_object_ids=combined_comparison_context_ids,
+        render_contract=combined_contract,
+        artifact_stem="dashboard_batch",
+    ) if ready_count and browser_contract_aggregation["ok"] else {}
+    all_widgets_ready = ready_count == len(results)
+    batch_ready = all_widgets_ready and browser_contract_aggregation["ok"]
+    batch_status = (
+        "ready"
+        if batch_ready
+        else "blocked_inconsistent_render_contract"
+        if all_widgets_ready
+        else "blocked_partial_batch"
+    )
+    batch = {
+        "schema_version": "2026-07-28.editor_bundle_batch.v1",
+        "ok": batch_ready,
+        "status": batch_status,
+        "generation_status": batch_status,
+        "batch_summary": {
+            "requested_count": len(results),
+            "ready_count": ready_count,
+            "blocked_count": len(results) - ready_count,
+            "single_call": True,
+        },
+        "results": results,
+        "browser_qa_plan": batch_browser_plan,
+    }
+    if browser_contract_rows:
+        batch["browser_render_contract"] = {
+            key: value
+            for key, value in browser_contract_aggregation.items()
+            if key != "render_contract"
+        }
+    if browser_contract_aggregation["issues"]:
+        batch["blocking_issues"] = browser_contract_aggregation["issues"]
+    manifest_path = root / "artifacts" / "editor_bundle_batch.json"
+    write_json(manifest_path, batch)
+    return {
+        **batch,
+        "manifest_path": str(manifest_path),
+        "full_bundles": "artifact_only",
+    }
+
+
+def _validate_widget_id(widget_id: str) -> None:
+    value = str(widget_id or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9._-]{0,126}[A-Za-z0-9])?", value):
+        raise ValueError("widget_id must be a safe 1..128 character artifact id")
 
 
 def _generate_standalone_html_artifact(
@@ -3722,12 +4516,17 @@ def _write_dashboard_relations(
     widget_id: str,
     selector_contract: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    relations = build_default_dashboard_relations(
+    incoming = build_default_dashboard_relations(
         brief=brief,
         widget_id=widget_id,
         selector_contract=selector_contract,
     )
-    write_json(root / "artifacts" / "dashboard_object_relations.json", relations)
+    relations_path = root / "artifacts" / "dashboard_object_relations.json"
+    relations = merge_dashboard_relations(
+        read_json(relations_path, default={}),
+        incoming,
+    )
+    write_json(relations_path, relations)
     return relations
 
 

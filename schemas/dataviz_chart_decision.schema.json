@@ -161,7 +161,8 @@
         "schema_version": {
           "enum": [
             "2026-07-19.renderer_visual_spec.v2",
-            "2026-07-23.renderer_visual_spec.v3"
+            "2026-07-23.renderer_visual_spec.v3",
+            "2026-07-28.renderer_visual_spec.v4"
           ]
         },
         "style_tokens": {

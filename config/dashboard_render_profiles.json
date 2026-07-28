@@ -1,0 +1,452 @@
+{
+  "schema_version": "2026-07-28.dashboard_render_profiles.v1",
+  "default_profile_id": "standard_dashboard_v1",
+  "profiles": {
+    "standard_dashboard_v1": {
+      "description": "Strict, compact, cross-chart dashboard rendering contract",
+      "fallback_policy": "registered_families_only",
+      "registered_family_count": 38,
+      "core": {
+        "viewport": {
+          "min_width_px": 280,
+          "min_height_px": 160,
+          "compact_below_width_px": 720
+        },
+        "density": {
+          "mode": "responsive",
+          "compact_below_width_px": 720,
+          "active_variant": "viewport"
+        },
+        "shell": {
+          "padding_px": {
+            "compact": {
+              "vertical": 9,
+              "horizontal": 10
+            },
+            "normal": {
+              "vertical": 11,
+              "horizontal": 13
+            }
+          },
+          "gap_px": {
+            "compact": 7,
+            "normal": 9
+          }
+        },
+        "typography": {
+          "font_family": [
+            "Inter",
+            "Arial",
+            "sans-serif"
+          ],
+          "title": {
+            "compact": {
+              "font_size_px": 16,
+              "line_height_px": 20
+            },
+            "normal": {
+              "font_size_px": 17,
+              "line_height_px": 21
+            }
+          },
+          "body": {
+            "font_size_px": 12,
+            "line_height_px": 16
+          },
+          "axis": {
+            "font_size_px": 12,
+            "line_height_px": 16
+          },
+          "legend": {
+            "default": {
+              "font_size_px": 12,
+              "line_height_px": 16
+            },
+            "compact": {
+              "font_size_px": 12,
+              "line_height_px": 16
+            },
+            "readable": {
+              "font_size_px": 14,
+              "line_height_px": 18
+            }
+          },
+          "tooltip": {
+            "font_size_px": 12,
+            "line_height_px": 16
+          },
+          "table": {
+            "font_size_px": 12,
+            "line_height_px": 17
+          }
+        },
+        "semantic_colors": {
+          "primary": "#2B75E2",
+          "success": "#6CBF84",
+          "failure": "#E57373",
+          "comparison": "#8A919C"
+        },
+        "number_format": {
+          "group_separator": "nbsp",
+          "decimal_separator": "comma"
+        },
+        "kpi": {
+          "padding_px": {
+            "top": 11,
+            "right": 11,
+            "bottom": 7,
+            "left": 11
+          },
+          "surface": {
+            "background": "transparent",
+            "border": {
+              "style": "none",
+              "width_px": 0
+            },
+            "radius_px": 0,
+            "outline": {
+              "style": "none",
+              "width_px": 0
+            },
+            "shadow": "none"
+          },
+          "label_typography": {
+            "font_size_px": 12,
+            "line_height_px": 15
+          },
+          "value_typography": {
+            "compact": {
+              "font_size_px": 31,
+              "line_height_px": 34
+            },
+            "normal": {
+              "font_size_px": 34,
+              "line_height_px": 38
+            },
+            "font_weight": 750
+          }
+        },
+        "selector": {
+          "update_mode": "immediate",
+          "apply_button": false,
+          "control_max_width_percent": 94,
+          "row_height_px": 44,
+          "label_placement": "left",
+          "blank_multiselect_semantics": "all"
+        },
+        "comparison_context": {
+          "required_when_comparison_enabled": true,
+          "max_blocks": 1,
+          "placement": "below_selectors",
+          "required_fields": [
+            "method",
+            "selected_range",
+            "comparison_range"
+          ],
+          "duplicate_chart_captions": false
+        },
+        "tooltip": {
+          "owner": "native",
+          "max_width_px": 340,
+          "padding_px": {
+            "vertical": 10,
+            "horizontal": 12
+          },
+          "surface": {
+            "border": {
+              "style": "none",
+              "width_px": 0
+            },
+            "radius_px": 0,
+            "outline": {
+              "style": "none",
+              "width_px": 0
+            },
+            "shadow": "none"
+          },
+          "redundant_row_title": false
+        }
+      },
+      "adapters": {
+        "generic_chart_v1": {
+          "allowed_tooltip_owners": [
+            "native"
+          ],
+          "tokens": {
+            "component": {
+              "kind": "generic_chart",
+              "direct_labels_preferred": true
+            }
+          }
+        },
+        "metric_tile_v2": {
+          "allowed_tooltip_owners": [
+            "native"
+          ],
+          "tokens": {
+            "viewport": {
+              "min_width_px": 280,
+              "min_height_px": 96,
+              "compact_below_width_px": 720
+            },
+            "component": {
+              "kind": "metric_tile",
+              "one_metric_per_tile": true,
+              "preferred_height_px": 96
+            }
+          }
+        },
+        "combo_v2": {
+          "allowed_tooltip_owners": [
+            "native"
+          ],
+          "tokens": {
+            "component": {
+              "kind": "combined_time_series",
+              "shared_scale_required": true
+            }
+          }
+        },
+        "horizontal_rank_generic_v1": {
+          "allowed_tooltip_owners": [
+            "native"
+          ],
+          "tokens": {
+            "component": {
+              "kind": "horizontal_rank"
+            },
+            "horizontal_rank": {
+              "label_width_px": 184,
+              "value_width_px": 106,
+              "preferred_bar_width_px": 234,
+              "row_min_height_px": 32,
+              "row_gap_px": 4,
+              "bar_corner_radius_px": 0.75,
+              "wrap_labels": true,
+              "stable_secondary_sort": true,
+              "scroll": false
+            }
+          }
+        },
+        "horizontal_rank_scroll_v1": {
+          "allowed_tooltip_owners": [
+            "native"
+          ],
+          "tokens": {
+            "component": {
+              "kind": "horizontal_rank"
+            },
+            "horizontal_rank": {
+              "label_width_px": 184,
+              "value_width_px": 106,
+              "preferred_bar_width_px": 234,
+              "row_min_height_px": 32,
+              "row_gap_px": 4,
+              "bar_corner_radius_px": 0.75,
+              "wrap_labels": true,
+              "stable_secondary_sort": true,
+              "scroll": true,
+              "stable_scrollbar_gutter": true,
+              "scroll_right_padding_px": 4
+            }
+          }
+        },
+        "resource_schedule_v1": {
+          "allowed_tooltip_owners": [
+            "native"
+          ],
+          "tokens": {
+            "component": {
+              "kind": "resource_schedule",
+              "preserve_time_scale": true
+            }
+          }
+        },
+        "selector_rows_v1": {
+          "allowed_tooltip_owners": [
+            "native"
+          ],
+          "tokens": {
+            "component": {
+              "kind": "selector_row"
+            },
+            "selector": {
+              "update_mode": "immediate",
+              "apply_button": false,
+              "control_max_width_percent": 94
+            }
+          }
+        },
+        "comparison_context_v1": {
+          "allowed_tooltip_owners": [
+            "native"
+          ],
+          "tokens": {
+            "component": {
+              "kind": "comparison_context"
+            },
+            "comparison_context": {
+              "required_when_comparison_enabled": true,
+              "max_blocks": 1,
+              "placement": "below_selectors"
+            }
+          }
+        },
+        "native_table_v1": {
+          "allowed_tooltip_owners": [
+            "native"
+          ],
+          "tokens": {
+            "component": {
+              "kind": "native_table",
+              "internal_scroll": true
+            }
+          }
+        }
+      },
+      "horizontal_adapters": {
+        "generic": "horizontal_rank_generic_v1",
+        "scroll": "horizontal_rank_scroll_v1"
+      },
+      "override_contract": {
+        "density": [
+          "compact",
+          "comfortable"
+        ],
+        "legend_typography": [
+          "compact",
+          "readable"
+        ],
+        "horizontal_adapter": [
+          "generic",
+          "scroll"
+        ],
+        "tooltip_owner": [
+          "native"
+        ]
+      },
+      "family_map": {
+        "kpi_value_only": {
+          "adapter": "metric_tile_v2"
+        },
+        "kpi_value_delta": {
+          "adapter": "metric_tile_v2"
+        },
+        "kpi_value_sparkline": {
+          "adapter": "metric_tile_v2"
+        },
+        "kpi_value_delta_sparkline": {
+          "adapter": "metric_tile_v2"
+        },
+        "line_chart": {
+          "adapter": "generic_chart_v1"
+        },
+        "multiline_chart": {
+          "adapter": "generic_chart_v1"
+        },
+        "area_completion": {
+          "adapter": "generic_chart_v1"
+        },
+        "vertical_bar_time_bucket": {
+          "adapter": "generic_chart_v1"
+        },
+        "combo_time_series_combo": {
+          "adapter": "combo_v2"
+        },
+        "horizontal_bar": {
+          "adapter": "horizontal_rank_generic_v1",
+          "horizontal_adapter_override": true
+        },
+        "grouped_bar": {
+          "adapter": "horizontal_rank_generic_v1",
+          "horizontal_adapter_override": true
+        },
+        "stacked_100": {
+          "adapter": "horizontal_rank_generic_v1",
+          "horizontal_adapter_override": true
+        },
+        "bullet_assignees": {
+          "adapter": "horizontal_rank_generic_v1",
+          "horizontal_adapter_override": true
+        },
+        "heatmap": {
+          "adapter": "generic_chart_v1"
+        },
+        "waterfall": {
+          "adapter": "generic_chart_v1"
+        },
+        "funnel_snapshot": {
+          "adapter": "generic_chart_v1"
+        },
+        "sankey_status_flow": {
+          "adapter": "generic_chart_v1"
+        },
+        "histogram": {
+          "adapter": "generic_chart_v1"
+        },
+        "box_plot": {
+          "adapter": "generic_chart_v1"
+        },
+        "scatter": {
+          "adapter": "generic_chart_v1"
+        },
+        "bubble": {
+          "adapter": "generic_chart_v1"
+        },
+        "pie": {
+          "adapter": "generic_chart_v1"
+        },
+        "donut": {
+          "adapter": "generic_chart_v1"
+        },
+        "treemap": {
+          "adapter": "generic_chart_v1"
+        },
+        "table_node": {
+          "adapter": "native_table_v1"
+        },
+        "resource_schedule_exception": {
+          "adapter": "resource_schedule_v1"
+        },
+        "md_methodology_block": {
+          "adapter": "comparison_context_v1"
+        },
+        "md_section_header": {
+          "adapter": "generic_chart_v1"
+        },
+        "md_dashboard_owner": {
+          "adapter": "generic_chart_v1"
+        },
+        "md_contact_block": {
+          "adapter": "generic_chart_v1"
+        },
+        "md_requirements_link_block": {
+          "adapter": "generic_chart_v1"
+        },
+        "md_source_notes": {
+          "adapter": "generic_chart_v1"
+        },
+        "single_select_dropdown": {
+          "adapter": "selector_rows_v1"
+        },
+        "multi_select_dropdown": {
+          "adapter": "selector_rows_v1"
+        },
+        "search_selector": {
+          "adapter": "selector_rows_v1"
+        },
+        "date_range_selector": {
+          "adapter": "selector_rows_v1"
+        },
+        "selector_family_static": {
+          "adapter": "selector_rows_v1"
+        },
+        "selector_family_dynamic": {
+          "adapter": "selector_rows_v1"
+        }
+      },
+      "sha256": "dabed3024a6c8d32cf479c460aa1437b56d26b4e3f856f773e0431651efb7bbc"
+    }
+  },
+  "sha256": "325e8b4b29b634c37360ea4924f0297d43851db83af32ef5bd2dd8eb2c51dfc8"
+}

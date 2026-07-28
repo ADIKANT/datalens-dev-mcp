@@ -7,6 +7,188 @@ from jsonschema import Draft202012Validator
 
 
 class DashboardObjectRelationsTests(unittest.TestCase):
+    @staticmethod
+    def _multi_widget_brief():
+        return {
+            "dashboard_name": "Multi widget relations",
+            "dashboard_type": "overview",
+            "data_contract": {
+                "contract_id": "DATA-001",
+                "fields": ["bucket", "segment", "region", "value"],
+            },
+            "chart_decisions": [
+                {
+                    "widget_id": "trend_widget",
+                    "route": "editor_advanced",
+                    "family": "line_chart",
+                    "title": "Trend",
+                },
+                {
+                    "widget_id": "rank_widget",
+                    "route": "editor_advanced",
+                    "family": "horizontal_bar",
+                    "title": "Ranking",
+                },
+            ],
+        }
+
+    def test_relation_merge_accumulates_two_widgets_and_exact_chart_decisions(self):
+        from datalens_dev_mcp.pipeline.dashboard_relations import (
+            build_default_dashboard_relations,
+            merge_dashboard_relations,
+            validate_dashboard_relations,
+        )
+
+        brief = self._multi_widget_brief()
+        trend = build_default_dashboard_relations(
+            brief=brief,
+            widget_id="trend_widget",
+            selector_param="segment",
+        )
+        ranking = build_default_dashboard_relations(
+            brief=brief,
+            widget_id="rank_widget",
+            selector_param="region",
+        )
+
+        merged = merge_dashboard_relations(trend, ranking)
+
+        self.assertTrue(validate_dashboard_relations(merged).ok)
+        self.assertEqual(
+            [item["widget_id"] for item in merged["widgets"]],
+            [
+                "trend_widget",
+                "selector_segment",
+                "rank_widget",
+                "selector_region",
+            ],
+        )
+        self.assertEqual(
+            {
+                item["widget_id"]: item["family"]
+                for item in merged["charts"]
+            },
+            {
+                "trend_widget": "line_chart",
+                "rank_widget": "horizontal_bar",
+            },
+        )
+        self.assertEqual(
+            merged["tabs"][0]["widgets"],
+            [
+                "trend_widget",
+                "selector_segment",
+                "rank_widget",
+                "selector_region",
+            ],
+        )
+        self.assertEqual(
+            [
+                (item["selector_id"], item["row"], item["width"])
+                for item in merged["selectors"]
+            ],
+            [
+                ("selector_segment", "row-1", "47%"),
+                ("selector_region", "row-1", "47%"),
+            ],
+        )
+        selector_layouts = {
+            item["selector_id"]: item["layout"]
+            for item in merged["widgets"]
+            if item.get("selector_id")
+        }
+        self.assertEqual(selector_layouts["selector_segment"]["x"], 0)
+        self.assertEqual(selector_layouts["selector_region"]["x"], 47)
+
+    def test_relation_merge_does_not_cross_wire_selector_targets(self):
+        from datalens_dev_mcp.pipeline.dashboard_relations import (
+            build_default_dashboard_relations,
+            merge_dashboard_relations,
+        )
+
+        brief = self._multi_widget_brief()
+        merged = merge_dashboard_relations(
+            build_default_dashboard_relations(
+                brief=brief,
+                widget_id="trend_widget",
+                selector_param="segment",
+            ),
+            build_default_dashboard_relations(
+                brief=brief,
+                widget_id="rank_widget",
+                selector_param="region",
+            ),
+        )
+
+        selectors = {
+            item["selector_id"]: item
+            for item in merged["selectors"]
+        }
+        self.assertEqual(
+            selectors["selector_segment"]["targets"],
+            [
+                {
+                    "target_id": "trend_widget",
+                    "target_kind": "widget",
+                    "param": "segment",
+                }
+            ],
+        )
+        self.assertEqual(
+            selectors["selector_region"]["targets"],
+            [
+                {
+                    "target_id": "rank_widget",
+                    "target_kind": "widget",
+                    "param": "region",
+                }
+            ],
+        )
+        filters = {
+            item["selector_id"]: item["targets"]
+            for item in merged["dashboard_filters"]
+        }
+        self.assertEqual(filters["selector_segment"], ["trend_widget"])
+        self.assertEqual(filters["selector_region"], ["rank_widget"])
+
+    def test_relation_merge_deduplicates_semantically_equal_reordered_dicts(self):
+        from datalens_dev_mcp.pipeline.dashboard_relations import (
+            build_default_dashboard_relations,
+            merge_dashboard_relations,
+        )
+
+        relations = build_default_dashboard_relations(
+            brief={
+                "dashboard_name": "Canonical relation merge",
+                "data_contract": {
+                    "contract_id": "DATA-001",
+                    "fields": ["segment", "value"],
+                },
+                "chart_decisions": [
+                    {
+                        "widget_id": "trend_widget",
+                        "route": "editor_advanced",
+                        "family": "line_chart",
+                    }
+                ],
+            },
+            widget_id="trend_widget",
+            selector_param="segment",
+        )
+        reordered = json.loads(json.dumps(relations))
+        target = reordered["selectors"][0]["targets"][0]
+        reordered["selectors"][0]["targets"][0] = {
+            key: target[key]
+            for key in reversed(tuple(target))
+        }
+
+        merged = merge_dashboard_relations(relations, reordered)
+
+        self.assertEqual(
+            merged["selectors"][0]["targets"],
+            relations["selectors"][0]["targets"],
+        )
+
     def test_relation_model_declares_selector_targets_and_layout_rules(self):
         from datalens_dev_mcp.pipeline.dashboard_relations import (
             build_default_dashboard_relations,

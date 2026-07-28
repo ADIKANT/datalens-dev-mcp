@@ -1,6 +1,11 @@
 {
-  "resource_count": 259,
+  "resource_count": 260,
   "resources": [
+    {
+      "bytes": 12106,
+      "path": "config/dashboard_render_profiles.json",
+      "sha256": "2e1ecdb661350b64dfdc9996b52256e415eacffcc0d263f38cd274f9e5f8f262"
+    },
     {
       "bytes": 84379,
       "path": "config/datalens_api_methods.json",
@@ -67,9 +72,9 @@
       "sha256": "30bec90c72eea8d102758626d837139a91f009a7d7e0b61d247b48d81fadc0cd"
     },
     {
-      "bytes": 1549,
+      "bytes": 2742,
       "path": "config/editor_authoring_profiles.json",
-      "sha256": "0736bbdaed8803f93a845a676943e10eeddabadd8c0aba613803e9d750084be1"
+      "sha256": "ee5322bc935953d0ea20b020dd5ce4832bdc5ed03282fbbe02cc39de7ad2a3c3"
     },
     {
       "bytes": 199562,
@@ -219,7 +224,7 @@
     {
       "bytes": 12880,
       "path": "schemas/datalens-knowledge/capability-matrix.json",
-      "sha256": "ad5f9bfa52d876f6a108e791c5f94739dff570c62e8252167c64a16cafb627c5"
+      "sha256": "7a39968901477c3dea574b5e9dfdcc6dc5859156ec414e404a89db9d04c9973a"
     },
     {
       "bytes": 2645174,
@@ -254,7 +259,7 @@
     {
       "bytes": 6851,
       "path": "schemas/datalens-knowledge/route-capability-matrix.json",
-      "sha256": "b6437503ca0ba3feb34e005e7193a8954252ad13b71b5f99d0da371627a016dc"
+      "sha256": "805c5b29f88e9f1e8495db015c0ad8fdcb59dd7e87fbc60b5108d70856fbbe2b"
     },
     {
       "bytes": 309198,
@@ -277,9 +282,9 @@
       "sha256": "a77b7da72a46067407d945f3f15630d22d44ec1cca0dbff5ae5a1a045429a974"
     },
     {
-      "bytes": 4436,
+      "bytes": 4486,
       "path": "schemas/dataviz_chart_decision.schema.json",
-      "sha256": "c075ab6aafb9c3dfbdcc74a24aeda8d57cd2e40f3fe707afb4534e287de16d9a"
+      "sha256": "3c07c9e421fff0e37d93d9c1159a84b70fa06dac1a61c2511d70ba02eb6a6174"
     },
     {
       "bytes": 581,
@@ -467,9 +472,9 @@
       "sha256": "e519a79cedacc4a31a16931186d176693c41484950498b83efb6849f85c870e5"
     },
     {
-      "bytes": 1318,
+      "bytes": 1863,
       "path": "templates/advanced/chart-shell.js",
-      "sha256": "01301050a5348ced24e1d90da1a7ad8b570a0643ab20e1ab86101931a8644a70"
+      "sha256": "b16638cf9b2cacaa6d4f8c7683f4da453f181a567e5e97baa4da7b14b3cc5b7e"
     },
     {
       "bytes": 1008,
@@ -487,9 +492,9 @@
       "sha256": "ce0582ca750560c4021c7d3f8e34971409a2fa4cae8480ee433df77db01db20a"
     },
     {
-      "bytes": 1103,
+      "bytes": 1181,
       "path": "templates/advanced/legend.js",
-      "sha256": "ba4fdf1e9cdedd3a7b26ccedd94da1cd2e62b9aa79d4587a07693253c5db9135"
+      "sha256": "74097868027cf7216164dc06f1fb2aff8c4c6648f9f4dc4f5250a28c2dccb2cd"
     },
     {
       "bytes": 557,
@@ -497,14 +502,14 @@
       "sha256": "9f65c5bc4b3a0c39562aa359ceb64518e0c058a69eebf695b375eccbd10421e1"
     },
     {
-      "bytes": 1537,
+      "bytes": 2601,
       "path": "templates/advanced/style-tokens.js",
-      "sha256": "4ab6fb785ed14a9fa760e5b6b368e9a6070459f3d3c3dd75222c391221a3a1d4"
+      "sha256": "b9038df17e80893d9d85de6ff4bd51175d6a245faa70b7b5cb28c56e41f58c0d"
     },
     {
-      "bytes": 772,
+      "bytes": 965,
       "path": "templates/advanced/tooltip.js",
-      "sha256": "2804804ccd882b889dd79ef66757d81fb4fbab89f3067f5e4f7bed1d3592db85"
+      "sha256": "2b83b994538e25ceee99e6bf73d588de0a528922fba79e80170f4211cf846b1c"
     },
     {
       "bytes": 4209,

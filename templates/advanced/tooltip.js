@@ -4,7 +4,9 @@ function esc(value) {
 
 function renderTooltipShell({title, rows}) {
   const body = (rows || []).map((row) => `<div style="display:flex;justify-content:space-between;gap:16px;margin-top:6px;"><span style="color:#667085;">${esc(row.label)}</span><b style="color:#111827;">${esc(row.value)}</b></div>`).join('');
-  return `<div style="min-width:180px;max-width:340px;padding:10px 12px;background:#FFFFFF;border-radius:8px;border:1px solid #E5E7EB;font-family:Inter,Arial,sans-serif;color:#111827;font-size:12px;line-height:16px;"><div style="font-weight:800;">${esc(title)}</div>${body}</div>`;
+  // DataLens owns the single popup container. This helper returns content only,
+  // so nested borders, radii, and duplicate tooltip shells cannot appear.
+  return `<div data-tooltip-container-owner="native" style="min-width:180px;max-width:340px;padding:10px 12px;background:transparent;border:0;border-radius:0;outline:none;font-family:Inter,Arial,sans-serif;color:#111827;font-size:12px;line-height:16px;"><div style="font-weight:800;">${esc(title)}</div>${body}</div>`;
 }
 
 module.exports = {renderTooltipShell};

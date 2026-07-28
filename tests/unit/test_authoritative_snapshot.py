@@ -151,6 +151,55 @@ class ComputeInventorySnapshotClient(EventSnapshotClient):
         return response
 
 
+class SharedWorkbookRevisionClient(EventSnapshotClient):
+    def __init__(self, *, revisionless_unrelated=False):
+        super().__init__()
+        self.unrelated_revision = "unrelated_rev_1"
+        self.revisionless_unrelated = revisionless_unrelated
+
+    def rpc(self, method, payload):
+        response = super().rpc(method, payload)
+        if method == "getWorkbookEntries":
+            unrelated = {
+                "entryId": "unrelated_dashboard_chart",
+                "scope": "editor_chart",
+                "displayKey": "Unrelated dashboard chart",
+            }
+            if not self.revisionless_unrelated:
+                unrelated["revId"] = self.unrelated_revision
+            response["entries"].append(unrelated)
+        return response
+
+
+class PaginatedEventSnapshotClient(EventSnapshotClient):
+    def __init__(self):
+        super().__init__()
+        self.page_two_revision = "page_two_rev_1"
+        self.repeat_cursor = False
+
+    def rpc(self, method, payload):
+        response = super().rpc(method, payload)
+        if method != "getWorkbookEntries":
+            return response
+        entries = response["entries"]
+        split_at = len(entries) // 2
+        page = int(payload.get("page") or 1)
+        if page == 1:
+            return {
+                "entries": entries[:split_at],
+                "total": len(entries),
+                "nextPageToken": "cursor_2",
+            }
+        page_entries = entries[split_at:]
+        for entry in page_entries:
+            if entry.get("entryId") == CHART_IDS[-1]:
+                entry["revId"] = self.page_two_revision
+        result = {"entries": page_entries, "total": len(entries)}
+        if self.repeat_cursor:
+            result["nextPageToken"] = "cursor_2"
+        return result
+
+
 class OmittedChartSnapshotClient(EventSnapshotClient):
     def rpc(self, method, payload):
         response = super().rpc(method, payload)
@@ -351,7 +400,8 @@ class AuthoritativeSnapshotTests(unittest.TestCase):
         self.assertFalse(first["snapshot_reused"])
         self.assertTrue(second["snapshot_reused"])
         self.assertEqual(second["hydration_rpc_count"], 0)
-        self.assertEqual(len(client.calls) - first_call_count, 3)
+        self.assertEqual(second["source_probe_rpc_count"], 4)
+        self.assertEqual(len(client.calls) - first_call_count, 4)
         self.assertTrue(first["branch_comparison"]["available"])
         self.assertTrue(first["branch_comparison"]["same_normalized_structure"])
         self.assertEqual(first["completion"]["status"], "complete")
@@ -412,6 +462,124 @@ class AuthoritativeSnapshotTests(unittest.TestCase):
         self.assertFalse(second["snapshot_reused"])
         self.assertGreater(second["hydration_rpc_count"], 0)
         self.assertGreater(len(client.calls) - first_call_count, 2)
+
+    def test_unrelated_workbook_revision_change_reuses_target_graph_and_refreshes_inventory_artifact(self):
+        client = SharedWorkbookRevisionClient()
+        with tempfile.TemporaryDirectory() as tmp:
+            first = dl_snapshot_dashboard(
+                project_root=tmp,
+                dashboard_id="dashboard_events",
+                workbook_id="workbook_events",
+                snapshot_branch="saved",
+                include_dormant_summary=False,
+                client=client,
+            )
+            client.unrelated_revision = "unrelated_rev_2"
+            second = dl_snapshot_dashboard(
+                project_root=tmp,
+                dashboard_id="dashboard_events",
+                workbook_id="workbook_events",
+                snapshot_branch="saved",
+                include_dormant_summary=False,
+                client=client,
+            )
+            manifest = json.loads(Path(second["manifest"]["path"]).read_text(encoding="utf-8"))
+            inventory_ref = next(
+                ref
+                for ref in manifest["object_refs"]
+                if ref["method"] == "getWorkbookEntries"
+            )
+            inventory_artifact = json.loads(Path(inventory_ref["path"]).read_text(encoding="utf-8"))
+
+        self.assertTrue(first["ok"])
+        self.assertTrue(second["snapshot_reused"])
+        self.assertEqual(second["hydration_rpc_count"], 0)
+        unrelated = next(
+            entry
+            for entry in inventory_artifact["entries"]
+            if entry["entryId"] == "unrelated_dashboard_chart"
+        )
+        self.assertEqual(unrelated["revId"], "unrelated_rev_2")
+
+    def test_revisionless_unrelated_entry_does_not_disable_target_graph_reuse(self):
+        client = SharedWorkbookRevisionClient(revisionless_unrelated=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            first = dl_snapshot_dashboard(
+                project_root=tmp,
+                dashboard_id="dashboard_events",
+                workbook_id="workbook_events",
+                snapshot_branch="saved",
+                include_dormant_summary=True,
+                client=client,
+            )
+            second = dl_snapshot_dashboard(
+                project_root=tmp,
+                dashboard_id="dashboard_events",
+                workbook_id="workbook_events",
+                snapshot_branch="saved",
+                include_dormant_summary=True,
+                client=client,
+            )
+            manifest = json.loads(Path(second["manifest"]["path"]).read_text(encoding="utf-8"))
+
+        self.assertFalse(manifest["inventory_revision_complete"])
+        self.assertTrue(manifest["target_revision_complete"])
+        self.assertTrue(first["snapshot_reuse_eligible"])
+        self.assertTrue(second["snapshot_reused"])
+
+    def test_complete_paginated_inventory_reuses_and_page_two_revision_invalidates(self):
+        client = PaginatedEventSnapshotClient()
+        with tempfile.TemporaryDirectory() as tmp:
+            first = dl_snapshot_dashboard(
+                project_root=tmp,
+                dashboard_id="dashboard_events",
+                workbook_id="workbook_events",
+                snapshot_branch="saved",
+                client=client,
+            )
+            second = dl_snapshot_dashboard(
+                project_root=tmp,
+                dashboard_id="dashboard_events",
+                workbook_id="workbook_events",
+                snapshot_branch="saved",
+                client=client,
+            )
+            client.page_two_revision = "page_two_rev_2"
+            third = dl_snapshot_dashboard(
+                project_root=tmp,
+                dashboard_id="dashboard_events",
+                workbook_id="workbook_events",
+                snapshot_branch="saved",
+                client=client,
+            )
+
+        self.assertTrue(first["inventory_complete"])
+        self.assertEqual(first["inventory_page_count"], 2)
+        self.assertTrue(second["snapshot_reused"])
+        self.assertEqual(second["source_probe_rpc_count"], 4)
+        self.assertFalse(third["snapshot_reused"])
+        self.assertGreater(third["hydration_rpc_count"], 0)
+
+    def test_inventory_cursor_cycle_fails_closed_and_disables_reuse(self):
+        client = PaginatedEventSnapshotClient()
+        client.repeat_cursor = True
+        with tempfile.TemporaryDirectory() as tmp:
+            result = dl_snapshot_dashboard(
+                project_root=tmp,
+                dashboard_id="dashboard_events",
+                workbook_id="workbook_events",
+                snapshot_branch="saved",
+                client=client,
+            )
+
+        self.assertFalse(result["ok"])
+        self.assertFalse(result["inventory_complete"])
+        self.assertEqual(result["inventory_page_count"], 2)
+        self.assertFalse(result["snapshot_reuse_eligible"])
+        self.assertIn(
+            "repeated a cursor",
+            next(error["message"] for error in result["errors"] if error["method"] == "getWorkbookEntries"),
+        )
 
     def test_parallel_and_serial_snapshot_have_identical_manifest_and_order(self):
         with tempfile.TemporaryDirectory() as tmp:

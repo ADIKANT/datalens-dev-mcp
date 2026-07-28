@@ -24,6 +24,21 @@ Budget rules:
   written once under `artifacts/safe_apply/`. Nested save/publish delivery
   summaries do not duplicate full action payloads, command output, or publish
   plans already present at the top level or in artifacts.
+- `dl_generate_editor_bundle` and `dl_execute_safe_apply` are compact,
+  artifact-backed execution tools. Their standard MCP surface does not hydrate
+  full bundles, tabs, request envelopes, or readback bodies inline. The
+  canonical sanitized response is written once and identified by path, size,
+  character count, and SHA-256. `response_mode=full` is not part of these two
+  tools' standard schemas.
+- A `chart_specs` batch returns one bounded batch summary, at most 100
+  per-widget status records with bundle paths and compiled hashes, one batch
+  manifest path, and one compact browser-QA-plan reference. Complete bundles
+  remain under their artifact paths and `full_bundles` is `artifact_only`.
+- The compact `dl_execute_safe_apply` response reports execution state, counts,
+  saved and published readback paths, blocking reasons, proof levels, and
+  metrics. One executor call owns group save, saved readback, publish preflight,
+  publish from saved state, and published readback; clients must not expand
+  each nested stage into a separate inline transcript.
 - Safe-apply/publish planners, guarded RPC, and project workflow tools: `summary`
   by default with a typical 15K inline ceiling. The canonical sanitized result
   is stored once with its SHA-256; `full` remains explicit and compatible.
@@ -31,8 +46,10 @@ Budget rules:
   reference rows require `include_references=true`; repeated payloads reuse the
   validation result for the same rule-resource version.
 - Repeated dashboard snapshots may reuse hydrated artifacts only after fresh
-  dashboard reads, a revision-complete workbook inventory match, and artifact
-  hash verification.
+  dashboard reads, bounded complete workbook-inventory pagination, a fresh
+  canonical relations match, target-graph revision checks, and artifact hash
+  verification. Unrelated workbook revisions refresh the inventory artifact
+  without forcing target-graph hydration.
 - SQL/performance diagnostics: compact findings inline; full evidence under
   `artifacts/sql_performance/`.
 
@@ -47,6 +64,23 @@ without exposing unguarded mutation.
 
 When a caller needs exact payloads, return artifact path, byte/character size,
 and SHA-256 instead of expanding the MCP response.
+
+For a normal strict Editor dashboard, the token-bounded path is:
+
+```text
+one scoped baseline
+  -> one dl_generate_editor_bundle call with strict_dashboard + chart_specs
+  -> local validation and one safe-apply plan
+  -> one dl_execute_safe_apply
+  -> one generated browser QA pass
+```
+
+The browser QA artifact fixes the runtime work to one navigation, one batched
+read-only evaluation across `1200 x 900` and `1440 x 900`, and one batched
+screenshot operation. Its call budget is three. Do not replace it with
+per-widget DOM exploration, mutation, reload loops, or repeated screenshots.
+If the pass fails, use its assertion results and artifacts to make a scoped
+change, then generate a new hash-bound plan.
 
 The serialized projection stays within a valid `inline_char_budget`. If the
 summary itself is oversized, the inline value becomes a deterministic compact
