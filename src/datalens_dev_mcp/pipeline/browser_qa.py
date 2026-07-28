@@ -27,8 +27,8 @@ RUNTIME_ERROR_MARKERS = [
     "Data fetching error",
 ]
 
-BROWSER_QA_PLAN_SCHEMA_VERSION = "datalens.browser-qa-plan.v1"
-BROWSER_QA_RESULT_SCHEMA_VERSION = "datalens.browser-qa-result.v1"
+BROWSER_QA_PLAN_SCHEMA_VERSION = "datalens.browser-qa-plan.v2"
+BROWSER_QA_RESULT_SCHEMA_VERSION = "datalens.browser-qa-result.v2"
 BROWSER_QA_MAX_CALLS = 3
 BROWSER_QA_VIEWPORTS = (
     {"id": "compact_desktop", "width": 1200, "height": 900},
@@ -56,6 +56,10 @@ BROWSER_QA_ASSERTIONS = (
         "description": "KPI surfaces have no border, radius, outline, shadow, or opaque background.",
     },
     {
+        "id": "kpi_content_visibility_contract",
+        "description": "Every strict KPI has a visible non-empty value inside a compact unclipped tile.",
+    },
+    {
         "id": "legend_typography_consistent",
         "description": "Legend typography has one size and matches the render contract.",
     },
@@ -64,6 +68,13 @@ BROWSER_QA_ASSERTIONS = (
         "description": (
             "Selectors use left labels, immediate changes, no apply control, "
             "44 px rows, and at most 94% width."
+        ),
+    },
+    {
+        "id": "selector_order_row_contract",
+        "description": (
+            "Configured selectors preserve their declared order, keep the period first when present, "
+            "stay on one row, and occupy the registered aggregate width."
         ),
     },
     {
@@ -80,6 +91,13 @@ BROWSER_QA_ASSERTIONS = (
     {
         "id": "tooltip_owner_shell_cardinality",
         "description": "A visible tooltip has one shell, one owner, and a borderless square flat surface.",
+    },
+    {
+        "id": "tooltip_comparison_mode_contract",
+        "description": (
+            "Strict chart tooltips use normalized periods and expose comparison labels only for "
+            "widgets whose persisted visual contract enables comparison."
+        ),
     },
     {
         "id": "stable_scrollbar_gutter",
@@ -122,6 +140,7 @@ def build_browser_qa_plan(
     selector_contracts: list[dict[str, Any]] | None = None,
     comparison_enabled: bool = False,
     comparison_context_object_ids: list[str] | None = None,
+    tooltip_comparison_modes: dict[str, str] | None = None,
     render_contract: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build a deterministic three-call, read-only browser QA plan.
@@ -141,6 +160,9 @@ def build_browser_qa_plan(
     normalized_tabs = _normalized_string_list(tab_ids)
     normalized_selectors = _normalize_selector_contracts(selector_contracts or [])
     normalized_comparison_ids = _normalized_string_list(comparison_context_object_ids or [])
+    normalized_tooltip_modes = _normalize_tooltip_comparison_modes(
+        tooltip_comparison_modes or {}
+    )
     normalized_render_contract = _normalize_browser_render_contract(render_contract or {})
     viewports = [dict(viewport) for viewport in BROWSER_QA_VIEWPORTS]
     evaluation_input = {
@@ -148,6 +170,7 @@ def build_browser_qa_plan(
         "selector_contracts": normalized_selectors,
         "comparison_enabled": bool(comparison_enabled),
         "comparison_context_object_ids": normalized_comparison_ids,
+        "tooltip_comparison_modes": normalized_tooltip_modes,
         "render_contract": normalized_render_contract,
     }
     evaluate_source = _build_browser_qa_evaluate_source(evaluation_input)
@@ -165,6 +188,7 @@ def build_browser_qa_plan(
         "selector_contracts": normalized_selectors,
         "comparison_enabled": bool(comparison_enabled),
         "comparison_context_object_ids": normalized_comparison_ids,
+        "tooltip_comparison_modes": normalized_tooltip_modes,
         "execution": {
             "max_browser_calls": BROWSER_QA_MAX_CALLS,
             "navigation_count": 1,
@@ -304,6 +328,55 @@ def validate_browser_qa_plan(plan: dict[str, Any]) -> dict[str, Any]:
         issues.append("comparison_context_object_ids_not_bound_to_evaluate_source")
     if not isinstance(plan.get("comparison_enabled"), bool):
         issues.append("comparison_enabled_must_be_boolean")
+    selector_contracts = plan.get("selector_contracts")
+    selector_ids: list[str] = []
+    if not isinstance(selector_contracts, list):
+        issues.append("selector_contracts_invalid")
+        selector_contracts = []
+    else:
+        for index, item in enumerate(selector_contracts):
+            if not isinstance(item, dict):
+                issues.append("selector_contracts_invalid")
+                continue
+            selector_id = str(item.get("selector_id") or "")
+            if (
+                not selector_id
+                or item.get("ordinal") != index
+                or str(item.get("role") or "") not in {"", "period"}
+            ):
+                issues.append("selector_contracts_invalid")
+            selector_ids.append(selector_id)
+        if len(selector_ids) != len(set(selector_ids)):
+            issues.append("selector_contract_ids_not_unique")
+    encoded_selector_contracts = json.dumps(
+        selector_contracts,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    if f'"selector_contracts":{encoded_selector_contracts}' not in source:
+        issues.append("selector_contracts_not_bound_to_evaluate_source")
+    tooltip_modes = plan.get("tooltip_comparison_modes")
+    if (
+        not isinstance(tooltip_modes, dict)
+        or list(tooltip_modes) != sorted(tooltip_modes)
+        or any(
+            not isinstance(object_id, str)
+            or not object_id.strip()
+            or mode not in {"single_period", "comparison"}
+            for object_id, mode in tooltip_modes.items()
+        )
+    ):
+        issues.append("tooltip_comparison_modes_invalid")
+        tooltip_modes = {}
+    encoded_tooltip_modes = json.dumps(
+        tooltip_modes,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    if f'"tooltip_comparison_modes":{encoded_tooltip_modes}' not in source:
+        issues.append("tooltip_comparison_modes_not_bound_to_evaluate_source")
 
     render_contract = (
         plan.get("render_contract")
@@ -380,6 +453,9 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
   const transparent = (value) => value === "transparent" || /^rgba\\([^)]*,\\s*0(?:\\.0+)?\\)$/.test(value);
   const kpiRows = kpis.map((node) => {
     const css = computed(node);
+    const box = rect(node);
+    const valueNode = node.querySelector('[data-role="kpi-value"]');
+    const valueBox = valueNode ? rect(valueNode) : null;
     const borderNone = ["borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth"]
       .every((key) => Number.parseFloat(css[key] || "0") === 0);
     return {
@@ -387,7 +463,15 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
       radius_px: Number.parseFloat(css.borderRadius || "0"),
       outline_none: css.outlineStyle === "none" || Number.parseFloat(css.outlineWidth || "0") === 0,
       shadow_none: css.boxShadow === "none",
-      background_transparent: transparent(css.backgroundColor)
+      background_transparent: transparent(css.backgroundColor),
+      strict_contract: Boolean(node.getAttribute("data-render-contract")),
+      height_px: box.height,
+      value_marker_found: Boolean(valueNode),
+      value_visible: Boolean(valueNode && visible(valueNode)),
+      value_nonempty: Boolean(valueNode && text(valueNode).length > 0),
+      value_inside: Boolean(valueBox &&
+        valueBox.left >= box.left - 1 && valueBox.right <= box.right + 1 &&
+        valueBox.top >= box.top - 1 && valueBox.bottom <= box.bottom + 1)
     };
   });
 
@@ -463,9 +547,13 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
   const selectorObjectIds = new Set(
     input.selector_contracts.map((item) => String(item.selector_id || "")).filter(Boolean)
   );
-  const configuredSelectorNodes = input.selector_contracts
-    .map((item) => findObject(String(item.selector_id || "")))
-    .filter((node) => node && visible(node));
+  const configuredSelectorEntries = input.selector_contracts
+    .map((item) => ({
+      contract: item,
+      node: findObject(String(item.selector_id || ""))
+    }))
+    .filter((item) => item.node && visible(item.node));
+  const configuredSelectorNodes = configuredSelectorEntries.map((item) => item.node);
   const placementSelectorNodes = Array.from(new Set(
     configuredSelectorNodes.length > 0 ? configuredSelectorNodes : selectorRows
   ));
@@ -496,6 +584,63 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
     top: Math.min(...selectorPlacementRows.map((row) => row.top)),
     bottom: Math.max(...selectorPlacementRows.map((row) => row.bottom))
   } : null;
+  const configuredSelectorDomOrder = configuredSelectorEntries
+    .map((item) => {
+      const box = rect(item.node);
+      return {
+        selector_id: String(item.contract.selector_id || ""),
+        role: String(item.contract.role || ""),
+        ordinal: Number(item.contract.ordinal),
+        top: box.top,
+        left: box.left,
+        height: box.height
+      };
+    })
+    .sort((left, right) => left.top - right.top || left.left - right.left);
+  const configuredSelectorOrder = input.selector_contracts.map((item) =>
+    String(item.selector_id || "")
+  );
+  const actualSelectorOrder = configuredSelectorDomOrder.map((item) => item.selector_id);
+  const selectorOrderMatches = configuredSelectorOrder.length === 0 ||
+    JSON.stringify(actualSelectorOrder) === JSON.stringify(configuredSelectorOrder);
+  const configuredPeriodSelectors = input.selector_contracts.filter((item) =>
+    String(item.role || "") === "period"
+  );
+  const periodFirstMatches = configuredPeriodSelectors.length === 0 || (
+    String(input.selector_contracts[0] && input.selector_contracts[0].role || "") === "period" &&
+    actualSelectorOrder[0] === String(configuredPeriodSelectors[0].selector_id || "")
+  );
+  const selectorTopValues = configuredSelectorDomOrder.map((item) => item.top);
+  const selectorsSingleRow = selectorTopValues.length <= 1 ||
+    Math.max(...selectorTopValues) - Math.min(...selectorTopValues) <= placementTolerancePx;
+  const configuredSelectorHeightsMatch = configuredSelectorDomOrder.every((item) =>
+    Math.abs(item.height - input.render_contract.selector.row_height_px) <= 1
+  );
+  const selectorContainer = placementSelectorNodes.length > 0
+    ? (
+      (
+        typeof placementSelectorNodes[0].closest === "function" &&
+        placementSelectorNodes[0].closest(
+          '[data-role="dashboard-content"],[data-dashboard-content],.dash-body,main'
+        )
+      ) ||
+      placementSelectorNodes[0].parentElement ||
+      document.documentElement
+    )
+    : null;
+  const selectorContainerBox = selectorContainer ? rect(selectorContainer) : null;
+  const selectorGroupWidthPercent = selectorGroupBox
+    ? (
+      (selectorGroupBox.right - selectorGroupBox.left) /
+      Math.max(1, selectorContainerBox ? selectorContainerBox.width : window.innerWidth)
+    ) * 100
+    : null;
+  const selectorAggregateWidthMatches = configuredSelectorOrder.length === 0 || (
+    selectorGroupWidthPercent != null &&
+    Math.abs(
+      selectorGroupWidthPercent - input.render_contract.selector.row_target_width_percent
+    ) <= input.render_contract.selector.row_width_tolerance_percent + 0.1
+  );
   const comparisonPlacementNode = visibleComparisonContexts.length === 1
     ? visibleComparisonContexts[0]
     : null;
@@ -577,6 +722,44 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
       shadow_none: css.boxShadow === "none"
     };
   });
+  const tooltipComparisonRows = Object.entries(input.tooltip_comparison_modes).map(
+    ([objectId, expectedMode]) => {
+      const objectNode = findObject(objectId);
+      const markerNode = objectNode && (
+        objectNode.getAttribute("data-tooltip-comparison-mode")
+          ? objectNode
+          : objectNode.querySelector("[data-tooltip-comparison-mode]")
+      );
+      return {
+        object_id: objectId,
+        expected_mode: expectedMode,
+        object_found: Boolean(objectNode),
+        marker_found: Boolean(markerNode),
+        actual_mode: markerNode
+          ? String(markerNode.getAttribute("data-tooltip-comparison-mode") || "")
+          : "",
+        period_value_source: markerNode
+          ? String(markerNode.getAttribute("data-tooltip-period-source") || "")
+          : ""
+      };
+    }
+  );
+  const tooltipComparisonModeMatches = tooltipComparisonRows.every((row) =>
+    row.object_found && row.marker_found &&
+    row.actual_mode === row.expected_mode &&
+    row.period_value_source === input.render_contract.tooltip.period_value_source
+  );
+  const visibleComparisonPeriodNodes = tooltipShells.flatMap((shell) =>
+    all('[data-role="comparison-period"],[data-tooltip-comparison-period]', shell)
+  ).filter(visible);
+  const singlePeriodTooltipShells = tooltipShells.filter((shell) => {
+    const owner = shell.closest && shell.closest("[data-tooltip-comparison-mode]");
+    return owner && owner.getAttribute("data-tooltip-comparison-mode") === "single_period";
+  });
+  const singlePeriodHasComparisonChrome = singlePeriodTooltipShells.some((shell) =>
+    all('[data-role="comparison-period"],[data-role="tooltip-vs"],[data-role="tooltip-current"]', shell)
+      .some(visible)
+  );
   const horizontalContract = input.render_contract.horizontal_rank;
   const stableGutterRequired = horizontalContract.scroll === true &&
     horizontalContract.stable_scrollbar_gutter === true;
@@ -639,20 +822,32 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
     objects_not_clipped_or_paint_overflow: objectRows.every((row) => row.viewport_contained && row.paint_inside),
     kpi_surface_contract: kpiRows.every((row) => row.border_none && row.radius_px === 0 &&
       row.outline_none && row.shadow_none && row.background_transparent),
+    kpi_content_visibility_contract: kpiRows.every((row) =>
+      !row.strict_contract || (
+        row.value_marker_found && row.value_visible && row.value_nonempty && row.value_inside &&
+        row.height_px >= input.render_contract.kpi.min_height_px - 1 &&
+        row.height_px <= input.render_contract.kpi.max_height_px + 1
+      )),
     legend_typography_consistent: legendTypography.length <= 1 && legendTypography.every((value) =>
       value === `${expectedLegend.font_size_px}/${expectedLegend.line_height_px}`),
     selector_interaction_layout_contract: applyControls.length === 0 &&
       selectorChecks.every((row) => row.label_left && row.immediate) &&
       selectorRowChecks.every((row) => row.within_max_width &&
         Math.abs(row.height_px - expectedSelector.row_height_px) <= 1),
+    selector_order_row_contract: selectorOrderMatches && periodFirstMatches &&
+      (!expectedSelector.single_row || selectorsSingleRow) &&
+      configuredSelectorHeightsMatch &&
+      selectorAggregateWidthMatches,
     comparison_context_cardinality: comparisonContextMatches,
     comparison_context_placement: comparisonPlacementMatches,
     tooltip_owner_shell_cardinality: tooltipMatches,
+    tooltip_comparison_mode_contract: tooltipComparisonModeMatches &&
+      !singlePeriodHasComparisonChrome,
     stable_scrollbar_gutter: stableGutterMatches,
     no_redundant_row_title_tooltips: redundantRowTitles.length === 0
   };
   return {
-    schema_version: "datalens.browser-qa-result.v1",
+    schema_version: "datalens.browser-qa-result.v2",
     viewport: {width: window.innerWidth, height: window.innerHeight},
     passed: Object.values(assertions).every(Boolean),
     assertions,
@@ -664,6 +859,19 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
       legend_typography: legendTypography,
       selector_checks: selectorChecks,
       selector_row_checks: selectorRowChecks,
+      selector_order_row_contract: {
+        configured_order: configuredSelectorOrder,
+        actual_order: actualSelectorOrder,
+        order_matches: selectorOrderMatches,
+        period_first_matches: periodFirstMatches,
+        single_row: selectorsSingleRow,
+        configured_heights_match: configuredSelectorHeightsMatch,
+        configured_heights_px: configuredSelectorDomOrder.map((item) => item.height),
+        container_width_px: selectorContainerBox ? selectorContainerBox.width : null,
+        aggregate_width_percent: selectorGroupWidthPercent,
+        target_width_percent: expectedSelector.row_target_width_percent,
+        width_tolerance_percent: expectedSelector.row_width_tolerance_percent
+      },
       comparison_context_resolution: useExactComparisonContextIds ? "exact_object_ids" : "dom_class_fallback",
       comparison_context_rows: exactComparisonContextRows,
       comparison_context_count: useExactComparisonContextIds
@@ -685,6 +893,9 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
       tooltip_shell_count: tooltipShells.length,
       tooltip_owner_count: tooltipOwners.length,
       tooltip_surface_rows: tooltipSurfaceRows,
+      tooltip_comparison_rows: tooltipComparisonRows,
+      visible_comparison_period_node_count: visibleComparisonPeriodNodes.length,
+      single_period_has_comparison_chrome: singlePeriodHasComparisonChrome,
       stable_scrollbar_gutter_required: stableGutterRequired,
       horizontal_scroll_object_ids: scrollObjectIds,
       horizontal_scroll_rows: horizontalScrollRows,
@@ -725,6 +936,21 @@ def _normalize_browser_render_contract(render_contract: dict[str, Any]) -> dict[
         if isinstance(effective_tokens.get("selector"), dict)
         else {}
     )
+    kpi = (
+        effective_tokens.get("kpi")
+        if isinstance(effective_tokens.get("kpi"), dict)
+        else {}
+    )
+    kpi_layout = (
+        kpi.get("layout")
+        if isinstance(kpi.get("layout"), dict)
+        else {}
+    )
+    tooltip = (
+        effective_tokens.get("tooltip")
+        if isinstance(effective_tokens.get("tooltip"), dict)
+        else {}
+    )
     horizontal_rank = (
         effective_tokens.get("horizontal_rank")
         if isinstance(effective_tokens.get("horizontal_rank"), dict)
@@ -737,6 +963,22 @@ def _normalize_browser_render_contract(render_contract: dict[str, Any]) -> dict[
             "outline": "none",
             "shadow": "none",
             "background": "transparent",
+            "value_marker": str(
+                (
+                    kpi.get("content")
+                    if isinstance(kpi.get("content"), dict)
+                    else {}
+                ).get("value_marker")
+                or "kpi-value"
+            ),
+            "min_height_px": _positive_number(
+                kpi_layout.get("min_height_px"),
+                default=88,
+            ),
+            "max_height_px": _positive_number(
+                kpi_layout.get("max_height_px"),
+                default=112,
+            ),
         },
         "legend": {
             "font_size_px": _positive_number(
@@ -756,6 +998,16 @@ def _normalize_browser_render_contract(render_contract: dict[str, Any]) -> dict[
             "row_width": "bounded",
             "max_row_width_percent": 94,
             "row_height_px": _positive_number(selector.get("row_height_px"), default=44),
+            "period_first_if_present": selector.get("period_first_if_present") is not False,
+            "single_row": selector.get("single_row") is not False,
+            "row_target_width_percent": _positive_number(
+                selector.get("row_target_width_percent"),
+                default=95,
+            ),
+            "row_width_tolerance_percent": _positive_number(
+                selector.get("row_width_tolerance_percent"),
+                default=1,
+            ),
         },
         "tooltip": {
             "max_visible_shells": 1,
@@ -765,6 +1017,10 @@ def _normalize_browser_render_contract(render_contract: dict[str, Any]) -> dict[
             "outline": "none",
             "shadow": "none",
             "redundant_row_title": False,
+            "comparison_adaptive": tooltip.get("comparison_adaptive") is not False,
+            "period_value_source": str(
+                tooltip.get("period_value_source") or "normalized"
+            ),
         },
         "horizontal_rank": {
             "scroll": horizontal_rank.get("scroll") is True,
@@ -780,21 +1036,48 @@ def _normalize_browser_render_contract(render_contract: dict[str, Any]) -> dict[
 
 def _normalize_selector_contracts(selector_contracts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     normalized: list[dict[str, Any]] = []
+    seen: set[str] = set()
     for item in selector_contracts:
         if not isinstance(item, dict):
             continue
         selector_id = str(item.get("selector_id") or item.get("id") or "").strip()
-        if not selector_id:
+        if not selector_id or selector_id in seen:
             continue
+        seen.add(selector_id)
+        family = str(item.get("family") or "").strip()
+        requested_role = str(item.get("role") or "").strip().lower()
+        role = (
+            "period"
+            if requested_role == "period" or family == "date_range_selector"
+            else ""
+        )
         normalized.append(
             {
                 "selector_id": selector_id,
                 "label": str(item.get("label") or "").strip(),
+                "family": family,
+                "role": role,
+                "ordinal": len(normalized),
                 "interaction": "immediate",
                 "apply_control": False,
             }
         )
-    return sorted(normalized, key=lambda item: (item["selector_id"], item["label"]))
+    return normalized
+
+
+def _normalize_tooltip_comparison_modes(values: dict[str, str]) -> dict[str, str]:
+    normalized: dict[str, str] = {}
+    for object_id, raw_mode in values.items():
+        key = str(object_id or "").strip()
+        mode = str(raw_mode or "").strip().lower()
+        if not key:
+            continue
+        if mode not in {"single_period", "comparison"}:
+            raise ValueError(
+                "tooltip comparison mode must be single_period or comparison"
+            )
+        normalized[key] = mode
+    return dict(sorted(normalized.items()))
 
 
 def _normalized_string_list(values: list[str]) -> list[str]:

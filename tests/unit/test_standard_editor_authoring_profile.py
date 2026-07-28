@@ -24,7 +24,7 @@ from datalens_dev_mcp.runtime_resources import RESOURCE_OVERRIDE_ENV, resource_j
 
 
 PROFILE_ID = "standard_editor_v1"
-TEMPLATE_SET_SHA256 = "f1b2848350bc9dc0119149a50fdeb41bbd79faf0adee376f9ca5ab4f79bb4ed9"
+TEMPLATE_SET_SHA256 = "0f52998c57443651845ab73718df1669d01c5b5e87d10e0bf6bd29d6ee4cd4d4"
 
 
 class StandardEditorAuthoringProfileTests(unittest.TestCase):

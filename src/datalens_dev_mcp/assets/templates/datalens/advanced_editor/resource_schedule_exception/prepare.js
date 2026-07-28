@@ -101,7 +101,10 @@ const limits = {
 };
 const timezone = String(paramValue('timezone', '')).trim();
 const asOf = strictTimestamp(paramValue('as_of', ''));
-const ignoredStatuses = new Set(paramList('ignored_conflict_statuses', ['cancelled', 'canceled']));
+const ignoredStatuses = new Set(paramList(
+  'ignored_conflict_statuses',
+  ['cancelled', 'canceled', 'rejected', 'declined'],
+));
 const doneStatuses = new Set(paramList('done_statuses', ['done', 'completed', 'closed']));
 const allowHttpLinks = paramBoolean('allow_http_links', false);
 const sourceRows = normalizeRows('rows');
@@ -141,7 +144,7 @@ function buildModel() {
       statusKey: status.toLowerCase(),
       startAt: start.text, endAt: end.text,
       startMs: start.milliseconds, endMs: end.milliseconds,
-      owner: String(row.owner || ''), href,
+      owner: String(row.owner || ''), comment: String(row.comment || '').trim(), href,
       conflict: false, lane: 0,
       anomaly: doneStatuses.has(status.toLowerCase()) && start.milliseconds > asOf.milliseconds ? 'completed_after_as_of' : '',
     });
@@ -244,6 +247,38 @@ module.exports = {
       }
       const start = data.timeRange.startMs;
       const span = Math.max(1, data.timeRange.endMs - start);
+      const resourceColumnWidth = compact ? 116 : 168;
+      const timelineWidth = Math.max(
+        compact ? 520 : 680,
+        Math.ceil(Math.max(1, data.timeRange.spanDays) * (compact ? 54 : 64)),
+      );
+      const totalWidth = resourceColumnWidth + timelineWidth;
+      const dateFormatter = new Intl.DateTimeFormat('en-GB', {
+        timeZone: data.timezone,
+        day: '2-digit',
+        month: 'short',
+      });
+      const tickStart = Math.floor(start / 86400000) * 86400000;
+      const dateTicks = [];
+      for (let tick = tickStart; tick <= data.timeRange.endMs; tick += 86400000) {
+        if (tick < start) continue;
+        const left = ((tick - start) / span) * 100;
+        dateTicks.push(
+          `<span data-date-ms="${tick}" style="position:absolute;left:${left}%;top:0;` +
+          `transform:translateX(-50%);white-space:nowrap;">${esc(dateFormatter.format(tick))}</span>`,
+        );
+      }
+      const dateHeader = (
+        `<div data-role="schedule-date-header" style="position:sticky;top:0;z-index:6;` +
+        `display:grid;grid-template-columns:${resourceColumnWidth}px ${timelineWidth}px;` +
+        `width:${totalWidth}px;background:${style.colors.surface};` +
+        `border-bottom:1px solid ${style.colors.border};font-size:${compact ? 10 : 11}px;` +
+        `color:${style.colors.textMuted};">` +
+        `<div data-role="schedule-resource-column" style="position:sticky;left:0;z-index:7;` +
+        `padding:5px 8px;background:${style.colors.surface};font-weight:700;">Resource</div>` +
+        `<div style="position:relative;height:${dense ? 24 : 28}px;">${dateTicks.join('')}</div>` +
+        `</div>`
+      );
       const resourceHtml = data.resources.map((resource) => {
         const laneHeight = dense ? 28 : 32;
         const items = resource.items.map((item) => {
@@ -254,14 +289,13 @@ module.exports = {
           const label = `<b>${esc(item.itemId)}</b><span style="margin-left:5px;">${esc(stateText)}</span>`;
           const safeLink = safeHref(item.href, data.allowHttpLinks);
           const content = safeLink ? `<a href="${safeHref(item.href, data.allowHttpLinks)}" style="color:inherit;text-decoration:underline;">${label}</a>` : `<span>${label}</span>`;
-          return `<div data-state="${esc(stateText)}" title="${esc(item.itemId)} · ${esc(stateText)}" style="position:absolute;box-sizing:border-box;left:${left}%;width:${itemWidth}%;top:${item.lane * laneHeight}px;height:${dense ? 22 : 26}px;padding:${dense ? 3 : 5}px ${compact ? 4 : 7}px;border:1px solid ${color};border-left-width:${compact ? 2 : 4}px;border-radius:4px;background:${style.colors.surfaceMuted};color:${style.colors.text};overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${dense || compact ? 10 : 11}px;">${content}</div>`;
+          const tooltipParts = [item.itemId, stateText, `${item.startAt} — ${item.endAt}`];
+          if (item.comment) tooltipParts.push(item.comment);
+          return `<div data-role="schedule-item" data-state="${esc(stateText)}" data-start-ms="${item.startMs}" data-end-ms="${item.endMs}" data-left-percent="${left}" data-tooltip-comment="${item.comment ? 'true' : 'false'}" title="${esc(tooltipParts.join(' · '))}" style="position:absolute;box-sizing:border-box;left:${left}%;width:${itemWidth}%;top:${item.lane * laneHeight}px;height:${dense ? 22 : 26}px;padding:${dense ? 3 : 5}px ${compact ? 4 : 7}px;border:1px solid ${color};border-left-width:${compact ? 2 : 4}px;border-radius:4px;background:${style.colors.surfaceMuted};color:${style.colors.text};overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${dense || compact ? 10 : 11}px;">${content}</div>`;
         }).join('');
-        const rowLayout = compact
-          ? 'grid-template-columns:1fr;grid-template-rows:auto auto;'
-          : 'grid-template-columns:minmax(0,0.24fr) minmax(0,0.76fr);grid-template-rows:1fr;';
-        return `<div style="display:grid;${rowLayout}border-top:1px solid ${style.colors.border};"><div style="padding:${compact ? 5 : 8}px;background:${style.colors.surface};color:${style.colors.text};font-size:${compact ? 11 : 12}px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;">${esc(resource.name)}</div><div style="position:relative;min-width:0;min-height:${Math.max(1, resource.laneCount) * laneHeight}px;">${items}</div></div>`;
+        return `<div style="display:grid;grid-template-columns:${resourceColumnWidth}px ${timelineWidth}px;width:${totalWidth}px;border-top:1px solid ${style.colors.border};"><div data-role="schedule-resource-column" style="position:sticky;left:0;z-index:4;padding:${compact ? 5 : 8}px;background:${style.colors.surface};color:${style.colors.text};font-size:${compact ? 11 : 12}px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;">${esc(resource.name)}</div><div style="position:relative;min-width:0;min-height:${Math.max(1, resource.laneCount) * laneHeight}px;">${items}</div></div>`;
       }).join('');
-      return Editor.generateHtml(`<div style="box-sizing:border-box;width:100%;height:100%;padding:${compact ? 6 : 10}px ${compact ? 6 : 12}px;background:${style.colors.surface};font-family:Inter,Arial,sans-serif;overflow-x:hidden;overflow-y:auto;"><div style="position:sticky;top:0;z-index:3;padding:4px 0 ${dense ? 5 : 8}px;background:${style.colors.surface};color:${style.colors.textMuted};font-size:${compact ? 10 : 11}px;">${esc(data.timezone)} · ${esc(data.asOf)} · CONFLICTS ${data.counts.conflicts}</div>${resourceHtml || `<div style="color:${style.colors.textSubtle};">NO SCHEDULE DATA</div>`}</div>`);
+      return Editor.generateHtml(`<div data-role="resource-schedule" data-date-math="epoch-milliseconds" style="box-sizing:border-box;width:100%;height:100%;padding:${compact ? 6 : 10}px ${compact ? 6 : 12}px;background:${style.colors.surface};font-family:Inter,Arial,sans-serif;overflow:auto;">${dateHeader}${resourceHtml || `<div style="color:${style.colors.textSubtle};">NO SCHEDULE DATA</div>`}</div>`);
     },
   }),
 };

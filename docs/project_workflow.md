@@ -68,7 +68,9 @@ files и никогда не перезапускает исходную ком�
 `requirements/user_decisions.md`. Необязательный `decision_patch` добавляет
 машиночитаемую запись в `requirements/user_decisions.v2.json` со scope
 `project`, `family` или `object`, изменениями metric semantics/Visual Spec,
-семантическими ролями и `supersedes`.
+семантическими ролями, `acceptance_criteria` и `supersedes`. Каждая коррекция
+из пользовательского или browser review записывается один раз как критерий
+приёмки и остаётся hash-bound до генерации и Safe Apply.
 
 Активные решения применяются детерминированно в порядке
 project → family → object. Генерация записывает hash ledger в chart decision,

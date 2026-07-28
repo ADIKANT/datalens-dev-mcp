@@ -12,6 +12,12 @@ The template assigns lanes deterministically after sorting by resource, start,
 end, and item id. Intervals overlap only when `next.start < current.end`; adjacent
 intervals do not conflict. Ignored statuses are excluded from conflict marking.
 Conflict and anomaly states are rendered with text as well as color.
+The date header stays pinned during vertical scrolling, the resource column stays
+pinned during horizontal scrolling, and interval positions use epoch-millisecond
+geometry. Optional source `comment` values are included in the interval tooltip.
+The header does not repeat interval, conflict, or data-quality counters. Rejected
+or localized non-active statuses must be declared in `ignored_conflict_statuses`;
+the defaults cover `cancelled`, `canceled`, `rejected`, and `declined`.
 
 The Advanced renderer fails closed to a `table_node` fallback model if timestamps
 are invalid or if row, resource, lane, span, or serialized-model caps are exceeded.

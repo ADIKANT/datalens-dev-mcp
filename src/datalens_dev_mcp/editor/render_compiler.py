@@ -9,7 +9,7 @@ from typing import Any
 from datalens_dev_mcp.editor.render_contract import render_contract_to_dict
 
 
-RENDER_COMPILER_VERSION = "2026-07-28.resolved_render_contract.v1"
+RENDER_COMPILER_VERSION = "2026-07-28.resolved_render_contract.v2"
 _HTML_ROUTES = {"editor_advanced"}
 _NATIVE_TABLE_ROUTES = {"editor_table"}
 _MARKER_ROUTES = {"editor_markdown"}
@@ -57,7 +57,11 @@ def compile_bundle_render_contract(
             raise RenderContractCompileError(
                 "HTML render profile requires at least one Editor.generateHtml call"
             )
-        helper = _runtime_contract_helper(contract)
+        tooltip_context = _strict_tooltip_context(compiled)
+        helper = _runtime_contract_helper(
+            contract,
+            tooltip_context=tooltip_context,
+        )
         transformed = prepare.replace(
             "Editor.generateHtml(",
             "__dlGenerateProfileHtml(options, ",
@@ -120,10 +124,11 @@ def compile_bundle_render_contract(
             "render_transformed_call_count": transformed_call_count,
             "postcompile_invariants": {
                 "kpi_surface": "transparent_no_border_radius_outline_shadow",
+                "kpi_content": "visible_marked_value_compact_height",
                 "legend_typography": "single_profile_token",
-                "selector": "left_immediate_max_94",
+                "selector": "period_first_single_row_target_95_left_immediate_max_94",
                 "comparison_context": "exactly_one_when_enabled",
-                "tooltip": "native_owner_no_redundant_row_title",
+                "tooltip": "normalized_period_comparison_adaptive_native_owner",
             },
         }
     )
@@ -169,6 +174,10 @@ def validate_compiled_render_contract(bundle: dict[str, Any]) -> dict[str, Any]:
             issues.append("unwrapped_editor_generate_html_call")
         if 'data-component="${componentKind}"' not in prepare:
             issues.append("runtime_component_marker_missing")
+        if 'data-tooltip-comparison-mode="${tooltipComparisonMode}"' not in prepare:
+            issues.append("runtime_tooltip_comparison_mode_marker_missing")
+        if 'data-tooltip-period-source="${tooltipPeriodSource}"' not in prepare:
+            issues.append("runtime_tooltip_period_source_marker_missing")
         effective_tokens = (
             contract.get("effective_tokens")
             if isinstance(contract.get("effective_tokens"), dict)
@@ -223,6 +232,7 @@ def validate_compiled_render_contract(bundle: dict[str, Any]) -> dict[str, Any]:
     if str(bundle.get("family") or "").startswith("kpi_"):
         for token in (
             'data-role="kpi"',
+            'data-role="kpi-value"',
             "border:0",
             "border-radius:0",
             "outline:none",
@@ -240,7 +250,11 @@ def validate_compiled_render_contract(bundle: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _runtime_contract_helper(contract: dict[str, Any]) -> str:
+def _runtime_contract_helper(
+    contract: dict[str, Any],
+    *,
+    tooltip_context: dict[str, str],
+) -> str:
     encoded = json.dumps(
         contract,
         ensure_ascii=False,
@@ -248,8 +262,15 @@ def _runtime_contract_helper(contract: dict[str, Any]) -> str:
         sort_keys=True,
     )
     marker = _contract_marker(contract)
+    encoded_context = json.dumps(
+        tooltip_context,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
     return f"""{marker}
 const __DL_RENDER_CONTRACT = Object.freeze({encoded});
+const __DL_RENDER_CONTEXT = Object.freeze({encoded_context});
 function __dlGenerateProfileHtml(options, html) {{
   const contract = __DL_RENDER_CONTRACT.effective_tokens || {{}};
   const typography = contract.typography || {{}};
@@ -261,6 +282,8 @@ function __dlGenerateProfileHtml(options, html) {{
   const componentKind = String(component.kind || 'generic_chart')
     .replace(/[^a-z0-9_-]/gi, '') || 'generic_chart';
   const contractFamily = String(__DL_RENDER_CONTRACT.family || '');
+  const tooltipComparisonMode = String(__DL_RENDER_CONTEXT.tooltip_comparison_mode || '');
+  const tooltipPeriodSource = String(__DL_RENDER_CONTEXT.tooltip_period_source || '');
   const width = Number(options && options.width);
   const compact = density.mode === 'compact' ||
     (density.mode !== 'comfortable' && Number.isFinite(width) &&
@@ -367,6 +390,10 @@ function __dlGenerateProfileHtml(options, html) {{
   if (component.kind === 'metric_tile') {{
     const inset = kpi.padding_px || {{}};
     output = output.replace(
+      /<div (style="font-size:\\d+(?:\\.\\d+)?px;line-height:\\d+(?:\\.\\d+)?px;font-weight:\\d+;?")>/,
+      '<div data-role="kpi-value" $1>',
+    );
+    output = output.replace(
       /box-sizing:border-box;width:100%;height:100%;padding:[^;]+;background:[^;]+;/,
       (
         'box-sizing:border-box;width:100%;height:100%;padding:0;' +
@@ -377,6 +404,8 @@ function __dlGenerateProfileHtml(options, html) {{
     output = (
       `<div data-role="kpi" data-component="${{componentKind}}" ` +
       `data-render-contract="${{__DL_RENDER_CONTRACT.composite_sha256}}" ` +
+      `data-tooltip-comparison-mode="${{tooltipComparisonMode}}" ` +
+      `data-tooltip-period-source="${{tooltipPeriodSource}}" ` +
       'style="box-sizing:border-box;width:100%;height:100%;' +
       `padding:${{Number(inset.top || 0)}}px ${{Number(inset.right || 0)}}px ` +
       `${{Number(inset.bottom || 0)}}px ${{Number(inset.left || 0)}}px;` +
@@ -387,6 +416,8 @@ function __dlGenerateProfileHtml(options, html) {{
     output = (
       `<div data-component="${{componentKind}}" ` +
       `data-render-contract="${{__DL_RENDER_CONTRACT.composite_sha256}}" ` +
+      `data-tooltip-comparison-mode="${{tooltipComparisonMode}}" ` +
+      `data-tooltip-period-source="${{tooltipPeriodSource}}" ` +
       'style="box-sizing:border-box;width:100%;height:100%;' +
       'border:0;outline:none;box-shadow:none;background:transparent;' +
       `${{wrapperOverflow}}">${{output}}</div>`
@@ -394,6 +425,33 @@ function __dlGenerateProfileHtml(options, html) {{
   }}
   return Editor.generateHtml(output);
 }}"""
+
+
+def _strict_tooltip_context(bundle: dict[str, Any]) -> dict[str, str]:
+    visual_spec = (
+        bundle.get("renderer_visual_spec")
+        if isinstance(bundle.get("renderer_visual_spec"), dict)
+        else {}
+    )
+    tooltip = (
+        visual_spec.get("tooltip")
+        if isinstance(visual_spec.get("tooltip"), dict)
+        else {}
+    )
+    mode = str(tooltip.get("comparison_mode") or "")
+    period_source = str(tooltip.get("period_value_source") or "")
+    if mode not in {"single_period", "comparison"}:
+        raise RenderContractCompileError(
+            "strict tooltip contract requires comparison_mode=single_period or comparison"
+        )
+    if period_source != "normalized":
+        raise RenderContractCompileError(
+            "strict tooltip contract requires period_value_source=normalized"
+        )
+    return {
+        "tooltip_comparison_mode": mode,
+        "tooltip_period_source": period_source,
+    }
 
 
 def _native_contract_preamble(contract: dict[str, Any]) -> str:

@@ -124,6 +124,16 @@
               "line_height_px": 38
             },
             "font_weight": 750
+          },
+          "content": {
+            "value_marker": "kpi-value",
+            "value_required": true,
+            "value_must_be_visible": true
+          },
+          "layout": {
+            "min_height_px": 88,
+            "preferred_height_px": 96,
+            "max_height_px": 112
           }
         },
         "selector": {
@@ -132,7 +142,11 @@
           "control_max_width_percent": 94,
           "row_height_px": 44,
           "label_placement": "left",
-          "blank_multiselect_semantics": "all"
+          "blank_multiselect_semantics": "all",
+          "period_first_if_present": true,
+          "single_row": true,
+          "row_target_width_percent": 95,
+          "row_width_tolerance_percent": 1
         },
         "comparison_context": {
           "required_when_comparison_enabled": true,
@@ -164,7 +178,13 @@
             },
             "shadow": "none"
           },
-          "redundant_row_title": false
+          "redundant_row_title": false,
+          "comparison_adaptive": true,
+          "period_value_source": "normalized",
+          "show_current_label_only_when_comparison": true,
+          "show_vs_separator_only_when_comparison": true,
+          "show_comparison_period_only_when_comparison": true,
+          "empty_comparison_period_forbidden": true
         }
       },
       "adapters": {
@@ -258,7 +278,12 @@
           "tokens": {
             "component": {
               "kind": "resource_schedule",
-              "preserve_time_scale": true
+              "preserve_time_scale": true,
+              "date_math": "epoch_milliseconds",
+              "sticky_date_header": true,
+              "sticky_resource_column": true,
+              "source_comment_in_tooltip": true,
+              "summary_counters": false
             }
           }
         },
@@ -445,8 +470,8 @@
           "adapter": "selector_rows_v1"
         }
       },
-      "sha256": "dabed3024a6c8d32cf479c460aa1437b56d26b4e3f856f773e0431651efb7bbc"
+      "sha256": "bac48db837a46cb5e4d9444c78f450831e350400c0367c482f12f5ea5bf828fc"
     }
   },
-  "sha256": "325e8b4b29b634c37360ea4924f0297d43851db83af32ef5bd2dd8eb2c51dfc8"
+  "sha256": "707b7a2eb358fbab39773fb63bf06b047ae6f7e91dfd819ad116dd6095dbe634"
 }

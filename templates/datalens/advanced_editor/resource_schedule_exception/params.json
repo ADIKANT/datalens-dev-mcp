@@ -3,7 +3,7 @@
   "theme": ["light"],
   "timezone": ["Etc/UTC"],
   "as_of": ["2026-07-13T00:00:00Z"],
-  "ignored_conflict_statuses": ["cancelled", "canceled"],
+  "ignored_conflict_statuses": ["cancelled", "canceled", "rejected", "declined"],
   "done_statuses": ["done", "completed", "closed"],
   "allow_http_links": ["false"],
   "max_rows": ["1000"],

@@ -11,6 +11,7 @@
       "end_at": "2026-07-13T10:00:00Z",
       "status": "confirmed",
       "owner": "Team A",
+      "comment": "Requires projector",
       "link": "https://example.test/bookings/1"
     },
     {

@@ -22,8 +22,12 @@ def _plan():
         tab_ids=["tab-two", "tab-one"],
         expected_object_ids=["chart-two", "chart-one", "kpi-one"],
         selector_contracts=[
+            {
+                "selector_id": "selector-period",
+                "label": "Period",
+                "family": "date_range_selector",
+            },
             {"selector_id": "selector-status", "label": "Status"},
-            {"selector_id": "selector-period", "label": "Period"},
         ],
         comparison_enabled=True,
         comparison_context_object_ids=[
@@ -31,6 +35,10 @@ def _plan():
             "comparison-context-one",
             "comparison-context-one",
         ],
+        tooltip_comparison_modes={
+            "chart-one": "single_period",
+            "kpi-one": "comparison",
+        },
         render_contract={
             "legend": {"font_size_px": 12, "line_height_px": 16},
             "selector": {"row_height_px": 44},
@@ -44,6 +52,7 @@ def _execute_geometry_plan(
     comparison_top: int,
     comparison_left: int,
     include_selector: bool = True,
+    selector_height: int = 44,
 ) -> dict:
     node = shutil.which("node")
     if node is None:
@@ -52,6 +61,7 @@ def _execute_geometry_plan(
         "comparison_top": comparison_top,
         "comparison_left": comparison_left,
         "include_selector": include_selector,
+        "selector_height": selector_height,
     }
     harness = r"""
 class FakeNode {
@@ -134,7 +144,7 @@ if (__CONFIG__.include_selector) {
       "data-selector-row": ""
     },
     text: "Period",
-    box: {left: 36, top: 100, width: 1128, height: 44}
+    box: {left: 36, top: 100, width: 1128, height: __CONFIG__.selector_height}
   }));
   selector.add(new FakeNode({
     tag: "label",
@@ -159,10 +169,18 @@ body.add(new FakeNode({
 }));
 body.add(new FakeNode({
   id: "kpi-one",
-  attrs: {"data-widget-id": "kpi-one", "data-role": "kpi"},
+  attrs: {
+    "data-widget-id": "kpi-one",
+    "data-role": "kpi",
+    "data-render-contract": "synthetic"
+  },
   text: "42",
   box: {left: 36, top: 188, width: 1128, height: 96},
   style: {backgroundColor: "transparent"}
+})).add(new FakeNode({
+  attrs: {"data-role": "kpi-value"},
+  text: "42",
+  box: {left: 48, top: 200, width: 120, height: 38}
 }));
 const allNodes = [html, ...html.descendants()];
 const document = {
@@ -258,16 +276,38 @@ class BrowserQaOnePassPlanTests(unittest.TestCase):
 
         self.assertEqual(plan["render_contract"]["kpi"]["border"], "none")
         self.assertEqual(plan["render_contract"]["kpi"]["border_radius_px"], 0)
+        self.assertEqual(plan["render_contract"]["kpi"]["value_marker"], "kpi-value")
+        self.assertEqual(plan["render_contract"]["kpi"]["min_height_px"], 88)
+        self.assertEqual(plan["render_contract"]["kpi"]["max_height_px"], 112)
         self.assertEqual(plan["render_contract"]["legend"]["font_size_px"], 12)
         self.assertEqual(plan["render_contract"]["legend"]["line_height_px"], 16)
         self.assertEqual(plan["render_contract"]["selector"]["row_height_px"], 44)
         self.assertEqual(plan["render_contract"]["selector"]["row_width"], "bounded")
         self.assertEqual(plan["render_contract"]["selector"]["max_row_width_percent"], 94)
+        self.assertTrue(plan["render_contract"]["selector"]["period_first_if_present"])
+        self.assertTrue(plan["render_contract"]["selector"]["single_row"])
+        self.assertEqual(
+            plan["render_contract"]["selector"]["row_target_width_percent"],
+            95,
+        )
         self.assertTrue(plan["render_contract"]["tooltip"]["single_owner"])
         self.assertEqual(plan["render_contract"]["tooltip"]["border"], "none")
         self.assertEqual(plan["render_contract"]["tooltip"]["border_radius_px"], 0)
         self.assertEqual(plan["render_contract"]["tooltip"]["outline"], "none")
         self.assertEqual(plan["render_contract"]["tooltip"]["shadow"], "none")
+        self.assertEqual(
+            plan["render_contract"]["tooltip"]["period_value_source"],
+            "normalized",
+        )
+        self.assertEqual(
+            plan["tooltip_comparison_modes"],
+            {"chart-one": "single_period", "kpi-one": "comparison"},
+        )
+        self.assertEqual(
+            [item["selector_id"] for item in plan["selector_contracts"]],
+            ["selector-period", "selector-status"],
+        )
+        self.assertEqual(plan["selector_contracts"][0]["role"], "period")
         self.assertEqual(
             plan["comparison_context_object_ids"],
             ["comparison-context-one", "comparison-context-two"],
@@ -277,6 +317,9 @@ class BrowserQaOnePassPlanTests(unittest.TestCase):
         self.assertEqual(plan["render_contract"]["horizontal_rank"]["scroll_object_ids"], [])
         self.assertIn("widthPercent <= input.render_contract.selector.max_row_width_percent", source)
         self.assertIn("tooltipShells.length === 1 && tooltipOwners.length === 1", source)
+        self.assertIn("tooltip_comparison_mode_contract: tooltipComparisonModeMatches", source)
+        self.assertIn("row.actual_mode === row.expected_mode", source)
+        self.assertIn("!singlePeriodHasComparisonChrome", source)
         self.assertIn("const useExactComparisonContextIds = input.comparison_context_object_ids.length > 0", source)
         self.assertIn("const node = findObject(objectId)", source)
         self.assertIn("visibleNonemptyComparisonCount === 1", source)
@@ -286,6 +329,8 @@ class BrowserQaOnePassPlanTests(unittest.TestCase):
         self.assertIn("placementSelectorNodes.length > 0", source)
         self.assertIn('useExactComparisonContextIds ? "exact_object_ids" : "dom_class_fallback"', source)
         self.assertIn("row.border_none && row.radius_px === 0", source)
+        self.assertIn("row.value_marker_found && row.value_visible && row.value_nonempty", source)
+        self.assertIn("selector_order_row_contract: selectorOrderMatches", source)
         self.assertIn('all(\'[data-component="horizontal_rank"]\', scope.node)', source)
         self.assertIn('[component, ...all("*", component)]', source)
         self.assertIn("const stableGutterMatches = !stableGutterRequired ||", source)
@@ -340,7 +385,13 @@ class BrowserQaOnePassPlanTests(unittest.TestCase):
                     else ["comparison-context", "kpi-one"]
                 ),
                 selector_contracts=(
-                    [{"selector_id": "selector-period", "label": "Period"}]
+                    [
+                        {
+                            "selector_id": "selector-period",
+                            "label": "Period",
+                            "family": "date_range_selector",
+                        }
+                    ]
                     if include_selector
                     else []
                 ),
@@ -363,6 +414,12 @@ class BrowserQaOnePassPlanTests(unittest.TestCase):
             comparison_top=100,
             comparison_left=1064,
         )
+        tall_selector = _execute_geometry_plan(
+            geometry_plan(),
+            comparison_top=178,
+            comparison_left=36,
+            selector_height=70,
+        )
         no_selector = _execute_geometry_plan(
             geometry_plan(include_selector=False),
             comparison_top=152,
@@ -372,6 +429,7 @@ class BrowserQaOnePassPlanTests(unittest.TestCase):
 
         self.assertTrue(correct["passed"], correct)
         self.assertTrue(correct["assertions"]["comparison_context_placement"])
+        self.assertTrue(correct["assertions"]["selector_order_row_contract"])
         self.assertEqual(
             correct["observations"]["comparison_context_placement"][
                 "selector_to_context_gap_px"
@@ -384,6 +442,11 @@ class BrowserQaOnePassPlanTests(unittest.TestCase):
                 misplaced["assertions"]["comparison_context_placement"],
                 misplaced,
             )
+        self.assertFalse(tall_selector["passed"], tall_selector)
+        self.assertFalse(
+            tall_selector["assertions"]["selector_order_row_contract"],
+            tall_selector,
+        )
 
     def test_stable_gutter_is_required_only_for_registered_scroll_adapter(self):
         plan = build_browser_qa_plan(
@@ -437,6 +500,22 @@ class BrowserQaOnePassPlanTests(unittest.TestCase):
         validation = validate_browser_qa_plan(drift)
         self.assertFalse(validation["ok"])
         self.assertIn("comparison_context_object_ids_not_sorted_unique", validation["issues"])
+
+        selector_drift = deepcopy(plan)
+        selector_drift["selector_contracts"] = list(
+            reversed(selector_drift["selector_contracts"])
+        )
+        for index, item in enumerate(selector_drift["selector_contracts"]):
+            item["ordinal"] = index
+        selector_drift["canonical_sha256"] = browser_qa_plan_sha256(
+            selector_drift
+        )
+        selector_validation = validate_browser_qa_plan(selector_drift)
+        self.assertFalse(selector_validation["ok"])
+        self.assertIn(
+            "selector_contracts_not_bound_to_evaluate_source",
+            selector_validation["issues"],
+        )
 
     def test_comparison_context_class_fallback_is_used_only_without_exact_ids(self):
         plan = build_browser_qa_plan(

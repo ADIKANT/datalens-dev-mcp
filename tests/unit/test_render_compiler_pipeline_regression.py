@@ -19,7 +19,7 @@ from datalens_dev_mcp.runtime_resources import resource_json
 
 PROFILE_V1 = "standard_editor_v1"
 PROFILE_V2 = "standard_editor_v2"
-TEMPLATE_SET_SHA256 = "f1b2848350bc9dc0119149a50fdeb41bbd79faf0adee376f9ca5ab4f79bb4ed9"
+TEMPLATE_SET_SHA256 = "0f52998c57443651845ab73718df1669d01c5b5e87d10e0bf6bd29d6ee4cd4d4"
 FAMILY_V1_TAB_HASHES = {
     "kpi_value_only": "9fcd6b5e01d9f07ac79f1c7ceb1be7d74a5d378b8953b72fa846b96585c40020",
     "line_chart": "24c757666f409da7e57a8a35a9b252b1ca5cfdc9c376d7a344e04ef34396e92e",
@@ -183,6 +183,14 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
                         prepare,
                     )
                     self.assertIn("__dlGenerateProfileHtml(options, ", prepare)
+                    self.assertIn(
+                        '"tooltip_comparison_mode":"single_period"',
+                        prepare,
+                    )
+                    self.assertIn(
+                        '"tooltip_period_source":"normalized"',
+                        prepare,
+                    )
                     self.assertEqual(
                         _tabs_sha256(generated["tabs"]),
                         generated["template_provenance"]["compiled_tabs_sha256"],
@@ -425,6 +433,15 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
         if family == "kpi_value_only":
             for html in (compact_html, comfortable_html):
                 self.assertIn('data-role="kpi"', html)
+                self.assertIn('data-role="kpi-value"', html)
+                self.assertIn(
+                    'data-tooltip-comparison-mode="single_period"',
+                    html,
+                )
+                self.assertIn(
+                    'data-tooltip-period-source="normalized"',
+                    html,
+                )
                 self.assertIn("padding:11px 11px 7px 11px", html)
                 self.assertIn("border:0", html)
                 self.assertIn("border-radius:0", html)

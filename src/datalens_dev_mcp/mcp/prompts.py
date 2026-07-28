@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 CORE_DIRECTIVE = (
-    "Core: object route before chart; templates-first; no removed chart routes; Wizard path is separate; "
-    "use the standard registry; obey Advanced Editor and never invent methods; "
-    "use VisualDecisionEngine, RendererVisualSpec, and negative requirements; "
-    "use strict_dashboard for registered Editor families; persistent Markdown requirements; "
-    "delivery intent before writes; one fresh scoped baseline; batch generation with artifact summaries; "
+    "Core: route object first; templates-first; keep routes; Wizard separate; registry-only Editor, no invented methods; "
+    "governed decisions/specs/negative requirements; strict_dashboard; persistent requirements; "
+    "hash-bind each user/browser correction once as scoped acceptance_criteria; "
+    "honor delivery intent; one fresh baseline, one batch generation, artifact summaries; "
     "clear blockers; no legacy cache sync. "
 )
 

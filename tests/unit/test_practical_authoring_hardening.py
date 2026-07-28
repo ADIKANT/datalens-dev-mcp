@@ -213,6 +213,7 @@ class PracticalAuthoringHardeningTests(unittest.TestCase):
                 "2026-10-25T01:30:00+02:00",
                 "2026-10-25T02:30:00+02:00",
                 link="https://example.test/a",
+                comment="Needs accessibility support",
             ),
             self._schedule_row(
                 "r1",
@@ -245,11 +246,63 @@ class PracticalAuthoringHardeningTests(unittest.TestCase):
         self.assertNotIn("javascript:", result["html"])
         self.assertIn("<b>b</b>", result["html"])
         self.assertNotIn('href=""', result["html"])
+        self.assertIn("Needs accessibility support", result["html"])
+        self.assertIn('data-tooltip-comment="true"', result["html"])
+        self.assertIn('data-role="schedule-date-header"', result["html"])
+        self.assertIn('data-role="schedule-resource-column"', result["html"])
+        self.assertIn('data-date-math="epoch-milliseconds"', result["html"])
+        self.assertNotIn("CONFLICTS", result["html"])
 
         http_rows = [self._schedule_row("r", "R", "http", "2026-07-13T08:00:00Z", "2026-07-13T09:00:00Z", link="http://example.test/item")]
         http_params = {**params, "allow_http_links": True}
         http = self._schedule_cases({"http": {"params": http_params, "rows": http_rows}})["http"]
         self.assertIn('href="http://example.test/item"', http["html"])
+
+    def test_schedule_epoch_geometry_and_ignored_rejected_status_are_explicit(self):
+        params = self._schedule_params()
+        rows = [
+            self._schedule_row(
+                "r",
+                "R",
+                "active",
+                "2026-07-13T00:00:00Z",
+                "2026-07-14T00:00:00Z",
+                comment="Visible source note",
+            ),
+            self._schedule_row(
+                "r",
+                "R",
+                "rejected",
+                "2026-07-13T12:00:00Z",
+                "2026-07-14T12:00:00Z",
+                status="rejected",
+            ),
+            self._schedule_row(
+                "r",
+                "R",
+                "tail",
+                "2026-07-14T00:00:00Z",
+                "2026-07-15T00:00:00Z",
+            ),
+        ]
+
+        result = self._schedule_cases(
+            {"geometry": {"params": params, "rows": rows}}
+        )["geometry"]
+        items = result["model"]["resources"][0]["items"]
+        expected_start_ms = int(
+            datetime(2026, 7, 13, tzinfo=timezone.utc).timestamp() * 1000
+        )
+
+        self.assertEqual([item["conflict"] for item in items], [False, False, False])
+        self.assertEqual(items[0]["startMs"], expected_start_ms)
+        self.assertIn(
+            f'data-start-ms="{expected_start_ms}"',
+            result["html"],
+        )
+        self.assertIn('data-left-percent="0"', result["html"])
+        self.assertIn("Visible source note", result["html"])
+        self.assertNotIn("CONFLICTS", result["html"])
 
     def test_schedule_exact_default_caps_and_fail_closed_cases(self):
         params = self._schedule_params()
@@ -453,7 +506,17 @@ console.log(JSON.stringify(output));
         return json.loads(result.stdout)
 
     @staticmethod
-    def _schedule_row(resource_id, resource_name, item_id, start_at, end_at, *, status="confirmed", link=""):
+    def _schedule_row(
+        resource_id,
+        resource_name,
+        item_id,
+        start_at,
+        end_at,
+        *,
+        status="confirmed",
+        link="",
+        comment="",
+    ):
         return {
             "resource_id": resource_id,
             "resource_name": resource_name,
@@ -462,6 +525,7 @@ console.log(JSON.stringify(output));
             "end_at": end_at,
             "status": status,
             "owner": "owner",
+            "comment": comment,
             "link": link,
         }
 

@@ -1045,6 +1045,9 @@ def dl_generate_editor_bundle(
                     "label": str(
                         (bundle.get("selector_contract") or {}).get("label") or ""
                     ),
+                    "family": str(
+                        (bundle.get("selector_contract") or {}).get("family") or ""
+                    ),
                 }
             ]
             if isinstance(bundle.get("selector_contract"), dict)
@@ -1053,6 +1056,20 @@ def dl_generate_editor_bundle(
             comparison_enabled=_render_comparison_enabled(
                 decision_record,
                 family=requested_family,
+            ),
+            tooltip_comparison_modes=(
+                {
+                    widget_id: (
+                        "comparison"
+                        if _render_comparison_enabled(
+                            decision_record,
+                            family=requested_family,
+                        )
+                        else "single_period"
+                    )
+                }
+                if selected_route == "editor_advanced"
+                else {}
             ),
             render_contract=resolved_render_contract,
             artifact_stem=widget_id,
@@ -1355,6 +1372,7 @@ def _write_bundle_browser_qa_plan(
     selector_contracts: list[dict[str, Any]],
     comparison_enabled: bool,
     comparison_context_object_ids: list[str] | None = None,
+    tooltip_comparison_modes: dict[str, str] | None = None,
     render_contract: dict[str, Any],
     artifact_stem: str,
 ) -> dict[str, Any]:
@@ -1370,6 +1388,7 @@ def _write_bundle_browser_qa_plan(
         selector_contracts=selector_contracts,
         comparison_enabled=comparison_enabled,
         comparison_context_object_ids=comparison_context_object_ids or [],
+        tooltip_comparison_modes=tooltip_comparison_modes or {},
         render_contract=browser_render_contract,
     )
     validation = validate_browser_qa_plan(plan)
@@ -1481,6 +1500,13 @@ def _generate_editor_bundle_batch(
             item["comparison_context"] = context
             normalized_contexts.append((item["widget_id"], context))
     if strict_render_profile:
+        if (
+            "date_range_selector" in ordered_families
+            and ordered_families[0] != "date_range_selector"
+        ):
+            raise ValueError(
+                "strict dashboards require date_range_selector as the first chart_spec when present"
+            )
         if comparison_required and len(normalized_contexts) != 1:
             raise ValueError(
                 "strict comparison dashboards require exactly one md_methodology_block "
@@ -1608,6 +1634,7 @@ def _generate_editor_bundle_batch(
     browser_contract_rows: list[tuple[str, dict[str, Any]]] = []
     combined_selectors: list[dict[str, Any]] = []
     combined_comparison_context_ids: list[str] = []
+    combined_tooltip_modes: dict[str, str] = {}
     combined_comparison = False
     for spec, result in zip(normalized, results, strict=True):
         if not result["ok"]:
@@ -1618,6 +1645,12 @@ def _generate_editor_bundle_batch(
                 {
                     "selector_id": result["widget_id"],
                     "label": str(selector.get("label") or ""),
+                    "family": str(
+                        selector.get("family")
+                        or result.get("family")
+                        or spec.get("family")
+                        or ""
+                    ),
                 }
             )
         path = Path(str(result.get("bundle_path") or ""))
@@ -1643,6 +1676,15 @@ def _generate_editor_bundle_batch(
         combined_comparison = combined_comparison or bool(
             comparison.get("enabled") or comparison.get("block_count")
         )
+        if str(persisted.get("route") or "") == "editor_advanced":
+            tooltip = (
+                visual_spec.get("tooltip")
+                if isinstance(visual_spec.get("tooltip"), dict)
+                else {}
+            )
+            tooltip_mode = str(tooltip.get("comparison_mode") or "")
+            if tooltip_mode in {"single_period", "comparison"}:
+                combined_tooltip_modes[result["widget_id"]] = tooltip_mode
     browser_contract_aggregation = _aggregate_batch_browser_render_contract(
         browser_contract_rows
     )
@@ -1653,6 +1695,7 @@ def _generate_editor_bundle_batch(
         selector_contracts=combined_selectors,
         comparison_enabled=combined_comparison,
         comparison_context_object_ids=combined_comparison_context_ids,
+        tooltip_comparison_modes=combined_tooltip_modes,
         render_contract=combined_contract,
         artifact_stem="dashboard_batch",
     ) if ready_count and browser_contract_aggregation["ok"] else {}
