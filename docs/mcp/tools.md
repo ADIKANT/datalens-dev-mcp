@@ -59,7 +59,7 @@
 
 - Required: `object_type`, `object_id`
 - Optional: `branch`, `response_mode`, `inline_char_budget` (не менее 800), `project_root`, `run_id`, `workbook_id`
-- Выбирает официальный get-метод для dashboard, chart, dataset или connection и возвращает нормализованный результат.
+- Выбирает официальный get-метод для dashboard, chart, HTML Page, dataset или connection и возвращает нормализованный результат.
 
 ### `dl_snapshot_dashboard`
 
@@ -126,8 +126,9 @@
   `comparison_range`.
 - `html_page` взаимоисключающий с chart/selector inputs. Он создаёт полный
   self-contained HTML artifact, проводит строгую sandbox/privacy-проверку и
-  возвращает только путь, размер и SHA-256. Standalone upload не выполняется:
-  в текущем Public API нет документированного create/upload RPC.
+  возвращает только путь, размер и SHA-256. Генератор не пишет live сам;
+  проверенный content можно передать в `object_type=html_page`, где
+  create/save/readback/publish выполняются обычным Safe Apply.
 
 ### `dl_validate_project`
 

@@ -1,26 +1,25 @@
 # Current DataLens Docs Reconciliation
 
-Source update report: `reports/update_report.md` generated at `2026-07-23T08:52:16.413874Z`.
-Applied delta report: `reports/update_report_delta_2026-07-13.md` generated at `2026-07-13T13:26:50.349248Z`.
+Source update report: `reports/update_report.md` generated at `2026-07-29T17:38:13.358317Z`.
+Applied delta report: `reports/update_report_2026-07-29.md` generated at `2026-07-29T17:38:13.358317Z`.
 
 This file is a distilled policy matrix. It does not copy raw documentation pages into the repository.
 
 ## Corpus Counts
 
-- Current pages: `651`.
-- Current chunks: `4999`.
-- Changed pages: `12`.
-- New pages: `3`.
+- Current pages: `653`.
+- Current chunks: `5019`.
+- Changed pages: `9`.
+- New pages: `2`.
 - Removed candidates: `0`.
 - Failed page checks: `0`.
-- OpenAPI operations/paths: `91` / `91`.
+- OpenAPI operations/paths: `95` / `95`.
 - Required validation checks OK: `True`.
 
 ## New Pages Covered
 
-- https://docs.yandex.cloud/ru/ru/datalens/operations/api-versioning.md
-- https://docs.yandex.cloud/ru/ru/datalens/release-notes/2605.md
-- https://docs.yandex.cloud/ru/ru/datalens/release-notes/api-changelog.md
+- https://docs.yandex.cloud/ru/ru/datalens/html-pages/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/html-pages/versioning.md
 
 ## Feature Policy Matrix
 
@@ -29,6 +28,8 @@ This file is a distilled policy matrix. It does not copy raw documentation pages
 | `api_versioning` | `supported` | DataLens API client version policy | Keep auto pinned to the compiled OpenAPI version; permit explicit latest only for curated read-only calls. |
 | `api_changelog_v2` | `supported` | request compiler and read-only RPC validation | Validate getEntries with v2 arrays, pageToken, and ignoreSharedEntries semantics. |
 | `release_notes_2605` | `read_only` | dl_reference and feature policy | Index the release note as capability context without inferring new API routes. |
+| `html_pages_lifecycle` | `supported` | html_page lifecycle planners, Safe Apply, readback, and local sandbox validator | Use create/get/update HTML Page methods through the ordinary guarded lifecycle. |
+| `table_column_alignment` | `guarded_plan_only` | Wizard table and pivot payload planning | Preserve current per-column alignment and use only documented auto, left, center, or right values. |
 | `dashboard_margins` | `guarded_plan_only` | dashboard payload preflight and safe apply | Preserve current dashboard margin fields and allow guarded save plans; do not strip unknown style fields. |
 | `dashboard_widget_background` | `guarded_plan_only` | dashboard payload preflight and relation/layout validation | Preserve widget background settings; generate only when an explicit dashboard layout plan owns the widget. |
 | `dashboard_rounding` | `guarded_plan_only` | dashboard payload preflight | Preserve rounding fields and keep decorative chart-body rounding out of Editor payloads. |

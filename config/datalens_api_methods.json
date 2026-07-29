@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-23T08:57:48.445725Z",
+  "generated_at": "2026-07-27T10:51:38.871395Z",
   "methods": [
     {
       "auth": [
@@ -129,7 +129,7 @@
       ],
       "description": "DataLens RPC method `createDashboard`.",
       "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createDashboard",
-      "experimental": true,
+      "experimental": false,
       "http_method": "POST",
       "markdown_ref": "datalens/openapi-ref/createDashboard.md",
       "mcp_route": "dashboard_relation_operation",
@@ -288,6 +288,30 @@
       "support_reason": "No validated MCP workflow or payload contract is implemented.",
       "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD",
       "tag": "Folder"
+    },
+    {
+      "auth": [
+        "IAM token",
+        "Organization ID",
+        "x-dl-api-version: 2"
+      ],
+      "description": "DataLens RPC method `createHtmlPage`.",
+      "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createHtmlPage",
+      "experimental": false,
+      "http_method": "POST",
+      "markdown_ref": null,
+      "mcp_route": "html_page_operation",
+      "mcp_tool": "dl_plan_object_create",
+      "method": "createHtmlPage",
+      "mode": "guarded_write",
+      "path": "/rpc/createHtmlPage",
+      "request_schema_ref": "CreateHtmlPageArgs",
+      "response_schema_ref": "CreateHtmlPageResult",
+      "source": "https://api.datalens.tech/json/",
+      "summary": "Create Html Page",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED",
+      "tag": "HtmlPages"
     },
     {
       "auth": [
@@ -624,6 +648,30 @@
       "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
       "support_status": "READ_ONLY_REFERENCE",
       "tag": "Folder"
+    },
+    {
+      "auth": [
+        "IAM token",
+        "Organization ID",
+        "x-dl-api-version: 2"
+      ],
+      "description": "DataLens RPC method `deleteHtmlPage`.",
+      "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteHtmlPage",
+      "experimental": false,
+      "http_method": "POST",
+      "markdown_ref": null,
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "deleteHtmlPage",
+      "mode": "forbidden",
+      "path": "/rpc/deleteHtmlPage",
+      "request_schema_ref": "DeleteHtmlPageArgs",
+      "response_schema_ref": "DeleteHtmlPageResponse",
+      "source": "https://api.datalens.tech/json/",
+      "summary": "Delete Html Page",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE",
+      "tag": "HtmlPages"
     },
     {
       "auth": [
@@ -969,7 +1017,7 @@
       ],
       "description": "DataLens RPC method `getDashboard`.",
       "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getDashboard",
-      "experimental": true,
+      "experimental": false,
       "http_method": "POST",
       "markdown_ref": "datalens/openapi-ref/getDashboard.md",
       "mcp_route": "read_only",
@@ -1128,6 +1176,30 @@
       "support_reason": "Curated read-only RPC can be called without enabling writes.",
       "support_status": "EXECUTABLE_TOOL_SUPPORTED",
       "tag": "Entries"
+    },
+    {
+      "auth": [
+        "IAM token",
+        "Organization ID",
+        "x-dl-api-version: 2"
+      ],
+      "description": "DataLens RPC method `getHtmlPage`.",
+      "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getHtmlPage",
+      "experimental": false,
+      "http_method": "POST",
+      "markdown_ref": null,
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_read_object",
+      "method": "getHtmlPage",
+      "mode": "readonly",
+      "path": "/rpc/getHtmlPage",
+      "request_schema_ref": "GetHtmlPageArgs",
+      "response_schema_ref": "GetHtmlPageResult",
+      "source": "https://api.datalens.tech/json/",
+      "summary": "Get Html Page",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED",
+      "tag": "HtmlPages"
     },
     {
       "auth": [
@@ -1953,7 +2025,7 @@
       ],
       "description": "DataLens RPC method `updateDashboard`.",
       "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateDashboard",
-      "experimental": true,
+      "experimental": false,
       "http_method": "POST",
       "markdown_ref": "datalens/openapi-ref/updateDashboard.md",
       "mcp_route": "dashboard_relation_operation",
@@ -2040,6 +2112,30 @@
       "support_reason": "No validated MCP workflow or payload contract is implemented.",
       "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD",
       "tag": "Embeds"
+    },
+    {
+      "auth": [
+        "IAM token",
+        "Organization ID",
+        "x-dl-api-version: 2"
+      ],
+      "description": "DataLens RPC method `updateHtmlPage`.",
+      "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateHtmlPage",
+      "experimental": false,
+      "http_method": "POST",
+      "markdown_ref": null,
+      "mcp_route": "html_page_operation",
+      "mcp_tool": "dl_plan_object_update",
+      "method": "updateHtmlPage",
+      "mode": "guarded_write",
+      "path": "/rpc/updateHtmlPage",
+      "request_schema_ref": "UpdateHtmlPageArgs",
+      "response_schema_ref": "UpdateHtmlPageResult",
+      "source": "https://api.datalens.tech/json/",
+      "summary": "Update Html Page",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED",
+      "tag": "HtmlPages"
     },
     {
       "auth": [
@@ -2187,14 +2283,14 @@
     }
   ],
   "openapi_version": "3.1.0",
-  "operation_count": 91,
+  "operation_count": 95,
   "required_api_header_version": "2",
-  "schema_version": "2026-06-25.datalens_api_methods.v3",
+  "schema_version": "2026-07-29.datalens_api_methods.v4",
   "source": "https://api.datalens.tech/json/",
   "support_status_counts": {
-    "EXECUTABLE_TOOL_SUPPORTED": 38,
-    "PLAN_ONLY_SUPPORTED": 18,
-    "READ_ONLY_REFERENCE": 22,
+    "EXECUTABLE_TOOL_SUPPORTED": 39,
+    "PLAN_ONLY_SUPPORTED": 20,
+    "READ_ONLY_REFERENCE": 23,
     "UNSUPPORTED_NO_VALIDATED_METHOD": 13
   },
   "tag_counts": {
@@ -2210,6 +2306,7 @@
     "Entries": 3,
     "EntryLock": 3,
     "Folder": 6,
+    "HtmlPages": 4,
     "Licensing": 4,
     "Navigation": 2,
     "Permissions": 1,

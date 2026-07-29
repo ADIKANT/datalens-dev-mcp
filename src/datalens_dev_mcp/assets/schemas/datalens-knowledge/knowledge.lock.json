@@ -1,34 +1,34 @@
 {
   "compiler_version": "2026-06-25.semantic_authoring.v2",
   "content_hashes": {
-    "api_content_hash": "7c488d2bcabfabe3865844577678be595248b920ec2685b2d82f3a9fc5ff6f22",
-    "asset_count": 886,
-    "assets_content_hash": "4719cb457f410d44f23760ace51e1c095adaec59f366d2ac6f00de74bb26031f",
-    "generated_at": "2026-07-23T08:57:48.613960Z",
-    "manifest_count": 1545,
-    "manifest_stable_hash": "d0cd3204b0bcc3fbfc707d4f134538f8f3c762c83e0f7c201efa17a4520ccbef",
-    "page_count": 651,
-    "pages_content_hash": "8cd8bbd440e18e7c9bd15ea7b75824081682547cd7d1706fc36a89248d40c940"
+    "api_content_hash": "66b7c0647ecc5446a1ff05ad4b7986758a4ffda689cffbf02d5cf63591ac32bf",
+    "asset_count": 890,
+    "assets_content_hash": "06a8f15a426e454ce920799882b91193c02b9886c660002c4d91aa0ddcb2f01d",
+    "generated_at": "2026-07-29T17:43:49.679499Z",
+    "manifest_count": 1551,
+    "manifest_stable_hash": "cb0609ffc1a4ec40020b38d5ca95b115443341d47117b57e6dd5a32cd9d66e26",
+    "page_count": 653,
+    "pages_content_hash": "3ec257e8d9be37788366e9369ede3a60a7668daa60e174809147f3f7301e3c67"
   },
   "corpus_root_hint": "<DATALENS_DOCS_CORPUS_ROOT>",
   "counts": {
-    "assets": 886,
-    "chunks": 4999,
+    "assets": 890,
+    "chunks": 5019,
     "editor_pages": 20,
     "function_pages": 221,
-    "manifest": 1545,
-    "openapi_component_schemas": 487,
-    "openapi_operations": 91,
-    "openapi_paths": 91,
-    "pages": 651,
+    "manifest": 1551,
+    "openapi_component_schemas": 495,
+    "openapi_operations": 95,
+    "openapi_paths": 95,
+    "pages": 653,
     "release_note_pages": 31,
     "troubleshooting_error_pages": 86,
     "visualization_pages": 22
   },
-  "coverage_report_sha256": "753a2b4a0f39e6a1d234851c424deeca4f73e85dbd60718987a57d112c1fd982",
-  "deterministic_hash": "9ad70895669846581786a064ee77ce577a970151508f8894b35849da0348de09",
-  "latest_source_timestamp": "2026-07-23T08:57:48.445725Z",
-  "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8",
+  "coverage_report_sha256": "d8f60e35e853b8835e40829a53609a26a6ad588ab17f1e3be8ec71b6f822ff5f",
+  "deterministic_hash": "6c99ce65e8690c76fbaae371e08c7ed83d16f5f1fb0932c50fa9d9ed38609de5",
+  "latest_source_timestamp": "2026-07-29T17:43:49.516057Z",
+  "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0",
   "schema_version": "2026-06-25.semantic_authoring.v2",
   "source_precedence": [
     "current_openapi",
@@ -38,5 +38,5 @@
     "public_datalens_skills_repository",
     "local_safety_governance_policy"
   ],
-  "validation_report_sha256": "552e0570e8e567bfc1a69e10c983d098958e4a2476082c57acc8e64c9b48b557"
+  "validation_report_sha256": "02deccc1a0ac278817762b3e2f698ff3e6f8994efc8aaff3e4866155cf5151aa"
 }

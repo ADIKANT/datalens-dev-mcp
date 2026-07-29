@@ -48,7 +48,7 @@ The user states the objective, and the MCP client selects and calls the appropri
 | Find and inspect objects | Workbook contents plus reads of dashboards, charts, datasets, connections, and relations |
 | Run an audit | Local dependency-graph snapshot, diagnostic findings, and reports without writes |
 | Prepare a change | A plan with targets, affected fields, API methods, checks, and blockers |
-| Create or update | A validated payload for a dashboard, chart, dataset, or connection |
+| Create or update | A validated payload for a dashboard, chart, HTML page, dataset, or connection |
 | Change part of a solution | A bounded dashboard-tab, dataset-model, or related-object-group update |
 | Deliver the result | Save, saved readback, publish from verified saved state, and published readback |
 | Work locally | Standalone HTML artifacts, project manifests, snapshots, plans, and reports inside the project root |
@@ -112,10 +112,10 @@ Fix chart <CHART_ID> in workbook <WORKBOOK_ID>: <REQUIREMENT>. Save and publish 
 Create a <OBJECT_TYPE> in workbook <WORKBOOK_ID> with these requirements: <REQUIREMENTS>. Check dependencies and request data, then save and publish the result.
 ```
 
-### Local HTML page
+### HTML page
 
 ```text
-Create a local self-contained HTML page <PAGE_ID>: <REQUIREMENT>. Validate its sandbox contract. Do not try to upload it to DataLens.
+Create a self-contained HTML page in workbook <WORKBOOK_ID>: <REQUIREMENT>. Validate its sandbox contract, save it, read saved state, publish that revId, and verify published state.
 ```
 
 ### What the result looks like
@@ -154,10 +154,10 @@ An explicit `0` in a write/save/publish environment setting hard-disables that c
 
 - listing available workbooks and their contents;
 - reading relations, dashboards, Wizard/Editor/QL charts, datasets, and connections;
-- creating and updating supported dashboards, charts, datasets, and connections through planning and Safe Apply;
+- creating and updating supported dashboards, charts, HTML pages, datasets, and connections through planning and Safe Apply;
 - bounded dashboard-tab changes and guarded dataset-model changes;
 - local snapshots of a dashboard and its dependency graph;
-- local self-contained HTML artifact generation and sandbox validation;
+- local self-contained HTML artifact generation, sandbox validation, and a guarded Public API lifecycle for HTML Pages;
 - declared project-manifest dry-run and apply processes;
 - storing plans, snapshots, readback, and reports inside the project root.
 
@@ -176,7 +176,7 @@ See the full policy in [`docs/route-policy_en.md`](docs/route-policy_en.md).
 - It grants no permissions beyond the current user's permissions.
 - Arbitrary whole-object deletion, including whole-object QL deletion, is unavailable.
 - Object moves and changes to access rights, licenses, or credentials are unsupported.
-- Standalone HTML is created locally and is not uploaded through the DataLens Public API.
+- The local HTML generator performs no live write by itself; HTML Page create/update uses the separate guarded lifecycle, while whole-object deletion remains unavailable.
 - `dl_diagnose` analyzes supplied data and does not query databases on its own.
 - API readback verifies object structure; visual verification depends on the MCP client's browser capabilities.
 - A snapshot covers the selected dashboard's dependency graph, not necessarily the entire organization.

@@ -741,6 +741,40 @@ class EditorBundleBatchTests(unittest.TestCase):
 
             self._assert_no_batch_generation_artifacts(root)
 
+    def test_v2_kpi_sparklines_are_all_or_none(self):
+        decisions = [
+            {
+                "widget_id": "plain_kpi",
+                "title": "Synthetic KPI",
+                "family": "kpi_value_only",
+                "route": "editor_advanced",
+            },
+            {
+                "widget_id": "sparkline_kpi",
+                "title": "Synthetic KPI with trend",
+                "family": "kpi_value_sparkline",
+                "route": "editor_advanced",
+            },
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_brief(root, decisions=decisions)
+
+            with self.assertRaisesRegex(
+                ValueError,
+                "sparklines on every KPI or on none",
+            ):
+                dl_generate_editor_bundle(
+                    project_root=tmp,
+                    authoring_profile="standard_editor_v2",
+                    chart_specs=[
+                        {"widget_id": "plain_kpi"},
+                        {"widget_id": "sparkline_kpi"},
+                    ],
+                )
+
+            self._assert_no_batch_generation_artifacts(root)
+
     def test_batch_manifest_records_ready_and_blocked_artifact_only_results(self):
         decisions = [
             {

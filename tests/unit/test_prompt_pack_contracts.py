@@ -273,9 +273,9 @@ class PromptPackDocsOpenApiContractsTests(unittest.TestCase):
         methods = {item["method"]: item for item in catalog["methods"]}
         bulk_args = schemas["GetPermissionsBulkArgs"]["properties"]
 
-        self.assertEqual(catalog["operation_count"], 91)
-        self.assertEqual(lock["operation_count"], 91)
-        self.assertEqual(lock["component_schema_count"], 487)
+        self.assertEqual(catalog["operation_count"], 95)
+        self.assertEqual(lock["operation_count"], 95)
+        self.assertEqual(lock["component_schema_count"], 495)
         self.assertEqual(methods["getPermissionsBulk"]["mcp_tool"], "dl_rpc_readonly")
         self.assertEqual(methods["getPermissionsBulk"]["support_status"], "EXECUTABLE_TOOL_SUPPORTED")
         for key in ("entryIds", "workbookIds", "collectionIds"):

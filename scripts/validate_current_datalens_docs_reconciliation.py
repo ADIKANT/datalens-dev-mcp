@@ -17,11 +17,11 @@ from datalens_dev_mcp.knowledge.corpus import resolve_corpus_root as resolve_sha
 POLICY_PATH = ROOT / "config" / "datalens_docs_feature_policy.json"
 PACKAGE_POLICY_PATH = ROOT / "src" / "datalens_dev_mcp" / "assets" / "config" / "datalens_docs_feature_policy.json"
 DOC_PATH = ROOT / "docs" / "datalens" / "current_docs_reconciliation.md"
-SCHEMA_VERSION = "2026-06-30.current_docs_feature_policy.v1"
-DELTA_REPORT_NAME = "update_report_delta_2026-07-13.md"
-EXPECTED_FINAL_COUNTS = {"pages": 651, "chunks": 4999, "assets": 886, "manifest": 1545}
-EXPECTED_DELTA_COUNTS = {"changed": 12, "new": 3}
-EXPECTED_OPENAPI_SHA256 = "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+SCHEMA_VERSION = "2026-07-29.current_docs_feature_policy.v2"
+DELTA_REPORT_NAME = "update_report_2026-07-29.md"
+EXPECTED_FINAL_COUNTS = {"pages": 653, "chunks": 5019, "assets": 890, "manifest": 1551}
+EXPECTED_DELTA_COUNTS = {"changed": 9, "new": 2}
+EXPECTED_OPENAPI_SHA256 = "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
 
 VALID_STATUSES = {
     "supported",
@@ -36,6 +36,8 @@ REQUIRED_CLUSTER_IDS = [
     "api_versioning",
     "api_changelog_v2",
     "release_notes_2605",
+    "html_pages_lifecycle",
+    "table_column_alignment",
     "dashboard_margins",
     "dashboard_widget_background",
     "dashboard_rounding",
@@ -183,6 +185,35 @@ def build_clusters() -> list[dict[str, Any]]:
             "dl_reference and feature policy",
             "Index the release note as capability context without inferring new API routes.",
             "StarRocks, mailings, shared objects, roles, cache invalidation, and hidden tabs do not enable guessed mutations.",
+        ),
+        _cluster(
+            "html_pages_lifecycle",
+            "Standalone HTML Pages and versions",
+            "supported",
+            [
+                f"{base}/html-pages/index.md",
+                f"{base}/html-pages/versioning.md",
+                f"{base}/openapi-ref/createHtmlPage.md",
+                f"{base}/openapi-ref/getHtmlPage.md",
+                f"{base}/openapi-ref/updateHtmlPage.md",
+            ],
+            "html_page lifecycle planners, Safe Apply, readback, and local sandbox validator",
+            "Use create/get/update HTML Page methods through the ordinary guarded lifecycle.",
+            "Create and content save validate the standalone document; publish uses the "
+            "verified saved revId; whole-object delete stays blocked.",
+        ),
+        _cluster(
+            "table_column_alignment",
+            "Table and pivot column alignment",
+            "guarded_plan_only",
+            [
+                f"{base}/visualization-ref/table-chart.md",
+                f"{base}/visualization-ref/pivot-table-chart.md",
+            ],
+            "Wizard table and pivot payload planning",
+            "Preserve current per-column alignment and use only documented auto, left, center, or right values.",
+            "Fresh saved payload remains authoritative; unknown presentation fields are "
+            "preserved and alignment is never inferred from labels.",
         ),
         _cluster(
             "dashboard_margins",
@@ -738,10 +769,10 @@ def validate(corpus_root: Path, *, strict: bool = False) -> dict[str, Any]:
             issues.append(f"final snapshot {key} mismatch: {actual_final_counts[key]} != {expected}")
     if asset_count != assets["current_count"]:
         issues.append(f"assets.jsonl count mismatch: {asset_count} != {assets['current_count']}")
-    if snapshot["api"].get("new_operations") != 91 or inventory["stats"]["operations"] != 91:
-        issues.append("OpenAPI operation count must be 91 for this update report")
-    if inventory["stats"]["paths"] != 91:
-        issues.append("OpenAPI path count must be 91 for this update report")
+    if snapshot["api"].get("new_operations") != 95 or inventory["stats"]["operations"] != 95:
+        issues.append("OpenAPI operation count must be 95 for this update report")
+    if inventory["stats"]["paths"] != 95:
+        issues.append("OpenAPI path count must be 95 for this update report")
     if str(inventory.get("openapi_sha256") or "") != EXPECTED_OPENAPI_SHA256:
         issues.append("OpenAPI SHA-256 does not match the current locked snapshot")
     if not validation_summary.get("required_checks_ok"):
@@ -752,9 +783,9 @@ def validate(corpus_root: Path, *, strict: bool = False) -> dict[str, Any]:
     if policy.get("source", {}).get("openapi_sha256") != EXPECTED_OPENAPI_SHA256:
         issues.append("policy source OpenAPI SHA-256 mismatch")
     if delta_docs.get("changed_count") != EXPECTED_DELTA_COUNTS["changed"]:
-        issues.append("historical delta changed_count must remain 12")
+        issues.append("applied delta changed_count must remain 9")
     if delta_docs.get("new_count") != EXPECTED_DELTA_COUNTS["new"]:
-        issues.append("historical delta new_count must remain 3")
+        issues.append("applied delta new_count must remain 2")
 
     expected_new_urls = extract_fenced_urls(reports["delta_text"], "New pages")
     covered_new_urls = sorted(policy.get("covered_new_page_urls") or [])

@@ -56,6 +56,7 @@ PUBLISH_OBJECT_METHODS: dict[str, dict[str, str]] = {
     "advanced_editor_chart": {"read": "getEditorChart", "write": "updateEditorChart", "id_key": "chartId"},
     "wizard_chart": {"read": "getWizardChart", "write": "updateWizardChart", "id_key": "chartId"},
     "ql_chart": {"read": "getQLChart", "write": "updateQLChart", "id_key": "chartId"},
+    "html_page": {"read": "getHtmlPage", "write": "updateHtmlPage", "id_key": "entryId"},
 }
 EDITOR_PUBLISH_ALIASES = {
     "chart",
@@ -80,6 +81,7 @@ CREATE_READBACK_ID_KEYS: dict[str, str] = {
     "getQLChart": "chartId",
     "getReport": "reportId",
     "getWizardChart": "chartId",
+    "getHtmlPage": "entryId",
 }
 
 
@@ -1785,6 +1787,8 @@ def apply_desired_overlay_to_fresh_readback(
         for key in REQUEST_CONTROL_IDENTITY_KEYS:
             if key in planned_payload:
                 merged[key] = deepcopy(planned_payload[key])
+        if method == "updateHtmlPage" and "revId" in planned_payload:
+            merged["revId"] = deepcopy(planned_payload["revId"])
 
     scope = str(action.get("change_scope") or "content").strip().lower()
     if _is_dashboard_action(action):
@@ -1821,6 +1825,31 @@ def _request_shaped_fresh_readback(
     planned_payload: dict[str, Any],
     fresh_readback: dict[str, Any],
 ) -> dict[str, Any]:
+    if method == "updateHtmlPage":
+        if (
+            str(planned_payload.get("revId") or "").strip()
+            and not isinstance(planned_payload.get("content"), str)
+        ):
+            return {
+                "entryId": str(planned_payload.get("entryId") or ""),
+                "revId": str(planned_payload.get("revId") or ""),
+                "mode": str(planned_payload.get("mode") or "publish"),
+            }
+        candidate = _first_identity_candidate(deepcopy(fresh_readback))
+        data = candidate.get("data") if isinstance(candidate.get("data"), dict) else {}
+        content = candidate.get("content")
+        if not isinstance(content, str):
+            content = data.get("content")
+        shaped: dict[str, Any] = {
+            "entryId": str(candidate.get("entryId") or planned_payload.get("entryId") or ""),
+        }
+        if isinstance(content, str):
+            shaped["content"] = content
+        if candidate.get("annotation") is not None:
+            shaped["annotation"] = deepcopy(candidate["annotation"])
+        if planned_payload.get("mode") is not None:
+            shaped["mode"] = deepcopy(planned_payload["mode"])
+        return shaped
     if method not in {"updateDashboard", "updateEditorChart"}:
         return deepcopy(fresh_readback)
     if not isinstance(planned_payload.get("entry"), dict):
@@ -2430,7 +2459,22 @@ def _semantic_object_payload(value: dict[str, Any], *, method: str) -> Any:
     if not isinstance(current, dict):
         return current
 
-    if method == "updateDataset":
+    if method == "updateHtmlPage":
+        data = current.get("data")
+        if isinstance(current.get("entry"), dict):
+            current = current["entry"]
+            data = current.get("data") if isinstance(current.get("data"), dict) else {}
+        if isinstance(current.get("content"), str):
+            current = {
+                "content": current["content"],
+                **({"annotation": current["annotation"]} if current.get("annotation") is not None else {}),
+            }
+        elif isinstance(data, dict) and isinstance(data.get("content"), str):
+            current = {
+                "content": data["content"],
+                **({"annotation": current["annotation"]} if current.get("annotation") is not None else {}),
+            }
+    elif method == "updateDataset":
         data = current.get("data")
         if isinstance(data, dict) and isinstance(data.get("dataset"), dict):
             current = data["dataset"]
@@ -3421,6 +3465,7 @@ def _action_object_id(action: dict[str, Any], payload: dict[str, Any] | None = N
         action.get("object_id")
         or entry.get("entryId")
         or entry.get("id")
+        or payload.get("entryId")
         or payload.get("dashboardId")
         or payload.get("chartId")
         or payload.get("datasetId")
@@ -3429,10 +3474,12 @@ def _action_object_id(action: dict[str, Any], payload: dict[str, Any] | None = N
         or fresh_payload.get("chartId")
         or fresh_payload.get("datasetId")
         or fresh_payload.get("connectionId")
+        or fresh_payload.get("entryId")
         or readback_payload.get("dashboardId")
         or readback_payload.get("chartId")
         or readback_payload.get("datasetId")
         or readback_payload.get("connectionId")
+        or readback_payload.get("entryId")
         or ""
     ).strip()
 
@@ -3703,6 +3750,8 @@ def _normalize_readback_branch(branch: str) -> str:
 
 def normalize_publish_object_type(object_type: str) -> str:
     normalized = str(object_type or "").strip().lower().replace("-", "_")
+    if normalized in {"html", "html_page_node", "standalone_html_page"}:
+        return "html_page"
     return "editor_chart" if normalized in EDITOR_PUBLISH_ALIASES else normalized
 
 
@@ -3750,6 +3799,18 @@ def _publish_action_from_saved_readback(
     publish_entry["revId"] = saved_identity["saved_rev_id"]
     publish_entry.pop("savedId", None)
     publish_entry.pop("saved_id", None)
+    publish_payload = (
+        {
+            "entryId": saved_identity["object_id"],
+            "revId": saved_identity["saved_rev_id"],
+            "mode": "publish",
+        }
+        if method_spec["write"] == "updateHtmlPage"
+        else {
+            "mode": "publish",
+            "entry": publish_entry,
+        }
+    )
     action = {
         "action": "publish_object",
         "method": method_spec["write"],
@@ -3766,10 +3827,7 @@ def _publish_action_from_saved_readback(
         "readback_payload": {method_spec["id_key"]: saved_identity["object_id"], "branch": "published"},
         "readback_mode": normalize_readback_mode(readback_mode),
         "readback_required": normalize_readback_mode(readback_mode) != "none",
-        "payload": {
-            "mode": "publish",
-            "entry": publish_entry,
-        },
+        "payload": publish_payload,
     }
     if method_spec["write"] == "updateDashboard":
         action["current_dashboard"] = saved_readback
@@ -3950,7 +4008,7 @@ def _saved_entry_completeness_issues(saved_entry: dict[str, Any], *, method: str
         issues.append("publish requires full saved entry.data, not summary-only revision identity")
     if method == "updateDashboard" and not isinstance(saved_entry.get("meta"), dict):
         issues.append("dashboard publish requires full saved entry.meta")
-    if method in {"updateEditorChart", "updateWizardChart", "updateDashboard"}:
+    if method in {"updateEditorChart", "updateWizardChart", "updateDashboard", "updateHtmlPage"}:
         object_id = _candidate_object_id(saved_entry)
         if not object_id:
             issues.append("publish requires saved entry object id")
@@ -3966,12 +4024,14 @@ def _saved_readback_candidates(readback: dict[str, Any]) -> list[dict[str, Any]]
         nested = value.get("entry")
         candidates.append(nested if isinstance(nested, dict) else value)
 
-    for key in ("dashboard", "chart", "entry", "object"):
+    if str(readback.get("entryId") or "").strip():
+        append_envelope(readback)
+    for key in ("dashboard", "chart", "htmlPage", "entry", "object"):
         append_envelope(readback.get(key))
     response = readback.get("response")
     if isinstance(response, dict):
         append_envelope(response)
-        for key in ("dashboard", "chart", "entry", "object"):
+        for key in ("dashboard", "chart", "htmlPage", "entry", "object"):
             append_envelope(response.get(key))
     for key in ("charts", "objects", "entries"):
         values = readback.get(key)

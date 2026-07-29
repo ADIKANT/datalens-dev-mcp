@@ -12,7 +12,7 @@ from datalens_dev_mcp.runtime_resources import resource_json
 
 
 DASHBOARD_RENDER_PROFILE_RESOURCE = "config/dashboard_render_profiles.json"
-DASHBOARD_RENDER_PROFILE_SCHEMA_VERSION = "2026-07-28.dashboard_render_profiles.v1"
+DASHBOARD_RENDER_PROFILE_SCHEMA_VERSION = "2026-07-29.dashboard_render_profiles.v2"
 RENDERER_VISUAL_SPEC_V4 = "2026-07-28.renderer_visual_spec.v4"
 
 _ALLOWED_OVERRIDE_VALUES = {
@@ -216,7 +216,12 @@ def upgrade_renderer_visual_spec_v4(
     result["spacing"] = {
         "shell_padding_px": copy.deepcopy(shell.get("padding_px") or {}),
         "shell_gap_px": copy.deepcopy(shell.get("gap_px") or {}),
+        "plot_area": copy.deepcopy(_mapping_at(tokens, "plot_area")),
     }
+    result["layout_grid"] = copy.deepcopy(_mapping_at(tokens, "layout_grid"))
+    result["series_visibility"] = copy.deepcopy(
+        _mapping_at(tokens, "series_visibility")
+    )
     result["semantic_colors"] = copy.deepcopy(
         _mapping_at(tokens, "semantic_colors")
     )
@@ -238,6 +243,7 @@ def upgrade_renderer_visual_spec_v4(
     kpi_context["value_typography"] = copy.deepcopy(kpi.get("value_typography") or {})
     kpi_context["content"] = copy.deepcopy(kpi.get("content") or {})
     kpi_context["layout"] = copy.deepcopy(kpi.get("layout") or {})
+    kpi_context["sparkline_policy"] = str(kpi.get("sparkline_policy") or "")
 
     legend = _dict_at(result, "legend")
     for key in _INLINE_LEGEND_TYPOGRAPHY_KEYS:
@@ -278,6 +284,10 @@ def upgrade_renderer_visual_spec_v4(
         selector.get("control_max_width_percent") or 0
     )
     selector_contract["row_height_px"] = int(selector.get("row_height_px") or 0)
+    native_heights = _mapping_at(_mapping_at(tokens, "layout_grid"), "native_height_units")
+    selector_contract["dashboard_grid_height_units"] = int(
+        native_heights.get("selector_creation_default") or 0
+    )
     selector_contract["label_placement"] = str(
         selector.get("label_placement") or ""
     )
@@ -309,6 +319,15 @@ def upgrade_renderer_visual_spec_v4(
     )
     comparison["duplicate_chart_captions"] = bool(
         comparison_tokens.get("duplicate_chart_captions")
+    )
+    comparison["minimum_height_px"] = int(
+        comparison_tokens.get("minimum_height_px") or 0
+    )
+    comparison["dashboard_grid_height_units"] = int(
+        native_heights.get("comparison_context_minimum") or 0
+    )
+    comparison["semantic_line_count"] = int(
+        comparison_tokens.get("semantic_line_count") or 0
     )
 
     issues = validate_renderer_visual_spec_v4(result, render_contract=render_contract)
@@ -369,9 +388,14 @@ def validate_renderer_visual_spec_v4(
     expected_spacing = {
         "shell_padding_px": expected_shell.get("padding_px") or {},
         "shell_gap_px": expected_shell.get("gap_px") or {},
+        "plot_area": _mapping_at(tokens, "plot_area"),
     }
     if spec.get("spacing") != expected_spacing:
         issues.append("spacing.profile_token_mismatch")
+    if spec.get("layout_grid") != _mapping_at(tokens, "layout_grid"):
+        issues.append("layout_grid.profile_token_mismatch")
+    if spec.get("series_visibility") != _mapping_at(tokens, "series_visibility"):
+        issues.append("series_visibility.profile_token_mismatch")
     if spec.get("semantic_colors") != _mapping_at(tokens, "semantic_colors"):
         issues.append("semantic_colors.profile_token_mismatch")
     if spec.get("number_format") != _mapping_at(tokens, "number_format"):
@@ -408,26 +432,8 @@ def validate_renderer_visual_spec_v4(
         issues.append("kpi.content.profile_token_mismatch")
     if kpi_context.get("layout") != expected_kpi.get("layout"):
         issues.append("kpi.layout.profile_token_mismatch")
-    kpi_layout = (
-        kpi_context.get("layout")
-        if isinstance(kpi_context.get("layout"), dict)
-        else {}
-    )
-    kpi_heights = [
-        kpi_layout.get("min_height_px"),
-        kpi_layout.get("preferred_height_px"),
-        kpi_layout.get("max_height_px"),
-    ]
-    if (
-        any(
-            not isinstance(value, int)
-            or isinstance(value, bool)
-            or value <= 0
-            for value in kpi_heights
-        )
-        or kpi_heights != sorted(kpi_heights)
-    ):
-        issues.append("kpi.layout.invalid_height_range")
+    if kpi_context.get("sparkline_policy") != expected_kpi.get("sparkline_policy"):
+        issues.append("kpi.sparkline_policy.profile_token_mismatch")
 
     legend = spec.get("legend") if isinstance(spec.get("legend"), dict) else {}
     legend_tokens = _mapping_at(_mapping_at(tokens, "typography"), "legend")
@@ -499,6 +505,12 @@ def validate_renderer_visual_spec_v4(
         issues.append("selector.control_max_width_profile_token_mismatch")
     if selector.get("row_height_px") != expected_selector.get("row_height_px"):
         issues.append("selector.row_height_profile_token_mismatch")
+    native_heights = _mapping_at(_mapping_at(tokens, "layout_grid"), "native_height_units")
+    if (
+        selector.get("dashboard_grid_height_units")
+        != native_heights.get("selector_creation_default")
+    ):
+        issues.append("selector.grid_height_profile_token_mismatch")
     if selector.get("label_placement") != expected_selector.get("label_placement"):
         issues.append("selector.label_placement_profile_token_mismatch")
     if (
@@ -529,6 +541,17 @@ def validate_renderer_visual_spec_v4(
         issues.append("comparison_context.required_fields_profile_token_mismatch")
     if comparison.get("duplicate_chart_captions") is not False:
         issues.append("comparison_context.duplicate_chart_captions_forbidden")
+    for key in (
+        "minimum_height_px",
+        "semantic_line_count",
+    ):
+        if comparison.get(key) != expected_comparison.get(key):
+            issues.append(f"comparison_context.{key}_profile_token_mismatch")
+    if (
+        comparison.get("dashboard_grid_height_units")
+        != native_heights.get("comparison_context_minimum")
+    ):
+        issues.append("comparison_context.dashboard_grid_height_units_profile_token_mismatch")
 
     return tuple(dict.fromkeys(issues))
 
@@ -684,6 +707,64 @@ def _validate_profile(profile_id: str, profile: Any) -> None:
         raise DashboardRenderContractError(
             "invalid_dashboard_render_profile",
             f"profile {profile_id!r} has an invalid default tooltip owner",
+        )
+    _validate_core_geometry(profile_id, core)
+
+
+def _validate_core_geometry(profile_id: str, core: dict[str, Any]) -> None:
+    grid = _mapping_at(core, "layout_grid")
+    native_heights = _mapping_at(grid, "native_height_units")
+    selector = _mapping_at(core, "selector")
+    comparison = _mapping_at(core, "comparison_context")
+    kpi = _mapping_at(core, "kpi")
+    kpi_layout = _mapping_at(kpi, "layout")
+    if native_heights != {
+        "title_creation_default": 2,
+        "selector_creation_default": 2,
+        "comparison_context_minimum": 3,
+        "kpi_creation_default": 6,
+    }:
+        raise DashboardRenderContractError(
+            "invalid_dashboard_render_profile",
+            f"profile {profile_id!r} has invalid native dashboard height defaults",
+        )
+    if (
+        grid.get("update_policy") != "preserve_fresh_saved_geometry"
+        or grid.get("runtime_relation") != "measured_independently_from_native_units"
+        or grid.get("equal_height_within_semantic_row") is not True
+        or grid.get("overflow_policy") != "expand_or_scroll_never_clip"
+        or selector.get("row_height_px") != 44
+        or comparison.get("minimum_height_px") != 70
+        or kpi_layout
+        != {
+            "update_policy": "preserve_fresh_saved_geometry",
+            "equal_height_within_kpi_set": True,
+            "runtime_policy": "content_visible_without_clipping",
+        }
+    ):
+        raise DashboardRenderContractError(
+            "invalid_dashboard_render_profile",
+            f"profile {profile_id!r} has inconsistent semantic object heights",
+        )
+    plot = _mapping_at(_mapping_at(core, "plot_area"), "inset_px")
+    if plot != {
+        "top": 22,
+        "right": {"compact": 10, "normal": 16},
+        "bottom": 34,
+        "left": "family_axis_owned",
+    }:
+        raise DashboardRenderContractError(
+            "invalid_dashboard_render_profile",
+            f"profile {profile_id!r} has inconsistent coordinate plot insets",
+        )
+    visibility = _mapping_at(core, "series_visibility")
+    if any(
+        visibility.get(key) != "active_series_only"
+        for key in ("legend", "marks", "tooltip")
+    ) or visibility.get("source") != "filtered_result_rows":
+        raise DashboardRenderContractError(
+            "invalid_dashboard_render_profile",
+            f"profile {profile_id!r} must bind legends and marks to filtered rows",
         )
 
 

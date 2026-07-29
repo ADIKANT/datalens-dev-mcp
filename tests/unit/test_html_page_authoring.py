@@ -112,8 +112,13 @@ class HtmlPageAuthoringTests(unittest.TestCase):
             self.assertTrue(generated["ok"], generated)
             self.assertTrue(artifact.is_file())
             self.assertNotIn("html", generated)
-            self.assertEqual(generated["publication"]["status"], "local_artifact_only")
-            self.assertIsNone(generated["publication"]["public_create_or_upload_method"])
+            self.assertEqual(generated["publication"]["status"], "guarded_api_available")
+            self.assertEqual(
+                generated["publication"]["create_method"],
+                "createHtmlPage",
+            )
+            self.assertEqual(generated["publication"]["update_method"], "updateHtmlPage")
+            self.assertFalse(generated["publication"]["delete_supported"])
             self.assertTrue(validated["ok"], validated)
             self.assertEqual(validated["items"][0]["kind"], "standalone_html_page")
             self.assertEqual(project["status"], "pass", project)

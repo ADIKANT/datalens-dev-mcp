@@ -17,7 +17,7 @@
       "template_policy": "exact_registered_asset",
       "fallback_policy": "block",
       "family_registry": "templates/datalens/standard_chart_templates.json",
-      "template_set_sha256": "0f52998c57443651845ab73718df1669d01c5b5e87d10e0bf6bd29d6ee4cd4d4",
+      "template_set_sha256": "6d35e7ae7e31ffb5677010b63e8e6d9455c8955a5b5f041e939281e0470a5da8",
       "allowed_routes": [
         "editor_advanced",
         "editor_table",
@@ -51,7 +51,7 @@
       "template_policy": "exact_registered_asset",
       "fallback_policy": "block",
       "family_registry": "templates/datalens/standard_chart_templates.json",
-      "template_set_sha256": "0f52998c57443651845ab73718df1669d01c5b5e87d10e0bf6bd29d6ee4cd4d4",
+      "template_set_sha256": "6d35e7ae7e31ffb5677010b63e8e6d9455c8955a5b5f041e939281e0470a5da8",
       "allowed_routes": [
         "editor_advanced",
         "editor_table",
@@ -60,8 +60,8 @@
       ],
       "style_contract": {
         "render_profile_id": "standard_dashboard_v1",
-        "render_profile_sha256": "bac48db837a46cb5e4d9444c78f450831e350400c0367c482f12f5ea5bf828fc",
-        "render_compiler_version": "2026-07-28.resolved_render_contract.v2",
+        "render_profile_sha256": "b63c60dd1ab418f439d1d42b99f773686f7ac0773dc5c4b1809ec64e0dd391bc",
+        "render_compiler_version": "2026-07-29.resolved_render_contract.v3",
         "renderer_visual_spec": "2026-07-28.renderer_visual_spec.v4",
         "template_identity": "sha256",
         "compiled_identity": "composite_sha256",

@@ -26,6 +26,16 @@
       },
       "datasetId": "<DATASET_ID>"
     },
+    "updateHtmlPage_publish": {
+      "entryId": "<HTML_PAGE_ID>",
+      "mode": "publish",
+      "revId": "<REV_ID>"
+    },
+    "updateHtmlPage_save": {
+      "content": "<!doctype html><html><head><meta charset=\"utf-8\"></head><body></body></html>",
+      "entryId": "<HTML_PAGE_ID>",
+      "mode": "save"
+    },
     "validateDataset": {
       "data": {
         "dataset": {}
@@ -43,6 +53,10 @@
       "entryIds": [
         "<ENTRY_ID>"
       ]
+    },
+    "getHtmlPage": {
+      "branch": "saved",
+      "entryId": "<HTML_PAGE_ID>"
     },
     "getWorkbookEntries": {
       "workbookId": "<WORKBOOK_ID>"

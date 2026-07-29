@@ -75,9 +75,12 @@ module.exports = {
       const width = Number.isFinite(requestedWidth) && requestedWidth > 0 ? requestedWidth : 640;
       const height = Number.isFinite(requestedHeight) && requestedHeight > 0 ? requestedHeight : 340;
       const compact = width < 530;
-      const legendHeight = data.rows.length && new Set(data.rows.map((row) => row.metric)).size > 1 ? 28 : 0;
+      const activeMetrics = [...new Set(
+        data.rows.filter((row) => Number.isFinite(row.value)).map((row) => row.metric),
+      )];
+      const legendHeight = activeMetrics.length > 1 ? 28 : 0;
       const plotHeight = Math.max(80, height - legendHeight - 28);
-      const margin = {l: compact ? 36 : 44, r: compact ? 10 : 26, t: 14, b: compact ? 28 : 34};
+      const margin = {l: compact ? 36 : 44, r: width < 720 ? 10 : 16, t: 22, b: 34};
       const bucketDomain = [...new Set(data.rows.map((row) => row.bucket))];
       const observedBucketIndexes = bucketDomain
         .map((bucket, index) => data.rows.some((row) => row.bucket === bucket && Number.isFinite(row.value)) ? index : -1)
@@ -85,7 +88,6 @@ module.exports = {
       const buckets = observedBucketIndexes.length
         ? bucketDomain.slice(observedBucketIndexes[0], observedBucketIndexes[observedBucketIndexes.length - 1] + 1)
         : [];
-      const metrics = [...new Set(data.rows.map((row) => row.metric))];
       const observedValues = data.rows.map((row) => row.value).filter(Number.isFinite);
       const bucketTotals = new Map(buckets.map((bucket) => [
         bucket,
@@ -110,7 +112,7 @@ module.exports = {
         return `<line x1="${margin.l - 3}" y1="${gy}" x2="${margin.l}" y2="${gy}" stroke="${style.colors.gridLine}"/><text x="${margin.l - 6}" y="${gy + 4}" text-anchor="end" font-size="${compact ? 10 : 11}" fill="${style.colors.textSubtle}">${fmt(tick)}</text>`;
       }).join('');
       function buildLineSeries(fillArea) {
-        return metrics.map((metric, metricIndex) => {
+        return activeMetrics.map((metric, metricIndex) => {
           const role = (data.rows.find((row) => row.metric === metric) || {}).seriesRole || 'current';
           const isComparison = role === 'comparison';
           const points = buckets.map((bucket, index) => {
@@ -143,7 +145,7 @@ module.exports = {
           const present = points.filter(Boolean);
           const last = present[present.length - 1];
           const label = last ? `<text x="${Math.min(width - 72, last.x + 8)}" y="${last.y + 4}" font-size="11" font-weight="800" fill="${style.colors.text}" opacity="${isComparison ? 0.62 : 1}">${esc(metric)} ${fmt(last.value)}</text>` : '';
-          return `${paths}${label}`;
+          return `<g data-series-id="${esc(metric)}" data-series-role="mark">${paths}${label}</g>`;
         }).join('');
       }
       function buildVerticalBars(includeLine) {
@@ -177,7 +179,7 @@ module.exports = {
           return `<div style="width:${w}%;margin:${compact ? 3 : 5}px auto;padding:${compact ? 5 : 7}px ${compact ? 6 : 10}px;text-align:center;background:${style.colors.category[index % style.colors.category.length]};color:${style.colors.surface};font-size:${compact ? 10 : 12}px;font-weight:800;">${esc(row.bucket || row.metric)} ${fmt(row.value)}</div>`;
         }).join('');
       }
-      const legend = metrics.length > 1 ? `<div style="display:flex;gap:${compact ? 8 : 12}px;flex-wrap:wrap;margin-bottom:6px;font-size:${compact ? 11 : 12}px;line-height:1.25;color:${style.colors.textMuted};">${metrics.map((metric, index) => `<span><i style="display:inline-block;width:9px;height:9px;background:${style.colors.category[index % style.colors.category.length]};margin-right:5px;"></i>${esc(metric)}</span>`).join('')}</div>` : '';
+      const legend = activeMetrics.length > 1 ? `<div data-role="legend" data-series-source="filtered-result-rows" style="display:flex;gap:${compact ? 8 : 12}px;flex-wrap:wrap;margin-bottom:6px;font-size:${compact ? 11 : 12}px;line-height:1.25;color:${style.colors.textMuted};">${activeMetrics.map((metric, index) => `<span data-series-id="${esc(metric)}" data-series-role="legend"><i style="display:inline-block;width:9px;height:9px;background:${style.colors.category[index % style.colors.category.length]};margin-right:5px;"></i>${esc(metric)}</span>`).join('')}</div>` : '';
       let plot = buildLineSeries(false);
       if (data.variant === 'area_completion') plot = buildLineSeries(true);
       if (data.variant === 'vertical_bar_time_bucket') plot = buildVerticalBars(false);
@@ -186,7 +188,7 @@ module.exports = {
         const funnel = buildFunnel();
         return Editor.generateHtml(`<div style="box-sizing:border-box;width:100%;height:100%;padding:12px 14px;background:${style.colors.surface};font-family:Inter,Arial,sans-serif;overflow:hidden;">${funnel}</div>`);
       }
-      const svg = `<svg width="100%" height="${plotHeight}" viewBox="0 0 ${width} ${plotHeight}" preserveAspectRatio="none">${axisLabels}${plot}<text x="${margin.l}" y="${plotHeight - 8}" font-size="${compact ? 10 : 11}" fill="${style.colors.textMuted}">${esc(dateLabel(buckets[0] || ''))}</text><text x="${width - margin.r}" y="${plotHeight - 8}" text-anchor="end" font-size="${compact ? 10 : 11}" fill="${style.colors.textMuted}">${esc(dateLabel(buckets[buckets.length - 1] || ''))}</text></svg>`;
+      const svg = `<svg data-role="plot-area" data-inset-top="${margin.t}" data-inset-right="${margin.r}" data-inset-bottom="${margin.b}" width="100%" height="${plotHeight}" viewBox="0 0 ${width} ${plotHeight}" preserveAspectRatio="none">${axisLabels}${plot}<text x="${margin.l}" y="${plotHeight - 8}" font-size="${compact ? 10 : 11}" fill="${style.colors.textMuted}">${esc(dateLabel(buckets[0] || ''))}</text><text x="${width - margin.r}" y="${plotHeight - 8}" text-anchor="end" font-size="${compact ? 10 : 11}" fill="${style.colors.textMuted}">${esc(dateLabel(buckets[buckets.length - 1] || ''))}</text></svg>`;
       // Safe render contract: return HTML through Editor.generateHtml inside wrapFn.
       return Editor.generateHtml(`<div style="box-sizing:border-box;width:100%;height:100%;padding:${compact ? 8 : 12}px ${compact ? 8 : 14}px;background:${style.colors.surface};font-family:Inter,Arial,sans-serif;line-height:1.25;overflow:hidden;">${legend}${svg}</div>`);
     },

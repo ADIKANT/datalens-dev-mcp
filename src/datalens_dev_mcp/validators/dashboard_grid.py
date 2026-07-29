@@ -199,6 +199,7 @@ def _validate_tab_grid(
                 layout_path=layout_path,
                 strict_generated_layout=strict_generated_layout,
                 current_item=(current_items.get(item_id) or (None, ""))[0],
+                current_layout=(current_layouts.get(item_id) or (None, ""))[0],
             )
         )
     return issues
@@ -510,52 +511,26 @@ def _height_and_auto_height_issues(
     layout_path: str,
     strict_generated_layout: bool | None,
     current_item: dict[str, Any] | None,
+    current_layout: dict[str, Any] | None,
 ) -> list[DashboardGridIssue]:
     if not _valid_geometry(layout):
         return []
     issues: list[DashboardGridIssue] = []
     height = layout["h"]
     kind = _height_kind(item)
-    if kind == "title" and height != 2:
-        issues.append(
-            _height_warning(
-                rule="atypical_title_height",
-                path=layout_path,
-                message=f"Title item height is {height}; the proven dashboard convention is h=2.",
-                kind=kind,
-                suggested_fix="Use h=2 for a new title, or preserve the existing live height when intentionally different.",
-            )
+    height_is_preserved = (
+        isinstance(current_layout, dict)
+        and _valid_geometry(current_layout)
+        and current_layout["h"] == height
+    )
+    if not height_is_preserved or kind == "comparison_context":
+        height_issue = _semantic_height_issue(
+            kind=kind,
+            height=height,
+            layout_path=layout_path,
         )
-    elif kind == "control" and height not in {2, 3}:
-        issues.append(
-            _height_warning(
-                rule="atypical_control_height",
-                path=layout_path,
-                message=f"Control item height is {height}; compact native controls are commonly h=2 or h=3.",
-                kind=kind,
-                suggested_fix="Review row wrapping and measured runtime height before keeping a taller control slot.",
-            )
-        )
-    elif kind == "kpi" and height != 6:
-        issues.append(
-            _height_warning(
-                rule="atypical_kpi_height",
-                path=layout_path,
-                message=f"KPI/metric item height is {height}; h=6 is the dominant native KPI reference size.",
-                kind=kind,
-                suggested_fix="Use h=6 as the starting point, then verify the real title/value rendering at mounted size.",
-            )
-        )
-    elif kind == "table" and height < 10:
-        issues.append(
-            _height_warning(
-                rule="atypical_table_height",
-                path=layout_path,
-                message=f"Table item height is {height}; dashboard tables generally need a larger slot than h=9.",
-                kind=kind,
-                suggested_fix="Increase the table slot or prove the compact row count/pagination in runtime QA.",
-            )
-        )
+        if height_issue is not None:
+            issues.append(height_issue)
 
     auto_height_values, invalid_paths = _auto_height_values(item, item_path=item_path)
     if strict_generated_layout is None:
@@ -601,6 +576,55 @@ def _height_and_auto_height_issues(
     return issues
 
 
+def _semantic_height_issue(
+    *,
+    kind: str,
+    height: int,
+    layout_path: str,
+) -> DashboardGridIssue | None:
+    if kind == "title" and height != 2:
+        return _height_warning(
+            rule="atypical_title_height",
+            path=layout_path,
+            message=f"Title item height is {height}; the new-layout default is h=2.",
+            kind=kind,
+            suggested_fix="Use h=2 for a new title, or preserve the fresh saved height on update.",
+        )
+    if kind == "control" and height != 2:
+        return _height_warning(
+            rule="atypical_control_height",
+            path=layout_path,
+            message=f"Compact one-row control height is {height}; the new-layout default is h=2.",
+            kind=kind,
+            suggested_fix="Use h=2 unless runtime measurement proves that the control wraps.",
+        )
+    if kind == "comparison_context" and height < 3:
+        return _height_warning(
+            rule="comparison_context_too_short",
+            path=layout_path,
+            message=f"Comparison context height is {height}; three semantic lines require at least h=3.",
+            kind=kind,
+            suggested_fix="Use at least h=3 and verify the complete context text at runtime.",
+        )
+    if kind == "kpi" and height != 6:
+        return _height_warning(
+            rule="atypical_kpi_height",
+            path=layout_path,
+            message=f"KPI/metric item height is {height}; the new-layout default is h=6.",
+            kind=kind,
+            suggested_fix="Start new KPI rows at h=6; preserve fresh saved user geometry on update.",
+        )
+    if kind == "table" and height < 10:
+        return _height_warning(
+            rule="atypical_table_height",
+            path=layout_path,
+            message=f"Table item height is {height}; dashboard tables generally need a larger slot than h=9.",
+            kind=kind,
+            suggested_fix="Increase the table slot or prove the compact row count/pagination in runtime QA.",
+        )
+    return None
+
+
 def _height_warning(
     *,
     rule: str,
@@ -623,9 +647,18 @@ def _height_kind(item: dict[str, Any]) -> str:
     raw_type = str(item.get("type") or item.get("entry_type") or "").lower()
     if raw_type == "title":
         return "title"
+    text = _joined_item_text(item).lower()
+    if any(
+        token in text
+        for token in (
+            "comparison_context",
+            "comparison-context",
+            "comparison context",
+        )
+    ):
+        return "comparison_context"
     if "control" in raw_type or "selector" in raw_type:
         return "control"
-    text = _joined_item_text(item).lower()
     if "table" in raw_type or "table" in text:
         return "table"
     if any(token in text for token in ("kpi", "metric", "indicator")):

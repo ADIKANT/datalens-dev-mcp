@@ -9,7 +9,8 @@ from typing import Any
 from urllib.parse import urlsplit
 
 
-HTML_PAGE_CONTRACT_VERSION = "2026-07-23.standalone_html_page.v1"
+HTML_PAGE_CONTRACT_VERSION = "2026-07-29.standalone_html_page.v2"
+HTML_PAGE_API_MAX_CHARACTERS = 10 * 1024 * 1024
 HTML_PAGE_SOFT_MAX_BYTES = 5 * 1024 * 1024
 HTML_PAGE_HARD_MAX_BYTES = 10 * 1024 * 1024
 HTML_SKILL_COMMIT = "8fbb3aabac6b09d4c44f053fa63affea1dc386f7"
@@ -81,9 +82,17 @@ def html_page_source_contract() -> dict[str, Any]:
             "scope": "allowlisted markup inside an Editor chart",
         },
         "publication": {
-            "status": "local_artifact_only",
-            "public_create_or_upload_method": None,
-            "reason": "No standalone HTML create/upload RPC is documented in the current Public API.",
+            "status": "guarded_api_available",
+            "read_method": "getHtmlPage",
+            "create_method": "createHtmlPage",
+            "update_method": "updateHtmlPage",
+            "delete_supported": False,
+            "api_content_max_characters": HTML_PAGE_API_MAX_CHARACTERS,
+            "local_artifact_hard_max_bytes": HTML_PAGE_HARD_MAX_BYTES,
+            "reason": (
+                "Create, saved readback, revision-based publish, and published readback use the "
+                "documented Public API; whole-object deletion remains blocked."
+            ),
         },
     }
 

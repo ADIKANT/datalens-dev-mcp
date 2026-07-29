@@ -122,6 +122,40 @@ class GuardedRpcRequestWrapperTests(unittest.TestCase):
         self.assertIn("ql_write_requires_explicit_user_request_provenance", blocked["blocked_reasons"])
         self.assertTrue(approved["ok"], approved["blocked_reasons"])
 
+    def test_html_page_create_and_save_use_documented_request_shapes(self):
+        from datalens_dev_mcp.api.request_compiler import compile_guarded_rpc_request
+
+        content = "<!doctype html><html><body>synthetic</body></html>"
+        create = compile_guarded_rpc_request(
+            "createHtmlPage",
+            {
+                "workbookId": "workbook_1",
+                "name": "Synthetic page",
+                "content": content,
+            },
+        )
+        save = compile_guarded_rpc_request(
+            "updateHtmlPage",
+            {"entryId": "page_1", "content": content},
+            object_id="page_1",
+            base_revision="rev_1",
+        )
+
+        self.assertTrue(create["ok"], create["blocked_reasons"])
+        self.assertEqual(
+            create["payload"],
+            {
+                "workbookId": "workbook_1",
+                "name": "Synthetic page",
+                "content": content,
+            },
+        )
+        self.assertTrue(save["ok"], save["blocked_reasons"])
+        self.assertEqual(
+            save["payload"],
+            {"entryId": "page_1", "mode": "save", "content": content},
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

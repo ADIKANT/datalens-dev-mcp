@@ -94,6 +94,11 @@ blocked when saved readback is missing, stale, or belongs to another target.
 
 After publishing, `dl_readback_and_report` reads published state and creates a deployment report. For a UI change, API readback verifies structure and the DataLens check verifies rendering.
 
+For an HTML Page, content is saved through `updateHtmlPage`, while publish is
+built as `{entryId, revId, mode: "publish"}` only from verified saved readback.
+The local sandbox validator runs before planning. `deleteHtmlPage` is outside
+the lifecycle surface.
+
 ## Updating an existing object
 
 For updates, desired changes remain separate from the current object. Immediately before writing, the server overlays them on fresh saved state. A dashboard content change preserves untouched widget coordinates; a layout change must declare expected geometry.

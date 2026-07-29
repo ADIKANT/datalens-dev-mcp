@@ -222,9 +222,9 @@ class DashboardRenderContractTests(unittest.TestCase):
         self.assertEqual(
             upgraded["kpi_context"]["layout"],
             {
-                "min_height_px": 88,
-                "preferred_height_px": 96,
-                "max_height_px": 112,
+                "update_policy": "preserve_fresh_saved_geometry",
+                "equal_height_within_kpi_set": True,
+                "runtime_policy": "content_visible_without_clipping",
             },
         )
         self.assertEqual(upgraded["legend"]["typography_token"], "legend.default")
@@ -249,6 +249,10 @@ class DashboardRenderContractTests(unittest.TestCase):
             94,
         )
         self.assertEqual(upgraded["selector_contract"]["row_height_px"], 44)
+        self.assertEqual(
+            upgraded["selector_contract"]["dashboard_grid_height_units"],
+            2,
+        )
         self.assertEqual(upgraded["selector_contract"]["label_placement"], "left")
         self.assertEqual(
             upgraded["selector_contract"]["blank_multiselect_semantics"],
@@ -275,6 +279,11 @@ class DashboardRenderContractTests(unittest.TestCase):
         )
         self.assertFalse(
             upgraded["comparison_context"]["duplicate_chart_captions"]
+        )
+        self.assertEqual(upgraded["comparison_context"]["minimum_height_px"], 70)
+        self.assertEqual(
+            upgraded["comparison_context"]["dashboard_grid_height_units"],
+            3,
         )
         self.assertEqual(
             upgraded["horizontal_rank"]["preferred_bar_width_px"],
@@ -420,15 +429,24 @@ class DashboardRenderContractTests(unittest.TestCase):
         )
         self.assertEqual(metric["effective_tokens"]["viewport"]["min_height_px"], 96)
         self.assertEqual(
-            metric["effective_tokens"]["component"]["preferred_height_px"],
-            96,
+            metric["effective_tokens"]["component"]["height_policy"],
+            "shared_layout_grid",
         )
         self.assertEqual(
             _plain(metric["effective_tokens"]["kpi"]["layout"]),
             {
-                "min_height_px": 88,
-                "preferred_height_px": 96,
-                "max_height_px": 112,
+                "update_policy": "preserve_fresh_saved_geometry",
+                "equal_height_within_kpi_set": True,
+                "runtime_policy": "content_visible_without_clipping",
+            },
+        )
+        self.assertEqual(
+            _plain(metric["effective_tokens"]["layout_grid"]["native_height_units"]),
+            {
+                "title_creation_default": 2,
+                "selector_creation_default": 2,
+                "comparison_context_minimum": 3,
+                "kpi_creation_default": 6,
             },
         )
         self.assertEqual(

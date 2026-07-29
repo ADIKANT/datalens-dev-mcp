@@ -1,9 +1,9 @@
 {
   "expected_counts": {
-    "catalog_operations": 91,
-    "lock_operations": 91,
-    "operations": 91,
-    "paths": 91
+    "catalog_operations": 95,
+    "lock_operations": 95,
+    "operations": 95,
+    "paths": 95
   },
   "operations": [
     {
@@ -30,7 +30,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/assignLicenses",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "unsupported_explicit",
       "tag": "Licensing",
@@ -60,7 +60,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/batchListMembers",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Access",
@@ -89,7 +89,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/cancelWorkbookExport",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "unsupported_explicit",
       "tag": "WorkbookExport",
@@ -119,7 +119,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createCollection",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "unsupported_explicit",
       "tag": "Collection",
@@ -177,7 +177,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createConnection",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "guarded_plan_only",
       "tag": "Connection",
@@ -214,7 +214,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createDashboard",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "guarded_plan_only",
       "tag": "Dashboard",
@@ -455,7 +455,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createDataset",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "guarded_plan_only",
       "tag": "Dataset",
@@ -495,7 +495,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createEditorChart",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "guarded_plan_only",
       "tag": "Editor",
@@ -526,7 +526,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createEmbed",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "unsupported_explicit",
       "tag": "Embeds",
@@ -555,7 +555,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createEmbeddingSecret",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "unsupported_explicit",
       "tag": "EmbeddingSecrets",
@@ -584,7 +584,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createEntryLock",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "unsupported_explicit",
       "tag": "EntryLock",
@@ -615,11 +615,45 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createFolder",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "unsupported_explicit",
       "tag": "Folder",
       "unavailable_response": "Return ok=false with error.category=unavailable_api_method or readonly/reference policy."
+    },
+    {
+      "fixture_path": "tests/fixtures/api_contracts/createHtmlPage.json",
+      "http_method": "POST",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
+      "method_name": "createHtmlPage",
+      "operation_id": "createHtmlPage",
+      "owning_mcp_tool": "dl_plan_object_create",
+      "path": "/rpc/createHtmlPage",
+      "request_schema_closure_hash": "e4b887240c778b3e27b265c9929d7eeceb95d1d0af650fecf78350435c3ccce5",
+      "request_schema_closure_refs": [
+        "CreateHtmlPageArgs",
+        "EntryAnnotationArg",
+        "EntryLocationIdentifiers"
+      ],
+      "request_schema_hash": "7f31d0d1d01d26147801680bff5b31d102fe6ee4e00bcf50de65e5ff0c4a9b91",
+      "request_schema_ref": "CreateHtmlPageArgs",
+      "response_schema_closure_hash": "4ad52fb34dbb9174cc1b95fc620536ccf40741c78f0f4a4e67ae9440d7559405",
+      "response_schema_closure_refs": [
+        "CreateHtmlPageResult",
+        "EntryAnnotation",
+        "EntryPermissions",
+        "HtmlPage"
+      ],
+      "response_schema_hash": "db559e7cbe9140c47adb1da7fcc29c9e4bad24178d47dca6d4f9b07d58c21ed3",
+      "response_schema_ref": "CreateHtmlPageResult",
+      "source": {
+        "catalog": "config/datalens_api_methods.json",
+        "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createHtmlPage",
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
+      },
+      "status": "guarded_plan_only",
+      "tag": "HtmlPages",
+      "unavailable_response": ""
     },
     {
       "fixture_path": "tests/fixtures/api_contracts/createQLChart.json",
@@ -646,7 +680,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createQlChart",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "guarded_plan_only",
       "tag": "QL",
@@ -684,7 +718,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createReport",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "unsupported_explicit",
       "tag": "Reports",
@@ -715,7 +749,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createWizardChart",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "guarded_plan_only",
       "tag": "Wizard",
@@ -745,7 +779,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createWorkbook",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "guarded_plan_only",
       "tag": "Workbook",
@@ -775,7 +809,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteCollection",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Collection",
@@ -805,7 +839,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteCollections",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Collection",
@@ -832,7 +866,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteConnection",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Connection",
@@ -861,7 +895,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteDashboard",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Dashboard",
@@ -888,7 +922,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteDataset",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Dataset",
@@ -917,7 +951,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteEditorChart",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Editor",
@@ -946,7 +980,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteEmbed",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Embeds",
@@ -975,7 +1009,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteEmbeddingSecret",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "EmbeddingSecrets",
@@ -1004,7 +1038,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteEntryLock",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "unsupported_explicit",
       "tag": "EntryLock",
@@ -1033,10 +1067,39 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteFolder",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Folder",
+      "unavailable_response": "Return ok=false with error.category=unavailable_api_method or readonly/reference policy."
+    },
+    {
+      "fixture_path": "tests/fixtures/api_contracts/deleteHtmlPage.json",
+      "http_method": "POST",
+      "live_probe_policy": "reference_only_no_mutation_probe",
+      "method_name": "deleteHtmlPage",
+      "operation_id": "deleteHtmlPage",
+      "owning_mcp_tool": "dl_reference",
+      "path": "/rpc/deleteHtmlPage",
+      "request_schema_closure_hash": "0dce93ef0d231f9d7a9476f5b7e0c9698e17460fffe7c7f5bf34992cf6d311d1",
+      "request_schema_closure_refs": [
+        "DeleteHtmlPageArgs"
+      ],
+      "request_schema_hash": "c53dc26677e4726adfb638f67a3654f8d5086250f56de8b7499f4507e4c77ae3",
+      "request_schema_ref": "DeleteHtmlPageArgs",
+      "response_schema_closure_hash": "1facbbc51e29b03014eb555740e0eac072bae099ad0fde5ec8d1e68038a1e2de",
+      "response_schema_closure_refs": [
+        "DeleteHtmlPageResponse"
+      ],
+      "response_schema_hash": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+      "response_schema_ref": "DeleteHtmlPageResponse",
+      "source": {
+        "catalog": "config/datalens_api_methods.json",
+        "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteHtmlPage",
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
+      },
+      "status": "readonly_reference",
+      "tag": "HtmlPages",
       "unavailable_response": "Return ok=false with error.category=unavailable_api_method or readonly/reference policy."
     },
     {
@@ -1062,7 +1125,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteQlChart",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "QL",
@@ -1091,7 +1154,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteReport",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Reports",
@@ -1120,7 +1183,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteWizardChart",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Wizard",
@@ -1149,7 +1212,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteWorkbook",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Workbook",
@@ -1179,7 +1242,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteWorkbooks",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Workbook",
@@ -1209,7 +1272,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/dlsSuggest",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Folder",
@@ -1238,7 +1301,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/extendEntryLock",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "unsupported_explicit",
       "tag": "EntryLock",
@@ -1269,7 +1332,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getAuditEntriesUpdates",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Audit",
@@ -1299,7 +1362,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getAuditEntryPermissionsForUser",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Audit",
@@ -1329,7 +1392,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getCollection",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Collection",
@@ -1359,7 +1422,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getCollectionBreadcrumbs",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Collection",
@@ -1393,7 +1456,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getCollectionContent",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Collection",
@@ -1423,7 +1486,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getCollectionsByIds",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Collection",
@@ -1481,7 +1544,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getConnection",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Connection",
@@ -1516,7 +1579,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getDashboard",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Dashboard",
@@ -1651,7 +1714,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getDataset",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Dataset",
@@ -1686,7 +1749,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getEditorChart",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Editor",
@@ -1715,7 +1778,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getEmbeddingSecret",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "EmbeddingSecrets",
@@ -1747,7 +1810,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getEntries",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Navigation",
@@ -1777,7 +1840,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getEntriesPermissions",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Entries",
@@ -1809,10 +1872,41 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getEntriesRelations",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Entries",
+      "unavailable_response": ""
+    },
+    {
+      "fixture_path": "tests/fixtures/api_contracts/getHtmlPage.json",
+      "http_method": "POST",
+      "live_probe_policy": "optional_readonly_sanitized_probe",
+      "method_name": "getHtmlPage",
+      "operation_id": "getHtmlPage",
+      "owning_mcp_tool": "dl_read_object",
+      "path": "/rpc/getHtmlPage",
+      "request_schema_closure_hash": "045e4da6d4934c73d1435619cac9483e2446ffa650b88ce2f55c81b54975a65d",
+      "request_schema_closure_refs": [
+        "GetHtmlPageArgs"
+      ],
+      "request_schema_hash": "6c273b9265507c5c4aa191762b346e9e3e56de0dbc55799d358bff7021c69801",
+      "request_schema_ref": "GetHtmlPageArgs",
+      "response_schema_closure_hash": "e6b8f015f90a9231554ed81e57ebb9103f611858a6b93b510df5bd9fcf545977",
+      "response_schema_closure_refs": [
+        "EntryAnnotation",
+        "EntryPermissions",
+        "GetHtmlPageResult"
+      ],
+      "response_schema_hash": "ce26cd6bd1b06469961c0d66e069d10a9a19a55c40ea981f539cbdb1f9068db4",
+      "response_schema_ref": "GetHtmlPageResult",
+      "source": {
+        "catalog": "config/datalens_api_methods.json",
+        "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getHtmlPage",
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
+      },
+      "status": "supported_tool",
+      "tag": "HtmlPages",
       "unavailable_response": ""
     },
     {
@@ -1839,7 +1933,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getLicenses",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Licensing",
@@ -1867,7 +1961,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getLicensesLimit",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Licensing",
@@ -1898,7 +1992,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getPermissions",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Folder",
@@ -1927,7 +2021,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getPermissionsBulk",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Permissions",
@@ -1955,7 +2049,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getQlChart",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "QL",
@@ -1989,7 +2083,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getReport",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Reports",
@@ -2016,7 +2110,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getRootCollectionPermissions",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Collection",
@@ -2044,7 +2138,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getWizardChart",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Wizard",
@@ -2074,7 +2168,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbook",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Workbook",
@@ -2107,7 +2201,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookEntries",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Workbook",
@@ -2137,7 +2231,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookExportResult",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "WorkbookExport",
@@ -2170,7 +2264,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookExportStatus",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "WorkbookExport",
@@ -2203,7 +2297,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookImportStatus",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "WorkbookImport",
@@ -2233,7 +2327,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbooksByIds",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Workbook",
@@ -2263,7 +2357,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbooksList",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Workbook",
@@ -2296,7 +2390,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/listCollectionAccessBindings",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Collection",
@@ -2328,7 +2422,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/listDirectory",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Navigation",
@@ -2358,7 +2452,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/listEmbeddingSecrets",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "EmbeddingSecrets",
@@ -2389,7 +2483,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/listEmbeds",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Embeds",
@@ -2422,7 +2516,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/listSharedEntryAccessBindings",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "SharedEntry",
@@ -2455,7 +2549,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/listWorkbookAccessBindings",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Workbook",
@@ -2484,7 +2578,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/modifyPermissions",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Folder",
@@ -2513,7 +2607,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/moveCollection",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Collection",
@@ -2543,7 +2637,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/moveCollections",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Collection",
@@ -2574,7 +2668,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/moveFolderEntry",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Folder",
@@ -2603,7 +2697,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/moveWorkbook",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Workbook",
@@ -2633,7 +2727,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/moveWorkbooks",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Workbook",
@@ -2664,7 +2758,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/renameEntry",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Entries",
@@ -2694,7 +2788,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/setLicenseLimit",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "readonly_reference",
       "tag": "Licensing",
@@ -2723,7 +2817,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/startWorkbookExport",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "guarded_plan_only",
       "tag": "WorkbookExport",
@@ -2752,7 +2846,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/startWorkbookImport",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "guarded_plan_only",
       "tag": "WorkbookImport",
@@ -2781,7 +2875,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateCollection",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "unsupported_explicit",
       "tag": "Collection",
@@ -2813,7 +2907,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateCollectionAccessBindings",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "guarded_plan_only",
       "tag": "Collection",
@@ -2870,7 +2964,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateConnection",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "guarded_plan_only",
       "tag": "Connection",
@@ -2907,7 +3001,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateDashboard",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "guarded_plan_only",
       "tag": "Dashboard",
@@ -3149,7 +3243,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateDataset",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "guarded_plan_only",
       "tag": "Dataset",
@@ -3189,7 +3283,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateEditorChart",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "guarded_plan_only",
       "tag": "Editor",
@@ -3220,11 +3314,44 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateEmbed",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "unsupported_explicit",
       "tag": "Embeds",
       "unavailable_response": "Return ok=false with error.category=unavailable_api_method or readonly/reference policy."
+    },
+    {
+      "fixture_path": "tests/fixtures/api_contracts/updateHtmlPage.json",
+      "http_method": "POST",
+      "live_probe_policy": "offline_fixture_required_live_write_optional_runtime_guarded",
+      "method_name": "updateHtmlPage",
+      "operation_id": "updateHtmlPage",
+      "owning_mcp_tool": "dl_plan_object_update",
+      "path": "/rpc/updateHtmlPage",
+      "request_schema_closure_hash": "ce9572524237b3e73eb8ea5e37a397844b162022162aab653781c202f5693786",
+      "request_schema_closure_refs": [
+        "EntryAnnotationArg",
+        "UpdateHtmlPageArgs"
+      ],
+      "request_schema_hash": "d7de62ea50972680b6bec179c9f6663ded99d09737e434cdb6bfabb682b447ce",
+      "request_schema_ref": "UpdateHtmlPageArgs",
+      "response_schema_closure_hash": "358a8b13f5d4fd3248d9075e83f5389ad63871e9f8cd965fa7daa2355e54a385",
+      "response_schema_closure_refs": [
+        "EntryAnnotation",
+        "EntryPermissions",
+        "HtmlPage",
+        "UpdateHtmlPageResult"
+      ],
+      "response_schema_hash": "db559e7cbe9140c47adb1da7fcc29c9e4bad24178d47dca6d4f9b07d58c21ed3",
+      "response_schema_ref": "UpdateHtmlPageResult",
+      "source": {
+        "catalog": "config/datalens_api_methods.json",
+        "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateHtmlPage",
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
+      },
+      "status": "guarded_plan_only",
+      "tag": "HtmlPages",
+      "unavailable_response": ""
     },
     {
       "fixture_path": "tests/fixtures/api_contracts/updateQLChart.json",
@@ -3251,7 +3378,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateQlChart",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "guarded_plan_only",
       "tag": "QL",
@@ -3287,7 +3414,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateReport",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "unsupported_explicit",
       "tag": "Reports",
@@ -3318,7 +3445,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateWizardChart",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "guarded_plan_only",
       "tag": "Wizard",
@@ -3347,7 +3474,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateWorkbook",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "guarded_plan_only",
       "tag": "Workbook",
@@ -3379,7 +3506,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateWorkbookAccessBindings",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "guarded_plan_only",
       "tag": "Workbook",
@@ -3699,7 +3826,7 @@
       "source": {
         "catalog": "config/datalens_api_methods.json",
         "doc_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/validateDataset",
-        "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8"
+        "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
       },
       "status": "supported_tool",
       "tag": "Dataset",
@@ -3709,15 +3836,15 @@
   "schema_version": "2026-06-30.api_operation_policy.v1",
   "source": {
     "catalog": "config/datalens_api_methods.json",
-    "generated_at": "2026-07-23T08:57:48.445725Z",
+    "generated_at": "2026-07-27T10:51:38.871395Z",
     "openapi_lock": "schemas/datalens-api/openapi.lock.json",
-    "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8",
+    "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0",
     "schema_bundle": "schemas/datalens-api/selected-openapi-schema-refs.json"
   },
   "status_counts": {
-    "guarded_plan_only": 18,
-    "readonly_reference": 22,
-    "supported_tool": 38,
+    "guarded_plan_only": 20,
+    "readonly_reference": 23,
+    "supported_tool": 39,
     "unsupported_explicit": 13
   },
   "status_enum": [

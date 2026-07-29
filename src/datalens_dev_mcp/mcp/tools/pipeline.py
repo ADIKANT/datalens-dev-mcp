@@ -1239,7 +1239,7 @@ def _aggregate_batch_browser_render_contract(
 
     if not contract_rows:
         return {
-            "schema_version": "2026-07-28.browser_render_contract_aggregation.v1",
+            "schema_version": "2026-07-29.browser_render_contract_aggregation.v2",
             "ok": True,
             "issues": [],
             "render_contract": {},
@@ -1348,14 +1348,14 @@ def _aggregate_batch_browser_render_contract(
 
     render_contract = (
         {
-            "schema_version": "2026-07-28.batch_browser_render_contract.v1",
+            "schema_version": "2026-07-29.batch_browser_render_contract.v2",
             "effective_tokens": combined_tokens,
         }
         if combined_tokens
         else {}
     )
     return {
-        "schema_version": "2026-07-28.browser_render_contract_aggregation.v1",
+        "schema_version": "2026-07-29.browser_render_contract_aggregation.v2",
         "ok": not issues,
         "issues": issues,
         "render_contract": render_contract,
@@ -1500,6 +1500,16 @@ def _generate_editor_bundle_batch(
             item["comparison_context"] = context
             normalized_contexts.append((item["widget_id"], context))
     if strict_render_profile:
+        kpi_families = [
+            family for family in ordered_families if family.startswith("kpi_")
+        ]
+        sparkline_kpis = [
+            family for family in kpi_families if family.endswith("_sparkline")
+        ]
+        if sparkline_kpis and len(sparkline_kpis) != len(kpi_families):
+            raise ValueError(
+                "strict dashboards require sparklines on every KPI or on none"
+            )
         if (
             "date_range_selector" in ordered_families
             and ordered_families[0] != "date_range_selector"
@@ -1709,7 +1719,7 @@ def _generate_editor_bundle_batch(
         else "blocked_partial_batch"
     )
     batch = {
-        "schema_version": "2026-07-28.editor_bundle_batch.v1",
+        "schema_version": "2026-07-29.editor_bundle_batch.v2",
         "ok": batch_ready,
         "status": batch_status,
         "generation_status": batch_status,

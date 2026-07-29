@@ -97,6 +97,14 @@
       "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
     },
     {
+      "mcp_route": "html_page_operation",
+      "mcp_tool": "dl_plan_object_create",
+      "method": "createHtmlPage",
+      "mode": "guarded_write",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
+    },
+    {
       "mcp_route": "ql_explicit",
       "mcp_tool": "dl_plan_object_create",
       "method": "createQLChart",
@@ -204,6 +212,14 @@
       "mcp_route": "forbidden",
       "mcp_tool": "",
       "method": "deleteFolder",
+      "mode": "forbidden",
+      "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
+      "support_status": "READ_ONLY_REFERENCE"
+    },
+    {
+      "mcp_route": "forbidden",
+      "mcp_tool": "",
+      "method": "deleteHtmlPage",
       "mode": "forbidden",
       "support_reason": "Official method is documented but blocked by destructive/move/license/permission policy.",
       "support_status": "READ_ONLY_REFERENCE"
@@ -372,6 +388,14 @@
       "mcp_route": "read_only",
       "mcp_tool": "dl_get_entries_relations / dl_list_related_objects",
       "method": "getEntriesRelations",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
+      "mcp_route": "read_only",
+      "mcp_tool": "dl_read_object",
+      "method": "getHtmlPage",
       "mode": "readonly",
       "support_reason": "Curated read-only RPC can be called without enabling writes.",
       "support_status": "EXECUTABLE_TOOL_SUPPORTED"
@@ -679,6 +703,14 @@
       "mode": "unsupported",
       "support_reason": "No validated MCP workflow or payload contract is implemented.",
       "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+    },
+    {
+      "mcp_route": "html_page_operation",
+      "mcp_tool": "dl_plan_object_update",
+      "method": "updateHtmlPage",
+      "mode": "guarded_write",
+      "support_reason": "Official method exists, but MCP exposes plan/safe-apply behavior by default.",
+      "support_status": "PLAN_ONLY_SUPPORTED"
     },
     {
       "mcp_route": "ql_explicit",

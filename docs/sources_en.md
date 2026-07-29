@@ -16,7 +16,8 @@ The server is based on official DataLens documentation, the public OpenAPI contr
 | API methods | [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) | Method names and request/response fields |
 | Editor | [Editor tabs](https://yandex.cloud/ru/docs/datalens/charts/editor/tabs) | JavaScript Editor object structure |
 | Editor runtime | [Editor methods](https://yandex.cloud/ru/docs/datalens/charts/editor/methods) | Validation of allowed `Editor.*` calls |
-| Standalone HTML | [`datalens-html-pages`](https://github.com/datalens-tech/datalens-skills/tree/main/skills/datalens-html-pages) | Sandbox/CSP, theme/lang, and parent-message protocols; not a Public API upload source |
+| HTML Pages | [HTML Pages](https://yandex.cloud/ru/docs/datalens/html-pages/), [API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) | Object model, versions, and create/get/update lifecycle |
+| Standalone HTML sandbox | [`datalens-html-pages`](https://github.com/datalens-tech/datalens-skills/tree/main/skills/datalens-html-pages) | Sandbox/CSP, theme/lang, and parent-message protocols |
 | Dashboards | [Dashboard model](https://yandex.cloud/ru/docs/datalens/concepts/dashboard/) | Tabs, widgets, selectors, relations, and layout |
 | Workbooks | [Workbooks and collections](https://yandex.cloud/ru/docs/datalens/workbooks-collections/) | Object location and access control |
 | Datasets | [Dataset documentation](https://yandex.cloud/ru/docs/datalens/dataset/) | Fields, relations, calculations, and data model |

@@ -1,0 +1,22 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "deleteHtmlPage",
+  "operation_id": "deleteHtmlPage",
+  "path": "/rpc/deleteHtmlPage",
+  "request_payload": {},
+  "request_schema_closure_hash": "0dce93ef0d231f9d7a9476f5b7e0c9698e17460fffe7c7f5bf34992cf6d311d1",
+  "request_schema_closure_refs": [
+    "DeleteHtmlPageArgs"
+  ],
+  "request_schema_hash": "c53dc26677e4726adfb638f67a3654f8d5086250f56de8b7499f4507e4c77ae3",
+  "request_schema_ref": "DeleteHtmlPageArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "1facbbc51e29b03014eb555740e0eac072bae099ad0fde5ec8d1e68038a1e2de",
+  "response_schema_closure_refs": [
+    "DeleteHtmlPageResponse"
+  ],
+  "response_schema_hash": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+  "response_schema_ref": "DeleteHtmlPageResponse",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "readonly_reference"
+}

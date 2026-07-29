@@ -4,7 +4,7 @@
 | --- | --- | --- |
 | `dl_list_workbooks`, `dl_get_workbook_entries` | `getWorkbooksList`, `getWorkbookEntries` | Поиск воркбуков и объектов |
 | `dl_get_entries_relations` | `getEntriesRelations` | Связи объектов |
-| `dl_read_object` | `getDashboard`, `get*Chart`, `getDataset`, `getConnection` | Унифицированное чтение |
+| `dl_read_object` | `getDashboard`, `get*Chart`, `getHtmlPage`, `getDataset`, `getConnection` | Унифицированное чтение |
 | `dl_plan_object_create` | create-метод выбранного object type | План создания |
 | `dl_plan_object_update` | update-метод выбранного object type | План обновления |
 | `dl_plan_guarded_dataset_update` | `getDataset`, `validateDataset`, `updateDataset` | Проверка и обновление датасета |

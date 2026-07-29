@@ -9,12 +9,25 @@ from typing import Any
 from datalens_dev_mcp.editor.render_contract import render_contract_to_dict
 
 
-RENDER_COMPILER_VERSION = "2026-07-28.resolved_render_contract.v2"
+RENDER_COMPILER_VERSION = "2026-07-29.resolved_render_contract.v3"
 _HTML_ROUTES = {"editor_advanced"}
 _NATIVE_TABLE_ROUTES = {"editor_table"}
 _MARKER_ROUTES = {"editor_markdown"}
 _CONTROL_ROUTES = {"editor_js_control"}
 _SUPPORTED_ROUTES = _HTML_ROUTES | _NATIVE_TABLE_ROUTES | _MARKER_ROUTES | _CONTROL_ROUTES
+_ACTIVE_SERIES_FAMILIES = {
+    "line_chart",
+    "multiline_chart",
+    "area_completion",
+    "combo_time_series_combo",
+}
+_COORDINATE_PLOT_FAMILIES = _ACTIVE_SERIES_FAMILIES | {
+    "vertical_bar_time_bucket",
+    "histogram",
+    "box_plot",
+    "scatter",
+    "bubble",
+}
 
 
 class RenderContractCompileError(ValueError):
@@ -124,10 +137,14 @@ def compile_bundle_render_contract(
             "render_transformed_call_count": transformed_call_count,
             "postcompile_invariants": {
                 "kpi_surface": "transparent_no_border_radius_outline_shadow",
-                "kpi_content": "visible_marked_value_compact_height",
+                "kpi_content": "visible_marked_value_unclipped_equal_set_height",
                 "legend_typography": "single_profile_token",
+                "legend_series": "filtered_result_rows_active_series_only",
                 "selector": "period_first_single_row_target_95_left_immediate_max_94",
-                "comparison_context": "exactly_one_when_enabled",
+                "semantic_heights": "new_h_selector_2_comparison_min_3_kpi_6_update_preserves_saved",
+                "comparison_context": "exactly_one_when_enabled_minimum_70px",
+                "plot_area": "top_22_right_10_or_16_bottom_34",
+                "kpi_sparkline": "all_or_none_within_dashboard_kpi_set",
                 "tooltip": "normalized_period_comparison_adaptive_native_owner",
             },
         }
@@ -178,6 +195,25 @@ def validate_compiled_render_contract(bundle: dict[str, Any]) -> dict[str, Any]:
             issues.append("runtime_tooltip_comparison_mode_marker_missing")
         if 'data-tooltip-period-source="${tooltipPeriodSource}"' not in prepare:
             issues.append("runtime_tooltip_period_source_marker_missing")
+        family = str(bundle.get("family") or "")
+        if family in _ACTIVE_SERIES_FAMILIES:
+            for marker_fragment in (
+                'data-series-policy="active_series_only"',
+                'data-series-role="mark"',
+                'data-series-role="legend"',
+            ):
+                if marker_fragment not in prepare:
+                    issues.append(f"active_series_runtime_marker_missing:{marker_fragment}")
+        if family in _COORDINATE_PLOT_FAMILIES:
+            for marker_fragment in (
+                'data-plot-area-policy="contract_insets"',
+                'data-role="plot-area"',
+                "data-inset-top",
+                "data-inset-right",
+                "data-inset-bottom",
+            ):
+                if marker_fragment not in prepare:
+                    issues.append(f"plot_area_runtime_marker_missing:{marker_fragment}")
         effective_tokens = (
             contract.get("effective_tokens")
             if isinstance(contract.get("effective_tokens"), dict)
@@ -243,7 +279,7 @@ def validate_compiled_render_contract(bundle: dict[str, Any]) -> dict[str, Any]:
                 issues.append(f"kpi_runtime_invariant_missing:{token}")
     return {
         "ok": not issues,
-        "schema_version": "2026-07-28.compiled_render_contract_validation.v1",
+        "schema_version": "2026-07-29.compiled_render_contract_validation.v2",
         "issues": issues,
         "compiled_tabs_sha256": _tabs_sha256(tabs),
         "render_contract_composite_sha256": composite,
@@ -279,6 +315,8 @@ function __dlGenerateProfileHtml(options, html) {{
   const semantic = contract.semantic_colors || {{}};
   const component = contract.component || {{}};
   const horizontal = contract.horizontal_rank || {{}};
+  const plotArea = contract.plot_area || {{}};
+  const seriesVisibility = contract.series_visibility || {{}};
   const componentKind = String(component.kind || 'generic_chart')
     .replace(/[^a-z0-9_-]/gi, '') || 'generic_chart';
   const contractFamily = String(__DL_RENDER_CONTRACT.family || '');
@@ -294,6 +332,26 @@ function __dlGenerateProfileHtml(options, html) {{
   const kpi = contract.kpi || {{}};
   const kpiValue = (kpi.value_typography || {{}})[compact ? 'compact' : 'normal'] || {{}};
   const fontFamily = (typography.font_family || ['Inter', 'Arial', 'sans-serif']).join(',');
+  const activeSeriesFamilies = ['line_chart', 'multiline_chart', 'area_completion', 'combo_time_series_combo'];
+  const coordinatePlotFamilies = activeSeriesFamilies.concat(
+    ['vertical_bar_time_bucket', 'histogram', 'box_plot', 'scatter', 'bubble'],
+  );
+  const seriesPolicyEnabled = activeSeriesFamilies.includes(contractFamily) &&
+    seriesVisibility.legend === 'active_series_only' &&
+    seriesVisibility.marks === 'active_series_only';
+  const plotPolicyEnabled = coordinatePlotFamilies.includes(contractFamily);
+  const rightInset = ((plotArea.inset_px || {{}}).right || {{}})[compact ? 'compact' : 'normal'];
+  const contractAttributes = (
+    (seriesPolicyEnabled ? ' data-series-policy="active_series_only"' : '') +
+    (plotPolicyEnabled
+      ? (
+        ' data-plot-area-policy="contract_insets"' +
+        ` data-plot-inset-top="${{Number((plotArea.inset_px || {{}}).top || 0)}}"` +
+        ` data-plot-inset-right="${{Number(rightInset || 0)}}"` +
+        ` data-plot-inset-bottom="${{Number((plotArea.inset_px || {{}}).bottom || 0)}}"`
+      )
+      : '')
+  );
   let output = String(html == null ? '' : html);
   let wrapperOverflow = '';
   output = output.replace(/font-family:Inter,Arial,sans-serif/g, `font-family:${{fontFamily}}`);
@@ -405,7 +463,7 @@ function __dlGenerateProfileHtml(options, html) {{
       `<div data-role="kpi" data-component="${{componentKind}}" ` +
       `data-render-contract="${{__DL_RENDER_CONTRACT.composite_sha256}}" ` +
       `data-tooltip-comparison-mode="${{tooltipComparisonMode}}" ` +
-      `data-tooltip-period-source="${{tooltipPeriodSource}}" ` +
+      `data-tooltip-period-source="${{tooltipPeriodSource}}"${{contractAttributes}} ` +
       'style="box-sizing:border-box;width:100%;height:100%;' +
       `padding:${{Number(inset.top || 0)}}px ${{Number(inset.right || 0)}}px ` +
       `${{Number(inset.bottom || 0)}}px ${{Number(inset.left || 0)}}px;` +
@@ -417,7 +475,7 @@ function __dlGenerateProfileHtml(options, html) {{
       `<div data-component="${{componentKind}}" ` +
       `data-render-contract="${{__DL_RENDER_CONTRACT.composite_sha256}}" ` +
       `data-tooltip-comparison-mode="${{tooltipComparisonMode}}" ` +
-      `data-tooltip-period-source="${{tooltipPeriodSource}}" ` +
+      `data-tooltip-period-source="${{tooltipPeriodSource}}"${{contractAttributes}} ` +
       'style="box-sizing:border-box;width:100%;height:100%;' +
       'border:0;outline:none;box-shadow:none;background:transparent;' +
       `${{wrapperOverflow}}">${{output}}</div>`

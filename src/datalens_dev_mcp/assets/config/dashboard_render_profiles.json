@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-07-28.dashboard_render_profiles.v1",
+  "schema_version": "2026-07-29.dashboard_render_profiles.v2",
   "default_profile_id": "standard_dashboard_v1",
   "profiles": {
     "standard_dashboard_v1": {
@@ -32,6 +32,30 @@
             "compact": 7,
             "normal": 9
           }
+        },
+        "layout_grid": {
+          "native_height_units": {
+            "title_creation_default": 2,
+            "selector_creation_default": 2,
+            "comparison_context_minimum": 3,
+            "kpi_creation_default": 6
+          },
+          "update_policy": "preserve_fresh_saved_geometry",
+          "runtime_relation": "measured_independently_from_native_units",
+          "equal_height_within_semantic_row": true,
+          "overflow_policy": "expand_or_scroll_never_clip"
+        },
+        "plot_area": {
+          "inset_px": {
+            "top": 22,
+            "right": {
+              "compact": 10,
+              "normal": 16
+            },
+            "bottom": 34,
+            "left": "family_axis_owned"
+          },
+          "applies_to": "coordinate_plot_area"
         },
         "typography": {
           "font_family": [
@@ -131,10 +155,11 @@
             "value_must_be_visible": true
           },
           "layout": {
-            "min_height_px": 88,
-            "preferred_height_px": 96,
-            "max_height_px": 112
-          }
+            "update_policy": "preserve_fresh_saved_geometry",
+            "equal_height_within_kpi_set": true,
+            "runtime_policy": "content_visible_without_clipping"
+          },
+          "sparkline_policy": "all_or_none_within_dashboard_kpi_set"
         },
         "selector": {
           "update_mode": "immediate",
@@ -157,7 +182,18 @@
             "selected_range",
             "comparison_range"
           ],
-          "duplicate_chart_captions": false
+          "duplicate_chart_captions": false,
+          "minimum_height_px": 70,
+          "semantic_line_count": 3
+        },
+        "series_visibility": {
+          "source": "filtered_result_rows",
+          "identity": "series_key",
+          "legend": "active_series_only",
+          "marks": "active_series_only",
+          "tooltip": "active_series_only",
+          "zero_only_unfiltered_series": "preserve",
+          "filtered_out_series": "omit"
         },
         "tooltip": {
           "owner": "native",
@@ -212,7 +248,7 @@
             "component": {
               "kind": "metric_tile",
               "one_metric_per_tile": true,
-              "preferred_height_px": 96
+              "height_policy": "shared_layout_grid"
             }
           }
         },
@@ -470,8 +506,8 @@
           "adapter": "selector_rows_v1"
         }
       },
-      "sha256": "bac48db837a46cb5e4d9444c78f450831e350400c0367c482f12f5ea5bf828fc"
+      "sha256": "b63c60dd1ab418f439d1d42b99f773686f7ac0773dc5c4b1809ec64e0dd391bc"
     }
   },
-  "sha256": "707b7a2eb358fbab39773fb63bf06b047ae6f7e91dfd819ad116dd6095dbe634"
+  "sha256": "3413d75ff87f60417eb27e5de5c71dbe9c20db0809394fa9d5443f59b1b500f3"
 }
