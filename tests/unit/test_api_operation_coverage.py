@@ -29,16 +29,16 @@ class ApiOperationCoverageTests(unittest.TestCase):
         report = self.validator.validate(strict=True)
 
         self.assertTrue(report["ok"], report["issues"])
-        self.assertEqual(report["checked"]["operation_count"], 91)
-        self.assertEqual(report["checked"]["path_count"], 91)
-        self.assertEqual(report["checked"]["fixture_count"], 91)
+        self.assertEqual(report["checked"]["operation_count"], 95)
+        self.assertEqual(report["checked"]["path_count"], 95)
+        self.assertEqual(report["checked"]["fixture_count"], 95)
 
     def test_every_operation_has_stable_status_owner_and_fixture(self):
         records = self.policy["operations"]
 
-        self.assertEqual(len(records), 91)
-        self.assertEqual(len({record["operation_id"] for record in records}), 91)
-        self.assertEqual(len({record["path"] for record in records}), 91)
+        self.assertEqual(len(records), 95)
+        self.assertEqual(len({record["operation_id"] for record in records}), 95)
+        self.assertEqual(len({record["path"] for record in records}), 95)
         for record in records:
             self.assertIn(record["status"], self.policy["status_enum"])
             self.assertTrue(record["owning_mcp_tool"])
@@ -54,7 +54,16 @@ class ApiOperationCoverageTests(unittest.TestCase):
 
         self.assertTrue(listed["ok"])
         self.assertEqual(runtime_names, policy_names)
-        self.assertEqual(listed["method_count"], 91)
+        self.assertEqual(listed["method_count"], 95)
+
+    def test_html_page_lifecycle_is_guarded_and_delete_stays_closed(self):
+        by_method = {record["method_name"]: record for record in self.policy["operations"]}
+
+        self.assertEqual(by_method["getHtmlPage"]["status"], "supported_tool")
+        self.assertEqual(by_method["createHtmlPage"]["status"], "guarded_plan_only")
+        self.assertEqual(by_method["updateHtmlPage"]["status"], "guarded_plan_only")
+        self.assertEqual(by_method["deleteHtmlPage"]["status"], "readonly_reference")
+        self.assertEqual(by_method["deleteHtmlPage"]["live_probe_policy"], "reference_only_no_mutation_probe")
 
     def test_entry_lock_operations_are_known_but_fail_closed(self):
         by_method = {record["method_name"]: record for record in self.policy["operations"]}

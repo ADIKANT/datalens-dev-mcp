@@ -53,6 +53,7 @@ def _execute_geometry_plan(
     comparison_left: int,
     include_selector: bool = True,
     selector_height: int = 44,
+    second_kpi_height: int | None = None,
 ) -> dict:
     node = shutil.which("node")
     if node is None:
@@ -62,6 +63,7 @@ def _execute_geometry_plan(
         "comparison_left": comparison_left,
         "include_selector": include_selector,
         "selector_height": selector_height,
+        "second_kpi_height": second_kpi_height,
     }
     harness = r"""
 class FakeNode {
@@ -164,7 +166,7 @@ body.add(new FakeNode({
     left: __CONFIG__.comparison_left,
     top: __CONFIG__.comparison_top,
     width: __CONFIG__.comparison_left === 36 ? 1128 : 100,
-    height: 28
+    height: 70
   }
 }));
 body.add(new FakeNode({
@@ -175,13 +177,35 @@ body.add(new FakeNode({
     "data-render-contract": "synthetic"
   },
   text: "42",
-  box: {left: 36, top: 188, width: 1128, height: 96},
+  box: {left: 36, top: 226, width: 1128, height: 200},
   style: {backgroundColor: "transparent"}
 })).add(new FakeNode({
   attrs: {"data-role": "kpi-value"},
   text: "42",
-  box: {left: 48, top: 200, width: 120, height: 38}
+  box: {left: 48, top: 238, width: 120, height: 38}
 }));
+if (__CONFIG__.second_kpi_height !== null) {
+  body.add(new FakeNode({
+    id: "kpi-two",
+    attrs: {
+      "data-widget-id": "kpi-two",
+      "data-role": "kpi",
+      "data-render-contract": "synthetic"
+    },
+    text: "7",
+    box: {
+      left: 36,
+      top: 440,
+      width: 1128,
+      height: __CONFIG__.second_kpi_height
+    },
+    style: {backgroundColor: "transparent"}
+  })).add(new FakeNode({
+    attrs: {"data-role": "kpi-value"},
+    text: "7",
+    box: {left: 48, top: 452, width: 120, height: 38}
+  }));
+}
 const allNodes = [html, ...html.descendants()];
 const document = {
   querySelectorAll: (selector) => allNodes.filter((candidate) => matches(candidate, selector)),
@@ -277,11 +301,42 @@ class BrowserQaOnePassPlanTests(unittest.TestCase):
         self.assertEqual(plan["render_contract"]["kpi"]["border"], "none")
         self.assertEqual(plan["render_contract"]["kpi"]["border_radius_px"], 0)
         self.assertEqual(plan["render_contract"]["kpi"]["value_marker"], "kpi-value")
-        self.assertEqual(plan["render_contract"]["kpi"]["min_height_px"], 88)
-        self.assertEqual(plan["render_contract"]["kpi"]["max_height_px"], 112)
+        self.assertEqual(
+            plan["render_contract"]["kpi"]["height_update_policy"],
+            "preserve_fresh_saved_geometry",
+        )
+        self.assertTrue(plan["render_contract"]["kpi"]["equal_height_within_set"])
+        self.assertEqual(
+            plan["render_contract"]["kpi"]["creation_default_grid_height_units"],
+            6,
+        )
         self.assertEqual(plan["render_contract"]["legend"]["font_size_px"], 12)
         self.assertEqual(plan["render_contract"]["legend"]["line_height_px"], 16)
         self.assertEqual(plan["render_contract"]["selector"]["row_height_px"], 44)
+        self.assertEqual(
+            plan["render_contract"]["layout_grid"]["selector_creation_default_units"],
+            2,
+        )
+        self.assertEqual(
+            plan["render_contract"]["layout_grid"]["kpi_creation_default_units"],
+            6,
+        )
+        self.assertEqual(
+            plan["render_contract"]["layout_grid"]["runtime_relation"],
+            "measured_independently_from_native_units",
+        )
+        self.assertEqual(
+            plan["render_contract"]["comparison_context"]["minimum_height_px"],
+            70,
+        )
+        self.assertEqual(plan["render_contract"]["plot_area"]["top_px"], 22)
+        self.assertEqual(plan["render_contract"]["plot_area"]["right_compact_px"], 10)
+        self.assertEqual(plan["render_contract"]["plot_area"]["right_normal_px"], 16)
+        self.assertEqual(plan["render_contract"]["plot_area"]["bottom_px"], 34)
+        self.assertEqual(
+            plan["render_contract"]["series_visibility"]["source"],
+            "filtered_result_rows",
+        )
         self.assertEqual(plan["render_contract"]["selector"]["row_width"], "bounded")
         self.assertEqual(plan["render_contract"]["selector"]["max_row_width_percent"], 94)
         self.assertTrue(plan["render_contract"]["selector"]["period_first_if_present"])
@@ -426,6 +481,12 @@ class BrowserQaOnePassPlanTests(unittest.TestCase):
             comparison_left=36,
             include_selector=False,
         )
+        inconsistent_kpis = _execute_geometry_plan(
+            geometry_plan(),
+            comparison_top=152,
+            comparison_left=36,
+            second_kpi_height=148,
+        )
 
         self.assertTrue(correct["passed"], correct)
         self.assertTrue(correct["assertions"]["comparison_context_placement"])
@@ -446,6 +507,11 @@ class BrowserQaOnePassPlanTests(unittest.TestCase):
         self.assertFalse(
             tall_selector["assertions"]["selector_order_row_contract"],
             tall_selector,
+        )
+        self.assertFalse(inconsistent_kpis["passed"], inconsistent_kpis)
+        self.assertFalse(
+            inconsistent_kpis["assertions"]["kpi_content_visibility_contract"],
+            inconsistent_kpis,
         )
 
     def test_stable_gutter_is_required_only_for_registered_scroll_adapter(self):

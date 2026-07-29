@@ -26,6 +26,7 @@ CREATE_ENTRY_LOCATION_METHODS = {
     "createWizardChart",
     "createReport",
     "createQLChart",
+    "createHtmlPage",
 }
 GUARDED_RPC_ALLOWED_METHODS = frozenset(
     {
@@ -42,6 +43,8 @@ GUARDED_RPC_ALLOWED_METHODS = frozenset(
         "updateWizardChart",
         "createQLChart",
         "updateQLChart",
+        "createHtmlPage",
+        "updateHtmlPage",
     }
 )
 
@@ -203,6 +206,7 @@ def compile_guarded_rpc_request(
         "createWizardChart",
         "createQLChart",
         "createDashboard",
+        "createHtmlPage",
     }
     if normalized_mode in {"save", "publish", "validate"} and method not in create_methods:
         if not revision and normalized_mode == "save":
@@ -382,6 +386,8 @@ def _guarded_mode(method: str, mode: str) -> str:
 
 
 def _object_type_from_method(method: str) -> str:
+    if "HtmlPage" in method:
+        return "html_page"
     if "Dataset" in method:
         return "dataset"
     if "WizardChart" in method:
@@ -466,6 +472,8 @@ def _adapt_method_payload(
         return _adapt_wizard_envelope(method, value, mode=mode, chart_id=object_id)
     if method in {"createQLChart", "updateQLChart"}:
         return _adapt_ql_envelope(method, value, mode=mode, chart_id=object_id)
+    if method in {"createHtmlPage", "updateHtmlPage"}:
+        return _adapt_html_page_payload(method, value, mode=mode, entry_id=object_id)
     payload = dict(value)
     if method_schema_defines_mode(method) and "mode" not in payload and operation != "create":
         payload["mode"] = mode
@@ -573,6 +581,41 @@ def _adapt_ql_envelope(method: str, value: dict[str, Any], *, mode: str, chart_i
     return {"entryId": entry_id, "template": "ql", "mode": mode, "data": data}
 
 
+def _adapt_html_page_payload(
+    method: str,
+    value: dict[str, Any],
+    *,
+    mode: str,
+    entry_id: str,
+) -> dict[str, Any]:
+    raw = dict(value.get("entry") if isinstance(value.get("entry"), dict) else value)
+    data = raw.get("data") if isinstance(raw.get("data"), dict) else {}
+    content = raw.get("content")
+    if not isinstance(content, str) and isinstance(data.get("content"), str):
+        content = data["content"]
+    if method == "createHtmlPage":
+        payload: dict[str, Any] = {}
+        if isinstance(content, str):
+            payload["content"] = content
+        for key in ("key", "workbookId", "name", "annotation"):
+            if raw.get(key) not in (None, ""):
+                payload[key] = raw[key]
+        return payload
+    payload = {
+        "entryId": entry_id or _first_string(raw, ("entryId", "id")),
+        "mode": str(raw.get("mode") or mode),
+    }
+    if isinstance(content, str):
+        payload["content"] = content
+        if raw.get("annotation") is not None:
+            payload["annotation"] = raw["annotation"]
+    else:
+        revision = _first_string(raw, ("revId", "rev_id", "revisionId"))
+        if revision:
+            payload["revId"] = revision
+    return payload
+
+
 def _strip_readback_only_entry_fields(entry: dict[str, Any]) -> dict[str, Any]:
     blocked = {
         "createdAt",
@@ -647,6 +690,13 @@ def _validate_value(value: Any, schema: dict[str, Any], *, path: str, method: st
             issues.append(f"{path}: must be greater than or equal to {minimum}")
         if isinstance(maximum, (int, float)) and value > maximum:
             issues.append(f"{path}: must be less than or equal to {maximum}")
+    if isinstance(value, str):
+        minimum_length = schema.get("minLength")
+        maximum_length = schema.get("maxLength")
+        if isinstance(minimum_length, int) and len(value) < minimum_length:
+            issues.append(f"{path}: must contain at least {minimum_length} characters")
+        if isinstance(maximum_length, int) and len(value) > maximum_length:
+            issues.append(f"{path}: must contain at most {maximum_length} characters")
     return issues
 
 

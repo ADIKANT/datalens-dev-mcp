@@ -1,0 +1,24 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getHtmlPage",
+  "operation_id": "getHtmlPage",
+  "path": "/rpc/getHtmlPage",
+  "request_payload": {},
+  "request_schema_closure_hash": "045e4da6d4934c73d1435619cac9483e2446ffa650b88ce2f55c81b54975a65d",
+  "request_schema_closure_refs": [
+    "GetHtmlPageArgs"
+  ],
+  "request_schema_hash": "6c273b9265507c5c4aa191762b346e9e3e56de0dbc55799d358bff7021c69801",
+  "request_schema_ref": "GetHtmlPageArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "e6b8f015f90a9231554ed81e57ebb9103f611858a6b93b510df5bd9fcf545977",
+  "response_schema_closure_refs": [
+    "EntryAnnotation",
+    "EntryPermissions",
+    "GetHtmlPageResult"
+  ],
+  "response_schema_hash": "ce26cd6bd1b06469961c0d66e069d10a9a19a55c40ea981f539cbdb1f9068db4",
+  "response_schema_ref": "GetHtmlPageResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "supported_tool"
+}

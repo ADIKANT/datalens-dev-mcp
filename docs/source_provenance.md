@@ -8,7 +8,7 @@ Python-код, правила, схемы, шаблоны, примеры и т�
 
 Профиль `standard_editor_v1` ссылается только на стандартный реестр Editor-
 шаблонов этого репозитория. Он фиксирует 38 семейств и 74 assets общим SHA-256
-`0f52998c57443651845ab73718df1669d01c5b5e87d10e0bf6bd29d6ee4cd4d4`.
+`6d35e7ae7e31ffb5677010b63e8e6d9455c8955a5b5f041e939281e0470a5da8`.
 Каждый скомпилированный bundle дополнительно содержит fingerprints выбранных
 assets, style-контракта и итоговых вкладок.
 
@@ -36,6 +36,10 @@ assets, style-контракта и итоговых вкладок.
 на commit `8fbb3aabac6b09d4c44f053fa63affea1dc386f7`. В пакет не
 копируются raw skill, template или eval corpus. Runtime и recipe сохраняют
 точную source URL и SHA-256; правила проекта остаются под Apache License 2.0.
+
+Create/get/update HTML Page lifecycle компилируется отдельно из официального
+Public OpenAPI. Public skill остаётся источником только sandbox authoring
+contract и не расширяет API-политику.
 
 ## Обновление справочных данных
 

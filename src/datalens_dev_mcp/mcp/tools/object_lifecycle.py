@@ -15,6 +15,7 @@ from datalens_dev_mcp.api.request_compiler import (
     validate_method_request,
 )
 from datalens_dev_mcp.config import DataLensConfig
+from datalens_dev_mcp.html_pages import validate_standalone_html_page
 from datalens_dev_mcp.knowledge.formulas import load_formula_registry, validate_formula_expression
 from datalens_dev_mcp.mcp.object_registry import object_read_contract, object_type_registry
 from datalens_dev_mcp.mcp.response_projection import (
@@ -68,6 +69,7 @@ OBJECT_METHODS: dict[str, dict[str, str | None]] = {
     "dataset_field": {"read": None, "create": None, "update": None},
     "calculated_field": {"read": None, "create": None, "update": None},
     "ql_chart": {"read": "getQLChart", "create": "createQLChart", "update": "updateQLChart"},
+    "html_page": {"read": "getHtmlPage", "create": "createHtmlPage", "update": "updateHtmlPage"},
     "report": {"read": "getReport", "create": None, "update": None},
     "d3_node": {"read": "getEditorChart", "create": None, "update": None},
 }
@@ -87,6 +89,7 @@ READ_ID_KEYS = {
     "permission": "entryId",
     "workbook_permission": "workbookId",
     "ql_chart": "chartId",
+    "html_page": "entryId",
     "report": "entryId",
     "d3_node": "chartId",
 }
@@ -245,6 +248,9 @@ def dl_validate_object_payload(
         unsupported = _ql_chart_error(payload, operation=operation, approval_provenance=approval_provenance)
         if unsupported:
             return unsupported
+    html_validation = _html_page_validation(payload, object_type=normalized, operation=operation)
+    if html_validation and not html_validation["ok"]:
+        return _html_page_validation_error(html_validation, operation=operation)
     method = OBJECT_METHODS.get(normalized, {}).get(operation)
     schema = get_method_schema(method) if method else {"mode": "unknown"}
     validation = validate_method_request(method, payload) if method else {"ok": False, "issues": ["method unavailable"], "schema_ref": ""}
@@ -947,6 +953,13 @@ def _guarded_write_plan(
         )
         if unsupported:
             return unsupported
+    html_validation = _html_page_validation(
+        entry,
+        object_type=normalized,
+        operation=operation,
+    )
+    if html_validation and not html_validation["ok"]:
+        return _html_page_validation_error(html_validation, operation=operation)
     method = OBJECT_METHODS.get(normalized, {}).get(operation)
     if not method:
         return _unavailable(normalized, operation)
@@ -1336,7 +1349,7 @@ def _canonical_payload_shape_error(object_type: str, value: dict[str, Any]) -> d
         object_id = str(value.get("connectionId") or value.get("connection_id") or value.get("id") or "").strip()
         if not object_id:
             return _error("missing_object_id", "connection payload must contain connectionId or id before lifecycle planning")
-    elif object_type in {"dashboard", "editor_chart", "wizard_chart", "ql_chart"}:
+    elif object_type in {"dashboard", "editor_chart", "wizard_chart", "ql_chart", "html_page"}:
         entry = value.get("entry") if isinstance(value.get("entry"), dict) else value
         object_id = str(
             entry.get("entryId")
@@ -1844,6 +1857,9 @@ def _normalize_object_type(object_type: str) -> str:
         "ql_chart_node": "ql_chart",
         "graph_ql_node": "ql_chart",
         "table_ql_node": "ql_chart",
+        "html": "html_page",
+        "html_page_node": "html_page",
+        "standalone_html_page": "html_page",
     }
     return aliases.get(normalized, normalized)
 
@@ -2233,3 +2249,43 @@ def _object_id_for_payload(object_type: str, payload: dict[str, Any]) -> str:
     if object_type == "connector":
         return str(payload.get("connectionId") or payload.get("connection_id") or payload.get("id") or "")
     return str(payload.get("entryId") or payload.get("chartId") or payload.get("dashboardId") or payload.get("id") or "")
+
+
+def _html_page_validation(
+    value: dict[str, Any],
+    *,
+    object_type: str,
+    operation: str,
+) -> dict[str, Any] | None:
+    if object_type != "html_page" or operation not in {"create", "update"}:
+        return None
+    raw = value.get("entry") if isinstance(value.get("entry"), dict) else value
+    data = raw.get("data") if isinstance(raw.get("data"), dict) else {}
+    content = raw.get("content")
+    if not isinstance(content, str):
+        content = data.get("content")
+    if not isinstance(content, str):
+        return None
+    return validate_standalone_html_page(content, source="html_page.content", strict=True)
+
+
+def _html_page_validation_error(
+    validation: dict[str, Any],
+    *,
+    operation: str,
+) -> dict[str, Any]:
+    blocking = [
+        str(item.get("rule") or "html_page_contract")
+        for item in validation.get("findings") or []
+        if item.get("severity") in {"error", "warning"}
+    ]
+    return {
+        **_error(
+            "datalens_validation_error",
+            "html_page.content failed the standalone sandbox contract: "
+            + ", ".join(blocking[:20]),
+        ),
+        "object_type": "html_page",
+        "operation": operation,
+        "html_validation": validation,
+    }

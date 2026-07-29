@@ -2272,7 +2272,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "3e3f3d66f6bf6490a903e17d83bd65a1afa419b3d3afbb70f04b69db2599679c",
+        "sha256": "9c275e04d14a785c062986bed345556e0a00090fa7c340f2c09d520251352020",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -2391,7 +2391,7 @@
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
           "params.js": "25a45521fdc5f5c1d3329d9cc63d50568669c1e5cb79aed49b920777d9b62070",
-          "prepare.js": "4d5338abf1d6db61de30902e31dca7aba7db0502705de908d07dc3c8a0d8b3fc",
+          "prepare.js": "9904b9a999f425b3f5eae28d1109f339b1855d0aac6046751b62ba80b9e278b4",
           "sources.js": "840dad94c56918f6a901c9bb7c459afda4b59ee88d2c709f426442a19fefa285"
         }
       },
@@ -2592,7 +2592,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "4fa2c3a29eae7138ceb9da19b9c358b218d622646eb66eb3fa0f6e3abc84d33d",
+        "sha256": "7d1b836ea0961d553f218fcd9104101f3a11ade6da69a3e70a5915f549b8d4d2",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -2711,7 +2711,7 @@
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
           "params.js": "25a45521fdc5f5c1d3329d9cc63d50568669c1e5cb79aed49b920777d9b62070",
-          "prepare.js": "36081fa9ae6e8f7448d8152a4561216bcf699f8556ec1db77005ee26bc126c66",
+          "prepare.js": "6301022e6a42258fefb211ae7e094d305cde4951989b46d0b5bf030115950e12",
           "sources.js": "4a05d96658eea9e6d7e9f5d1e3f315114476893eebee35e0888cb3e8f650f9e6"
         }
       },
@@ -2752,7 +2752,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "4523571b88f8cdb6b4da2181d7e692d53837817a03b27936728984d6b38c31ba",
+        "sha256": "d149fd6d7b97f27b0393a560c936c82fd47a8a4432b7c659bdfab599241481d3",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -2871,7 +2871,7 @@
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
           "params.js": "25a45521fdc5f5c1d3329d9cc63d50568669c1e5cb79aed49b920777d9b62070",
-          "prepare.js": "0cb46672a20f41a4c0738a3e9a066dd572f2cac2f9dd4c1a46abcd2ad75597bf",
+          "prepare.js": "1fb1fe8cb10a755f7996755093938a37228f183c7a31965fd5fbf73c5b107a48",
           "sources.js": "4a05d96658eea9e6d7e9f5d1e3f315114476893eebee35e0888cb3e8f650f9e6"
         }
       },

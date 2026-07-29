@@ -535,6 +535,48 @@ class SafeApplyTests(unittest.TestCase):
         self.assertEqual(action["fresh_read_payload"]["branch"], "saved")
         self.assertEqual(action["readback_payload"]["branch"], "published")
 
+    def test_html_page_publish_uses_only_verified_saved_revision(self):
+        from datalens_dev_mcp.pipeline.safe_apply import (
+            create_publish_safe_apply_plan,
+            validate_safe_apply_plan,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "html-page.saved.latest.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "branch": "saved",
+                        "entryId": "page_1",
+                        "revId": "rev_saved",
+                        "savedId": "saved_1",
+                        "data": {"content": "<html><body>synthetic</body></html>"},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            plan = create_publish_safe_apply_plan(
+                project_root=tmp,
+                target="html_page",
+                object_type="html_page",
+                object_id="page_1",
+                saved_readback_path=str(path),
+                approved=True,
+            )
+            validation = validate_safe_apply_plan(plan)
+
+        self.assertTrue(plan["ok"], plan)
+        self.assertTrue(validation.ok, validation.issues)
+        action = plan["actions"][0]
+        self.assertEqual(action["method"], "updateHtmlPage")
+        self.assertEqual(
+            action["payload"],
+            {"entryId": "page_1", "revId": "rev_saved", "mode": "publish"},
+        )
+        self.assertEqual(action["fresh_read_method"], "getHtmlPage")
+        self.assertEqual(action["fresh_read_payload"]["branch"], "saved")
+        self.assertEqual(action["readback_payload"]["branch"], "published")
+
     def test_publish_plan_understands_project_summary_snake_case_identity(self):
         from datalens_dev_mcp.pipeline.safe_apply import create_publish_safe_apply_plan
 

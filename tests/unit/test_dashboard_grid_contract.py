@@ -72,6 +72,82 @@ class DashboardGridContractTests(unittest.TestCase):
         self.assertTrue(result.ok, [issue.to_dict() for issue in result.issues])
         self.assertFalse(any(issue.rule.startswith(("missing_item", "orphan_layout")) for issue in result.issues))
 
+    def test_height_defaults_are_advisory_but_comparison_context_has_a_minimum(self):
+        short_comparison = _payload(
+            items=[
+                {
+                    "id": "comparison_context_summary",
+                    "type": "widget",
+                    "data": {
+                        "tabs": [
+                            {
+                                "id": "comparison_context",
+                                "chartId": "comparison_context_chart",
+                                "title": "Comparison context",
+                            }
+                        ]
+                    },
+                }
+            ],
+            layout=[
+                {
+                    "i": "comparison_context_summary",
+                    "x": 0,
+                    "y": 0,
+                    "w": 36,
+                    "h": 2,
+                }
+            ],
+        )
+
+        short_result = validate_dashboard_payload(
+            short_comparison,
+            current_dashboard=short_comparison,
+        )
+        short_rules = {issue.rule for issue in short_result.issues}
+        self.assertIn("comparison_context_too_short", short_rules)
+
+        adequate_comparison = json.loads(json.dumps(short_comparison))
+        adequate_comparison["tabs"][0]["layout"][0]["h"] = 3
+        adequate_result = validate_dashboard_payload(adequate_comparison)
+        self.assertFalse(
+            any(
+                issue.rule == "comparison_context_too_short"
+                for issue in adequate_result.issues
+            )
+        )
+
+        preserved_kpi = _payload(
+            items=[
+                {
+                    "id": "kpi_orders",
+                    "type": "widget",
+                    "data": {
+                        "tabs": [
+                            {
+                                "id": "kpi_orders",
+                                "chartId": "orders_chart",
+                                "title": "Orders KPI",
+                            }
+                        ]
+                    },
+                }
+            ],
+            layout=[
+                {"i": "kpi_orders", "x": 0, "y": 0, "w": 12, "h": 8},
+            ],
+        )
+        preserved_result = validate_dashboard_payload(
+            preserved_kpi,
+            current_dashboard=preserved_kpi,
+        )
+        self.assertFalse(
+            any(
+                issue.rule == "atypical_kpi_height"
+                for issue in preserved_result.issues
+            )
+        )
+
     def test_grid_rejects_duplicate_missing_orphan_and_invalid_geometry(self):
         payload = _payload(
             items=[

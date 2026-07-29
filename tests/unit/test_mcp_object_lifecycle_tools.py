@@ -159,6 +159,40 @@ class McpObjectLifecycleToolTests(unittest.TestCase):
         self.assertTrue(update["ok"], update)
         self.assertEqual(update["method"], "updateQLChart")
 
+    def test_html_page_generic_lifecycle_validates_content_and_reads_by_entry_id(self):
+        from datalens_dev_mcp.html_pages import render_standalone_html_page
+        from datalens_dev_mcp.mcp.tools.object_lifecycle import (
+            dl_plan_object_create,
+            dl_read_object,
+        )
+
+        content = render_standalone_html_page({"title": "Synthetic page"})["html"]
+        create = dl_plan_object_create(
+            "html_page",
+            {
+                "workbookId": "workbook_1",
+                "name": "Synthetic page",
+                "content": content,
+            },
+        )
+        unsafe = dl_plan_object_create(
+            "html_page",
+            {
+                "workbookId": "workbook_1",
+                "name": "Unsafe page",
+                "content": "<html><script>fetch('https://example.test')</script></html>",
+            },
+        )
+        read = dl_read_object("html_page", "page_1", client=FakeClient())
+
+        self.assertTrue(create["ok"], create)
+        self.assertEqual(create["method"], "createHtmlPage")
+        self.assertEqual(create["payload"]["content"], content)
+        self.assertEqual(unsafe["error"]["category"], "datalens_validation_error")
+        self.assertTrue(read["ok"], read)
+        self.assertEqual(read["method"], "getHtmlPage")
+        self.assertEqual(read["object_id"], "page_1")
+
     def test_generic_lifecycle_adapters_block_ambiguous_dataset_readbacks(self):
         from datalens_dev_mcp.mcp.tools.object_lifecycle import dl_plan_object_update, dl_validate_object
 
@@ -325,7 +359,7 @@ class McpObjectLifecycleToolTests(unittest.TestCase):
                         self.assertEqual(result["branch"], "")
                         self.assertEqual(
                             result["contract"]["schema_version"],
-                            "2026-06-25.object_read_registry.v1",
+                    "2026-07-29.object_read_registry.v2",
                         )
                         self.assertTrue(result["contract"]["truncated"])
                         self.assertTrue(Path(result["artifact"]["path"]).is_file())

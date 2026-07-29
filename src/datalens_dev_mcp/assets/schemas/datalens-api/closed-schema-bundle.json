@@ -1,7 +1,7 @@
 {
   "missing_refs": [],
-  "openapi_lock_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8",
-  "schema_count": 514,
+  "openapi_lock_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0",
+  "schema_count": 523,
   "schema_version": "2026-06-25.closed_openapi_schema_bundle.v1",
   "schemas": {
     "APPMETRICA_API": {
@@ -4234,6 +4234,46 @@
         "version",
         "sourceVersion",
         "links"
+      ],
+      "type": "object"
+    },
+    "CreateHtmlPageArgs": {
+      "allOf": [
+        {
+          "properties": {
+            "annotation": {
+              "$ref": "#/components/schemas/EntryAnnotationArg"
+            },
+            "content": {
+              "maxLength": 10485760,
+              "type": "string"
+            }
+          },
+          "required": [
+            "content"
+          ],
+          "type": "object"
+        },
+        {
+          "$ref": "#/components/schemas/EntryLocationIdentifiers"
+        }
+      ]
+    },
+    "CreateHtmlPageResult": {
+      "properties": {
+        "entry": {
+          "$ref": "#/components/schemas/HtmlPage"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "entry",
+        "warnings"
       ],
       "type": "object"
     },
@@ -10653,6 +10693,21 @@
       "properties": {},
       "type": "object"
     },
+    "DeleteHtmlPageArgs": {
+      "properties": {
+        "entryId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "entryId"
+      ],
+      "type": "object"
+    },
+    "DeleteHtmlPageResponse": {
+      "properties": {},
+      "type": "object"
+    },
     "DeleteObligatoryFilter": {
       "properties": {
         "id": {
@@ -13923,6 +13978,168 @@
       ],
       "type": "object"
     },
+    "GetHtmlPageArgs": {
+      "properties": {
+        "branch": {
+          "enum": [
+            "saved",
+            "published"
+          ],
+          "type": "string"
+        },
+        "entryId": {
+          "type": "string"
+        },
+        "includeFavorite": {
+          "type": "boolean"
+        },
+        "includePermissions": {
+          "type": "boolean"
+        },
+        "revId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "entryId"
+      ],
+      "type": "object"
+    },
+    "GetHtmlPageResult": {
+      "properties": {
+        "annotation": {
+          "$ref": "#/components/schemas/EntryAnnotation"
+        },
+        "collectionId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "createdBy": {
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "entryId": {
+          "type": "string"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "isFavorite": {
+          "type": "boolean"
+        },
+        "key": {
+          "type": "string"
+        },
+        "links": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "meta": {
+          "properties": {
+            "objectId": {
+              "type": "string"
+            },
+            "policyVersion": {
+              "type": "number"
+            }
+          },
+          "type": "object"
+        },
+        "permissions": {
+          "$ref": "#/components/schemas/EntryPermissions"
+        },
+        "public": {
+          "type": "boolean"
+        },
+        "publishedId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revId": {
+          "type": "string"
+        },
+        "revUpdatedAt": {
+          "type": "string"
+        },
+        "revUpdatedBy": {
+          "type": "string"
+        },
+        "savedId": {
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "artifact"
+          ],
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "html-page"
+          ],
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "updatedBy": {
+          "type": "string"
+        },
+        "version": {
+          "enum": [
+            1
+          ],
+          "type": "number"
+        },
+        "workbookId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "entryId",
+        "scope",
+        "type",
+        "key",
+        "workbookId",
+        "collectionId",
+        "revId",
+        "savedId",
+        "publishedId",
+        "data",
+        "meta",
+        "annotation",
+        "createdBy",
+        "createdAt",
+        "updatedBy",
+        "updatedAt",
+        "tenantId",
+        "hidden",
+        "version",
+        "public"
+      ],
+      "type": "object"
+    },
     "GetLicensesArgs": {
       "additionalProperties": false,
       "properties": {
@@ -15242,6 +15459,141 @@
       },
       "required": [
         "workbooks"
+      ],
+      "type": "object"
+    },
+    "HtmlPage": {
+      "properties": {
+        "annotation": {
+          "$ref": "#/components/schemas/EntryAnnotation"
+        },
+        "collectionId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "createdBy": {
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "entryId": {
+          "type": "string"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "isFavorite": {
+          "type": "boolean"
+        },
+        "key": {
+          "type": "string"
+        },
+        "links": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "meta": {
+          "properties": {
+            "objectId": {
+              "type": "string"
+            },
+            "policyVersion": {
+              "type": "number"
+            }
+          },
+          "type": "object"
+        },
+        "permissions": {
+          "$ref": "#/components/schemas/EntryPermissions"
+        },
+        "public": {
+          "type": "boolean"
+        },
+        "publishedId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revId": {
+          "type": "string"
+        },
+        "revUpdatedAt": {
+          "type": "string"
+        },
+        "revUpdatedBy": {
+          "type": "string"
+        },
+        "savedId": {
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "artifact"
+          ],
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "html-page"
+          ],
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "updatedBy": {
+          "type": "string"
+        },
+        "version": {
+          "enum": [
+            1
+          ],
+          "type": "number"
+        },
+        "workbookId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "entryId",
+        "scope",
+        "type",
+        "key",
+        "workbookId",
+        "collectionId",
+        "revId",
+        "savedId",
+        "publishedId",
+        "data",
+        "meta",
+        "annotation",
+        "createdBy",
+        "createdAt",
+        "updatedBy",
+        "updatedAt",
+        "tenantId",
+        "hidden",
+        "version",
+        "public"
       ],
       "type": "object"
     },
@@ -22543,6 +22895,77 @@
           ]
         }
       },
+      "type": "object"
+    },
+    "UpdateHtmlPageArgs": {
+      "anyOf": [
+        {
+          "properties": {
+            "annotation": {
+              "$ref": "#/components/schemas/EntryAnnotationArg"
+            },
+            "content": {
+              "maxLength": 10485760,
+              "type": "string"
+            },
+            "entryId": {
+              "type": "string"
+            },
+            "mode": {
+              "enum": [
+                "save",
+                "publish"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "entryId",
+            "content"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "entryId": {
+              "type": "string"
+            },
+            "mode": {
+              "enum": [
+                "save",
+                "publish"
+              ],
+              "type": "string"
+            },
+            "revId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "entryId",
+            "revId",
+            "mode"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "UpdateHtmlPageResult": {
+      "properties": {
+        "entry": {
+          "$ref": "#/components/schemas/HtmlPage"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "entry",
+        "warnings"
+      ],
       "type": "object"
     },
     "UpdateQLChartArgs": {

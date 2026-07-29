@@ -27,8 +27,8 @@ RUNTIME_ERROR_MARKERS = [
     "Data fetching error",
 ]
 
-BROWSER_QA_PLAN_SCHEMA_VERSION = "datalens.browser-qa-plan.v2"
-BROWSER_QA_RESULT_SCHEMA_VERSION = "datalens.browser-qa-result.v2"
+BROWSER_QA_PLAN_SCHEMA_VERSION = "datalens.browser-qa-plan.v3"
+BROWSER_QA_RESULT_SCHEMA_VERSION = "datalens.browser-qa-result.v3"
 BROWSER_QA_MAX_CALLS = 3
 BROWSER_QA_VIEWPORTS = (
     {"id": "compact_desktop", "width": 1200, "height": 900},
@@ -57,11 +57,22 @@ BROWSER_QA_ASSERTIONS = (
     },
     {
         "id": "kpi_content_visibility_contract",
-        "description": "Every strict KPI has a visible non-empty value inside a compact unclipped tile.",
+        "description": (
+            "Every strict KPI has a visible non-empty value inside an unclipped tile, "
+            "and KPI tiles use one height within the dashboard set."
+        ),
     },
     {
         "id": "legend_typography_consistent",
         "description": "Legend typography has one size and matches the render contract.",
+    },
+    {
+        "id": "active_series_legend_consistent",
+        "description": "Legend entries match the series marks produced from filtered result rows.",
+    },
+    {
+        "id": "coordinate_plot_insets_consistent",
+        "description": "Coordinate plot areas use the registered top, right, and bottom insets.",
     },
     {
         "id": "selector_interaction_layout_contract",
@@ -87,6 +98,10 @@ BROWSER_QA_ASSERTIONS = (
             "When comparison is enabled, one visible non-empty context follows the "
             "contiguous selector group in the same column and precedes the first content object."
         ),
+    },
+    {
+        "id": "semantic_height_contract",
+        "description": "Comparison context uses its registered minimum height without clipping.",
     },
     {
         "id": "tooltip_owner_shell_cardinality",
@@ -474,6 +489,13 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
         valueBox.top >= box.top - 1 && valueBox.bottom <= box.bottom + 1)
     };
   });
+  const strictKpiRows = kpiRows.filter((row) => row.strict_contract);
+  const strictKpiHeightSet = Array.from(new Set(
+    strictKpiRows.map((row) => Math.round(row.height_px))
+  ));
+  const strictKpiHeightsConsistent =
+    !input.render_contract.kpi.equal_height_within_set ||
+    strictKpiHeightSet.length <= 1;
 
   const legends = all('[data-role="legend"],[aria-label="Legend"],.legend').filter(visible);
   const legendTypography = Array.from(new Set(legends.map((node) => {
@@ -481,6 +503,52 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
     return `${Number.parseFloat(css.fontSize)}/${Number.parseFloat(css.lineHeight)}`;
   })));
   const expectedLegend = input.render_contract.legend;
+  const seriesPolicyScopes = all('[data-series-policy="active_series_only"]').filter(visible);
+  const uniqueIds = (nodes) => Array.from(new Set(nodes.map((node) =>
+    String(node.getAttribute("data-series-id") || "").trim()
+  ).filter(Boolean))).sort();
+  const activeSeriesRows = seriesPolicyScopes.map((scope) => {
+    const markIds = uniqueIds(all('[data-series-role="mark"]', scope));
+    const legendIds = uniqueIds(all('[data-series-role="legend"]', scope));
+    const legendRequired = markIds.length > 1;
+    return {
+      mark_ids: markIds,
+      legend_ids: legendIds,
+      legend_required: legendRequired,
+      matches: markIds.length > 0 && (
+        legendRequired
+          ? JSON.stringify(markIds) === JSON.stringify(legendIds)
+          : legendIds.length === 0 || JSON.stringify(markIds) === JSON.stringify(legendIds)
+      )
+    };
+  });
+  const plotPolicyScopes = all('[data-plot-area-policy="contract_insets"]').filter(visible);
+  const expectedPlot = input.render_contract.plot_area;
+  const allowedRightInsets = [
+    expectedPlot.right_compact_px,
+    expectedPlot.right_normal_px
+  ];
+  const coordinatePlotRows = plotPolicyScopes.map((scope) => {
+    const plotAreas = all('[data-role="plot-area"]', scope);
+    const expectedTop = Number(scope.getAttribute("data-plot-inset-top"));
+    const expectedRight = Number(scope.getAttribute("data-plot-inset-right"));
+    const expectedBottom = Number(scope.getAttribute("data-plot-inset-bottom"));
+    const markerRows = plotAreas.map((node) => ({
+      top: Number(node.getAttribute("data-inset-top")),
+      right: Number(node.getAttribute("data-inset-right")),
+      bottom: Number(node.getAttribute("data-inset-bottom"))
+    }));
+    return {
+      plot_area_count: plotAreas.length,
+      expected: {top: expectedTop, right: expectedRight, bottom: expectedBottom},
+      markers: markerRows,
+      matches: plotAreas.length === 1 && markerRows.every((row) =>
+        row.top === expectedTop && row.right === expectedRight && row.bottom === expectedBottom &&
+        row.top === expectedPlot.top_px && row.bottom === expectedPlot.bottom_px &&
+        allowedRightInsets.includes(row.right)
+      )
+    };
+  });
 
   const selectors = all('[data-role="selector"],[data-widget-type="selector"],.selector').filter(visible);
   const explicitSelectorRows = all(
@@ -524,7 +592,8 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
         object_id: item.object_id,
         found: Boolean(node),
         visible: Boolean(node && visible(node)),
-        nonempty: Boolean(node && text(node).length > 0)
+        nonempty: Boolean(node && text(node).length > 0),
+        height_px: node ? rect(node).height : 0
       };
     });
   const fallbackComparisonContexts = useExactComparisonContextIds
@@ -810,6 +879,19 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
   const comparisonContextMatches = input.comparison_enabled
     ? visibleNonemptyComparisonCount === 1
     : visibleNonemptyComparisonCount === 0;
+  const comparisonHeightRows = useExactComparisonContextIds
+    ? exactComparisonContextRows
+    : visibleFallbackComparisonContexts.map((node) => ({
+      found: true,
+      visible: true,
+      nonempty: true,
+      height_px: rect(node).height
+    }));
+  const semanticHeightMatches = !input.comparison_enabled ||
+    (comparisonHeightRows.length === 1 && comparisonHeightRows.every((row) =>
+      row.found && row.visible && row.nonempty &&
+      row.height_px >= input.render_contract.comparison_context.minimum_height_px - 1
+    ));
   const tooltipMatches = tooltipShells.length === 0
     ? tooltipOwners.length === 0
     : tooltipShells.length === 1 && tooltipOwners.length === 1 &&
@@ -824,12 +906,12 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
       row.outline_none && row.shadow_none && row.background_transparent),
     kpi_content_visibility_contract: kpiRows.every((row) =>
       !row.strict_contract || (
-        row.value_marker_found && row.value_visible && row.value_nonempty && row.value_inside &&
-        row.height_px >= input.render_contract.kpi.min_height_px - 1 &&
-        row.height_px <= input.render_contract.kpi.max_height_px + 1
-      )),
+        row.value_marker_found && row.value_visible && row.value_nonempty && row.value_inside
+      )) && strictKpiHeightsConsistent,
     legend_typography_consistent: legendTypography.length <= 1 && legendTypography.every((value) =>
       value === `${expectedLegend.font_size_px}/${expectedLegend.line_height_px}`),
+    active_series_legend_consistent: activeSeriesRows.every((row) => row.matches),
+    coordinate_plot_insets_consistent: coordinatePlotRows.every((row) => row.matches),
     selector_interaction_layout_contract: applyControls.length === 0 &&
       selectorChecks.every((row) => row.label_left && row.immediate) &&
       selectorRowChecks.every((row) => row.within_max_width &&
@@ -840,6 +922,7 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
       selectorAggregateWidthMatches,
     comparison_context_cardinality: comparisonContextMatches,
     comparison_context_placement: comparisonPlacementMatches,
+    semantic_height_contract: semanticHeightMatches,
     tooltip_owner_shell_cardinality: tooltipMatches,
     tooltip_comparison_mode_contract: tooltipComparisonModeMatches &&
       !singlePeriodHasComparisonChrome,
@@ -847,7 +930,7 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
     no_redundant_row_title_tooltips: redundantRowTitles.length === 0
   };
   return {
-    schema_version: "datalens.browser-qa-result.v2",
+    schema_version: "datalens.browser-qa-result.v3",
     viewport: {width: window.innerWidth, height: window.innerHeight},
     passed: Object.values(assertions).every(Boolean),
     assertions,
@@ -856,7 +939,10 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
       marker_matches: markerMatches,
       document_horizontal_overflow_px: documentOverflow,
       kpi_rows: kpiRows,
+      strict_kpi_height_set_px: strictKpiHeightSet,
       legend_typography: legendTypography,
+      active_series_rows: activeSeriesRows,
+      coordinate_plot_rows: coordinatePlotRows,
       selector_checks: selectorChecks,
       selector_row_checks: selectorRowChecks,
       selector_order_row_contract: {
@@ -956,6 +1042,36 @@ def _normalize_browser_render_contract(render_contract: dict[str, Any]) -> dict[
         if isinstance(effective_tokens.get("horizontal_rank"), dict)
         else {}
     )
+    plot_area = (
+        effective_tokens.get("plot_area")
+        if isinstance(effective_tokens.get("plot_area"), dict)
+        else {}
+    )
+    plot_insets = (
+        plot_area.get("inset_px")
+        if isinstance(plot_area.get("inset_px"), dict)
+        else {}
+    )
+    right_insets = (
+        plot_insets.get("right")
+        if isinstance(plot_insets.get("right"), dict)
+        else {}
+    )
+    series_visibility = (
+        effective_tokens.get("series_visibility")
+        if isinstance(effective_tokens.get("series_visibility"), dict)
+        else {}
+    )
+    comparison_context = (
+        effective_tokens.get("comparison_context")
+        if isinstance(effective_tokens.get("comparison_context"), dict)
+        else {}
+    )
+    layout_grid = (
+        effective_tokens.get("layout_grid")
+        if isinstance(effective_tokens.get("layout_grid"), dict)
+        else {}
+    )
     return {
         "kpi": {
             "border": "none",
@@ -971,13 +1087,19 @@ def _normalize_browser_render_contract(render_contract: dict[str, Any]) -> dict[
                 ).get("value_marker")
                 or "kpi-value"
             ),
-            "min_height_px": _positive_number(
-                kpi_layout.get("min_height_px"),
-                default=88,
+            "height_update_policy": str(
+                kpi_layout.get("update_policy") or "preserve_fresh_saved_geometry"
             ),
-            "max_height_px": _positive_number(
-                kpi_layout.get("max_height_px"),
-                default=112,
+            "equal_height_within_set": (
+                kpi_layout.get("equal_height_within_kpi_set") is not False
+            ),
+            "creation_default_grid_height_units": _positive_number(
+                (
+                    layout_grid.get("native_height_units")
+                    if isinstance(layout_grid.get("native_height_units"), dict)
+                    else {}
+                ).get("kpi_creation_default"),
+                default=6,
             ),
         },
         "legend": {
@@ -990,6 +1112,23 @@ def _normalize_browser_render_contract(render_contract: dict[str, Any]) -> dict[
                 default=16,
             ),
             "maximum_typography_set_size": 1,
+        },
+        "plot_area": {
+            "top_px": _positive_number(plot_insets.get("top"), default=22),
+            "right_compact_px": _positive_number(
+                right_insets.get("compact"),
+                default=10,
+            ),
+            "right_normal_px": _positive_number(
+                right_insets.get("normal"),
+                default=16,
+            ),
+            "bottom_px": _positive_number(plot_insets.get("bottom"), default=34),
+        },
+        "series_visibility": {
+            "source": str(series_visibility.get("source") or "filtered_result_rows"),
+            "legend": str(series_visibility.get("legend") or "active_series_only"),
+            "marks": str(series_visibility.get("marks") or "active_series_only"),
         },
         "selector": {
             "label_alignment": "left",
@@ -1020,6 +1159,48 @@ def _normalize_browser_render_contract(render_contract: dict[str, Any]) -> dict[
             "comparison_adaptive": tooltip.get("comparison_adaptive") is not False,
             "period_value_source": str(
                 tooltip.get("period_value_source") or "normalized"
+            ),
+        },
+        "comparison_context": {
+            "minimum_height_px": _positive_number(
+                comparison_context.get("minimum_height_px"),
+                default=70,
+            ),
+            "dashboard_grid_height_units": _positive_number(
+                (
+                    layout_grid.get("native_height_units")
+                    if isinstance(layout_grid.get("native_height_units"), dict)
+                    else {}
+                ).get("comparison_context_minimum"),
+                default=3,
+            ),
+        },
+        "layout_grid": {
+            "selector_creation_default_units": _positive_number(
+                (
+                    layout_grid.get("native_height_units")
+                    if isinstance(layout_grid.get("native_height_units"), dict)
+                    else {}
+                ).get("selector_creation_default"),
+                default=2,
+            ),
+            "kpi_creation_default_units": _positive_number(
+                (
+                    layout_grid.get("native_height_units")
+                    if isinstance(layout_grid.get("native_height_units"), dict)
+                    else {}
+                ).get("kpi_creation_default"),
+                default=6,
+            ),
+            "update_policy": str(
+                layout_grid.get("update_policy") or "preserve_fresh_saved_geometry"
+            ),
+            "runtime_relation": str(
+                layout_grid.get("runtime_relation")
+                or "measured_independently_from_native_units"
+            ),
+            "overflow_policy": str(
+                layout_grid.get("overflow_policy") or "expand_or_scroll_never_clip"
             ),
         },
         "horizontal_rank": {

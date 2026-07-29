@@ -1,0 +1,27 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "createHtmlPage",
+  "operation_id": "createHtmlPage",
+  "path": "/rpc/createHtmlPage",
+  "request_payload": {},
+  "request_schema_closure_hash": "e4b887240c778b3e27b265c9929d7eeceb95d1d0af650fecf78350435c3ccce5",
+  "request_schema_closure_refs": [
+    "CreateHtmlPageArgs",
+    "EntryAnnotationArg",
+    "EntryLocationIdentifiers"
+  ],
+  "request_schema_hash": "7f31d0d1d01d26147801680bff5b31d102fe6ee4e00bcf50de65e5ff0c4a9b91",
+  "request_schema_ref": "CreateHtmlPageArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "4ad52fb34dbb9174cc1b95fc620536ccf40741c78f0f4a4e67ae9440d7559405",
+  "response_schema_closure_refs": [
+    "CreateHtmlPageResult",
+    "EntryAnnotation",
+    "EntryPermissions",
+    "HtmlPage"
+  ],
+  "response_schema_hash": "db559e7cbe9140c47adb1da7fcc29c9e4bad24178d47dca6d4f9b07d58c21ed3",
+  "response_schema_ref": "CreateHtmlPageResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "guarded_plan_only"
+}

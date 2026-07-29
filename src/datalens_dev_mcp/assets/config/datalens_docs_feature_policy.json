@@ -34,6 +34,33 @@
       "title": "May 2026 DataLens release notes"
     },
     {
+      "classification": "supported",
+      "id": "html_pages_lifecycle",
+      "mcp_surface": "html_page lifecycle planners, Safe Apply, readback, and local sandbox validator",
+      "runtime_contract": "Create and content save validate the standalone document; publish uses the verified saved revId; whole-object delete stays blocked.",
+      "server_decision": "Use create/get/update HTML Page methods through the ordinary guarded lifecycle.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/html-pages/index.md",
+        "https://docs.yandex.cloud/ru/ru/datalens/html-pages/versioning.md",
+        "https://docs.yandex.cloud/ru/ru/datalens/openapi-ref/createHtmlPage.md",
+        "https://docs.yandex.cloud/ru/ru/datalens/openapi-ref/getHtmlPage.md",
+        "https://docs.yandex.cloud/ru/ru/datalens/openapi-ref/updateHtmlPage.md"
+      ],
+      "title": "Standalone HTML Pages and versions"
+    },
+    {
+      "classification": "guarded_plan_only",
+      "id": "table_column_alignment",
+      "mcp_surface": "Wizard table and pivot payload planning",
+      "runtime_contract": "Fresh saved payload remains authoritative; unknown presentation fields are preserved and alignment is never inferred from labels.",
+      "server_decision": "Preserve current per-column alignment and use only documented auto, left, center, or right values.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/table-chart.md",
+        "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/pivot-table-chart.md"
+      ],
+      "title": "Table and pivot column alignment"
+    },
+    {
       "classification": "guarded_plan_only",
       "id": "dashboard_margins",
       "mcp_surface": "dashboard payload preflight and safe apply",
@@ -491,36 +518,35 @@
     }
   ],
   "covered_new_page_urls": [
-    "https://docs.yandex.cloud/ru/ru/datalens/operations/api-versioning.md",
-    "https://docs.yandex.cloud/ru/ru/datalens/release-notes/2605.md",
-    "https://docs.yandex.cloud/ru/ru/datalens/release-notes/api-changelog.md"
+    "https://docs.yandex.cloud/ru/ru/datalens/html-pages/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/html-pages/versioning.md"
   ],
   "expected_counts": {
-    "assets_current_records": 886,
-    "assets_new_references": 1,
+    "assets_current_records": 890,
+    "assets_new_references": 5,
     "assets_removed_references": 0,
-    "docs_changed_pages": 12,
-    "docs_checked_pages": 651,
-    "docs_current_chunks": 4999,
-    "docs_current_pages": 651,
+    "docs_changed_pages": 9,
+    "docs_checked_pages": 653,
+    "docs_current_chunks": 5019,
+    "docs_current_pages": 653,
     "docs_failed_pages": 0,
-    "docs_new_pages": 3,
+    "docs_new_pages": 2,
     "docs_removed_candidates": 0,
-    "manifest_current_records": 1545,
-    "openapi_operations": 91,
-    "openapi_paths": 91,
+    "manifest_current_records": 1551,
+    "openapi_operations": 95,
+    "openapi_paths": 95,
     "validation_failure_count": 0,
     "validation_required_checks_ok": true
   },
-  "schema_version": "2026-06-30.current_docs_feature_policy.v1",
+  "schema_version": "2026-07-29.current_docs_feature_policy.v2",
   "source": {
-    "applied_delta_generated_at": "2026-07-13T13:26:50.349248Z",
-    "applied_delta_report": "reports/update_report_delta_2026-07-13.md",
+    "applied_delta_generated_at": "2026-07-29T17:38:13.358317Z",
+    "applied_delta_report": "reports/update_report_2026-07-29.md",
     "corpus_root_hint": "<DATALENS_DOCS_CORPUS_ROOT>",
     "mode": "apply-updates",
-    "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8",
+    "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0",
     "update_report": "reports/update_report.md",
-    "update_report_generated_at": "2026-07-23T08:52:16.413874Z"
+    "update_report_generated_at": "2026-07-29T17:38:13.358317Z"
   },
   "status_enum": [
     "guarded_plan_only",

@@ -13,6 +13,7 @@
 | Wizard chart | `getWizardChart` | `createWizardChart`, `updateWizardChart` |
 | Editor chart | `getEditorChart` | `createEditorChart`, `updateEditorChart` |
 | QL chart | `getQLChart` | `createQLChart`, `updateQLChart` по прямому QL-запросу |
+| HTML page | `getHtmlPage` | `createHtmlPage`, `updateHtmlPage` |
 | Dataset | `getDataset` | `validateDataset`, `createDataset`, `updateDataset` |
 | Connection | `getConnection` | `createConnection`, `updateConnection` |
 | Relations | `getEntriesRelations` | — |

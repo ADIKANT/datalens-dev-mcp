@@ -74,7 +74,7 @@ module.exports = {
       const width = Number.isFinite(requestedWidth) && requestedWidth > 0 ? requestedWidth : 640;
       const height = Number.isFinite(requestedHeight) && requestedHeight > 0 ? requestedHeight : 320;
       const compact = width < 530 || height < 260;
-      const margin = {l: compact ? 30 : 42, r: compact ? 8 : 18, t: compact ? 10 : 18, b: compact ? 26 : 34};
+      const margin = {l: compact ? 30 : 42, r: width < 720 ? 10 : 16, t: 22, b: 34};
       function renderHistogram() {
         const band = (width - margin.l - margin.r) / Math.max(1, data.rows.length);
         const domain = extent(data.rows.map((row) => row.value), true);
@@ -126,7 +126,7 @@ module.exports = {
       if (data.variant === 'scatter') marks = renderScatter(false);
       if (data.variant === 'bubble') marks = renderScatter(true);
       // Safe render contract: return generated HTML and keep axes visible.
-      return Editor.generateHtml(`<div style="box-sizing:border-box;width:100%;height:100%;padding:${compact ? 6 : 12}px ${compact ? 6 : 14}px;background:${style.colors.surface};font-family:Inter,Arial,sans-serif;overflow:hidden;"><svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><line x1="${margin.l}" y1="${height - margin.b}" x2="${width - margin.r}" y2="${height - margin.b}" stroke="${style.colors.border}"/><line x1="${margin.l}" y1="${margin.t}" x2="${margin.l}" y2="${height - margin.b}" stroke="${style.colors.border}"/>${marks}</svg></div>`);
+      return Editor.generateHtml(`<div style="box-sizing:border-box;width:100%;height:100%;padding:${compact ? 6 : 12}px ${compact ? 6 : 14}px;background:${style.colors.surface};font-family:Inter,Arial,sans-serif;overflow:hidden;"><svg data-role="plot-area" data-inset-top="${margin.t}" data-inset-right="${margin.r}" data-inset-bottom="${margin.b}" width="100%" height="100%" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><line x1="${margin.l}" y1="${height - margin.b}" x2="${width - margin.r}" y2="${height - margin.b}" stroke="${style.colors.border}"/><line x1="${margin.l}" y1="${margin.t}" x2="${margin.l}" y2="${height - margin.b}" stroke="${style.colors.border}"/>${marks}</svg></div>`);
     },
   }),
 };

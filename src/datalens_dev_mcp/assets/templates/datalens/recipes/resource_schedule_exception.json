@@ -36,9 +36,6 @@
     "strict_offset_timestamps",
     "injected_timezone_and_as_of",
     "deterministic_lanes_and_conflicts",
-    "sticky_date_header_and_resource_column",
-    "source_comment_in_interval_tooltip",
-    "epoch_millisecond_geometry",
     "bounded_table_node_fallback",
     "safe_link_or_plain_text"
   ],

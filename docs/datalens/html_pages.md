@@ -45,6 +45,9 @@
 
 `dl_validate_editor_runtime_contract` распознаёт расширение `.html`
 автоматически. Один документ ограничен 10 MiB, рекомендуемый предел — 5 MiB.
+Эти значения измеряются в байтах локального UTF-8 artifact. Public API отдельно
+ограничивает поле `content` 10 485 760 символами; перед планом проверяются оба
+контракта.
 
 ## Sandbox-контракт
 
@@ -61,15 +64,27 @@
 dialogs, popups и parent navigation. Разрешённые skill-контрактом CDN origins
 проверяются явно; сгенерированный шаблон их не требует.
 
-## Публикация
+## Сохранение и публикация
 
-Текущий DataLens Public API не документирует RPC и request/response schema для
-создания или загрузки standalone HTML page. Поэтому сервер создаёт и проверяет
-локальный artifact, но не угадывает upload method и не включает такой объект в
-Safe Apply. Ответ явно содержит `publication.status=local_artifact_only`.
+Локальный генератор не выполняет live-запись сам. После строгой проверки его
+content можно передать в общий lifecycle с `object_type=html_page`:
+
+- `createHtmlPage` создаёт страницу по `key` либо по паре `workbookId` + `name`;
+- `getHtmlPage` читает `saved` или `published` ветку;
+- `updateHtmlPage` сохраняет новый content;
+- publish отправляет только `{entryId, revId, mode: "publish"}`, собранный из
+  проверенного saved readback.
+
+Таким образом HTML Page проходит те же target/revision checks, save-first,
+saved readback, publish-from-saved и published readback, что и другие
+revisioned объекты. `deleteHtmlPage` остаётся заблокирован общей политикой
+whole-object deletion. Source contract сообщает
+`publication.status=guarded_api_available`.
 
 Источники:
 
 - [официальный `Editor.generateHtml`](https://yandex.cloud/ru/docs/datalens/charts/editor/methods#gen-html);
+- [официальные HTML-страницы](https://yandex.cloud/ru/docs/datalens/html-pages/);
+- [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/);
 - [`datalens-html-pages` public skill](https://github.com/datalens-tech/datalens-skills/tree/8fbb3aabac6b09d4c44f053fa63affea1dc386f7/skills/datalens-html-pages);
 - [реализация allowlist HTML generator](https://github.com/datalens-tech/datalens-ui/tree/f581b7c31d6e9189ebeb1e1632b5fe7570534fb8/src/ui/libs/DatalensChartkit/modules/html-generator).

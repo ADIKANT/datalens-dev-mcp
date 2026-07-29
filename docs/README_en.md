@@ -23,7 +23,7 @@ responsibility boundaries.
 | Connect Codex | [Codex setup](codex_setup_en.md) |
 | Connect Claude or another stdio client | [Client examples](../examples/clients/README.md) |
 | Find the right tool | [Guide to all 39 tools](tools_en.md) |
-| Create a standalone HTML artifact | [HTML generation for DataLens](datalens/html_pages_en.md) |
+| Create or locally prepare an HTML Page | [HTML generation for DataLens](datalens/html_pages_en.md) |
 | Audit without writing | [Read-only audit](usage-flow_en.md#read-only-audit) |
 | Build a plan without applying it | [Plan without writing](usage-flow_en.md#plan-without-writing) |
 | Save without publishing | [Save without publishing](usage-flow_en.md#save-without-publishing) |
@@ -63,7 +63,7 @@ browser is available or is explicitly reported as unavailable.
 - [Safety](local-only-safety-model_en.md) — credential, revision, and deletion safeguards.
 - [Chart route policy](route-policy_en.md) — Wizard, Editor, and QL.
 - [HTML generation](datalens/html_pages_en.md) — Editor markup versus a
-  standalone page, sandbox rules, and local validation.
+  standalone page, sandbox rules, local validation, and guarded delivery.
 - [Safe apply](safe-apply_en.md) — save, readback, and publishing.
 
 ## Technical documentation

@@ -6,7 +6,7 @@ from typing import Any
 from datalens_dev_mcp.api.methods import get_method_schema
 
 
-REGISTRY_SCHEMA_VERSION = "2026-06-25.object_read_registry.v1"
+REGISTRY_SCHEMA_VERSION = "2026-07-29.object_read_registry.v2"
 
 
 @dataclass(frozen=True)
@@ -37,6 +37,26 @@ class ObjectReadContract:
 
 
 OBJECT_READ_CONTRACTS: dict[str, ObjectReadContract] = {
+    "html_page": ObjectReadContract(
+        object_type="html_page",
+        aliases=("html", "html_page_node", "standalone_html_page"),
+        scope_aliases=("html_page", "html-page"),
+        read_method="getHtmlPage",
+        identity_field="entryId",
+        branch_semantics="saved_or_published",
+        revision_fields=("revId", "savedId"),
+        compact_summary_schema="html_page.identity.content.hashes.v1",
+        structure_schema="html_page.content.annotation.v1",
+        artifact_schema="sanitized_rpc_envelope.html_page.v1",
+        dependency_extractors=("links",),
+        redaction_policy="hash content in summaries and spill the full document to an artifact",
+        error_categories=("missing_input", "auth_failure", "datalens_validation_error", "unavailable_api_method"),
+        evidence_status="official_indexed",
+        evidence_sources=(
+            "config/datalens_api_methods.json#getHtmlPage",
+            "official HTML Pages documentation",
+        ),
+    ),
     "dashboard": ObjectReadContract(
         object_type="dashboard",
         aliases=("dash", "dashboard_node"),

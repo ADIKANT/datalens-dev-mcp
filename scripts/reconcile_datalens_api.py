@@ -32,9 +32,9 @@ PACKAGE_SCHEMA_DIR = ROOT / "src" / "datalens_dev_mcp" / "assets" / "schemas" / 
 
 SOURCE = "https://api.datalens.tech/json/"
 LEGACY_API_HEADER_VERSION = "1"
-SCHEMA_VERSION = "2026-06-25.datalens_api_methods.v3"
-EXPECTED_OPERATION_COUNT = 91
-EXPECTED_PATH_COUNT = 91
+SCHEMA_VERSION = "2026-07-29.datalens_api_methods.v4"
+EXPECTED_OPERATION_COUNT = 95
+EXPECTED_PATH_COUNT = 95
 
 GUARDED_WRITE_METHODS = {
     "createConnection",
@@ -49,6 +49,8 @@ GUARDED_WRITE_METHODS = {
     "updateWizardChart",
     "createQLChart",
     "updateQLChart",
+    "createHtmlPage",
+    "updateHtmlPage",
     "createWorkbook",
     "updateWorkbook",
     "startWorkbookExport",
@@ -95,6 +97,8 @@ ROUTE_BY_METHOD = {
     "updateWizardChart": "wizard_native",
     "createQLChart": "ql_explicit",
     "updateQLChart": "ql_explicit",
+    "createHtmlPage": "html_page_operation",
+    "updateHtmlPage": "html_page_operation",
     "createWorkbook": "guarded_write",
     "updateWorkbook": "guarded_write",
     "startWorkbookExport": "guarded_write",
@@ -126,6 +130,9 @@ DIRECT_TOOL_BY_METHOD = {
     "getQLChart": "dl_read_object",
     "createQLChart": "dl_plan_object_create",
     "updateQLChart": "dl_plan_object_update",
+    "getHtmlPage": "dl_read_object",
+    "createHtmlPage": "dl_plan_object_create",
+    "updateHtmlPage": "dl_plan_object_update",
 }
 
 
@@ -618,6 +625,7 @@ mutations не поддерживаются.
 | Wizard chart | `getWizardChart` | `createWizardChart`, `updateWizardChart` |
 | Editor chart | `getEditorChart` | `createEditorChart`, `updateEditorChart` |
 | QL chart | `getQLChart` | `createQLChart`, `updateQLChart` по прямому QL-запросу |
+| HTML page | `getHtmlPage` | `createHtmlPage`, `updateHtmlPage` |
 | Dataset | `getDataset` | `validateDataset`, `createDataset`, `updateDataset` |
 | Connection | `getConnection` | `createConnection`, `updateConnection` |
 | Relations | `getEntriesRelations` | — |
@@ -642,7 +650,7 @@ whole-object deletion, перемещение и изменение permissions 
 | --- | --- | --- |
 | `dl_list_workbooks`, `dl_get_workbook_entries` | `getWorkbooksList`, `getWorkbookEntries` | Поиск воркбуков и объектов |
 | `dl_get_entries_relations` | `getEntriesRelations` | Связи объектов |
-| `dl_read_object` | `getDashboard`, `get*Chart`, `getDataset`, `getConnection` | Унифицированное чтение |
+| `dl_read_object` | `getDashboard`, `get*Chart`, `getHtmlPage`, `getDataset`, `getConnection` | Унифицированное чтение |
 | `dl_plan_object_create` | create-метод выбранного object type | План создания |
 | `dl_plan_object_update` | update-метод выбранного object type | План обновления |
 | `dl_plan_guarded_dataset_update` | `getDataset`, `validateDataset`, `updateDataset` | Проверка и обновление датасета |
@@ -705,6 +713,7 @@ def build_examples(api_version: str) -> dict[str, Any]:
         "readonly": {
             "getDashboard": {"dashboardId": "<DASHBOARD_ID>", "branch": "saved"},
             "getEntriesRelations": {"entryIds": ["<ENTRY_ID>"]},
+            "getHtmlPage": {"entryId": "<HTML_PAGE_ID>", "branch": "saved"},
             "getWorkbookEntries": {"workbookId": "<WORKBOOK_ID>"},
         },
         "plan_only": {
@@ -712,6 +721,16 @@ def build_examples(api_version: str) -> dict[str, Any]:
             "validateDataset": {"datasetId": "<DATASET_ID>", "workbookId": "<WORKBOOK_ID>", "data": {"dataset": {}}},
             "updateConnection": {"connectionId": "<CONNECTION_ID>", "data": {"type": "clickhouse"}},
             "updateDashboard_save": {"mode": "save", "entry": {"entryId": "<DASHBOARD_ID>", "revId": "<REV_ID>"}},
+            "updateHtmlPage_save": {
+                "entryId": "<HTML_PAGE_ID>",
+                "content": "<!doctype html><html><head><meta charset=\"utf-8\"></head><body></body></html>",
+                "mode": "save",
+            },
+            "updateHtmlPage_publish": {
+                "entryId": "<HTML_PAGE_ID>",
+                "revId": "<REV_ID>",
+                "mode": "publish",
+            },
         },
     }
 

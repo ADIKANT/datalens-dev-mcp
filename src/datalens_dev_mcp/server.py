@@ -675,8 +675,8 @@ READ_OBJECT_TYPE_SCHEMA = {
         "permission",
         "workbook_permission",
         "ql_chart",
+        "html_page",
     ],
-    "description": "Read-only object type.",
 }
 LIFECYCLE_OBJECT_TYPE_SCHEMA = {
     "type": "string",
@@ -696,14 +696,14 @@ LIFECYCLE_OBJECT_TYPE_SCHEMA = {
         "connector",
         "connection",
         "ql_chart",
+        "html_page",
     ],
-    "description": "Guarded lifecycle object type.",
 }
 PUBLISH_OBJECT_TYPE_SCHEMA = {
     "type": "string",
     "pattern": (
         "^(dashboard|chart|(advanced_)?editor_chart|"
-        "(control|table|markdown|d3)(_node)?|wizard_chart|ql_chart)$"
+        "(control|table|markdown|d3)(_node)?|wizard_chart|ql_chart|html_page)$"
     ),
 }
 SELECTOR_CONTRACT_SCHEMA = {

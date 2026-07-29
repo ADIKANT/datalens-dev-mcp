@@ -45,18 +45,18 @@ RUNTIME_KNOWLEDGE_FILES = {
 }
 
 EXPECTED_COUNTS = {
-    "pages": 651,
-    "chunks": 4999,
-    "assets": 886,
-    "manifest": 1545,
+    "pages": 653,
+    "chunks": 5019,
+    "assets": 890,
+    "manifest": 1551,
     "editor_pages": 20,
     "function_pages": 221,
     "visualization_pages": 22,
     "troubleshooting_error_pages": 86,
     "release_note_pages": 31,
-    "openapi_operations": 91,
-    "openapi_paths": 91,
-    "openapi_component_schemas": 487,
+    "openapi_operations": 95,
+    "openapi_paths": 95,
+    "openapi_component_schemas": 495,
 }
 
 CLASSIFICATION_STATUSES = {

@@ -21,7 +21,7 @@
   "license": "CC-BY-4.0",
   "license_url": "https://creativecommons.org/licenses/by/4.0/",
   "modified": true,
-  "openapi_sha256": "fede0d82463b8e9808fedd6789eef80a854c01bdfa82b3020b7ac8a21d2a1ed8",
+  "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0",
   "schema_version": "2026-06-25.datalens_source_trace.v1",
   "source_class": "official_documentation",
   "source_path_category": "external_compiler_input",

@@ -1,0 +1,26 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "updateHtmlPage",
+  "operation_id": "updateHtmlPage",
+  "path": "/rpc/updateHtmlPage",
+  "request_payload": {},
+  "request_schema_closure_hash": "ce9572524237b3e73eb8ea5e37a397844b162022162aab653781c202f5693786",
+  "request_schema_closure_refs": [
+    "EntryAnnotationArg",
+    "UpdateHtmlPageArgs"
+  ],
+  "request_schema_hash": "d7de62ea50972680b6bec179c9f6663ded99d09737e434cdb6bfabb682b447ce",
+  "request_schema_ref": "UpdateHtmlPageArgs",
+  "response_payload": {},
+  "response_schema_closure_hash": "358a8b13f5d4fd3248d9075e83f5389ad63871e9f8cd965fa7daa2355e54a385",
+  "response_schema_closure_refs": [
+    "EntryAnnotation",
+    "EntryPermissions",
+    "HtmlPage",
+    "UpdateHtmlPageResult"
+  ],
+  "response_schema_hash": "db559e7cbe9140c47adb1da7fcc29c9e4bad24178d47dca6d4f9b07d58c21ed3",
+  "response_schema_ref": "UpdateHtmlPageResult",
+  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "status": "guarded_plan_only"
+}

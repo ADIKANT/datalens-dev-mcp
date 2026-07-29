@@ -83,6 +83,13 @@
     "response_schema_ref": "CreateFolderResult",
     "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
   },
+  "createHtmlPage": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateHtmlPageArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CreateHtmlPageResult",
+    "support_status": "PLAN_ONLY_SUPPORTED"
+  },
   "createQLChart": {
     "request_schema_kind": "ref",
     "request_schema_ref": "CreateQLChartArgs",
@@ -179,6 +186,13 @@
     "request_schema_ref": "DeleteFolderArgs",
     "response_schema_kind": "inline",
     "response_schema_ref": "DeleteFolderResponse",
+    "support_status": "READ_ONLY_REFERENCE"
+  },
+  "deleteHtmlPage": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteHtmlPageArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "DeleteHtmlPageResponse",
     "support_status": "READ_ONLY_REFERENCE"
   },
   "deleteQLChart": {
@@ -326,6 +340,13 @@
     "request_schema_ref": "GetEntriesRelationsArgs",
     "response_schema_kind": "ref",
     "response_schema_ref": "GetEntriesRelationsResult",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
+  "getHtmlPage": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetHtmlPageArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetHtmlPageResult",
     "support_status": "EXECUTABLE_TOOL_SUPPORTED"
   },
   "getLicenses": {
@@ -593,6 +614,13 @@
     "response_schema_kind": "ref",
     "response_schema_ref": "Embed",
     "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
+  },
+  "updateHtmlPage": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateHtmlPageArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "UpdateHtmlPageResult",
+    "support_status": "PLAN_ONLY_SUPPORTED"
   },
   "updateQLChart": {
     "request_schema_kind": "ref",

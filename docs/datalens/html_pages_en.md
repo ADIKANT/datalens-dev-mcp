@@ -46,6 +46,9 @@ Validate it again through the same runtime validator:
 
 `dl_validate_editor_runtime_contract` detects `.html` automatically. The hard
 limit is 10 MiB per document and the authoring target is at most 5 MiB.
+Those limits count bytes in the local UTF-8 artifact. The Public API separately
+limits `content` to 10,485,760 characters; both contracts are checked before a
+plan is created.
 
 ## Sandbox contract
 
@@ -62,16 +65,26 @@ Strict validation blocks author-supplied CSP, nested `iframe`, `object`,
 APIs, workers, dialogs, popups, and parent navigation. CDN origins documented
 by the public skill are allowlisted explicitly; generated pages need none.
 
-## Publishing
+## Saving and publishing
 
-The current DataLens Public API does not document an RPC or request/response
-schema for creating or uploading a standalone HTML page. The server therefore
-authors and validates a local artifact, does not guess an upload method, and
-does not put this artifact into Safe Apply. The result reports
-`publication.status=local_artifact_only`.
+The local generator performs no live write by itself. After strict validation,
+its content can enter the ordinary lifecycle with `object_type=html_page`:
+
+- `createHtmlPage` creates a page by `key` or by `workbookId` plus `name`;
+- `getHtmlPage` reads the `saved` or `published` branch;
+- `updateHtmlPage` saves new content;
+- publish sends only `{entryId, revId, mode: "publish"}` built from verified
+  saved readback.
+
+An HTML Page therefore uses the same target/revision checks, save-first flow,
+saved readback, publish-from-saved, and published readback as other revisioned
+objects. `deleteHtmlPage` remains blocked by the whole-object deletion policy.
+The source contract reports `publication.status=guarded_api_available`.
 
 Sources:
 
 - [official `Editor.generateHtml` documentation](https://yandex.cloud/ru/docs/datalens/charts/editor/methods#gen-html);
+- [official HTML Pages documentation](https://yandex.cloud/ru/docs/datalens/html-pages/);
+- [DataLens API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/);
 - [public `datalens-html-pages` skill](https://github.com/datalens-tech/datalens-skills/tree/8fbb3aabac6b09d4c44f053fa63affea1dc386f7/skills/datalens-html-pages);
 - [allowlist HTML generator implementation](https://github.com/datalens-tech/datalens-ui/tree/f581b7c31d6e9189ebeb1e1632b5fe7570534fb8/src/ui/libs/DatalensChartkit/modules/html-generator).

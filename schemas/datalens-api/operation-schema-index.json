@@ -71,6 +71,12 @@
     "response_schema_kind": "ref",
     "response_schema_ref": "CreateFolderResult"
   },
+  "createHtmlPage": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "CreateHtmlPageArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "CreateHtmlPageResult"
+  },
   "createQLChart": {
     "request_schema_kind": "ref",
     "request_schema_ref": "CreateQLChartArgs",
@@ -154,6 +160,12 @@
     "request_schema_ref": "DeleteFolderArgs",
     "response_schema_kind": "inline",
     "response_schema_ref": "DeleteFolderResponse"
+  },
+  "deleteHtmlPage": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "DeleteHtmlPageArgs",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "DeleteHtmlPageResponse"
   },
   "deleteQLChart": {
     "request_schema_kind": "ref",
@@ -280,6 +292,12 @@
     "request_schema_ref": "GetEntriesRelationsArgs",
     "response_schema_kind": "ref",
     "response_schema_ref": "GetEntriesRelationsResult"
+  },
+  "getHtmlPage": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "GetHtmlPageArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "GetHtmlPageResult"
   },
   "getLicenses": {
     "request_schema_kind": "ref",
@@ -508,6 +526,12 @@
     "request_schema_ref": "UpdateEmbedArgs",
     "response_schema_kind": "ref",
     "response_schema_ref": "Embed"
+  },
+  "updateHtmlPage": {
+    "request_schema_kind": "ref",
+    "request_schema_ref": "UpdateHtmlPageArgs",
+    "response_schema_kind": "ref",
+    "response_schema_ref": "UpdateHtmlPageResult"
   },
   "updateQLChart": {
     "request_schema_kind": "ref",

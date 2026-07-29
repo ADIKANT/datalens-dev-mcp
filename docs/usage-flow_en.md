@@ -64,10 +64,9 @@ Prompt:
 
 > Audit dashboard `<DASHBOARD_ID>` in workbook `<WORKBOOK_ID>`. Read the current saved version, capture it with related objects, inspect relations, and identify risks. Return concise findings and report paths. Do not save or publish anything.
 
-## Fast standalone HTML generation
+## Fast standalone HTML generation and delivery
 
-A self-contained HTML page does not require workbook discovery, snapshots,
-inventory, or DataLens API calls. Use one local cycle:
+Start with one local cycle for the self-contained document:
 
 ```text
 dl_generate_editor_bundle with html_page
@@ -76,14 +75,28 @@ dl_generate_editor_bundle with html_page
 ```
 
 The generator returns the path, size, hash, and validation result without
-duplicating HTML in the MCP response. Publication stays blocked until the public
-DataLens API documents a standalone HTML-page create/upload method. See the
-[HTML-page guide](datalens/html_pages_en.md) for constraints and the sandbox
-contract.
+duplicating HTML in the MCP response, and performs no live write itself. To
+deliver into a known workbook, pass validated `content` through the ordinary
+lifecycle:
+
+```text
+dl_plan_object_create with object_type=html_page
+  -> dl_create_safe_apply_plan
+  -> dl_execute_safe_apply:
+       createHtmlPage
+       getHtmlPage(saved)
+       updateHtmlPage(entryId, revId, mode=publish)
+       getHtmlPage(published)
+```
+
+Updates use `updateHtmlPage` with new content for save and only the verified
+saved `revId` for publish. `deleteHtmlPage` remains closed under the shared
+whole-object deletion policy. See the
+[HTML-page guide](datalens/html_pages_en.md).
 
 Prompt:
 
-> Create a local self-contained HTML page `<PAGE_ID>`: `<REQUIREMENT>`. Use `html_page` in `dl_generate_editor_bundle`, then validate the generated file with `dl_validate_editor_runtime_contract`. Do not discover, snapshot, or publish DataLens objects.
+> Create a self-contained HTML page in workbook `<WORKBOOK_ID>`: `<REQUIREMENT>`. Generate and validate the local artifact, then create `html_page` through Safe Apply, read saved state, publish its `revId`, and verify published state.
 
 ## Plan without writing
 
@@ -150,6 +163,32 @@ Prompt:
 > Fix `<OBJECT_TYPE>` `<OBJECT_ID>` in workbook `<WORKBOOK_ID>`: `<REQUIREMENT>`. Read current saved state and relations, plan and validate the change, save it, verify saved state, publish from the saved version, and verify the published result. Do not ask for another confirmation before save or publish. If UI verification is unavailable, state that limitation in the result.
 
 For a visible chart or dashboard change, final verification should cover the changed tab or object. API readback verifies structure; UI verification confirms rendering.
+
+## Fast strict Editor-dashboard path
+
+Use `standard_editor_v2` through the `strict_dashboard` alias for a new or
+fully redesigned set of Editor widgets. One batch may contain up to 100 unique
+widgets and returns compact statuses, artifact paths, and hashes instead of
+repeating generated tabs.
+
+The strict render contract applies the same rules to every registered family:
+
+- native creation defaults `h=2` for a compact selector and `h=6` for KPI,
+  with comparison context at least `h=3`; updates preserve fresh saved
+  geometry, and measured runtime pixels are not derived from native units;
+- runtime selector rows use `44` px and comparison context uses at least
+  `70` px; KPI values must remain visible and one KPI set uses one height;
+- KPI sparklines appear on every KPI or on none;
+- legend, marks, and tooltip use series present in filtered result rows; a
+  zero-only series remains active and a fully filtered series is omitted;
+- coordinate plot insets are `22` px top, `10` px compact or `16` px normal
+  right, and `34` px bottom;
+- overflow expands or scrolls instead of clipping content.
+
+The generated browser QA plan checks selector and comparison runtime heights,
+KPI-set height consistency, plot insets, and exact series-ID equality between
+marks and legend in one read-only, three-call pass over `1200 x 900` and
+`1440 x 900` viewports.
 
 ## Fast path for merging date selectors
 

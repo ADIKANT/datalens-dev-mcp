@@ -38,7 +38,7 @@ An unknown family, a conflicting route, a changed fingerprint, an inapplicable
 override, or an approximate fallback blocks generation.
 
 `standard_editor_v2` retains the reviewed template-set fingerprint
-`0f52998c57443651845ab73718df1669d01c5b5e87d10e0bf6bd29d6ee4cd4d4`.
+`6d35e7ae7e31ffb5677010b63e8e6d9455c8955a5b5f041e939281e0470a5da8`.
 Its render profile is separately fingerprinted, and each resolved family plus
 bounded overrides receives a `composite_sha256`. Changing a registered asset or
 render token requires a reviewed profile version and updated fingerprint.
@@ -61,11 +61,13 @@ registered templates but does not apply the v2 cross-chart render compiler.
 | Shell | Compact vertical/horizontal padding `9/10` px and gap `7` px; normal padding `11/13` px and gap `9` px |
 | Font | `Inter`, then `Arial`, then `sans-serif` |
 | Typography | Title `16/20` compact and `17/21` normal; body, axis, legend, and tooltip `12/16`; table `12/17` |
-| KPI | Padding `11 11 7 11` px; label `12/15`; value `31/34` compact and `34/38` normal at weight `750`; visible marked value; height `88..112` px with `96` px preferred |
+| KPI | Padding `11 11 7 11` px; label `12/15`; value `31/34` compact and `34/38` normal at weight `750`; visible marked value; new rows start at native `h=6`, while updates preserve fresh saved geometry and keep one height within the KPI set |
 | KPI surface | Transparent background; zero border, radius, outline, and shadow |
+| Dashboard height grid | New title/selector/KPI objects default to native `h=2/2/6`; comparison context uses at least `h=3`; updates preserve fresh saved geometry and overflow expands or scrolls instead of clipping; native units and measured runtime pixels are not linearly converted |
 | Selector | Left label, immediate update, no Apply button, height `44` px, each control at most `94%`; period first when present; one row targeting `95%` aggregate width; blank multiselect means all |
-| Comparison context | Exactly one shared text block below selectors when comparison is enabled, none otherwise; method, selected range, and comparison range are required |
-| Legend | One shared typography token across a chart; default and compact are `12/16` |
+| Comparison context | Exactly one shared text block at native `h>=3` and measured runtime height at least `70` px below selectors when comparison is enabled, none otherwise; method, selected range, and comparison range are required |
+| Legend | One shared typography token across a chart; default and compact are `12/16`; entries come only from series present in filtered result rows, while a zero-only unfiltered series remains active |
+| Coordinate plot | Top inset `22` px, right inset `10` px compact or `16` px normal, bottom inset `34` px; the family owns the left axis inset |
 | Tooltip | Native owner, normalized period values, comparison labels only in comparison mode, no empty comparison period, maximum width `340` px, padding `10/12` px, flat surface, and no redundant row-title tooltip |
 | Horizontal rank | Label `184` px, value `106` px, preferred bar `234` px, minimum row `32` px, row gap `4` px, bar radius `0.75` px, wrapped labels, stable secondary sort |
 | Scroll variant | Stable scrollbar gutter and `4` px right padding |
@@ -130,6 +132,7 @@ non-empty `comparison_context.method`, `selected_range`, and
 `comparison_range`. The server renders those fields into one shared period
 block and binds its exact widget ID into browser QA. Missing, duplicate, or
 misordered comparison context blocks fail before any widget bundle is written.
+Within a strict batch, KPI sparklines are allowed only on every KPI or on none.
 
 The call writes each complete bundle, a batch manifest, and one combined
 browser QA plan. The inline response contains only the batch counts, bounded
@@ -146,7 +149,8 @@ The generated browser QA plan is immutable and hash-bound. Execute it once:
 The maximum browser-call budget is three. The evaluation is read-only and
 forbids DOM mutation, reload loops, and exploratory retries. It checks expected
 objects, runtime error markers, overflow and clipping, KPI surfaces, legend
-typography, selector geometry and behavior, comparison-context cardinality,
+typography, filtered-series/legend parity, coordinate plot insets, selector
+geometry and behavior, comparison-context cardinality and minimum height,
 its runtime placement directly below the selector group and before KPI/chart
 content, tooltip owner and surface, stable scrollbar gutters, and redundant
 native row-title tooltips. Results and screenshots use the artifact naming plan
@@ -192,9 +196,10 @@ tab hashes.
 `standard_editor_v2` emits `2026-07-28.renderer_visual_spec.v4`. It preserves
 the semantic value and formatting fields, then binds scale, typography,
 spacing, KPI, legend, selector, comparison, and tooltip fields to the resolved
-render contract. Any conflicting inline legend typography, multiple tooltip
-owners, KPI surface/content drift, selector order or geometry drift, tooltip
-comparison-mode drift, or comparison-block cardinality drift blocks generation.
+render contract. Any conflicting inline legend typography, series/legend
+drift, multiple tooltip owners, KPI surface/content drift, mixed KPI sparkline
+policy, selector order or geometry drift, plot inset drift, tooltip
+comparison-mode drift, or comparison-block cardinality/height drift blocks generation.
 
 `standard_editor_v1` continues to emit
 `2026-07-23.renderer_visual_spec.v3`. It preserves v2 value, formatting,

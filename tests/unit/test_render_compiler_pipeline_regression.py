@@ -19,10 +19,10 @@ from datalens_dev_mcp.runtime_resources import resource_json
 
 PROFILE_V1 = "standard_editor_v1"
 PROFILE_V2 = "standard_editor_v2"
-TEMPLATE_SET_SHA256 = "0f52998c57443651845ab73718df1669d01c5b5e87d10e0bf6bd29d6ee4cd4d4"
+TEMPLATE_SET_SHA256 = "6d35e7ae7e31ffb5677010b63e8e6d9455c8955a5b5f041e939281e0470a5da8"
 FAMILY_V1_TAB_HASHES = {
     "kpi_value_only": "9fcd6b5e01d9f07ac79f1c7ceb1be7d74a5d378b8953b72fa846b96585c40020",
-    "line_chart": "24c757666f409da7e57a8a35a9b252b1ca5cfdc9c376d7a344e04ef34396e92e",
+    "line_chart": "02f52f3c1eed2ed8bc5e084436065c729ea8bd6208ec103f607bca427a2bbb9d",
     "horizontal_bar": "19d0571d7718e59545359905f9720219a0f328bc569350d1bcc7b66ab2c6b736",
 }
 FAMILY_SOURCE_COLUMNS = {
@@ -288,6 +288,47 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
                     self._node_check(controls, node=node, root=root)
                 else:
                     self.fail(f"unexpected registered route: {route}")
+
+    def test_time_series_legend_uses_only_active_filtered_series_and_contract_insets(self):
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node is required for generated JavaScript validation")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_brief(root, family="line_chart")
+            generated = self._generate(
+                root,
+                family="line_chart",
+                authoring_profile=PROFILE_V2,
+            )
+            html = self._execute_prepare(
+                generated["tabs"]["prepare.js"],
+                family="line_chart",
+                node=node,
+                root=root,
+                rows=[
+                    {"bucket": "2026-01", "metric": "success", "value": 5},
+                    {"bucket": "2026-01", "metric": "zero", "value": 0},
+                    {"bucket": "2026-01", "metric": "filtered", "value": None},
+                ],
+            )
+
+        self.assertIn('data-series-policy="active_series_only"', html)
+        self.assertIn('data-series-id="success" data-series-role="mark"', html)
+        self.assertIn('data-series-id="zero" data-series-role="mark"', html)
+        self.assertIn('data-series-id="success" data-series-role="legend"', html)
+        self.assertIn('data-series-id="zero" data-series-role="legend"', html)
+        self.assertNotIn('data-series-id="filtered"', html)
+        self.assertIn('data-plot-area-policy="contract_insets"', html)
+        self.assertIn('data-plot-inset-top="22"', html)
+        self.assertIn('data-plot-inset-right="10"', html)
+        self.assertIn('data-plot-inset-bottom="34"', html)
+        self.assertIn(
+            'data-role="plot-area" data-inset-top="22" '
+            'data-inset-right="10" data-inset-bottom="34"',
+            html,
+        )
 
     def test_control_contract_enforcement_and_incomplete_input_status_are_preserved(self):
         family = "single_select_dropdown"
@@ -584,6 +625,7 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
         family: str,
         node: str,
         root: Path,
+        rows: list[dict] | None = None,
     ) -> str:
         path = root / f"{family}-runtime.js"
         path.write_text(source, encoding="utf-8")
@@ -606,7 +648,7 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
                 "-e",
                 script,
                 str(path),
-                json.dumps(RUNTIME_ROWS[family]),
+                json.dumps(rows if rows is not None else RUNTIME_ROWS[family]),
                 json.dumps({"width": 600, "height": 300}),
             ],
             capture_output=True,
