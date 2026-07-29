@@ -4,7 +4,15 @@
 
 [Quick start](../README_en.md#quick-start) · [DataLens access](access_en.md) · [Connect](codex_setup_en.md) · [Tools](tools_en.md) · [Workflows](usage-flow_en.md) · [Sources](sources_en.md) · [Safety](local-only-safety-model_en.md) · [Русский](README.md)
 
-These guides cover installation, DataLens access, and the complete workflow from reading objects to saving and publishing changes.
+`datalens-dev-mcp` is a local MCP server through which Codex, Claude, and other
+MCP clients work with the Yandex DataLens Public API. The user states the task
+in plain language, the client selects typed tools, and the server reads objects,
+validates changes, saves them, and publishes when requested with result
+readback.
+
+It is not a standalone AI assistant or a DataLens interface. The guides below
+cover server installation, access, user workflows, supported operations, and
+responsibility boundaries.
 
 ## Start here
 
@@ -22,28 +30,34 @@ These guides cover installation, DataLens access, and the complete workflow from
 | Apply and publish a change | [Normal save-and-publish change](usage-flow_en.md#normal-save-and-publish-change) |
 | Trace packaged reference data | [Official sources](sources_en.md) |
 
-## Normal change flow
+## How it works
 
 ```text
-connect the client
-  -> dl_runtime_status and dl_auth_probe
-  -> find the workbook and target object
-  -> read current state and relations
-  -> plan and validate the request
-  -> save
-  -> read saved state
-  -> publish from saved state
-  -> read published state
-  -> verify the result in DataLens
+User
+  -> Codex / Claude / another MCP client
+  -> local datalens-dev-mcp
+  -> Yandex DataLens Public API
+
+project root
+  <- snapshots, plans, checks, readback, and reports
 ```
 
-The user request selects the mode. Audits and diagnostics do not mutate DataLens. `plan-only` stops after planning, and `save-only` stops after saved readback. Create, fix, update, enhance, and redesign requests for a known target run through the complete flow without another prompt before save or publish. Arbitrary whole-object deletion is unavailable; a manifest `retire_legacy_objects` action requires separate confirmation of the unchanged plan.
+A normal change runs through a current object-and-relations read, planning,
+validation, save, saved readback, publish from verified saved state, and
+published readback. The request selects the stopping point: audits and
+diagnostics do not mutate DataLens, `plan-only` stops after planning, and
+`save-only` stops after saved readback. Arbitrary whole-object deletion is
+unavailable; a manifest `retire_legacy_objects` action requires separate
+confirmation of the unchanged plan.
+
+API readback verifies structure. Rendering is checked by the MCP client when a
+browser is available or is explicitly reported as unavailable.
 
 ## Main guides
 
 - [DataLens access](access_en.md) — Yandex Cloud CLI, organization, IAM token, roles, env file, and access checks.
 - [Codex setup](codex_setup_en.md) — `config.toml`, `codex mcp add`, `/mcp`, and connection verification.
-- [Tool guide](tools_en.md) — purpose and operation class of all 38 calls.
+- [Tool guide](tools_en.md) — purpose and operation class of all 39 calls.
 - [Workflows](usage-flow_en.md) — copyable sequences and prompts.
 - [Configuration](configuration_en.md) — local settings and hard-off switches.
 - [Safety](local-only-safety-model_en.md) — credential, revision, and deletion safeguards.
