@@ -2,47 +2,191 @@
 
 [Русский](README.md) · **English**
 
-[Quick start](#quick-start) · [DataLens access](docs/access_en.md) · [Connect](#connect-an-mcp-client) · [Tools](docs/tools_en.md) · [Workflows](docs/usage-flow_en.md) · [Sources](docs/sources_en.md) · [Safety](docs/local-only-safety-model_en.md) · [All documentation](docs/README_en.md) · [Русский](README.md)
+[Quick start](#quick-start) · [DataLens access](docs/access_en.md) · [Connect](#connect-an-mcp-client) · [Tools](docs/tools_en.md) · [Workflows](#example-tasks) · [Sources](docs/sources_en.md) · [Safety](#change-safety) · [Русский](README.md)
 
-`datalens-dev-mcp` is a local Python [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server for developing Yandex DataLens dashboards with Codex, Claude, and other MCP clients. It reads DataLens objects, builds and validates change plans, saves changes, and publishes the verified saved version.
+`datalens-dev-mcp` is a local [MCP server](https://modelcontextprotocol.io/) that connects Codex, Claude, and other MCP clients to Yandex DataLens. The user describes a task in plain language, the client calls the server's typed tools, and the server reads current objects through the DataLens Public API, checks dependencies and request schemas, prepares changes, saves them, and publishes when requested with result readback.
 
-The MCP client starts the server on your computer over stdio. The server reaches the [DataLens Public API](https://yandex.cloud/ru/docs/datalens/operations/api-start) with your credentials. It does not require an inbound network listener, a hosted broker, or project telemetry.
+It is not a separate DataLens interface or a standalone AI assistant. The project gives an MCP client controlled local access to DataLens development operations and works only with the current user's permissions.
 
-> This is an independent community project and is not an official Yandex or Yandex Cloud product.
+### What you get
+
+Once connected, you can:
+
+- find the required workbook, dashboard, chart, dataset, or connection;
+- understand a dashboard's structure, objects, and dependencies;
+- capture a local dependency snapshot and run a read-only audit;
+- prepare a plan, create an object, or make a bounded change;
+- save a draft or save and publish a validated version;
+- receive saved/published readback, reports, and paths to local artifacts.
+
+For example:
+
+> Fix chart `<CHART_ID>` in workbook `<WORKBOOK_ID>`: `<REQUIREMENT>`. Save and publish the result, then verify the saved and published versions.
+
+[Go to quick start](#quick-start)
+
+> The server runs locally over stdio, opens no inbound HTTP port, and uses no separate hosted broker. This is an independent Alpha project and is not an official Yandex or Yandex Cloud product.
+
+### How it works
+
+```text
+User
+  -> Codex / Claude / another MCP client
+  -> local datalens-dev-mcp
+  -> Yandex DataLens Public API
+
+project root
+  <- snapshots, plans, checks, readback, and reports
+```
+
+The user states the objective, and the MCP client selects and calls the appropriate tools. The server applies checks, calls the DataLens API, and stores local artifacts inside the selected project root. The client presents the result and, when it has browser access, can additionally verify rendering in the DataLens interface.
 
 ## Capabilities
 
-| Goal | What the server does |
+| User goal | Result |
 | --- | --- |
-| Setup | Checks local configuration and real DataLens access |
-| Discovery | Lists workbooks and entries and reads object relations |
-| Audit | Captures a dashboard together with related charts, datasets, and connections |
-| Development | Plans dashboard, chart, dataset, and connection creation or updates |
-| HTML | Generates self-contained standalone HTML artifacts and validates the sandbox without undocumented uploads |
-| Consistent JS style | Reuses registered Editor templates with SHA-256 identity and blocks unregistered fallback |
-| Validation | Checks API schemas, SQL, relations, selectors, layout, and Editor code |
-| Delivery | Performs a fresh read, saves the change, verifies saved state, publishes it, and verifies the result |
-| Reference | Answers bounded DataLens and API questions with source links |
+| Find and inspect objects | Workbook contents plus reads of dashboards, charts, datasets, connections, and relations |
+| Run an audit | Local dependency-graph snapshot, diagnostic findings, and reports without writes |
+| Prepare a change | A plan with targets, affected fields, API methods, checks, and blockers |
+| Create or update | A validated payload for a dashboard, chart, dataset, or connection |
+| Change part of a solution | A bounded dashboard-tab, dataset-model, or related-object-group update |
+| Deliver the result | Save, saved readback, publish from verified saved state, and published readback |
+| Work locally | Standalone HTML artifacts, project manifests, snapshots, plans, and reports inside the project root |
 
-Write, save, and publish capabilities are available in the standard configuration. The request determines the operation:
+### What the server does and what remains with the MCP client
 
-- “review”, “audit”, “diagnose”, and “inspect” are read-only;
-- “plan” and `plan-only` stop after planning;
-- “save without publishing”, `save-only`, and `no-publish` stop after saved readback;
-- “create”, “fix”, “update”, “enhance”, and “redesign” continue through save, saved readback, publish from saved state, and final verification;
-- arbitrary whole-object deletion is unavailable; a project-manifest
-  `retire_legacy_objects` action requires separate confirmation of the
-  unchanged plan and exact IDs.
+| Server | MCP client |
+| --- | --- |
+| Exposes typed tools, reads the DataLens API, validates and performs permitted operations, and creates local artifacts | Interprets the plain-language request, selects the tool sequence, presents results, and controls any UI-verification capabilities available to it |
 
-The [guide to all 39 tools](docs/tools_en.md) describes the purpose, inputs, result, and operation class of every call.
+The server has no language model, chat, or user-facing web UI of its own. It does not replace the DataLens interface and cannot establish visual quality without a separate rendering check.
 
-## Requirements
+### How this differs from disconnected DataLens API calls
 
-- Python 3.11 or newer.
-- Codex, Claude Code, Claude Desktop, or another MCP client that can launch a local stdio server.
-- For DataLens access: Yandex Cloud CLI, an organization ID, and access to the target workbook.
+- The MCP client uses typed operations instead of assembling arbitrary HTTP requests itself.
+- A change is built on the current saved version of the object.
+- The exact target, revision, and payload are checked before writing.
+- Unknown and untouched fields are preserved while only the declared scope changes.
+- Save and publish are separate stages with separate readbacks.
+- Related actions can run as one verifiable group, while plans and results remain local artifacts.
+
+This process reduces the risk of writing to the wrong object, dropping fields, or publishing an unverified version. A conflict or uncertain result stops the cycle instead of triggering a hidden write retry.
+
+## Example tasks
+
+### Connection check
+
+```text
+Use the DataLens MCP server. Check local configuration and real DataLens access. Show whether reading, saving, and publishing are available. Do not change anything.
+```
+
+The client uses `dl_runtime_status`, followed by the minimal live `dl_auth_probe`.
+
+### Read-only audit
+
+```text
+Audit dashboard <DASHBOARD_ID> in workbook <WORKBOOK_ID>. Show its structure, related objects, dependencies, and main risks. Do not save or publish anything.
+```
+
+### Plan without applying
+
+```text
+Plan a change to chart <CHART_ID>: <REQUIREMENT>. Show which fields and objects would be affected, but do not save anything.
+```
+
+### Save without publishing
+
+```text
+Update <OBJECT_TYPE> <OBJECT_ID>: <REQUIREMENT>. Save the change and verify saved state, but do not publish.
+```
+
+### Normal change
+
+```text
+Fix chart <CHART_ID> in workbook <WORKBOOK_ID>: <REQUIREMENT>. Save and publish the result, then verify the saved and published versions.
+```
+
+### Create an object
+
+```text
+Create a <OBJECT_TYPE> in workbook <WORKBOOK_ID> with these requirements: <REQUIREMENTS>. Check dependencies and request data, then save and publish the result.
+```
+
+### Local HTML page
+
+```text
+Create a local self-contained HTML page <PAGE_ID>: <REQUIREMENT>. Validate its sandbox contract. Do not try to upload it to DataLens.
+```
+
+### What the result looks like
+
+This is a response outline, not the exact JSON contract:
+
+```text
+Result
+- target object found
+- change validated
+- saved version read and matched to the plan
+- published version read
+- report created
+- local artifact paths returned
+- UI verification completed or explicitly marked unavailable
+```
+
+When an operation stops, the user receives the reason and a safe next step, such as rereading after a revision conflict or reconciling DataLens state after an uncertain result.
+
+## Operation modes
+
+The task wording selects the stopping point; users do not need to learn every tool name to choose a mode.
+
+| Request | Behavior |
+| --- | --- |
+| Audit, review, diagnose, inspect | Reads and local reports only |
+| `plan-only` | Plan and validation without writing |
+| `save-only`, `no-publish`, “save without publishing” | Save and saved readback without publish |
+| Create, fix, update, enhance, redesign | Save, saved readback, publish from saved state, and published readback |
+
+An explicit `0` in a write/save/publish environment setting hard-disables that capability and overrides the request. The normal lifecycle does not delete complete objects; separate confirmation is used only for a project-manifest `retire_legacy_objects` action with exact IDs and an unchanged plan.
+
+## Supported objects and limitations
+
+### Supported
+
+- listing available workbooks and their contents;
+- reading relations, dashboards, Wizard/Editor/QL charts, datasets, and connections;
+- creating and updating supported dashboards, charts, datasets, and connections through planning and Safe Apply;
+- bounded dashboard-tab changes and guarded dataset-model changes;
+- local snapshots of a dashboard and its dependency graph;
+- local self-contained HTML artifact generation and sandbox validation;
+- declared project-manifest dry-run and apply processes;
+- storing plans, snapshots, readback, and reports inside the project root.
+
+### Wizard, Editor, and QL
+
+- New standard KPIs, tables, lines, areas, columns, combined charts, pie charts, scatter/bubble charts, treemaps, and maps use Wizard by default.
+- Updates preserve the existing chart technology and `visualization_id`.
+- Editor is selected for an explicit JavaScript request or a documented Wizard capability gap.
+- QL is used only on a direct request with an explicit payload or current QL version; it is never selected automatically or used as a fallback.
+
+See the full policy in [`docs/route-policy_en.md`](docs/route-policy_en.md).
+
+### Limitations
+
+- The server is not a hosted service, chatbot, or DataLens user interface.
+- It grants no permissions beyond the current user's permissions.
+- Arbitrary whole-object deletion, including whole-object QL deletion, is unavailable.
+- Object moves and changes to access rights, licenses, or credentials are unsupported.
+- Standalone HTML is created locally and is not uploaded through the DataLens Public API.
+- `dl_diagnose` analyzes supplied data and does not query databases on its own.
+- API readback verifies object structure; visual verification depends on the MCP client's browser capabilities.
+- A snapshot covers the selected dashboard's dependency graph, not necessarily the entire organization.
+- A method may exist in the API catalog while remaining unsupported for writes.
+
+The project does not claim complete DataLens coverage and does not replace manual review of important changes.
 
 ## Quick start
+
+Requirements: Python 3.11+, a local stdio MCP client, and, for live access, an organization ID, IAM token, and permissions on the target workbook.
 
 ```bash
 git clone https://github.com/ADIKANT/datalens-dev-mcp.git
@@ -56,7 +200,7 @@ python3 scripts/smoke_mcp_stdio.py
 
 On Windows, use `.venv\Scripts\python.exe` and `.venv\Scripts\datalens-dev-mcp.exe`. For server development, install with `.venv/bin/python -m pip install -e '.[test]'`.
 
-Next, follow the [DataLens access guide](docs/access_en.md). A minimal protected env file looks like this:
+Follow the [DataLens access guide](docs/access_en.md). A minimal protected env file:
 
 ```dotenv
 DATALENS_ORG_ID=<ORGANIZATION_ID>
@@ -70,15 +214,15 @@ DATALENS_ENABLE_TOKEN_REFRESH_ON_401=1
 DATALENS_MCP_ENABLE_EXPERT_RPC=0
 ```
 
-IAM tokens have a limited lifetime. With an initialized `yc` CLI, the server can obtain an initial token and refresh an expired one, then atomically store it in `DATALENS_ENV_FILE` with `0600` permissions.
+Keep the file outside the repository with `0600` permissions and pass its absolute path through `DATALENS_ENV_FILE`. With a configured `yc` CLI, the server can obtain an initial IAM token and refresh an expired token once.
 
 ## Connect an MCP client
 
-Replace every `/absolute/path/...` with an absolute path. `--project-root` selects the local directory for inputs, plans, and reports. Workbook, dashboard, and other live object IDs are supplied separately in the task.
+Replace `/absolute/path/...` with absolute paths. `--project-root` selects the local directory for inputs and artifacts; live DataLens object IDs are supplied separately in the task.
 
 ### Codex
 
-Add this block to `~/.codex/config.toml` or a trusted project's `.codex/config.toml`:
+Add this to `~/.codex/config.toml` or a trusted project's `.codex/config.toml`:
 
 ```toml
 [mcp_servers.datalens_dev]
@@ -91,9 +235,7 @@ startup_timeout_sec = 20
 tool_timeout_sec = 120
 ```
 
-`default_tools_approval_mode = "approve"` lets Codex run normal calls to this MCP server without a separate client prompt before save or publish. Separate confirmation applies only to a project-manifest `retire_legacy_objects` action.
-
-You can register the same server from the CLI:
+Or register the same command from the CLI:
 
 ```bash
 codex mcp add datalens_dev \
@@ -102,7 +244,7 @@ codex mcp add datalens_dev \
   stdio --project-root /absolute/path/to/your/dashboard-project
 ```
 
-Run `codex mcp list`, restart Codex, and inspect `/mcp`. See the [Codex setup guide](docs/codex_setup_en.md) for details.
+Run `codex mcp list`, restart Codex, and inspect `/mcp`. See [Codex setup](docs/codex_setup_en.md) for details.
 
 ### Claude Code
 
@@ -132,62 +274,70 @@ Verify the registration with `claude mcp list`.
 }
 ```
 
-Copyable files are available under [`examples/clients/`](examples/clients/).
+Copyable configurations: [`examples/clients/`](examples/clients/).
 
 ## First session
 
-Start by checking the connection:
+Start with a read-only check:
 
-> Use the DataLens MCP server. Call `dl_runtime_status`, then `dl_auth_probe`. Show whether write, save, and publish are available, and list the available workbooks. Keep this step read-only and never print credentials.
+> Use the DataLens MCP server. Call `dl_runtime_status`, then `dl_auth_probe`. Show whether reading, saving, and publishing are available. Do not change anything or print credentials.
 
-`dl_runtime_status` checks local settings. `dl_auth_probe` performs a minimal live `getWorkbooksList` request. After a successful probe, use `dl_get_workbook_entries`, `dl_snapshot_dashboard`, `dl_read_object`, and `dl_get_entries_relations`.
-
-For a change, state the objective and the target:
-
-> Fix chart `<CHART_ID>` in workbook `<WORKBOOK_ID>`: `<CHANGE DESCRIPTION>`. Read the current saved object and its relations, validate the plan, save the change, verify saved state, publish from the saved version, and verify the published result.
-
-The [usage workflows](docs/usage-flow_en.md) include copyable prompts for audits, plan-only work, save-only delivery, and normal changes.
+`dl_runtime_status` checks local configuration and hard-off switches. `dl_auth_probe` performs a minimal live `getWorkbooksList`. After a successful check, discover objects, read their relations, or use one of the [copyable workflows](#example-tasks).
 
 ## Change safety
 
-Before writing, the server checks the exact target, current revision, request schema, and object relations. Updates preserve unknown fields and the existing chart technology. Publishing uses the verified saved version and is followed by a separate readback.
+Before writing, the server:
 
-Set `DATALENS_MCP_ENABLE_WRITES`, `DATALENS_MCP_LIVE_ALLOW_SAVE`, or `DATALENS_MCP_LIVE_ALLOW_PUBLISH` to `0` to disable that capability. A hard-off value takes precedence over the request.
+1. rereads the current saved version;
+2. verifies the exact target type and ID;
+3. checks the revision and expected fields;
+4. applies only the requested change and preserves untouched fields;
+5. validates the payload and related conditions;
+6. reads and verifies saved state after save;
+7. builds publish only from verified saved state;
+8. reads published state after publish.
 
-Removing a legend, filter, column, tab, or widget inside an object is an update.
-The standard lifecycle tools do not delete complete objects; only a
-project-manifest `retire_legacy_objects` action is supported, with two-step
-confirmation of exact IDs and the unchanged plan. Whole-object QL deletion is
-unsupported.
+A revision conflict, lock, uniqueness violation, or uncertain write result stops the cycle. `DATALENS_MCP_ENABLE_WRITES=0`, `DATALENS_MCP_LIVE_ALLOW_SAVE=0`, and `DATALENS_MCP_LIVE_ALLOW_PUBLISH=0` override the request.
 
-See the [safety model](docs/local-only-safety-model_en.md), [safe apply](docs/safe-apply_en.md), and [chart route policy](docs/route-policy_en.md).
+API readback verifies object structure and state. Actual rendering requires a separate browser check by the MCP client; when it is unavailable, the result should state that limitation explicitly.
 
-## Repository map
+See the [safety model](docs/local-only-safety-model_en.md) and [Safe Apply](docs/safe-apply_en.md).
 
-| Path | Purpose |
+## Documentation
+
+| Topic | Guide |
 | --- | --- |
-| `src/datalens_dev_mcp/` | Python package, MCP server, DataLens API client, planners, and validators |
-| `config/` | Versioned behavior and route settings |
-| `schemas/` | JSON Schema for inputs, plans, and reports |
-| `templates/` | Wizard, Editor, and project templates |
-| `docs/` | User guides and technical documentation |
-| `examples/` | Synthetic examples and MCP client configurations |
-| `scripts/` | Checks, packaging, and reference-data maintenance |
-| `tests/` | Unit and offline integration tests |
+| All documentation | [`docs/README_en.md`](docs/README_en.md) |
+| Access, IAM token, and roles | [`docs/access_en.md`](docs/access_en.md) |
+| Connect Codex | [`docs/codex_setup_en.md`](docs/codex_setup_en.md) |
+| All 39 tools | [`docs/tools_en.md`](docs/tools_en.md) |
+| Copyable workflows | [`docs/usage-flow_en.md`](docs/usage-flow_en.md) |
+| Wizard, Editor, and QL | [`docs/route-policy_en.md`](docs/route-policy_en.md) |
+| Safe Apply and readback | [`docs/safe-apply_en.md`](docs/safe-apply_en.md) |
+| Architecture and API coverage | [`docs/architecture.md`](docs/architecture.md), [`docs/datalens/api_contract_coverage.md`](docs/datalens/api_contract_coverage.md) |
 
-See [`docs/architecture.md`](docs/architecture.md) for architecture and [`docs/configuration_en.md`](docs/configuration_en.md) for local settings.
+The exact schema and complete public surface of the currently installed version are available through MCP `tools/list`.
+
+## Project status
+
+- Independent project and not an official Yandex or Yandex Cloud product.
+- Python package maturity: **Alpha**.
+- Use deliberately selected targets for live writes and verify the result.
+- `main` may include `Unreleased` changes that are not part of the published version yet.
+- The installed version's `tools/list` is authoritative; the standard 0.4.0 surface contains 39 tools.
 
 ## Development
 
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install -e '.[test]'
+python3 scripts/check_docs_consistency.py
 python3 scripts/run_quick_checks.py
 python3 scripts/run_offline_acceptance.py
 ```
 
-Offline acceptance does not require DataLens credentials. Use deliberately selected objects for live-write checks.
+Offline acceptance uses no real DataLens credentials and performs no live writes.
 
 ## License and sources
 
-Project code and original documentation are licensed under the [Apache License 2.0](LICENSE). Reference data adapted from Yandex Cloud documentation includes [CC BY 4.0](LICENSES/CC-BY-4.0.txt) attribution. See [`docs/sources_en.md`](docs/sources_en.md) for the official source map and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for complete notices.
+Project code and original documentation are licensed under the [Apache License 2.0](LICENSE). Reference data adapted from Yandex Cloud documentation includes [CC BY 4.0](LICENSES/CC-BY-4.0.txt) attribution. See [`docs/sources_en.md`](docs/sources_en.md) for official sources and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for complete notices.
