@@ -52,7 +52,7 @@ dev = [
   "jsonschema>=4.21,<5",
   "PyYAML>=6.0.2,<7",
   "ruff>=0.9,<1",
-  "twine>=6,<7",
+  "twine>=6,<8",
 ]
 
 [project.urls]
