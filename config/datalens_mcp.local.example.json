@@ -88,8 +88,8 @@
     }
   },
   "naming": {
-    "title_source": "native_metadata",
-    "hint_source": "native_metadata",
+    "title_source": "role_based_contract",
+    "hint_source": "role_based_contract",
     "duplicate_titles_inside_chart_body": false,
     "default_title_prefix": "js - ",
     "require_hint_when_enableHint": true

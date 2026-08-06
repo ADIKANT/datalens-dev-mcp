@@ -9,8 +9,9 @@ tests and saved-readback validation:
   only one `data.tabs[]` entry.
 - To show inner tabs, one widget item must contain at least two `data.tabs[]`
   entries with distinct titles and chart IDs.
-- `data.hideTitle: false` is required; `data.hideTitle: true` can hide the
-  header area and tab strip.
+- A multi-tab switcher uses `title_mode=tab_strip` and therefore requires
+  `data.hideTitle: false`. Single-content widgets follow their role-owned title
+  mode and may intentionally hide the native header.
 - Saved and published `getDashboard` readback is the proof surface after live
   changes.
 
@@ -41,9 +42,14 @@ Required multi-tab widget shape:
 
 - `labelPlacement` is always `left`.
 - Control `width` is always a percentage string.
-- One row may use up to 94 percent of the available width.
-- Rows above 94 percent are invalid and must fail with a clear diagnostic.
-- Rows below the budget are valid when the controls remain readable and aligned.
+- A selector group declares one or two ordered rows; each row occupies exactly
+  94 percent of the available width.
+- A one-row group has native height 2; a two-row group has height 3.
+- Controls apply immediately and never expose an Apply button.
+- A blank multiselect means all values. Clear must keep the value blank and
+  must not restore a default on rerender.
+- A load-date auxiliary block beside a selector uses the same height and
+  vertical alignment.
 - Split dense selector rows instead of using pixel widths.
 - Pixel widths are allowed only if a future DataLens API field requires pixels;
   that exception must be documented with the API field name and source.
@@ -63,6 +69,15 @@ percentage `width` values. Fallback generated single selectors use `width: '94%'
 
 - Native dashboard tabs use a 36-column grid and require a one-to-one mapping
   between item IDs and layout IDs.
+- Composition v2 records semantic rows and exact mount → tab → widget links.
+- Adjacent blocks use the same height and `gap_after=0`; any non-zero spacer is
+  explicit and named.
+- Standard KPI rows contain at most three cards. Sparkline KPI cards use
+  `12×8`; compact KPI cards without a sparkline use `12×6`. Four `9`-column
+  cards require an explicit density override and successful browser evidence.
+- Comparison context uses native height 1–3 according to its actual line count.
+- Tables reject a sticky constant column, blank grouped headers, and clipped
+  labels without an explicit short display label.
 - Peer overlap, out-of-bounds geometry, broken parents, and parent cycles are
   blockers.
 - A newly generated layout also blocks non-boolean `autoHeight` and mixed
@@ -76,9 +91,10 @@ percentage `width` values. Fallback generated single selectors use `width: '94%'
 
 ## Browser Viewport Evidence
 
-- Layout and dashboard changes require browser checks at two or more distinct
-  widths, including a compact desktop viewport at or below 1280 CSS pixels and
-  a wide desktop viewport at or above 1366 CSS pixels.
+- Layout and dashboard changes require checks at exactly the standard widths
+  720, 1200, and 1440 CSS pixels.
+- Every tab is checked from its top and again after full scroll so lower lazy
+  objects must initialize.
 - Every viewport check records positive CSS `width` and `height`,
   `device_pixel_ratio`, document width, overflow, scoped object IDs, and a
   hash-bound screenshot.
@@ -108,4 +124,4 @@ Dashboard type controls layout defaults before chart generation:
 - `experiment_report`: cohort/period controls, hypothesis, cohort metrics, trend context, decision block.
 - `project_ad_hoc`: scope filters, status strip, milestones, risk/action table, owner block.
 
-All blueprints require native widget metadata for non-control widgets.
+All blueprints require a role-based title contract for every mounted widget.

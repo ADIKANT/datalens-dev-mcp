@@ -273,7 +273,7 @@ def _write_requirements_catalog(root: Path, entries: list[dict[str, Any]], relat
         chart_lines.append(
             f"- `{entry['chart_id']}` on `{entry['page_tab']}`: `{entry['family']}` via `{entry['template_used']}`; "
             f"dimensions {_join(entry['dimensions'])}; measures {_join(entry['measures'])}; "
-            f"selectors {_join(entry['selectors'])}; native title `{entry['native_title'] or 'pending'}`."
+            f"selectors {_join(entry['selectors'])}; display title `{entry['native_title'] or 'pending'}`."
         )
         metric_lines.append(
             f"- `{entry['chart_id']}` measures {_join(entry['measures'])}; "

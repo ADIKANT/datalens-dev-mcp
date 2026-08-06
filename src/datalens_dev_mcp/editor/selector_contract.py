@@ -14,9 +14,11 @@ STATIC_SELECTOR_FAMILIES = frozenset(
 )
 DYNAMIC_SELECTOR_FAMILY = "selector_family_dynamic"
 DATE_SELECTOR_FAMILY = "date_range_selector"
+SELECTOR_GROUP_FAMILY = "selector_group"
 SELECTOR_FAMILIES = STATIC_SELECTOR_FAMILIES | {
     DYNAMIC_SELECTOR_FAMILY,
     DATE_SELECTOR_FAMILY,
+    SELECTOR_GROUP_FAMILY,
 }
 _DATE_TOKEN_RE = re.compile(r"^(?:\d{4}-\d{2}-\d{2}|__relative_[^\s]+)$")
 
@@ -31,6 +33,8 @@ def normalize_selector_contract(
 ) -> dict[str, Any]:
     if family not in SELECTOR_FAMILIES:
         return {}
+    if family == SELECTOR_GROUP_FAMILY:
+        return _normalize_selector_group(selector_contract)
 
     explicit = selector_contract is not None
     if selector_contract is None:
@@ -264,6 +268,13 @@ def normalize_selector_contract(
 def selector_params(contract: dict[str, Any]) -> list[str]:
     if not contract:
         return []
+    controls = contract.get("controls")
+    if isinstance(controls, list):
+        values: list[str] = []
+        for control in controls:
+            if isinstance(control, dict):
+                values.extend(selector_params(control))
+        return list(dict.fromkeys(values))
     paired = [
         str(contract.get("param_from") or "").strip(),
         str(contract.get("param_to") or "").strip(),
@@ -272,6 +283,188 @@ def selector_params(contract: dict[str, Any]) -> list[str]:
         return paired
     parameter = str(contract.get("param") or "").strip()
     return [parameter] if parameter else []
+
+
+def _normalize_selector_group(value: Any) -> dict[str, Any]:
+    raw = dict(value) if isinstance(value, dict) else {}
+    issues: list[dict[str, str]] = []
+    allowed = {
+        "controls",
+        "update_mode",
+        "apply_button",
+        "row_width_target_percent",
+        "blank_multiselect_semantics",
+    }
+    unknown = sorted(set(raw) - allowed)
+    if unknown:
+        issues.append(
+            _issue(
+                "unknown_selector_group_fields",
+                "Unknown selector group fields: " + ", ".join(unknown),
+            )
+        )
+    controls_raw = raw.get("controls")
+    if not isinstance(controls_raw, list) or not controls_raw:
+        issues.append(_issue("missing_selector_group_controls", "selector_group requires non-empty controls."))
+        controls_raw = []
+    if len(controls_raw) > 12:
+        issues.append(_issue("selector_group_too_large", "selector_group supports at most 12 controls."))
+    update_mode = str(raw.get("update_mode") or "immediate").strip().lower()
+    apply_button = raw.get("apply_button", False)
+    target = raw.get("row_width_target_percent", 94)
+    blank_semantics = str(raw.get("blank_multiselect_semantics") or "all").strip().lower()
+    if update_mode != "immediate":
+        issues.append(_issue("selector_group_update_mode", "selector_group update_mode must be immediate."))
+    if apply_button is not False:
+        issues.append(_issue("selector_group_apply_button", "selector_group must not render an Apply button."))
+    if target != 94:
+        issues.append(_issue("selector_group_row_width", "selector_group row width target must be exactly 94 percent."))
+    if blank_semantics != "all":
+        issues.append(_issue("selector_group_blank_semantics", "Blank multiselect semantics must be all."))
+
+    normalized: list[dict[str, Any]] = []
+    for index, item in enumerate(controls_raw):
+        if not isinstance(item, dict):
+            issues.append(_issue("invalid_selector_group_control", f"controls[{index}] must be an object."))
+            continue
+        control_family = str(item.get("family") or item.get("kind") or "single_select_dropdown").strip()
+        if control_family == SELECTOR_GROUP_FAMILY or control_family not in SELECTOR_FAMILIES:
+            issues.append(
+                _issue(
+                    "invalid_selector_group_family",
+                    f"controls[{index}].family must be a registered single selector family.",
+                )
+            )
+            continue
+        row = item.get("row", 1)
+        if not isinstance(row, int) or isinstance(row, bool) or row not in {1, 2}:
+            issues.append(_issue("invalid_selector_group_row", f"controls[{index}].row must be 1 or 2."))
+            row = 1
+        width = _width_percent(item.get("width"))
+        if item.get("width") is not None and width is None:
+            issues.append(
+                _issue(
+                    "invalid_selector_group_width",
+                    f"controls[{index}].width must be an integer percent or a percentage string.",
+                )
+            )
+        source_name = str(item.get("source_name") or "rows").strip()
+        value_field = str(item.get("value_field") or "value").strip()
+        single_raw = {
+            key: child
+            for key, child in item.items()
+            if key not in {"family", "kind", "row", "width", "source_name", "value_field"}
+        }
+        single = normalize_selector_contract(
+            family=control_family,
+            title=str(single_raw.get("label") or ""),
+            selector_contract=single_raw,
+        )
+        if not single.get("ok"):
+            issues.extend(
+                _issue(
+                    f"selector_group_{issue.get('code') or 'invalid_control'}",
+                    f"controls[{index}]: {issue.get('message') or issue}",
+                )
+                for issue in single.get("issues") or []
+            )
+        normalized.append(
+            {
+                **single,
+                "family": control_family,
+                "row": row,
+                "width": width,
+                "source_name": source_name,
+                "value_field": value_field,
+                "labelPlacement": "left",
+                "updateOnChange": True,
+                "multiple": control_family == "multi_select_dropdown",
+                "emptyMeansAll": control_family == "multi_select_dropdown",
+                "restoreDefaultAfterClear": False,
+            }
+        )
+
+    for row in (1, 2):
+        members = [item for item in normalized if item["row"] == row]
+        if not members:
+            continue
+        explicit = [item["width"] for item in members]
+        if all(value is None for value in explicit):
+            widths = _equal_widths(len(members), target=94)
+            for item, width in zip(members, widths, strict=True):
+                item["width"] = width
+        elif any(value is None for value in explicit):
+            issues.append(
+                _issue(
+                    "mixed_selector_group_widths",
+                    f"row {row} must either declare every width or let the server plan every width.",
+                )
+            )
+        total = sum(int(item["width"] or 0) for item in members)
+        if total != 94:
+            issues.append(
+                _issue(
+                    "selector_group_row_width_total",
+                    f"row {row} width total must be exactly 94 percent, got {total} percent.",
+                )
+            )
+    populated_rows = sorted({int(item["row"]) for item in normalized})
+    if populated_rows == [2]:
+        issues.append(_issue("selector_group_missing_first_row", "selector_group row 2 requires row 1."))
+    period_indexes = [
+        index
+        for index, item in enumerate(normalized)
+        if item.get("family") == DATE_SELECTOR_FAMILY
+        or any("period" in parameter.lower() for parameter in selector_params(item))
+    ]
+    if period_indexes and period_indexes[0] != 0:
+        issues.append(_issue("selector_group_period_first", "Period control must be first when present."))
+    rows = [
+        {
+            "row": row,
+            "controls": [item for item in normalized if item.get("row") == row],
+            "width_total_percent": sum(
+                int(item.get("width") or 0)
+                for item in normalized
+                if item.get("row") == row
+            ),
+        }
+        for row in populated_rows
+    ]
+    return {
+        "schema_version": "datalens.editor_selector_group_contract.v2",
+        "family": SELECTOR_GROUP_FAMILY,
+        "controls": normalized,
+        "rows": rows,
+        "row_count": len(populated_rows),
+        "dashboard_grid_height_units": 2 if len(populated_rows) <= 1 else 3,
+        "update_mode": update_mode,
+        "apply_button": apply_button,
+        "showApplyButton": False,
+        "row_width_target_percent": target,
+        "blank_multiselect_semantics": blank_semantics,
+        "ok": not issues,
+        "issues": issues,
+    }
+
+
+def _width_percent(value: Any) -> int | None:
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value if 1 <= value <= 94 else None
+    if isinstance(value, str) and value.endswith("%"):
+        try:
+            parsed = int(value[:-1])
+        except ValueError:
+            return None
+        return parsed if 1 <= parsed <= 94 else None
+    return None
+
+
+def _equal_widths(count: int, *, target: int) -> list[int]:
+    if count < 1 or target // count < 8:
+        return [0] * max(0, count)
+    base, remainder = divmod(target, count)
+    return [base + (1 if index < remainder else 0) for index in range(count)]
 
 
 def _normalize_options(value: Any, *, issues: list[dict[str, str]]) -> list[dict[str, str]]:

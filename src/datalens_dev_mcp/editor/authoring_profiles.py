@@ -21,6 +21,7 @@ from datalens_dev_mcp.runtime_resources import (
 
 
 AUTHORING_PROFILE_RESOURCE = "config/editor_authoring_profiles.json"
+CANONICAL_AUTHORING_PROFILE_ID = "standard_dashboard_v1"
 DEFAULT_TEMPLATE_REGISTRY_RESOURCE = "templates/datalens/standard_chart_templates.json"
 PROJECT_MANIFEST_NAMES = (".datalens-mcp.json", "datalens-mcp.project.json")
 SHARED_TEMPLATE_ASSETS = (
@@ -70,13 +71,6 @@ def resolve_authoring_profile(
             selection_origin=selection_origin,
             manifest_path=manifest_path,
         )
-    if isinstance(declaration, dict) and declaration.get("descriptor_path"):
-        return _resolve_project_local_profile(
-            root=root,
-            declaration=declaration,
-            selection_origin=selection_origin,
-            manifest_path=manifest_path,
-        )
     try:
         registry = resource_json(AUTHORING_PROFILE_RESOURCE)
     except RuntimeResourceError as exc:
@@ -98,6 +92,13 @@ def resolve_authoring_profile(
             selected_id = str(candidate_id)
             selected = candidate
             break
+    if isinstance(declaration, dict) and declaration.get("descriptor_path") and not selected:
+        return _resolve_project_local_profile(
+            root=root,
+            declaration=declaration,
+            selection_origin=selection_origin,
+            manifest_path=manifest_path,
+        )
     if not selected:
         return _profile_error(
             "reference_profile_required",
@@ -125,7 +126,7 @@ def resolve_authoring_profile(
             "authoring_profile_template_set_hash_mismatch",
             (
                 f"profile {selected_id} template-set fingerprint changed; "
-                "register a new reviewed profile version before generation"
+                "refresh the reviewed canonical profile asset lock before generation"
             ),
             selection_origin=selection_origin,
             manifest_path=manifest_path,
@@ -141,6 +142,11 @@ def resolve_authoring_profile(
         "ok": True,
         "active": True,
         "id": selected_id,
+        "requested_id": profile_id,
+        "normalized_from": profile_id if _profile_token(profile_id) != _profile_token(selected_id) else "",
+        "packaged_profile_descriptor_ignored": bool(
+            isinstance(declaration, dict) and declaration.get("descriptor_path")
+        ),
         "selection_origin": selection_origin,
         "manifest_path": manifest_path,
         "route_policy": str(selected.get("route_policy") or ""),
@@ -403,6 +409,7 @@ def authoring_profile_route_decision(
     profile: dict[str, Any],
     family: str,
     explicit_route: str = "",
+    canonical_route: str = "",
 ) -> dict[str, Any]:
     if not profile.get("active"):
         return {"ok": True, "active": False, "route": normalize_route(explicit_route) if explicit_route else ""}
@@ -420,6 +427,22 @@ def authoring_profile_route_decision(
             family=resolution.approved_alternative,
         )
     resolved_family = resolution.approved_alternative
+    route_policy = str(profile.get("route_policy") or "")
+    if route_policy == "canonical_route_then_registered_editor":
+        selected_canonical_route = normalize_route(
+            canonical_route or explicit_route or "wizard_native"
+        )
+        if selected_canonical_route in {"wizard_native", "ql_explicit"}:
+            return {
+                "ok": True,
+                "active": False,
+                "dashboard_profile_active": True,
+                "profile_id": profile.get("id"),
+                "family": resolved_family,
+                "route": selected_canonical_route,
+                "route_policy": route_policy,
+                "selection_origin": profile.get("selection_origin"),
+            }
     family_registry_path = str(profile.get("family_registry") or DEFAULT_TEMPLATE_REGISTRY_RESOURCE)
     try:
         family_registry = _profile_family_registry(profile)
@@ -452,8 +475,11 @@ def authoring_profile_route_decision(
             f"registered route {registered_route} is outside profile {profile['id']}",
             family=resolved_family,
         )
-    if explicit_route:
-        requested_route = normalize_route(explicit_route)
+    requested_route = normalize_route(
+        explicit_route
+        or (canonical_route if route_policy == "canonical_route_then_registered_editor" else "")
+    ) if (explicit_route or (canonical_route and route_policy == "canonical_route_then_registered_editor")) else ""
+    if requested_route:
         if requested_route != registered_route:
             return _route_error(
                 profile,
@@ -478,6 +504,7 @@ def authoring_profile_route_decision(
         "template_policy": profile.get("template_policy"),
         "fallback_policy": profile.get("fallback_policy"),
         "selection_origin": profile.get("selection_origin"),
+        "route_policy": route_policy,
         "source_kind": profile.get("source_kind") or "packaged",
         "descriptor_sha256": profile.get("descriptor_sha256") or "",
     }

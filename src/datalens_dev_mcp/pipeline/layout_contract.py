@@ -118,8 +118,13 @@ def validate_dashboard_widget_tabs(dashboard: dict[str, Any]) -> ValidationResul
             if len(tabs) < 2:
                 continue
             item_id = item.get("id") or f"tab[{tab_index}].item[{item_index}]"
+            title_mode = str(data.get("titleMode") or data.get("title_mode") or "")
+            if title_mode and title_mode != "tab_strip":
+                issues.append(f"{item_id}: title_mode must be tab_strip when one widget contains multiple inner tabs")
             if data.get("hideTitle") is not False:
-                issues.append(f"{item_id}: data.hideTitle must be false when one widget contains multiple inner tabs")
+                issues.append(
+                    f"{item_id}: data.hideTitle must be false because title_mode=tab_strip owns multiple inner tabs"
+                )
             for inner_index, inner_tab in enumerate(tabs):
                 if not inner_tab.get("title"):
                     issues.append(f"{item_id}.tabs[{inner_index}]: title is required")

@@ -109,21 +109,27 @@
 ### `dl_generate_editor_bundle`
 
 - Required: —
-- Optional: `project_root`, `widget_id`, `route`, `authoring_profile`, `dataset_alias`, `columns`, `selector_contract`, `dataset_readbacks`, `chart_specs`, `render_overrides`, `html_page`, `context_ref`, `evidence_refs`
+- Optional: `project_root`, `widget_id`, `route`, `authoring_profile`, `dataset_alias`, `columns`, `selector_contract`, `dataset_readbacks`, `chart_specs`, `render_overrides`, `title_mode`, `dashboard_composition`, `html_page`, `context_ref`, `evidence_refs`
 - Компилирует Wizard plan или Editor tabs по выбранному маршруту. Для
   `editor_js_control` production-вызов передаёт полный `selector_contract`;
   неполный контракт блокируется без выдуманных параметров или значений.
   `dataset_readbacks`, если они переданы, проверяют Wizard field GUID и роли;
   отсутствие аргумента не подменяется пустым readback.
-  `authoring_profile=strict_dashboard` выбирает `standard_editor_v2`: точный
-  asset из стандартного реестра плюс hash-locked render contract. Legacy
-  `standard_editor_v1` остаётся побайтно совместимым. Оба профиля блокируют
-  незарегистрированный fallback.
+  Для create/full redesign без явного профиля применяется
+  `standard_dashboard_v1`; `strict_dashboard` — его alias. Сначала сохраняется
+  канонический Wizard-first route, затем защищённый renderer того же профиля
+  применяется только к выбранным Editor-объектам. Исторические имена профилей
+  являются aliases и сразу нормализуются в `standard_dashboard_v1`; старые
+  assets и поведение не исполняются даже при update существующего dashboard.
 - `chart_specs` выполняет до 100 виджетов одним batch-вызовом и возвращает
   компактные статусы и artifact paths вместо содержимого tabs. Strict
   comparison-batch начинается с `date_range_selector` и содержит ровно один
   `md_methodology_block` с `comparison_context.method`, `selected_range` и
   `comparison_range`.
+- Результат содержит role-based `title_mode`, render contract и hash-bound
+  `dashboard_composition.version=2`. `dl_validate_project` выпускает
+  `final_payload_attestation`; Safe Apply требует совпадающие payload и
+  `qa_attestation` для dashboard publish.
 - `html_page` взаимоисключающий с chart/selector inputs. Он создаёт полный
   self-contained HTML artifact, проводит строгую sandbox/privacy-проверку и
   возвращает только путь, размер и SHA-256. Генератор не пишет live сам;

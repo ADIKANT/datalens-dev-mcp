@@ -167,6 +167,9 @@ An explicit `0` in a write/save/publish environment setting hard-disables that c
 - Updates preserve the existing chart technology and `visualization_id`.
 - Editor is selected for an explicit JavaScript request or a documented Wizard capability gap.
 - QL is used only on a direct request with an explicit payload or current QL version; it is never selected automatically or used as a fallback.
+- Create and full redesign automatically use `standard_dashboard_v1`, including
+  role-based titles, composition v2, a protected Editor runtime, and final
+  payload/QA attestation without changing the 39-tool surface.
 
 See the full policy in [`docs/route-policy_en.md`](docs/route-policy_en.md).
 
@@ -324,7 +327,7 @@ The exact schema and complete public surface of the currently installed version 
 - Python package maturity: **Alpha**.
 - Use deliberately selected targets for live writes and verify the result.
 - `main` may include `Unreleased` changes that are not part of the published version yet.
-- The installed version's `tools/list` is authoritative; the standard 0.4.0 surface contains 39 tools.
+- The installed version's `tools/list` is authoritative; the standard 0.5.0 surface contains 39 tools.
 
 ## Development
 

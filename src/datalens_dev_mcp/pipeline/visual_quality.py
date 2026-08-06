@@ -131,9 +131,8 @@ def validate_visual_quality_contract(
             findings.append(_finding("chartjunk_forbidden", f"$.runtime_constraints.{key}", f"{key} is forbidden"))
     schema_version = str(spec.get("schema_version") or "")
     if schema_version in {
-        "2026-07-19.renderer_visual_spec.v2",
-        "2026-07-23.renderer_visual_spec.v3",
-        "2026-07-28.renderer_visual_spec.v4",
+        "2026-08-06.renderer_visual_intent.v1",
+        "2026-08-06.renderer_visual_spec.v5",
     }:
         findings.extend(
             _v2_renderer_contract_findings(
@@ -153,9 +152,9 @@ def validate_visual_quality_contract(
                     "comparison tooltips must identify both intervals and both values",
                 )
             )
-        if schema_version == "2026-07-23.renderer_visual_spec.v3":
+        if schema_version == "2026-08-06.renderer_visual_intent.v1":
             findings.extend(
-                _v3_renderer_contract_findings(
+                _renderer_visual_intent_findings(
                     colors=colors,
                     labels=labels,
                     tooltip=tooltip,
@@ -163,15 +162,14 @@ def validate_visual_quality_contract(
                     semantic_roles_contract=semantic_roles_contract,
                 )
             )
-        elif schema_version == "2026-07-28.renderer_visual_spec.v4":
-            findings.extend(_v4_renderer_contract_findings(spec))
+        else:
+            findings.extend(_v5_renderer_contract_findings(spec))
     elif spec:
         findings.append(
             _finding(
                 "renderer_visual_spec_current_contract_missing",
                 "$.schema_version",
-                "legacy visual spec has no current responsive, formatting, semantic-role, and missing-value contract",
-                severity="warning",
+                "legacy visual specs are not executable; regenerate the object with Renderer Visual Spec v5",
             )
         )
     if visual_qa_status == "pass_unverified":
@@ -458,7 +456,7 @@ def _v2_renderer_contract_findings(
     return findings
 
 
-def _v3_renderer_contract_findings(
+def _renderer_visual_intent_findings(
     *,
     colors: dict[str, Any],
     labels: dict[str, Any],
@@ -482,7 +480,7 @@ def _v3_renderer_contract_findings(
             _finding(
                 "semantic_color_roles",
                 "$.colors.semantic_roles",
-                "visual spec v3 requires success, failure, warning, neutral, focus, comparison, and track roles",
+                "visual intent requires success, failure, warning, neutral, focus, comparison, and track roles",
             )
         )
     track_contract = colors.get("track_contract") if isinstance(colors.get("track_contract"), dict) else {}
@@ -563,48 +561,39 @@ def _v3_renderer_contract_findings(
     return findings
 
 
-def _v4_renderer_contract_findings(
+def _v5_renderer_contract_findings(
     spec: dict[str, Any],
 ) -> list[VisualQualityFinding]:
     from datalens_dev_mcp.editor.render_contract import (
         DashboardRenderContractError,
         resolve_dashboard_render_contract,
-        validate_renderer_visual_spec_v4,
+        validate_renderer_visual_spec_v5,
     )
 
-    binding = (
-        spec.get("render_contract")
-        if isinstance(spec.get("render_contract"), dict)
-        else {}
-    )
-    profile_id = str(binding.get("profile_id") or "")
-    family = str(binding.get("family") or spec.get("family") or "")
-    overrides = (
-        binding.get("overrides")
-        if isinstance(binding.get("overrides"), dict)
-        else {}
-    )
+    binding = spec.get("render_contract") if isinstance(spec.get("render_contract"), dict) else {}
+    title_contract = spec.get("title_contract") if isinstance(spec.get("title_contract"), dict) else {}
     try:
         contract = resolve_dashboard_render_contract(
-            profile_id=profile_id,
-            family=family,
-            overrides=overrides,
+            profile_id=str(binding.get("profile_id") or ""),
+            family=str(binding.get("family") or spec.get("family") or ""),
+            overrides=binding.get("overrides") if isinstance(binding.get("overrides"), dict) else {},
         )
-        issue_codes = validate_renderer_visual_spec_v4(
+        issue_codes = validate_renderer_visual_spec_v5(
             spec,
             render_contract=contract,
+            title_contract=title_contract,
         )
     except DashboardRenderContractError as exc:
         return [
             _finding(
-                "renderer_v4_render_contract_resolution",
+                "renderer_v5_render_contract_resolution",
                 "$.render_contract",
                 str(exc),
             )
         ]
     return [
         _finding(
-            "renderer_v4_render_contract",
+            "renderer_v5_render_contract",
             "$." + issue.replace(".", ".", 1),
             issue,
         )

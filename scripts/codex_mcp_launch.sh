@@ -4,10 +4,9 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$REPO_ROOT"
 
-if [[ -x "$REPO_ROOT/.venv/bin/python" ]]; then
+PYTHON_BIN="$(command -v python3 || true)"
+if [[ -z "${PYTHON_BIN:-}" && -x "$REPO_ROOT/.venv/bin/python" ]]; then
   PYTHON_BIN="$REPO_ROOT/.venv/bin/python"
-else
-  PYTHON_BIN="$(command -v python3 || true)"
 fi
 if [[ -z "${PYTHON_BIN:-}" ]]; then
   echo "datalens-dev-mcp launcher: python3 was not found and .venv/bin/python is absent." >&2

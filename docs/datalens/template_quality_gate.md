@@ -79,11 +79,11 @@ inputs. Maps require geo evidence and bubble requires size.
 
 Generated dashboard plans must validate:
 
-- native title and hint metadata;
+- role-based title/hint ownership and exact display titles;
 - selector target bindings for every declared parameter, including both
   parameters of a paired date range;
 - tab/chart references;
-- percentage widths and a 94 percent selector row budget;
+- percentage widths and exactly 94 percent per selector-group row;
 - chart relation endpoints;
 - navigation endpoints.
 

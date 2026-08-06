@@ -909,6 +909,29 @@
         "reset_behavior"
       ],
       "fallback_family": "table_node"
+    },
+    "selector_group": {
+      "route": "editor_js_control",
+      "template_dir": "templates/datalens/editor_js_control/selector",
+      "variant": "selector_group",
+      "required_files": [
+        "meta.json",
+        "params.json",
+        "sources.js",
+        "controls.js",
+        "schema.json",
+        "example_input.json",
+        "README.md"
+      ],
+      "status": "IMPLEMENTED",
+      "implemented_behavior": "ordered selector group with exact 94 percent rows and clear-all semantics",
+      "required_inputs": [
+        "controls",
+        "rows",
+        "label_placement",
+        "reset_behavior"
+      ],
+      "fallback_family": "table_node"
     }
   }
 }

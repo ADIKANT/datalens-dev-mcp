@@ -92,7 +92,7 @@
     "inline_event_handler": "Inline event-handler attributes are blocked by the Advanced Editor runtime contract.",
     "srcdoc_attribute": "srcdoc attributes are blocked by the Advanced Editor runtime contract.",
     "editor_metaon_tab": "Compiled Editor payload contains invalid metaon tab name.",
-    "unsupported_editor_meta_title": "Editor data.meta must not contain unsupported title; use entry/dashboard native title metadata.",
+    "unsupported_editor_meta_title": "Editor data.meta must not contain an unsupported title; use the role-based dashboard title contract.",
     "svg_marker_width": "SVG markerWidth is not documented as supported in the target renderer.",
     "svg_marker_height": "SVG markerHeight is not documented as supported in the target renderer.",
     "svg_marker_end": "SVG marker-end is not documented as supported in the target renderer.",

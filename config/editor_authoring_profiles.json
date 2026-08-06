@@ -1,58 +1,34 @@
 {
-  "schema_version": "2026-07-22.editor_authoring_profiles.v2",
+  "schema_version": "2026-08-06.editor_authoring_profiles.v4",
   "source_basis": [
     "templates/datalens/standard_chart_templates.json",
     "templates/datalens/advanced_editor/_shared/style_tokens.js",
     "templates/datalens/advanced_editor/_shared/render_helpers.js"
   ],
   "profiles": {
-    "standard_editor_v1": {
-      "aliases": [
-        "standard_editor",
-        "standard_js",
-        "registered_editor"
-      ],
-      "description": "Reuse registered Editor templates for every supported family and refuse prompt-generated approximations.",
-      "route_policy": "registered_editor_family",
-      "template_policy": "exact_registered_asset",
-      "fallback_policy": "block",
-      "family_registry": "templates/datalens/standard_chart_templates.json",
-      "template_set_sha256": "6d35e7ae7e31ffb5677010b63e8e6d9455c8955a5b5f041e939281e0470a5da8",
-      "allowed_routes": [
-        "editor_advanced",
-        "editor_table",
-        "editor_markdown",
-        "editor_js_control"
-      ],
-      "style_contract": {
-        "theme": "host_context",
-        "layout": "responsive_container",
-        "density": "compact",
-        "typography": "shared_tokens",
-        "labels": "direct_when_unambiguous",
-        "signed_values": "preserve_sign",
-        "future_empty_buckets": "omit",
-        "missing_value": "N/A",
-        "empty_state": "explicit",
-        "tooltip": "business_context",
-        "selector_update": "on_change",
-        "selector_apply_button": false,
-        "template_identity": "sha256"
-      }
-    },
-    "standard_editor_v2": {
+    "standard_dashboard_v1": {
       "aliases": [
         "standard_dashboard",
         "strict_dashboard",
-        "registered_dashboard"
+        "registered_dashboard",
+        "standard_dashboard_v2",
+        "standard_editor",
+        "standard_js",
+        "registered_editor",
+        "standard_editor_v1",
+        "standard_editor_v2",
+        "standard_editor_v3",
+        "registered_editor_v2",
+        "registered_editor_v3"
       ],
-      "description": "Compile registered Editor templates through a strict cross-chart render contract and refuse unregistered adapters.",
-      "route_policy": "registered_editor_family",
+      "description": "Use one canonical Wizard-first dashboard contract and the exact protected renderer for every selected Editor route.",
+      "route_policy": "canonical_route_then_registered_editor",
       "template_policy": "exact_registered_asset",
       "fallback_policy": "block",
       "family_registry": "templates/datalens/standard_chart_templates.json",
-      "template_set_sha256": "6d35e7ae7e31ffb5677010b63e8e6d9455c8955a5b5f041e939281e0470a5da8",
+      "template_set_sha256": "5dd3fb9fd910336df856aacd211882e329a421360bc1dc28518b65a3c3e54454",
       "allowed_routes": [
+        "wizard_native",
         "editor_advanced",
         "editor_table",
         "editor_markdown",
@@ -60,9 +36,13 @@
       ],
       "style_contract": {
         "render_profile_id": "standard_dashboard_v1",
-        "render_profile_sha256": "b63c60dd1ab418f439d1d42b99f773686f7ac0773dc5c4b1809ec64e0dd391bc",
-        "render_compiler_version": "2026-07-29.resolved_render_contract.v3",
-        "renderer_visual_spec": "2026-07-28.renderer_visual_spec.v4",
+        "render_profile_sha256": "feb155602f22bbd30926b1a6b38de10fe0a317eb118fb0e83bd0e84a8eaba67d",
+        "render_compiler_version": "2026-08-06.resolved_render_contract.v5",
+        "renderer_visual_spec": "2026-08-06.renderer_visual_spec.v5",
+        "editor_render_profile": "standard_dashboard_v1",
+        "runtime_sha256": "790657cf4e79ea435038e28b343d6db0475ca0909e69ac06d8a9831942c84a3a",
+        "adapter_sha256": "e24a4ebd8c04e3a508b6da2456335a1a2547a7ed4b08280ead16f1fecc15602a",
+        "dashboard_composition": "2026-08-06.dashboard_composition.v2",
         "template_identity": "sha256",
         "compiled_identity": "composite_sha256",
         "fallback": "block"

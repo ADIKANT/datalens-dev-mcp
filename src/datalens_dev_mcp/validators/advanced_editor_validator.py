@@ -671,7 +671,10 @@ def _performance_findings(text: str, *, path: str, source: str, contract: dict[s
 def _visual_governance_findings(text: str, *, path: str, source: str, contract: dict[str, Any]) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
     patterns = {
-        "decorative_css_shadow": r"(box-shadow|text-shadow|filter\s*:\s*drop-shadow)",
+        "decorative_css_shadow": (
+            r"(?:box-shadow|text-shadow)\s*:\s*(?!none(?:\s*[;'\"]|$))"
+            r"|filter\s*:\s*drop-shadow"
+        ),
         "decorative_css_gradient": r"(linear-gradient|radial-gradient)",
         "decorative_css_3d": r"(\b3d\b|perspective\s*:|transform-style\s*:\s*preserve-3d)",
         "html_table_bar": r"<div[^>]+style=[^>]+(?:width|height)\s*:[^>]+%[^>]*>\s*</div>",

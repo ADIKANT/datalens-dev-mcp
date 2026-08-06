@@ -6,18 +6,39 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-06
+
 ### Added
 
-- A versioned strict dashboard render profile, batch Editor generation, and
-  bounded one-pass browser QA.
-- Hash-bound acceptance criteria for scoped user and browser review corrections.
+- One Wizard-first `standard_dashboard_v1` authoring profile with the protected
+  registered renderer for selected Editor capability gaps.
+- Renderer Visual Spec v5 with role-owned `embedded_title`, `content_label`,
+  `tab_only`, `native_title`, and `tab_strip` title modes.
+- A checksum-locked neutral Editor runtime, reusable visual adapters, and
+  protected renderer identities.
+- Dashboard composition v2 with semantic rows, 36-column geometry, selector
+  groups, safe KPI density, schema-valid create/update envelopes, and exact
+  mount-to-tab-to-widget-to-chart relationships.
+- Final payload and browser-QA attestations bound to routes, runtime, titles,
+  selectors, layout, dashboard payload hashes, and saved/published revisions.
+- Positive dashboard-shape fixtures and fail-closed regressions for title,
+  selector, layout, table, route, runtime, and post-validation drift.
 
 ### Changed
 
-- Reduced authoring round trips through compact execution responses and
-  target-scoped snapshot reuse.
-- Hardened strict rendering around visible compact KPI values, selector order,
-  comparison-adaptive tooltips, and schedule scrolling and interval tooltips.
+- `strict_dashboard` now resolves to `standard_dashboard_v1`; standard KPI,
+  table, and chart creation keeps the canonical Wizard technology.
+- New and existing dashboards use the same current contract. Historical
+  profile names are input aliases that normalize to `standard_dashboard_v1`
+  and cannot select old assets, behavior, or project-local descriptors.
+- Safe Apply rejects unattested payloads, protected-runtime rewrites,
+  post-validation title/layout/selector changes, route substitution, and
+  dashboard publication without revision-bound successful browser QA. Nested
+  dashboard mount-to-chart bindings and browser evidence artifacts are hash
+  checked; `done` requires the matching published revision.
+- Browser QA covers every tab from top to full scroll at 720, 1200, and 1440
+  pixels and verifies title ownership, selector Clear behavior, layout density,
+  clipping, lazy initialization, runtime/network errors, legends, and tooltips.
 
 ## [0.4.0] - 2026-07-23
 
@@ -103,6 +124,7 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Private workbooks, execution evidence, credentials, and local operator state
   are excluded from the public distribution.
 
-[Unreleased]: https://github.com/ADIKANT/datalens-dev-mcp/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/ADIKANT/datalens-dev-mcp/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/ADIKANT/datalens-dev-mcp/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ADIKANT/datalens-dev-mcp/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ADIKANT/datalens-dev-mcp/releases/tag/v0.3.0

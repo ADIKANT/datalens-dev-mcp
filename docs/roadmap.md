@@ -1,7 +1,7 @@
 # Roadmap
 
 The current release already includes guarded object workflows, saved/published
-readback, native title and hint validation, responsive Editor contracts, and
+readback, role-based title and hint validation, responsive Editor contracts, and
 artifact-bound browser evidence. Remaining roadmap items are deliberately
 optional extensions rather than missing safety gates:
 

@@ -55,6 +55,7 @@
           "selector_id": {"type": "string"},
           "route": {"type": "string"},
           "native_metadata": {"$ref": "#/$defs/native_metadata"},
+          "title_contract": {"$ref": "dashboard-title-contract.schema.json"},
           "layout": {
             "type": "object",
             "required": ["x", "y", "w", "h", "width"],
@@ -82,6 +83,7 @@
           "family": {"type": "string"},
           "route": {"type": "string"},
           "native_metadata": {"$ref": "#/$defs/native_metadata"},
+          "title_contract": {"$ref": "dashboard-title-contract.schema.json"},
           "dataset_dependencies": {"type": "array", "items": {"type": "string"}},
           "field_dependencies": {"type": "array", "items": {"type": "string"}},
           "calculated_field_dependencies": {"type": "array", "items": {"type": "string"}}
@@ -182,8 +184,8 @@
       "properties": {
         "title": {"type": "string"},
         "hint": {"type": "string"},
-        "hideTitle": {"const": false},
-        "enableHint": {"const": true}
+        "hideTitle": {"type": "boolean"},
+        "enableHint": {"type": "boolean"}
       },
       "additionalProperties": true
     }

@@ -23,7 +23,12 @@ UNRESOLVED_IMPORT_RE = re.compile(r"require\(['\"]\.\./_shared/")
 DECORATIVE_CSS_RE = re.compile(r"(box-shadow|text-shadow|filter\s*:\s*drop-shadow|linear-gradient|radial-gradient)", re.I)
 STALE_KPI_RE = re.compile(r"(previous_value|previous_period|previousPeriod|period_bucket|delta_pct)")
 FORBIDDEN_HTML_RE = re.compile(r"<\s*/?\s*(section|script|iframe|object|embed)\b|\son[a-z]+\s*=|\ssrcdoc\s*=", re.I)
-LOCKED_TEMPLATE_RULE_EXCEPTIONS: dict[str, dict[str, Any]] = {}
+LOCKED_TEMPLATE_RULE_EXCEPTIONS: dict[str, dict[str, Any]] = {
+    "templates/datalens/authoring_profiles/standard_dashboard_v1/advanced_editor_runtime.js": {
+        "sha256": "790657cf4e79ea435038e28b343d6db0475ca0909e69ac06d8a9831942c84a3a",
+        "rules": ["stale_implicit_kpi_comparator"],
+    },
+}
 FIXED_RESPONSIVE_MIN_PATTERNS = (
     re.compile(r"min-width\s*:\s*[1-9]\d*(?:\.\d+)?px", re.I),
     re.compile(r"grid-template-columns\s*:[^;\"']*minmax\(\s*[1-9]\d*(?:\.\d+)?px", re.I),

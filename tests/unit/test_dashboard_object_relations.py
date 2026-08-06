@@ -217,7 +217,7 @@ class DashboardObjectRelationsTests(unittest.TestCase):
         summary = render_relation_summary_markdown(relations)
         self.assertIn("Selector Relations", summary)
         self.assertIn("targets `widget_001`", summary)
-        self.assertIn("native title", summary)
+        self.assertIn("title mode", summary)
         self.assertIn("Chart And Navigation Relations", summary)
 
     def test_relation_validation_rejects_implicit_selector_targets(self):

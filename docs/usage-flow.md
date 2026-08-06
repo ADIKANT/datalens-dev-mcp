@@ -164,74 +164,46 @@ dl_plan_object_create с object_type=html_page
 
 Для видимого изменения чарта или дашборда итоговая проверка должна охватывать изменённую вкладку или объект. Контрольное чтение API подтверждает структуру; проверка интерфейса подтверждает отображение.
 
-## Быстрый строгий путь для Editor-дашборда
+## Стандартный путь сборки дашборда
 
-Для нового или полностью перерабатываемого набора Editor-виджетов используйте
-`standard_editor_v2` через alias `strict_dashboard`. Он применяет один
-версионированный render contract ко всем зарегистрированным семействам и
-блокирует неподдерживаемые семейства, маршруты и свободные стилевые
-переопределения.
+Для create и full redesign сервер по умолчанию использует
+`standard_dashboard_v1`; alias `strict_dashboard` указывает на тот же профиль.
+Он сначала фиксирует Wizard-first решения, а для прямо выбранных
+Editor-объектов применяет защищённый renderer того же профиля. Исторические
+имена профилей являются только входными aliases: они нормализуются в
+`standard_dashboard_v1`, поэтому и новый, и существующий дашборд всегда
+собираются по одному актуальному контракту.
 
 ```text
 один актуальный scoped baseline
-  -> решения по чартам и Renderer Visual Spec v4
+  -> Wizard-first решения и Renderer Visual Spec v5
   -> один dl_generate_editor_bundle:
        authoring_profile=strict_dashboard
        chart_specs=[все виджеты]
-  -> локальная проверка и один payload/safe-apply plan
-  -> один dl_execute_safe_apply
-  -> один browser QA pass по созданному plan artifact
+       dashboard_composition.version=2
+  -> dl_validate_project + final_payload_attestation
+  -> один attested payload/safe-apply plan
+  -> saved readback + browser QA для точной saved revision
+  -> один attested publish через dl_execute_safe_apply
+  -> published readback + published qa_attestation для той же revision
 ```
 
 `chart_specs` принимает до 100 уникальных виджетов. Полные bundles и tabs
 сохраняются в artifacts; MCP-ответ возвращает компактные статусы, пути и hashes,
 а не повторяет сгенерированный код.
 
-Строгий render contract фиксирует:
+Контракт фиксирует точный `display_title` и `title_mode`, защищённый renderer,
+селекторы с label слева и строками ровно 94%, 36-колоночную геометрию без
+неописанных gap, одинаковую высоту соседей и максимум три стандартных KPI в
+строке. После validation любое изменение route, runtime, title, selector,
+layout или payload аннулирует attestation.
 
-- адаптивный масштаб с compact-порогом `720` px;
-- общую типографику `Inter`/`Arial`, базовый текст, оси, legend и tooltip
-  `12/16`;
-- KPI с прозрачным background, без border, radius, outline и shadow, со
-  значением `31/34` в compact и `34/38` в normal; новый KPI-ряд начинается с
-  native `h=6`, а при update сохраняется свежая saved-геометрия и одинаковая
-  высота внутри KPI-набора; sparklines включаются либо у всех KPI, либо ни у
-  одного;
-- понятные native-дефолты высоты: title и компактный selector `h=2`, KPI
-  `h=6`, comparison context минимум `h=3`; при update свежая saved-геометрия
-  сохраняется, а native `h` не пересчитывается линейно в runtime-пиксели;
-- селекторы высотой `44` px, шириной не более `94%`, с label слева,
-  немедленным применением и без кнопки Apply;
-- один общий текстовый блок периода сравнения под селекторами, когда сравнение
-  включено, и ни одного такого блока, когда оно выключено; для comparison-batch
-  первым `chart_spec` идёт `date_range_selector`, а единственный
-  `md_methodology_block` получает структурированные `method`,
-  `selected_range` и `comparison_range`;
-- legend, marks и tooltip используют только серии, присутствующие в
-  отфильтрованных строках результата; серия только с нулевыми значениями
-  сохраняется, полностью отфильтрованная серия исчезает;
-- координатная plot area использует верхний отступ `22` px, правый `10` px в
-  compact или `16` px в normal и нижний `34` px;
-- native-владельца tooltip, сохранение полезных подсказок со значением или
-  диапазоном, отсутствие лишнего label-only row-title tooltip и
-  недекоративную tooltip surface;
-- для горизонтального ранжирования label `184` px, value `106` px,
-  предпочтительную ширину bar `234` px, строку не ниже `32` px и gap `4` px.
-
-Созданный browser QA plan выполняется один раз и не изменяет DOM: одна
-навигация, одна пакетная evaluate-проверка для `1200 x 900` и `1440 x 900`,
-одна пакетная операция screenshots. Максимальный бюджет — три browser calls;
-reload loops и исследовательские повторные screenshots не входят в этот путь.
-Для comparison-дашборда QA также проверяет фактическую геометрию: единственный
-текстовый блок расположен сразу под непрерывной группой селекторов и до первого
-KPI или чарта и имеет измеренную высоту не меньше `70` px. QA также проверяет
-единую высоту внутри KPI-набора; для координатных графиков сверяет plot insets,
-а для многосерийных — точное совпадение series IDs между marks и legend.
-
-Штатное применение также не дробится: один `dl_execute_safe_apply` выполняет
-save всей группы, saved readback, общий publish preflight, publish из
-проверенного saved state и published readback. Отдельный publish plan нужен
-только для возобновления ранее остановленного цикла.
+Browser QA проверяет каждую вкладку сверху и после полного скролла на ширинах
+720, 1200 и 1440 px, включая Clear пустого multiselect, lazy initialization,
+clipping/scroll, title/hint, tooltip, legend, comparison context и
+runtime/network errors. Publish дашборда разрешён только для revision и payload
+hashes, совпадающих с успешной `qa_attestation`; `done` дополнительно требует
+published revision и проверяемые browser-artifact hashes.
 
 ## Быстрый путь для объединения селекторов дат
 

@@ -36,7 +36,7 @@ This file is a distilled policy matrix. It does not copy raw documentation pages
 | `dashboard_background` | `guarded_plan_only` | dashboard payload preflight | Preserve dashboard background settings through safe apply. |
 | `dashboard_hide_tabs` | `guarded_plan_only` | dashboard tab update planner | Preserve hide-tabs settings and do not infer tab visibility from local templates. |
 | `dashboard_tabs` | `guarded_plan_only` | dl_plan_dashboard_tab_update | Append/replace tabs only through fresh-read guarded plans. |
-| `dashboard_title` | `guarded_plan_only` | dashboard native title/hint policy | Dashboard metadata renders titles and hints except narrative Markdown widgets. |
+| `dashboard_title` | `guarded_plan_only` | role-based dashboard title/hint policy | Renderer Visual Spec v5 assigns one owner through `title_mode`; native and runtime headers cannot coexist. |
 | `dashboard_contents` | `guarded_plan_only` | dashboard layout validation | Treat contents widgets as dashboard structure; preserve through readback and safe apply. |
 | `dashboard_ai_widget` | `unsupported_explicit` | reference and preservation only | Do not create AI widgets from MCP; preserve unknown AI widget payloads on fresh-read update. |
 | `dashboard_ai_reference_tab` | `unsupported_explicit` | reference and preservation only | Do not create AI/reference tabs from MCP; preserve existing fields when updating other tabs. |

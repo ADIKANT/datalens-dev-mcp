@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/qa-attestation.schema.json",
+  "title": "Published revision browser QA attestation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "ok", "status", "dashboard_id", "saved_revision", "published_revision", "final_payload_attestation_sha256", "payload_set_sha256", "dashboard_composition_sha256", "browser_qa_plan_sha256", "viewport_widths", "tab_ids", "full_scroll_checked", "coverage", "runtime_errors", "issues", "artifact_paths", "artifact_hashes", "sha256"],
+  "properties": {
+    "schema_version": {"const": "2026-08-06.qa_attestation.v1"},
+    "ok": {"type": "boolean"},
+    "status": {"enum": ["passed", "failed"]},
+    "dashboard_id": {"type": "string", "minLength": 1},
+    "saved_revision": {"type": "string", "minLength": 1},
+    "published_revision": {"type": "string", "minLength": 1},
+    "final_payload_attestation_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "payload_set_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "dashboard_composition_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "browser_qa_plan_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "viewport_widths": {"const": [720, 1200, 1440]},
+    "tab_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "full_scroll_checked": {"const": true},
+    "coverage": {"type": "array", "items": {"type": "object"}},
+    "runtime_errors": {"type": "array", "maxItems": 0},
+    "issues": {"type": "array", "items": {"type": "string"}},
+    "artifact_paths": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "artifact_hashes": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

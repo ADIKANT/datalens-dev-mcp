@@ -20,7 +20,8 @@ request schemas, and `docs/route-policy.md`.
 ## Dashboard Integration
 
 - Wizard widgets must be represented in dashboard object relations with selector targets and source dataset/connection dependencies.
-- Titles and hints stay in dashboard/widget metadata (`hideTitle=false`, `enableHint=true`) unless a source requirement explicitly asks for an in-chart label.
+- Wizard uses the role-based `native_title` mode (`hideTitle=false`); switching
+  a Wizard plan to Editor after route planning is a validation error.
 - Native maps should inherit dashboard theme tokens and filter behavior; avoid duplicating controls inside a map body.
 
 ## Native Boundary

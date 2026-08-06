@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/dashboard-title-contract.schema.json",
+  "title": "Renderer Visual Spec v5 title contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "mode", "route", "family", "display_title", "hint", "native_metadata", "runtime", "mutual_exclusion", "sha256"],
+  "properties": {
+    "schema_version": {"const": "2026-08-06.dashboard_title_contract.v1"},
+    "mode": {"enum": ["embedded_title", "content_label", "tab_only", "native_title", "tab_strip"]},
+    "route": {"type": "string", "minLength": 1},
+    "family": {"type": "string", "minLength": 1},
+    "display_title": {"type": "string"},
+    "hint": {"type": "string"},
+    "native_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "hint", "hideTitle", "enableHint"],
+      "properties": {
+        "title": {"type": "string"},
+        "hint": {"type": "string"},
+        "hideTitle": {"type": "boolean"},
+        "enableHint": {"type": "boolean"}
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["renders_title", "renders_hint", "renders_content_label"],
+      "properties": {
+        "renders_title": {"type": "boolean"},
+        "renders_hint": {"type": "boolean"},
+        "renders_content_label": {"type": "boolean"}
+      }
+    },
+    "mutual_exclusion": {
+      "type": "object",
+      "required": ["native_and_runtime_title", "native_and_runtime_hint"],
+      "properties": {
+        "native_and_runtime_title": {"const": "forbidden"},
+        "native_and_runtime_hint": {"const": "forbidden"}
+      },
+      "additionalProperties": false
+    },
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "ok": {"type": "boolean"},
+    "issues": {"type": "array", "items": {"type": "string"}}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"mode": {"enum": ["native_title", "tab_strip"]}}},
+      "then": {"properties": {"native_metadata": {"properties": {"hideTitle": {"const": false}}}}},
+      "else": {"properties": {"native_metadata": {"properties": {"hideTitle": {"const": true}, "enableHint": {"const": false}}}}}
+    }
+  ]
+}

@@ -88,8 +88,8 @@ DEFAULT_LOCAL_CONFIG: dict[str, Any] = {
         },
     },
     "naming": {
-        "title_source": "native_metadata",
-        "hint_source": "native_metadata",
+        "title_source": "role_based_contract",
+        "hint_source": "role_based_contract",
         "duplicate_titles_inside_chart_body": False,
         "default_title_prefix": "js - ",
         "require_hint_when_enableHint": True,
@@ -129,13 +129,25 @@ def load_local_config(config_path: str | Path | None = None, *, project_root: st
     config = _deep_merge(DEFAULT_LOCAL_CONFIG, data)
     validate_local_config(config)
     config.pop("mcp", None)
+    requested_project_profile = project_manifest.get("authoring_profile") if project_manifest else ""
+    normalized_project_profile = requested_project_profile
+    if requested_project_profile:
+        from datalens_dev_mcp.editor.authoring_profiles import resolve_authoring_profile
+
+        resolved_profile = resolve_authoring_profile(
+            project_root=project_root,
+            requested_profile=requested_project_profile,
+        )
+        if resolved_profile.get("ok") and resolved_profile.get("active"):
+            normalized_project_profile = {"id": str(resolved_profile.get("id") or "")}
     config["_meta"] = {
         "config_path": str(path) if path else "",
         "loaded_from_file": bool(path and path.is_file() and not project_manifest),
         "compatibility_migrations": migrations,
         "project_manifest_detected": bool(project_manifest),
         "project_manifest_path": str(path) if project_manifest and path else "",
-        "project_authoring_profile": project_manifest.get("authoring_profile") if project_manifest else "",
+        "project_authoring_profile": normalized_project_profile,
+        "project_authoring_profile_requested": requested_project_profile,
     }
     return config
 

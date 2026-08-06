@@ -432,15 +432,22 @@ def _native_title_hint_issues(payload: Any, *, current_dashboard: dict[str, Any]
                     for key, item in value.items():
                         walk(item, _join_path(path, key))
                     return
+                title_mode = str(value.get("titleMode") or value.get("title_mode") or "")
                 title = value.get("native_title") or value.get("title") or (value.get("nativeMetadata") or {}).get("title")
                 hint = value.get("native_hint") or value.get("hint") or (value.get("nativeMetadata") or {}).get("hint")
-                if not title or not hint:
+                hint_enabled = value.get("enableHint") is True or (value.get("nativeMetadata") or {}).get("enableHint") is True
+                if (
+                    (title_mode and title_mode != "tab_strip")
+                    or not title
+                    or (not title_mode and not hint)
+                    or (hint_enabled and not hint)
+                ):
                     issues.append(
                         DashboardPayloadIssue(
                             severity="error",
                             rule="missing_native_title_hint",
                             path=path,
-                            message="Multi-tab dashboard blocks require native title and hint metadata.",
+                            message="Multi-tab dashboard blocks require title_mode=tab_strip and complete enabled native metadata.",
                             object_type=_object_type(value, path),
                             suggested_fix="Set native_title/native_hint or equivalent nativeMetadata fields on the block.",
                         )
@@ -462,37 +469,69 @@ def _inline_title_issues(payload: Any, *, strict: bool) -> list[DashboardPayload
         if isinstance(value, dict):
             title = str(value.get("native_title") or value.get("title") or "").strip()
             object_type = _object_type(value, path)
+            title_mode = str(value.get("titleMode") or value.get("title_mode") or "").strip()
+            hide_title = value.get("hideTitle")
+            if title_mode:
+                native_visible = title_mode in {"native_title", "tab_strip"}
+                if hide_title is not (not native_visible):
+                    issues.append(
+                        DashboardPayloadIssue(
+                            severity="error",
+                            rule="title_mode_native_visibility_mismatch",
+                            path=path,
+                            message=f"title_mode={title_mode} does not match hideTitle={hide_title!r}.",
+                            object_type=object_type,
+                            suggested_fix=(
+                                "Use one title owner: hide native chrome for embedded/content/tab-only modes "
+                                "and show it for native/tab-strip modes."
+                            ),
+                        )
+                    )
+                if title_mode not in {"embedded_title", "content_label", "tab_only", "native_title", "tab_strip"}:
+                    issues.append(
+                        DashboardPayloadIssue(
+                            severity="error",
+                            rule="unknown_title_mode",
+                            path=path,
+                            message=f"Unknown title_mode {title_mode!r}.",
+                            object_type=object_type,
+                            suggested_fix="Use a registered Renderer Visual Spec v5 title_mode.",
+                        )
+                    )
             if title and object_type in {"advanced_editor", "editor_chart", "widget"}:
                 body_text = _joined_strings(value.get("tabs") or value.get("body") or value.get("data") or value)
                 lowered = body_text.lower()
                 title_pattern = r"<\s*h[1-6]\b[^>]*>\s*" + re.escape(title.lower()) + r"\b"
-                if re.search(title_pattern, lowered):
+                if re.search(title_pattern, lowered) and title_mode not in {"embedded_title", "content_label"}:
                     issues.append(
                         DashboardPayloadIssue(
                             severity="error" if strict else "warning",
                             rule="duplicate_inline_title",
                             path=path,
-                            message="Advanced Editor body renders a visible title that duplicates dashboard native metadata.",
+                            message="Advanced Editor body renders a title owned by a different title mode.",
                             object_type=object_type,
-                            suggested_fix="Remove inline h1/h2 title from Editor body and keep the dashboard native title/hint.",
+                            suggested_fix="Use exactly one role-based title owner and keep the accepted display title.",
                         )
                     )
             hint = str(value.get("native_hint") or value.get("hint") or "").strip()
             if object_type in {"advanced_editor", "editor_chart", "widget"}:
                 body_text = _joined_strings(value.get("tabs") or value.get("body") or value.get("data") or value)
                 lowered = body_text.lower()
-                if hint and hint.lower() in lowered:
+                if hint and hint.lower() in lowered and title_mode not in {"embedded_title", "content_label"}:
                     issues.append(
                         DashboardPayloadIssue(
                             severity="error" if strict else "warning",
                             rule="duplicate_inline_hint",
                             path=path,
-                            message="Advanced Editor body renders a visible hint that duplicates dashboard native metadata.",
+                            message="Advanced Editor body renders a hint owned by a different title mode.",
                             object_type=object_type,
-                            suggested_fix="Remove inline hint text from Editor body and keep the dashboard native hint.",
+                            suggested_fix="Use exactly one role-based hint owner.",
                         )
                     )
-                if re.search(r"data-id\s*=\s*['\"]hint['\"]|class\s*=\s*['\"][^'\"]*\bhint\b", lowered):
+                if (
+                    re.search(r"data-id\s*=\s*['\"]hint['\"]|class\s*=\s*['\"][^'\"]*\bhint\b", lowered)
+                    and title_mode not in {"embedded_title", "content_label"}
+                ):
                     issues.append(
                         DashboardPayloadIssue(
                             severity="error" if strict else "warning",

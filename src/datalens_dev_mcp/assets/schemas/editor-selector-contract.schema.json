@@ -4,7 +4,6 @@
   "title": "DataLens Editor selector contract",
   "type": "object",
   "additionalProperties": false,
-  "required": ["label", "option_source", "reset_behavior"],
   "properties": {
     "param": {"type": "string", "minLength": 1},
     "param_from": {"type": "string", "minLength": 1},
@@ -31,11 +30,31 @@
     "default_values": {"type": "array", "items": {"type": "string"}},
     "default_from": {"type": "string"},
     "default_to": {"type": "string"},
-    "reset_behavior": {"enum": ["initial", "empty"]}
+    "reset_behavior": {"enum": ["initial", "empty"]},
+    "controls": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "required": ["family", "label"],
+        "properties": {
+          "family": {"enum": ["single_select_dropdown", "multi_select_dropdown", "search_selector", "selector_family_static", "selector_family_dynamic", "date_range_selector"]},
+          "label": {"type": "string", "minLength": 1},
+          "row": {"enum": [1, 2]},
+          "width": {"oneOf": [{"type": "integer", "minimum": 1, "maximum": 94}, {"type": "string", "pattern": "^[1-9][0-9]?%$"}]}
+        },
+        "additionalProperties": true
+      }
+    },
+    "update_mode": {"const": "immediate"},
+    "apply_button": {"const": false},
+    "row_width_target_percent": {"const": 94},
+    "blank_multiselect_semantics": {"const": "all"}
   },
   "oneOf": [
     {
-      "required": ["param"],
+      "required": ["param", "label", "option_source", "reset_behavior"],
       "not": {
         "anyOf": [
           {"required": ["param_from"]},
@@ -44,8 +63,18 @@
       }
     },
     {
-      "required": ["param_from", "param_to"],
+      "required": ["param_from", "param_to", "label", "option_source", "reset_behavior"],
       "not": {"required": ["param"]}
+    },
+    {
+      "required": ["controls"],
+      "not": {
+        "anyOf": [
+          {"required": ["param"]},
+          {"required": ["param_from"]},
+          {"required": ["param_to"]}
+        ]
+      }
     }
   ]
 }

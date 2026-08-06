@@ -9,7 +9,7 @@ from typing import Any
 from datalens_dev_mcp.editor.render_contract import render_contract_to_dict
 
 
-RENDER_COMPILER_VERSION = "2026-07-29.resolved_render_contract.v3"
+RENDER_COMPILER_VERSION = "2026-08-06.resolved_render_contract.v5"
 _HTML_ROUTES = {"editor_advanced"}
 _NATIVE_TABLE_ROUTES = {"editor_table"}
 _MARKER_ROUTES = {"editor_markdown"}
@@ -41,9 +41,9 @@ def compile_bundle_render_contract(
 ) -> dict[str, Any]:
     """Compile an exact render contract into generated tabs.
 
-    The legacy template assets stay unchanged. A strict profile receives a
-    deterministic runtime adapter whose output is hash-bound to the resolved
-    core tokens, family adapter, bounded overrides, and compiled tabs.
+    The canonical profile receives a deterministic runtime adapter whose output
+    is hash-bound to the resolved core tokens, family adapter, bounded
+    overrides, and compiled tabs.
     """
 
     compiled = deepcopy(bundle)
@@ -101,9 +101,13 @@ def compile_bundle_render_contract(
         selector_complete = selector_contract.get("ok") is True
         if selector_complete:
             required_fragments = (
-                "labelPlacement: 'left'",
-                "width: '94%'",
-                "updateOnChange: true",
+                ("labelPlacement: 'left'", "updateOnChange: true")
+                if str(compiled.get("family") or "") == "selector_group"
+                else (
+                    "labelPlacement: 'left'",
+                    "width: '94%'",
+                    "updateOnChange: true",
+                )
             )
             if any(fragment not in controls for fragment in required_fragments):
                 raise RenderContractCompileError(
@@ -140,9 +144,9 @@ def compile_bundle_render_contract(
                 "kpi_content": "visible_marked_value_unclipped_equal_set_height",
                 "legend_typography": "single_profile_token",
                 "legend_series": "filtered_result_rows_active_series_only",
-                "selector": "period_first_single_row_target_95_left_immediate_max_94",
-                "semantic_heights": "new_h_selector_2_comparison_min_3_kpi_6_update_preserves_saved",
-                "comparison_context": "exactly_one_when_enabled_minimum_70px",
+                "selector": "ordered_rows_target_94_left_immediate_clear_keeps_empty",
+                "semantic_heights": "selector_2_or_3_comparison_1_to_3_kpi_8_or_6_update_preserves_saved",
+                "comparison_context": "exactly_one_when_enabled_content_height_1_to_3",
                 "plot_area": "top_22_right_10_or_16_bottom_34",
                 "kpi_sparkline": "all_or_none_within_dashboard_kpi_set",
                 "tooltip": "normalized_period_comparison_adaptive_native_owner",
@@ -254,11 +258,16 @@ def validate_compiled_render_contract(bundle: dict[str, Any]) -> dict[str, Any]:
             else {}
         )
         if selector_contract.get("ok") is True:
-            for fragment in (
-                "labelPlacement: 'left'",
-                "width: '94%'",
-                "updateOnChange: true",
-            ):
+            fragments = (
+                ("labelPlacement: 'left'", "updateOnChange: true")
+                if str(bundle.get("family") or "") == "selector_group"
+                else (
+                    "labelPlacement: 'left'",
+                    "width: '94%'",
+                    "updateOnChange: true",
+                )
+            )
+            for fragment in fragments:
                 if fragment not in controls:
                     issues.append(f"strict_selector_runtime_invariant_missing:{fragment}")
         elif bundle.get("generation_status") != "blocked_missing_input":

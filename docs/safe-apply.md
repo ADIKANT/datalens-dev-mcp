@@ -61,6 +61,23 @@ Layout/redesign по умолчанию заменяет объявленный 
 к его `decision_ledger_sha256`. Любая новая пользовательская коррекция делает
 старый план невалидным до повторной генерации.
 
+## Final payload и QA attestation
+
+Для `standard_dashboard_v1` `dl_validate_project` заново собирает фактические
+Editor/Wizard payloads и dashboard composition. Полученный
+`final_payload_attestation` связывает routes, runtime, `title_mode`, selectors,
+layout, tabs и весь dashboard payload. Safe Apply отклоняет отсутствующий или
+устаревший attestation, переписанный protected runtime, Wizard→Editor drift,
+новый dashboard на v1 и любое изменение payload после validation.
+
+Dashboard publish дополнительно требует успешный `qa_attestation`, связанный с
+тем же dashboard ID, точной saved revision, выбранной для publish, ожидаемой
+published revision, final-attestation hash, composition hash и payload hashes.
+Attestation содержит проверяемые hashes browser-артефактов и полное покрытие
+каждой вкладки сверху и после полного scroll на ширинах 720, 1200 и 1440 px.
+После published readback статус `done` допустим только для того же revision;
+любое изменение требует новой validation и нового QA.
+
 ## Жёсткие выключатели
 
 - `DATALENS_MCP_ENABLE_WRITES=0` блокирует все запросы записи.

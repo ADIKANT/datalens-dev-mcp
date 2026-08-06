@@ -205,8 +205,8 @@
         "require_hint_when_enableHint"
       ],
       "properties": {
-        "title_source": {"type": "string", "enum": ["native_metadata"]},
-        "hint_source": {"type": "string", "enum": ["native_metadata"]},
+        "title_source": {"type": "string", "enum": ["role_based_contract", "native_metadata"]},
+        "hint_source": {"type": "string", "enum": ["role_based_contract", "native_metadata"]},
         "duplicate_titles_inside_chart_body": {"const": false},
         "default_title_prefix": {"type": "string"},
         "require_hint_when_enableHint": {"type": "boolean"}

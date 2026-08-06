@@ -5,7 +5,9 @@ import json
 from typing import Any
 
 from datalens_dev_mcp.editor.selector_contract import (
+    DATE_SELECTOR_FAMILY,
     DYNAMIC_SELECTOR_FAMILY,
+    SELECTOR_GROUP_FAMILY,
     SELECTOR_FAMILIES,
     STATIC_SELECTOR_FAMILIES,
     normalize_selector_contract,
@@ -56,6 +58,7 @@ STANDARD_SOURCE_COLUMNS: dict[str, tuple[str, ...]] = {
     "sankey_status_flow": ("source", "target", "value"),
     "resource_schedule_exception": ("resource_id", "resource_name", "item_id", "start_at", "end_at", "status"),
     "selector_family_dynamic": ("value",),
+    "selector_group": (),
 }
 
 MARKDOWN_FAMILIES = {
@@ -189,7 +192,17 @@ def load_standard_template_bundle(
             required_columns=required_source_columns(template_family),
         )
         tabs.update(source_tabs)
-    elif source_mode == PRODUCTION_SOURCE_MODE and template_family == DYNAMIC_SELECTOR_FAMILY:
+    elif source_mode == PRODUCTION_SOURCE_MODE and (
+        template_family == DYNAMIC_SELECTOR_FAMILY
+        or (
+            template_family == SELECTOR_GROUP_FAMILY
+            and any(
+                item.get("family") == DYNAMIC_SELECTOR_FAMILY
+                for item in normalized_selector_contract.get("controls") or []
+                if isinstance(item, dict)
+            )
+        )
+    ):
         source_tabs, source_contract = build_dataset_source_binding(
             dataset_alias=dataset_alias,
             columns=columns,
@@ -341,6 +354,8 @@ def _selector_controls_js(
 ) -> str:
     if not contract.get("ok"):
         raise ValueError("selector controls require a complete normalized selector contract")
+    if variant == SELECTOR_GROUP_FAMILY:
+        return _selector_group_controls_js(contract)
     parameters = selector_params(contract)
     if not parameters:
         raise ValueError("selector controls require at least one parameter")
@@ -432,6 +447,15 @@ def _selector_params_js(
 ) -> str:
     if not contract.get("ok"):
         raise ValueError("selector Params require a complete normalized selector contract")
+    if isinstance(contract.get("controls"), list):
+        payload: dict[str, list[str]] = {}
+        for control in contract["controls"]:
+            if control.get("param_from") and control.get("param_to"):
+                payload[control["param_from"]] = [control["default_from"]] if control.get("default_from") else []
+                payload[control["param_to"]] = [control["default_to"]] if control.get("default_to") else []
+            else:
+                payload[control["param"]] = list(control.get("default_values") or [])
+        return "module.exports = " + json.dumps(payload, ensure_ascii=False, indent=2) + ";\n"
     if contract.get("param_from") and contract.get("param_to"):
         payload = {
             contract["param_from"]: [contract["default_from"]] if contract.get("default_from") else [],
@@ -447,6 +471,86 @@ def _selector_params_js(
     ):
         raise ValueError("DataLens Editor Params values must be arrays of strings")
     return "module.exports = " + json.dumps(payload, ensure_ascii=False, indent=2) + ";\n"
+
+
+def _selector_group_controls_js(contract: dict[str, Any]) -> str:
+    controls = list(contract.get("controls") or [])
+    has_dynamic = any(item.get("family") == DYNAMIC_SELECTOR_FAMILY for item in controls)
+    preamble = ""
+    if has_dynamic:
+        preamble = (
+            "const loaded = Editor.getLoadedData();\n"
+            "function preparedRows(source) {\n"
+            "  if (Array.isArray(source)) {\n"
+            "    const names = source.find((item) => item && item.event === 'metadata')?.data?.names || [];\n"
+            "    return source.filter((item) => item && item.event === 'row' && Array.isArray(item.data))\n"
+            "      .map((item) => Object.fromEntries(item.data.map((value, index) => [names[index] || `column_${index + 1}`, value])));\n"
+            "  }\n"
+            "  const result = source?.result || {};\n"
+            "  const rows = result.data?.Data || [];\n"
+            "  const fields = result.fields || [];\n"
+            "  const names = fields.map((field, index) => String(field.title || field.guid || index));\n"
+            "  return rows.map((row) => Object.fromEntries(row.map((value, index) => [names[index] || `column_${index + 1}`, value])));\n"
+            "}\n"
+            "function selectorOptions(sourceName, valueField) {\n"
+            "  const seen = new Set();\n"
+            "  return preparedRows(loaded[sourceName] || []).flatMap((row) => {\n"
+            "    const value = String(row?.[valueField] ?? '');\n"
+            "    if (!value || seen.has(value)) return [];\n"
+            "    seen.add(value);\n"
+            "    return [{title: value, value}];\n"
+            "  });\n"
+            "}\n\n"
+        )
+    rendered: list[str] = []
+    for control in controls:
+        family = str(control.get("family") or "")
+        common = [
+            f"      label: {json.dumps(control.get('label') or '', ensure_ascii=False)},",
+            "      labelPlacement: 'left',",
+            f"      width: '{int(control.get('width') or 0)}%',",
+            "      updateOnChange: true,",
+        ]
+        if family == DATE_SELECTOR_FAMILY:
+            binding = (
+                [f"      param: {json.dumps(control['param'], ensure_ascii=False)},"]
+                if control.get("param")
+                else [
+                    f"      paramFrom: {json.dumps(control['param_from'], ensure_ascii=False)},",
+                    f"      paramTo: {json.dumps(control['param_to'], ensure_ascii=False)},",
+                ]
+            )
+            lines = ["    {", "      type: 'range-datepicker',", *binding, *common, "    },"]
+        else:
+            dynamic = family == DYNAMIC_SELECTOR_FAMILY
+            content = (
+                "selectorOptions("
+                + json.dumps(control.get("source_name") or "rows", ensure_ascii=False)
+                + ", "
+                + json.dumps(control.get("value_field") or "value", ensure_ascii=False)
+                + ")"
+                if dynamic
+                else json.dumps(control.get("options") or [], ensure_ascii=False)
+            )
+            lines = [
+                "    {",
+                "      type: 'select',",
+                f"      param: {json.dumps(control['param'], ensure_ascii=False)},",
+                *common,
+                f"      multiselect: {str(family == 'multi_select_dropdown').lower()},",
+                f"      searchable: {str(family in {'multi_select_dropdown', 'search_selector', DYNAMIC_SELECTOR_FAMILY}).lower()},",
+                f"      content: {content},",
+                "    },",
+            ]
+        rendered.append("\n".join(lines))
+    return (
+        preamble
+        + "module.exports = {\n"
+        + "  controls: [\n"
+        + "\n".join(rendered)
+        + "\n  ],\n"
+        + "};\n"
+    )
 
 
 def _markdown_prepare_js(*, variant: str, title: str, markdown: str | None) -> str:

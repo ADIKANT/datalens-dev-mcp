@@ -53,6 +53,11 @@ APPROVED_CHARTS: dict[str, str] = {
 }
 
 
+APPROVED_DASHBOARD_COMPONENTS: dict[str, str] = {
+    "selector_group": "Ordered one- or two-row selector control group with one shared layout contract.",
+}
+
+
 REFERENCE_ONLY_CHARTS: dict[str, ChartResolution] = {
     "grouped_sticky_table_exception": ChartResolution(
         "grouped_sticky_table_exception",
@@ -207,6 +212,7 @@ ALIASES: dict[str, str] = {
     "g70_static_selector": "selector_family_static",
     "g71_dynamic_selector": "selector_family_dynamic",
     "g72_date_controls": "date_range_selector",
+    "g74_selector_group": "selector_group",
     "g73_markdown_section": "md_section_header",
 }
 
@@ -226,6 +232,13 @@ def resolve_chart_family(value: str | None) -> ChartResolution:
     family = ALIASES.get(requested, requested)
     if family in APPROVED_CHARTS:
         return ChartResolution(requested, "approved", family, APPROVED_CHARTS[family])
+    if family in APPROVED_DASHBOARD_COMPONENTS:
+        return ChartResolution(
+            requested,
+            "approved",
+            family,
+            APPROVED_DASHBOARD_COMPONENTS[family],
+        )
     return ChartResolution(
         requested,
         "manual_review",

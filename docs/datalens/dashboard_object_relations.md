@@ -9,8 +9,8 @@ validation surface for dashboard object dependencies.
 - dashboard type and layout blueprint
 - pages/tabs
 - tab-to-widget relations
-- widgets, layout coordinates, and native title/hint metadata
-- charts, chart routes, and native title/hint metadata
+- widgets, layout coordinates, title modes, and derived native metadata
+- charts, chart routes, display titles, and title-contract hashes
 - chart-to-chart relations
 - selectors and selector target widgets/charts
 - navigation relations
@@ -67,9 +67,9 @@ Relations are emitted only from an explicit valid selector contract (or an
 explicit legacy parameter supplied by a fixture). Requirements prose does not
 create an implicit selector.
 
-## Native Metadata
+## Title Contract And Native Metadata
 
-Non-control widgets must carry:
+Wizard widgets normally carry `title_mode=native_title`:
 
 ```json
 {
@@ -82,9 +82,12 @@ Non-control widgets must carry:
 }
 ```
 
-Advanced Editor chart bodies must not duplicate that title/hint. The relation
-artifact is the traceable place to verify the native title/hint contract before
-safe apply.
+Advanced Editor charts normally use `embedded_title`, while KPI cards use
+`content_label`; both set `hideTitle=true` and render the exact accepted label
+inside the protected runtime. A native inner tab header uses `tab_strip`.
+Native and runtime title ownership may never be active at the same time. The
+relation artifact is the traceable place to verify `title_contract.sha256`
+before Safe Apply.
 
 ## Validation And Readback
 

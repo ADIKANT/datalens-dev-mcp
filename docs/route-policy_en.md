@@ -42,18 +42,29 @@ A bubble chart requires a size field and a map requires verified geo data. `wiza
 
 Before save, an Editor object passes `dl_validate_editor_runtime_contract` against official [tabs](https://yandex.cloud/ru/docs/datalens/charts/editor/tabs) and [methods](https://yandex.cloud/ru/docs/datalens/charts/editor/methods).
 
-An explicit project `authoring_profile: {"id": "standard_editor_v1"}` is a
-JavaScript contract for every supported family. It does not change the global
-Wizard-first default: the profile selects only a registered Editor asset,
-returns SHA-256 identities for the template set, selected assets, style
-contract, and compiled tabs, and refuses approximate fallback. Generation is
-blocked for an unregistered family or a native map.
+Create and full-redesign calls without an explicit profile use
+`standard_dashboard_v1`; `strict_dashboard`, `standard_dashboard`, and
+`registered_dashboard` are aliases. The profile fixes the canonical route
+first: standard KPI, table, and chart creation stays on Wizard. It applies
+For a selected Editor object, the same `standard_dashboard_v1` profile applies
+the current protected renderer only to an explicitly requested Editor object,
+a verified capability gap, or preserved Editor technology during an update.
+
+There is one executable built-in contract. Historical profile names are input
+aliases that immediately normalize to `standard_dashboard_v1`; they cannot
+select historical assets or rules. A saved Editor object stays Editor, but its
+bundle is regenerated with the current contract. The profile returns SHA-256
+identities for its template set, selected assets, render
+contract, and compiled tabs and refuses approximate fallback. The planned route
+is part of final payload attestation, so a project compiler cannot turn a
+planned Wizard dashboard into Editor objects.
 
 A project-local profile is declared with `id`, `descriptor_path`, and
 `descriptor_sha256`. Its descriptor registers exact Editor-family assets; the
 descriptor and every dependency must stay inside the project root, and the
 complete template-set fingerprint is checked before generation. This profile
-does not expand supported technologies or permit fallback.
+does not expand supported technologies or permit fallback, and a descriptor
+cannot override a reserved built-in profile name or alias.
 
 ## QL
 
@@ -64,3 +75,17 @@ does not expand supported technologies or permit fallback.
 For a new Wizard chart, the server prefers a current saved seed with the same `visualization_id`, strips source-object identities, and binds target dataset fields. A packaged canonical template is used when no seed exists.
 
 An update takes technology, visualization, unknown fields, and revision from current readback. Publishing is governed by [Safe Apply](safe-apply_en.md), independently of chart technology.
+
+## Composition and title contract
+
+Renderer Visual Spec v5 assigns title ownership through `title_mode`: an Editor
+chart uses `embedded_title`, a KPI uses `content_label`, content named only by
+its dashboard tab uses `tab_only`, Wizard/native tables use `native_title`, and
+an inner tab switcher uses `tab_strip`. Native and runtime title ownership may
+not coexist. The accepted `display_title` is exact and cannot be replaced with
+a technical object name.
+
+`dashboard_composition.version=2` binds semantic rows, 36-column geometry,
+selectors, and mount → tab → widget relationships. Any route, title, selector,
+runtime, or layout change after `dl_validate_project` invalidates final payload
+attestation.
