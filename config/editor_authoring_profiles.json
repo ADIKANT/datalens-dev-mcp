@@ -26,7 +26,7 @@
       "template_policy": "exact_registered_asset",
       "fallback_policy": "block",
       "family_registry": "templates/datalens/standard_chart_templates.json",
-      "template_set_sha256": "5dd3fb9fd910336df856aacd211882e329a421360bc1dc28518b65a3c3e54454",
+      "template_set_sha256": "6ce84e5e14cefa09beb8774f5d8b306fdaee212532fbfda8b5acebd5e4ca20a4",
       "allowed_routes": [
         "wizard_native",
         "editor_advanced",

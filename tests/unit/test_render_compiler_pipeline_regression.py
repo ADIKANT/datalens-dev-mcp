@@ -21,7 +21,7 @@ from datalens_dev_mcp.runtime_resources import resource_json
 
 PROFILE_V1 = "standard_editor_v1"
 PROFILE_V2 = "standard_editor_v2"
-TEMPLATE_SET_SHA256 = "5dd3fb9fd910336df856aacd211882e329a421360bc1dc28518b65a3c3e54454"
+TEMPLATE_SET_SHA256 = "6ce84e5e14cefa09beb8774f5d8b306fdaee212532fbfda8b5acebd5e4ca20a4"
 FAMILY_V1_TAB_HASHES = {
     "kpi_value_only": "9fcd6b5e01d9f07ac79f1c7ceb1be7d74a5d378b8953b72fa846b96585c40020",
     "line_chart": "02f52f3c1eed2ed8bc5e084436065c729ea8bd6208ec103f607bca427a2bbb9d",
