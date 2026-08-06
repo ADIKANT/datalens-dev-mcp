@@ -6,6 +6,7 @@ from copy import deepcopy
 from typing import Any
 
 from datalens_dev_mcp.editor.selector_contract import selector_params
+from datalens_dev_mcp.editor.title_contract import validate_title_contract
 from datalens_dev_mcp.pipeline.layout_contract import (
     SELECTOR_ROW_WIDTH_TARGET,
     layout_blueprint_for_dashboard_type,
@@ -15,7 +16,8 @@ from datalens_dev_mcp.pipeline.layout_contract import (
 from datalens_dev_mcp.validators.route_validator import ValidationResult
 
 
-RELATION_SCHEMA_VERSION = "2026-07-20.dashboard_object_relations.v3"
+RELATION_SCHEMA_VERSION = "2026-08-06.dashboard_object_relations.v4"
+LEGACY_RELATION_SCHEMA_VERSION = "2026-07-20.dashboard_object_relations.v3"
 
 
 def build_default_dashboard_relations(
@@ -24,6 +26,7 @@ def build_default_dashboard_relations(
     widget_id: str,
     selector_param: str | None = None,
     selector_contract: dict[str, Any] | None = None,
+    title_contract: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     raw_fields = list((brief.get("data_contract") or {}).get("fields") or [])
     fields = [name for item in raw_fields if (name := _field_name(item))]
@@ -47,12 +50,19 @@ def build_default_dashboard_relations(
     source_fields = [parameter for parameter in relation_params if parameter in field_names]
     dashboard_type = brief.get("dashboard_type") or brief.get("dashboard_blueprint", {}).get("dashboard_type") or "overview"
     layout_blueprint = layout_blueprint_for_dashboard_type(dashboard_type)
-    native_metadata = {
-        "title": decision.get("title") or brief.get("dashboard_name") or "DataLens Widget",
-        "hint": decision.get("hint") or f"{family} on {route}; source and field dependencies are declared in object relations.",
-        "hideTitle": False,
-        "enableHint": True,
-    }
+    normalized_title_contract = deepcopy(title_contract or {})
+    if normalized_title_contract:
+        title_issues = validate_title_contract(normalized_title_contract)
+        if title_issues:
+            raise ValueError("invalid dashboard title contract: " + "; ".join(title_issues))
+        native_metadata = deepcopy(normalized_title_contract["native_metadata"])
+    else:
+        native_metadata = {
+            "title": decision.get("title") or brief.get("dashboard_name") or "DataLens Widget",
+            "hint": decision.get("hint") or f"{family} on {route}; source and field dependencies are declared in object relations.",
+            "hideTitle": False,
+            "enableHint": True,
+        }
     return {
         "schema_version": RELATION_SCHEMA_VERSION,
         "dashboard": {
@@ -78,6 +88,7 @@ def build_default_dashboard_relations(
                 "route": route,
                 "layout": {"x": 0, "y": 8, "w": 94, "h": 24, "width": "94%"},
                 "native_metadata": native_metadata,
+                **({"title_contract": normalized_title_contract} if normalized_title_contract else {}),
             },
             *(
                 [
@@ -104,6 +115,7 @@ def build_default_dashboard_relations(
                 "field_dependencies": fields,
                 "calculated_field_dependencies": [],
                 "native_metadata": native_metadata,
+                **({"title_contract": normalized_title_contract} if normalized_title_contract else {}),
             }
         ],
         "chart_relations": [
@@ -441,12 +453,19 @@ def validate_dashboard_relations(relations: dict[str, Any]) -> ValidationResult:
             issues.append(f"{widget.get('widget_id')}: chart_id {chart_id} is not declared in charts")
         if widget.get("route") != "editor_js_control":
             metadata = widget.get("native_metadata") or {}
-            if not metadata.get("title"):
-                issues.append(f"{widget.get('widget_id')}: native_metadata.title is required")
-            if metadata.get("hideTitle") is not False:
-                issues.append(f"{widget.get('widget_id')}: native_metadata.hideTitle must be false")
-            if metadata.get("enableHint") is True and not metadata.get("hint"):
-                issues.append(f"{widget.get('widget_id')}: native_metadata.hint is required when enableHint is true")
+            title_contract = widget.get("title_contract") if isinstance(widget.get("title_contract"), dict) else {}
+            if title_contract:
+                for issue in validate_title_contract(title_contract):
+                    issues.append(f"{widget.get('widget_id')}: {issue}")
+                if metadata != title_contract.get("native_metadata"):
+                    issues.append(f"{widget.get('widget_id')}: native_metadata differs from title_contract")
+            else:
+                if not metadata.get("title"):
+                    issues.append(f"{widget.get('widget_id')}: native_metadata.title is required")
+                if metadata.get("hideTitle") is not False:
+                    issues.append(f"{widget.get('widget_id')}: native_metadata.hideTitle must be false")
+                if metadata.get("enableHint") is True and not metadata.get("hint"):
+                    issues.append(f"{widget.get('widget_id')}: native_metadata.hint is required when enableHint is true")
     for relation in relations.get("chart_relations") or []:
         source = relation.get("source_chart_id")
         target = relation.get("target_chart_id")
@@ -499,9 +518,11 @@ def render_relation_summary_markdown(relations: dict[str, Any]) -> str:
     for widget in relations.get("widgets") or []:
         layout = widget.get("layout") or {}
         metadata = widget.get("native_metadata") or {}
+        title_contract = widget.get("title_contract") or {}
         lines.append(
             f"- Widget `{widget.get('widget_id')}` on tab `{widget.get('tab_id')}` uses width `{layout.get('width')}`"
-            f" and native title `{metadata.get('title', '')}`."
+            f" and title mode `{title_contract.get('mode') or 'legacy_native'}` for "
+            f"`{title_contract.get('display_title') or metadata.get('title', '')}`."
         )
     lines.extend(["", "### Chart And Navigation Relations"])
     for relation in relations.get("chart_relations") or []:

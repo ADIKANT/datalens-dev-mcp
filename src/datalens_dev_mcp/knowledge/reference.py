@@ -205,7 +205,7 @@ def _reference_envelope(mode: str, term: str, result: dict[str, Any]) -> dict[st
             "Persist chart decision records before payload generation.",
         ],
         "renderer_contract": [
-            "Use native title/hint metadata; chart body must not duplicate dashboard chrome.",
+            "Use role-based title_mode; native and runtime title/hint ownership must not coexist.",
             "Keep colors neutral first; semantic colors require declared direction.",
             "Do not emit decorative CSS, shadows, 3D effects, or gradients.",
             "Pre-shape data before render and respect wrapFn runtime budgets.",
@@ -538,7 +538,7 @@ def _runtime_quality_reference(mode: str, term: str) -> dict[str, Any]:
         },
         "kpi_indicator": {
             "summary": (
-                "KpiIndicatorContract requires separate KPI objects, formula, unit, grain, comparator policy, native title/hint, "
+                "KpiIndicatorContract requires separate KPI objects, formula, unit, grain, comparator policy, content_label ownership, "
                 "and blocks KPI HTML card grids."
             ),
             "implementation": "src/datalens_dev_mcp/pipeline/kpi_indicator_contract.py",
@@ -850,7 +850,7 @@ def _renderer_visual_spec(term: str, limit: int) -> dict[str, Any]:
                 "family": row.get("prefer") or row.get("prefer_order") or "",
                 "route": row.get("route") or "",
                 "renderer_requirements": [
-                    "native title and hint only",
+                    "one role-based title and hint owner",
                     "neutral-first color with semantic colors only when direction is declared",
                     "no decorative CSS, shadows, 3D, or gradient styling",
                     "pre-shape data before render and respect wrapFn runtime budgets",

@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/dashboard-composition.schema.json",
+  "title": "Dashboard composition v2",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema_version", "version", "operation", "dashboard_id", "dashboard_title", "dashboard_internal_name", "workbook_id", "grid_columns", "defaults", "tabs", "mounts", "payload_skeleton", "payload_skeleton_sha256", "sha256"],
+  "properties": {
+    "schema_version": {"const": "2026-08-06.dashboard_composition.v2"},
+    "version": {"const": 2},
+    "operation": {"enum": ["create", "update"]},
+    "dashboard_id": {"type": "string", "minLength": 1},
+    "dashboard_title": {"type": "string", "minLength": 1},
+    "dashboard_internal_name": {"type": "string", "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"},
+    "workbook_id": {"type": "string", "minLength": 1},
+    "grid_columns": {"const": 36},
+    "defaults": {
+      "type": "object",
+      "required": ["selector_row_width_percent", "gap_after", "max_standard_kpis_per_row", "sparkline_kpi", "compact_kpi"],
+      "properties": {
+        "selector_row_width_percent": {"const": 94},
+        "gap_after": {"const": 0},
+        "max_standard_kpis_per_row": {"const": 3},
+        "sparkline_kpi": {"properties": {"w": {"const": 12}, "h": {"const": 8}}, "required": ["w", "h"]},
+        "compact_kpi": {"properties": {"w": {"const": 12}, "h": {"const": 6}}, "required": ["w", "h"]}
+      }
+    },
+    "tabs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "rows"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "title": {"type": "string", "minLength": 1},
+          "rows": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["id", "role", "y", "gap_after", "items"],
+              "properties": {
+                "id": {"type": "string", "minLength": 1},
+                "role": {"enum": ["selector", "comparison_context", "kpi", "chart", "table", "auxiliary"]},
+                "y": {"type": "integer", "minimum": 0},
+                "gap_after": {"type": "integer", "minimum": 0, "default": 0},
+                "spacer_declared": {"type": "boolean"},
+                "density_override": {"const": "four_kpi_9_columns"},
+                "browser_proof": {
+                  "type": "object",
+                  "required": ["passed", "viewport_widths", "artifact_sha256"],
+                  "properties": {
+                    "passed": {"const": true},
+                    "viewport_widths": {"const": [720, 1200, 1440]},
+                    "artifact_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+                  }
+                },
+                "items": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "required": ["widget_id", "role", "route", "family", "display_title", "title_mode", "x", "y", "w", "h"],
+                    "properties": {
+                      "widget_id": {"type": "string", "minLength": 1},
+                      "role": {"type": "string"},
+                      "route": {"enum": ["wizard_native", "editor_advanced", "editor_table", "editor_markdown", "editor_js_control", "ql_explicit"]},
+                      "family": {"type": "string", "minLength": 1},
+                      "display_title": {"type": "string"},
+                      "title_mode": {"enum": ["embedded_title", "content_label", "tab_only", "native_title", "tab_strip"]},
+                      "title_contract_sha256": {"type": "string"},
+                      "x": {"type": "integer", "minimum": 0, "maximum": 35},
+                      "y": {"type": "integer", "minimum": 0},
+                      "w": {"type": "integer", "minimum": 1, "maximum": 36},
+                      "h": {"type": "integer", "minimum": 1}
+                    },
+                    "additionalProperties": true
+                  }
+                }
+              },
+              "additionalProperties": true,
+              "allOf": [
+                {
+                  "if": {"required": ["density_override"]},
+                  "then": {"required": ["browser_proof"]}
+                }
+              ]
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "mounts": {"type": "array", "items": {"type": "object", "required": ["mount_id", "tab_id", "widget_id"]}},
+    "payload_skeleton": {"type": "object"},
+    "payload_skeleton_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "validation": {"type": "object"}
+  }
+}

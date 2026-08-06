@@ -333,7 +333,6 @@ TEST_ONLY_TOOL_PROFILE_MEMBERS: dict[str, set[str]] = {
 TOOL_PROFILE_MEMBERS = TEST_ONLY_TOOL_PROFILE_MEMBERS
 
 PARAM_DESCRIPTIONS: dict[str, str] = {
-    "project_root": "Local project root.",
     "config_path": "Optional local MCP config path.",
     "local_config_path": "Resolved local MCP config JSON file used by the current server process.",
     "workbook_id": "DataLens workbook id.",
@@ -387,16 +386,9 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
     "chart_plan": "Chart plan payload to validate.",
     "widget_id": "Local widget id.",
     "route": "Editor route override.",
-    "authoring_profile": (
-        "Profile: strict_dashboard=v2; standard_editor_v1=legacy bytes."
-    ),
-    "chart_specs": (
-        "Batch (max 100) of exact-decision widgets with widget_id and optional route, "
-        "bindings, selector, overrides, and comparison context."
-    ),
-    "render_overrides": (
-        "v2 tokens: density, legend_typography, horizontal_adapter, tooltip_owner."
-    ),
+    "authoring_profile": "Canonical authoring profile or a normalized input alias.",
+    "chart_specs": "Batch of up to 100 decided widgets.",
+    "render_overrides": "Registered render-token overrides.",
     "target": "Readback target kind.",
     "chart_ids": "Chart ids to read back.",
     "page": "Result page number.",
@@ -577,6 +569,12 @@ COMPACT_SCHEMA_DESCRIPTION_PARAMS = {
 
 PARAM_OVERRIDES: dict[str, dict[str, Any]] = {
     "authoring_profile": {"type": ["string", "object"]},
+    "title_mode": {
+        "type": "string",
+        "enum": ["", "embedded_title", "content_label", "tab_only", "native_title", "tab_strip"],
+        "default": "",
+    },
+    "dashboard_composition": {"type": ["object", "null"]},
     "object_type": {
         "type": "string",
         "enum": [
@@ -720,23 +718,12 @@ SELECTOR_CONTRACT_SCHEMA = {
         "default_from": {"type": "string"},
         "default_to": {"type": "string"},
         "reset_behavior": {"type": "string", "enum": ["initial", "empty"]},
+        "controls": {"type": "array"},
+        "update_mode": {"const": "immediate"},
+        "apply_button": {"const": False},
+        "row_width_target_percent": {"const": 94},
+        "blank_multiselect_semantics": {"const": "all"},
     },
-    "required": ["label", "option_source", "reset_behavior"],
-    "oneOf": [
-        {
-            "required": ["param"],
-            "not": {
-                "anyOf": [
-                    {"required": ["param_from"]},
-                    {"required": ["param_to"]},
-                ]
-            },
-        },
-        {
-            "required": ["param_from", "param_to"],
-            "not": {"required": ["param"]},
-        },
-    ],
 }
 DATE_RANGE_MAINTENANCE_CONTRACT_SCHEMA = {
     "type": "object",

@@ -160,9 +160,8 @@
       "properties": {
         "schema_version": {
           "enum": [
-            "2026-07-19.renderer_visual_spec.v2",
-            "2026-07-23.renderer_visual_spec.v3",
-            "2026-07-28.renderer_visual_spec.v4"
+            "2026-08-06.renderer_visual_intent.v1",
+            "2026-08-06.renderer_visual_spec.v5"
           ]
         },
         "style_tokens": {
@@ -190,6 +189,12 @@
           "type": "object"
         },
         "runtime_constraints": {
+          "type": "object"
+        },
+        "title_contract": {
+          "$ref": "dashboard-title-contract.schema.json"
+        },
+        "dashboard_composition": {
           "type": "object"
         }
       }

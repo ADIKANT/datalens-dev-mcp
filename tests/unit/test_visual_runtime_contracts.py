@@ -170,15 +170,20 @@ class VisualRuntimeContractTests(unittest.TestCase):
         self.assertIn("line_chart_axis_label_contract", {finding.rule for finding in result.findings})
 
     def test_line_visual_contract_allows_readable_axes_and_value_tooltip_without_direct_labels(self):
+        from datalens_dev_mcp.editor.visual_spec import build_renderer_visual_spec
         from datalens_dev_mcp.pipeline.visual_quality import validate_visual_quality_contract
 
+        spec = build_renderer_visual_spec(
+            family="line_chart",
+            route="wizard_native",
+            analytical_task="time_trend",
+        ).to_dict()
+        spec["labels"]["direct_labels"] = False
+        spec["axes"].update({"show": True, "date_axis_ascending": True})
+        spec["tooltip"]["include_values"] = True
+
         result = validate_visual_quality_contract(
-            {
-                "family": "line_chart",
-                "labels": {"direct_labels": False},
-                "axes": {"show": True, "date_axis_ascending": True},
-                "tooltip": {"include_values": True},
-            }
+            spec,
         )
 
         self.assertTrue(result.ok, [finding.to_dict() for finding in result.findings])

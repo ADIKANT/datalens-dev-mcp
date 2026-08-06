@@ -12,12 +12,19 @@ class StandardChartTemplateTests(unittest.TestCase):
         self.registry_path = Path("templates/datalens/standard_chart_templates.json")
 
     def test_registry_covers_approved_families_and_excludes_removed(self):
-        from datalens_dev_mcp.pipeline.chart_taxonomy import APPROVED_CHARTS, REMOVED_CHARTS
+        from datalens_dev_mcp.pipeline.chart_taxonomy import (
+            APPROVED_CHARTS,
+            APPROVED_DASHBOARD_COMPONENTS,
+            REMOVED_CHARTS,
+        )
 
         registry = json.loads(self.registry_path.read_text(encoding="utf-8"))
         families = registry["families"]
 
-        self.assertEqual(set(APPROVED_CHARTS), set(families))
+        self.assertEqual(
+            set(APPROVED_CHARTS) | set(APPROVED_DASHBOARD_COMPONENTS),
+            set(families),
+        )
         self.assertFalse(set(REMOVED_CHARTS).intersection(families))
 
     def test_registered_templates_have_required_artifacts(self):

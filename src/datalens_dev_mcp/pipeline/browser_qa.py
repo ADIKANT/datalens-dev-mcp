@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
@@ -27,10 +28,11 @@ RUNTIME_ERROR_MARKERS = [
     "Data fetching error",
 ]
 
-BROWSER_QA_PLAN_SCHEMA_VERSION = "datalens.browser-qa-plan.v3"
-BROWSER_QA_RESULT_SCHEMA_VERSION = "datalens.browser-qa-result.v3"
+BROWSER_QA_PLAN_SCHEMA_VERSION = "datalens.browser-qa-plan.v4"
+BROWSER_QA_RESULT_SCHEMA_VERSION = "datalens.browser-qa-result.v4"
 BROWSER_QA_MAX_CALLS = 3
 BROWSER_QA_VIEWPORTS = (
+    {"id": "narrow", "width": 720, "height": 900},
     {"id": "compact_desktop", "width": 1200, "height": 900},
     {"id": "wide", "width": 1440, "height": 900},
 )
@@ -122,6 +124,30 @@ BROWSER_QA_ASSERTIONS = (
         "id": "no_redundant_row_title_tooltips",
         "description": "Chart rows do not repeat their visible label in a native title tooltip.",
     },
+    {
+        "id": "role_owned_title_contract",
+        "description": "Every title and hint is rendered by exactly the surface assigned by title_mode.",
+    },
+    {
+        "id": "semantic_row_geometry_contract",
+        "description": "Adjacent semantic blocks have equal heights and no undeclared vertical gap.",
+    },
+    {
+        "id": "kpi_density_contract",
+        "description": "A standard row contains at most three KPI objects unless the attested override applies.",
+    },
+    {
+        "id": "selector_clear_contract",
+        "description": "Blank multiselect means all values and Clear does not restore a default value.",
+    },
+    {
+        "id": "table_readability_contract",
+        "description": "Tables have non-empty headers, meaningful sticky columns, and no unlabelled clipping.",
+    },
+    {
+        "id": "lazy_full_scroll_contract",
+        "description": "Every expected object initializes after each tab is checked at top and after full scroll.",
+    },
 )
 BROWSER_QA_FORBIDDEN_SOURCE_TOKENS = (
     ".click(",
@@ -157,11 +183,17 @@ def build_browser_qa_plan(
     comparison_context_object_ids: list[str] | None = None,
     tooltip_comparison_modes: dict[str, str] | None = None,
     render_contract: dict[str, Any] | None = None,
+    title_contracts: list[dict[str, Any]] | None = None,
+    dashboard_composition: dict[str, Any] | None = None,
+    saved_revision: str = "",
+    published_revision: str = "",
+    final_payload_attestation_sha256: str = "",
+    payload_set_sha256: str = "",
 ) -> dict[str, Any]:
     """Build a deterministic three-call, read-only browser QA plan.
 
     The executor performs one navigation, one batched evaluation call covering
-    both viewports, and one batched screenshot call covering both viewports.
+    all tabs, scroll positions, and viewports, and one batched full-page screenshot call.
     The evaluate source is intentionally self-contained so a browser adapter
     does not need exploratory DOM calls.
     """
@@ -179,6 +211,8 @@ def build_browser_qa_plan(
         tooltip_comparison_modes or {}
     )
     normalized_render_contract = _normalize_browser_render_contract(render_contract or {})
+    normalized_title_contracts = _normalize_title_contracts(title_contracts or [])
+    normalized_composition = _normalize_composition_binding(dashboard_composition or {})
     viewports = [dict(viewport) for viewport in BROWSER_QA_VIEWPORTS]
     evaluation_input = {
         "expected_object_ids": normalized_object_ids,
@@ -187,6 +221,8 @@ def build_browser_qa_plan(
         "comparison_context_object_ids": normalized_comparison_ids,
         "tooltip_comparison_modes": normalized_tooltip_modes,
         "render_contract": normalized_render_contract,
+        "title_contracts": normalized_title_contracts,
+        "dashboard_composition": normalized_composition,
     }
     evaluate_source = _build_browser_qa_evaluate_source(evaluation_input)
     artifact_stem = _safe_artifact_stem(normalized_dashboard_id)
@@ -197,6 +233,13 @@ def build_browser_qa_plan(
             "dashboard_url": str(dashboard_url or "").strip(),
             "tab_ids": normalized_tabs,
             "expected_object_ids": normalized_object_ids,
+            "saved_revision": str(saved_revision or "").strip(),
+            "published_revision": str(published_revision or "").strip(),
+        },
+        "attestation_binding": {
+            "final_payload_attestation_sha256": str(final_payload_attestation_sha256 or "").strip(),
+            "payload_set_sha256": str(payload_set_sha256 or "").strip(),
+            "dashboard_composition_sha256": str((dashboard_composition or {}).get("sha256") or ""),
         },
         "viewports": viewports,
         "render_contract": normalized_render_contract,
@@ -204,6 +247,8 @@ def build_browser_qa_plan(
         "comparison_enabled": bool(comparison_enabled),
         "comparison_context_object_ids": normalized_comparison_ids,
         "tooltip_comparison_modes": normalized_tooltip_modes,
+        "title_contracts": normalized_title_contracts,
+        "dashboard_composition": normalized_composition,
         "execution": {
             "max_browser_calls": BROWSER_QA_MAX_CALLS,
             "navigation_count": 1,
@@ -224,6 +269,11 @@ def build_browser_qa_plan(
                     "ordinal": 2,
                     "operation": "evaluate_viewports_batch",
                     "viewport_ids": [viewport["id"] for viewport in viewports],
+                    "tab_ids": normalized_tabs,
+                    "scroll_positions": ["top", "bottom"],
+                    "wait_for_lazy_initialization": True,
+                    "ephemeral_interactions": ["multiselect_clear_roundtrip"],
+                    "persisted_state_mutation_allowed": False,
                     "evaluate_source_ref": "#/evaluate/source",
                 },
                 {
@@ -301,6 +351,20 @@ def validate_browser_qa_plan(plan: dict[str, Any]) -> dict[str, Any]:
         issues.append("reload_or_retry_not_allowed")
     if execution.get("dom_mutation_allowed") is not False:
         issues.append("dom_mutation_must_be_disabled")
+    evaluation_call = next(
+        (call for call in calls if isinstance(call, dict) and call.get("operation") == "evaluate_viewports_batch"),
+        {},
+    )
+    if evaluation_call.get("scroll_positions") != ["top", "bottom"]:
+        issues.append("full_scroll_positions_missing")
+    if evaluation_call.get("wait_for_lazy_initialization") is not True:
+        issues.append("lazy_initialization_wait_missing")
+    if evaluation_call.get("ephemeral_interactions") != ["multiselect_clear_roundtrip"]:
+        issues.append("selector_clear_roundtrip_missing")
+    if evaluation_call.get("persisted_state_mutation_allowed") is not False:
+        issues.append("persisted_state_mutation_must_be_disabled")
+    if evaluation_call.get("tab_ids") != (plan.get("target") or {}).get("tab_ids"):
+        issues.append("all_tabs_not_bound_to_evaluation")
 
     evaluate = plan.get("evaluate") if isinstance(plan.get("evaluate"), dict) else {}
     source = evaluate.get("source")
@@ -392,6 +456,30 @@ def validate_browser_qa_plan(plan: dict[str, Any]) -> dict[str, Any]:
     )
     if f'"tooltip_comparison_modes":{encoded_tooltip_modes}' not in source:
         issues.append("tooltip_comparison_modes_not_bound_to_evaluate_source")
+    title_contracts = plan.get("title_contracts")
+    if not isinstance(title_contracts, list):
+        issues.append("title_contracts_invalid")
+        title_contracts = []
+    encoded_title_contracts = json.dumps(
+        title_contracts,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    if f'"title_contracts":{encoded_title_contracts}' not in source:
+        issues.append("title_contracts_not_bound_to_evaluate_source")
+    composition = plan.get("dashboard_composition")
+    if not isinstance(composition, dict):
+        issues.append("dashboard_composition_binding_invalid")
+        composition = {}
+    encoded_composition = json.dumps(
+        composition,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    if f'"dashboard_composition":{encoded_composition}' not in source:
+        issues.append("dashboard_composition_not_bound_to_evaluate_source")
 
     render_contract = (
         plan.get("render_contract")
@@ -875,6 +963,94 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
     return all("[title]", row).some((node) => String(node.getAttribute("title") || "").trim() === labelText);
   });
 
+  const titleRows = input.title_contracts.map((contract) => {
+    const node = findObject(String(contract.widget_id || ""));
+    const candidates = node ? {
+      embedded: all('[data-role="embedded-title"]', node).filter(visible),
+      content: all('[data-role="content-label"]', node).filter(visible),
+      native: all('[data-role="native-title"],[data-qa="widget-title"],.dashkit-grid-item__title', node).filter(visible)
+    } : {embedded: [], content: [], native: []};
+    const mode = String(contract.mode || "");
+    const expected = mode === "embedded_title"
+      ? candidates.embedded
+      : mode === "content_label"
+        ? candidates.content
+        : (mode === "native_title" || mode === "tab_strip")
+          ? candidates.native
+          : [];
+    const visibleSurfaceCount = candidates.embedded.length + candidates.content.length + candidates.native.length;
+    const expectedText = String(contract.display_title || "");
+    const titleMatches = mode === "tab_only"
+      ? visibleSurfaceCount === 0
+      : expected.length === 1 && text(expected[0]).startsWith(expectedText) && expectedText.length > 0;
+    return {
+      widget_id: String(contract.widget_id || ""),
+      mode,
+      found: Boolean(node),
+      visible_surface_count: visibleSurfaceCount,
+      title_matches: titleMatches,
+      mutually_exclusive: visibleSurfaceCount <= 1
+    };
+  });
+
+  const compositionRows = (input.dashboard_composition.rows || []).map((row) => {
+    const nodes = (row.items || []).map((item) => findObject(String(item.widget_id || "")))
+      .filter((node) => node && visible(node));
+    const boxes = nodes.map((node) => rect(node));
+    const heights = boxes.map((box) => Math.round(box.height));
+    return {
+      row_id: String(row.id || ""),
+      expected_count: (row.items || []).length,
+      visible_count: nodes.length,
+      heights,
+      equal_heights: heights.length <= 1 || Math.max(...heights) - Math.min(...heights) <= 1,
+      horizontal_alignment: boxes.length <= 1 || Math.max(...boxes.map((box) => box.top)) - Math.min(...boxes.map((box) => box.top)) <= 12
+    };
+  });
+  const visibleKpiBoxes = kpis.map((node) => rect(node)).sort((left, right) => left.top - right.top || left.left - right.left);
+  const visualKpiRows = [];
+  visibleKpiBoxes.forEach((box) => {
+    const row = visualKpiRows.find((candidate) => Math.abs(candidate.top - box.top) <= 12);
+    if (row) row.count += 1;
+    else visualKpiRows.push({top: box.top, count: 1});
+  });
+  const kpiDensityMatches = visualKpiRows.every((row) => row.count <= 3) ||
+    input.dashboard_composition.four_kpi_override_verified === true;
+
+  const selectorClearRows = input.selector_contracts
+    .filter((contract) => contract.multiple === true)
+    .map((contract) => {
+      const node = findObject(String(contract.selector_id || ""));
+      const marker = node && (
+        node.hasAttribute("data-empty-means-all")
+          ? node
+          : node.querySelector("[data-empty-means-all]")
+      );
+      return {
+        selector_id: String(contract.selector_id || ""),
+        found: Boolean(node),
+        empty_means_all: contract.empty_means_all === true,
+        restore_after_clear: contract.restore_default_after_clear === false,
+        runtime_marker_found: Boolean(marker)
+      };
+    });
+
+  const visibleTables = all('table,[role="table"],[data-role="table"]').filter(visible);
+  const tableRows = visibleTables.map((table) => {
+    const headers = all('th,[role="columnheader"]', table).filter(visible);
+    const sticky = all('[data-sticky="true"],.sticky', table).filter(visible);
+    const clipped = all('th,td,[role="columnheader"],[role="cell"]', table).filter((cell) =>
+      visible(cell) && cell.scrollWidth > cell.clientWidth + 1
+    );
+    return {
+      headers_nonempty: headers.length > 0 && headers.every((header) => text(header).length > 0),
+      sticky_meaningful: sticky.every((cell) => cell.getAttribute("data-column-cardinality") !== "1"),
+      clipping_labelled: clipped.every((cell) =>
+        Boolean(String(cell.getAttribute("data-display-label") || cell.getAttribute("title") || "").trim())
+      )
+    };
+  });
+
   const expectedSelector = input.render_contract.selector;
   const comparisonContextMatches = input.comparison_enabled
     ? visibleNonemptyComparisonCount === 1
@@ -927,10 +1103,20 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
     tooltip_comparison_mode_contract: tooltipComparisonModeMatches &&
       !singlePeriodHasComparisonChrome,
     stable_scrollbar_gutter: stableGutterMatches,
-    no_redundant_row_title_tooltips: redundantRowTitles.length === 0
+    no_redundant_row_title_tooltips: redundantRowTitles.length === 0,
+    role_owned_title_contract: titleRows.every((row) =>
+      row.found && row.title_matches && row.mutually_exclusive),
+    semantic_row_geometry_contract: compositionRows.every((row) =>
+      row.visible_count === row.expected_count && row.equal_heights && row.horizontal_alignment),
+    kpi_density_contract: kpiDensityMatches,
+    selector_clear_contract: selectorClearRows.every((row) =>
+      row.found && row.empty_means_all && row.restore_after_clear),
+    table_readability_contract: tableRows.every((row) =>
+      row.headers_nonempty && row.sticky_meaningful && row.clipping_labelled),
+    lazy_full_scroll_contract: objectRows.every((row) => row.found && row.visible && row.nonempty)
   };
   return {
-    schema_version: "datalens.browser-qa-result.v3",
+    schema_version: "datalens.browser-qa-result.v4",
     viewport: {width: window.innerWidth, height: window.innerHeight},
     passed: Object.values(assertions).every(Boolean),
     assertions,
@@ -985,7 +1171,12 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
       stable_scrollbar_gutter_required: stableGutterRequired,
       horizontal_scroll_object_ids: scrollObjectIds,
       horizontal_scroll_rows: horizontalScrollRows,
-      redundant_row_title_tooltip_count: redundantRowTitles.length
+      redundant_row_title_tooltip_count: redundantRowTitles.length,
+      title_rows: titleRows,
+      composition_rows: compositionRows,
+      visual_kpi_rows: visualKpiRows,
+      selector_clear_rows: selectorClearRows,
+      table_rows: tableRows
     }
   };
 })()""".replace("__QA_INPUT__", encoded)
@@ -1241,9 +1432,80 @@ def _normalize_selector_contracts(selector_contracts: list[dict[str, Any]]) -> l
                 "ordinal": len(normalized),
                 "interaction": "immediate",
                 "apply_control": False,
+                "multiple": bool(item.get("multiple")),
+                "empty_means_all": bool(item.get("emptyMeansAll") or item.get("empty_means_all")),
+                "restore_default_after_clear": bool(
+                    item.get("restoreDefaultAfterClear") or item.get("restore_default_after_clear")
+                ),
             }
         )
     return normalized
+
+
+def _normalize_title_contracts(values: list[dict[str, Any]]) -> list[dict[str, str]]:
+    normalized: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for item in values:
+        if not isinstance(item, dict):
+            continue
+        widget_id = str(item.get("widget_id") or item.get("id") or "").strip()
+        mode = str(item.get("mode") or item.get("title_mode") or "").strip()
+        if not widget_id or widget_id in seen or not mode:
+            continue
+        seen.add(widget_id)
+        normalized.append(
+            {
+                "widget_id": widget_id,
+                "mode": mode,
+                "display_title": str(item.get("display_title") or item.get("title") or "").strip(),
+                "hint": str(item.get("hint") or "").strip(),
+                "sha256": str(item.get("sha256") or item.get("title_contract_sha256") or "").strip(),
+            }
+        )
+    return sorted(normalized, key=lambda item: item["widget_id"])
+
+
+def _normalize_composition_binding(value: dict[str, Any]) -> dict[str, Any]:
+    tabs = value.get("tabs") if isinstance(value.get("tabs"), list) else []
+    rows: list[dict[str, Any]] = []
+    four_kpi_override_verified = False
+    for tab in tabs:
+        if not isinstance(tab, dict):
+            continue
+        for row in tab.get("rows") or []:
+            if not isinstance(row, dict):
+                continue
+            items = [
+                {
+                    "widget_id": str(item.get("widget_id") or ""),
+                    "role": str(item.get("role") or ""),
+                    "w": item.get("w"),
+                    "h": item.get("h"),
+                    "title_mode": str(item.get("title_mode") or ""),
+                }
+                for item in row.get("items") or []
+                if isinstance(item, dict) and str(item.get("widget_id") or "").strip()
+            ]
+            rows.append(
+                {
+                    "tab_id": str(tab.get("id") or ""),
+                    "id": str(row.get("id") or ""),
+                    "role": str(row.get("role") or ""),
+                    "gap_after": int(row.get("gap_after") or 0),
+                    "items": items,
+                }
+            )
+            four_kpi_override_verified = four_kpi_override_verified or bool(
+                row.get("density_override") == "four_kpi_9_columns"
+                and isinstance(row.get("browser_proof"), dict)
+                and row["browser_proof"].get("passed") is True
+            )
+    return {
+        "schema_version": str(value.get("schema_version") or ""),
+        "sha256": str(value.get("sha256") or ""),
+        "rows": rows,
+        "four_kpi_override_verified": four_kpi_override_verified,
+    }
 
 
 def _normalize_tooltip_comparison_modes(values: dict[str, str]) -> dict[str, str]:
@@ -1308,6 +1570,237 @@ def browser_qa_evidence(
         "message": message,
         "blocked_reasons": blocked_reasons,
     }
+
+
+def build_qa_attestation(
+    *,
+    plan: dict[str, Any],
+    viewport_results: list[dict[str, Any]],
+    dashboard_id: str,
+    saved_revision: str,
+    published_revision: str = "",
+    runtime_errors: list[str] | None = None,
+    artifact_paths: list[str] | None = None,
+) -> dict[str, Any]:
+    """Bind successful top-to-bottom browser evidence to one payload and revision."""
+
+    plan_validation = validate_browser_qa_plan(plan)
+    normalized_dashboard_id = str(dashboard_id or "").strip()
+    normalized_saved_revision = str(saved_revision or "").strip()
+    normalized_published_revision = str(published_revision or "").strip()
+    target = plan.get("target") if isinstance(plan.get("target"), dict) else {}
+    expected_tabs = list((plan.get("target") or {}).get("tab_ids") or []) or [""]
+    required_widths = [item["width"] for item in BROWSER_QA_VIEWPORTS]
+    normalized_errors = [str(item) for item in runtime_errors or [] if str(item)]
+    coverage: set[tuple[int, str, str]] = set()
+    selector_clear_passed: set[str] = set()
+    result_issues: list[str] = []
+    for index, result in enumerate(viewport_results):
+        if not isinstance(result, dict):
+            result_issues.append(f"viewport_results[{index}] must be an object")
+            continue
+        width = (result.get("viewport") or {}).get("width")
+        tab_id = str(result.get("tab_id") or "")
+        scroll_position = str(result.get("scroll_position") or "")
+        if isinstance(width, int) and not isinstance(width, bool):
+            coverage.add((width, tab_id, scroll_position))
+        if result.get("schema_version") != BROWSER_QA_RESULT_SCHEMA_VERSION:
+            result_issues.append(f"viewport_results[{index}] has an unsupported schema_version")
+        if result.get("passed") is not True:
+            result_issues.append(f"viewport_results[{index}] did not pass every assertion")
+        assertions = result.get("assertions") if isinstance(result.get("assertions"), dict) else {}
+        observations = result.get("observations") if isinstance(result.get("observations"), dict) else {}
+        for interaction in observations.get("selector_clear_interactions") or []:
+            if isinstance(interaction, dict) and interaction.get("passed") is True:
+                selector_clear_passed.add(str(interaction.get("selector_id") or ""))
+        missing = [
+            item["id"]
+            for item in BROWSER_QA_ASSERTIONS
+            if assertions.get(item["id"]) is not True
+        ]
+        if missing:
+            result_issues.append(
+                f"viewport_results[{index}] failed or omitted assertions: {', '.join(missing)}"
+            )
+    expected_coverage = {
+        (width, tab_id, scroll_position)
+        for width in required_widths
+        for tab_id in expected_tabs
+        for scroll_position in ("top", "bottom")
+    }
+    missing_coverage = sorted(expected_coverage - coverage)
+    if missing_coverage:
+        result_issues.append(
+            "missing tab/viewport/scroll coverage: "
+            + ", ".join(f"{width}:{tab_id or 'main'}:{position}" for width, tab_id, position in missing_coverage)
+        )
+    expected_clear_selectors = {
+        str(item.get("selector_id") or "")
+        for item in plan.get("selector_contracts") or []
+        if isinstance(item, dict) and item.get("multiple") is True
+    }
+    missing_clear = sorted(expected_clear_selectors - selector_clear_passed)
+    if missing_clear:
+        result_issues.append(
+            "multiselect Clear roundtrip was not proven for: " + ", ".join(missing_clear)
+        )
+    if not normalized_dashboard_id:
+        result_issues.append("dashboard_id is required")
+    elif str(target.get("dashboard_id") or "") != normalized_dashboard_id:
+        result_issues.append("dashboard_id differs from the browser QA plan")
+    if not normalized_saved_revision:
+        result_issues.append("saved_revision is required")
+    elif str(target.get("saved_revision") or "") and str(target.get("saved_revision")) != normalized_saved_revision:
+        result_issues.append("saved_revision differs from the browser QA plan")
+    if not normalized_published_revision:
+        result_issues.append("published_revision is required")
+    elif normalized_published_revision != normalized_saved_revision:
+        result_issues.append("published_revision must identify the exact saved revision selected for publish")
+    elif str(target.get("published_revision") or "") and str(target.get("published_revision")) != normalized_published_revision:
+        result_issues.append("published_revision differs from the browser QA plan")
+    if normalized_errors:
+        result_issues.append("runtime or network errors were observed")
+    issues = [*plan_validation["issues"], *result_issues]
+    binding = plan.get("attestation_binding") if isinstance(plan.get("attestation_binding"), dict) else {}
+    paths = [str(path) for path in artifact_paths or [] if str(path)]
+    artifact_hashes = {
+        path: _file_sha256(path)
+        for path in paths
+        if Path(path).is_file()
+    }
+    if not paths or len(artifact_hashes) != len(paths):
+        issues.append("browser QA requires readable screenshot or evaluation artifacts")
+    attestation: dict[str, Any] = {
+        "schema_version": "2026-08-06.qa_attestation.v1",
+        "ok": not issues,
+        "status": "passed" if not issues else "failed",
+        "dashboard_id": normalized_dashboard_id,
+        "saved_revision": normalized_saved_revision,
+        "published_revision": normalized_published_revision,
+        "final_payload_attestation_sha256": str(
+            binding.get("final_payload_attestation_sha256") or ""
+        ),
+        "payload_set_sha256": str(binding.get("payload_set_sha256") or ""),
+        "dashboard_composition_sha256": str(
+            binding.get("dashboard_composition_sha256") or ""
+        ),
+        "browser_qa_plan_sha256": str(plan.get("canonical_sha256") or ""),
+        "viewport_widths": required_widths,
+        "tab_ids": expected_tabs,
+        "full_scroll_checked": not missing_coverage,
+        "coverage": [
+            {"width": width, "tab_id": tab_id, "scroll_position": position}
+            for width, tab_id, position in sorted(coverage)
+        ],
+        "runtime_errors": normalized_errors,
+        "issues": issues,
+        "artifact_paths": paths,
+        "artifact_hashes": artifact_hashes,
+    }
+    attestation["sha256"] = hashlib.sha256(
+        json.dumps(
+            {key: value for key, value in attestation.items() if key != "sha256"},
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    return attestation
+
+
+def validate_qa_attestation_binding(
+    qa: dict[str, Any],
+    *,
+    dashboard_id: str,
+    saved_revision: str,
+    published_revision: str,
+    final_payload_attestation_sha256: str,
+    payload_set_sha256: str,
+    dashboard_composition_sha256: str,
+) -> list[str]:
+    """Validate that browser evidence owns the exact revision and payload being completed."""
+
+    if not isinstance(qa, dict) or not qa:
+        return ["qa_attestation is required"]
+    issues: list[str] = []
+    if qa.get("schema_version") != "2026-08-06.qa_attestation.v1":
+        issues.append("qa_attestation schema_version is unsupported")
+    if qa.get("ok") is not True or qa.get("status") != "passed":
+        issues.append("qa_attestation must have status=passed")
+    expected = {
+        "dashboard_id": str(dashboard_id or ""),
+        "saved_revision": str(saved_revision or ""),
+        "published_revision": str(published_revision or ""),
+        "final_payload_attestation_sha256": str(final_payload_attestation_sha256 or ""),
+        "payload_set_sha256": str(payload_set_sha256 or ""),
+        "dashboard_composition_sha256": str(dashboard_composition_sha256 or ""),
+    }
+    for key, value in expected.items():
+        if not value:
+            issues.append(f"expected {key} is required")
+        elif str(qa.get(key) or "") != value:
+            issues.append(f"qa_attestation {key} does not match")
+    if expected["saved_revision"] and expected["published_revision"] != expected["saved_revision"]:
+        issues.append("published revision must be the exact QA-checked saved revision")
+    widths = sorted(
+        int(item)
+        for item in qa.get("viewport_widths") or []
+        if isinstance(item, int) and not isinstance(item, bool)
+    )
+    if widths != [720, 1200, 1440]:
+        issues.append("qa_attestation must cover viewports 720, 1200, and 1440")
+    tab_ids = [str(item) for item in qa.get("tab_ids") or [] if str(item)]
+    coverage = {
+        (
+            item.get("width"),
+            str(item.get("tab_id") or ""),
+            str(item.get("scroll_position") or ""),
+        )
+        for item in qa.get("coverage") or []
+        if isinstance(item, dict)
+    }
+    expected_coverage = {
+        (width, tab_id, position)
+        for width in (720, 1200, 1440)
+        for tab_id in tab_ids
+        for position in ("top", "bottom")
+    }
+    if not tab_ids or coverage != expected_coverage or qa.get("full_scroll_checked") is not True:
+        issues.append("qa_attestation must cover every tab at top and after full scroll")
+    if qa.get("runtime_errors") != []:
+        issues.append("qa_attestation contains runtime or network errors")
+    artifact_paths = [str(item) for item in qa.get("artifact_paths") or [] if str(item)]
+    artifact_hashes = qa.get("artifact_hashes") if isinstance(qa.get("artifact_hashes"), dict) else {}
+    if not artifact_paths or set(artifact_hashes) != set(artifact_paths):
+        issues.append("qa_attestation artifact hashes are incomplete")
+    elif any(not re.fullmatch(r"[a-f0-9]{64}", str(value or "")) for value in artifact_hashes.values()):
+        issues.append("qa_attestation artifact hash is invalid")
+    expected_sha = hashlib.sha256(
+        json.dumps(
+            {key: value for key, value in qa.items() if key != "sha256"},
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    if qa.get("sha256") != expected_sha:
+        issues.append("qa_attestation hash is stale")
+    return issues
+
+
+def delivery_status_from_qa_attestation(
+    qa: dict[str, Any] | None,
+    **expected: str,
+) -> str:
+    """Return done only for a successful attestation matching the published revision."""
+
+    if not qa:
+        return "runtime_not_verified"
+    return (
+        "done"
+        if not validate_qa_attestation_binding(qa, **expected)
+        else "blocked"
+    )
 
 
 def build_runtime_publish_gate(

@@ -8,9 +8,10 @@ from datalens_dev_mcp.editor.render_contract import (
     canonical_sha256,
     load_dashboard_render_profiles,
     resolve_dashboard_render_contract,
-    upgrade_renderer_visual_spec_v4,
-    validate_renderer_visual_spec_v4,
+    upgrade_renderer_visual_spec_v5,
+    validate_renderer_visual_spec_v5,
 )
+from datalens_dev_mcp.editor.title_contract import normalize_title_contract
 
 
 PROFILE_ID = "standard_dashboard_v1"
@@ -22,6 +23,17 @@ def _plain(value):
     if isinstance(value, (list, tuple)):
         return [_plain(item) for item in value]
     return value
+
+
+def _title_contract(*, family: str) -> dict:
+    contract = normalize_title_contract(
+        route="editor_advanced",
+        family=family,
+        display_title="Synthetic title",
+        title_mode="embedded_title",
+    )
+    assert contract["ok"]
+    return contract
 
 
 class DashboardRenderContractTests(unittest.TestCase):
@@ -37,7 +49,7 @@ class DashboardRenderContractTests(unittest.TestCase):
 
         self.assertEqual(profile["sha256"], canonical_sha256(profile_without_hash))
         self.assertEqual(registry["sha256"], canonical_sha256(registry_without_hash))
-        self.assertEqual(profile["registered_family_count"], 38)
+        self.assertEqual(profile["registered_family_count"], 39)
 
         first = resolve_dashboard_render_contract(
             profile_id=PROFILE_ID,
@@ -171,13 +183,14 @@ class DashboardRenderContractTests(unittest.TestCase):
             with self.subTest(adapter_id=adapter_id):
                 self.assertEqual(adapter["allowed_tooltip_owners"], ("native",))
 
-    def test_v4_upgrade_enforces_kpi_legend_tooltip_selector_and_comparison_invariants(self):
+    def test_v5_upgrade_enforces_kpi_legend_tooltip_selector_and_comparison_invariants(self):
         contract = resolve_dashboard_render_contract(
             profile_id=PROFILE_ID,
             family="horizontal_bar",
             overrides={"tooltip_owner": "native"},
         )
-        upgraded = upgrade_renderer_visual_spec_v4(
+        title_contract = _title_contract(family="horizontal_bar")
+        upgraded = upgrade_renderer_visual_spec_v5(
             {
                 "chart_purpose": "Rank categories",
                 "legend": {
@@ -196,10 +209,18 @@ class DashboardRenderContractTests(unittest.TestCase):
                 },
             },
             render_contract=contract,
+            title_contract=title_contract,
             comparison_enabled=True,
         )
 
-        self.assertEqual(validate_renderer_visual_spec_v4(upgraded, render_contract=contract), ())
+        self.assertEqual(
+            validate_renderer_visual_spec_v5(
+                upgraded,
+                render_contract=contract,
+                title_contract=title_contract,
+            ),
+            (),
+        )
         self.assertEqual(upgraded["kpi_context"]["surface"]["background"], "transparent")
         self.assertEqual(
             upgraded["kpi_context"]["surface"]["border"],
@@ -259,14 +280,14 @@ class DashboardRenderContractTests(unittest.TestCase):
             "all",
         )
         self.assertTrue(upgraded["selector_contract"]["period_first_if_present"])
-        self.assertTrue(upgraded["selector_contract"]["single_row"])
+        self.assertFalse(upgraded["selector_contract"]["single_row"])
         self.assertEqual(
             upgraded["selector_contract"]["row_target_width_percent"],
-            95,
+            94,
         )
         self.assertEqual(
             upgraded["selector_contract"]["row_width_tolerance_percent"],
-            1,
+            0,
         )
         self.assertEqual(upgraded["comparison_context"]["block_count"], 1)
         self.assertEqual(
@@ -280,10 +301,10 @@ class DashboardRenderContractTests(unittest.TestCase):
         self.assertFalse(
             upgraded["comparison_context"]["duplicate_chart_captions"]
         )
-        self.assertEqual(upgraded["comparison_context"]["minimum_height_px"], 70)
+        self.assertEqual(upgraded["comparison_context"]["minimum_height_px"], 24)
         self.assertEqual(
             upgraded["comparison_context"]["dashboard_grid_height_units"],
-            3,
+            1,
         )
         self.assertEqual(
             upgraded["horizontal_rank"]["preferred_bar_width_px"],
@@ -311,7 +332,11 @@ class DashboardRenderContractTests(unittest.TestCase):
         broken["selector_contract"]["control_max_width_percent"] = 95
         broken["selector_contract"]["period_first_if_present"] = False
         broken["comparison_context"]["block_count"] = 2
-        issues = validate_renderer_visual_spec_v4(broken, render_contract=contract)
+        issues = validate_renderer_visual_spec_v5(
+            broken,
+            render_contract=contract,
+            title_contract=title_contract,
+        )
 
         self.assertIn("kpi.surface.border_must_be_none", issues)
         self.assertIn("legend.inline_typography_forbidden", issues)
@@ -364,7 +389,8 @@ class DashboardRenderContractTests(unittest.TestCase):
             profile_id=PROFILE_ID,
             family="line_chart",
         )
-        upgraded = upgrade_renderer_visual_spec_v4(
+        title_contract = _title_contract(family="line_chart")
+        upgraded = upgrade_renderer_visual_spec_v5(
             {
                 "tooltip": {
                     "comparison_mode": "comparison",
@@ -374,6 +400,7 @@ class DashboardRenderContractTests(unittest.TestCase):
                 }
             },
             render_contract=contract,
+            title_contract=title_contract,
             comparison_enabled=False,
         )
 
@@ -384,7 +411,11 @@ class DashboardRenderContractTests(unittest.TestCase):
         self.assertFalse(upgraded["tooltip"]["show_comparison_period"])
         self.assertFalse(upgraded["tooltip"]["allow_empty_comparison_period"])
         self.assertEqual(
-            validate_renderer_visual_spec_v4(upgraded, render_contract=contract),
+            validate_renderer_visual_spec_v5(
+                upgraded,
+                render_contract=contract,
+                title_contract=title_contract,
+            ),
             (),
         )
 
@@ -445,8 +476,11 @@ class DashboardRenderContractTests(unittest.TestCase):
             {
                 "title_creation_default": 2,
                 "selector_creation_default": 2,
-                "comparison_context_minimum": 3,
-                "kpi_creation_default": 6,
+                "selector_two_row_default": 3,
+                "comparison_context_minimum": 1,
+                "comparison_context_maximum": 3,
+                "kpi_creation_default": 8,
+                "kpi_compact_default": 6,
             },
         )
         self.assertEqual(

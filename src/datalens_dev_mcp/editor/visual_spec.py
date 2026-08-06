@@ -6,6 +6,9 @@ from typing import Any
 from datalens_dev_mcp.editor.render_tokens import load_visual_style_tokens
 
 
+RENDERER_VISUAL_INTENT_V1 = "2026-08-06.renderer_visual_intent.v1"
+
+
 @dataclass(frozen=True)
 class RendererVisualSpec:
     family: str
@@ -30,7 +33,7 @@ class RendererVisualSpec:
     advanced_runtime_budget: dict[str, Any]
     style_tokens: dict[str, Any] = field(default_factory=dict)
     runtime_constraints: dict[str, Any] = field(default_factory=dict)
-    schema_version: str = "2026-07-23.renderer_visual_spec.v3"
+    schema_version: str = RENDERER_VISUAL_INTENT_V1
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/datalens-dev-mcp/schemas/final-payload-attestation.schema.json",
+  "title": "Final payload attestation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "ok", "status", "applicability", "issues", "authoring_profiles", "routes", "components", "dashboard_composition", "dashboard_payload", "payload_set_sha256", "qa_requirement", "attestation_sha256"],
+  "properties": {
+    "schema_version": {"const": "2026-08-06.final_payload_attestation.v1"},
+    "ok": {"type": "boolean"},
+    "status": {"enum": ["attested", "blocked"]},
+    "applicability": {"enum": ["required", "legacy_optional"]},
+    "issues": {"type": "array", "items": {"type": "string"}},
+    "authoring_profiles": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "routes": {"type": "array", "items": {"type": "object", "required": ["widget_id", "planned", "actual"]}},
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["widget_id", "artifact_path", "route", "planned_route", "family", "authoring_profile", "runtime", "title_mode", "display_title", "compiled_payload_sha256", "binding_neutral_payload_sha256", "tabs_sha256"]
+      }
+    },
+    "dashboard_composition": {"type": "object", "required": ["path", "sha256", "layout_hash", "selector_hash", "tab_hashes"]},
+    "dashboard_payload": {"type": "object", "required": ["path", "sha256", "binding_neutral_sha256", "mount_bindings_sha256"]},
+    "payload_set_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "qa_requirement": {"type": "object", "required": ["required_for_publish", "dashboard_revision_bound", "payload_hash_bound", "required_viewport_widths"]},
+    "attestation_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

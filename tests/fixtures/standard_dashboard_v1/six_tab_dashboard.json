@@ -1,0 +1,13 @@
+{
+  "dashboard_id": "synthetic_six_tab",
+  "dashboard_title": "Synthetic Operations Overview",
+  "version": 2,
+  "tabs": [
+    {"id": "overview", "title": "Overview", "rows": [{"id": "overview_kpi", "role": "kpi", "items": ["kpi_a", "kpi_b", "kpi_c"]}]},
+    {"id": "trend", "title": "Trend", "rows": [{"id": "trend_main", "role": "chart", "items": ["trend_a", "trend_b"]}]},
+    {"id": "segments", "title": "Segments", "rows": [{"id": "segments_main", "role": "chart", "items": ["segment_a", "segment_b"]}]},
+    {"id": "quality", "title": "Quality", "rows": [{"id": "quality_main", "role": "chart", "items": ["quality_a"]}]},
+    {"id": "detail", "title": "Detail", "rows": [{"id": "detail_main", "role": "table", "items": ["detail_table"]}]},
+    {"id": "method", "title": "Method", "rows": [{"id": "method_main", "role": "comparison_context", "items": ["method_note"]}]}
+  ]
+}

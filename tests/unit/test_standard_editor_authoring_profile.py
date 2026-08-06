@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from datalens_dev_mcp.editor.authoring_profiles import (
+    CANONICAL_AUTHORING_PROFILE_ID,
     _packaged_template_set_identity,
     _project_template_set_identity,
     apply_authoring_profile_bundle,
@@ -23,8 +24,8 @@ from datalens_dev_mcp.pipeline.project_live_workflows import run_project_live_dr
 from datalens_dev_mcp.runtime_resources import RESOURCE_OVERRIDE_ENV, resource_json
 
 
-PROFILE_ID = "standard_editor_v1"
-TEMPLATE_SET_SHA256 = "6d35e7ae7e31ffb5677010b63e8e6d9455c8955a5b5f041e939281e0470a5da8"
+PROFILE_ID = CANONICAL_AUTHORING_PROFILE_ID
+TEMPLATE_SET_SHA256 = "6ce84e5e14cefa09beb8774f5d8b306fdaee212532fbfda8b5acebd5e4ca20a4"
 
 
 class StandardEditorAuthoringProfileTests(unittest.TestCase):
@@ -163,13 +164,18 @@ class StandardEditorAuthoringProfileTests(unittest.TestCase):
         registry = resource_json("templates/datalens/standard_chart_templates.json")
 
         self.assertTrue(profile["active"])
-        self.assertEqual(profile["id"], PROFILE_ID)
-        self.assertEqual(profile["registered_family_count"], 38)
+        self.assertEqual(profile["id"], CANONICAL_AUTHORING_PROFILE_ID)
+        self.assertEqual(profile["normalized_from"], "standard_js")
+        self.assertEqual(profile["registered_family_count"], 39)
         self.assertEqual(profile["template_asset_count"], 74)
         self.assertEqual(profile["template_set_sha256"], TEMPLATE_SET_SHA256)
         for family, spec in registry["families"].items():
             with self.subTest(family=family):
-                selected = authoring_profile_route_decision(profile=profile, family=family)
+                selected = authoring_profile_route_decision(
+                    profile=profile,
+                    family=family,
+                    canonical_route=spec["route"],
+                )
                 self.assertTrue(selected["ok"])
                 self.assertEqual(selected["route"], spec["route"])
                 self.assertEqual(selected["source_template"], spec["template_dir"])
@@ -177,13 +183,65 @@ class StandardEditorAuthoringProfileTests(unittest.TestCase):
         conflict = authoring_profile_route_decision(
             profile=profile,
             family="line_chart",
-            explicit_route="wizard_native",
+            explicit_route="editor_table",
         )
         unsupported = authoring_profile_route_decision(profile=profile, family="unregistered_map")
         self.assertFalse(conflict["ok"])
         self.assertEqual(conflict["error"]["category"], "authoring_profile_route_conflict")
         self.assertFalse(unsupported["ok"])
         self.assertEqual(unsupported["error"]["category"], "profile_family_requires_review")
+
+    def test_every_historical_alias_resolves_to_the_only_executable_contract(self):
+        registry = resource_json("config/editor_authoring_profiles.json")
+        canonical = resolve_authoring_profile(requested_profile=PROFILE_ID)
+        aliases = registry["profiles"][PROFILE_ID]["aliases"]
+
+        self.assertEqual(list(registry["profiles"]), [PROFILE_ID])
+        for alias in aliases:
+            with self.subTest(alias=alias):
+                resolved = resolve_authoring_profile(requested_profile=alias)
+                self.assertTrue(resolved["ok"], resolved)
+                self.assertEqual(resolved["id"], PROFILE_ID)
+                self.assertEqual(resolved["requested_id"], alias)
+                self.assertEqual(resolved["normalized_from"], alias)
+                self.assertEqual(
+                    resolved["template_set_sha256"],
+                    canonical["template_set_sha256"],
+                )
+                self.assertEqual(
+                    resolved["style_contract_sha256"],
+                    canonical["style_contract_sha256"],
+                )
+
+    def test_reserved_historical_alias_cannot_bind_a_project_local_descriptor(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            descriptor = root / "obsolete.json"
+            descriptor.write_text('{"id":"standard_editor_v1"}', encoding="utf-8")
+            (root / ".datalens-mcp.json").write_text(
+                json.dumps(
+                    {
+                        "authoring_profile": {
+                            "id": "standard_editor_v1",
+                            "descriptor_path": descriptor.name,
+                            "descriptor_sha256": hashlib.sha256(
+                                descriptor.read_bytes()
+                            ).hexdigest(),
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            resolved = resolve_authoring_profile(
+                project_root=root,
+                requested_profile="standard_editor_v1",
+            )
+
+        self.assertTrue(resolved["ok"], resolved)
+        self.assertEqual(resolved["id"], PROFILE_ID)
+        self.assertEqual(resolved["source_kind"], "packaged")
+        self.assertTrue(resolved["packaged_profile_descriptor_ignored"])
 
     def test_project_profile_reuses_registered_template_without_fallback(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -204,17 +262,20 @@ class StandardEditorAuthoringProfileTests(unittest.TestCase):
                         "decision_id": "trend",
                         "title": "Synthetic chart title",
                         "family": "line_chart",
-                        "route": "wizard_native",
+                        "route": "editor_advanced",
                         "renderer_visual_spec": {},
                         "chart_decision_record": {
                             "selected_family": "line_chart",
-                            "selected_route": "wizard_native",
+                            "selected_route": "editor_advanced",
                             "renderer_visual_spec": {},
                         },
                     }
                 ],
             }
             (root / "artifacts" / "dashboard_brief.json").write_text(json.dumps(brief), encoding="utf-8")
+            existing_bundle = root / "dashboard" / "trend" / "bundle.json"
+            existing_bundle.parent.mkdir(parents=True)
+            existing_bundle.write_text("{}", encoding="utf-8")
 
             first = dl_generate_editor_bundle(
                 project_root=str(root),
@@ -233,7 +294,7 @@ class StandardEditorAuthoringProfileTests(unittest.TestCase):
         self.assertEqual(first["display_title"], "Synthetic chart title")
         self.assertEqual(first["source_template"], "templates/datalens/advanced_editor/time_series")
         self.assertTrue(first["authoring_profile"]["exact_template_reused"])
-        self.assertEqual(first["authoring_profile"]["registered_family_count"], 38)
+        self.assertEqual(first["authoring_profile"]["registered_family_count"], 39)
         provenance = first["template_provenance"]
         self.assertEqual(provenance["policy"], "exact_registered_asset")
         self.assertFalse(provenance["approximate_fallback_used"])
@@ -267,7 +328,7 @@ class StandardEditorAuthoringProfileTests(unittest.TestCase):
     def test_changed_template_set_fails_closed(self):
         with patch(
             "datalens_dev_mcp.editor.authoring_profiles.authoring_profile_template_set_identity",
-            return_value={"sha256": "0" * 64, "asset_count": 74, "family_count": 38},
+            return_value={"sha256": "0" * 64, "asset_count": 74, "family_count": 39},
         ):
             profile = resolve_authoring_profile(requested_profile=PROFILE_ID)
 

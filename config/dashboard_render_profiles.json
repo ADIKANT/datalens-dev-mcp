@@ -1,11 +1,11 @@
 {
-  "schema_version": "2026-07-29.dashboard_render_profiles.v2",
+  "schema_version": "2026-08-06.dashboard_render_profiles.v4",
   "default_profile_id": "standard_dashboard_v1",
   "profiles": {
     "standard_dashboard_v1": {
-      "description": "Strict, compact, cross-chart dashboard rendering contract",
+      "description": "Single canonical role-owned rendering and semantic dashboard composition contract",
       "fallback_policy": "registered_families_only",
-      "registered_family_count": 38,
+      "registered_family_count": 39,
       "core": {
         "viewport": {
           "min_width_px": 280,
@@ -37,8 +37,11 @@
           "native_height_units": {
             "title_creation_default": 2,
             "selector_creation_default": 2,
-            "comparison_context_minimum": 3,
-            "kpi_creation_default": 6
+            "selector_two_row_default": 3,
+            "comparison_context_minimum": 1,
+            "comparison_context_maximum": 3,
+            "kpi_creation_default": 8,
+            "kpi_compact_default": 6
           },
           "update_policy": "preserve_fresh_saved_geometry",
           "runtime_relation": "measured_independently_from_native_units",
@@ -169,9 +172,9 @@
           "label_placement": "left",
           "blank_multiselect_semantics": "all",
           "period_first_if_present": true,
-          "single_row": true,
-          "row_target_width_percent": 95,
-          "row_width_tolerance_percent": 1
+          "single_row": false,
+          "row_target_width_percent": 94,
+          "row_width_tolerance_percent": 0
         },
         "comparison_context": {
           "required_when_comparison_enabled": true,
@@ -183,8 +186,37 @@
             "comparison_range"
           ],
           "duplicate_chart_captions": false,
-          "minimum_height_px": 70,
-          "semantic_line_count": 3
+          "minimum_height_px": 24,
+          "semantic_line_count": 1,
+          "height_policy": "content_lines_1_to_3"
+        },
+        "dashboard_composition": {
+          "schema_version": "2026-08-06.dashboard_composition.v2",
+          "desktop_grid_columns": 36,
+          "selector_row_width_percent": 94,
+          "selector_height_units": {
+            "one_row": 2,
+            "two_rows": 3
+          },
+          "kpi_max_per_row": 3,
+          "kpi_width_units": 12,
+          "kpi_height_units": {
+            "sparkline": 8,
+            "compact": 6
+          },
+          "gap_after_default": 0,
+          "equal_height_within_semantic_row": true
+        },
+        "title_contract": {
+          "schema_version": "2026-08-06.dashboard_title_contract.v1",
+          "modes": [
+            "embedded_title",
+            "content_label",
+            "tab_only",
+            "native_title",
+            "tab_strip"
+          ],
+          "native_and_runtime_mutually_exclusive": true
         },
         "series_visibility": {
           "source": "filtered_result_rows",
@@ -504,10 +536,19 @@
         },
         "selector_family_dynamic": {
           "adapter": "selector_rows_v1"
+        },
+        "selector_group": {
+          "adapter": "selector_rows_v1"
         }
       },
-      "sha256": "b63c60dd1ab418f439d1d42b99f773686f7ac0773dc5c4b1809ec64e0dd391bc"
+      "runtime_assets": {
+        "advanced_editor_runtime": "templates/datalens/authoring_profiles/standard_dashboard_v1/advanced_editor_runtime.js",
+        "advanced_editor_runtime_sha256": "790657cf4e79ea435038e28b343d6db0475ca0909e69ac06d8a9831942c84a3a",
+        "prepare_adapter": "templates/datalens/authoring_profiles/standard_dashboard_v1/prepare_adapter.js",
+        "prepare_adapter_sha256": "e24a4ebd8c04e3a508b6da2456335a1a2547a7ed4b08280ead16f1fecc15602a"
+      },
+      "sha256": "feb155602f22bbd30926b1a6b38de10fe0a317eb118fb0e83bd0e84a8eaba67d"
     }
   },
-  "sha256": "3413d75ff87f60417eb27e5de5c71dbe9c20db0809394fa9d5443f59b1b500f3"
+  "sha256": "860be270197536fd6cb0a9016623a3517980873ea87eda4f074452325831c34c"
 }

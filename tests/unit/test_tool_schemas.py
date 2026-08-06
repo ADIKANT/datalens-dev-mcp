@@ -101,11 +101,10 @@ class ToolSchemaTests(unittest.TestCase):
         self.assertIn("wizard_map_native", route_schema["properties"]["route"]["enum"])
         selector_schema = route_schema["properties"]["selector_contract"]
         self.assertFalse(selector_schema["additionalProperties"])
-        self.assertEqual(
-            selector_schema["required"],
-            ["label", "option_source", "reset_behavior"],
-        )
-        self.assertEqual(len(selector_schema["oneOf"]), 2)
+        self.assertNotIn("required", selector_schema)
+        self.assertNotIn("oneOf", selector_schema)
+        self.assertEqual(selector_schema["properties"]["controls"]["type"], "array")
+        self.assertEqual(selector_schema["properties"]["row_width_target_percent"]["const"], 94)
         dataset_readbacks_schema = route_schema["properties"]["dataset_readbacks"]
         self.assertEqual(dataset_readbacks_schema["type"], "array")
         self.assertEqual(dataset_readbacks_schema["items"]["type"], "object")

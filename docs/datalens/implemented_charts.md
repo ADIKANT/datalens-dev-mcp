@@ -15,12 +15,15 @@ No implemented charts are recorded in the repository template workspace yet.
 
 Each generated entry includes chart ID, dashboard/page/tab, chart family,
 implementation path, template used, dataset/source, dimensions, measures,
-calculated fields, filters, selectors, object relations, native title/hint
-metadata, style/theme notes, known limitations, and last update timestamp.
+calculated fields, filters, selectors, object relations, `title_mode`, derived
+native metadata, style/theme notes, known limitations, and last update timestamp.
 
-Native title/hint metadata is recorded as `title`, `hint`, `hideTitle`, and
-`enableHint`. This lets a reviewer verify that Advanced Editor chart bodies did
-not duplicate dashboard-level titles or hints.
+Title contracts record the exact display title, hint owner, `hideTitle`, and
+`enableHint`. This lets a reviewer verify that native and Advanced Editor
+headers do not duplicate each other.
+
+The derived native title/hint metadata remains in the catalog for readback
+compatibility, but its visibility is controlled by `title_mode`.
 
 ## Historical Conversion Notes
 

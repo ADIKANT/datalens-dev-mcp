@@ -12,7 +12,24 @@
       "enum": ["editor_advanced", "editor_table", "editor_markdown", "editor_js_control"]
     },
     "entry_type": {"type": "string"},
-    "tabs": {"type": "object", "additionalProperties": {"type": "string"}}
+    "tabs": {"type": "object", "additionalProperties": {"type": "string"}},
+    "authoring_profile": {"type": "object"},
+    "editor_render_profile": {"type": "string"},
+    "render_contract_version": {"type": "string"},
+    "title_mode": {"enum": ["embedded_title", "content_label", "tab_only", "native_title", "tab_strip"]},
+    "render_contract": {"type": "object"},
+    "title_contract": {"$ref": "dashboard-title-contract.schema.json"},
+    "protected_renderer_identity": {"type": "object"},
+    "dashboard_composition_binding": {
+      "type": "object",
+      "required": ["composition_sha256", "payload_skeleton_sha256"],
+      "properties": {
+        "composition_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "payload_skeleton_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "final_payload_attestation": {"$ref": "final-payload-attestation.schema.json"},
+    "qa_attestation": {"$ref": "qa-attestation.schema.json"}
   },
   "additionalProperties": true
 }

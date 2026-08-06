@@ -12,8 +12,22 @@ from datalens_dev_mcp.runtime_resources import resource_json
 
 
 DASHBOARD_RENDER_PROFILE_RESOURCE = "config/dashboard_render_profiles.json"
-DASHBOARD_RENDER_PROFILE_SCHEMA_VERSION = "2026-07-29.dashboard_render_profiles.v2"
-RENDERER_VISUAL_SPEC_V4 = "2026-07-28.renderer_visual_spec.v4"
+DASHBOARD_RENDER_PROFILE_SCHEMA_VERSION = "2026-08-06.dashboard_render_profiles.v4"
+CANONICAL_RENDER_PROFILE_ID = "standard_dashboard_v1"
+CANONICAL_RENDER_PROFILE_ALIASES = frozenset(
+    {
+        CANONICAL_RENDER_PROFILE_ID,
+        "standard_dashboard_v2",
+        "standard_dashboard",
+        "strict_dashboard",
+        "registered_dashboard",
+        "standard_editor",
+        "standard_editor_v1",
+        "standard_editor_v2",
+        "standard_editor_v3",
+    }
+)
+RENDERER_VISUAL_SPEC_V5 = "2026-08-06.renderer_visual_spec.v5"
 
 _ALLOWED_OVERRIDE_VALUES = {
     "density": ("compact", "comfortable"),
@@ -84,7 +98,12 @@ def resolve_dashboard_render_contract(
     """Resolve one registered family to an immutable, exact render contract."""
 
     registry = load_dashboard_render_profiles()
-    selected_profile_id = str(profile_id or registry.get("default_profile_id") or "").strip()
+    requested_profile_id = str(profile_id or registry.get("default_profile_id") or "").strip()
+    selected_profile_id = (
+        CANONICAL_RENDER_PROFILE_ID
+        if requested_profile_id in CANONICAL_RENDER_PROFILE_ALIASES
+        else requested_profile_id
+    )
     profiles = registry.get("profiles")
     if not isinstance(profiles, Mapping) or selected_profile_id not in profiles:
         available = ", ".join(sorted(str(value) for value in (profiles or {})))
@@ -93,7 +112,8 @@ def resolve_dashboard_render_contract(
             f"unknown profile {selected_profile_id!r}; registered profiles: {available}",
         )
     family_id = str(family or "").strip()
-    profile = profiles[selected_profile_id]
+    profile = _materialize_profile(registry, selected_profile_id)
+    raw_profile = profiles[selected_profile_id]
     family_map = profile.get("family_map")
     if not isinstance(family_map, Mapping) or family_id not in family_map:
         raise DashboardRenderContractError(
@@ -151,7 +171,7 @@ def resolve_dashboard_render_contract(
     resolved = {
         "schema_version": DASHBOARD_RENDER_PROFILE_SCHEMA_VERSION,
         "profile_id": selected_profile_id,
-        "profile_sha256": str(profile["sha256"]),
+        "profile_sha256": str(raw_profile["sha256"]),
         "registry_sha256": str(registry["sha256"]),
         "family": family_id,
         "adapter_ids": [adapter_id],
@@ -172,13 +192,67 @@ def resolve_dashboard_render_contract(
     return _freeze(resolved)
 
 
-def upgrade_renderer_visual_spec_v4(
+def upgrade_renderer_visual_spec_v5(
+    visual_spec: Mapping[str, Any] | None,
+    *,
+    render_contract: Mapping[str, Any],
+    title_contract: Mapping[str, Any],
+    comparison_enabled: bool | None = None,
+) -> dict[str, Any]:
+    """Build the only registered role-based visual specification."""
+
+    result = _build_renderer_visual_spec_v5(
+        visual_spec,
+        render_contract=render_contract,
+        comparison_enabled=comparison_enabled,
+    )
+    result["schema_version"] = RENDERER_VISUAL_SPEC_V5
+    result["title_contract"] = _jsonable(title_contract)
+    tokens = _jsonable(render_contract["effective_tokens"])
+    composition = _mapping_at(tokens, "dashboard_composition")
+    result["dashboard_composition"] = copy.deepcopy(composition)
+    issues = validate_renderer_visual_spec_v5(
+        result,
+        render_contract=render_contract,
+        title_contract=title_contract,
+    )
+    if issues:
+        raise DashboardRenderContractError(
+            "invalid_renderer_visual_spec_v5",
+            "; ".join(issues),
+        )
+    return result
+
+
+def validate_renderer_visual_spec_v5(
+    visual_spec: Mapping[str, Any],
+    *,
+    render_contract: Mapping[str, Any],
+    title_contract: Mapping[str, Any],
+) -> tuple[str, ...]:
+    spec = _jsonable(visual_spec)
+    issues: list[str] = []
+    if spec.get("schema_version") != RENDERER_VISUAL_SPEC_V5:
+        issues.append("schema_version.must_be_renderer_visual_spec_v5")
+    issues.extend(_validate_renderer_visual_spec_base(spec, render_contract=render_contract))
+    if spec.get("title_contract") != _jsonable(title_contract):
+        issues.append("title_contract.binding_mismatch")
+    expected_composition = _mapping_at(
+        _jsonable(render_contract["effective_tokens"]),
+        "dashboard_composition",
+    )
+    if spec.get("dashboard_composition") != expected_composition:
+        issues.append("dashboard_composition.profile_token_mismatch")
+    return tuple(dict.fromkeys(issues))
+
+
+def _build_renderer_visual_spec_v5(
     visual_spec: Mapping[str, Any] | None,
     *,
     render_contract: Mapping[str, Any],
     comparison_enabled: bool | None = None,
 ) -> dict[str, Any]:
-    """Merge semantic fields with strict profile tokens and validate the v4 result."""
+    """Merge semantic fields with the canonical strict profile tokens."""
 
     _require_resolved_contract(render_contract)
     result = copy.deepcopy(_jsonable(visual_spec or {}))
@@ -186,7 +260,7 @@ def upgrade_renderer_visual_spec_v4(
     if comparison_enabled is None:
         comparison_enabled = _comparison_is_enabled(result)
     comparison_enabled = bool(comparison_enabled)
-    result["schema_version"] = RENDERER_VISUAL_SPEC_V4
+    result["schema_version"] = RENDERER_VISUAL_SPEC_V5
     result["render_contract"] = {
         "profile_id": str(render_contract["profile_id"]),
         "profile_sha256": str(render_contract["profile_sha256"]),
@@ -330,16 +404,10 @@ def upgrade_renderer_visual_spec_v4(
         comparison_tokens.get("semantic_line_count") or 0
     )
 
-    issues = validate_renderer_visual_spec_v4(result, render_contract=render_contract)
-    if issues:
-        raise DashboardRenderContractError(
-            "invalid_renderer_visual_spec_v4",
-            "; ".join(issues),
-        )
     return result
 
 
-def validate_renderer_visual_spec_v4(
+def _validate_renderer_visual_spec_base(
     visual_spec: Mapping[str, Any],
     *,
     render_contract: Mapping[str, Any],
@@ -350,9 +418,6 @@ def validate_renderer_visual_spec_v4(
     spec = _jsonable(visual_spec)
     tokens = _jsonable(render_contract["effective_tokens"])
     issues: list[str] = []
-
-    if spec.get("schema_version") != RENDERER_VISUAL_SPEC_V4:
-        issues.append("schema_version.must_be_renderer_visual_spec_v4")
 
     binding = spec.get("render_contract") if isinstance(spec.get("render_contract"), dict) else {}
     expected_binding = {
@@ -555,23 +620,6 @@ def validate_renderer_visual_spec_v4(
 
     return tuple(dict.fromkeys(issues))
 
-
-def assert_renderer_visual_spec_v4(
-    visual_spec: Mapping[str, Any],
-    *,
-    render_contract: Mapping[str, Any],
-) -> None:
-    issues = validate_renderer_visual_spec_v4(
-        visual_spec,
-        render_contract=render_contract,
-    )
-    if issues:
-        raise DashboardRenderContractError(
-            "invalid_renderer_visual_spec_v4",
-            "; ".join(issues),
-        )
-
-
 def _validate_registry(registry: Any) -> None:
     if not isinstance(registry, dict):
         raise DashboardRenderContractError(
@@ -598,28 +646,34 @@ def _validate_registry(registry: Any) -> None:
             "profiles must be a non-empty object",
         )
     default_profile_id = str(registry.get("default_profile_id") or "")
-    if default_profile_id not in profiles:
+    if default_profile_id != CANONICAL_RENDER_PROFILE_ID:
         raise DashboardRenderContractError(
             "invalid_dashboard_render_profile_registry",
-            "default_profile_id must identify a registered profile",
+            f"default_profile_id must be {CANONICAL_RENDER_PROFILE_ID!r}",
+        )
+    if set(profiles) != {CANONICAL_RENDER_PROFILE_ID}:
+        raise DashboardRenderContractError(
+            "invalid_dashboard_render_profile_registry",
+            "the registry must expose exactly one canonical render profile",
         )
     for profile_id, profile in profiles.items():
-        _validate_profile(str(profile_id), profile)
+        _validate_profile(registry, str(profile_id), profile)
 
 
-def _validate_profile(profile_id: str, profile: Any) -> None:
-    if not isinstance(profile, dict):
+def _validate_profile(registry: Mapping[str, Any], profile_id: str, raw_profile: Any) -> None:
+    if not isinstance(raw_profile, dict):
         raise DashboardRenderContractError(
             "invalid_dashboard_render_profile",
             f"profile {profile_id!r} must be an object",
         )
-    expected_profile_sha256 = str(profile.get("sha256") or "").lower()
-    actual_profile_sha256 = canonical_sha256(_without_key(profile, "sha256"))
+    expected_profile_sha256 = str(raw_profile.get("sha256") or "").lower()
+    actual_profile_sha256 = canonical_sha256(_without_key(raw_profile, "sha256"))
     if not _is_sha256(expected_profile_sha256) or expected_profile_sha256 != actual_profile_sha256:
         raise DashboardRenderContractError(
             "dashboard_render_profile_hash_mismatch",
             f"profile {profile_id!r} canonical fingerprint changed; register a reviewed version",
         )
+    profile = _materialize_profile(registry, profile_id)
 
     core = profile.get("core")
     adapters = profile.get("adapters")
@@ -711,6 +765,47 @@ def _validate_profile(profile_id: str, profile: Any) -> None:
     _validate_core_geometry(profile_id, core)
 
 
+def _materialize_profile(
+    registry: Mapping[str, Any],
+    profile_id: str,
+    *,
+    _stack: tuple[str, ...] = (),
+) -> dict[str, Any]:
+    profiles = registry.get("profiles")
+    raw = profiles.get(profile_id) if isinstance(profiles, Mapping) else None
+    if not isinstance(raw, Mapping):
+        raise DashboardRenderContractError(
+            "invalid_dashboard_render_profile",
+            f"profile {profile_id!r} is not registered",
+        )
+    if profile_id in _stack:
+        raise DashboardRenderContractError(
+            "invalid_dashboard_render_profile",
+            "render profile inheritance contains a cycle",
+        )
+    parent_id = str(raw.get("extends") or "").strip()
+    own = {
+        str(key): _jsonable(value)
+        for key, value in raw.items()
+        if key not in {"extends", "extends_sha256", "sha256"}
+    }
+    if not parent_id:
+        return own
+    parent_raw = profiles.get(parent_id) if isinstance(profiles, Mapping) else None
+    if not isinstance(parent_raw, Mapping):
+        raise DashboardRenderContractError(
+            "invalid_dashboard_render_profile",
+            f"profile {profile_id!r} extends unknown profile {parent_id!r}",
+        )
+    if str(raw.get("extends_sha256") or "") != str(parent_raw.get("sha256") or ""):
+        raise DashboardRenderContractError(
+            "dashboard_render_profile_base_hash_mismatch",
+            f"profile {profile_id!r} is not bound to the registered base profile hash",
+        )
+    base = _materialize_profile(registry, parent_id, _stack=(*_stack, profile_id))
+    return _deep_merge(base, own)
+
+
 def _validate_core_geometry(profile_id: str, core: dict[str, Any]) -> None:
     grid = _mapping_at(core, "layout_grid")
     native_heights = _mapping_at(grid, "native_height_units")
@@ -718,12 +813,16 @@ def _validate_core_geometry(profile_id: str, core: dict[str, Any]) -> None:
     comparison = _mapping_at(core, "comparison_context")
     kpi = _mapping_at(core, "kpi")
     kpi_layout = _mapping_at(kpi, "layout")
-    if native_heights != {
+    expected_native_heights = {
         "title_creation_default": 2,
         "selector_creation_default": 2,
-        "comparison_context_minimum": 3,
-        "kpi_creation_default": 6,
-    }:
+        "selector_two_row_default": 3,
+        "comparison_context_minimum": 1,
+        "comparison_context_maximum": 3,
+        "kpi_creation_default": 8,
+        "kpi_compact_default": 6,
+    }
+    if native_heights != expected_native_heights:
         raise DashboardRenderContractError(
             "invalid_dashboard_render_profile",
             f"profile {profile_id!r} has invalid native dashboard height defaults",
@@ -734,7 +833,7 @@ def _validate_core_geometry(profile_id: str, core: dict[str, Any]) -> None:
         or grid.get("equal_height_within_semantic_row") is not True
         or grid.get("overflow_policy") != "expand_or_scroll_never_clip"
         or selector.get("row_height_px") != 44
-        or comparison.get("minimum_height_px") != 70
+        or comparison.get("minimum_height_px") != 24
         or kpi_layout
         != {
             "update_policy": "preserve_fresh_saved_geometry",
@@ -745,6 +844,22 @@ def _validate_core_geometry(profile_id: str, core: dict[str, Any]) -> None:
         raise DashboardRenderContractError(
             "invalid_dashboard_render_profile",
             f"profile {profile_id!r} has inconsistent semantic object heights",
+        )
+    composition = _mapping_at(core, "dashboard_composition")
+    if composition != {
+        "schema_version": "2026-08-06.dashboard_composition.v2",
+        "desktop_grid_columns": 36,
+        "selector_row_width_percent": 94,
+        "selector_height_units": {"one_row": 2, "two_rows": 3},
+        "kpi_max_per_row": 3,
+        "kpi_width_units": 12,
+        "kpi_height_units": {"sparkline": 8, "compact": 6},
+        "gap_after_default": 0,
+        "equal_height_within_semantic_row": True,
+    }:
+        raise DashboardRenderContractError(
+            "invalid_dashboard_render_profile",
+            f"profile {profile_id!r} has inconsistent dashboard composition defaults",
         )
     plot = _mapping_at(_mapping_at(core, "plot_area"), "inset_px")
     if plot != {

@@ -51,7 +51,11 @@ class LocalConfigTests(unittest.TestCase):
         self.assertFalse(config["_meta"]["loaded_from_file"])
         self.assertTrue(config["_meta"]["project_manifest_detected"])
         self.assertEqual(config["_meta"]["project_manifest_path"], str(manifest_path))
-        self.assertEqual(config["_meta"]["project_authoring_profile"], {"id": "standard_editor_v1"})
+        self.assertEqual(config["_meta"]["project_authoring_profile"], {"id": "standard_dashboard_v1"})
+        self.assertEqual(
+            config["_meta"]["project_authoring_profile_requested"],
+            {"id": "standard_editor_v1"},
+        )
 
     def test_example_config_loads_with_safe_defaults(self):
         config = load_local_config(ROOT / "config" / "datalens_mcp.local.example.json", project_root=ROOT)

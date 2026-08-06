@@ -6,9 +6,12 @@ import hashlib
 import json
 import os
 import subprocess
+import sys
+import sysconfig
 import tempfile
 import venv
-from pathlib import Path
+import zipfile
+from pathlib import Path, PurePosixPath
 
 
 _ISOLATION_ENV_KEYS = (
@@ -46,6 +49,106 @@ def _path_is_within(path: str, parent: Path) -> bool:
     return True
 
 
+def _install_pure_wheel(
+    wheel: Path,
+    *,
+    python_bin: Path,
+    env: dict[str, str],
+) -> subprocess.CompletedProcess[str]:
+    purelib_probe = subprocess.run(
+        [
+            str(python_bin),
+            "-I",
+            "-c",
+            "import sysconfig;print(sysconfig.get_path('purelib'))",
+        ],
+        env=env,
+        text=True,
+        capture_output=True,
+        timeout=30,
+        check=False,
+    )
+    if purelib_probe.returncode != 0:
+        return purelib_probe
+    purelib = Path(purelib_probe.stdout.strip()).resolve()
+    try:
+        with zipfile.ZipFile(wheel) as archive:
+            wheel_metadata = next(
+                (
+                    name
+                    for name in archive.namelist()
+                    if name.endswith(".dist-info/WHEEL")
+                ),
+                "",
+            )
+            metadata_text = (
+                archive.read(wheel_metadata).decode("utf-8", errors="replace")
+                if wheel_metadata
+                else ""
+            )
+            if "Root-Is-Purelib: true" not in metadata_text:
+                raise ValueError("portable smoke supports only purelib wheels")
+            written = 0
+            for info in archive.infolist():
+                member = PurePosixPath(info.filename)
+                if info.is_dir():
+                    continue
+                if member.is_absolute() or ".." in member.parts:
+                    raise ValueError(f"unsafe wheel member: {info.filename}")
+                parts = list(member.parts)
+                data_index = next(
+                    (
+                        index
+                        for index, part in enumerate(parts)
+                        if part.endswith(".data")
+                    ),
+                    -1,
+                )
+                if data_index >= 0:
+                    if data_index + 1 >= len(parts) or parts[data_index + 1] != "purelib":
+                        continue
+                    parts = parts[data_index + 2 :]
+                if not parts:
+                    continue
+                destination = purelib.joinpath(*parts).resolve()
+                if not _path_is_within(str(destination), purelib):
+                    raise ValueError(f"unsafe wheel destination: {info.filename}")
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(archive.read(info))
+                written += 1
+    except (OSError, ValueError, zipfile.BadZipFile) as exc:
+        return subprocess.CompletedProcess(
+            args=["pure-wheel-install", str(wheel)],
+            returncode=1,
+            stdout="",
+            stderr=str(exc),
+        )
+    return subprocess.CompletedProcess(
+        args=["pure-wheel-install", str(wheel)],
+        returncode=0,
+        stdout=f"installed {written} purelib wheel files into {purelib}\n",
+        stderr="",
+    )
+
+
+def _ensure_venv_runtime_library(venv_dir: Path) -> str:
+    library_name = str(sysconfig.get_config_var("LDLIBRARY") or "").strip()
+    if not library_name:
+        return ""
+    candidates = (
+        Path(sys.base_prefix) / "lib" / library_name,
+        Path(sys.executable).resolve().parent.parent / "lib" / library_name,
+    )
+    source = next((candidate.resolve() for candidate in candidates if candidate.is_file()), None)
+    if source is None:
+        return ""
+    destination = venv_dir / "lib" / library_name
+    if not destination.exists():
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.symlink_to(source)
+    return str(destination)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Install a wheel in a temporary venv and run portable runtime smoke.")
     parser.add_argument("--wheel", required=True)
@@ -64,25 +167,13 @@ def main() -> int:
     )
     with tempfile.TemporaryDirectory(dir=str(out.parent)) as tmp:
         venv_dir = Path(tmp) / "venv"
-        venv.EnvBuilder(with_pip=True).create(venv_dir)
+        venv.EnvBuilder(with_pip=False).create(venv_dir)
+        runtime_library = _ensure_venv_runtime_library(venv_dir)
         python_bin = venv_dir / "bin" / "python"
-        install = subprocess.run(
-            [
-                str(python_bin),
-                "-I",
-                "-m",
-                "pip",
-                "install",
-                "--force-reinstall",
-                "--no-deps",
-                "--no-index",
-                str(wheel),
-            ],
+        install = _install_pure_wheel(
+            wheel,
+            python_bin=python_bin,
             env=isolated_env,
-            text=True,
-            capture_output=True,
-            timeout=60,
-            check=False,
         )
         verify_import = subprocess.run(
             [str(python_bin), "-I", "-c", import_probe],
@@ -126,6 +217,7 @@ def main() -> int:
             "isolated_mode": True,
             "removed_environment_keys": removed_env_keys,
             "python_no_user_site": True,
+            "runtime_library_linked": bool(runtime_library),
         },
         "install": {
             "returncode": install.returncode,

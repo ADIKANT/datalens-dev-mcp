@@ -1,0 +1,8 @@
+{
+  "dashboard_id": "synthetic_mixed_routes",
+  "dashboard_title": "Synthetic Mixed Routes",
+  "version": 2,
+  "tabs": [
+    {"id": "main", "title": "Main", "rows": [{"id": "wizard_kpi", "role": "kpi", "items": ["wizard_kpi_a", "wizard_kpi_b", "wizard_kpi_c"]}, {"id": "editor_trend", "role": "chart", "items": ["editor_trend_a", "wizard_trend_b"]}, {"id": "native_table", "role": "table", "items": ["wizard_table"]}]}
+  ]
+}

@@ -52,6 +52,10 @@
   },
   "properties": {
     "dashboard_name": {"type": "string"},
+    "version": {"enum": [1, 2]},
+    "authoring_profile": {"type": "string"},
+    "editor_render_profile": {"type": "string"},
+    "render_contract_version": {"type": "string"},
     "desktop_grid": {
       "oneOf": [
         {"const": 36},
@@ -92,6 +96,7 @@
         "properties": {
           "widget_item_id": {"type": "string"},
           "hideTitle": {"const": false},
+          "title_mode": {"const": "tab_strip"},
           "tabs": {
             "type": "array",
             "minItems": 2,
@@ -109,7 +114,10 @@
         "additionalProperties": true
       }
     },
-    "object_relations_ref": {"type": "string"}
+    "object_relations_ref": {"type": "string"},
+    "dashboard_composition": {"$ref": "dashboard-composition.schema.json"},
+    "final_payload_attestation": {"$ref": "final-payload-attestation.schema.json"},
+    "qa_attestation": {"$ref": "qa-attestation.schema.json"}
   },
   "additionalProperties": true
 }

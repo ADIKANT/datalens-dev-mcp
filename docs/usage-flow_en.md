@@ -164,31 +164,32 @@ Prompt:
 
 For a visible chart or dashboard change, final verification should cover the changed tab or object. API readback verifies structure; UI verification confirms rendering.
 
-## Fast strict Editor-dashboard path
+## Standard dashboard build path
 
-Use `standard_editor_v2` through the `strict_dashboard` alias for a new or
-fully redesigned set of Editor widgets. One batch may contain up to 100 unique
-widgets and returns compact statuses, artifact paths, and hashes instead of
-repeating generated tabs.
+Create and full-redesign calls default to `standard_dashboard_v1`;
+`strict_dashboard` is an alias. It fixes Wizard-first decisions and applies the
+same profile's protected renderer only to selected Editor objects. Historical
+profile names are input aliases that normalize to `standard_dashboard_v1`, so
+both new and existing dashboards use one current contract.
 
-The strict render contract applies the same rules to every registered family:
+One batch may contain up to 100 unique widgets and returns compact statuses,
+artifact paths, and hashes. It also writes a hash-bound
+`dashboard_composition.version=2` skeleton. `dl_validate_project` rebuilds the
+actual final payload and emits `final_payload_attestation`; a later route,
+runtime, title, selector, layout, or payload change invalidates it.
 
-- native creation defaults `h=2` for a compact selector and `h=6` for KPI,
-  with comparison context at least `h=3`; updates preserve fresh saved
-  geometry, and measured runtime pixels are not derived from native units;
-- runtime selector rows use `44` px and comparison context uses at least
-  `70` px; KPI values must remain visible and one KPI set uses one height;
-- KPI sparklines appear on every KPI or on none;
-- legend, marks, and tooltip use series present in filtered result rows; a
-  zero-only series remains active and a fully filtered series is omitted;
-- coordinate plot insets are `22` px top, `10` px compact or `16` px normal
-  right, and `34` px bottom;
-- overflow expands or scrolls instead of clipping content.
+The contract binds the exact `display_title` and role-based `title_mode`, the
+protected renderer, left-labelled selector rows at exactly 94 percent, a
+gap-free 36-column layout with equal peer heights, and no more than three
+standard KPI cards per row.
 
-The generated browser QA plan checks selector and comparison runtime heights,
-KPI-set height consistency, plot insets, and exact series-ID equality between
-marks and legend in one read-only, three-call pass over `1200 x 900` and
-`1440 x 900` viewports.
+Browser QA checks every tab at its top and after full scroll at 720, 1200, and
+1440 pixels. It covers empty-multiselect Clear behavior, lazy initialization,
+clipping and scroll, title/hint ownership, tooltip, legend, comparison context,
+and runtime/network errors. Dashboard publish requires a successful
+`qa_attestation` bound to the exact saved revision selected for publish and the
+same payload hashes. `done` additionally requires published readback and hashed
+browser evidence for that same revision.
 
 ## Fast path for merging date selectors
 

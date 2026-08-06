@@ -259,7 +259,7 @@ html.clientWidth = 1200;
 
 
 class BrowserQaOnePassPlanTests(unittest.TestCase):
-    def test_plan_is_deterministic_and_uses_two_viewports_with_three_calls(self):
+    def test_plan_is_deterministic_and_uses_three_viewports_with_three_calls(self):
         first = _plan()
         second = _plan()
 
@@ -267,7 +267,7 @@ class BrowserQaOnePassPlanTests(unittest.TestCase):
         self.assertEqual(first["canonical_sha256"], browser_qa_plan_sha256(first))
         self.assertEqual(
             [(item["width"], item["height"]) for item in first["viewports"]],
-            [(1200, 900), (1440, 900)],
+            [(720, 900), (1200, 900), (1440, 900)],
         )
         self.assertEqual(first["execution"]["max_browser_calls"], 3)
         self.assertEqual(len(first["execution"]["calls"]), 3)
@@ -393,7 +393,7 @@ class BrowserQaOnePassPlanTests(unittest.TestCase):
             source.count("Math.abs(row.height_px - expectedSelector.row_height_px)"),
             1,
         )
-        self.assertEqual(len(plan["artifacts"]["viewports"]), 2)
+        self.assertEqual(len(plan["artifacts"]["viewports"]), 3)
 
     def test_readable_legend_uses_active_profile_typography(self):
         plan = build_browser_qa_plan(

@@ -76,7 +76,7 @@ one scoped baseline
 ```
 
 The browser QA artifact fixes the runtime work to one navigation, one batched
-read-only evaluation across `1200 x 900` and `1440 x 900`, and one batched
+read-only evaluation across `720 x 900`, `1200 x 900`, and `1440 x 900`, and one batched
 screenshot operation. Its call budget is three. Do not replace it with
 per-widget DOM exploration, mutation, reload loops, or repeated screenshots.
 If the pass fails, use its assertion results and artifacts to make a scoped

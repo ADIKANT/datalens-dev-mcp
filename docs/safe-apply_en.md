@@ -61,6 +61,23 @@ When `requirements/user_decisions.v2.json` exists, the plan is bound to its
 `decision_ledger_sha256`. A later user correction makes the old plan stale and
 requires regeneration.
 
+## Final payload and QA attestation
+
+For `standard_dashboard_v1`, `dl_validate_project` rebuilds the actual
+Editor/Wizard payloads and dashboard composition. Its
+`final_payload_attestation` binds routes, runtime, `title_mode`, selectors,
+layout, tabs, and the complete dashboard payload. Safe Apply rejects a missing
+or stale attestation, rewritten protected runtime, Wizard-to-Editor drift, a new
+v1 dashboard, and any payload change after validation.
+
+Dashboard publishing additionally requires a successful `qa_attestation`
+bound to the same dashboard ID, the exact saved revision selected for publish,
+the expected published revision, final-attestation hash, composition hash, and
+payload hashes. The attestation contains verifiable browser-artifact hashes and
+covers every tab at its top and after full scroll at 720, 1200, and 1440
+pixels. After published readback, `done` is allowed only for that same revision;
+any change requires validation and QA again.
+
 ## Hard-off switches
 
 - `DATALENS_MCP_ENABLE_WRITES=0` blocks all write requests.

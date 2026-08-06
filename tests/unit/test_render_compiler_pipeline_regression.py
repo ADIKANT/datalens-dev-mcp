@@ -7,6 +7,8 @@ import unittest
 from pathlib import Path
 
 from datalens_dev_mcp.editor.bundle import generate_editor_bundle
+from datalens_dev_mcp.editor.authoring_profiles import CANONICAL_AUTHORING_PROFILE_ID
+from datalens_dev_mcp.editor.reference_runtime import STANDARD_DASHBOARD_RUNTIME_SHA256
 from datalens_dev_mcp.editor.render_compiler import (
     RenderContractCompileError,
     compile_bundle_render_contract,
@@ -19,7 +21,7 @@ from datalens_dev_mcp.runtime_resources import resource_json
 
 PROFILE_V1 = "standard_editor_v1"
 PROFILE_V2 = "standard_editor_v2"
-TEMPLATE_SET_SHA256 = "6d35e7ae7e31ffb5677010b63e8e6d9455c8955a5b5f041e939281e0470a5da8"
+TEMPLATE_SET_SHA256 = "6ce84e5e14cefa09beb8774f5d8b306fdaee212532fbfda8b5acebd5e4ca20a4"
 FAMILY_V1_TAB_HASHES = {
     "kpi_value_only": "9fcd6b5e01d9f07ac79f1c7ceb1be7d74a5d378b8953b72fa846b96585c40020",
     "line_chart": "02f52f3c1eed2ed8bc5e084436065c729ea8bd6208ec103f607bca427a2bbb9d",
@@ -58,15 +60,19 @@ SELECTOR_FAMILIES = {
     "date_range_selector",
     "selector_family_static",
     "selector_family_dynamic",
+    "selector_group",
 }
 
 
 class RenderCompilerPipelineRegressionTests(unittest.TestCase):
-    def test_standard_editor_v1_tabs_remain_byte_identical_and_hash_locked(self):
+    def test_legacy_editor_alias_uses_only_the_canonical_protected_runtime(self):
         for family, expected_tabs_sha256 in FAMILY_V1_TAB_HASHES.items():
             with self.subTest(family=family), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 self._write_brief(root, family=family)
+                existing_bundle = root / "dashboard" / "chart" / "bundle.json"
+                existing_bundle.parent.mkdir(parents=True)
+                existing_bundle.write_text("{}", encoding="utf-8")
                 generated = self._generate(
                     root,
                     family=family,
@@ -83,23 +89,32 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
                     chart_decision_record=generated["chart_decision_record"],
                 )
 
-                self.assertEqual(generated["tabs"], direct["tabs"])
-                self.assertEqual(_tabs_sha256(generated["tabs"]), expected_tabs_sha256)
+                self.assertNotEqual(generated["tabs"], direct["tabs"])
                 self.assertEqual(
-                    generated["template_provenance"]["compiled_tabs_sha256"],
+                    generated["template_provenance"]["base_compiled_tabs_sha256"],
                     expected_tabs_sha256,
                 )
                 self.assertEqual(
                     generated["template_provenance"]["profile_template_set_sha256"],
                     TEMPLATE_SET_SHA256,
                 )
-                self.assertNotIn("render_contract", generated)
-                self.assertNotIn(
-                    "__dlGenerateProfileHtml",
-                    generated["tabs"]["prepare.js"],
+                self.assertEqual(
+                    generated["authoring_profile"]["id"],
+                    CANONICAL_AUTHORING_PROFILE_ID,
                 )
+                self.assertEqual(generated["authoring_profile"]["normalized_from"], PROFILE_V1)
+                self.assertEqual(
+                    generated["render_contract"]["profile_id"],
+                    CANONICAL_AUTHORING_PROFILE_ID,
+                )
+                self.assertEqual(
+                    generated["template_provenance"]["canonical_runtime_sha256"],
+                    STANDARD_DASHBOARD_RUNTIME_SHA256,
+                )
+                self.assertTrue(generated["standard_dashboard_renderer_validation"]["ok"])
+                self.assertIn("standard-dashboard-runtime:", generated["tabs"]["prepare.js"])
 
-    def test_standard_editor_v2_compiles_density_into_tabs_and_runtime_for_key_families(self):
+    def test_legacy_v2_alias_compiles_the_same_current_contract_for_key_families(self):
         node = shutil.which("node")
         if not node:
             self.skipTest("node is required for generated JavaScript validation")
@@ -108,124 +123,73 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
             with self.subTest(family=family), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 self._write_brief(root, family=family)
-                compact = self._generate(
+                legacy = self._generate(
                     root,
                     family=family,
                     authoring_profile=PROFILE_V2,
-                    render_overrides={"density": "compact"},
                 )
-                compact_repeat = self._generate(
+                legacy_repeat = self._generate(
                     root,
                     family=family,
                     authoring_profile=PROFILE_V2,
-                    render_overrides={"density": "compact"},
                 )
-                comfortable = self._generate(
+                canonical = self._generate(
                     root,
                     family=family,
-                    authoring_profile=PROFILE_V2,
-                    render_overrides={"density": "comfortable"},
+                    authoring_profile=CANONICAL_AUTHORING_PROFILE_ID,
                 )
 
-                compact_hash = compact["template_provenance"]["compiled_tabs_sha256"]
-                comfortable_hash = comfortable["template_provenance"]["compiled_tabs_sha256"]
-                self.assertNotEqual(compact["tabs"], comfortable["tabs"])
-                self.assertNotEqual(compact_hash, comfortable_hash)
+                legacy_hash = legacy["template_provenance"]["compiled_tabs_sha256"]
+                self.assertEqual(legacy["tabs"], canonical["tabs"])
                 self.assertEqual(
-                    compact["template_provenance"]["base_compiled_tabs_sha256"],
+                    legacy_hash,
+                    canonical["template_provenance"]["compiled_tabs_sha256"],
+                )
+                self.assertEqual(
+                    legacy["template_provenance"]["base_compiled_tabs_sha256"],
                     base_tabs_sha256,
                 )
                 self.assertEqual(
-                    comfortable["template_provenance"]["base_compiled_tabs_sha256"],
-                    base_tabs_sha256,
-                )
-
-                self.assertEqual(compact["tabs"], compact_repeat["tabs"])
-                self.assertEqual(
-                    compact["render_contract"],
-                    compact_repeat["render_contract"],
+                    legacy["authoring_profile"]["id"],
+                    CANONICAL_AUTHORING_PROFILE_ID,
                 )
                 self.assertEqual(
-                    compact_hash,
-                    compact_repeat["template_provenance"]["compiled_tabs_sha256"],
+                    legacy["authoring_profile"]["normalized_from"],
+                    PROFILE_V2,
                 )
                 self.assertEqual(
-                    compact["render_contract"]["composite_sha256"],
-                    compact_repeat["render_contract"]["composite_sha256"],
-                )
-
-                self.assertEqual(
-                    compact["render_contract"]["effective_tokens"]["density"]["mode"],
-                    "compact",
+                    legacy["tabs"],
+                    legacy_repeat["tabs"],
                 )
                 self.assertEqual(
-                    comfortable["render_contract"]["effective_tokens"]["density"]["mode"],
-                    "comfortable",
+                    legacy["render_contract"],
+                    canonical["render_contract"],
                 )
-                self.assertNotEqual(
-                    compact["render_contract"]["composite_sha256"],
-                    comfortable["render_contract"]["composite_sha256"],
+                self.assertEqual(
+                    legacy["renderer_visual_spec"]["schema_version"],
+                    "2026-08-06.renderer_visual_spec.v5",
                 )
-                self.assertTrue(compact["render_contract_validation"]["ok"])
-                self.assertTrue(comfortable["render_contract_validation"]["ok"])
+                self.assertEqual(
+                    legacy["template_provenance"]["canonical_runtime_sha256"],
+                    STANDARD_DASHBOARD_RUNTIME_SHA256,
+                )
+                self.assertTrue(legacy["standard_dashboard_renderer_validation"]["ok"])
+                prepare = legacy["tabs"]["prepare.js"]
+                self.assertIn(STANDARD_DASHBOARD_RUNTIME_SHA256, prepare)
+                self.assertIn(
+                    legacy["render_contract"]["composite_sha256"],
+                    prepare,
+                )
+                self.assertEqual(_tabs_sha256(legacy["tabs"]), legacy_hash)
+                self._node_check(prepare, node=node, root=root)
 
-                for generated in (compact, comfortable):
-                    prepare = generated["tabs"]["prepare.js"]
-                    encoded_contract = json.dumps(
-                        generated["render_contract"],
-                        ensure_ascii=False,
-                        separators=(",", ":"),
-                        sort_keys=True,
-                    )
-                    self.assertIn(encoded_contract, prepare)
-                    self.assertIn(
-                        generated["render_contract"]["composite_sha256"],
-                        prepare,
-                    )
-                    self.assertIn("__dlGenerateProfileHtml(options, ", prepare)
-                    self.assertIn(
-                        '"tooltip_comparison_mode":"single_period"',
-                        prepare,
-                    )
-                    self.assertIn(
-                        '"tooltip_period_source":"normalized"',
-                        prepare,
-                    )
-                    self.assertEqual(
-                        _tabs_sha256(generated["tabs"]),
-                        generated["template_provenance"]["compiled_tabs_sha256"],
-                    )
-                    self._node_check(prepare, node=node, root=root)
-
-                compact_html = self._execute_prepare(
-                    compact["tabs"]["prepare.js"],
-                    family=family,
-                    node=node,
-                    root=root,
-                )
-                comfortable_html = self._execute_prepare(
-                    comfortable["tabs"]["prepare.js"],
-                    family=family,
-                    node=node,
-                    root=root,
-                )
-                self.assertNotEqual(compact_html, comfortable_html)
-                if family != "kpi_value_only":
-                    self.assertIn("padding:9px 10px", compact_html)
-                    self.assertIn("padding:11px 13px", comfortable_html)
-                self.assert_runtime_tokens(
-                    family=family,
-                    compact_html=compact_html,
-                    comfortable_html=comfortable_html,
-                )
-
-    def test_all_38_registered_families_compile_with_route_specific_contract_binding(self):
+    def test_all_39_registered_families_compile_with_route_specific_contract_binding(self):
         node = shutil.which("node")
         if not node:
             self.skipTest("node is required for generated JavaScript validation")
         registry = resource_json("templates/datalens/standard_chart_templates.json")
         families = registry["families"]
-        self.assertEqual(len(families), 38)
+        self.assertEqual(len(families), 39)
 
         for family, family_spec in families.items():
             with self.subTest(family=family), tempfile.TemporaryDirectory() as tmp:
@@ -250,15 +214,22 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
 
                 self.assertNotIn("error", generated, generated)
                 self.assertEqual(generated["generation_status"], "ready")
-                self.assertTrue(generated["render_contract_validation"]["ok"])
+                self.assertTrue(generated["standard_dashboard_renderer_validation"]["ok"])
                 marker = (
                     "resolved-render-contract:"
                     + generated["render_contract"]["composite_sha256"]
                 )
                 tabs = generated["tabs"]
                 if route == "editor_advanced":
-                    self.assertIn(marker, tabs["prepare.js"])
-                    self.assertIn("__dlGenerateProfileHtml(options, ", tabs["prepare.js"])
+                    if generated["template_provenance"]["renderer_kind"] == "exact_standard_dashboard_runtime":
+                        self.assertIn(
+                            "contract:" + generated["render_contract"]["composite_sha256"],
+                            tabs["prepare.js"],
+                        )
+                        self.assertIn("standard-dashboard-runtime:", tabs["prepare.js"])
+                    else:
+                        self.assertIn(marker, tabs["prepare.js"])
+                        self.assertIn("__dlGenerateProfileHtml(options, ", tabs["prepare.js"])
                     self._node_check(tabs["prepare.js"], node=node, root=root)
                 elif route == "editor_table":
                     self.assertIn(marker, tabs["prepare.js"])
@@ -314,21 +285,14 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
                 ],
             )
 
-        self.assertIn('data-series-policy="active_series_only"', html)
-        self.assertIn('data-series-id="success" data-series-role="mark"', html)
-        self.assertIn('data-series-id="zero" data-series-role="mark"', html)
-        self.assertIn('data-series-id="success" data-series-role="legend"', html)
-        self.assertIn('data-series-id="zero" data-series-role="legend"', html)
-        self.assertNotIn('data-series-id="filtered"', html)
-        self.assertIn('data-plot-area-policy="contract_insets"', html)
-        self.assertIn('data-plot-inset-top="22"', html)
-        self.assertIn('data-plot-inset-right="10"', html)
-        self.assertIn('data-plot-inset-bottom="34"', html)
-        self.assertIn(
-            'data-role="plot-area" data-inset-top="22" '
-            'data-inset-right="10" data-inset-bottom="34"',
-            html,
-        )
+        # The protected renderer emits user-facing legend labels rather than
+        # test-only data attributes.  A zero-valued series remains active,
+        # while an all-null series is removed by the registered adapter.
+        self.assertIn("<span>success</span>", html)
+        self.assertIn("<span>zero</span>", html)
+        self.assertNotIn("<span>filtered</span>", html)
+        self.assertIn("<svg viewBox=", html)
+        self.assertIn("Synthetic chart", html)
 
     def test_control_contract_enforcement_and_incomplete_input_status_are_preserved(self):
         family = "single_select_dropdown"
@@ -366,7 +330,7 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
 
         self.assertNotIn("error", incomplete, incomplete)
         self.assertEqual(incomplete["generation_status"], "blocked_missing_input")
-        self.assertTrue(incomplete["render_contract_validation"]["ok"])
+        self.assertTrue(incomplete["standard_dashboard_renderer_validation"]["ok"])
         self.assertIn(
             "const __DL_RENDER_CONTRACT = Object.freeze(",
             incomplete["tabs"]["controls.js"],
@@ -399,7 +363,7 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
             )
 
         self.assertNotIn("error", generated, generated)
-        self.assertTrue(generated["render_contract_validation"]["ok"])
+        self.assertTrue(generated["standard_dashboard_renderer_validation"]["ok"])
         self.assertIn('data-component="horizontal_rank"', html)
         self.assertIn(
             "overflow-x:hidden;overflow-y:auto;scrollbar-gutter:stable;padding-right:4px",
@@ -439,19 +403,8 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
                 family=family,
                 authoring_profile=PROFILE_V2,
             )
-            redundant_title_source = generated["tabs"]["prepare.js"].replace(
-                '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
-                "${esc(row.label)}</span>",
-                '<span title="${esc(row.label)}" '
-                'style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
-                "${esc(row.label)}</span>",
-            )
-            self.assertNotEqual(
-                redundant_title_source,
-                generated["tabs"]["prepare.js"],
-            )
             sanitized_html = self._execute_prepare(
-                redundant_title_source,
+                generated["tabs"]["prepare.js"],
                 family=family,
                 node=node,
                 root=family_root,
@@ -578,6 +531,23 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
         )
 
     def _complete_selector_contract(self, family: str) -> dict:
+        if family == "selector_group":
+            return {
+                "controls": [
+                    {
+                        "family": "single_select_dropdown",
+                        "param": "state",
+                        "label": "State",
+                        "option_source": "static",
+                        "options": [
+                            {"title": "All", "value": "all"},
+                            {"title": "Open", "value": "open"},
+                        ],
+                        "default_values": ["all"],
+                        "reset_behavior": "initial",
+                    }
+                ]
+            }
         if family == "date_range_selector":
             return {
                 "param": "period",
@@ -630,8 +600,12 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
         path = root / f"{family}-runtime.js"
         path.write_text(source, encoding="utf-8")
         script = (
+            "const rawRows = JSON.parse(process.argv[2]);"
+            "const names = Object.keys(rawRows[0] || {});"
+            "const loadedRows = [{event: 'metadata', data: {names}}, "
+            "...rawRows.map((row) => ({event: 'row', data: names.map((name) => row[name])}))];"
             "global.Editor = {"
-            "getLoadedData: () => ({rows: JSON.parse(process.argv[2])}),"
+            "getLoadedData: () => ({rows: loadedRows}),"
             "getParams: () => ({}),"
             "wrapFn: (spec) => spec,"
             "generateHtml: (html) => html"

@@ -12,11 +12,21 @@ from datalens_dev_mcp.api.errors import DataLensApiError
 from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.api.methods import is_write_method
 from datalens_dev_mcp.api.request_compiler import project_method_request, validate_method_request
+from datalens_dev_mcp.editor.authoring_profiles import (
+    CANONICAL_AUTHORING_PROFILE_ID,
+    resolve_authoring_profile,
+)
 from datalens_dev_mcp.serialization import sanitize_response, serialized_metadata, stable_json_text
 from datalens_dev_mcp.pipeline.proof_levels import proof_level_for_readback_branch
 from datalens_dev_mcp.pipeline.readback import normalize_readback_mode
 from datalens_dev_mcp.pipeline.baseline_preservation import build_baseline_diff_contract, create_necessity_proof
+from datalens_dev_mcp.pipeline.browser_qa import validate_qa_attestation_binding
 from datalens_dev_mcp.pipeline.decision_patches import decision_ledger_sha256
+from datalens_dev_mcp.pipeline.final_payload_attestation import (
+    ATTESTATION_ARTIFACT,
+    validate_payload_against_attestation,
+    verify_final_payload_attestation,
+)
 from datalens_dev_mcp.pipeline.reconciliation import (
     reconcile_partial_creates,
     validate_entries_reconciliation_evidence,
@@ -89,6 +99,40 @@ def now_utc() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def _read_json_object(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        return {}
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def _attestation_component_for_payload(
+    attestation: dict[str, Any],
+    payload: dict[str, Any],
+    *,
+    widget_id: str,
+    is_dashboard: bool,
+) -> dict[str, Any]:
+    if is_dashboard:
+        return {}
+    candidates = [
+        item
+        for item in attestation.get("components") or []
+        if isinstance(item, dict) and (not widget_id or item.get("widget_id") == widget_id)
+    ]
+    for item in candidates:
+        if not validate_payload_against_attestation(
+            payload,
+            attestation,
+            widget_id=str(item.get("widget_id") or ""),
+        ):
+            return item
+    return {}
+
+
 def create_safe_apply_plan(
     *,
     project_root: str,
@@ -98,6 +142,10 @@ def create_safe_apply_plan(
     user_request_text: str = "",
 ) -> dict[str, Any]:
     normalized_actions = []
+    project_path = Path(project_root)
+    attestation_path = project_path / ATTESTATION_ARTIFACT
+    final_payload_attestation = _read_json_object(attestation_path)
+    attestation_required = final_payload_attestation.get("applicability") == "required"
     created_at = now_utc()
     active_decision_ledger_sha256 = decision_ledger_sha256(project_root)
     request_intent = _request_intent_binding(user_request_text, approved=approved)
@@ -121,6 +169,27 @@ def create_safe_apply_plan(
         item["readback_mode"] = normalize_readback_mode(item.get("readback_mode"))
         item.setdefault("readback_required", item["readback_mode"] != "none")
         payload = _payload_for_action(item)
+        if attestation_required:
+            component = _attestation_component_for_payload(
+                final_payload_attestation,
+                payload,
+                widget_id=str(item.get("widget_id") or ""),
+                is_dashboard=_is_dashboard_action(item),
+            )
+            item["final_payload_attestation"] = {
+                "path": str(attestation_path),
+                "sha256": str(final_payload_attestation.get("attestation_sha256") or ""),
+                "payload_set_sha256": str(final_payload_attestation.get("payload_set_sha256") or ""),
+                "widget_id": str((component or {}).get("widget_id") or item.get("widget_id") or ""),
+                "binding_neutral_payload_sha256": str(
+                    (component or {}).get("binding_neutral_payload_sha256")
+                    or (final_payload_attestation.get("dashboard_payload") or {}).get("binding_neutral_sha256")
+                    if _is_dashboard_action(item)
+                    else (component or {}).get("binding_neutral_payload_sha256") or ""
+                ),
+            }
+            if component and not item.get("authoring_profile_id"):
+                item["authoring_profile_id"] = str(component.get("authoring_profile") or "")
         desired_overlay = item.get("desired_overlay")
         item["desired_overlay"] = deepcopy(desired_overlay if isinstance(desired_overlay, dict) else payload)
         item.setdefault("action_type", _action_type(item, payload))
@@ -186,6 +255,12 @@ def create_safe_apply_plan(
         ),
         "request_intent": request_intent,
         "decision_ledger_sha256": active_decision_ledger_sha256,
+        "final_payload_attestation": {
+            "required": attestation_required,
+            "path": str(attestation_path) if final_payload_attestation else "",
+            "sha256": str(final_payload_attestation.get("attestation_sha256") or ""),
+            "payload_set_sha256": str(final_payload_attestation.get("payload_set_sha256") or ""),
+        },
         "target_lock": default_target_lock,
         "branch_semantics": {
             "default_write_mode": "save",
@@ -453,6 +528,26 @@ def validate_safe_apply_plan_exhaustive(plan: dict[str, Any]) -> dict[str, Any]:
     issues: list[str] = []
     action_checks: list[dict[str, Any]] = []
     project_root = Path(str(plan.get("project_root") or "."))
+    plan_attestation = (
+        plan.get("final_payload_attestation")
+        if isinstance(plan.get("final_payload_attestation"), dict)
+        else {}
+    )
+    current_attestation = _read_json_object(project_root / ATTESTATION_ARTIFACT)
+    attestation_required = (
+        plan_attestation.get("required") is True
+        or current_attestation.get("applicability") == "required"
+    )
+    if attestation_required:
+        if not current_attestation:
+            issues.append("final_payload_attestation is required before safe apply")
+        else:
+            issues.extend(
+                "final_payload_attestation: " + issue
+                for issue in verify_final_payload_attestation(project_root, current_attestation)
+            )
+            if plan_attestation.get("sha256") != current_attestation.get("attestation_sha256"):
+                issues.append("safe apply plan is not bound to the current final_payload_attestation")
     expected_decision_ledger_sha256 = str(plan.get("decision_ledger_sha256") or "")
     try:
         current_decision_ledger_sha256 = decision_ledger_sha256(project_root)
@@ -500,6 +595,16 @@ def validate_safe_apply_plan_exhaustive(plan: dict[str, Any]) -> dict[str, Any]:
                     f"action {index} {method} request {issue}" for issue in request_validation["issues"]
                 )
         action_issues.extend(_contract_issues(action=action, payload=payload, index=index))
+        action_issues.extend(
+            _final_payload_attestation_action_issues(
+                action=action,
+                payload=payload,
+                index=index,
+                attestation=current_attestation,
+                required=attestation_required,
+                project_root=project_root,
+            )
+        )
         action_type = _action_type(action, payload)
         if action_type in {"update", "publish"}:
             object_id = _action_object_id(action, payload)
@@ -3092,6 +3197,116 @@ def _action_type(action: dict[str, Any], payload: dict[str, Any]) -> str:
     return "update"
 
 
+def _final_payload_attestation_action_issues(
+    *,
+    action: dict[str, Any],
+    payload: dict[str, Any],
+    index: int,
+    attestation: dict[str, Any],
+    required: bool,
+    project_root: Path,
+) -> list[str]:
+    issues: list[str] = []
+    action_type = _action_type(action, payload)
+    profile_id = str(action.get("authoring_profile_id") or "")
+    canonical_profile = False
+    if profile_id:
+        resolved_profile = resolve_authoring_profile(
+            project_root=project_root,
+            requested_profile=profile_id,
+        )
+        if not resolved_profile.get("ok"):
+            issues.append(f"action {index} authoring profile is not registered")
+        else:
+            canonical_profile = resolved_profile.get("id") == CANONICAL_AUTHORING_PROFILE_ID
+            if required and not canonical_profile:
+                issues.append(f"action {index} must use the canonical dashboard contract")
+    if not required and not canonical_profile:
+        return issues
+    binding = (
+        action.get("final_payload_attestation")
+        if isinstance(action.get("final_payload_attestation"), dict)
+        else {}
+    )
+    if not binding:
+        issues.append(f"action {index} final_payload_attestation binding is required")
+        return issues
+    if binding.get("sha256") != attestation.get("attestation_sha256"):
+        issues.append(f"action {index} final_payload_attestation hash is stale")
+    widget_id = str(binding.get("widget_id") or action.get("widget_id") or "")
+    for issue in validate_payload_against_attestation(
+        payload,
+        attestation,
+        widget_id=widget_id,
+        is_dashboard=_is_dashboard_action(action),
+    ):
+        issues.append(f"action {index} {issue}")
+    if action_type == "publish" and _is_dashboard_action(action):
+        issues.extend(
+            _qa_attestation_issues(
+                action=action,
+                payload=payload,
+                index=index,
+                attestation=attestation,
+                project_root=project_root,
+            )
+        )
+    return issues
+
+
+def _qa_attestation_issues(
+    *,
+    action: dict[str, Any],
+    payload: dict[str, Any],
+    index: int,
+    attestation: dict[str, Any],
+    project_root: Path,
+) -> list[str]:
+    inline = action.get("qa_attestation")
+    if isinstance(inline, dict):
+        qa = inline
+    else:
+        qa_path = str(action.get("qa_attestation_path") or "artifacts/qa_attestation.json")
+        path = Path(qa_path)
+        if not path.is_absolute():
+            path = project_root / path
+        qa = _read_json_object(path)
+    if not qa:
+        return [f"action {index} publish requires qa_attestation for the attested dashboard revision"]
+    expected_dashboard_id = _action_object_id(action, payload)
+    guard = action.get("revision_guard") if isinstance(action.get("revision_guard"), dict) else {}
+    expected_saved_revision = str(
+        guard.get("expected_saved_rev_id")
+        or action.get("expected_saved_rev_id")
+        or guard.get("expected_revision")
+        or ""
+    )
+    binding_issues = validate_qa_attestation_binding(
+        qa,
+        dashboard_id=expected_dashboard_id,
+        saved_revision=expected_saved_revision,
+        published_revision=expected_saved_revision,
+        final_payload_attestation_sha256=str(attestation.get("attestation_sha256") or ""),
+        payload_set_sha256=str(attestation.get("payload_set_sha256") or ""),
+        dashboard_composition_sha256=str(
+            (attestation.get("dashboard_composition") or {}).get("sha256") or ""
+        ),
+    )
+    issues = [f"action {index} {issue}" for issue in binding_issues]
+    artifact_hashes = qa.get("artifact_hashes") if isinstance(qa.get("artifact_hashes"), dict) else {}
+    for declared_path, expected_sha256 in artifact_hashes.items():
+        artifact_path = Path(str(declared_path))
+        if not artifact_path.is_absolute():
+            artifact_path = project_root / artifact_path
+        if not artifact_path.is_file():
+            issues.append(f"action {index} qa_attestation artifact is missing: {declared_path}")
+            continue
+        actual_sha256 = hashlib.sha256(artifact_path.read_bytes()).hexdigest()
+        if actual_sha256 != expected_sha256:
+            issues.append(f"action {index} qa_attestation artifact hash is stale: {declared_path}")
+    return issues
+
+
 def _contract_issues(*, action: dict[str, Any], payload: dict[str, Any], index: int) -> list[str]:
     issues: list[str] = []
     source_owner = action.get("source_owner")
@@ -3795,6 +4010,15 @@ def _publish_action_from_saved_readback(
     if completeness_issues:
         return _error("incomplete_saved_entry", "; ".join(completeness_issues))
     publish_entry = dict(saved_entry)
+    if method_spec["write"] == "updateDashboard":
+        # getDashboard returns read-only identity/audit fields that are not part
+        # of UpdateDashboardV1Args. Preserve the complete mutable dashboard
+        # body while projecting away only response metadata.
+        publish_entry = {
+            key: deepcopy(saved_entry[key])
+            for key in ("entryId", "revId", "annotation", "data", "meta")
+            if key in saved_entry
+        }
     publish_entry["entryId"] = saved_identity["object_id"]
     publish_entry["revId"] = saved_identity["saved_rev_id"]
     publish_entry.pop("savedId", None)

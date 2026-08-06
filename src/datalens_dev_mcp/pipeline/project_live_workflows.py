@@ -17,6 +17,7 @@ from typing import Any
 from datalens_dev_mcp.api.auth import refresh_iam_token_with_yc
 from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.editor.authoring_profiles import (
+    CANONICAL_AUTHORING_PROFILE_ID,
     resolve_authoring_profile,
     validate_authoring_profile_declaration,
 )
@@ -410,8 +411,9 @@ def plan_project_manifest(
         "publish": False,
     }
     blocked: list[str] = []
-    profile = resolve_authoring_profile(project_root=root, requested_profile=authoring_profile)
-    if authoring_profile and not profile.get("ok"):
+    requested_profile = authoring_profile or CANONICAL_AUTHORING_PROFILE_ID
+    profile = resolve_authoring_profile(project_root=root, requested_profile=requested_profile)
+    if not profile.get("ok"):
         blocked.append(str((profile.get("error") or {}).get("message") or "invalid authoring profile"))
     elif profile.get("active"):
         proposed["authoring_profile"] = {"id": profile["id"]}
@@ -1478,7 +1480,23 @@ def _validate_action_safety(
 ) -> list[str]:
     if action == RETIRE_ACTION:
         return _validate_retire_lifecycle(root, manifest, workflow, action_spec)
-    return _normal_destructive_semantics_issues(workflow, action_spec, action=action, publish=publish)
+    issues = _normal_destructive_semantics_issues(workflow, action_spec, action=action, publish=publish)
+    profile_declaration = manifest.get("authoring_profile")
+    resolved_profile = (
+        resolve_authoring_profile(project_root=root, requested_profile=profile_declaration)
+        if profile_declaration
+        else {}
+    )
+    if (
+        resolved_profile.get("ok")
+        and resolved_profile.get("id") == CANONICAL_AUTHORING_PROFILE_ID
+        and (action in {"apply", "publish"} or publish)
+    ):
+        issues.append(
+            f"{CANONICAL_AUTHORING_PROFILE_ID} live writes must use the attested generic payload-plan and safe-apply path; "
+            "a project-local compiler cannot replace routes, runtime, titles, selectors, or layout after validation"
+        )
+    return issues
 
 
 def _normal_destructive_semantics_issues(

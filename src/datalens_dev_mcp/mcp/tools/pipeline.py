@@ -15,6 +15,7 @@ from typing import Any
 
 from datalens_dev_mcp.api.scheduler import record_cache_hit
 from datalens_dev_mcp.editor.authoring_profiles import (
+    CANONICAL_AUTHORING_PROFILE_ID,
     apply_authoring_profile_bundle,
     authoring_profile_route_decision,
     load_project_authoring_profile_bundle,
@@ -24,15 +25,23 @@ from datalens_dev_mcp.editor.bundle import generate_editor_bundle
 from datalens_dev_mcp.editor.payload_compiler import compile_editor_payload
 from datalens_dev_mcp.editor.render_compiler import (
     RenderContractCompileError,
-    compile_bundle_render_contract,
+)
+from datalens_dev_mcp.editor.reference_runtime import (
+    STANDARD_DASHBOARD_RENDER_COMPILER_VERSION,
+    StandardDashboardRuntimeError,
+    compile_standard_dashboard_renderer,
+    protected_renderer_identity,
+    validate_standard_dashboard_renderer,
 )
 from datalens_dev_mcp.editor.render_contract import (
     DashboardRenderContractError,
+    RENDERER_VISUAL_SPEC_V5,
     render_contract_to_dict,
     resolve_dashboard_render_contract,
-    upgrade_renderer_visual_spec_v4,
+    upgrade_renderer_visual_spec_v5,
 )
 from datalens_dev_mcp.editor.selector_contract import SELECTOR_FAMILIES
+from datalens_dev_mcp.editor.title_contract import normalize_title_contract
 from datalens_dev_mcp.html_pages import render_standalone_html_page, validate_standalone_html_page
 from datalens_dev_mcp.knowledge.recipes import compact_recipe_for_payload, select_authoring_recipe
 from datalens_dev_mcp.mcp.response_projection import (
@@ -51,6 +60,10 @@ from datalens_dev_mcp.pipeline.browser_qa import (
     build_browser_qa_plan,
     validate_browser_qa_plan,
 )
+from datalens_dev_mcp.pipeline.dashboard_composition import (
+    DashboardCompositionError,
+    build_dashboard_composition,
+)
 from datalens_dev_mcp.pipeline.dashboard_relations import (
     build_default_dashboard_relations,
     merge_dashboard_relations,
@@ -60,6 +73,12 @@ from datalens_dev_mcp.pipeline.deployment_report import build_deployment_report
 from datalens_dev_mcp.pipeline.delivery_intent import resolve_delivery_intent_from_env
 from datalens_dev_mcp.pipeline.decision_patches import apply_decision_contract_to_chart_plan
 from datalens_dev_mcp.pipeline.evidence_mode import choose_evidence_mode
+from datalens_dev_mcp.pipeline.final_payload_attestation import (
+    ATTESTATION_ARTIFACT,
+    validate_payload_against_attestation,
+    verify_final_payload_attestation,
+    write_final_payload_attestation,
+)
 from datalens_dev_mcp.pipeline.governance import build_governance_brief
 from datalens_dev_mcp.pipeline.governance_bundle import build_governance_bundle
 from datalens_dev_mcp.pipeline.implemented_charts_catalog import update_implemented_charts_catalog
@@ -633,6 +652,8 @@ def dl_generate_editor_bundle(
     html_page: dict[str, Any] | None = None,
     chart_specs: list[dict[str, Any]] | None = None,
     render_overrides: dict[str, Any] | None = None,
+    title_mode: str = "",
+    dashboard_composition: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     root = ensure_project_dirs(project_root)
     if chart_specs is not None:
@@ -645,16 +666,18 @@ def dl_generate_editor_bundle(
             or columns is not None
             or selector_contract is not None
             or dataset_readbacks is not None
+            or title_mode
         ):
             raise ValueError(
                 "chart_specs owns widget_id, route, dataset bindings, selectors, and readbacks; "
-                "only project_root, authoring_profile, and render_overrides may be shared"
+                "only project_root, authoring_profile, render_overrides, and dashboard_composition may be shared"
             )
         return _generate_editor_bundle_batch(
             root=root,
             authoring_profile=authoring_profile,
             chart_specs=chart_specs,
             shared_render_overrides=render_overrides,
+            dashboard_composition=dashboard_composition,
         )
     _validate_widget_id(widget_id)
     if html_page is not None:
@@ -666,6 +689,8 @@ def dl_generate_editor_bundle(
             or selector_contract is not None
             or dataset_readbacks is not None
             or render_overrides
+            or title_mode
+            or dashboard_composition is not None
         )
         if incompatible:
             raise ValueError(
@@ -678,6 +703,18 @@ def dl_generate_editor_bundle(
     )
     if not profile.get("ok"):
         return profile
+    existing_component = (
+        (root / "dashboard" / widget_id / "bundle.json").is_file()
+        or (root / "artifacts" / f"{widget_id}.wizard_payload_plan.json").is_file()
+    )
+    if not profile.get("active") and not existing_component:
+        profile = resolve_authoring_profile(
+            project_root=root,
+            requested_profile=CANONICAL_AUTHORING_PROFILE_ID,
+        )
+        if not profile.get("ok"):
+            return profile
+        profile["selection_origin"] = "create_default"
     brief = read_json(root / "artifacts" / "dashboard_brief.json", default={})
     if not brief:
         brief = dl_build_governance_brief(str(root))
@@ -720,6 +757,7 @@ def dl_generate_editor_bundle(
         profile=profile,
         family=requested_family,
         explicit_route=explicit_route_override,
+        canonical_route=selected_route,
     )
     if not profile_route.get("ok"):
         return {
@@ -750,7 +788,19 @@ def dl_generate_editor_bundle(
     decision_record = patched_decision["chart_plan"]["chart_decision_record"]
     decision["chart_decision_record"] = decision_record
     decision["renderer_visual_spec"] = decision_record.get("renderer_visual_spec") or {}
+    widget_title = str(
+        decision.get("title")
+        or decision_record.get("title")
+        or brief.get("dashboard_name")
+        or "Untitled Widget"
+    )
+    widget_hint = str(
+        decision.get("hint")
+        or decision_record.get("hint")
+        or ""
+    )
     resolved_render_contract: dict[str, Any] = {}
+    title_contract: dict[str, Any] = {}
     style_contract = (
         profile.get("style_contract")
         if isinstance(profile.get("style_contract"), dict)
@@ -792,11 +842,29 @@ def dl_generate_editor_bundle(
                         f"resolved {resolved_render_contract.get('profile_sha256')}"
                     ),
                 )
-            visual_spec = upgrade_renderer_visual_spec_v4(
+            if style_contract.get("renderer_visual_spec") != RENDERER_VISUAL_SPEC_V5:
+                raise DashboardRenderContractError(
+                    "legacy_renderer_visual_spec_forbidden",
+                    "all registered dashboard profiles must use the canonical Renderer Visual Spec v5",
+                )
+            title_contract = normalize_title_contract(
+                route=selected_route,
+                family=requested_family,
+                display_title=widget_title,
+                hint=widget_hint,
+                title_mode=title_mode,
+            )
+            if not title_contract["ok"]:
+                raise DashboardRenderContractError(
+                    "invalid_dashboard_title_contract",
+                    "; ".join(title_contract["issues"]),
+                )
+            visual_spec = upgrade_renderer_visual_spec_v5(
                 decision_record.get("renderer_visual_spec")
                 or decision.get("renderer_visual_spec")
                 or {},
                 render_contract=resolved,
+                title_contract=title_contract,
                 comparison_enabled=_render_comparison_enabled(
                     decision_record,
                     family=requested_family,
@@ -814,12 +882,6 @@ def dl_generate_editor_bundle(
                 "requested_family": requested_family,
                 "render_overrides": dict(render_overrides or {}),
             }
-    widget_title = str(
-        decision.get("title")
-        or decision_record.get("title")
-        or brief.get("dashboard_name")
-        or "Untitled Widget"
-    )
     if selected_route == "ql_explicit":
         return {
             "ok": False,
@@ -894,18 +956,55 @@ def dl_generate_editor_bundle(
         plan["renderer_visual_spec"] = (
             decision_record.get("renderer_visual_spec") or decision.get("renderer_visual_spec") or {}
         )
+        if title_contract:
+            plan["title_contract"] = title_contract
+            plan["native_metadata"] = deepcopy(title_contract["native_metadata"])
+            plan["render_contract"] = resolved_render_contract
+            plan["authoring_profile"] = {
+                "id": profile.get("id"),
+                "route_policy": profile.get("route_policy"),
+                "editor_render_profile": style_contract.get("editor_render_profile") or "",
+                "render_contract_version": style_contract.get("renderer_visual_spec") or "",
+            }
+            plan["editor_render_profile"] = str(
+                style_contract.get("editor_render_profile") or ""
+            )
+            plan["render_contract_version"] = str(
+                style_contract.get("renderer_visual_spec") or ""
+            )
+            plan["title_mode"] = str(title_contract.get("mode") or "native_title")
         plan["source_template"] = f"templates/datalens/wizard/canonical_templates.json#{visualization_id}"
         plan["source_gallery"] = plan["source_template"]
         plan["requirements_context"] = {
             "implementation_plan": requirements_context["path"],
             "summary_preview": requirements_context["summary"][:1200],
         }
+        if plan.get("ok") and (title_contract or dashboard_composition is not None):
+            composition = _write_dashboard_composition_artifact(
+                root=root,
+                components=[
+                    {
+                        "widget_id": widget_id,
+                        "ok": bool(plan.get("ok")),
+                        "route": "wizard_native",
+                        "family": requested_family,
+                        "display_title": str(title_contract.get("display_title") or widget_title),
+                        "title_mode": str(title_contract.get("mode") or "native_title"),
+                        "title_contract_sha256": str(title_contract.get("sha256") or ""),
+                    }
+                ],
+                requested=dashboard_composition,
+                dashboard_title=str(brief.get("dashboard_name") or "Dashboard"),
+            )
+            plan["dashboard_composition_binding"] = _composition_binding(root, composition)
+            plan["dashboard_composition"] = _composition_summary(root, composition)
         write_json(root / "artifacts" / f"{widget_id}.wizard_payload_plan.json", plan)
         write_json(root / "artifacts" / f"{widget_id}.chart_decision.json", decision_record)
         relations = _write_dashboard_relations(
             root=root,
             brief=brief,
             widget_id=widget_id,
+            title_contract=title_contract or None,
         )
         if plan.get("ok"):
             update_implemented_charts_catalog(root, bundle=plan, relations=relations, brief=brief)
@@ -955,13 +1054,17 @@ def dl_generate_editor_bundle(
             bundle["comparison_context_contract"] = dict(
                 batch_comparison_context
             )
+    if title_contract:
+        bundle["title_contract"] = deepcopy(title_contract)
+        bundle["native_metadata"] = deepcopy(title_contract["native_metadata"])
     if resolved_render_contract:
         try:
-            bundle = compile_bundle_render_contract(
+            bundle = compile_standard_dashboard_renderer(
                 bundle,
                 render_contract=resolved_render_contract,
+                title_contract=title_contract,
             )
-        except RenderContractCompileError as exc:
+        except (RenderContractCompileError, StandardDashboardRuntimeError) as exc:
             return {
                 "ok": False,
                 "status": "blocked_render_contract",
@@ -995,8 +1098,14 @@ def dl_generate_editor_bundle(
                 or (
                     provenance.get("render_contract_composite_sha256")
                     == resolved_render_contract.get("composite_sha256")
-                    and provenance.get("render_compiler_version")
-                    == style_contract.get("render_compiler_version")
+                    and (
+                        provenance.get("dashboard_render_compiler_version")
+                        or provenance.get("render_compiler_version")
+                    )
+                    == (
+                        style_contract.get("dashboard_render_compiler_version")
+                        or style_contract.get("render_compiler_version")
+                    )
                 )
             )
         )
@@ -1018,8 +1127,19 @@ def dl_generate_editor_bundle(
             **profile,
             "enforced": True,
             "exact_template_reused": True,
+            "editor_render_profile": str(style_contract.get("editor_render_profile") or ""),
+            "render_contract_version": str(style_contract.get("renderer_visual_spec") or ""),
         }
+        bundle["editor_render_profile"] = str(
+            style_contract.get("editor_render_profile") or ""
+        )
+        bundle["render_contract_version"] = str(
+            style_contract.get("renderer_visual_spec") or ""
+        )
         bundle["profile_route_decision"] = profile_route
+    if title_contract:
+        bundle["title_mode"] = str(title_contract.get("mode") or "")
+        bundle["protected_renderer_identity"] = protected_renderer_identity(bundle)
     selected_recipe = select_authoring_recipe(
         intent_text=intent_text,
         route=selected_route,
@@ -1035,6 +1155,43 @@ def dl_generate_editor_bundle(
         "implementation_plan": requirements_context["path"],
         "summary_preview": requirements_context["summary"][:1200],
     }
+    composition: dict[str, Any] = {}
+    if (
+        title_contract or dashboard_composition is not None
+    ) and bundle.get("generation_status") != "blocked_missing_input":
+        composition = _write_dashboard_composition_artifact(
+            root=root,
+            components=[
+                {
+                    "widget_id": widget_id,
+                    "ok": True,
+                    "route": str(bundle.get("route") or selected_route),
+                    "family": str(bundle.get("family") or requested_family),
+                    "display_title": str(title_contract.get("display_title") or widget_title),
+                    "title_mode": str(title_contract.get("mode") or "native_title"),
+                    "title_contract_sha256": str(title_contract.get("sha256") or ""),
+                    "selector_contract": (
+                        bundle.get("selector_contract")
+                        if isinstance(bundle.get("selector_contract"), dict)
+                        else {}
+                    ),
+                    "comparison_context": (
+                        bundle.get("comparison_context_contract")
+                        if isinstance(bundle.get("comparison_context_contract"), dict)
+                        else {}
+                    ),
+                    "protected_renderer_identity": (
+                        bundle.get("protected_renderer_identity")
+                        if isinstance(bundle.get("protected_renderer_identity"), dict)
+                        else {}
+                    ),
+                }
+            ],
+            requested=dashboard_composition,
+            dashboard_title=str(brief.get("dashboard_name") or "Dashboard"),
+        )
+        bundle["dashboard_composition_binding"] = _composition_binding(root, composition)
+        bundle["dashboard_composition"] = _composition_summary(root, composition)
     if not _BATCH_BUNDLE_GENERATION.get():
         bundle["browser_qa_plan"] = _write_bundle_browser_qa_plan(
             root=root,
@@ -1047,6 +1204,11 @@ def dl_generate_editor_bundle(
                     ),
                     "family": str(
                         (bundle.get("selector_contract") or {}).get("family") or ""
+                    ),
+                    "multiple": any(
+                        bool(item.get("multiple"))
+                        for item in (bundle.get("selector_contract") or {}).get("controls", [])
+                        if isinstance(item, dict)
                     ),
                 }
             ]
@@ -1073,6 +1235,8 @@ def dl_generate_editor_bundle(
             ),
             render_contract=resolved_render_contract,
             artifact_stem=widget_id,
+            title_contracts=[{"widget_id": widget_id, **title_contract}] if title_contract else [],
+            dashboard_composition=composition,
         )
     bundle_dir = root / "dashboard" / widget_id
     for tab, content in bundle["tabs"].items():
@@ -1089,6 +1253,7 @@ def dl_generate_editor_bundle(
             and bundle["selector_contract"].get("ok") is True
             else None
         ),
+        title_contract=title_contract or None,
     )
     update_implemented_charts_catalog(root, bundle=bundle, relations=relations, brief=brief)
     return bundle
@@ -1103,6 +1268,7 @@ _BATCH_CHART_SPEC_FIELDS = {
     "dataset_readbacks",
     "render_overrides",
     "comparison_context",
+    "title_mode",
 }
 
 
@@ -1365,6 +1531,51 @@ def _aggregate_batch_browser_render_contract(
     }
 
 
+def _write_dashboard_composition_artifact(
+    *,
+    root: Path,
+    components: list[dict[str, Any]],
+    requested: dict[str, Any] | None,
+    dashboard_title: str,
+) -> dict[str, Any]:
+    composition = build_dashboard_composition(
+        components,
+        requested=requested,
+        dashboard_title=dashboard_title,
+    )
+    write_json(root / "artifacts" / "dashboard_composition.json", composition)
+    write_json(
+        root / "artifacts" / "dashboard_payloads" / "generated.dashboard.payload.json",
+        composition["payload_skeleton"],
+    )
+    return composition
+
+
+def _composition_binding(root: Path, composition: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schema_version": "2026-08-06.dashboard_composition_binding.v1",
+        "composition_sha256": composition["sha256"],
+        "payload_skeleton_sha256": composition["payload_skeleton_sha256"],
+        "composition_path": str(root / "artifacts" / "dashboard_composition.json"),
+        "dashboard_payload_path": str(
+            root / "artifacts" / "dashboard_payloads" / "generated.dashboard.payload.json"
+        ),
+    }
+
+
+def _composition_summary(root: Path, composition: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schema_version": composition["schema_version"],
+        "version": composition["version"],
+        "sha256": composition["sha256"],
+        "payload_skeleton_sha256": composition["payload_skeleton_sha256"],
+        "tab_count": len(composition["tabs"]),
+        "mount_count": len(composition["mounts"]),
+        "artifact_path": str(root / "artifacts" / "dashboard_composition.json"),
+        "payload_skeleton": deepcopy(composition["payload_skeleton"]),
+    }
+
+
 def _write_bundle_browser_qa_plan(
     *,
     root: Path,
@@ -1375,6 +1586,8 @@ def _write_bundle_browser_qa_plan(
     tooltip_comparison_modes: dict[str, str] | None = None,
     render_contract: dict[str, Any],
     artifact_stem: str,
+    title_contracts: list[dict[str, Any]] | None = None,
+    dashboard_composition: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     browser_render_contract = (
         render_contract.get("effective_tokens")
@@ -1390,6 +1603,8 @@ def _write_bundle_browser_qa_plan(
         comparison_context_object_ids=comparison_context_object_ids or [],
         tooltip_comparison_modes=tooltip_comparison_modes or {},
         render_contract=browser_render_contract,
+        title_contracts=title_contracts or [],
+        dashboard_composition=dashboard_composition or {},
     )
     validation = validate_browser_qa_plan(plan)
     if not validation["ok"]:
@@ -1414,8 +1629,60 @@ def _write_bundle_browser_qa_plan(
             for item in plan["viewports"]
         ],
         "assertion_count": len(plan["evaluate"]["assertions"]),
-        "read_only": plan["evaluate"]["read_only"],
     }
+
+
+def _bind_browser_qa_plans_to_attestation(
+    root: Path,
+    attestation: dict[str, Any],
+) -> list[dict[str, Any]]:
+    composition = read_json(root / "artifacts" / "dashboard_composition.json", default={})
+    title_contracts = [
+        {
+            "widget_id": str(item.get("widget_id") or ""),
+            "title_mode": str(item.get("title_mode") or ""),
+            "display_title": str(item.get("display_title") or ""),
+            "title_contract_sha256": str(item.get("title_contract_sha256") or ""),
+        }
+        for item in attestation.get("components") or []
+        if isinstance(item, dict) and str(item.get("widget_id") or "")
+    ]
+    rebound: list[dict[str, Any]] = []
+    for path in sorted((root / "artifacts" / "browser_qa").glob("*.plan.json")):
+        current = read_json(path, default={})
+        target = current.get("target") if isinstance(current.get("target"), dict) else {}
+        try:
+            plan = build_browser_qa_plan(
+                dashboard_id=str(target.get("dashboard_id") or "dashboard_target"),
+                dashboard_url=str(target.get("dashboard_url") or ""),
+                tab_ids=list(target.get("tab_ids") or []),
+                expected_object_ids=list(target.get("expected_object_ids") or []),
+                selector_contracts=list(current.get("selector_contracts") or []),
+                comparison_enabled=bool(current.get("comparison_enabled")),
+                comparison_context_object_ids=list(current.get("comparison_context_object_ids") or []),
+                tooltip_comparison_modes=dict(current.get("tooltip_comparison_modes") or {}),
+                render_contract=dict(current.get("render_contract") or {}),
+                title_contracts=title_contracts,
+                dashboard_composition=composition,
+                saved_revision=str(target.get("saved_revision") or ""),
+                published_revision=str(target.get("published_revision") or ""),
+                final_payload_attestation_sha256=str(attestation.get("attestation_sha256") or ""),
+                payload_set_sha256=str(attestation.get("payload_set_sha256") or ""),
+            )
+        except ValueError as exc:
+            rebound.append({"path": str(path), "ok": False, "issues": [str(exc)]})
+            continue
+        validation = validate_browser_qa_plan(plan)
+        write_json(path, plan)
+        rebound.append(
+            {
+                "path": str(path),
+                "ok": validation["ok"],
+                "issues": validation["issues"],
+                "plan_sha256": plan["canonical_sha256"],
+            }
+        )
+    return rebound
 
 
 def _generate_editor_bundle_batch(
@@ -1424,6 +1691,7 @@ def _generate_editor_bundle_batch(
     authoring_profile: str | dict[str, Any],
     chart_specs: list[dict[str, Any]],
     shared_render_overrides: dict[str, Any] | None,
+    dashboard_composition: dict[str, Any] | None,
 ) -> dict[str, Any]:
     if not isinstance(chart_specs, list) or not chart_specs:
         raise ValueError("chart_specs must be a non-empty array")
@@ -1464,6 +1732,14 @@ def _generate_editor_bundle_batch(
     )
     if not batch_profile.get("ok"):
         return batch_profile
+    if not batch_profile.get("active"):
+        batch_profile = resolve_authoring_profile(
+            project_root=root,
+            requested_profile=CANONICAL_AUTHORING_PROFILE_ID,
+        )
+        if not batch_profile.get("ok"):
+            return batch_profile
+        authoring_profile = CANONICAL_AUTHORING_PROFILE_ID
     strict_render_profile = bool(
         (
             batch_profile.get("style_contract")
@@ -1586,6 +1862,7 @@ def _generate_editor_bundle_batch(
                 selector_contract=item.get("selector_contract"),
                 dataset_readbacks=item.get("dataset_readbacks"),
                 render_overrides=merged_overrides or None,
+                title_mode=str(item.get("title_mode") or ""),
             )
         finally:
             _BATCH_COMPARISON_CONTEXT.reset(comparison_token)
@@ -1637,6 +1914,41 @@ def _generate_editor_bundle_batch(
                     if isinstance(generated.get("render_contract"), dict)
                     else ""
                 ),
+                "display_title": str(
+                    (generated.get("title_contract") or {}).get("display_title")
+                    if isinstance(generated.get("title_contract"), dict)
+                    else generated.get("title") or ""
+                ),
+                "title_mode": str(
+                    (generated.get("title_contract") or {}).get("mode")
+                    if isinstance(generated.get("title_contract"), dict)
+                    else "native_title" if is_wizard else ""
+                ),
+                "title_contract_sha256": str(
+                    (generated.get("title_contract") or {}).get("sha256")
+                    if isinstance(generated.get("title_contract"), dict)
+                    else ""
+                ),
+                "title_contract": (
+                    deepcopy(generated.get("title_contract"))
+                    if isinstance(generated.get("title_contract"), dict)
+                    else {}
+                ),
+                "protected_renderer_identity": (
+                    generated.get("protected_renderer_identity")
+                    if isinstance(generated.get("protected_renderer_identity"), dict)
+                    else {}
+                ),
+                "selector_contract": (
+                    generated.get("selector_contract")
+                    if isinstance(generated.get("selector_contract"), dict)
+                    else {}
+                ),
+                "comparison_context": (
+                    generated.get("comparison_context_contract")
+                    if isinstance(generated.get("comparison_context_contract"), dict)
+                    else {}
+                ),
                 "blocking_issues": list(generated.get("blocking_issues") or [])[:20],
             }
         )
@@ -1651,6 +1963,11 @@ def _generate_editor_bundle_batch(
             continue
         selector = spec.get("selector_contract")
         if isinstance(selector, dict):
+            selector_controls = [
+                item
+                for item in selector.get("controls") or []
+                if isinstance(item, dict)
+            ]
             combined_selectors.append(
                 {
                     "selector_id": result["widget_id"],
@@ -1660,6 +1977,17 @@ def _generate_editor_bundle_batch(
                         or result.get("family")
                         or spec.get("family")
                         or ""
+                    ),
+                    "multiple": any(bool(item.get("multiple")) for item in selector_controls),
+                    "emptyMeansAll": all(
+                        item.get("emptyMeansAll") is True
+                        for item in selector_controls
+                        if item.get("multiple")
+                    ) if any(item.get("multiple") for item in selector_controls) else False,
+                    "restoreDefaultAfterClear": any(
+                        item.get("restoreDefaultAfterClear") is True
+                        for item in selector_controls
+                        if item.get("multiple")
                     ),
                 }
             )
@@ -1710,19 +2038,69 @@ def _generate_editor_bundle_batch(
         artifact_stem="dashboard_batch",
     ) if ready_count and browser_contract_aggregation["ok"] else {}
     all_widgets_ready = ready_count == len(results)
-    batch_ready = all_widgets_ready and browser_contract_aggregation["ok"]
+    composition: dict[str, Any] = {}
+    composition_issues: list[str] = []
+    composition_required = bool(
+        dashboard_composition is not None
+        or (
+            batch_profile.get("style_contract")
+            if isinstance(batch_profile.get("style_contract"), dict)
+            else {}
+        ).get("renderer_visual_spec") == RENDERER_VISUAL_SPEC_V5
+    )
+    if all_widgets_ready and composition_required:
+        try:
+            composition = build_dashboard_composition(
+                results,
+                requested=dashboard_composition,
+                dashboard_title=str(brief.get("dashboard_name") or "Dashboard"),
+            )
+            composition_path = root / "artifacts" / "dashboard_composition.json"
+            dashboard_payload_path = root / "artifacts" / "dashboard_payloads" / "generated.dashboard.payload.json"
+            write_json(composition_path, composition)
+            write_json(dashboard_payload_path, composition["payload_skeleton"])
+            binding = {
+                "schema_version": "2026-08-06.dashboard_composition_binding.v1",
+                "composition_sha256": composition["sha256"],
+                "payload_skeleton_sha256": composition["payload_skeleton_sha256"],
+                "composition_path": str(composition_path),
+                "dashboard_payload_path": str(dashboard_payload_path),
+            }
+            for result in results:
+                artifact_path = Path(str(result.get("bundle_path") or ""))
+                if artifact_path.is_file():
+                    persisted = read_json(artifact_path, default={})
+                    persisted["dashboard_composition_binding"] = deepcopy(binding)
+                    write_json(artifact_path, persisted)
+                result["dashboard_composition_sha256"] = composition["sha256"]
+        except DashboardCompositionError as exc:
+            composition_issues.append(str(exc))
+    batch_ready = (
+        all_widgets_ready
+        and browser_contract_aggregation["ok"]
+        and not composition_issues
+        and (bool(composition) or not composition_required)
+    )
     batch_status = (
         "ready"
         if batch_ready
+        else "blocked_dashboard_composition"
+        if all_widgets_ready and composition_required and composition_issues
         else "blocked_inconsistent_render_contract"
         if all_widgets_ready
         else "blocked_partial_batch"
     )
+    for result in results:
+        result.pop("protected_renderer_identity", None)
+        result.pop("selector_contract", None)
+        result.pop("comparison_context", None)
+        result.pop("title_contract", None)
+        if not result.get("blocking_issues"):
+            result.pop("blocking_issues", None)
     batch = {
         "schema_version": "2026-07-29.editor_bundle_batch.v2",
         "ok": batch_ready,
         "status": batch_status,
-        "generation_status": batch_status,
         "batch_summary": {
             "requested_count": len(results),
             "ready_count": ready_count,
@@ -1732,14 +2110,25 @@ def _generate_editor_bundle_batch(
         "results": results,
         "browser_qa_plan": batch_browser_plan,
     }
-    if browser_contract_rows:
+    if composition:
+        batch["dashboard_composition"] = {
+            "schema_version": composition.get("schema_version"),
+            "version": composition.get("version"),
+            "sha256": composition.get("sha256"),
+            "payload_skeleton_sha256": composition.get("payload_skeleton_sha256"),
+            "tab_count": len(composition.get("tabs") or []),
+            "mount_count": len(composition.get("mounts") or []),
+            "artifact_path": str(root / "artifacts" / "dashboard_composition.json"),
+        }
+    if browser_contract_rows and all_widgets_ready:
         batch["browser_render_contract"] = {
             key: value
             for key, value in browser_contract_aggregation.items()
             if key != "render_contract"
         }
-    if browser_contract_aggregation["issues"]:
-        batch["blocking_issues"] = browser_contract_aggregation["issues"]
+    blocking_issues = [*browser_contract_aggregation["issues"], *composition_issues]
+    if blocking_issues:
+        batch["blocking_issues"] = blocking_issues
     manifest_path = root / "artifacts" / "editor_bundle_batch.json"
     write_json(manifest_path, batch)
     return {
@@ -1937,6 +2326,22 @@ def dl_validate_project(project_root: str = ".") -> dict[str, Any]:
             f"{finding.get('path')}:{finding.get('line')}: "
             f"{finding.get('requirement_id')} forbids {finding.get('token')}"
         )
+    final_payload_attestation = write_final_payload_attestation(root)
+    browser_qa_attestation_bindings = _bind_browser_qa_plans_to_attestation(
+        root,
+        final_payload_attestation,
+    )
+    if final_payload_attestation.get("applicability") == "required":
+        issues.extend(
+            f"final_payload_attestation: {issue}"
+            for issue in final_payload_attestation.get("issues") or []
+        )
+        issues.extend(
+            f"browser_qa_plan: {issue}"
+            for binding in browser_qa_attestation_bindings
+            if not binding.get("ok")
+            for issue in binding.get("issues") or []
+        )
     scan = scan_path(root)
     issues.extend(scan.issues)
     status = "pass" if not issues else "fail"
@@ -1954,6 +2359,7 @@ def dl_validate_project(project_root: str = ".") -> dict[str, Any]:
             "editor_sql_static_lint",
             "sql_performance_semantics",
             "negative_requirement_drift",
+            "final_payload_attestation",
             "secrets",
         ],
         "dashboard_payload_preflight": dashboard_preflight,
@@ -1967,6 +2373,8 @@ def dl_validate_project(project_root: str = ".") -> dict[str, Any]:
             "artifact": str(root / "artifacts" / "sql_performance" / "project_semantic_validation.json"),
         },
         "negative_requirement_drift": negative_drift,
+        "final_payload_attestation": final_payload_attestation,
+        "browser_qa_attestation_bindings": browser_qa_attestation_bindings,
     }
     write_json(root / "artifacts" / "validation_report.json", report)
     output_fingerprint = _project_validation_fingerprint(root)
@@ -2031,6 +2439,20 @@ def dl_build_payload_plan(
     root = ensure_project_dirs(project_root)
     payloads = []
     blocking_issues: list[dict[str, Any]] = []
+    attestation_path = root / ATTESTATION_ARTIFACT
+    final_payload_attestation = (
+        read_json(attestation_path, default={}) if attestation_path.is_file() else {}
+    )
+    attestation_required = final_payload_attestation.get("applicability") == "required"
+    if attestation_required:
+        for issue in verify_final_payload_attestation(root, final_payload_attestation):
+            blocking_issues.append(
+                {
+                    "status": "blocked_stale_final_payload_attestation",
+                    "issues": [issue],
+                    "action": "Run dl_validate_project again after the last payload, title, selector, route, or layout change.",
+                }
+            )
     for bundle_path in root.glob("dashboard/*/bundle.json"):
         bundle = read_json(bundle_path, default={})
         generation_status = str(bundle.get("generation_status") or "")
@@ -2049,6 +2471,26 @@ def dl_build_payload_plan(
         payload = compile_editor_payload(bundle, workbook_id=workbook_id)
         out = root / "artifacts" / "payloads" / f"{bundle.get('widget_id', bundle_path.parent.name)}.payload.json"
         write_json(out, payload)
+        widget_id = str(bundle.get("widget_id") or bundle_path.parent.name)
+        attestation_issues = (
+            validate_payload_against_attestation(
+                payload,
+                final_payload_attestation,
+                widget_id=widget_id,
+            )
+            if attestation_required
+            else []
+        )
+        if attestation_issues:
+            blocking_issues.append(
+                {
+                    "widget_id": widget_id,
+                    "status": "blocked_payload_not_attested",
+                    "issues": attestation_issues,
+                    "action": "Regenerate the component and rerun dl_validate_project.",
+                }
+            )
+            continue
         recipe = bundle.get("knowledge_recipe") if isinstance(bundle.get("knowledge_recipe"), dict) else {}
         payloads.append(
             {
@@ -2062,6 +2504,22 @@ def dl_build_payload_plan(
                 "algorithmic_bound": recipe.get("algorithmic_bound") or "",
                 "validation_checklist": recipe.get("validation_checklist") or [],
                 "source_traces": recipe.get("source_traces") or [],
+                "final_payload_attestation_sha256": str(
+                    final_payload_attestation.get("attestation_sha256") or ""
+                ),
+                "authoring_profile_id": str(
+                    (bundle.get("authoring_profile") or {}).get("id")
+                    if isinstance(bundle.get("authoring_profile"), dict)
+                    else ""
+                ),
+                "binding_neutral_payload_sha256": next(
+                    (
+                        str(item.get("binding_neutral_payload_sha256") or "")
+                        for item in final_payload_attestation.get("components") or []
+                        if isinstance(item, dict) and item.get("widget_id") == widget_id
+                    ),
+                    "",
+                ),
             }
         )
     for wizard_plan_path in root.glob("artifacts/*.wizard_payload_plan.json"):
@@ -2111,6 +2569,26 @@ def dl_build_payload_plan(
             compiled_payload["name"] = str(wizard_plan.get("widget_id") or wizard_plan_path.stem)
         out = root / "artifacts" / "payloads" / f"{wizard_plan.get('widget_id') or wizard_plan_path.stem}.payload.json"
         write_json(out, compiled_payload)
+        wizard_widget_id = str(wizard_plan.get("widget_id") or wizard_plan_path.stem)
+        attestation_issues = (
+            validate_payload_against_attestation(
+                compiled_payload,
+                final_payload_attestation,
+                widget_id=wizard_widget_id,
+            )
+            if attestation_required
+            else []
+        )
+        if attestation_issues:
+            blocking_issues.append(
+                {
+                    "widget_id": wizard_widget_id,
+                    "status": "blocked_payload_not_attested",
+                    "issues": attestation_issues,
+                    "action": "Regenerate the Wizard plan and rerun dl_validate_project.",
+                }
+            )
+            continue
         payloads.append(
             {
                 "widget_id": wizard_plan.get("widget_id") or wizard_plan_path.stem,
@@ -2124,6 +2602,14 @@ def dl_build_payload_plan(
                 "dataset_readbacks": dataset_readbacks,
                 "dataset_readback_validation": dataset_readback_validation,
                 "enforce_wizard_role_types": True,
+                "final_payload_attestation_sha256": str(
+                    final_payload_attestation.get("attestation_sha256") or ""
+                ),
+                "authoring_profile_id": str(
+                    (wizard_plan.get("authoring_profile") or {}).get("id")
+                    if isinstance(wizard_plan.get("authoring_profile"), dict)
+                    else ""
+                ),
             }
         )
     planned_object_key = (
@@ -2168,6 +2654,13 @@ def dl_build_payload_plan(
         "payloads": payloads,
         "blocking_issues": blocking_issues,
         "delivery_intent_decision": delivery_decision,
+        "final_payload_attestation": {
+            "required": attestation_required,
+            "path": str(attestation_path),
+            "sha256": str(final_payload_attestation.get("attestation_sha256") or ""),
+            "payload_set_sha256": str(final_payload_attestation.get("payload_set_sha256") or ""),
+            "ok": bool(final_payload_attestation.get("ok")) if final_payload_attestation else False,
+        },
     }
     write_json(root / "artifacts" / "payload_plan.json", plan)
     write_json(root / "artifacts" / "delivery" / "target_lock.json", target_lock.to_dict())
@@ -3093,6 +3586,14 @@ def dl_create_safe_apply_plan(
                 "payload_sha256": serialized_metadata(payload)["sha256"],
                 "generator": "dl_build_payload_plan",
                 "source_path": payload_path,
+                "widget_id": str(item.get("widget_id") or ""),
+                "authoring_profile_id": str(item.get("authoring_profile_id") or ""),
+                "final_payload_attestation_path": str(
+                    (payload_plan.get("final_payload_attestation") or {}).get("path") or ""
+                ),
+                "final_payload_attestation_sha256": str(
+                    item.get("final_payload_attestation_sha256") or ""
+                ),
                 **(
                     {
                         "dataset_readbacks": dataset_readbacks,
@@ -4568,11 +5069,13 @@ def _write_dashboard_relations(
     brief: dict[str, Any],
     widget_id: str,
     selector_contract: dict[str, Any] | None = None,
+    title_contract: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     incoming = build_default_dashboard_relations(
         brief=brief,
         widget_id=widget_id,
         selector_contract=selector_contract,
+        title_contract=title_contract,
     )
     relations_path = root / "artifacts" / "dashboard_object_relations.json"
     relations = merge_dashboard_relations(
@@ -5233,6 +5736,12 @@ def _joined_strings(value: Any) -> str:
 def _write_dashboard_preflight_candidate(root: Path, *, workbook_id: str, payloads: list[dict[str, Any]]) -> None:
     if not payloads:
         return
+    composition_path = root / "artifacts" / "dashboard_composition.json"
+    generated_path = root / "artifacts" / "dashboard_payloads" / "generated.dashboard.payload.json"
+    if composition_path.is_file() and generated_path.is_file():
+        # The composition-v2 payload is the attested dashboard source. A chart-only
+        # compatibility candidate must never overwrite its title/layout binding.
+        return
     items = []
     for index, payload in enumerate(payloads, start=1):
         widget_id = str(payload.get("widget_id") or f"widget_{index:03d}")
@@ -5252,7 +5761,7 @@ def _write_dashboard_preflight_candidate(root: Path, *, workbook_id: str, payloa
         "items": items,
         "selector_rows": [],
     }
-    write_json(root / "artifacts" / "dashboard_payloads" / "generated.dashboard.payload.json", dashboard_payload)
+    write_json(generated_path, dashboard_payload)
 
 
 def _looks_like_dashboard_payload(payload: Any, path: Path) -> bool:

@@ -1,0 +1,16 @@
+{
+  "cases": [
+    "selector_label_above",
+    "double_or_technical_title",
+    "adjacent_height_mismatch",
+    "undeclared_vertical_gap",
+    "four_dense_kpis_without_browser_proof",
+    "empty_group_header",
+    "constant_sticky_column",
+    "clipped_label_without_display_label",
+    "multiselect_repopulated_after_clear",
+    "wizard_first_replaced_by_editor",
+    "protected_runtime_rewritten",
+    "layout_rewritten_after_generation"
+  ]
+}

@@ -11,12 +11,13 @@ The validator blocks:
 - missing or malformed nested tab ids;
 - selector/control id collisions with widget or chart ids unless an existing
   global control is explicitly marked preserved;
-- missing native title/hint metadata on new multi-tab blocks, while unchanged
-  legacy widgets can be preserved when current dashboard context is supplied;
-- inline Advanced Editor titles that duplicate dashboard native title/hint
-  metadata;
-- selector layout violations: label placement defaults to left, widths use
-  percent units, and selector rows stay within a 94 percent budget;
+- title metadata that contradicts the role-based title mode, including hidden
+  native tab strips, duplicated native/embedded titles, and technical display
+  titles;
+- selector layout violations: labels stay left, each declared row uses exactly
+  94 percent, Apply is disabled, and Clear keeps an empty multiselect empty;
+- composition-v2 drift in row heights, KPI density, undeclared vertical gaps,
+  table labels, or mount-to-tab-to-widget relationships;
 - selector `impactTabsIds` values that reference tabs absent from the payload;
 - invalid or mixed `autoHeight` policies in newly generated native-grid
   widgets, while unchanged saved legacy layouts remain warning-only;

@@ -42,18 +42,29 @@
 
 Перед сохранением Editor-объект проходит `dl_validate_editor_runtime_contract` по официальным [вкладкам](https://yandex.cloud/ru/docs/datalens/charts/editor/tabs) и [методам](https://yandex.cloud/ru/docs/datalens/charts/editor/methods).
 
-Явный проектный `authoring_profile: {"id": "standard_editor_v1"}` является
-контрактом на JavaScript для всех поддержанных семейств. Он не меняет общий
-Wizard-first default: профиль выбирает только зарегистрированный Editor-asset,
-возвращает SHA-256 набора шаблонов, выбранных assets, style-контракта и
-скомпилированных вкладок и запрещает приблизительный fallback. Если семейство
-не зарегистрировано или требует native map, генерация через профиль блокируется.
+Для create и full redesign без явного профиля сервер применяет
+`standard_dashboard_v1`; aliases `strict_dashboard`, `standard_dashboard` и
+`registered_dashboard` ведут к нему. Профиль сначала фиксирует канонический
+route: стандартные KPI, таблицы и графики остаются Wizard. Затем
+Для выбранного Editor тот же `standard_dashboard_v1` применяет актуальный
+защищённый renderer только к прямо запрошенному Editor, доказанному capability
+gap или сохранённой Editor-технологии при update.
+
+Исполняемый встроенный контракт один. Исторические имена профилей принимаются
+только как входные aliases и сразу нормализуются в `standard_dashboard_v1` без
+доступа к старым assets или правилам. Сохранённая Editor-технология остаётся
+Editor, но bundle пересобирается по текущему контракту. Профиль возвращает
+SHA-256 набора шаблонов, выбранных assets,
+render-контракта и скомпилированных вкладок и запрещает приблизительный fallback.
+После batch generation route входит в final payload attestation: project
+compiler не может заменить спланированный Wizard на Editor.
 
 Project-local профиль объявляется объектом с `id`, `descriptor_path` и
 `descriptor_sha256`. Descriptor регистрирует только точные Editor-family
 assets, сам и все зависимости остаются внутри project root, а fingerprint
 полного template set проверяется до генерации. Такой профиль не расширяет
-список поддержанных технологий и не разрешает fallback.
+список поддержанных технологий и не разрешает fallback. Зарезервированное имя
+встроенного профиля или его alias нельзя переопределить таким descriptor.
 
 ## QL
 
@@ -64,3 +75,17 @@ assets, сам и все зависимости остаются внутри pr
 Для нового Wizard-чарта сервер предпочитает актуальный saved-образец с тем же `visualization_id`, удаляет идентификаторы исходного объекта и привязывает поля целевого датасета. При отсутствии образца используется встроенный канонический шаблон.
 
 При update технология, визуализация, неизвестные поля и ревизия берутся из актуального чтения. Публикация регулируется [Safe Apply](safe-apply.md), независимо от выбранной технологии.
+
+## Контракт композиции и заголовков
+
+`Renderer Visual Spec v5` назначает владельца заголовка через `title_mode`:
+Editor-график использует `embedded_title`, KPI — `content_label`, вкладка без
+внутреннего заголовка — `tab_only`, Wizard/нативная таблица — `native_title`,
+внутренний переключатель — `tab_strip`. Одновременный native и runtime title
+запрещён. Точный `display_title` входит в acceptance и не заменяется
+техническим именем.
+
+`dashboard_composition.version=2` фиксирует 36-колоночную геометрию,
+семантические строки, selectors и mount → tab → widget связи. Любая смена
+route, title, selector, runtime или layout после `dl_validate_project`
+инвалидирует final payload attestation.

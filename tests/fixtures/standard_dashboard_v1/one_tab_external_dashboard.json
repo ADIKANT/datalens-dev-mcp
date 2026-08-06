@@ -1,0 +1,8 @@
+{
+  "dashboard_id": "synthetic_external",
+  "dashboard_title": "Synthetic External Overview",
+  "version": 2,
+  "tabs": [
+    {"id": "main", "title": "Overview", "rows": [{"id": "main_kpi", "role": "kpi", "items": ["kpi_a", "kpi_b", "kpi_c"]}, {"id": "main_trend", "role": "chart", "items": ["trend_a", "segment_a"]}]}
+  ]
+}
