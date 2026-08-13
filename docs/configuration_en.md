@@ -68,7 +68,7 @@ DATALENS_MCP_ENABLE_EXPERT_RPC=0
 
 Pass its absolute path as `DATALENS_ENV_FILE`. The canonical file is reloaded during access checks and before write operations. For write/save/publish, a value of `0` in either the file or the process environment always takes precedence over `1`.
 
-If `yc` is missing from the MCP process `PATH`, set `DATALENS_YC_BINARY`. `dl_runtime_status` reports `refresh_available` without exposing token paths or values.
+If `yc` is missing from the MCP process `PATH`, set `DATALENS_YC_BINARY`. `dl_runtime_status` reports `refresh_available` without exposing token paths or values. Automatic refresh runs `yc iam create-token --no-browser --no-user-output`; complete any interactive `yc` profile reauthentication separately in a terminal.
 
 ## API request scheduler
 

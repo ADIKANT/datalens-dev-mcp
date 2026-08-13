@@ -69,12 +69,14 @@ Pass the absolute file path to the MCP client as `DATALENS_ENV_FILE`. The [DataL
 
 ### Automatic token bootstrap and refresh
 
-With `DATALENS_ENABLE_TOKEN_REFRESH_ON_401=1`, the server runs the configured `yc iam create-token` command when:
+With `DATALENS_ENABLE_TOKEN_REFRESH_ON_401=1`, the server runs the configured `yc iam create-token --no-browser --no-user-output` command when:
 
 1. `dl_auth_probe` cannot find an initial token in the canonical env file;
 2. DataLens returns HTTP 401 for an expired token.
 
 The new value is written atomically to `DATALENS_ENV_FILE`, the file mode is set to `0600`, and the original request is retried once. Updating the token in the canonical env file does not require a client restart because the server reloads that file. Restart the client after changing MCP process settings.
+
+Background refresh never opens a browser or reads interactive input. If the `yc` profile requires reauthentication, run `yc iam create-token` in an interactive terminal, complete the opened sign-in flow, and retry the MCP call. A `127.0.0.1` callback URL is one-time: it stops working after the `yc` process that created it exits or is terminated.
 
 If `yc` is not on the MCP process `PATH`, set its absolute path in `DATALENS_YC_BINARY`. The `refresh_available` field from `dl_runtime_status` confirms that the refresh command was resolved.
 

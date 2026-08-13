@@ -147,6 +147,25 @@ class LiveAuthTransactionTests(unittest.TestCase):
 
         self.assertIn("timed out", str(raised.exception))
 
+    def test_yc_refresh_is_non_interactive_and_suppresses_user_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fake_yc = Path(tmp) / "yc"
+            fake_yc.write_text(
+                "#!/bin/sh\n"
+                "test \"$#\" -eq 4 || exit 11\n"
+                "test \"$1\" = 'iam' || exit 12\n"
+                "test \"$2\" = 'create-token' || exit 13\n"
+                "test \"$3\" = '--no-browser' || exit 14\n"
+                "test \"$4\" = '--no-user-output' || exit 15\n"
+                "printf 'fresh-token\\n'\n",
+                encoding="utf-8",
+            )
+            fake_yc.chmod(0o755)
+
+            token = refresh_iam_token_with_yc(yc_binary=str(fake_yc), timeout_sec=1.0)
+
+        self.assertEqual(token, "fresh-token")
+
     def test_safe_apply_failed_action_marks_batch_failed_not_success(self):
         class FailingThirdClient:
             def __init__(self):
