@@ -21,14 +21,14 @@ from datalens_dev_mcp.runtime_resources import (
 
 
 AUTHORING_PROFILE_RESOURCE = "config/editor_authoring_profiles.json"
-CANONICAL_AUTHORING_PROFILE_ID = "standard_dashboard_v1"
+CANONICAL_AUTHORING_PROFILE_ID = "standard_dashboard"
 DEFAULT_TEMPLATE_REGISTRY_RESOURCE = "templates/datalens/standard_chart_templates.json"
 PROJECT_MANIFEST_NAMES = (".datalens-mcp.json", "datalens-mcp.project.json")
 SHARED_TEMPLATE_ASSETS = (
     "templates/datalens/advanced_editor/_shared/style_tokens.js",
     "templates/datalens/advanced_editor/_shared/render_helpers.js",
 )
-PROJECT_PROFILE_SCHEMA_VERSION = "2026-07-23.project_authoring_profile.v1"
+PROJECT_PROFILE_SCHEMA_ID = "project_authoring_profile"
 PROJECT_PROFILE_MAX_BYTES = 1_048_576
 
 
@@ -159,7 +159,7 @@ def resolve_authoring_profile(
         "registered_family_count": template_set["family_count"],
         "style_contract": style_contract,
         "style_contract_sha256": hashlib.sha256(style_contract_canonical.encode("utf-8")).hexdigest(),
-        "registry_schema_version": str(registry.get("schema_version") or ""),
+        "registry_schema_id": str(registry.get("schema_id") or ""),
         "source_kind": "packaged",
     }
 
@@ -235,7 +235,7 @@ def _resolve_project_local_profile(
             manifest_path=manifest_path,
         )
     allowed_descriptor_fields = {
-        "schema_version",
+        "schema_id",
         "id",
         "description",
         "route_policy",
@@ -251,8 +251,8 @@ def _resolve_project_local_profile(
     profile_id = _profile_id(declaration)
     descriptor_id = str(descriptor.get("id") or "").strip()
     issues = []
-    if descriptor.get("schema_version") != PROJECT_PROFILE_SCHEMA_VERSION:
-        issues.append(f"schema_version must be {PROJECT_PROFILE_SCHEMA_VERSION}")
+    if descriptor.get("schema_id") != PROJECT_PROFILE_SCHEMA_ID:
+        issues.append(f"schema_id must be {PROJECT_PROFILE_SCHEMA_ID}")
     if not descriptor_id or descriptor_id != profile_id:
         issues.append("descriptor id must exactly match authoring_profile.id")
     if unknown:
@@ -333,7 +333,7 @@ def _resolve_project_local_profile(
         "registered_family_count": identity["family_count"],
         "style_contract": style_contract,
         "style_contract_sha256": hashlib.sha256(style_canonical.encode("utf-8")).hexdigest(),
-        "registry_schema_version": PROJECT_PROFILE_SCHEMA_VERSION,
+        "registry_schema_id": PROJECT_PROFILE_SCHEMA_ID,
     }
 
 
@@ -599,7 +599,7 @@ def load_project_authoring_profile_bundle(
     asset_canonical = json.dumps(asset_rows, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
     tabs_canonical = json.dumps(tabs, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
     return {
-        "schema_version": "2026-07-23.project_template_bundle.v1",
+        "schema_id": "project_template_bundle",
         "widget_id": widget_id,
         "name": f"{widget_id}_{route}",
         "display_title": title,

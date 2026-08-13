@@ -19,7 +19,7 @@ from datalens_dev_mcp.runtime_resources import (
 ARTIFACT_DIR = Path(os.environ.get("DATALENS_REFERENCE_ARTIFACT_DIR", "artifacts/reference_runs"))
 KNOWLEDGE_RESOURCE_ROOT = "schemas/datalens-knowledge"
 RECIPE_REGISTRY_RESOURCE = "templates/datalens/recipes/recipe-registry.json"
-REFERENCE_VERSION = "2026-06-30.tool_navigation.v1"
+REFERENCE_ID = "tool_navigation"
 REFERENCE_DATE = "2026-06-30"
 
 
@@ -55,7 +55,7 @@ def build_reference_response(
     elif normalized in {"chart_selection", "visual_decision", "dataviz_chart_decision"}:
         result = _chart_selection(term, limit)
         normalized = "chart_selection"
-    elif normalized in {"route_selection", "route_selection_policy", "route_selection_policy_v3", "route_policy", "route_policy_v4"}:
+    elif normalized in {"route_selection", "route_selection_policy", "route_selection_policy", "route_policy", "route_policy"}:
         result = _runtime_quality_reference("route_selection", term)
         normalized = "route_selection"
     elif normalized in {"renderer_visual_spec", "renderer_contract", "visual_contract"}:
@@ -73,7 +73,7 @@ def build_reference_response(
     elif normalized in {"delivery_intent", "delivery_policy", "write_intent"}:
         result = _delivery_intent(term, limit)
         normalized = "delivery_intent"
-    elif normalized in {"delivery_approval", "approval_intent", "approval_policy_v3"}:
+    elif normalized in {"delivery_approval", "approval_intent", "approval_policy"}:
         # Backward-compatible aliases resolve to the current public intent contract.
         result = _delivery_intent(term, limit)
         normalized = "delivery_intent"
@@ -131,8 +131,8 @@ def build_reference_response(
     envelope = _reference_envelope(normalized, term, result)
     payload = {
         "ok": True,
-        "schema_version": "2026-06-25.datalens_reference.v1",
-        "reference_version": REFERENCE_VERSION,
+        "schema_id": "datalens_reference",
+        "reference_id": REFERENCE_ID,
         "reference_date": REFERENCE_DATE,
         "mode": normalized,
         "query": term,
@@ -397,7 +397,7 @@ def _reference_envelope(mode: str, term: str, result: dict[str, Any]) -> dict[st
             "artifacts/delivery/target_lock.json",
         ],
         "route_selection": [
-            "config/route_selection_policy_v5.json",
+            "config/route_selection_policy.json",
             "src/datalens_dev_mcp/pipeline/route_selection_policy.py",
             "config/datalens_api_operation_policy.json",
         ],
@@ -423,7 +423,7 @@ def _reference_envelope(mode: str, term: str, result: dict[str, Any]) -> dict[st
         ],
         "source_route": [
             "src/datalens_dev_mcp/pipeline/source_route_resolver.py",
-            "config/route_selection_policy_v5.json",
+            "config/route_selection_policy.json",
             "artifacts/source_route_contract/",
         ],
         "visual_quality": [
@@ -465,7 +465,7 @@ def _reference_envelope(mode: str, term: str, result: dict[str, Any]) -> dict[st
         "delivery_approval": "Bounded approval-source and save-plus-publish policy contract.",
         "target_lock": "Bounded exact-target lock and wrong-target completion contract.",
         "route_selection": (
-            "Bounded RouteSelectionPolicyV5 contract for Wizard-first defaults, registered JS gaps, "
+            "Bounded RouteSelectionPolicy contract for Wizard-first defaults, registered JS gaps, "
             "explicit-only QL, existing-route preservation, and source routing."
         ),
         "object_granularity": "Bounded dashboard object graph and one-visual-per-object contract.",
@@ -493,10 +493,10 @@ def _runtime_quality_reference(mode: str, term: str) -> dict[str, Any]:
     records = {
         "route_selection": {
             "summary": (
-                "RouteSelectionPolicyV5 uses Wizard for standard creates, keeps JS for explicit requests or registered capability gaps, "
+                "RouteSelectionPolicy uses Wizard for standard creates, keeps JS for explicit requests or registered capability gaps, "
                 "preserves existing technology on update, and permits QL only after a direct user request."
             ),
-            "policy_artifact": "config/route_selection_policy_v5.json",
+            "policy_artifact": "config/route_selection_policy.json",
             "implementation": "src/datalens_dev_mcp/pipeline/route_selection_policy.py",
         },
         "delivery_approval": {
@@ -875,7 +875,7 @@ def _datalens_editor_runtime(term: str, limit: int) -> dict[str, Any]:
         "result_count": 1,
         "results": [
             {
-                "rule_version": contract.get("rule_version") or "",
+                "rule_id": contract.get("rule_id") or "",
                 "supported_layers": contract.get("official_sanitizer", {}).get("layers") or [],
                 "budgets_ms": contract.get("official_sanitizer", {}).get("documented_execution_budgets_ms") or {},
                 "blocked_patterns": sorted(
@@ -1310,7 +1310,7 @@ def _bound_payload(payload: dict[str, Any], *, max_chars: int, project_root: Pat
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     slim = {
         "ok": True,
-        "schema_version": payload["schema_version"],
+        "schema_id": payload["schema_id"],
         "mode": payload["mode"],
         "query": payload["query"],
         "source_precedence": payload.get("source_precedence") or [],

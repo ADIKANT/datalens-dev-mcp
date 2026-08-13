@@ -1,4 +1,7 @@
-// Data binding: output bucket, metric, and value columns for the time renderer.
+// @cookbook-locale ru В production подключите dataset и сохраните выходные aliases.
+// @cookbook-locale en In production bind the dataset and preserve output aliases.
+// Fixture only: production generation replaces this SQL with a caller-owned dataset binding.
+// Keep bucket/metric/value aliases stable in the production Sources tab.
 module.exports = {
   rows: {
     qlConnectionId: Editor.getId('defaultConnection'),

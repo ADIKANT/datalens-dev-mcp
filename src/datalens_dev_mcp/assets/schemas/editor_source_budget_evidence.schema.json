@@ -1,17 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "title": "Delta v7 Editor Source Budget Evidence",
+  "title": "Editor Source Budget Evidence",
   "type": "object",
   "required": [
-    "schema_version",
+    "schema_id",
     "entry_id",
     "source_key",
     "decision"
   ],
   "properties": {
-    "schema_version": {
-      "const": "datalens.delta_v7.editor_source_budget_evidence.v1"
+    "schema_id": {
+      "const": "datalens.editor_source_budget_evidence"
     },
     "entry_id": {
       "type": "string"

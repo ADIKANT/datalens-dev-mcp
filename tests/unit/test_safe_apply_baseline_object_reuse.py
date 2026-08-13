@@ -6,13 +6,13 @@ class SafeApplyBaselineObjectReuseTests(unittest.TestCase):
         from datalens_dev_mcp.pipeline.safe_apply import create_safe_apply_plan, validate_safe_apply_plan_exhaustive
 
         plan = create_safe_apply_plan(
-            project_root="/tmp/delta-v7",
+            project_root="/tmp/live-maintenance",
             approved=True,
             actions=[
                 {
                     "action": "create_runtime_fix_dataset",
                     "method": "createDataset",
-                    "payload": {"dataset": {"name": "Runtime Fix V13"}},
+                    "payload": {"dataset": {"name": "Runtime Fix 13"}},
                     "requires_fresh_read": True,
                     "fresh_read_method": "getWorkbookEntries",
                     "fresh_read_payload": {"workbookId": "workbook_1"},
@@ -44,7 +44,7 @@ class SafeApplyBaselineObjectReuseTests(unittest.TestCase):
             baseline_proof_artifact="/tmp/baseline.json",
         )
         plan = create_safe_apply_plan(
-            project_root="/tmp/delta-v7",
+            project_root="/tmp/live-maintenance",
             approved=True,
             actions=[
                 {

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "additionalProperties": true,
+      "description": "DataLens Editor links; replace placeholders.",
+      "type": "object"
+    },
+    "params": {
+      "additionalProperties": {
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "rows": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "comparator_value": {
+            "description": "Explicit comparison value",
+            "examples": [
+              120
+            ],
+            "type": "number"
+          },
+          "current_value": {
+            "description": "Current metric value",
+            "examples": [
+              128
+            ],
+            "type": "number"
+          },
+          "sparkline": {
+            "description": "Value sequence for the sparkline",
+            "examples": [
+              "[82,91,97,104,128]"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "current_value",
+          "comparator_value",
+          "sparkline"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "rows",
+    "meta",
+    "params"
+  ],
+  "title": "KPI: delta and trend",
+  "type": "object"
+}

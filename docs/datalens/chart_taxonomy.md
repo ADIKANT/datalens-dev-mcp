@@ -32,7 +32,7 @@ unless both the taxonomy and matrix cover it.
 | `bullet_assignees` | `editor_advanced` | Actual versus target with explicit target and scroll/readability rules. |
 | `heatmap` | `editor_advanced` | Matrix intensity with meaningful color scale and sparse-cell policy. |
 | `waterfall` | `editor_advanced` | Contribution bridge with axis, gridlines, and labels. |
-| `funnel_snapshot` | `editor_advanced` | Ordered stage leakage for one funnel frame. |
+| `funnel_snapshot` | `wizard_native` / `funnel` | Ordered stage leakage for one funnel frame. |
 | `sankey_status_flow` | `editor_advanced` | Flow volumes only when stages, direction, and conservation are explicit. |
 | `histogram` | `editor_advanced` | Numeric distribution bins. |
 | `box_plot` | `editor_advanced` | Distribution summary by category with quartile/outlier rules. |

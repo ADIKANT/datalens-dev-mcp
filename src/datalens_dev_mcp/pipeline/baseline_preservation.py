@@ -91,7 +91,7 @@ def build_baseline_diff_contract(
     source.setdefault("kind", "snapshot")
     source.setdefault("path", "")
     return {
-        "schema_version": "datalens.baseline-diff-contract.delta-v6",
+        "schema_id": "datalens.baseline-diff-contract",
         "dashboard_id": dashboard_id,
         "workbook_id": workbook_id,
         "baseline_source": source,
@@ -127,7 +127,7 @@ def create_necessity_proof(
         )
     ).strip()
     return {
-        "schema_version": "datalens.object-creation-necessity.delta-v6",
+        "schema_id": "datalens.object-creation-necessity",
         "status": str(existing.get("status") or "required"),
         "update_insufficient_reason": reason,
         "existing_readback_checked": bool(
@@ -192,8 +192,8 @@ def build_object_reuse_decision(
     existing_found = bool(candidates) if existing_object_found is None else bool(existing_object_found)
     create_allowed = action == "create" and not blocked_reasons
     return {
-        "schema_version": "datalens.delta_v7.object_reuse_decision.v1",
-        "v8_schema_version": "datalens.delta_v8.object_reuse_decision.v1",
+        "schema_id": "datalens.object_reuse_decision",
+        "runtime_schema_id": "datalens.object_reuse_decision",
         "desired_role": desired_role,
         "target_object_id": target_object_id,
         "target_object_type": _normalize_target_object_type(target_object_type),

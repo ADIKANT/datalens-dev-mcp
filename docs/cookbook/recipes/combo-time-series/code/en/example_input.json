@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "bucket": "2026-01",
+      "metric": "Volume",
+      "series_type": "bar",
+      "value": 42
+    },
+    {
+      "bucket": "2026-01",
+      "metric": "Rate",
+      "series_type": "line",
+      "value": 36
+    },
+    {
+      "bucket": "2026-02",
+      "metric": "Volume",
+      "series_type": "bar",
+      "value": 52
+    },
+    {
+      "bucket": "2026-02",
+      "metric": "Rate",
+      "series_type": "line",
+      "value": 41
+    },
+    {
+      "bucket": "2026-03",
+      "metric": "Volume",
+      "series_type": "bar",
+      "value": 61
+    },
+    {
+      "bucket": "2026-03",
+      "metric": "Rate",
+      "series_type": "line",
+      "value": 48
+    }
+  ]
+}

@@ -22,7 +22,7 @@ class SourceRouteDecision:
     accepted_degraded_artifact_required: bool = False
     static_fallback_label: str = ""
     field_mappings: list[dict[str, Any]] = field(default_factory=list)
-    schema_version: str = "2026-07-02.source_route_policy.v2"
+    schema_id: str = "source_route_policy"
 
     @property
     def ok(self) -> bool:

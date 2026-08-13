@@ -1,18 +1,18 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "title": "Delta v7 Live Maintenance Run",
+  "title": "Live Maintenance Run",
   "type": "object",
   "required": [
-    "schema_version",
+    "schema_id",
     "run_id",
     "target",
     "status",
     "phases"
   ],
   "properties": {
-    "schema_version": {
-      "const": "datalens.delta_v7.live_maintenance_run.v1"
+    "schema_id": {
+      "const": "datalens.live_maintenance_run"
     },
     "run_id": {
       "type": "string"

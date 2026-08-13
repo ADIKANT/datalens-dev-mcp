@@ -152,6 +152,30 @@ def _heavy_summary(tool_name: str, value: dict[str, Any]) -> dict[str, Any]:
             for item in actions
             if isinstance(item, dict)
         ][:100]
+        action_contracts = []
+        for item in actions[:100]:
+            if not isinstance(item, dict):
+                continue
+            payload = item.get("payload") if isinstance(item.get("payload"), dict) else {}
+            action_contracts.append(
+                {
+                    "method": str(item.get("method") or item.get("action") or ""),
+                    "safety_guard_mode": str(item.get("mode") or ""),
+                    "write_mode": str(payload.get("mode") or ""),
+                    "readback_branch": str(
+                        item.get("readback_branch")
+                        or payload.get("readback_branch")
+                        or ("published" if payload.get("mode") == "publish" else "saved" if payload.get("mode") == "save" else "")
+                    ),
+                }
+            )
+        summary["action_contracts"] = action_contracts
+        summary["write_modes"] = sorted({item["write_mode"] for item in action_contracts if item["write_mode"]})
+        summary["readback_branches"] = sorted(
+            {item["readback_branch"] for item in action_contracts if item["readback_branch"]}
+        )
+        if any(item["safety_guard_mode"] == "save" and item["write_mode"] == "publish" for item in action_contracts):
+            summary["top_level_mode_contract"] = "safety_guard_save; payload.mode controls the publish RPC"
     for key in ("expected_artifacts", "evidence_paths", "saved_readback_paths", "published_readback_paths"):
         rows = value.get(key)
         if isinstance(rows, list):
@@ -246,7 +270,7 @@ def _editor_bundle_summary(value: dict[str, Any]) -> dict[str, Any]:
     if browser_plan:
         summary["browser_qa_plan"] = {
             key: browser_plan[key]
-            for key in ("schema_version", "plan_sha256", "artifact_path", "max_browser_calls")
+            for key in ("schema_id", "plan_sha256", "artifact_path", "max_browser_calls")
             if key in browser_plan
         }
     if results:

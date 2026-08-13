@@ -12,22 +12,17 @@ from datalens_dev_mcp.runtime_resources import resource_json
 
 
 DASHBOARD_RENDER_PROFILE_RESOURCE = "config/dashboard_render_profiles.json"
-DASHBOARD_RENDER_PROFILE_SCHEMA_VERSION = "2026-08-06.dashboard_render_profiles.v4"
-CANONICAL_RENDER_PROFILE_ID = "standard_dashboard_v1"
+DASHBOARD_RENDER_PROFILE_SCHEMA_ID = "dashboard_render_profiles"
+CANONICAL_RENDER_PROFILE_ID = "standard_dashboard"
 CANONICAL_RENDER_PROFILE_ALIASES = frozenset(
     {
         CANONICAL_RENDER_PROFILE_ID,
-        "standard_dashboard_v2",
-        "standard_dashboard",
         "strict_dashboard",
         "registered_dashboard",
         "standard_editor",
-        "standard_editor_v1",
-        "standard_editor_v2",
-        "standard_editor_v3",
     }
 )
-RENDERER_VISUAL_SPEC_V5 = "2026-08-06.renderer_visual_spec.v5"
+RENDERER_VISUAL_SPEC_ID = "renderer_visual_spec"
 
 _ALLOWED_OVERRIDE_VALUES = {
     "density": ("compact", "comfortable"),
@@ -169,7 +164,7 @@ def resolve_dashboard_render_contract(
     _mapping_at(effective_tokens, "tooltip")["owner"] = tooltip_owner
 
     resolved = {
-        "schema_version": DASHBOARD_RENDER_PROFILE_SCHEMA_VERSION,
+        "schema_id": DASHBOARD_RENDER_PROFILE_SCHEMA_ID,
         "profile_id": selected_profile_id,
         "profile_sha256": str(raw_profile["sha256"]),
         "registry_sha256": str(registry["sha256"]),
@@ -192,7 +187,7 @@ def resolve_dashboard_render_contract(
     return _freeze(resolved)
 
 
-def upgrade_renderer_visual_spec_v5(
+def build_renderer_visual_spec(
     visual_spec: Mapping[str, Any] | None,
     *,
     render_contract: Mapping[str, Any],
@@ -201,30 +196,30 @@ def upgrade_renderer_visual_spec_v5(
 ) -> dict[str, Any]:
     """Build the only registered role-based visual specification."""
 
-    result = _build_renderer_visual_spec_v5(
+    result = _build_renderer_visual_spec(
         visual_spec,
         render_contract=render_contract,
         comparison_enabled=comparison_enabled,
     )
-    result["schema_version"] = RENDERER_VISUAL_SPEC_V5
+    result["schema_id"] = RENDERER_VISUAL_SPEC_ID
     result["title_contract"] = _jsonable(title_contract)
     tokens = _jsonable(render_contract["effective_tokens"])
     composition = _mapping_at(tokens, "dashboard_composition")
     result["dashboard_composition"] = copy.deepcopy(composition)
-    issues = validate_renderer_visual_spec_v5(
+    issues = validate_renderer_visual_spec(
         result,
         render_contract=render_contract,
         title_contract=title_contract,
     )
     if issues:
         raise DashboardRenderContractError(
-            "invalid_renderer_visual_spec_v5",
+            "invalid_renderer_visual_spec",
             "; ".join(issues),
         )
     return result
 
 
-def validate_renderer_visual_spec_v5(
+def validate_renderer_visual_spec(
     visual_spec: Mapping[str, Any],
     *,
     render_contract: Mapping[str, Any],
@@ -232,8 +227,8 @@ def validate_renderer_visual_spec_v5(
 ) -> tuple[str, ...]:
     spec = _jsonable(visual_spec)
     issues: list[str] = []
-    if spec.get("schema_version") != RENDERER_VISUAL_SPEC_V5:
-        issues.append("schema_version.must_be_renderer_visual_spec_v5")
+    if spec.get("schema_id") != RENDERER_VISUAL_SPEC_ID:
+        issues.append("schema.must_be_renderer_visual_spec")
     issues.extend(_validate_renderer_visual_spec_base(spec, render_contract=render_contract))
     if spec.get("title_contract") != _jsonable(title_contract):
         issues.append("title_contract.binding_mismatch")
@@ -246,7 +241,7 @@ def validate_renderer_visual_spec_v5(
     return tuple(dict.fromkeys(issues))
 
 
-def _build_renderer_visual_spec_v5(
+def _build_renderer_visual_spec(
     visual_spec: Mapping[str, Any] | None,
     *,
     render_contract: Mapping[str, Any],
@@ -260,7 +255,7 @@ def _build_renderer_visual_spec_v5(
     if comparison_enabled is None:
         comparison_enabled = _comparison_is_enabled(result)
     comparison_enabled = bool(comparison_enabled)
-    result["schema_version"] = RENDERER_VISUAL_SPEC_V5
+    result["schema_id"] = RENDERER_VISUAL_SPEC_ID
     result["render_contract"] = {
         "profile_id": str(render_contract["profile_id"]),
         "profile_sha256": str(render_contract["profile_sha256"]),
@@ -626,17 +621,17 @@ def _validate_registry(registry: Any) -> None:
             "invalid_dashboard_render_profile_registry",
             "registry must be a JSON object",
         )
-    if registry.get("schema_version") != DASHBOARD_RENDER_PROFILE_SCHEMA_VERSION:
+    if registry.get("schema_id") != DASHBOARD_RENDER_PROFILE_SCHEMA_ID:
         raise DashboardRenderContractError(
             "invalid_dashboard_render_profile_registry",
-            "unsupported registry schema_version",
+            "unsupported registry schema_id",
         )
     expected_registry_sha256 = str(registry.get("sha256") or "").lower()
     actual_registry_sha256 = canonical_sha256(_without_key(registry, "sha256"))
     if not _is_sha256(expected_registry_sha256) or expected_registry_sha256 != actual_registry_sha256:
         raise DashboardRenderContractError(
             "dashboard_render_profile_registry_hash_mismatch",
-            "registry canonical fingerprint changed; register a reviewed version",
+            "registry canonical fingerprint changed; update it only with a reviewed contract change",
         )
 
     profiles = registry.get("profiles")
@@ -671,7 +666,7 @@ def _validate_profile(registry: Mapping[str, Any], profile_id: str, raw_profile:
     if not _is_sha256(expected_profile_sha256) or expected_profile_sha256 != actual_profile_sha256:
         raise DashboardRenderContractError(
             "dashboard_render_profile_hash_mismatch",
-            f"profile {profile_id!r} canonical fingerprint changed; register a reviewed version",
+            f"profile {profile_id!r} canonical fingerprint changed; update it only with a reviewed contract change",
         )
     profile = _materialize_profile(registry, profile_id)
 
@@ -847,7 +842,7 @@ def _validate_core_geometry(profile_id: str, core: dict[str, Any]) -> None:
         )
     composition = _mapping_at(core, "dashboard_composition")
     if composition != {
-        "schema_version": "2026-08-06.dashboard_composition.v2",
+        "schema_id": "dashboard_composition",
         "desktop_grid_columns": 36,
         "selector_row_width_percent": 94,
         "selector_height_units": {"one_row": 2, "two_rows": 3},

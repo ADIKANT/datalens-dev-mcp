@@ -25,7 +25,7 @@ class PerformanceBudgetResult:
     checked_tab_count: int
     checked_widget_count: int
     findings: list[PerformanceFinding] = field(default_factory=list)
-    schema_version: str = "2026-07-01.performance_budget_policy_v2"
+    schema_id: str = "performance_budget_policy"
 
     def to_dict(self) -> dict[str, Any]:
         return {**asdict(self), "findings": [finding.to_dict() for finding in self.findings]}
@@ -51,7 +51,7 @@ EDITOR_SOURCE_LIMITS = {
     "high_fanout_ratio": 10_000,
 }
 
-DELTA_V7_EDITOR_SOURCE_BUDGET_SCHEMA_VERSION = "datalens.delta_v7.editor_source_budget_evidence.v1"
+EDITOR_SOURCE_BUDGET_SCHEMA_ID = "datalens.editor_source_budget_evidence"
 
 
 def assess_performance_budget(payload: dict[str, Any], *, budgets: dict[str, Any] | None = None) -> PerformanceBudgetResult:
@@ -257,7 +257,7 @@ def build_editor_source_budget_evidence(
         row = _source_budget_row(item, total_bytes=total_bytes, total_time=total_time, limits=active_limits)
         source_rows.append(row)
     return {
-        "schema_version": "datalens.source-performance-budget.v1",
+        "schema_id": "datalens.source-performance-budget",
         "dashboard_id": dashboard_id,
         "limits": active_limits,
         "sources": source_rows,
@@ -270,7 +270,7 @@ def build_editor_source_budget_evidence(
     }
 
 
-def extract_editor_source_budget_evidence_v7(
+def extract_editor_source_budget_evidence(
     payload: dict[str, Any],
     *,
     supplied_evidence: dict[str, Any] | list[dict[str, Any]] | None = None,
@@ -285,11 +285,11 @@ def extract_editor_source_budget_evidence_v7(
         supplied = evidence_rows.get(key, {})
         merged = {**source, **supplied}
         enriched.append(merged)
-    normalized = normalize_editor_source_budget_evidence_v7(
+    normalized = normalize_editor_source_budget_evidence(
         build_editor_source_budget_evidence(enriched, dashboard_id=dashboard_id, limits=limits).get("sources", [])
     )
     return {
-        "schema_version": "datalens.delta_v7.editor_source_budget_collection.v1",
+        "schema_id": "datalens.editor_source_budget_collection",
         "dashboard_id": dashboard_id,
         "sources": normalized,
         "blocked_reasons": [
@@ -300,7 +300,7 @@ def extract_editor_source_budget_evidence_v7(
     }
 
 
-def normalize_editor_source_budget_evidence_v7(
+def normalize_editor_source_budget_evidence(
     evidence: dict[str, Any] | list[dict[str, Any]] | None,
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]]
@@ -311,7 +311,7 @@ def normalize_editor_source_budget_evidence_v7(
         rows = [row for row in evidence if isinstance(row, dict)]
     else:
         rows = []
-    return [_delta_v7_source_budget_row(row) for row in rows]
+    return [_normalized_source_budget_row(row) for row in rows]
 
 
 def _extract_editor_sources(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -425,7 +425,7 @@ def _source_from_mapping(
     }
 
 
-def _delta_v7_source_budget_row(row: dict[str, Any]) -> dict[str, Any]:
+def _normalized_source_budget_row(row: dict[str, Any]) -> dict[str, Any]:
     sql = str(row.get("sql") or row.get("query") or row.get("source_query") or "")
     legacy_decision = str(row.get("source_budget_status") or row.get("decision") or "").strip().lower()
     if legacy_decision in {"fail", "block", "blocked"}:
@@ -452,7 +452,7 @@ def _delta_v7_source_budget_row(row: dict[str, Any]) -> dict[str, Any]:
         decision = "warn" if fanout and fanout >= float(EDITOR_SOURCE_LIMITS["high_fanout_ratio"]) else "pass"
         reasons = []
     return {
-        "schema_version": DELTA_V7_EDITOR_SOURCE_BUDGET_SCHEMA_VERSION,
+        "schema_id": EDITOR_SOURCE_BUDGET_SCHEMA_ID,
         "entry_id": str(row.get("entry_id") or row.get("entryId") or ""),
         "source_key": str(row.get("source_key") or ""),
         "consumer_type": str(row.get("consumer_type") or row.get("used_by") or ""),
@@ -558,7 +558,7 @@ def _source_budget_row(
     else:
         status = "pass"
     return {
-        "schema_version": "datalens.editor-source-budget.v1",
+        "schema_id": "datalens.editor-source-budget",
         "entry_id": str(item.get("entry_id") or item.get("entryId") or ""),
         "path": str(item.get("path") or ""),
         "source_key": str(item.get("source_key") or ""),

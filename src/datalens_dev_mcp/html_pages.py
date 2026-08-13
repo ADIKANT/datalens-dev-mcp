@@ -9,7 +9,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 
-HTML_PAGE_CONTRACT_VERSION = "2026-07-29.standalone_html_page.v2"
+HTML_PAGE_CONTRACT_ID = "standalone_html_page"
 HTML_PAGE_API_MAX_CHARACTERS = 10 * 1024 * 1024
 HTML_PAGE_SOFT_MAX_BYTES = 5 * 1024 * 1024
 HTML_PAGE_HARD_MAX_BYTES = 10 * 1024 * 1024
@@ -68,7 +68,7 @@ _BLOCKED_SCRIPT_APIS = {
 
 def html_page_source_contract() -> dict[str, Any]:
     return {
-        "contract_version": HTML_PAGE_CONTRACT_VERSION,
+        "contract_id": HTML_PAGE_CONTRACT_ID,
         "standalone_html": {
             "source_url": HTML_SKILL_URL,
             "source_commit": HTML_SKILL_COMMIT,
@@ -118,7 +118,7 @@ def render_standalone_html_page(spec: dict[str, Any]) -> dict[str, Any]:
     encoded = document.encode("utf-8")
     return {
         "ok": validation["ok"],
-        "schema_version": HTML_PAGE_CONTRACT_VERSION,
+        "schema_id": HTML_PAGE_CONTRACT_ID,
         "html": document,
         "bytes": len(encoded),
         "sha256": hashlib.sha256(encoded).hexdigest(),
@@ -265,7 +265,7 @@ def validate_standalone_html_page(
     warnings = sum(item["severity"] == "warning" for item in findings)
     return {
         "ok": errors == 0 and (not strict or warnings == 0),
-        "schema_version": HTML_PAGE_CONTRACT_VERSION,
+        "schema_id": HTML_PAGE_CONTRACT_ID,
         "kind": "standalone_html_page",
         "source": source,
         "strict": strict,

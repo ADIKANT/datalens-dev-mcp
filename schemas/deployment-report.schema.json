@@ -3,9 +3,9 @@
   "$id": "https://example.com/datalens-dev-mcp/schemas/deployment-report.schema.json",
   "title": "Deployment report",
   "type": "object",
-  "required": ["schema_version", "generated_at", "write_executed", "validation_status", "publish_included"],
+  "required": ["schema_id", "generated_at", "write_executed", "validation_status", "publish_included"],
   "properties": {
-    "schema_version": {"type": "string"},
+    "schema_id": {"type": "string"},
     "generated_at": {"type": "string"},
     "write_executed": {"type": "boolean"},
     "validation_status": {"type": "string"},

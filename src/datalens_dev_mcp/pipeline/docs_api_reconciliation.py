@@ -14,7 +14,7 @@ class DocsApiReconciliationStatus:
     openapi_sha256: str
     required_cluster_ids: list[str]
     missing_cluster_ids: list[str]
-    schema_version: str = "2026-07-01.docs_api_reconciliation_v2"
+    schema_id: str = "docs_api_reconciliation"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

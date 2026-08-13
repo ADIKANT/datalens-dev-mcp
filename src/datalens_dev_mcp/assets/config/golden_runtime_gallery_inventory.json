@@ -72,7 +72,7 @@
   "policy_basis": [
     "AGENTS.md",
     "docs/route-policy.md",
-    "config/route_selection_policy_v5.json",
+    "config/route_selection_policy.json",
     "src/datalens_dev_mcp/pipeline/route_contract.py",
     "templates/datalens/wizard/wizard_template_registry.json"
   ],
@@ -134,6 +134,7 @@
           "combo_time_series_combo",
           "donut",
           "flat_table",
+          "funnel_snapshot",
           "grouped_bar",
           "horizontal_bar",
           "horizontal_stacked_100",
@@ -171,7 +172,6 @@
         "families": [
           "box_plot",
           "bullet_assignees",
-          "funnel_snapshot",
           "heatmap",
           "histogram",
           "kpi_value_delta_sparkline",
@@ -290,7 +290,7 @@
       }
     ]
   },
-  "schema_version": "2026-07-13.golden_runtime_gallery_inventory.v2",
+  "schema_id": "golden_runtime_gallery_inventory",
   "source_data_contracts": {
     "category_measure_rows": {
       "contract_id": "category_measure_rows",
@@ -712,7 +712,7 @@
     {
       "family_id": "funnel_snapshot",
       "params_contract_ref": "editor_advanced_metric_params",
-      "route": "editor_advanced",
+      "route": "wizard_native",
       "source_contract_ref": "flow_rows"
     },
     {

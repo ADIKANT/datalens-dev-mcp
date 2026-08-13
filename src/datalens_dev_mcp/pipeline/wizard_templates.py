@@ -79,6 +79,11 @@ def validate_wizard_template_config(config: dict[str, Any]) -> dict[str, Any]:
             errors.append(f"field_bindings.{role} is required")
         elif any(not _binding_guid(item) for item in role_bindings):
             errors.append(f"field_bindings.{role} must contain saved dataset field GUIDs")
+    if visualization_id == "funnel" and len(_binding_items(bindings.get("measures"))) < 2:
+        errors.append(
+            "field_bindings.measures for funnel requires at least two bound items: a category plus a measure, "
+            "or multiple measures with the generated Measure Names category"
+        )
     for role, raw_values in bindings.items():
         for item in _binding_items(raw_values):
             type_error = binding_role_type_error(
@@ -119,7 +124,7 @@ def build_wizard_payload_plan(config: dict[str, Any] | None = None) -> dict[str,
     if not validation["ok"]:
         return {
             "ok": False,
-            "schema_version": "2026-07-13.wizard_payload_plan.v3",
+            "schema_id": "wizard_payload_plan",
             "route": WIZARD_NATIVE_ROUTE,
             "visualization_id": visualization_id,
             "status": "blocked_invalid_template_config",
@@ -189,7 +194,7 @@ def build_wizard_payload_plan(config: dict[str, Any] | None = None) -> dict[str,
     sanitized_hash = _sha256_json(sanitized_seed) if sanitized_seed else ""
     plan = {
         "ok": True,
-        "schema_version": "2026-07-13.wizard_payload_plan.v3",
+        "schema_id": "wizard_payload_plan",
         "template_name": visualization_id,
         "widget_id": str(active_config.get("widget_id") or "wizard_widget"),
         "route": WIZARD_NATIVE_ROUTE,
@@ -283,7 +288,12 @@ def _normalize_config(config: dict[str, Any]) -> dict[str, Any]:
         bindings.setdefault(target, value)
     dimensions = list(result.get("dimensions") or [])
     measures = list(result.get("measures") or [])
-    if visualization_id == "flatTable" and dimensions + measures:
+    if visualization_id == "funnel" and dimensions + measures:
+        # The current Funnel implementation exposes one required `measures`
+        # placeholder and accepts both dimensions and measures there. The UI
+        # transforms a dimension before serializing the Wizard payload.
+        bindings.setdefault("measures", dimensions + measures)
+    elif visualization_id == "flatTable" and dimensions + measures:
         bindings.setdefault("flat-table-columns", dimensions + measures)
     elif visualization_id == "pivotTable":
         if dimensions:

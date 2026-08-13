@@ -1,0 +1,5 @@
+{
+  "links": {
+    "defaultConnection": "replace_with_clickhouse_connection_id"
+  }
+}

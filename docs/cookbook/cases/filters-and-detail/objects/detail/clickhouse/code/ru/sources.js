@@ -1,0 +1,31 @@
+/**
+ * Обязательная точка изменения: подключите свой источник и сохраните документированные выходные aliases.
+ * Route: editor_table. Технические имена параметров и aliases оставлены без перевода.
+ */
+// Параметризованный ClickHouse-шаблон с фильтрацией и предварительной агрегацией.
+const params = Editor.getParams ? (Editor.getParams() || {}) : {};
+function sqlLiteral(value) {
+  return "'" + String(value == null ? '' : value).split("'").join("''") + "'";
+}
+const dateFrom = sqlLiteral((params.dateFrom || ['2026-01-01'])[0]);
+const dateTo = sqlLiteral((params.dateTo || ['2026-01-30'])[0]);
+const allowedSteps = new Set(['auto', 'day', 'week', 'month']);
+const requestedStep = String((params.timeStep || ['auto'])[0]);
+const timeStep = allowedSteps.has(requestedStep) ? requestedStep : 'auto';
+const sqlQuery = `
+  SELECT
+    entity_id AS entity_id,
+    entity_name AS entity_name,
+    status_key AS status,
+    owner_name AS owner,
+    max(updated_at) AS updated_at,
+    sum(amount) AS amount
+  FROM __TABLE__
+  WHERE event_date BETWEEN toDate(${dateFrom}) AND toDate(${dateTo})
+  GROUP BY entity_id, entity_name, status, owner
+  ORDER BY 1
+  /* timeStep=${timeStep}; замените __TABLE__ и универсальные имена исходных полей */
+`;
+module.exports = {
+  rows: {qlConnectionId: Editor.getId('defaultConnection'), data: {sql_query: sqlQuery}},
+};

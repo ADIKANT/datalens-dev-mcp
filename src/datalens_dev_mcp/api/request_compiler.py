@@ -216,7 +216,7 @@ def compile_guarded_rpc_request(
     readback_branch = expected_readback_branch or ("published" if normalized_mode == "publish" else "saved")
     return {
         "ok": not blocked_reasons,
-        "schema_version": "datalens.delta_v7.guarded_rpc_request.v1",
+        "schema_id": "datalens.guarded_rpc_request",
         "method": method,
         "object_type": object_type or _object_type_from_method(method),
         "object_id": resolved_object_id,

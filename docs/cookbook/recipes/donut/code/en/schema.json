@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "additionalProperties": true,
+      "description": "DataLens Editor links; replace placeholders.",
+      "type": "object"
+    },
+    "params": {
+      "additionalProperties": {
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "rows": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "description": "Displayed category",
+            "examples": [
+              "Category A"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "description": "Numeric mark value",
+            "examples": [
+              42
+            ],
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "rows",
+    "meta",
+    "params"
+  ],
+  "title": "Donut chart",
+  "type": "object"
+}

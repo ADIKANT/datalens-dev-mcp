@@ -3,9 +3,9 @@
   "$id": "https://example.com/datalens-dev-mcp/schemas/wizard-payload-plan.schema.json",
   "title": "Wizard payload plan",
   "type": "object",
-  "required": ["schema_version", "widget_id", "route", "visualization_id", "source_kind", "compiled_payload", "validation"],
+  "required": ["schema_id", "widget_id", "route", "visualization_id", "source_kind", "compiled_payload", "validation"],
   "properties": {
-    "schema_version": {"type": "string"},
+    "schema_id": {"type": "string"},
     "widget_id": {"type": "string"},
     "route": {"const": "wizard_native"},
     "visualization_id": {"type": "string"},

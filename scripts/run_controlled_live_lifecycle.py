@@ -32,7 +32,7 @@ CONTROLLED_TRANSIENT_FLAGS = {
     "DATALENS_MCP_LIVE_ALLOW_PUBLISH": "1",
     "DATALENS_MCP_ENABLE_EXPERT_RPC": "0",
 }
-SCHEMA_VERSION = "2026-06-25.controlled_live_lifecycle.v1"
+SCHEMA_ID = "controlled_live_lifecycle"
 CONTROLLED_LIVE_REQUIRED_ROUTES = {
     "editor_chart",
     "table_node",
@@ -150,7 +150,7 @@ def main() -> int:
     except ControlledLiveBlocked as exc:
         result = {
             "ok": False,
-            "schema_version": SCHEMA_VERSION,
+            "schema_id": SCHEMA_ID,
             "status": "blocked",
             "error": {"category": "controlled_live_blocked", "message": str(exc)},
             "test_object_inventory": [],
@@ -252,7 +252,7 @@ def run_controlled_lifecycle(
     evidence_summary = summarize_route_evidence(route_results)
     result = {
         "ok": evidence_summary["ok"],
-        "schema_version": SCHEMA_VERSION,
+        "schema_id": SCHEMA_ID,
         "status": "completed",
         "run_id": run_id,
         "approval_record": {

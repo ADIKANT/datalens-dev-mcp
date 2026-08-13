@@ -1,0 +1,33 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "page_size": [
+      "50"
+    ],
+    "table_variant": [
+      "detail"
+    ]
+  },
+  "rows": [
+    {
+      "amount": 1250.5,
+      "entity_id": "OBJ-1042",
+      "entity_name": "Object 1042",
+      "owner": "Team A",
+      "status": "ready",
+      "updated_at": "2026-01-05T12:30:00Z"
+    },
+    {
+      "amount": 840,
+      "entity_id": "OBJ-1043",
+      "entity_name": "Object 1043",
+      "owner": null,
+      "status": "review",
+      "updated_at": null
+    }
+  ]
+}

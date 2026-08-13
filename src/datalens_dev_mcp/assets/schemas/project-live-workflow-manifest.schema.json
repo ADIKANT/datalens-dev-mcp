@@ -3,7 +3,7 @@
   "type": "object",
   "required": ["project_name", "workbook_id", "dashboard_ids", "workflows"],
   "properties": {
-    "schema_version": {
+    "schema_id": {
       "type": "string"
     },
     "project_name": {

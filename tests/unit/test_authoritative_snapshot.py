@@ -657,7 +657,7 @@ class AuthoritativeSnapshotTests(unittest.TestCase):
         self.assertEqual(result["counts_by_object_type"]["dataset"], 3)
         self.assertEqual(result["counts_by_object_type"]["connection"], 1)
         self.assertNotIn("dataset_entities", {item["entry_id"] for item in result["dormant_summary"]["entries"]})
-        self.assertEqual(manifest["graph"]["schema_version"], "2026-06-25.dashboard_object_graph.v1")
+        self.assertEqual(manifest["graph"]["schema_id"], "dashboard_object_graph")
         self.assertEqual(len(manifest["graph"]["dataset_ids"]), 3)
         self.assertEqual(manifest["graph"]["connection_ids"], [CONNECTION_ID])
 
@@ -704,8 +704,8 @@ class AuthoritativeSnapshotTests(unittest.TestCase):
         self.assertEqual(result["active_chart_count"], 18)
         self.assertEqual(result["counts_by_object_type"]["dataset"], 3)
         self.assertEqual(result["counts_by_object_type"]["connection"], 1)
-        self.assertEqual(manifest["schema_version"], "2026-06-25.dashboard_snapshot.v1")
-        self.assertEqual(manifest["graph"]["schema_version"], "2026-06-25.dashboard_object_graph.v1")
+        self.assertEqual(manifest["schema_id"], "dashboard_snapshot")
+        self.assertEqual(manifest["graph"]["schema_id"], "dashboard_object_graph")
 
     def test_active_editor_node_scopes_are_hydrated_without_changing_other_chart_routes(self):
         client = MixedEditorNodeSnapshotClient()

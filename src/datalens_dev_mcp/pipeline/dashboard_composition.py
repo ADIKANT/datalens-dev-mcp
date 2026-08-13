@@ -9,7 +9,7 @@ from datalens_dev_mcp.editor.title_contract import TITLE_MODES, looks_technical_
 from datalens_dev_mcp.validators.datalens_names import sanitize_datalens_internal_name
 
 
-COMPOSITION_SCHEMA_VERSION = "2026-08-06.dashboard_composition.v2"
+COMPOSITION_SCHEMA_ID = "dashboard_composition"
 GRID_COLUMNS = 36
 SELECTOR_ROW_WIDTH_PERCENT = 94
 KPI_FAMILIES = frozenset(
@@ -64,8 +64,7 @@ def build_dashboard_composition(
         selection_origin = "explicit_contract"
 
     composition: dict[str, Any] = {
-        "schema_version": COMPOSITION_SCHEMA_VERSION,
-        "version": 2,
+        "schema_id": COMPOSITION_SCHEMA_ID,
         "operation": str((requested or {}).get("operation") or "create"),
         "dashboard_id": str((requested or {}).get("dashboard_id") or dashboard_id),
         "dashboard_title": str((requested or {}).get("dashboard_title") or dashboard_title),
@@ -114,10 +113,8 @@ def validate_dashboard_composition(
     issues: list[str] = []
     if not isinstance(composition, dict):
         return ["dashboard_composition must be an object"]
-    if composition.get("schema_version") != COMPOSITION_SCHEMA_VERSION:
-        issues.append(f"schema_version must be {COMPOSITION_SCHEMA_VERSION}")
-    if composition.get("version") != 2:
-        issues.append("dashboard_composition.version must be 2")
+    if composition.get("schema_id") != COMPOSITION_SCHEMA_ID:
+        issues.append(f"schema_id must be {COMPOSITION_SCHEMA_ID}")
     if composition.get("operation") not in {"create", "update"}:
         issues.append("dashboard_composition.operation must be create or update")
     if sanitize_datalens_internal_name(str(composition.get("dashboard_internal_name") or "")) != composition.get(
@@ -348,8 +345,6 @@ def _normalize_requested_tabs(
     requested: dict[str, Any],
     components: dict[str, dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    if requested.get("version", 2) != 2:
-        raise DashboardCompositionError("dashboard_composition.version must be 2")
     raw_tabs = requested.get("tabs")
     if not isinstance(raw_tabs, list) or not raw_tabs:
         raise DashboardCompositionError("dashboard_composition.tabs must be a non-empty array")
@@ -676,7 +671,7 @@ def _mounts(tabs: list[dict[str, Any]]) -> list[dict[str, str]]:
 def _payload_skeleton(composition: dict[str, Any]) -> dict[str, Any]:
     data = {
         "counter": 1,
-        "salt": "standard-dashboard-v1",
+        "salt": "standard-dashboard",
         "schemeVersion": 8,
         "settings": {},
         "tabs": [

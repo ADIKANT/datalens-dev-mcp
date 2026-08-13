@@ -2,7 +2,7 @@
 
 **Русский** · [English](README_en.md) · [Главная](../README.md)
 
-[Быстрый старт](../README.md#быстрый-старт) · [Доступ к DataLens](access.md) · [Подключение](codex_setup.md) · [Инструменты](tools.md) · [Сценарии](usage-flow.md) · [Источники](sources.md) · [Безопасность](local-only-safety-model.md) · [English](README_en.md)
+[Быстрый старт](../README.md#быстрый-старт) · [Доступ к DataLens](access.md) · [Подключение](codex_setup.md) · [Инструменты](tools.md) · [JS Cookbook](cookbook/README.md) · [Сценарии](usage-flow.md) · [Источники](sources.md) · [Безопасность](local-only-safety-model.md) · [English](README_en.md)
 
 `datalens-dev-mcp` — локальный MCP-сервер, через который Codex, Claude и
 другие MCP-клиенты работают с Yandex DataLens Public API. Пользователь
@@ -23,6 +23,7 @@
 | Подключить Codex | [Настройка Codex](codex_setup.md) |
 | Подключить Claude или другой stdio-клиент | [Примеры конфигурации](../examples/clients/README.md) |
 | Найти нужный инструмент | [Справочник 39 инструментов](tools.md) |
+| Взять готовую JavaScript-визуализацию | [JavaScript Visualization Cookbook](cookbook/README.md) |
 | Создать или локально подготовить HTML Page | [Генерация HTML для DataLens](datalens/html_pages.md) |
 | Провести аудит без записи | [Сценарий аудита](usage-flow.md#аудит-без-записи) |
 | Составить план без применения | [Планирование](usage-flow.md#планирование-без-записи) |
@@ -59,6 +60,7 @@ API-readback подтверждает структуру. Проверка фа�
 - [Доступ к DataLens](access.md) — Yandex Cloud CLI, организация, IAM-токен, роли, env-файл и проверка доступа.
 - [Настройка Codex](codex_setup.md) — `config.toml`, `codex mcp add`, `/mcp` и проверка подключения.
 - [Справочник инструментов](tools.md) — назначение и класс операции каждого из 39 вызовов.
+- [JavaScript Visualization Cookbook](cookbook/README.md) — Tips, 34 рецепта, три связанных кейса, [интерактивные синтетические preview](https://adikant.github.io/datalens-dev-mcp/), контракты Sources и полный набор вкладок Editor для копирования.
 - [Сценарии](usage-flow.md) — готовые последовательности и промпты.
 - [Конфигурация](configuration.md) — локальные настройки и выключатели записи.
 - [Безопасность](local-only-safety-model.md) — защита учётных данных, ревизий и удаления.

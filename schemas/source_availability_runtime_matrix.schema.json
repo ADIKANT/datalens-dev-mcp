@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "datalens.delta_v8.source_availability_runtime_matrix.schema.json",
-  "title": "DataLens Delta v8 Source Availability Runtime Matrix",
+  "$id": "datalens.source_availability_runtime_matrix.schema.json",
+  "title": "DataLens Source Availability Runtime Matrix",
   "type": "object",
-  "required": ["schema_version", "sources", "conflicts"],
+  "required": ["schema_id", "sources", "conflicts"],
   "properties": {
-    "schema_version": {"const": "datalens.delta_v8.source_availability_runtime_matrix.v1"},
+    "schema_id": {"const": "datalens.source_availability_runtime_matrix"},
     "sources": {
       "type": "array",
       "items": {

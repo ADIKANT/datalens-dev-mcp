@@ -167,16 +167,16 @@ dl_plan_object_create с object_type=html_page
 ## Стандартный путь сборки дашборда
 
 Для create и full redesign сервер по умолчанию использует
-`standard_dashboard_v1`; alias `strict_dashboard` указывает на тот же профиль.
+`standard_dashboard`; alias `strict_dashboard` указывает на тот же профиль.
 Он сначала фиксирует Wizard-first решения, а для прямо выбранных
 Editor-объектов применяет защищённый renderer того же профиля. Исторические
 имена профилей являются только входными aliases: они нормализуются в
-`standard_dashboard_v1`, поэтому и новый, и существующий дашборд всегда
+`standard_dashboard`, поэтому и новый, и существующий дашборд всегда
 собираются по одному актуальному контракту.
 
 ```text
 один актуальный scoped baseline
-  -> Wizard-first решения и Renderer Visual Spec v5
+  -> Wizard-first решения и Renderer Visual Spec
   -> один dl_generate_editor_bundle:
        authoring_profile=strict_dashboard
        chart_specs=[все виджеты]

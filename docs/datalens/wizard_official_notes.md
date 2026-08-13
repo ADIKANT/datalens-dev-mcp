@@ -6,7 +6,7 @@ request schemas, and `docs/route-policy.md`.
 ## API Evidence
 
 - Official API exposes experimental Wizard chart read/create/update methods. MCP records this as `PLAN_ONLY_SUPPORTED` for create/update and `EXECUTABLE_TOOL_SUPPORTED` for read. Source trace: `config/datalens_api_methods.json`, `Wizard` tag.
-- Wizard payload structure is official evidence for native standard chart planning across the 16 observed visualization IDs. Source trace: `docs/route-policy.md` and the canonical template registry.
+- Wizard payload structure is official evidence for native standard chart planning across the 17 observed visualization IDs, including `funnel`. Source trace: `docs/route-policy.md` and the canonical template registry.
 - Public examples use synthetic identifiers and contain no exported live
   payloads.
 
@@ -26,5 +26,5 @@ request schemas, and `docs/route-policy.md`.
 
 ## Native Boundary
 
-- Standard line, area, bar/column, table/pivot, KPI, combined, pie/donut, scatter/bubble, treemap, and map charts are Wizard-first.
+- Standard line, area, bar/column, table/pivot, KPI, combined, pie/donut, scatter/bubble, treemap, funnel, and map charts are Wizard-first.
 - Unknown visualization IDs remain create-blocked and may be updated only from fresh saved readback. JavaScript is used only for a registered capability gap, never after a failed Wizard attempt.

@@ -80,7 +80,7 @@ def build_data_evidence_probe_plan(
     return {
         "ok": True,
         "status": "NOT_PROBED",
-        "schema_version": "2026-06-11.data_evidence_probe_plan.v1",
+        "schema_id": "data_evidence_probe_plan",
         "generated_at": _now(),
         "project_root": str(Path(project_root)),
         "provider": provider,
@@ -168,7 +168,7 @@ def record_data_evidence(
     root = Path(project_root)
     sanitized = _sanitize(evidence)
     artifact = {
-        "schema_version": "2026-06-11.data_evidence_artifact.v1",
+        "schema_id": "data_evidence_artifact",
         "recorded_at": _now(),
         "provider_label": "read-only metadata/data evidence provider",
         "evidence": sanitized,

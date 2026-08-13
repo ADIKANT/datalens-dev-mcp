@@ -1,0 +1,32 @@
+{
+  "meta": {
+    "links": {}
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "bucket": "2026-01-03",
+      "increment": 14
+    },
+    {
+      "bucket": "2026-01-01",
+      "increment": 8
+    },
+    {
+      "bucket": "2026-01-05",
+      "increment": 11
+    },
+    {
+      "bucket": "2026-01-02",
+      "increment": 12
+    },
+    {
+      "bucket": "2026-01-04",
+      "increment": 9
+    }
+  ]
+}

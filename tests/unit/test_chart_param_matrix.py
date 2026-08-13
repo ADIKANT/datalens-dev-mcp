@@ -50,7 +50,7 @@ class ChartParamMatrixTests(unittest.TestCase):
         )
         self.assertFalse(any(spec["route"] == "ql_explicit" for spec in self.families.values()))
         self.assertIn("ql_explicit", self.matrix["allowed_creation_routes"])
-        self.assertEqual(self.matrix["route_policy_ref"], "config/route_selection_policy_v5.json")
+        self.assertEqual(self.matrix["route_policy_ref"], "config/route_selection_policy.json")
 
     def test_standard_template_registry_matches_matrix_route_and_template(self):
         registry = json.loads((ROOT / "templates" / "datalens" / "standard_chart_templates.json").read_text(encoding="utf-8"))

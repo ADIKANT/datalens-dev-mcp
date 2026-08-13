@@ -3,9 +3,9 @@
   "$id": "https://example.com/datalens-dev-mcp/schemas/dashboard-object-relations.schema.json",
   "title": "Dashboard object relations",
   "type": "object",
-  "required": ["schema_version", "dashboard", "layout_blueprint", "tabs", "widgets", "charts", "selectors"],
+  "required": ["schema_id", "dashboard", "layout_blueprint", "tabs", "widgets", "charts", "selectors"],
   "properties": {
-    "schema_version": {"type": "string"},
+    "schema_id": {"type": "string"},
     "dashboard": {
       "type": "object",
       "required": ["dashboard_id_placeholder", "name", "dashboard_type"],
@@ -118,7 +118,7 @@
           "contract": {
             "type": "object",
             "properties": {
-              "schema_version": {"type": ["string", "null"]},
+              "schema_id": {"type": ["string", "null"]},
               "family": {"type": ["string", "null"]},
               "option_source": {"type": ["string", "null"]},
               "reset_behavior": {"type": ["string", "null"]}

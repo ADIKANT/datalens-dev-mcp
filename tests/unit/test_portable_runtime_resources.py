@@ -80,7 +80,7 @@ class PortableRuntimeResourceTests(unittest.TestCase):
         self.assertEqual(schema["mode"], "readonly")
         self.assertEqual(openapi_lock_summary()["required_api_header_version"], "2")
         self.assertIn("schema_ref", compiled)
-        self.assertIn("rule_version", runtime)
+        self.assertIn("rule_id", runtime)
         self.assertIn("templates", wizard)
         self.assertTrue(wizard_plan["ok"])
         self.assertTrue(reference["ok"])

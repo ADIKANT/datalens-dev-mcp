@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "datalens.final-handoff.delta-v6",
+  "$id": "datalens.final-handoff",
   "title": "Final Handoff Contract",
   "type": "object",
   "required": ["status", "dashboard_id", "changed_objects", "verification"],
   "properties": {
-    "schema_version": {"type": "string"},
+    "schema_id": {"type": "string"},
     "status": {"enum": ["done", "runtime_not_verified", "blocked", "rolled_back"]},
     "dashboard_id": {"type": "string"},
     "workbook_id": {"type": "string"},

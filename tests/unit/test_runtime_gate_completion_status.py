@@ -70,7 +70,7 @@ class RuntimeGateCompletionStatusTests(unittest.TestCase):
             capture.write_text(
                 json.dumps(
                     {
-                        "schema_version": "datalens.browser_capture.v1",
+                        "schema_id": "datalens.browser_capture",
                         "status": "passed",
                         "captured_at": datetime.now(timezone.utc).isoformat(),
                         "target_url": "https://datalens.example/dash",
@@ -105,6 +105,27 @@ class RuntimeGateCompletionStatusTests(unittest.TestCase):
                             "path": str(proof),
                             "sha256": hashlib.sha256(proof.read_bytes()).hexdigest(),
                         },
+                        "change_scope": "content",
+                        "viewport_checks": [
+                            {
+                                "label": "content-proof",
+                                "width": 1,
+                                "height": 1,
+                                "device_pixel_ratio": 1,
+                                "document_width": 1,
+                                "horizontal_overflow_px": 0,
+                                "scope_object_ids": ["chart_1"],
+                                "visible_object_ids": ["chart_1"],
+                                "clipped_object_ids": [],
+                                "missing_object_ids": [],
+                                "truncated_text_object_ids": [],
+                                "overlap_pairs": [],
+                                "screenshot_artifact": {
+                                    "path": str(proof),
+                                    "sha256": hashlib.sha256(proof.read_bytes()).hexdigest(),
+                                },
+                            }
+                        ],
                     }
                 ),
                 encoding="utf-8",

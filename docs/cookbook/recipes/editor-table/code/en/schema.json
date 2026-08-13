@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "additionalProperties": true,
+      "description": "DataLens Editor links; replace placeholders.",
+      "type": "object"
+    },
+    "params": {
+      "additionalProperties": {
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "rows": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "item": {
+            "description": "Primary row label",
+            "examples": [
+              "Example row"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "description": "Technical status key",
+            "examples": [
+              "ready"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "description": "Numeric mark value",
+            "examples": [
+              42
+            ],
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "item"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "rows",
+    "meta",
+    "params"
+  ],
+  "title": "Compact table",
+  "type": "object"
+}

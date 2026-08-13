@@ -1,0 +1,27 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "page_size": [
+      "100"
+    ],
+    "table_variant": [
+      "standard"
+    ]
+  },
+  "rows": [
+    {
+      "item": "Первая строка",
+      "status": "ready",
+      "value": 72
+    },
+    {
+      "item": "Вторая строка",
+      "status": "review",
+      "value": 46
+    }
+  ]
+}

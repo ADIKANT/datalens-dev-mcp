@@ -1,17 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "title": "Delta v7 Final Maintenance Handoff",
+  "title": "Final Maintenance Handoff",
   "type": "object",
   "required": [
-    "schema_version",
+    "schema_id",
     "status",
     "target",
     "proof"
   ],
   "properties": {
-    "schema_version": {
-      "const": "datalens.delta_v7.final_maintenance_handoff.v1"
+    "schema_id": {
+      "const": "datalens.final_maintenance_handoff"
     },
     "status": {
       "enum": [

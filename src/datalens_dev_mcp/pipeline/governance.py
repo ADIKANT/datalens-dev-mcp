@@ -85,7 +85,7 @@ def build_governance_brief(*, requirements_text: str, data_profile: dict[str, An
     metric_id = "MET-001"
     decision_id = "CD-001"
     return {
-        "schema_version": "2026-05-25.dashboard_brief.v1",
+        "schema_id": "dashboard_brief",
         "dashboard_name": _first_title(requirements_text),
         "audience": ["business owner", "analyst"],
         "decision_action": "Monitor the requested process and decide follow-up action.",

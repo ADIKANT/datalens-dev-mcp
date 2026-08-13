@@ -18,6 +18,6 @@
   ],
   "response_schema_hash": "c942cfcb321a3eb85060134e9f49aa0106bc9b158d565c47f99dc056b7fe753f",
   "response_schema_ref": "MoveCollectionsResponse",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "readonly_reference"
 }

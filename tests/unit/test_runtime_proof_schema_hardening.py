@@ -43,7 +43,7 @@ def _write_capture(
     image.write_bytes(image_bytes if image_bytes is not None else _valid_png_bytes())
     object_ids = ["chart_1"]
     capture = {
-        "schema_version": "datalens.browser_capture.v1",
+        "schema_id": "datalens.browser_capture",
         "status": "passed",
         "captured_at": datetime.now(timezone.utc).isoformat(),
         "target_url": "https://datalens.example/dash",
@@ -82,6 +82,27 @@ def _write_capture(
             "path": str(image),
             "sha256": hashlib.sha256(image.read_bytes()).hexdigest(),
         },
+        "change_scope": "content",
+        "viewport_checks": [
+            {
+                "label": "content-proof",
+                "width": 2,
+                "height": 2,
+                "device_pixel_ratio": 1,
+                "document_width": 2,
+                "horizontal_overflow_px": 0,
+                "scope_object_ids": object_ids,
+                "visible_object_ids": object_ids,
+                "clipped_object_ids": [],
+                "missing_object_ids": [],
+                "truncated_text_object_ids": [],
+                "overlap_pairs": [],
+                "screenshot_artifact": {
+                    "path": str(image),
+                    "sha256": hashlib.sha256(image.read_bytes()).hexdigest(),
+                },
+            }
+        ],
     }
     path = root / "browser.capture.json"
     path.write_text(json.dumps(capture), encoding="utf-8")
@@ -110,7 +131,7 @@ def _completed_execution_manifest() -> dict[str, object]:
         "approval_provenance": approval,
     }
     return {
-        "schema_version": "datalens.safe_apply_execution_evidence.v1",
+        "schema_id": "datalens.safe_apply_execution_evidence",
         "generated_at": "2026-07-10T10:00:00Z",
         "project_root": "/tmp/project",
         "run_id": "safe_apply_aaaaaaaaaaaa",
@@ -244,7 +265,7 @@ class RuntimeProofSchemaHardeningTests(unittest.TestCase):
             (REPO_ROOT / "schemas" / "safe_apply_execution_evidence.schema.json").read_text()
         )
         invalid_live = {
-            "schema_version": "datalens.delta_v7.live_maintenance_run.v1",
+            "schema_id": "datalens.live_maintenance_run",
             "run_id": "run_1",
             "target": {"workbook_id": "workbook_1"},
             "status": "done",

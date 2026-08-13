@@ -69,7 +69,7 @@ percentage `width` values. Fallback generated single selectors use `width: '94%'
 
 - Native dashboard tabs use a 36-column grid and require a one-to-one mapping
   between item IDs and layout IDs.
-- Composition v2 records semantic rows and exact mount → tab → widget links.
+- Dashboard composition records semantic rows and exact mount → tab → widget links.
 - Adjacent blocks use the same height and `gap_after=0`; any non-zero spacer is
   explicit and named.
 - Standard KPI rows contain at most three cards. Sparkline KPI cards use

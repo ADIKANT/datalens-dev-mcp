@@ -11,7 +11,7 @@ Do not put secrets in tabs, params, markdown, comments, or generated HTML.
 
 ## Canonical authoring profile
 
-Create and full-redesign generation defaults to `standard_dashboard_v1`.
+Create and full-redesign generation defaults to `standard_dashboard`.
 `strict_dashboard`, `standard_dashboard`, and `registered_dashboard` are aliases
 for the same profile. It is a dashboard contract, not an instruction to convert
 every chart to JavaScript.
@@ -25,23 +25,23 @@ The profile performs route selection first:
    pie/donut, scatter/bubble, treemap, and map charts on Wizard;
 5. never use QL unless the user requested QL directly.
 
-For selected Editor objects, the same `standard_dashboard_v1` profile applies
-the current template registry, Renderer Visual Spec v5, and a checksum-locked
+For selected Editor objects, the same `standard_dashboard` profile applies
+the current template registry, Renderer Visual Spec, and a checksum-locked
 neutral runtime. The query and row normalization may vary, but the renderer,
 typography tokens, title chrome, and protected layout code may not be
 rewritten.
 
 There is only one executable built-in contract. Historical profile names are
-accepted as input aliases, immediately normalized to `standard_dashboard_v1`,
+accepted as input aliases, immediately normalized to `standard_dashboard`,
 and never select historical assets or behavior. A saved Editor object keeps
 its technology during an update, but its generated bundle is rebuilt and
 attested with the current contract. A project-local descriptor cannot override
 a reserved built-in alias.
 
-## Renderer Visual Spec v5
+## Renderer Visual Spec
 
 Each generated component has top-level `authoring_profile`,
-`editor_render_profile`, `render_contract_version`, and `title_mode` fields.
+`editor_render_profile`, `render_contract_id`, and `title_mode` fields.
 The title contract selects exactly one owner:
 
 | Mode | Use |
@@ -61,7 +61,7 @@ bar, comparison-context, legend, tooltip, plot-inset, and horizontal-scroll
 adapters. The bundle records runtime, adapter, selected asset, compiled tabs,
 render profile, and composite hashes.
 
-## Dashboard composition v2
+## Dashboard dashboard composition
 
 `dl_generate_editor_bundle` accepts a `dashboard_composition` object and writes
 a hash-bound skeleton. A batch composition declares:
@@ -112,7 +112,7 @@ Generate the dashboard in one call:
 
 `chart_specs` accepts at most 100 unique widgets. Full bundles and tabs stay in
 artifacts; the MCP response contains bounded statuses, paths, and hashes. If
-`dashboard_composition` is omitted, the server builds the safe v2 skeleton; an
+`dashboard_composition` is omitted, the server builds the safe canonical skeleton; an
 explicit composition must declare all tabs, rows, and widgets. A
 comparison batch starts with its date selector and contains exactly one
 structured comparison-context block.
@@ -130,11 +130,11 @@ separate compiler output. It writes `final_payload_attestation` containing:
 
 Validation reads materialized Editor tabs again, so rewriting `prepare.js` or
 another protected tab is detected. A Wizard-to-Editor substitution, unattested
-payload, v1 create/redesign, or any post-validation title, selector, runtime,
+payload, create/redesign, or any post-validation title, selector, runtime,
 layout, or payload change blocks Safe Apply and requires validation again.
 
 Project-local execution commands cannot replace the protected composition path
-for `standard_dashboard_v1`; attested payload planning and Safe Apply own the
+for `standard_dashboard`; attested payload planning and Safe Apply own the
 final request.
 
 ## Browser QA and delivery
@@ -155,7 +155,7 @@ Safe Apply publishes only that revision and verifies the published readback.
 Published browser evidence for the same revision is then required before the
 delivery state can become `done`.
 
-Composition v2 emits the native DataLens `widget.data.tabs[]` payload shape.
+Dashboard composition emits the native DataLens `widget.data.tabs[]` payload shape.
 Its `operation` selects a schema-valid `CreateDashboardV1Args` or
 `UpdateDashboardV1Args` envelope; the exact display title lives in dashboard
 metadata while the technical `entry.name` stays a safe lowercase identifier.

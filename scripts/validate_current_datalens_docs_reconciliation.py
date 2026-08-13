@@ -17,11 +17,18 @@ from datalens_dev_mcp.knowledge.corpus import resolve_corpus_root as resolve_sha
 POLICY_PATH = ROOT / "config" / "datalens_docs_feature_policy.json"
 PACKAGE_POLICY_PATH = ROOT / "src" / "datalens_dev_mcp" / "assets" / "config" / "datalens_docs_feature_policy.json"
 DOC_PATH = ROOT / "docs" / "datalens" / "current_docs_reconciliation.md"
-SCHEMA_VERSION = "2026-07-29.current_docs_feature_policy.v2"
-DELTA_REPORT_NAME = "update_report_2026-07-29.md"
-EXPECTED_FINAL_COUNTS = {"pages": 653, "chunks": 5019, "assets": 890, "manifest": 1551}
-EXPECTED_DELTA_COUNTS = {"changed": 9, "new": 2}
-EXPECTED_OPENAPI_SHA256 = "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0"
+SCHEMA_ID = "current_docs_feature_policy"
+DELTA_REPORT_NAMES = (
+    "update_check_delta_2026-08-03.md",
+    "update_check_delta_2026-08-11.md",
+)
+EXPECTED_FINAL_COUNTS = {"pages": 655, "chunks": 5033, "assets": 910, "manifest": 1573}
+EXPECTED_DELTA_COUNTS_BY_REPORT = {
+    "update_check_delta_2026-08-03.md": {"changed": 65, "new": 1},
+    "update_check_delta_2026-08-11.md": {"changed": 40, "new": 1},
+}
+EXPECTED_DELTA_COUNTS = {"changed": 105, "new": 2}
+EXPECTED_OPENAPI_SHA256 = "b623445b2c56108517b5e73515e25a3b979b4e9d0df966c53d38e2681cf5507f"
 
 VALID_STATUSES = {
     "supported",
@@ -34,8 +41,9 @@ VALID_STATUSES = {
 
 REQUIRED_CLUSTER_IDS = [
     "api_versioning",
-    "api_changelog_v2",
+    "api_changelog",
     "release_notes_2605",
+    "release_notes_2606",
     "html_pages_lifecycle",
     "table_column_alignment",
     "dashboard_margins",
@@ -71,6 +79,7 @@ REQUIRED_CLUSTER_IDS = [
     "visual_map",
     "visual_combined",
     "visual_choropleth",
+    "visual_funnel",
     "dataset_cache_invalidation",
     "dataset_data_model",
     "dataset_versioning_drafts",
@@ -114,17 +123,47 @@ def load_report(path: Path) -> tuple[dict[str, Any], str]:
 def load_update_reports(corpus_root: Path) -> dict[str, Any]:
     snapshot_path = corpus_root / "reports" / "update_report.md"
     snapshot_summary, snapshot_text = load_report(snapshot_path)
-    delta_path = corpus_root / "reports" / DELTA_REPORT_NAME
-    if not delta_path.is_file():
-        raise FileNotFoundError(f"required historical delta report is missing: reports/{DELTA_REPORT_NAME}")
-    delta_summary, delta_text = load_report(delta_path)
+    delta_reports: list[dict[str, Any]] = []
+    for report_name in DELTA_REPORT_NAMES:
+        delta_path = corpus_root / "reports" / report_name
+        if not delta_path.is_file():
+            raise FileNotFoundError(f"required historical delta report is missing: reports/{report_name}")
+        delta_summary, delta_text = load_report(delta_path)
+        delta_reports.append(
+            {
+                "path": delta_path,
+                "summary": delta_summary,
+                "text": delta_text,
+                "new_urls": extract_fenced_urls(delta_text, "New pages"),
+            }
+        )
+    delta_summary = {
+        "generated_at": delta_reports[-1]["summary"]["generated_at"],
+        "docs": {
+            "changed_count": sum(item["summary"]["docs"]["changed_count"] for item in delta_reports),
+            "new_count": sum(item["summary"]["docs"]["new_count"] for item in delta_reports),
+            "removed_candidate_count": sum(
+                item["summary"]["docs"]["removed_candidate_count"] for item in delta_reports
+            ),
+        },
+        "assets": {
+            "new_reference_count": sum(
+                item["summary"]["assets"]["new_reference_count"] for item in delta_reports
+            ),
+            "removed_reference_count": sum(
+                item["summary"]["assets"]["removed_reference_count"] for item in delta_reports
+            ),
+        },
+    }
     return {
         "snapshot_path": snapshot_path,
         "snapshot_summary": snapshot_summary,
         "snapshot_text": snapshot_text,
-        "delta_path": delta_path,
+        "delta_reports": delta_reports,
         "delta_summary": delta_summary,
-        "delta_text": delta_text,
+        "delta_new_urls": sorted(
+            {url for item in delta_reports for url in item["new_urls"]}
+        ),
     }
 
 
@@ -161,21 +200,21 @@ def build_clusters() -> list[dict[str, Any]]:
     return [
         _cluster(
             "api_versioning",
-            "DataLens API version selection",
+            "DataLens API required header",
             "supported",
             [f"{base}/operations/api-versioning.md"],
-            "DataLens API client version policy",
-            "Keep auto pinned to the compiled OpenAPI version; permit explicit latest only for curated read-only calls.",
-            "Guarded writes reject explicit latest before HTTP because future schemas are not compiled or reviewed.",
+            "DataLens API client OpenAPI contract",
+            "Use the required x-dl-api-version value from the compiled OpenAPI contract for every call.",
+            "The header value has no environment override and requests are never retried under another API contract.",
         ),
         _cluster(
-            "api_changelog_v2",
-            "DataLens API v2 changelog",
+            "api_changelog",
+            "DataLens API changelog",
             "supported",
             [f"{base}/release-notes/api-changelog.md"],
             "request compiler and read-only RPC validation",
-            "Validate getEntries with v2 arrays, pageToken, and ignoreSharedEntries semantics.",
-            "Legacy string ids/createdBy and removed page are rejected locally; getEntries never auto-falls back to v1.",
+            "Validate getEntries with arrays, pageToken, and ignoreSharedEntries semantics from the current contract.",
+            "Removed string ids/createdBy and page shapes are rejected locally; getEntries uses one current contract.",
         ),
         _cluster(
             "release_notes_2605",
@@ -185,6 +224,15 @@ def build_clusters() -> list[dict[str, Any]]:
             "dl_reference and feature policy",
             "Index the release note as capability context without inferring new API routes.",
             "StarRocks, mailings, shared objects, roles, cache invalidation, and hidden tabs do not enable guessed mutations.",
+        ),
+        _cluster(
+            "release_notes_2606",
+            "June 2026 DataLens release notes",
+            "read_only",
+            [f"{base}/release-notes/2606.md"],
+            "dl_reference and feature policy",
+            "Index the release note as current capability context without inferring undocumented API writes.",
+            "New UI capabilities remain read-only context until an OpenAPI method and guarded lifecycle are verified.",
         ),
         _cluster(
             "html_pages_lifecycle",
@@ -513,6 +561,16 @@ def build_clusters() -> list[dict[str, Any]]:
             "Geo evidence and map route validation are required before safe apply.",
         ),
         _cluster(
+            "visual_funnel",
+            "Funnel visualization",
+            "supported",
+            [f"{base}/visualization-ref/funnel.md"],
+            "VisualDecisionEngine and wizard_native funnel route",
+            "New funnel_snapshot charts default to Wizard visualization id funnel; existing charts keep their saved technology.",
+            "The native contract accepts a category dimension plus one or more measures in the required measures "
+            "placeholder and supports color, sort, labels, and filters. Fresh saved seeds remain preferred for live writes.",
+        ),
+        _cluster(
             "dataset_cache_invalidation",
             "Dataset cache invalidation",
             "read_only",
@@ -597,16 +655,24 @@ def build_policy(corpus_root: Path) -> dict[str, Any]:
     validation = snapshot["validation"]
     delta_docs = delta["docs"]
     delta_assets = delta["assets"]
-    new_urls = extract_fenced_urls(reports["delta_text"], "New pages")
+    new_urls = reports["delta_new_urls"]
+    applied_delta_reports = [
+        {
+            "path": item["path"].relative_to(corpus_root).as_posix(),
+            "generated_at": item["summary"]["generated_at"],
+        }
+        for item in reports["delta_reports"]
+    ]
     clusters = build_clusters()
     return {
-        "schema_version": SCHEMA_VERSION,
+        "schema_id": SCHEMA_ID,
         "source": {
             "corpus_root_hint": "<DATALENS_DOCS_CORPUS_ROOT>",
             "update_report": "reports/update_report.md",
             "update_report_generated_at": snapshot["generated_at"],
-            "applied_delta_report": reports["delta_path"].relative_to(corpus_root).as_posix(),
-            "applied_delta_generated_at": delta["generated_at"],
+            "applied_delta_report": applied_delta_reports[-1]["path"],
+            "applied_delta_generated_at": applied_delta_reports[-1]["generated_at"],
+            "applied_delta_reports": applied_delta_reports,
             "openapi_sha256": str(inventory.get("openapi_sha256") or ""),
             "mode": snapshot["mode"],
         },
@@ -642,10 +708,11 @@ def render_markdown(policy: dict[str, Any]) -> str:
             f"Source update report: `{policy['source']['update_report']}` generated at "
             f"`{policy['source']['update_report_generated_at']}`."
         ),
-        (
-            f"Applied delta report: `{policy['source']['applied_delta_report']}` generated at "
-            f"`{policy['source']['applied_delta_generated_at']}`."
-        ),
+        "Applied delta reports:",
+        *[
+            f"- `{item['path']}` generated at `{item['generated_at']}`."
+            for item in policy["source"]["applied_delta_reports"]
+        ],
         "",
         "This file is a distilled policy matrix. It does not copy raw documentation pages into the repository.",
         "",
@@ -653,8 +720,8 @@ def render_markdown(policy: dict[str, Any]) -> str:
         "",
         f"- Current pages: `{counts['docs_current_pages']}`.",
         f"- Current chunks: `{counts['docs_current_chunks']}`.",
-        f"- Changed pages: `{counts['docs_changed_pages']}`.",
-        f"- New pages: `{counts['docs_new_pages']}`.",
+        f"- Changed-page observations across applied deltas: `{counts['docs_changed_pages']}`.",
+        f"- New pages across applied deltas: `{counts['docs_new_pages']}`.",
         f"- Removed candidates: `{counts['docs_removed_candidates']}`.",
         f"- Failed page checks: `{counts['docs_failed_pages']}`.",
         f"- OpenAPI operations/paths: `{counts['openapi_operations']}` / `{counts['openapi_paths']}`.",
@@ -733,8 +800,8 @@ def validate(corpus_root: Path, *, strict: bool = False) -> dict[str, Any]:
     manifest_count = read_jsonl_count(corpus_root / "manifest.jsonl")
     inventory = read_json(corpus_root / "api_inventory.json")
 
-    if policy.get("schema_version") != SCHEMA_VERSION:
-        issues.append("policy schema_version mismatch")
+    if policy.get("schema_id") != SCHEMA_ID:
+        issues.append("policy schema_id mismatch")
     counts = policy.get("expected_counts") or {}
     expected_pairs = {
         "docs_current_pages": docs["current_count"],
@@ -778,19 +845,36 @@ def validate(corpus_root: Path, *, strict: bool = False) -> dict[str, Any]:
     if not validation_summary.get("required_checks_ok"):
         issues.append("update report required checks are not OK")
 
-    if policy.get("source", {}).get("applied_delta_report") != reports["delta_path"].relative_to(corpus_root).as_posix():
-        issues.append("applied_delta_report mismatch")
+    expected_delta_reports = [
+        {
+            "path": item["path"].relative_to(corpus_root).as_posix(),
+            "generated_at": item["summary"]["generated_at"],
+        }
+        for item in reports["delta_reports"]
+    ]
+    if policy.get("source", {}).get("applied_delta_reports") != expected_delta_reports:
+        issues.append("applied_delta_reports mismatch")
+    if policy.get("source", {}).get("applied_delta_report") != expected_delta_reports[-1]["path"]:
+        issues.append("applied_delta_report compatibility pointer mismatch")
     if policy.get("source", {}).get("openapi_sha256") != EXPECTED_OPENAPI_SHA256:
         issues.append("policy source OpenAPI SHA-256 mismatch")
     if delta_docs.get("changed_count") != EXPECTED_DELTA_COUNTS["changed"]:
-        issues.append("applied delta changed_count must remain 9")
+        issues.append(f"applied deltas changed_count must remain {EXPECTED_DELTA_COUNTS['changed']}")
     if delta_docs.get("new_count") != EXPECTED_DELTA_COUNTS["new"]:
-        issues.append("applied delta new_count must remain 2")
+        issues.append(f"applied deltas new_count must remain {EXPECTED_DELTA_COUNTS['new']}")
+    for item in reports["delta_reports"]:
+        report_name = item["path"].name
+        expected = EXPECTED_DELTA_COUNTS_BY_REPORT[report_name]
+        report_docs = item["summary"]["docs"]
+        if report_docs.get("changed_count") != expected["changed"]:
+            issues.append(f"{report_name} changed_count mismatch")
+        if report_docs.get("new_count") != expected["new"]:
+            issues.append(f"{report_name} new_count mismatch")
 
-    expected_new_urls = extract_fenced_urls(reports["delta_text"], "New pages")
+    expected_new_urls = reports["delta_new_urls"]
     covered_new_urls = sorted(policy.get("covered_new_page_urls") or [])
     if covered_new_urls != expected_new_urls:
-        issues.append("covered_new_page_urls does not match update_report.md New pages block")
+        issues.append("covered_new_page_urls does not match the applied delta New pages blocks")
 
     clusters = policy.get("clusters") or []
     cluster_by_id = {item.get("id"): item for item in clusters if isinstance(item, dict)}

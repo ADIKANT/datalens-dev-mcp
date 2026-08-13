@@ -30,7 +30,7 @@ _ARTIFACT_DIR_VALUE = Path(os.environ.get("DATALENS_KNOWLEDGE_ARTIFACT_DIR", "ar
 ARTIFACT_DIR = _ARTIFACT_DIR_VALUE if _ARTIFACT_DIR_VALUE.is_absolute() else REPO_ROOT / _ARTIFACT_DIR_VALUE
 QA_KNOWLEDGE_DIR = ARTIFACT_DIR / "compiled-qa"
 INDEX_PATH = REPO_ROOT / "artifacts" / "datalens_knowledge" / "index.sqlite"
-COMPILER_VERSION = "2026-06-25.semantic_authoring.v2"
+COMPILER_ID = "semantic_authoring"
 RUNTIME_KNOWLEDGE_FILES = {
     "knowledge.lock.json",
     "page-registry.json",
@@ -45,18 +45,18 @@ RUNTIME_KNOWLEDGE_FILES = {
 }
 
 EXPECTED_COUNTS = {
-    "pages": 653,
-    "chunks": 5019,
-    "assets": 890,
-    "manifest": 1551,
+    "pages": 655,
+    "chunks": 5033,
+    "assets": 910,
+    "manifest": 1573,
     "editor_pages": 20,
     "function_pages": 221,
-    "visualization_pages": 22,
+    "visualization_pages": 23,
     "troubleshooting_error_pages": 86,
-    "release_note_pages": 31,
+    "release_note_pages": 32,
     "openapi_operations": 95,
     "openapi_paths": 95,
-    "openapi_component_schemas": 495,
+    "openapi_component_schemas": 500,
 }
 
 CLASSIFICATION_STATUSES = {
@@ -341,7 +341,7 @@ def semantic_record(
         "source_trace": trace,
         "bounded_excerpt": excerpt,
         "extraction_method": extraction,
-        "compiler_version": COMPILER_VERSION,
+        "compiler_id": COMPILER_ID,
         "confidence": confidence,
         "manual_review_status": manual_review,
         "data": data or {},
@@ -469,7 +469,7 @@ def build_topic_registry(page_registry: list[dict[str, Any]]) -> dict[str, Any]:
         }
         for key, value in sorted(aliases.items())
     ]
-    return {"schema_version": COMPILER_VERSION, "topics": topics}
+    return {"schema_id": COMPILER_ID, "topics": topics}
 
 
 def normalize_topic(value: str) -> str:
@@ -506,7 +506,7 @@ def build_rule_cards(corpus: dict[str, Any], page_by_mirror: dict[str, dict[str,
                     "source_trace": source_trace(chunk),
                     "bounded_excerpt": chunk_excerpt(chunk),
                     "manual_review_status": "compiler_reviewed",
-                    "extraction_method": "marker_and_section_aware.v2",
+                    "extraction_method": "marker_and_section_aware",
                 }
             )
     return sorted(rows, key=lambda item: item["rule_id"])
@@ -575,7 +575,7 @@ def build_asset_registry(corpus: dict[str, Any]) -> dict[str, Any]:
                 "classification": "visual_review_candidate" if high_value else "indexed_reference",
             }
         )
-    return {"schema_version": COMPILER_VERSION, "assets": assets}
+    return {"schema_id": COMPILER_ID, "assets": assets}
 
 
 def build_supersession_registry(corpus: dict[str, Any]) -> dict[str, Any]:
@@ -598,7 +598,7 @@ def build_supersession_registry(corpus: dict[str, Any]) -> dict[str, Any]:
                 }
             )
     return {
-        "schema_version": COMPILER_VERSION,
+        "schema_id": COMPILER_ID,
         "release_note_count": len(release_pages),
         "release_notes": [source_trace(page) | {"title": str(page.get("title") or "")} for page in release_pages],
         "supersession_signals": signals,
@@ -668,7 +668,7 @@ def build_formula_registry(corpus: dict[str, Any]) -> dict[str, Any]:
                 },
             }
         )
-    return {"schema_version": COMPILER_VERSION, "functions": formulas}
+    return {"schema_id": COMPILER_ID, "functions": formulas}
 
 
 def normalize_formula_name(name: str, title: str) -> str:
@@ -1070,7 +1070,7 @@ def build_visualization_registry(corpus: dict[str, Any]) -> dict[str, Any]:
                 "source_trace": source_trace(first_page_chunk(corpus, mirror_path)),
             }
         )
-    return {"schema_version": COMPILER_VERSION, "visualizations": visualizations}
+    return {"schema_id": COMPILER_ID, "visualizations": visualizations}
 
 
 def infer_visual_slots(text: str) -> list[str]:
@@ -1180,7 +1180,7 @@ def build_error_registry(corpus: dict[str, Any]) -> dict[str, Any]:
                 "source_trace": source_trace(first_page_chunk(corpus, mirror_path)),
             }
         )
-    return {"schema_version": COMPILER_VERSION, "errors": errors}
+    return {"schema_id": COMPILER_ID, "errors": errors}
 
 
 def infer_error_layer(code: str, text: str) -> str:
@@ -1287,7 +1287,7 @@ def build_domain_registry(corpus: dict[str, Any]) -> dict[str, Any]:
                 "source_trace": source_trace(page),
             }
         )
-    return {"schema_version": COMPILER_VERSION, "records": records}
+    return {"schema_id": COMPILER_ID, "records": records}
 
 
 def infer_domain_rule_families(text: str) -> list[str]:
@@ -1337,7 +1337,7 @@ def build_operations_registry(corpus: dict[str, Any]) -> dict[str, Any]:
                 "source_trace": source_trace(page),
             }
         )
-    return {"schema_version": COMPILER_VERSION, "records": records}
+    return {"schema_id": COMPILER_ID, "records": records}
 
 
 def build_capability_matrix(corpus: dict[str, Any], tool_budget: dict[str, Any]) -> dict[str, Any]:
@@ -1434,7 +1434,7 @@ def build_capability_matrix(corpus: dict[str, Any], tool_budget: dict[str, Any])
             [openapi_traces["api_version_header"]],
         ),
     ]
-    return {"schema_version": COMPILER_VERSION, "tool_budget": tool_budget, "capabilities": capabilities}
+    return {"schema_id": COMPILER_ID, "tool_budget": tool_budget, "capabilities": capabilities}
 
 
 def capability(
@@ -1753,7 +1753,7 @@ def build_recipes(corpus: dict[str, Any]) -> dict[str, Any]:
         }
     )
     recipes.append(standalone_html)
-    return {"schema_version": COMPILER_VERSION, "recipes": recipes}
+    return {"schema_id": COMPILER_ID, "recipes": recipes}
 
 
 def recipe(
@@ -1893,7 +1893,7 @@ def build_semantic_source_model(corpus: dict[str, Any], page_registry: list[dict
                 "asset_count": page["asset_count"],
             }
         )
-    return {"schema_version": COMPILER_VERSION, "pages": records}
+    return {"schema_id": COMPILER_ID, "pages": records}
 
 
 def related_openapi_operations(page: dict[str, Any]) -> list[str]:
@@ -2010,7 +2010,7 @@ def build_manual_review_queue(corpus: dict[str, Any], asset_registry: dict[str, 
             }
         )
     return {
-        "schema_version": COMPILER_VERSION,
+        "schema_id": COMPILER_ID,
         "pages": high_risk_pages,
         "assets": asset_rows,
         "reviewer_checklists": {
@@ -2129,7 +2129,7 @@ def build_formula_golden_set(formula_registry: dict[str, Any], demo_formulas: li
     valid_count = sum(1 for row in rows if row["expected_ok"])
     invalid_count = sum(1 for row in rows if not row["expected_ok"])
     return {
-        "schema_version": COMPILER_VERSION,
+        "schema_id": COMPILER_ID,
         "manual_review_status": "reviewed",
         "required_count": len(required),
         "case_count": len(rows),
@@ -2248,7 +2248,7 @@ def build_formula_fuzz_cases() -> dict[str, Any]:
         expression = seed.replace("[x]", f"[x_{index}]")
         result = validate_formula_expression(expression)
         rows.append({"expression_sha256": sha256_text(expression), "ok": result["ok"], "issue_count": len(result["issues"])})
-    return {"schema_version": COMPILER_VERSION, "case_count": len(rows), "ok": len(rows) == 100, "cases": rows}
+    return {"schema_id": COMPILER_ID, "case_count": len(rows), "ok": len(rows) == 100, "cases": rows}
 
 
 def build_editor_visualization_contracts(corpus: dict[str, Any]) -> dict[str, Any]:
@@ -2277,7 +2277,7 @@ def build_editor_visualization_contracts(corpus: dict[str, Any]) -> dict[str, An
                 "bounded_excerpt": bounded_excerpt(text, max_chars=420),
             }
         )
-    return {"schema_version": COMPILER_VERSION, "contracts": contracts}
+    return {"schema_id": COMPILER_ID, "contracts": contracts}
 
 
 def editor_tabs_from_text(text: str) -> list[str]:
@@ -2352,6 +2352,7 @@ def wizard_visualization_id_for_name(name: str) -> str:
         (("pie",), "pie"),
         (("scatter",), "scatter"),
         (("treemap", "tree-map"), "treemap"),
+        (("funnel",), "funnel"),
         (("line",), "line"),
         (("indicator", "metric"), "metric"),
     )
@@ -2389,7 +2390,7 @@ def build_route_capability_matrix(compiled: dict[str, Any]) -> dict[str, Any]:
         route_row("folder_permissions", True, True, False, False, False, False, False, "destructive/security operations blocked"),
     ]
     return {
-        "schema_version": COMPILER_VERSION,
+        "schema_id": COMPILER_ID,
         "tool_budget": compiled["tool_budget"],
         "routes": routes,
     }
@@ -2851,7 +2852,7 @@ def build_retrieval_benchmark_cases() -> dict[str, Any]:
                 "not_exact_id_only": expected.lower() != query.strip().lower(),
             }
         )
-    return {"schema_version": COMPILER_VERSION, "case_count": len(rows), "cases": rows}
+    return {"schema_id": COMPILER_ID, "case_count": len(rows), "cases": rows}
 
 
 def build_demo_reference_mapping(demo_root: Path = DEFAULT_DEMO_REFERENCE_ROOT) -> dict[str, Any]:
@@ -2859,7 +2860,7 @@ def build_demo_reference_mapping(demo_root: Path = DEFAULT_DEMO_REFERENCE_ROOT) 
     manifest_path = root / "raw" / "manifest.json"
     if not manifest_path.is_file():
         return {
-            "schema_version": COMPILER_VERSION,
+            "schema_id": COMPILER_ID,
             "ok": False,
             "demo_root": str(root),
             "blocked_reason": "demo_reference_manifest_missing",
@@ -2923,7 +2924,7 @@ def build_demo_reference_mapping(demo_root: Path = DEFAULT_DEMO_REFERENCE_ROOT) 
         )
     formulas = extract_demo_formula_examples(root)
     return {
-        "schema_version": COMPILER_VERSION,
+        "schema_id": COMPILER_ID,
         "ok": bool(mapped),
         "demo_root": str(root),
         "entry_count": manifest.get("entry_count"),
@@ -3046,8 +3047,8 @@ def build_lock(corpus: dict[str, Any], counts: dict[str, Any]) -> dict[str, Any]
         default="",
     )
     return {
-        "schema_version": COMPILER_VERSION,
-        "compiler_version": COMPILER_VERSION,
+        "schema_id": COMPILER_ID,
+        "compiler_id": COMPILER_ID,
         "source_precedence": SOURCE_PRECEDENCE,
         # This lock is committed and packaged. Do not serialize the local path
         # that happened to win corpus discovery on the generating workstation.
@@ -3087,7 +3088,7 @@ def measure_tool_budget() -> dict[str, Any]:
 def compiled_knowledge_resource_texts(compiled: dict[str, Any]) -> dict[str, str]:
     json_payloads: dict[str, Any] = {
         "knowledge.lock.json": compiled["lock"],
-        "page-registry.json": {"schema_version": COMPILER_VERSION, "pages": compiled["page_registry"]},
+        "page-registry.json": {"schema_id": COMPILER_ID, "pages": compiled["page_registry"]},
         "topic-registry.json": compiled["topic_registry"],
         "asset-registry.json": compiled["asset_registry"],
         "supersession-registry.json": compiled["supersession_registry"],
@@ -3376,7 +3377,7 @@ def build_baseline_artifacts(compiled: dict[str, Any]) -> dict[str, Any]:
         if is_editor_page(page)
     ]
     baseline = {
-        "schema_version": COMPILER_VERSION,
+        "schema_id": COMPILER_ID,
         "counts": compiled["counts"],
         "page_counts_by_section": dict(sorted(page_by_section.items())),
         "editor_pages": editor_pages,
@@ -3465,7 +3466,7 @@ def write_capability_gaps(capabilities: list[dict[str, Any]]) -> None:
 def write_final_reports(compiled: dict[str, Any], check: dict[str, Any]) -> dict[str, Any]:
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     after = {
-        "schema_version": COMPILER_VERSION,
+        "schema_id": COMPILER_ID,
         "counts": compiled["counts"],
         "compiler_check": check,
         "registry_counts": {
@@ -3741,7 +3742,7 @@ def write_final_acceptance(compiled: dict[str, Any], check: dict[str, Any]) -> N
     routes = compiled["route_capability_matrix"]["routes"]
     golden = compiled["formula_golden_set"]
     payload = {
-        "schema_version": COMPILER_VERSION,
+        "schema_id": COMPILER_ID,
         "ok": bool(check["ok"]),
         "semantic_coverage": {
             "pages_classified": compiled["counts"]["pages"],

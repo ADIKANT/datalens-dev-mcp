@@ -12,7 +12,7 @@ def load_recipe_registry() -> dict[str, Any]:
     try:
         return resource_json(RECIPE_REGISTRY_RESOURCE)
     except RuntimeResourceError:
-        return {"schema_version": "missing", "recipes": []}
+        return {"schema_id": "missing", "recipes": []}
 
 
 def get_recipe(recipe_id: str) -> dict[str, Any]:

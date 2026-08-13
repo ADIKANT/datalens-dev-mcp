@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "datalens.baseline-diff-contract.delta-v6",
+  "$id": "datalens.baseline-diff-contract",
   "title": "Baseline Diff Contract",
   "type": "object",
   "required": ["dashboard_id", "workbook_id", "baseline_source", "changed_objects", "blocked_reasons"],
   "properties": {
-    "schema_version": {"type": "string"},
+    "schema_id": {"type": "string"},
     "dashboard_id": {"type": "string"},
     "workbook_id": {"type": "string"},
     "baseline_source": {

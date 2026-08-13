@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "datalens.object-cleanup-report.delta-v6",
+  "$id": "datalens.object-cleanup-report",
   "title": "Object Cleanup Report",
   "type": "object",
   "required": ["dashboard_id", "created_objects", "active_graph_checked", "cleanup_actions"],
   "properties": {
-    "schema_version": {"type": "string"},
+    "schema_id": {"type": "string"},
     "dashboard_id": {"type": "string"},
     "workbook_id": {"type": "string"},
     "created_objects": {

@@ -1,25 +1,25 @@
 {
-  "closed_schema_count": 523,
-  "closed_schema_sha256": "74c6ab83eb1ed9a1f673f9e15dfd98004bc94bc7fec3f779b42854988fb2c86f",
-  "component_schema_count": 495,
+  "closed_schema_count": 528,
+  "closed_schema_sha256": "626c4cd06c177c9a4beabdd702b78e2a619bb7994659f90b2acd6799c66716c4",
+  "component_schema_count": 500,
   "content_hashes": {
-    "api_content_hash": "66b7c0647ecc5446a1ff05ad4b7986758a4ffda689cffbf02d5cf63591ac32bf",
-    "assets_content_hash": "06a8f15a426e454ce920799882b91193c02b9886c660002c4d91aa0ddcb2f01d",
-    "manifest_stable_hash": "cb0609ffc1a4ec40020b38d5ca95b115443341d47117b57e6dd5a32cd9d66e26",
-    "pages_content_hash": "3ec257e8d9be37788366e9369ede3a60a7668daa60e174809147f3f7301e3c67"
+    "api_content_hash": "c64a9c2ddaecc12993ff992742b845852e76c3a953dbcd6048884b7fda393be7",
+    "assets_content_hash": "4397e16970e2d1cd3c23ac941dc3cd522c7522a9d5d3793196005f4248ef4286",
+    "manifest_stable_hash": "86f7945b7a2c7c1e1e3ba63ecc8fc39b645e3a5d9cd0f187af10345d67107c59",
+    "pages_content_hash": "e17c75e496c34a0faecbe314cbb809ba674a9b60aaf93821ff49e56531c8c144"
   },
   "corpus_root_hint": "<DATALENS_DOCS_CORPUS_ROOT>",
-  "generated_at": "2026-07-27T10:51:38.871395Z",
-  "inventory_openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0",
+  "generated_at": "2026-08-11T10:45:59.595971Z",
+  "inventory_openapi_sha256": "b623445b2c56108517b5e73515e25a3b979b4e9d0df966c53d38e2681cf5507f",
   "inventory_operation_count": 95,
   "inventory_path_count": 95,
   "openapi_path": "raw/api/openapi.json",
-  "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0",
+  "openapi_sha256": "b623445b2c56108517b5e73515e25a3b979b4e9d0df966c53d38e2681cf5507f",
   "openapi_version": "3.1.0",
   "operation_count": 95,
   "path_count": 95,
   "required_api_header_version": "2",
-  "schema_version": "2026-06-25.openapi_lock.v1",
+  "schema_id": "openapi_lock",
   "source_path_category": "external_corpus",
   "source_url": "https://api.datalens.tech/json/"
 }

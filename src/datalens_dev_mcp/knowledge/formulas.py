@@ -96,12 +96,12 @@ class Token:
 def load_formula_registry(path: Path | None = None) -> dict[str, Any]:
     if path is not None:
         if not path.is_file():
-            return {"schema_version": "missing", "functions": []}
+            return {"schema_id": "missing", "functions": []}
         return json.loads(path.read_text(encoding="utf-8"))
     try:
         return resource_json("schemas/datalens-knowledge/formula-registry.json")
     except RuntimeResourceError:
-        return {"schema_version": "missing", "functions": []}
+        return {"schema_id": "missing", "functions": []}
 
 
 def tokenize_formula(expression: str) -> list[Token]:

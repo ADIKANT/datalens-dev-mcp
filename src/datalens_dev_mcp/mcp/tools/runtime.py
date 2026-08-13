@@ -57,14 +57,13 @@ def dl_runtime_status(project_root: str = ".", local_config_path: str = "") -> d
     credential_report = cfg.credential_report()
     api_lock = openapi_lock_summary()
     declared_resources = _resource_status()
-    api_version_status = _api_version_status(cfg)
+    required_api_version = compiled_api_version()
     request_scheduler = scheduler_status()
     diagnostics = _runtime_diagnostics(
         cfg=cfg,
         yc_binary_path=yc_binary_path,
         config_defaults=config_defaults,
         refresh_available=refresh_available,
-        api_version_status=api_version_status,
     )
     return {
         "ok": True,
@@ -79,11 +78,7 @@ def dl_runtime_status(project_root: str = ".", local_config_path: str = "") -> d
         "yc_binary_path": yc_binary_path,
         "org_id_set": bool(cfg.org_id),
         "api_base_url": cfg.base_url,
-        "api_version": cfg.api_version,
-        "selected_api_version": api_version_status["selected_api_version"],
-        "api_version_selection": api_version_status,
-        "write_compatible": api_version_status["write_compatible"],
-        "write_block_reason": api_version_status["write_block_reason"],
+        "api_version": required_api_version,
         "openapi_lock": api_lock,
         "runtime_resources": declared_resources,
         "request_scheduler": request_scheduler,
@@ -116,12 +111,8 @@ def dl_runtime_status(project_root: str = ".", local_config_path: str = "") -> d
                 "base_url": cfg.base_url,
                 "base_url_source": _first_env_source(("DATALENS_BASE_URL", "DATALENS_API_BASE_URL"), initial_env)
                 or "default",
-                "api_version": cfg.api_version,
-                "selected_api_version": api_version_status["selected_api_version"],
-                "compiled_api_version": api_version_status["compiled_api_version"],
-                "explicit_version_mismatch": api_version_status["explicit_version_mismatch"],
-                "write_compatible": api_version_status["write_compatible"],
-                "write_block_reason": api_version_status["write_block_reason"],
+                "api_version": required_api_version,
+                "api_version_source": "compiled_openapi_contract",
                 "request_timeout_sec": cfg.request_timeout_sec,
                 "request_interval_sec": cfg.request_interval_sec,
                 "max_read_concurrency": cfg.max_read_concurrency,
@@ -129,7 +120,6 @@ def dl_runtime_status(project_root: str = ".", local_config_path: str = "") -> d
                 "rate_limit_retries": cfg.rate_limit_retries,
                 "scheduler_scope": request_scheduler["scope"],
                 "openapi_lock_sha256": api_lock["openapi_sha256"],
-                "api_version_source": _env_source("DATALENS_API_VERSION", initial_env, default_label="default"),
             },
             "resources": declared_resources,
             "yc": {
@@ -181,7 +171,7 @@ def _resource_status() -> dict[str, Any]:
     current = resource_manifest()
     declared = manifest.get("resources") or []
     return {
-        "schema_version": manifest.get("schema_version"),
+        "schema_id": manifest.get("schema_id"),
         "declared_resource_count": len(declared),
         "current_resource_count": len(current),
         "manifest_matches_current": declared == current,
@@ -201,8 +191,7 @@ def dl_auth_probe(client: Any | None = None) -> dict[str, Any]:
             "refresh_on_401": effective_cfg.token_refresh_enabled,
             "token_refresh_available": _token_refresh_available(effective_cfg, active_client),
             "initial_token_bootstrapped": bool(not cfg.iam_token and effective_cfg.iam_token),
-            "selected_api_version": getattr(active_client, "_selected_api_version", "") or effective_cfg.api_version,
-            "api_version_selection_reason": getattr(active_client, "_api_version_selection_reason", ""),
+            "api_version": compiled_api_version(),
             "openapi_lock": openapi_lock_summary(),
             "credential": effective_cfg.credential_report(),
             "response_keys": sorted(response) if isinstance(response, dict) else [],
@@ -217,8 +206,7 @@ def dl_auth_probe(client: Any | None = None) -> dict[str, Any]:
             "refresh_on_401": effective_cfg.token_refresh_enabled,
             "token_refresh_available": _token_refresh_available(effective_cfg, active_client),
             "initial_token_bootstrapped": False,
-            "selected_api_version": getattr(active_client, "_selected_api_version", "") or effective_cfg.api_version,
-            "api_version_selection_reason": getattr(active_client, "_api_version_selection_reason", ""),
+            "api_version": compiled_api_version(),
             "openapi_lock": openapi_lock_summary(),
             "credential": effective_cfg.credential_report(),
             "error": {
@@ -370,7 +358,7 @@ def _validate_editor_artifacts(
         "input_bytes": total_bytes,
     }
     full_result = {
-        "schema_version": "2026-07-20.editor_runtime_contract.batch.v1",
+        "schema_id": "editor_runtime_contract.batch",
         "ok": summary["failed"] == 0,
         "summary": summary,
         "items": full_items,
@@ -387,7 +375,7 @@ def _validate_editor_artifacts(
     write_json(artifact_path, full_result)
     return {
         "ok": full_result["ok"],
-        "schema_version": full_result["schema_version"],
+        "schema_id": full_result["schema_id"],
         "mode": "artifact_paths",
         "summary": summary,
         "items": compact_items,
@@ -483,44 +471,6 @@ def _token_refresh_available(cfg: DataLensConfig, client: Any) -> bool:
     return bool(cfg.token_refresh_enabled and _yc_binary_path(cfg.yc_binary))
 
 
-def _api_version_status(cfg: DataLensConfig) -> dict[str, Any]:
-    configured = str(cfg.api_version or "auto").strip() or "auto"
-    current = compiled_api_version()
-    if configured.lower() == "auto":
-        return {
-            "configured_api_version": "auto",
-            "compiled_api_version": current,
-            "selected_api_version": current,
-            "selection_policy": "auto_pinned_to_compiled_v2_without_implicit_fallback",
-            "explicit_version_mismatch": False,
-            "write_compatible": True,
-            "write_block_reason": "",
-        }
-    normalized = configured.lower()
-    write_compatible = normalized == current.lower()
-    if write_compatible:
-        selection_policy = "explicit_compiled_version"
-        write_block_reason = ""
-    elif normalized == "1":
-        selection_policy = "explicit_v1_readonly_compatibility"
-        write_block_reason = "api_version_mismatch_for_write: explicit_v1_readonly_compatibility_only"
-    elif normalized == "latest":
-        selection_policy = "explicit_latest_readonly_only"
-        write_block_reason = "api_version_mismatch_for_write: unlocked_api_version_for_write"
-    else:
-        selection_policy = "explicit_uncompiled_readonly_only"
-        write_block_reason = "api_version_mismatch_for_write: explicit_version_differs_from_compiled_contract"
-    return {
-        "configured_api_version": configured,
-        "compiled_api_version": current,
-        "selected_api_version": configured,
-        "selection_policy": selection_policy,
-        "explicit_version_mismatch": configured != current,
-        "write_compatible": write_compatible,
-        "write_block_reason": write_block_reason,
-    }
-
-
 def _auth_mode() -> str:
     if os.getenv("DATALENS_IAM_TOKEN", "").strip():
         return "datalens_iam_token"
@@ -583,7 +533,6 @@ def _runtime_diagnostics(
     yc_binary_path: str,
     config_defaults: dict[str, Any],
     refresh_available: bool,
-    api_version_status: dict[str, Any],
 ) -> list[dict[str, str]]:
     diagnostics: list[dict[str, str]] = []
     if config_defaults.get("load_error"):
@@ -603,21 +552,6 @@ def _runtime_diagnostics(
                 "message": "At least one write, save, or publish switch is disabled for this process.",
                 "suggested_action": (
                     "Keep the switch disabled for read-only work, or set it to 1 in the canonical env file."
-                ),
-            }
-        )
-    if api_version_status.get("explicit_version_mismatch"):
-        diagnostics.append(
-            {
-                "severity": "error",
-                "category": "explicit_api_version_mismatch",
-                "message": (
-                    "The configured explicit DataLens API version differs from the version required by the compiled "
-                    "OpenAPI contract."
-                ),
-                "suggested_action": (
-                    "Set DATALENS_API_VERSION=auto or "
-                    f"DATALENS_API_VERSION={api_version_status['compiled_api_version']}, then restart the MCP server."
                 ),
             }
         )

@@ -23,7 +23,7 @@ class WizardContractFinding:
 class WizardContractResult:
     ok: bool
     findings: list[WizardContractFinding] = field(default_factory=list)
-    schema_version: str = "datalens.wizard-visual-dataset-contract.delta-v6"
+    schema_id: str = "datalens.wizard-visual-dataset-contract"
 
     def to_dict(self) -> dict[str, Any]:
         return {**asdict(self), "findings": [finding.to_dict() for finding in self.findings]}
@@ -194,7 +194,7 @@ def validate_wizard_field_binding_against_dataset_readback(
         )
     findings.extend(_flat_table_hint_findings(chart_payload, as_dict=True))
     return {
-        "schema_version": "datalens.delta_v7.wizard_field_binding_report.v1",
+        "schema_id": "datalens.wizard_field_binding_report",
         "ok": not any(item["severity"] == "error" for item in findings),
         "chart_id": str(chart_payload.get("entryId") or chart_payload.get("chartId") or chart_payload.get("id") or ""),
         "dataset_ids": [item for item in dataset_ids if item],

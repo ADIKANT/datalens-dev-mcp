@@ -294,7 +294,7 @@ class EditorBundleBatchTests(unittest.TestCase):
 
             batch = dl_generate_editor_bundle(
                 project_root=tmp,
-                authoring_profile="standard_editor_v2",
+                authoring_profile="standard_dashboard",
                 chart_specs=[
                     {
                         "widget_id": "compact_widget",
@@ -391,7 +391,7 @@ class EditorBundleBatchTests(unittest.TestCase):
 
             batch = dl_generate_editor_bundle(
                 project_root=tmp,
-                authoring_profile="standard_editor_v2",
+                authoring_profile="standard_dashboard",
                 chart_specs=[
                     {
                         "widget_id": "trend_first",
@@ -453,7 +453,7 @@ class EditorBundleBatchTests(unittest.TestCase):
 
             batch = dl_generate_editor_bundle(
                 project_root=tmp,
-                authoring_profile="standard_editor_v2",
+                authoring_profile="standard_dashboard",
                 chart_specs=[
                     {
                         "widget_id": "legend_default",
@@ -491,7 +491,7 @@ class EditorBundleBatchTests(unittest.TestCase):
             batch,
         )
 
-    def test_v2_comparison_batch_emits_one_exact_context_bundle_and_qa_id(self):
+    def test_comparison_batch_emits_one_exact_context_bundle_and_qa_id(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self._write_brief(
@@ -507,7 +507,7 @@ class EditorBundleBatchTests(unittest.TestCase):
 
             batch = dl_generate_editor_bundle(
                 project_root=tmp,
-                authoring_profile="standard_editor_v2",
+                authoring_profile="standard_dashboard",
                 chart_specs=self._comparison_specs(
                     context=self.COMPARISON_CONTEXT,
                 ),
@@ -592,7 +592,7 @@ class EditorBundleBatchTests(unittest.TestCase):
             {"delta_kpi": "comparison"},
         )
 
-    def test_v2_comparison_preflight_blocks_invalid_context_before_writes(self):
+    def test_comparison_preflight_blocks_invalid_context_before_writes(self):
         cases = [
             {
                 "name": "missing_context",
@@ -681,13 +681,13 @@ class EditorBundleBatchTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, case["error"]):
                     dl_generate_editor_bundle(
                         project_root=tmp,
-                        authoring_profile="standard_editor_v2",
+                        authoring_profile="standard_dashboard",
                         chart_specs=case["specs"],
                     )
 
                 self._assert_no_batch_generation_artifacts(root)
 
-    def test_v2_period_selector_must_be_first_even_without_comparison(self):
+    def test_period_selector_must_be_first_even_without_comparison(self):
         decisions = [
             {
                 "widget_id": "period_selector",
@@ -735,13 +735,13 @@ class EditorBundleBatchTests(unittest.TestCase):
             ):
                 dl_generate_editor_bundle(
                     project_root=tmp,
-                    authoring_profile="standard_editor_v2",
+                    authoring_profile="standard_dashboard",
                     chart_specs=specs,
                 )
 
             self._assert_no_batch_generation_artifacts(root)
 
-    def test_v2_kpi_sparklines_are_all_or_none(self):
+    def test_kpi_sparklines_are_all_or_none(self):
         decisions = [
             {
                 "widget_id": "plain_kpi",
@@ -766,7 +766,7 @@ class EditorBundleBatchTests(unittest.TestCase):
             ):
                 dl_generate_editor_bundle(
                     project_root=tmp,
-                    authoring_profile="standard_editor_v2",
+                    authoring_profile="standard_dashboard",
                     chart_specs=[
                         {"widget_id": "plain_kpi"},
                         {"widget_id": "sparkline_kpi"},

@@ -308,6 +308,6 @@
   ],
   "response_schema_hash": "bf65eb5388bb659c37608d597692d5c0b31cd88a50bce894e9ba589c4b4c8328",
   "response_schema_ref": "DatasetRead",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "supported_tool"
 }

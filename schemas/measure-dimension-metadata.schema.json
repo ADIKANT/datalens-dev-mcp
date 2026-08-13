@@ -3,9 +3,9 @@
   "$id": "https://example.com/datalens-dev-mcp/schemas/measure-dimension-metadata.schema.json",
   "title": "Measure and dimension metadata",
   "type": "object",
-  "required": ["schema_version", "fields"],
+  "required": ["schema_id", "fields"],
   "properties": {
-    "schema_version": {"type": "string"},
+    "schema_id": {"type": "string"},
     "fields": {
       "type": "array",
       "items": {

@@ -18,6 +18,6 @@
   ],
   "response_schema_hash": "c7f2d834593b40e932163c2a495910465f29b30fec1e98c10b328c4310f31e77",
   "response_schema_ref": "GetLicensesResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "supported_tool"
 }

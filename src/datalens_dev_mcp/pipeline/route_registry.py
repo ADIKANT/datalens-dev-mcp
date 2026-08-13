@@ -7,8 +7,8 @@ from typing import Any
 from datalens_dev_mcp.runtime_resources import RuntimeResourceError, resource_json
 
 
-POLICY_RESOURCE = "config/route_selection_policy_v5.json"
-POLICY_VERSION = "2026-07-13.route_selection_policy_v5"
+POLICY_RESOURCE = "config/route_selection_policy.json"
+POLICY_ID = "route_selection_policy"
 WIZARD_NATIVE_ROUTE = "wizard_native"
 WIZARD_MAP_ALIAS = "wizard_map_native"
 QL_EXPLICIT_ROUTE = "ql_explicit"
@@ -29,6 +29,7 @@ SUPPORTED_WIZARD_VISUALIZATION_IDS = (
     "donut",
     "scatter",
     "treemap",
+    "funnel",
     "geolayer",
 )
 
@@ -54,6 +55,7 @@ _FALLBACK_FAMILY_TO_VISUALIZATION = {
     "scatter": "scatter",
     "bubble": "scatter",
     "treemap": "treemap",
+    "funnel_snapshot": "funnel",
     "native_map_geo_widget": "geolayer",
     "wizard_map_native": "geolayer",
 }
@@ -61,7 +63,6 @@ _FALLBACK_FAMILY_TO_VISUALIZATION = {
 _FALLBACK_JS_GAPS = {
     "box_plot": "wizard_has_no_box_plot_semantics",
     "bullet_assignees": "wizard_has_no_bullet_chart_semantics",
-    "funnel_snapshot": "wizard_has_no_funnel_semantics",
     "heatmap": "wizard_has_no_heatmap_matrix_semantics",
     "histogram": "wizard_has_no_histogram_semantics",
     "kpi_value_delta_sparkline": "composite_kpi_with_sparkline",
@@ -97,7 +98,7 @@ def load_route_policy_registry() -> dict[str, Any]:
         return resource_json(POLICY_RESOURCE)
     except RuntimeResourceError:
         return {
-            "schema_version": POLICY_VERSION,
+            "schema": POLICY_ID,
             "wizard_visualizations": {},
             "js_capability_gaps": dict(_FALLBACK_JS_GAPS),
         }

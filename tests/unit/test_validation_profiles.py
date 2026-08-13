@@ -29,6 +29,8 @@ class ValidationProfileTests(unittest.TestCase):
         self.assertIn("lint_local", names)
         self.assertIn("schema_validation", names)
         self.assertIn("runtime_resource_manifest", names)
+        self.assertIn("javascript_cookbook", names)
+        self.assertIn("javascript_cookbook_runtime", names)
         self.assertIn("stdio_smoke", names)
         self.assertIn("api_contract_policy", names)
         self.assertIn("public_release_surface", names)

@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-07-13.wizard_canonical_templates.v1",
+  "schema_id": "wizard_canonical_templates",
   "deployment_ids_included": false,
   "templates": {
     "metric": {"template": "datalens", "data": {"visualization": {"id": "metric", "placeholders": [{"id": "measures", "required": true, "capacity": 1, "items": []}, {"id": "colors", "required": false, "items": []}]}, "datasetsIds": [], "datasetsPartialFields": [], "filters": [], "sort": [], "version": "2"}},
@@ -17,6 +17,7 @@
     "donut": {"template": "datalens", "data": {"visualization": {"id": "donut", "placeholders": [{"id": "dimensions", "required": true, "capacity": 1, "items": []}, {"id": "measures", "required": true, "capacity": 1, "items": []}, {"id": "colors", "required": false, "capacity": 1, "items": []}]}, "datasetsIds": [], "datasetsPartialFields": [], "filters": [], "sort": [], "version": "2"}},
     "scatter": {"template": "datalens", "data": {"visualization": {"id": "scatter", "placeholders": [{"id": "x", "required": true, "capacity": 1, "items": []}, {"id": "y", "required": true, "capacity": 1, "items": []}, {"id": "points", "required": false, "capacity": 1, "items": []}, {"id": "size", "required": false, "capacity": 1, "items": []}]}, "datasetsIds": [], "datasetsPartialFields": [], "filters": [], "sort": [], "version": "2"}},
     "treemap": {"template": "datalens", "data": {"visualization": {"id": "treemap", "placeholders": [{"id": "dimensions", "required": true, "items": []}, {"id": "measures", "required": true, "capacity": 1, "items": []}]}, "datasetsIds": [], "datasetsPartialFields": [], "filters": [], "sort": [], "version": "2"}},
+    "funnel": {"template": "datalens", "data": {"visualization": {"id": "funnel", "type": "funnel", "allowColors": true, "allowLabels": true, "allowFilters": true, "placeholders": [{"id": "measures", "type": "measures", "required": true, "items": []}]}, "datasetsIds": [], "datasetsPartialFields": [], "filters": [], "sort": [], "version": "2"}},
     "geolayer": {"template": "datalens", "data": {"visualization": {"id": "geolayer", "type": "geo", "layers": [{"id": "layer-0", "placeholders": [{"id": "geo", "required": true, "capacity": 1, "items": []}, {"id": "measures", "required": false, "items": []}, {"id": "colors", "required": false, "items": []}, {"id": "labels", "required": false, "items": []}]}]}, "datasetsIds": [], "datasetsPartialFields": [], "filters": [], "sort": [], "version": "2"}}
   }
 }

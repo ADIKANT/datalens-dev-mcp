@@ -23,6 +23,6 @@
   ],
   "response_schema_hash": "2d98809a4cf9d4fc01cb57a5b2d024ca005326f236d0db1cd5347aa391becd7d",
   "response_schema_ref": "GetEditorChartResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "supported_tool"
 }

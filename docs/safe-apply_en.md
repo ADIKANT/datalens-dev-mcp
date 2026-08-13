@@ -57,18 +57,18 @@ Lists merge only through an explicit `overlay_merge_contract`: `replace`,
 changes replace declared layout lists by default, so stale widgets cannot be
 appended to the reviewed layout.
 
-When `requirements/user_decisions.v2.json` exists, the plan is bound to its
+When `requirements/user_decisions.json` exists, the plan is bound to its
 `decision_ledger_sha256`. A later user correction makes the old plan stale and
 requires regeneration.
 
 ## Final payload and QA attestation
 
-For `standard_dashboard_v1`, `dl_validate_project` rebuilds the actual
+For `standard_dashboard`, `dl_validate_project` rebuilds the actual
 Editor/Wizard payloads and dashboard composition. Its
 `final_payload_attestation` binds routes, runtime, `title_mode`, selectors,
 layout, tabs, and the complete dashboard payload. Safe Apply rejects a missing
 or stale attestation, rewritten protected runtime, Wizard-to-Editor drift, a new
-v1 dashboard, and any payload change after validation.
+noncanonical dashboard, and any payload change after validation.
 
 Dashboard publishing additionally requires a successful `qa_attestation`
 bound to the same dashboard ID, the exact saved revision selected for publish,
@@ -143,6 +143,7 @@ is completed.
 - A received HTTP 4xx with an API code is `remote_rejected_no_write` and does
   not trigger reconciliation because the server confirmed rejection.
 - An error after sending a write without a confirmed result returns `write_outcome_unknown`; current state is read before continuing.
+- TLS handshake timeout and unexpected EOF before an API response have explicit transport categories. Reads use bounded retries; a write after dispatch is never retried automatically.
 - A retry after an interrupted create begins with `dl_reconcile_partial_creates` to avoid duplicates.
 
 Every action reports `execution_stage`, `write_outcome`, and

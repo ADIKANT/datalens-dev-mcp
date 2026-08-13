@@ -18,6 +18,6 @@
   ],
   "response_schema_hash": "46185bdb0e22b11fb9000dc4524881901889fa16f1c8e1feb47331f968abef2d",
   "response_schema_ref": "AssignLicensesResponse",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "unsupported_explicit"
 }

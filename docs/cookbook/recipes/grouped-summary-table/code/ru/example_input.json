@@ -1,0 +1,32 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "page_size": [
+      "50"
+    ],
+    "table_variant": [
+      "grouped_summary"
+    ]
+  },
+  "rows": [
+    {
+      "category": "Группа A",
+      "completed": 72,
+      "total": 100
+    },
+    {
+      "category": "Группа B",
+      "completed": 43,
+      "total": 60
+    },
+    {
+      "category": "Группа C",
+      "completed": 28,
+      "total": 55
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "additionalProperties": true,
+      "description": "Ссылки DataLens Editor; меняйте placeholders.",
+      "type": "object"
+    },
+    "params": {
+      "additionalProperties": {
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "rows": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "details_url": {
+            "description": "Безопасная ссылка на подробности",
+            "examples": [
+              "https://example.invalid/item/1042"
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "entity_id": {
+            "description": "Стабильный идентификатор строки",
+            "examples": [
+              "OBJ-1042"
+            ],
+            "type": "string"
+          },
+          "item": {
+            "description": "Основная подпись строки",
+            "examples": [
+              "Пример строки"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "description": "Технический ключ состояния",
+            "examples": [
+              "ready"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "Время последнего изменения",
+            "examples": [
+              "2026-01-05T12:30:00Z"
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "entity_id",
+          "item",
+          "status"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "rows",
+    "meta",
+    "params"
+  ],
+  "title": "Таблица состояний",
+  "type": "object"
+}

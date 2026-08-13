@@ -73,7 +73,6 @@ class DataLensConfig:
     iam_token: str = ""
     org_id: str = ""
     base_url: str = DEFAULT_BASE_URL
-    api_version: str = "auto"
     write_enabled: bool = True
     save_enabled: bool = True
     publish_enabled: bool = True
@@ -152,14 +151,6 @@ class DataLensConfig:
             iam_token=iam_token,
             org_id=org_id,
             base_url=base_url.rstrip("/"),
-            api_version=_config_value(
-                "DATALENS_API_VERSION",
-                file_values=file_values,
-                process_values=process_values,
-                prefer_file=bool(env_file_path),
-                default="auto",
-            )
-            or "auto",
             write_enabled=_execution_flag(
                 "DATALENS_MCP_ENABLE_WRITES",
                 file_values=file_values,

@@ -49,7 +49,7 @@ def _heartbeat(
         _atomic_json(
             status_path,
             {
-                "schema_version": "2026-07-23.project_live_worker_status.v1",
+                "schema_id": "project_live_worker_status",
                 "execution_id": execution_id,
                 "status": "running",
                 "target_pid": target_pid,
@@ -93,7 +93,7 @@ def run_worker(spec_path: Path) -> int:
         _atomic_json(
             status_path,
             {
-                "schema_version": "2026-07-23.project_live_worker_status.v1",
+                "schema_id": "project_live_worker_status",
                 "execution_id": execution_id,
                 "status": "running",
                 "target_pid": target.pid,
@@ -132,7 +132,7 @@ def run_worker(spec_path: Path) -> int:
         _atomic_text(stdout_path, safe_stdout[:32_000])
         _atomic_text(stderr_path, safe_stderr[:32_000])
         result = {
-            "schema_version": "2026-07-23.project_live_worker_result.v1",
+            "schema_id": "project_live_worker_result",
             "execution_id": execution_id,
             "status": "timeout" if timed_out else "completed",
             "returncode": None if timed_out else target.returncode,
@@ -160,7 +160,7 @@ def run_worker(spec_path: Path) -> int:
         _atomic_json(
             result_path,
             {
-                "schema_version": "2026-07-23.project_live_worker_result.v1",
+                "schema_id": "project_live_worker_result",
                 "execution_id": execution_id,
                 "status": "worker_failed",
                 "returncode": None,

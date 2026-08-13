@@ -1,0 +1,32 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "group": "Все",
+      "label": "Объект A",
+      "target": 80,
+      "value": 72
+    },
+    {
+      "group": "Все",
+      "label": "Объект B",
+      "target": 55,
+      "value": 58
+    },
+    {
+      "group": "Все",
+      "label": "Объект C",
+      "target": 50,
+      "value": 41
+    }
+  ]
+}

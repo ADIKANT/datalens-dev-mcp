@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "group": "Утро",
+      "label": "Пн",
+      "target": 0,
+      "value": 18
+    },
+    {
+      "group": "Утро",
+      "label": "Вт",
+      "target": 0,
+      "value": 42
+    },
+    {
+      "group": "Утро",
+      "label": "Ср",
+      "target": 0,
+      "value": 31
+    },
+    {
+      "group": "Вечер",
+      "label": "Пн",
+      "target": 0,
+      "value": 52
+    },
+    {
+      "group": "Вечер",
+      "label": "Вт",
+      "target": 0,
+      "value": 67
+    },
+    {
+      "group": "Вечер",
+      "label": "Ср",
+      "target": 0,
+      "value": 45
+    }
+  ]
+}

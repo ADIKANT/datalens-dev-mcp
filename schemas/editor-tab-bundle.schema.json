@@ -3,9 +3,9 @@
   "$id": "https://example.com/datalens-dev-mcp/schemas/editor-tab-bundle.schema.json",
   "title": "Editor tab bundle",
   "type": "object",
-  "required": ["schema_version", "widget_id", "route", "entry_type", "tabs"],
+  "required": ["schema_id", "widget_id", "route", "entry_type", "tabs"],
   "properties": {
-    "schema_version": {"type": "string"},
+    "schema_id": {"type": "string"},
     "widget_id": {"type": "string"},
     "route": {
       "type": "string",
@@ -15,7 +15,7 @@
     "tabs": {"type": "object", "additionalProperties": {"type": "string"}},
     "authoring_profile": {"type": "object"},
     "editor_render_profile": {"type": "string"},
-    "render_contract_version": {"type": "string"},
+    "render_contract_id": {"type": "string"},
     "title_mode": {"enum": ["embedded_title", "content_label", "tab_only", "native_title", "tab_strip"]},
     "render_contract": {"type": "object"},
     "title_contract": {"$ref": "dashboard-title-contract.schema.json"},

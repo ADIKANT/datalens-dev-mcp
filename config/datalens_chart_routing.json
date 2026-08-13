@@ -24,11 +24,11 @@
     "deleteQLChart"
   ],
   "ql_policy": "explicit_user_request_only; never automatic or fallback",
-  "schema_version": "2026-07-13.chart_routing.v3",
+  "schema_id": "chart_routing",
   "source_trace": [
     "AGENTS.md",
     "docs/route-policy.md",
-    "config/route_selection_policy_v5.json",
+    "config/route_selection_policy.json",
     "config/datalens_chart_param_matrix.json",
     "OpenAPI create/update methods"
   ]

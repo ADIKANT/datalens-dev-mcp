@@ -1,0 +1,8 @@
+{
+  "dashboard_id": "synthetic_internal",
+  "dashboard_title": "Synthetic Internal Overview",
+  "tabs": [
+    {"id": "summary", "title": "Summary", "rows": [{"id": "summary_kpi", "role": "kpi", "items": ["kpi_a", "kpi_b", "kpi_c"]}, {"id": "summary_trend", "role": "chart", "items": ["trend_a", "trend_b"]}]},
+    {"id": "detail", "title": "Detail", "rows": [{"id": "detail_table_row", "role": "table", "items": ["detail_table"]}]}
+  ]
+}

@@ -8,13 +8,13 @@ from datalens_dev_mcp.editor.render_contract import (
     canonical_sha256,
     load_dashboard_render_profiles,
     resolve_dashboard_render_contract,
-    upgrade_renderer_visual_spec_v5,
-    validate_renderer_visual_spec_v5,
+    build_renderer_visual_spec,
+    validate_renderer_visual_spec,
 )
 from datalens_dev_mcp.editor.title_contract import normalize_title_contract
 
 
-PROFILE_ID = "standard_dashboard_v1"
+PROFILE_ID = "standard_dashboard"
 
 
 def _plain(value):
@@ -168,7 +168,7 @@ class DashboardRenderContractTests(unittest.TestCase):
                 "tooltip_owner": "native",
             },
         )
-        self.assertEqual(accepted["adapter_ids"], ("horizontal_rank_scroll_v1",))
+        self.assertEqual(accepted["adapter_ids"], ("horizontal_rank_scroll",))
         self.assertEqual(accepted["effective_tokens"]["density"]["mode"], "compact")
         self.assertEqual(
             accepted["effective_tokens"]["typography"]["legend"]["active"],
@@ -183,14 +183,14 @@ class DashboardRenderContractTests(unittest.TestCase):
             with self.subTest(adapter_id=adapter_id):
                 self.assertEqual(adapter["allowed_tooltip_owners"], ("native",))
 
-    def test_v5_upgrade_enforces_kpi_legend_tooltip_selector_and_comparison_invariants(self):
+    def test_upgrade_enforces_kpi_legend_tooltip_selector_and_comparison_invariants(self):
         contract = resolve_dashboard_render_contract(
             profile_id=PROFILE_ID,
             family="horizontal_bar",
             overrides={"tooltip_owner": "native"},
         )
         title_contract = _title_contract(family="horizontal_bar")
-        upgraded = upgrade_renderer_visual_spec_v5(
+        upgraded = build_renderer_visual_spec(
             {
                 "chart_purpose": "Rank categories",
                 "legend": {
@@ -214,7 +214,7 @@ class DashboardRenderContractTests(unittest.TestCase):
         )
 
         self.assertEqual(
-            validate_renderer_visual_spec_v5(
+            validate_renderer_visual_spec(
                 upgraded,
                 render_contract=contract,
                 title_contract=title_contract,
@@ -332,7 +332,7 @@ class DashboardRenderContractTests(unittest.TestCase):
         broken["selector_contract"]["control_max_width_percent"] = 95
         broken["selector_contract"]["period_first_if_present"] = False
         broken["comparison_context"]["block_count"] = 2
-        issues = validate_renderer_visual_spec_v5(
+        issues = validate_renderer_visual_spec(
             broken,
             render_contract=contract,
             title_contract=title_contract,
@@ -390,7 +390,7 @@ class DashboardRenderContractTests(unittest.TestCase):
             family="line_chart",
         )
         title_contract = _title_contract(family="line_chart")
-        upgraded = upgrade_renderer_visual_spec_v5(
+        upgraded = build_renderer_visual_spec(
             {
                 "tooltip": {
                     "comparison_mode": "comparison",
@@ -411,7 +411,7 @@ class DashboardRenderContractTests(unittest.TestCase):
         self.assertFalse(upgraded["tooltip"]["show_comparison_period"])
         self.assertFalse(upgraded["tooltip"]["allow_empty_comparison_period"])
         self.assertEqual(
-            validate_renderer_visual_spec_v5(
+            validate_renderer_visual_spec(
                 upgraded,
                 render_contract=contract,
                 title_contract=title_contract,

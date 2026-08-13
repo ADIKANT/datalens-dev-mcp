@@ -1,0 +1,34 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "group": "Текущий",
+      "label": "Категория A",
+      "value": 72
+    },
+    {
+      "group": "Сравнение",
+      "label": "Категория A",
+      "value": 64
+    },
+    {
+      "group": "Текущий",
+      "label": "Категория B",
+      "value": 58
+    },
+    {
+      "group": "Сравнение",
+      "label": "Категория B",
+      "value": 52
+    }
+  ]
+}

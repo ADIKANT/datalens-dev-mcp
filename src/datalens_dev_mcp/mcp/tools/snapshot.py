@@ -56,7 +56,7 @@ ENTRY_CANONICAL_REVISION_KEYS = ("revId", "rev_id")
 WORKBOOK_INVENTORY_PAGE_SIZE = 200
 WORKBOOK_INVENTORY_MAX_PAGES = 25
 WORKBOOK_INVENTORY_MAX_ENTRIES = 10_000
-SOURCE_FINGERPRINT_SCOPE = "2026-07-28.dashboard_dependency_graph.v2"
+SOURCE_FINGERPRINT_SCOPE = "dashboard_dependency_graph"
 
 
 def dl_snapshot_dashboard(
@@ -441,7 +441,7 @@ def dl_snapshot_dashboard(
         captured_pairs=captured_object_branch_pairs,
     )
     coverage = {
-        "schema_version": "2026-07-19.dashboard_snapshot_coverage.v1",
+        "schema_id": "dashboard_snapshot_coverage",
         "scope": "dashboard_dependency_graph",
         "org_wide": False,
         "requested_branches": branches,
@@ -462,7 +462,7 @@ def dl_snapshot_dashboard(
     }
 
     compact_graph = {
-        "schema_version": "2026-06-25.dashboard_object_graph.v1",
+        "schema_id": "dashboard_object_graph",
         "dashboard_id": dashboard_id,
         "workbook_id": resolved_workbook_id,
         "snapshot_branch": branch_mode,
@@ -501,7 +501,7 @@ def dl_snapshot_dashboard(
     graph_metadata = _file_metadata(graph_path)
 
     manifest = {
-        "schema_version": "2026-06-25.dashboard_snapshot.v1",
+        "schema_id": "dashboard_snapshot",
         "target": {
             "dashboard_id": dashboard_id,
             "workbook_id": resolved_workbook_id,
@@ -965,7 +965,7 @@ def _snapshot_completion(
     else:
         status = "complete"
     return {
-        "schema_version": "2026-07-19.dashboard_snapshot_completion.v1",
+        "schema_id": "dashboard_snapshot_completion",
         "status": status,
         "complete": status == "complete",
         "authoritative_backup_complete": status == "complete",

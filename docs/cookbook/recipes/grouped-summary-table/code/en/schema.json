@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "additionalProperties": true,
+      "description": "DataLens Editor links; replace placeholders.",
+      "type": "object"
+    },
+    "params": {
+      "additionalProperties": {
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "rows": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "description": "Top-level category",
+            "examples": [
+              "Group A"
+            ],
+            "type": "string"
+          },
+          "completed": {
+            "description": "Completed portion",
+            "examples": [
+              72
+            ],
+            "type": "number"
+          },
+          "total": {
+            "description": "Total used by progress",
+            "examples": [
+              100
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "category",
+          "completed",
+          "total"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "rows",
+    "meta",
+    "params"
+  ],
+  "title": "Grouped summary table",
+  "type": "object"
+}

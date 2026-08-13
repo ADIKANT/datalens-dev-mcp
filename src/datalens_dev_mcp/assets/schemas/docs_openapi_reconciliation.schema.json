@@ -3,14 +3,14 @@
   "title": "DataLens docs/OpenAPI reconciliation",
   "type": "object",
   "required": [
-    "schema_version",
+    "schema_id",
     "status",
     "api_sha256",
     "operation_count"
   ],
   "properties": {
-    "schema_version": {
-      "const": "datalens.docs-openapi-reconciliation.v1"
+    "schema_id": {
+      "const": "datalens.docs-openapi-reconciliation"
     },
     "status": {
       "enum": [

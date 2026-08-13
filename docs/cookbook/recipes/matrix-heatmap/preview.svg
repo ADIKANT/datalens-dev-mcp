@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="480" viewBox="0 0 960 480">
+<rect width="960" height="480" fill="#F4F6F9"/><rect x="28" y="28" width="904" height="424" rx="18" fill="#FFF" stroke="#E4E7EC"/>
+<text x="56" y="72" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#667085">Синтетический статический preview · Матричная тепловая карта</text>
+<rect data-role="heatmap-cell" data-x="Пн" data-y="Утро" x="270" y="120" width="156" height="78" fill="#2B75E2" opacity="0.25"/><rect data-role="heatmap-cell" data-x="Вт" data-y="Утро" x="440" y="120" width="156" height="78" fill="#2B75E2" opacity="0.35"/><rect data-role="heatmap-cell" data-x="Ср" data-y="Утро" x="610" y="120" width="156" height="78" fill="#2B75E2" opacity="0.45"/><rect data-role="heatmap-cell" data-x="Пн" data-y="Вечер" x="270" y="215" width="156" height="78" fill="#2B75E2" opacity="0.55"/><rect data-role="heatmap-cell" data-x="Вт" data-y="Вечер" x="440" y="215" width="156" height="78" fill="#2B75E2" opacity="0.65"/><rect data-role="heatmap-cell" data-x="Ср" data-y="Вечер" x="610" y="215" width="156" height="78" fill="#2B75E2" opacity="0.75"/>
+</svg>

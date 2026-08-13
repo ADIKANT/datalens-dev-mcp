@@ -82,7 +82,7 @@
     "updateWorkbookAccessBindings": "guarded_write",
     "validateDataset": "dataset_operation"
   },
-  "schema_version": "2026-06-25.datalens_api_support_policy.v1",
+  "schema_id": "datalens_api_support_policy",
   "source_inventory_policy": "OpenAPI inventory is source evidence; support policy is MCP-local overlay.",
   "unsupported_methods": [
     "assignLicenses",

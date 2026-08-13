@@ -1,17 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "title": "Delta v7 Runtime Gate Evidence",
+  "title": "Runtime Gate Evidence",
   "type": "object",
   "required": [
-    "schema_version",
+    "schema_id",
     "status",
     "target_url",
     "marker_counts"
   ],
   "properties": {
-    "schema_version": {
-      "const": "datalens.delta_v7.runtime_gate_evidence.v1"
+    "schema_id": {
+      "const": "datalens.runtime_gate_evidence"
     },
     "status": {
       "enum": [

@@ -3,24 +3,24 @@
     {
       "classification": "supported",
       "id": "api_versioning",
-      "mcp_surface": "DataLens API client version policy",
-      "runtime_contract": "Guarded writes reject explicit latest before HTTP because future schemas are not compiled or reviewed.",
-      "server_decision": "Keep auto pinned to the compiled OpenAPI version; permit explicit latest only for curated read-only calls.",
+      "mcp_surface": "DataLens API client OpenAPI contract",
+      "runtime_contract": "The header value has no environment override and requests are never retried under another API contract.",
+      "server_decision": "Use the required x-dl-api-version value from the compiled OpenAPI contract for every call.",
       "source_urls": [
         "https://docs.yandex.cloud/ru/ru/datalens/operations/api-versioning.md"
       ],
-      "title": "DataLens API version selection"
+      "title": "DataLens API required header"
     },
     {
       "classification": "supported",
-      "id": "api_changelog_v2",
+      "id": "api_changelog",
       "mcp_surface": "request compiler and read-only RPC validation",
-      "runtime_contract": "Legacy string ids/createdBy and removed page are rejected locally; getEntries never auto-falls back to v1.",
-      "server_decision": "Validate getEntries with v2 arrays, pageToken, and ignoreSharedEntries semantics.",
+      "runtime_contract": "Removed string ids/createdBy and page shapes are rejected locally; getEntries uses one current contract.",
+      "server_decision": "Validate getEntries with arrays, pageToken, and ignoreSharedEntries semantics from the current contract.",
       "source_urls": [
         "https://docs.yandex.cloud/ru/ru/datalens/release-notes/api-changelog.md"
       ],
-      "title": "DataLens API v2 changelog"
+      "title": "DataLens API changelog"
     },
     {
       "classification": "read_only",
@@ -32,6 +32,17 @@
         "https://docs.yandex.cloud/ru/ru/datalens/release-notes/2605.md"
       ],
       "title": "May 2026 DataLens release notes"
+    },
+    {
+      "classification": "read_only",
+      "id": "release_notes_2606",
+      "mcp_surface": "dl_reference and feature policy",
+      "runtime_contract": "New UI capabilities remain read-only context until an OpenAPI method and guarded lifecycle are verified.",
+      "server_decision": "Index the release note as current capability context without inferring undocumented API writes.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/release-notes/2606.md"
+      ],
+      "title": "June 2026 DataLens release notes"
     },
     {
       "classification": "supported",
@@ -428,6 +439,17 @@
       "title": "Choropleth map visualization"
     },
     {
+      "classification": "supported",
+      "id": "visual_funnel",
+      "mcp_surface": "VisualDecisionEngine and wizard_native funnel route",
+      "runtime_contract": "The native contract accepts a category dimension plus one or more measures in the required measures placeholder and supports color, sort, labels, and filters. Fresh saved seeds remain preferred for live writes.",
+      "server_decision": "New funnel_snapshot charts default to Wizard visualization id funnel; existing charts keep their saved technology.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/funnel.md"
+      ],
+      "title": "Funnel visualization"
+    },
+    {
       "classification": "read_only",
       "id": "dataset_cache_invalidation",
       "mcp_surface": "dl_reference and dataset diagnostics",
@@ -518,35 +540,45 @@
     }
   ],
   "covered_new_page_urls": [
-    "https://docs.yandex.cloud/ru/ru/datalens/html-pages/index.md",
-    "https://docs.yandex.cloud/ru/ru/datalens/html-pages/versioning.md"
+    "https://docs.yandex.cloud/ru/ru/datalens/release-notes/2606.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/funnel.md"
   ],
   "expected_counts": {
-    "assets_current_records": 890,
-    "assets_new_references": 5,
-    "assets_removed_references": 0,
-    "docs_changed_pages": 9,
-    "docs_checked_pages": 653,
-    "docs_current_chunks": 5019,
-    "docs_current_pages": 653,
+    "assets_current_records": 910,
+    "assets_new_references": 26,
+    "assets_removed_references": 6,
+    "docs_changed_pages": 105,
+    "docs_checked_pages": 655,
+    "docs_current_chunks": 5033,
+    "docs_current_pages": 655,
     "docs_failed_pages": 0,
     "docs_new_pages": 2,
     "docs_removed_candidates": 0,
-    "manifest_current_records": 1551,
+    "manifest_current_records": 1573,
     "openapi_operations": 95,
     "openapi_paths": 95,
     "validation_failure_count": 0,
     "validation_required_checks_ok": true
   },
-  "schema_version": "2026-07-29.current_docs_feature_policy.v2",
+  "schema_id": "current_docs_feature_policy",
   "source": {
-    "applied_delta_generated_at": "2026-07-29T17:38:13.358317Z",
-    "applied_delta_report": "reports/update_report_2026-07-29.md",
+    "applied_delta_generated_at": "2026-08-11T10:27:37.720053Z",
+    "applied_delta_report": "reports/update_check_delta_2026-08-11.md",
+    "applied_delta_reports": [
+      {
+        "generated_at": "2026-08-03T04:22:02.049761Z",
+        "path": "reports/update_check_delta_2026-08-03.md"
+      },
+      {
+        "generated_at": "2026-08-11T10:27:37.720053Z",
+        "path": "reports/update_check_delta_2026-08-11.md"
+      }
+    ],
     "corpus_root_hint": "<DATALENS_DOCS_CORPUS_ROOT>",
     "mode": "apply-updates",
-    "openapi_sha256": "5d67eeeb68094793630a72da9fc7a13e560a5927c06fe35720b2797676a33db0",
+    "openapi_sha256": "b623445b2c56108517b5e73515e25a3b979b4e9d0df966c53d38e2681cf5507f",
     "update_report": "reports/update_report.md",
-    "update_report_generated_at": "2026-07-29T17:38:13.358317Z"
+    "update_report_generated_at": "2026-08-11T11:02:01.906247Z"
   },
   "status_enum": [
     "guarded_plan_only",

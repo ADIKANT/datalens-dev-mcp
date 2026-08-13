@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "bucket": "Received",
+      "value": 120
+    },
+    {
+      "bucket": "Reviewed",
+      "value": 91
+    },
+    {
+      "bucket": "Accepted",
+      "value": 64
+    },
+    {
+      "bucket": "Completed",
+      "value": 43
+    }
+  ]
+}

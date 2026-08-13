@@ -23,7 +23,7 @@ class ProjectLiveApplyAutoPublishFromSavedReadbackTests(unittest.TestCase):
             root = Path(tmp)
             (root / "scripts").mkdir()
             manifest = {
-                "schema_version": "2026-07-02.project_live_workflow_manifest.v4",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "auto_publish",
                 "workbook_id": "workbook_live",
                 "dashboard_ids": ["dashboard_live"],

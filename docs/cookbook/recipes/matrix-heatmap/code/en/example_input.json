@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "group": "Morning",
+      "label": "Mon",
+      "target": 0,
+      "value": 18
+    },
+    {
+      "group": "Morning",
+      "label": "Tue",
+      "target": 0,
+      "value": 42
+    },
+    {
+      "group": "Morning",
+      "label": "Wed",
+      "target": 0,
+      "value": 31
+    },
+    {
+      "group": "Evening",
+      "label": "Mon",
+      "target": 0,
+      "value": 52
+    },
+    {
+      "group": "Evening",
+      "label": "Tue",
+      "target": 0,
+      "value": 67
+    },
+    {
+      "group": "Evening",
+      "label": "Wed",
+      "target": 0,
+      "value": 45
+    }
+  ]
+}

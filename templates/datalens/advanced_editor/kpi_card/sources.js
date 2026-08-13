@@ -1,4 +1,7 @@
-// Data binding: replace the query and connection alias, keep output names stable.
+// @cookbook-locale ru В production подключите dataset и сохраните выходные aliases.
+// @cookbook-locale en In production bind the dataset and preserve output aliases.
+// Fixture only: production generation replaces this SQL with a caller-owned dataset binding.
+// Keep current_value/comparator_value/sparkline aliases stable in the production Sources tab.
 module.exports = {
   rows: {
     qlConnectionId: Editor.getId('defaultConnection'),

@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "bucket": "2026-01",
+      "metric": "Объём",
+      "series_type": "bar",
+      "value": 42
+    },
+    {
+      "bucket": "2026-01",
+      "metric": "Темп",
+      "series_type": "line",
+      "value": 36
+    },
+    {
+      "bucket": "2026-02",
+      "metric": "Объём",
+      "series_type": "bar",
+      "value": 52
+    },
+    {
+      "bucket": "2026-02",
+      "metric": "Темп",
+      "series_type": "line",
+      "value": 41
+    },
+    {
+      "bucket": "2026-03",
+      "metric": "Объём",
+      "series_type": "bar",
+      "value": 61
+    },
+    {
+      "bucket": "2026-03",
+      "metric": "Темп",
+      "series_type": "line",
+      "value": 48
+    }
+  ]
+}

@@ -10,7 +10,7 @@ DataLens visualization reference.
 2. State business action and question.
 3. Validate metric definition, grain, explicit comparator or target when needed, source freshness, required fields, and data quality risks.
 4. Classify data shape: KPI/status, time, category/ranking, part-to-whole, distribution, relationship, geography, exact values, alerting, or experiment result.
-5. Choose route from `config/route_selection_policy_v5.json`: standard charts
+5. Choose route from `config/route_selection_policy.json`: standard charts
    use `wizard_native`; registered gaps use Editor; direct QL requests use
    `ql_explicit`.
 6. Choose a supported chart family and registered template.

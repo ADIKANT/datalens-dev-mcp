@@ -10,9 +10,9 @@ from typing import Any
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 
 
-DECISION_LEDGER_PATH = Path("requirements/user_decisions.v2.json")
-DECISION_LEDGER_SCHEMA_VERSION = "2026-07-23.user_decision_ledger.v2"
-DECISION_PATCH_SCHEMA_VERSION = "2026-07-23.user_decision_patch.v1"
+DECISION_LEDGER_PATH = Path("requirements/user_decisions.json")
+DECISION_LEDGER_SCHEMA_ID = "user_decision_ledger"
+DECISION_PATCH_SCHEMA_ID = "user_decision_patch"
 DECISION_SCOPE_KINDS = {"project", "family", "object"}
 SEMANTIC_ROLES = {
     "success",
@@ -33,7 +33,7 @@ VISUAL_SPEC_OVERLAY_SECTIONS = {
     "layout_contract",
 }
 _PATCH_FIELDS = {
-    "schema_version",
+    "schema_id",
     "scope",
     "metric_semantics",
     "visual_spec_overlay",
@@ -49,13 +49,13 @@ def load_user_decision_ledger(project_root: str | Path) -> dict[str, Any]:
     payload = read_json(path, default=None)
     if payload is None:
         return {
-            "schema_version": DECISION_LEDGER_SCHEMA_VERSION,
+            "schema_id": DECISION_LEDGER_SCHEMA_ID,
             "revisions": [],
         }
     if not isinstance(payload, dict):
         raise ValueError("user decision ledger must be an object")
-    if payload.get("schema_version") != DECISION_LEDGER_SCHEMA_VERSION:
-        raise ValueError("user decision ledger schema_version is unsupported")
+    if payload.get("schema_id") != DECISION_LEDGER_SCHEMA_ID:
+        raise ValueError("user decision ledger schema_id is unsupported")
     revisions = payload.get("revisions")
     if not isinstance(revisions, list) or not all(isinstance(item, dict) for item in revisions):
         raise ValueError("user decision ledger revisions must be an array of objects")
@@ -125,9 +125,9 @@ def normalize_decision_patch(
     unknown = sorted(set(value) - _PATCH_FIELDS)
     if unknown:
         issues.append(f"decision_patch has unsupported fields: {', '.join(unknown)}")
-    schema_version = str(value.get("schema_version") or DECISION_PATCH_SCHEMA_VERSION)
-    if schema_version != DECISION_PATCH_SCHEMA_VERSION:
-        issues.append("decision_patch.schema_version is unsupported")
+    schema_id = str(value.get("schema_id") or DECISION_PATCH_SCHEMA_ID)
+    if schema_id != DECISION_PATCH_SCHEMA_ID:
+        issues.append("decision_patch.schema_id is unsupported")
 
     scope = value.get("scope")
     normalized_scope: dict[str, Any] = {}
@@ -216,7 +216,7 @@ def normalize_decision_patch(
             issues.append("decision_patch.supersedes references unknown decisions: " + ", ".join(missing))
 
     normalized = {
-        "schema_version": DECISION_PATCH_SCHEMA_VERSION,
+        "schema_id": DECISION_PATCH_SCHEMA_ID,
         "scope": normalized_scope,
         "metric_semantics": deepcopy(metric_semantics),
         "visual_spec_overlay": {
@@ -290,7 +290,7 @@ def resolve_active_decision_contract(
             if criterion not in acceptance_criteria:
                 acceptance_criteria.append(criterion)
     return {
-        "schema_version": "2026-07-23.active_user_decision_contract.v1",
+        "schema_id": "active_user_decision_contract",
         "decision_ledger_sha256": _ledger_sha256(ledger) if revisions else "",
         "matched_revision_ids": [
             str(revision.get("revision_id") or "")

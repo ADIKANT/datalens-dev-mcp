@@ -176,7 +176,7 @@ def validate_field_availability(
 
 def routing_model_document() -> dict[str, Any]:
     return {
-        "schema_version": "2026-07-13.datalens_operation_routing.v3",
+        "schema_id": "datalens_operation_routing",
         "operation_routes": {name: asdict(route) for name, route in OPERATION_ROUTES.items()},
         "closed_editor_routes": sorted(ROUTE_CONTRACT.routes),
         "chart_creation_policy": {
@@ -356,7 +356,7 @@ def _decision(
 ) -> dict[str, Any]:
     route = OPERATION_ROUTES[operation_kind]
     return {
-        "schema_version": "2026-07-13.datalens_operation_decision.v3",
+        "schema_id": "datalens_operation_decision",
         "operation_kind": route.operation_kind,
         "route": route_override or route.route,
         "object_kind": object_kind_override or route.object_kind,

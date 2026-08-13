@@ -4,6 +4,7 @@ import json
 import os
 import random
 import socket
+import ssl
 import sys
 import tempfile
 import time
@@ -22,8 +23,6 @@ from datalens_dev_mcp.api.errors import DataLensApiError
 from datalens_dev_mcp.api.scheduler import REQUEST_SCHEDULER, TOKEN_REFRESH_COORDINATOR
 from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.validators.redaction import redact_text, sanitize_value
-
-LEGACY_API_VERSION = "1"
 
 COMPACT_READ_FALSE_KEYS = {
     "includeFavorite",
@@ -167,17 +166,15 @@ class DataLensApiClient:
         self.transport = transport or UrlLibTransport(config.request_timeout_sec)
         self.token_refresher = token_refresher
         self._state_lock = RLock()
-        self._selected_api_version = ""
-        self._api_version_selection_reason = ""
 
-    def headers(self, *, api_version: str | None = None) -> dict[str, str]:
+    def headers(self) -> dict[str, str]:
         with self._state_lock:
             config = self.config
         config.require_auth()
         return {
             "accept": "application/json",
             "content-type": "application/json",
-            "x-dl-api-version": api_version or config.api_version,
+            "x-dl-api-version": _compiled_api_version(),
             "x-dl-org-id": config.org_id,
             "Authorization": f"Bearer {config.iam_token}",
         }
@@ -192,56 +189,27 @@ class DataLensApiClient:
         self._reload_canonical_env_file("reloaded_before_rpc", require_token=False)
         self._bootstrap_missing_token()
         compacted_payload = compact_rpc_payload(payload or {}, method=method) or {}
-        selected_api_version = self._resolve_api_version(method)
         try:
             return self._rpc_once(
                 method,
                 compacted_payload,
-                api_version=selected_api_version,
                 exclusive=exclusive,
             )
         except Exception as first_exc:  # noqa: BLE001
-            fallback_result = self._maybe_retry_readonly_legacy_version(
-                method=method,
-                compacted_payload=compacted_payload,
-                selected_api_version=selected_api_version,
-                exc=first_exc,
-            )
-            if fallback_result is not None:
-                return fallback_result
             if is_missing_credentials(first_exc):
                 raise first_exc
-            if (
-                str(self.config.api_version or "auto").strip().lower() == "auto"
-                and not _is_readonly_method(method)
-                and _is_version_specific_failure(first_exc)
-            ):
-                raise DataLensApiError(
-                    f"{method} failed under compiled API version {selected_api_version}; "
-                    "writes are not retried under another API version"
-                ) from first_exc
             if not is_auth_failure(first_exc):
                 raise
             if self.config.env_file_path:
                 self._minimal_auth_probe()
                 if self._reload_canonical_env_file("reloaded_after_401"):
                     try:
-                        selected_api_version = self._resolve_api_version(method)
                         return self._rpc_once(
                             method,
                             compacted_payload,
-                            api_version=selected_api_version,
                             exclusive=exclusive,
                         )
                     except Exception as reload_exc:  # noqa: BLE001
-                        fallback_result = self._maybe_retry_readonly_legacy_version(
-                            method=method,
-                            compacted_payload=compacted_payload,
-                            selected_api_version=selected_api_version,
-                            exc=reload_exc,
-                        )
-                        if fallback_result is not None:
-                            return fallback_result
                         if is_missing_credentials(reload_exc):
                             raise reload_exc
                         if not is_auth_failure(reload_exc):
@@ -254,22 +222,12 @@ class DataLensApiClient:
                         self._persist_refreshed_token(refreshed)
                         self._reload_canonical_env_file("reloaded_after_refresh")
                         try:
-                            selected_api_version = self._resolve_api_version(method)
                             return self._rpc_once(
                                 method,
                                 compacted_payload,
-                                api_version=selected_api_version,
                                 exclusive=exclusive,
                             )
                         except Exception as retry_exc:  # noqa: BLE001
-                            fallback_result = self._maybe_retry_readonly_legacy_version(
-                                method=method,
-                                compacted_payload=compacted_payload,
-                                selected_api_version=selected_api_version,
-                                exc=retry_exc,
-                            )
-                            if fallback_result is not None:
-                                return fallback_result
                             if is_auth_failure(retry_exc):
                                 raise DataLensApiError(
                                     f"{method} auth_retry_failed_after_refresh: {_safe_auth_error(retry_exc)}"
@@ -292,7 +250,6 @@ class DataLensApiClient:
         method: str,
         compacted_payload: dict[str, Any],
         *,
-        api_version: str | None = None,
         exclusive: bool = False,
     ) -> dict[str, Any]:
         url = f"{self.config.base_url.rstrip('/')}/rpc/{method}"
@@ -301,14 +258,13 @@ class DataLensApiClient:
         transient_attempts = 0
         readonly = _is_readonly_method(method)
         if self.config.request_debug:
-            self._log_request_debug(method, url, compacted_payload, api_version=api_version or self.config.api_version)
+            self._log_request_debug(method, url, compacted_payload)
         while True:
             try:
                 raw = self._post_json(
                     method,
                     url,
                     body,
-                    api_version=api_version,
                     exclusive=exclusive,
                 )
             except error.HTTPError as exc:
@@ -364,26 +320,30 @@ class DataLensApiClient:
                     **error_details,
                 ) from exc
             except Exception as exc:
+                transport_category = _transport_error_category(exc)
                 if (
                     readonly
-                    and _is_transient_read_error(exc)
+                    and _is_transient_transport_category(transport_category)
                     and transient_attempts < self.config.read_transient_retries
                 ):
                     transient_attempts += 1
                     REQUEST_SCHEDULER.note_transient_retry(key=self._scheduler_key(), method=method)
                     _transient_retry_pause(transient_attempts)
                     continue
-                if isinstance(exc, error.URLError):
+                if transport_category:
+                    retry_exhausted = bool(
+                        readonly
+                        and _is_transient_transport_category(transport_category)
+                        and transient_attempts >= self.config.read_transient_retries
+                    )
                     raise DataLensApiError(
-                        f"{method} failed before HTTP response: {exc.reason}",
+                        f"{method} failed before HTTP response: transport_category={transport_category}; "
+                        f"read_retry_attempts={transient_attempts}; retry_exhausted={str(retry_exhausted).lower()}",
                         request_phase="transport",
                         response_received=False,
-                    ) from exc
-                if _is_transient_read_error(exc):
-                    raise DataLensApiError(
-                        f"{method} failed before HTTP response: {exc.__class__.__name__}",
-                        request_phase="transport",
-                        response_received=False,
+                        transport_category=transport_category,
+                        retry_attempts=transient_attempts,
+                        retry_exhausted=retry_exhausted,
                     ) from exc
                 raise
 
@@ -417,39 +377,6 @@ class DataLensApiClient:
         except Exception as exc:  # noqa: BLE001
             raise DataLensApiError(f"initial_token_bootstrap_failed: {_safe_auth_error(exc)}") from exc
 
-    def _resolve_api_version(self, method: str) -> str:
-        with self._state_lock:
-            configured = str(self.config.api_version or "auto").strip().lower()
-            if configured and configured != "auto":
-                compiled = _compiled_api_version()
-                if not _is_readonly_method(method) and configured != compiled:
-                    detail = "unlocked_api_version_for_write; " if configured == "latest" else ""
-                    raise DataLensApiError(
-                        f"{method} blocked before HTTP: api_version_mismatch_for_write; {detail}"
-                        f"configured={configured}; compiled={compiled}"
-                    )
-                self._selected_api_version = configured
-                self._api_version_selection_reason = "explicit"
-                return configured
-            if self._selected_api_version and _is_readonly_method(method):
-                return self._selected_api_version
-            current = _compiled_api_version()
-            self._selected_api_version = current
-            self._api_version_selection_reason = "compiled_current_direct"
-            return current
-
-    def _maybe_retry_readonly_legacy_version(
-        self,
-        *,
-        method: str,
-        compacted_payload: dict[str, Any],
-        selected_api_version: str,
-        exc: Exception,
-    ) -> dict[str, Any] | None:
-        # API v1 compatibility is explicit-only. Auto is pinned to the reviewed
-        # compiled contract and never changes request semantics after a failure.
-        return None
-
     def _refresh_token_once(self) -> str:
         with self._state_lock:
             config = self.config
@@ -472,7 +399,6 @@ class DataLensApiClient:
             return self._rpc_once(
                 "getWorkbooksList",
                 {"page": 1, "pageSize": 1},
-                api_version=self._selected_api_version or _compiled_api_version(),
             )
         except Exception as exc:  # noqa: BLE001
             return {"ok": False, "error": _safe_auth_error(exc)}
@@ -530,7 +456,6 @@ class DataLensApiClient:
         url: str,
         body: bytes,
         *,
-        api_version: str | None = None,
         exclusive: bool = False,
     ) -> bytes:
         with self._state_lock:
@@ -542,7 +467,7 @@ class DataLensApiClient:
             exclusive=exclusive,
             interval_sec=config.request_interval_sec,
             max_read_concurrency=config.max_read_concurrency,
-            operation=lambda: self.transport.post_json(url, body, self.headers(api_version=api_version)),
+            operation=lambda: self.transport.post_json(url, body, self.headers()),
         )
 
     def _scheduler_key(self) -> str:
@@ -561,11 +486,11 @@ class DataLensApiClient:
             f"{config.env_file_path or '<no-env-file>'}|{custom_refresher}"
         )
 
-    def _log_request_debug(self, method: str, url: str, payload: dict[str, Any], *, api_version: str) -> None:
+    def _log_request_debug(self, method: str, url: str, payload: dict[str, Any]) -> None:
         debug_payload = {
             "method": method,
             "endpoint": url,
-            "api_version": api_version,
+            "api_version": _compiled_api_version(),
             "org_id_present": bool(self.config.org_id),
             "token_present": bool(self.config.iam_token),
             "compacted_payload_keys": compact_payload_keys(payload),
@@ -622,17 +547,6 @@ def _is_readonly_method(method: str) -> bool:
     return is_readonly_method(method)
 
 
-def _is_version_specific_failure(exc: Exception) -> bool:
-    text = str(exc).lower()
-    return (
-        "x-dl-api-version" in text
-        or "api version" in text
-        or "unsupported version" in text
-        or "version is not supported" in text
-        or "invalid api version" in text
-    )
-
-
 def _retry_after_seconds(value: str | None, *, fallback: float, wall_time: float | None = None) -> float:
     raw = str(value or "").strip()
     if not raw:
@@ -651,19 +565,86 @@ def _retry_after_seconds(value: str | None, *, fallback: float, wall_time: float
         return max(0.0, float(fallback))
 
 
-def _is_transient_read_error(exc: Exception) -> bool:
-    if isinstance(exc, (RemoteDisconnected, ConnectionResetError, ConnectionAbortedError, TimeoutError, socket.timeout)):
-        return True
-    if isinstance(exc, error.URLError):
-        reason = exc.reason
-        return isinstance(
-            reason,
-            (RemoteDisconnected, ConnectionResetError, ConnectionAbortedError, TimeoutError, socket.timeout),
-        ) or any(
-            marker in str(reason).lower()
-            for marker in ("timed out", "connection reset", "remote end closed", "temporarily unavailable")
+TRANSIENT_TRANSPORT_CATEGORIES = {
+    "connection_reset",
+    "remote_disconnected",
+    "temporarily_unavailable",
+    "tls_connection_closed",
+    "tls_handshake_timeout",
+    "tls_unexpected_eof",
+    "transport_timeout",
+}
+
+
+def _exception_chain(exc: BaseException) -> list[BaseException]:
+    chain: list[BaseException] = []
+    pending: list[BaseException] = [exc]
+    seen: set[int] = set()
+    while pending:
+        current = pending.pop(0)
+        if id(current) in seen:
+            continue
+        seen.add(id(current))
+        chain.append(current)
+        if isinstance(current, error.URLError) and isinstance(current.reason, BaseException):
+            pending.append(current.reason)
+        for nested in (current.__cause__, current.__context__):
+            if isinstance(nested, BaseException):
+                pending.append(nested)
+    return chain
+
+
+def _transport_error_category(exc: BaseException) -> str:
+    chain = _exception_chain(exc)
+    text = " | ".join(str(item).lower() for item in chain)
+    if any(isinstance(item, ssl.SSLCertVerificationError) for item in chain):
+        return "tls_certificate_failure"
+    if any(isinstance(item, ssl.SSLEOFError) for item in chain) or any(
+        marker in text
+        for marker in (
+            "unexpected_eof_while_reading",
+            "unexpected eof while reading",
+            "eof occurred in violation of protocol",
         )
-    return False
+    ):
+        return "tls_unexpected_eof"
+    if "handshake" in text and any(
+        marker in text for marker in ("timed out", "timeout", "ssl connection timeout")
+    ):
+        return "tls_handshake_timeout"
+    if any(isinstance(item, ssl.SSLZeroReturnError) for item in chain):
+        return "tls_connection_closed"
+    if any(isinstance(item, ssl.SSLError) for item in chain):
+        return "tls_failure"
+    if any(isinstance(item, RemoteDisconnected) for item in chain) or "remote end closed" in text:
+        return "remote_disconnected"
+    if any(isinstance(item, (ConnectionResetError, ConnectionAbortedError)) for item in chain) or any(
+        marker in text for marker in ("connection reset", "connection aborted")
+    ):
+        return "connection_reset"
+    if any(isinstance(item, (TimeoutError, socket.timeout)) for item in chain) or any(
+        marker in text
+        for marker in (
+            "timed out",
+            "timeout",
+            "read timed out",
+            "connection timed out",
+        )
+    ):
+        return "transport_timeout"
+    if "temporarily unavailable" in text:
+        return "temporarily_unavailable"
+    if isinstance(exc, error.URLError):
+        return "transport_failure"
+    return ""
+
+
+def _is_transient_transport_category(category: str) -> bool:
+    return category in TRANSIENT_TRANSPORT_CATEGORIES
+
+
+def _is_transient_read_error(exc: Exception) -> bool:
+    return _is_transient_transport_category(_transport_error_category(exc))
 
 
 def _transient_retry_pause(attempt: int) -> None:

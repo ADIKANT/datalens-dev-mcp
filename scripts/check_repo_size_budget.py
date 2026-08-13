@@ -182,7 +182,7 @@ def run_check(*, write: bool = False, output_dir: Path = DEFAULT_ARTIFACT_DIR) -
     ]
     report = {
         "ok": not budget_failures and bool(generated.get("ok")),
-        "schema_version": "2026-07-01.repo_size_budget.v1",
+        "schema_id": "repo_size_budget",
         "budgets_mb": BUDGETS,
         "sizes_mb": sizes,
         "existing_tracked_file_count": len(existing_tracked),

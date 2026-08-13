@@ -10,6 +10,8 @@
  * - Interactions: interactions stay explicit and selector bindings are represented outside chart body.
  * - Extension points: future edits should change schema, params, or shared helpers before ad hoc JS.
  */
+// @cookbook-locale ru Prepare нормализует поля и оставляет пользовательские изменения в Meta и Sources.
+// @cookbook-locale en Prepare normalizes fields and keeps user edits in Meta and Sources.
 /* __DATALENS_SHARED_STYLE_TOKENS__ */
 /* __DATALENS_SHARED_RENDER_HELPERS__ */
 const TEMPLATE_VARIANT = '__TEMPLATE_VARIANT__';
@@ -24,7 +26,7 @@ const normalizedRows = normalizeRows('rows')
     target: numericOrNaN(row.target),
   }))
   .filter((row) => Number.isFinite(row.value));
-const rows = (TEMPLATE_VARIANT === 'waterfall'
+const rows = (TEMPLATE_VARIANT === 'waterfall' || TEMPLATE_VARIANT === 'heatmap'
   ? normalizedRows
   : normalizedRows.slice().sort((left, right) => right.value - left.value)
 ).slice(0, 18);
@@ -112,11 +114,24 @@ module.exports = {
         }).join('');
       }
       function renderHeatmap() {
-        const columns = compact ? 1 : medium ? 2 : 3;
-        return `<div style="display:grid;grid-template-columns:repeat(${columns},minmax(0,1fr));gap:6px;">${data.rows.map((row) => {
-          const alpha = Math.max(0.16, Math.min(1, Math.abs(row.value) / maxAbs));
-          return `<div style="min-height:54px;padding:8px;border:1px solid ${style.colors.border};background:color-mix(in srgb, ${style.colors.primary} ${Math.round(alpha * 75)}%, ${style.colors.surface});color:${style.colors.text};"><b style="display:block;font-size:12px;">${esc(row.label)}</b><span style="font-size:16px;font-weight:850;">${fmt(row.value)}</span></div>`;
-        }).join('')}</div>`;
+        const xValues = [...new Set(data.rows.map((row) => row.label))];
+        const yValues = [...new Set(data.rows.map((row) => row.group || 'All'))];
+        const cellWidth = compact ? 82 : medium ? 96 : 112;
+        const header = `<span></span>${xValues.map((value) => `<b style="padding:5px 6px;text-align:center;font-size:11px;color:${style.colors.textMuted};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(value)}</b>`).join('')}`;
+        const cells = yValues.map((yValue, yIndex) => {
+          const rowLabel = `<b style="padding:8px 6px;font-size:11px;color:${style.colors.textMuted};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(yValue)}</b>`;
+          const rowCells = xValues.map((xValue, xIndex) => {
+            const row = data.rows.find((item) => item.label === xValue && (item.group || 'All') === yValue);
+            const value = row && Number.isFinite(row.value) ? row.value : null;
+            const alpha = value === null ? 0 : Math.max(0.16, Math.min(1, Math.abs(value) / maxAbs));
+            const background = value === null
+              ? style.colors.surfaceMuted
+              : `color-mix(in srgb, ${style.colors.primary} ${Math.round(alpha * 78)}%, ${style.colors.surface})`;
+            return `<div data-role="heatmap-cell" data-x="${esc(xValue)}" data-y="${esc(yValue)}" data-id="heatmap-cell-${yIndex}-${xIndex}" title="${esc(xValue)} · ${esc(yValue)} · ${value === null ? 'N/A' : fmt(value)}" style="min-height:${dense ? 42 : 54}px;padding:7px;border:1px solid ${style.colors.border};background:${background};display:grid;place-items:center;color:${style.colors.text};font-size:${compact ? 12 : 14}px;font-weight:850;">${value === null ? '—' : fmt(value)}</div>`;
+          }).join('');
+          return rowLabel + rowCells;
+        }).join('');
+        return `<div data-role="heatmap-matrix" data-x-count="${xValues.length}" data-y-count="${yValues.length}" style="overflow:auto;"><div style="display:grid;grid-template-columns:minmax(min-content,auto) repeat(${xValues.length},${cellWidth}px);gap:4px;min-width:max-content;">${header}${cells}</div></div>`;
       }
       function renderWaterfall() {
         let running = 0;

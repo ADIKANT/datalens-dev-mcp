@@ -248,7 +248,7 @@ def normalize_selector_contract(
         )
 
     return {
-        "schema_version": "datalens.editor_selector_contract.v1",
+        "schema_id": "datalens.editor_selector_contract",
         "family": family,
         "label": label,
         "param": parameter,
@@ -432,7 +432,7 @@ def _normalize_selector_group(value: Any) -> dict[str, Any]:
         for row in populated_rows
     ]
     return {
-        "schema_version": "datalens.editor_selector_group_contract.v2",
+        "schema_id": "datalens.editor_selector_group_contract",
         "family": SELECTOR_GROUP_FAMILY,
         "controls": normalized,
         "rows": rows,

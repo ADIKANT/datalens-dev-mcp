@@ -3,7 +3,7 @@
   "title": "DataLens MCP local config",
   "type": "object",
   "required": [
-    "schema_version",
+    "schema_id",
     "defaults",
     "execution",
     "readback",
@@ -17,7 +17,7 @@
     "selectors"
   ],
   "properties": {
-    "schema_version": {"const": "2026-07-19.datalens_mcp_local_config.v3"},
+    "schema_id": {"const": "datalens_mcp_local_config"},
     "defaults": {
       "type": "object",
       "required": ["workbook_id", "project_id", "dashboard_id", "project_workspace_path"],

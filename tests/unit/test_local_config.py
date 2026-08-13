@@ -39,7 +39,7 @@ class LocalConfigTests(unittest.TestCase):
                 "project_name": "profiled_dashboard",
                 "workbook_id": "workbook_1",
                 "dashboard_ids": ["dashboard_1"],
-                "authoring_profile": {"id": "standard_editor_v1"},
+                "authoring_profile": {"id": "standard_dashboard"},
                 "workflows": [{"name": "delivery", "may_execute_command": False}],
             }
             manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
@@ -47,21 +47,21 @@ class LocalConfigTests(unittest.TestCase):
             config = load_local_config(manifest_path, project_root=tmp)
 
         self.assertTrue(is_project_live_manifest_payload(manifest))
-        self.assertEqual(config["schema_version"], "2026-07-19.datalens_mcp_local_config.v3")
+        self.assertEqual(config["schema_id"], "datalens_mcp_local_config")
         self.assertFalse(config["_meta"]["loaded_from_file"])
         self.assertTrue(config["_meta"]["project_manifest_detected"])
         self.assertEqual(config["_meta"]["project_manifest_path"], str(manifest_path))
-        self.assertEqual(config["_meta"]["project_authoring_profile"], {"id": "standard_dashboard_v1"})
+        self.assertEqual(config["_meta"]["project_authoring_profile"], {"id": "standard_dashboard"})
         self.assertEqual(
             config["_meta"]["project_authoring_profile_requested"],
-            {"id": "standard_editor_v1"},
+            {"id": "standard_dashboard"},
         )
 
     def test_example_config_loads_with_safe_defaults(self):
         config = load_local_config(ROOT / "config" / "datalens_mcp.local.example.json", project_root=ROOT)
 
         self.assertEqual(config["defaults"]["workbook_id"], "<WORKBOOK_ID>")
-        self.assertEqual(config["schema_version"], "2026-07-19.datalens_mcp_local_config.v3")
+        self.assertEqual(config["schema_id"], "datalens_mcp_local_config")
         self.assertEqual(config["execution"]["default"], "follow_user_request")
         self.assertTrue(config["execution"]["writes"])
         self.assertTrue(config["execution"]["save"])
@@ -112,7 +112,7 @@ class LocalConfigTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 load_local_config(config_path, project_root=ROOT)
 
-    def test_legacy_map_only_local_config_is_migrated_in_memory(self):
+    def test_obsolete_map_only_local_config_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             config_path = Path(tmp) / "legacy-routing.json"
             config_path.write_text(
@@ -132,16 +132,8 @@ class LocalConfigTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            config = load_local_config(config_path, project_root=ROOT)
-
-        self.assertEqual(
-            config["routing"]["chart_creation_routes"],
-            ["wizard_native", "advanced_editor_js", "ql_explicit"],
-        )
-        self.assertEqual(config["routing"]["ql_behavior"], "explicit_user_request_only")
-        self.assertEqual(config["routing"]["wizard_map_native_alias"]["visualization_id"], "geolayer")
-        self.assertNotIn("non_map_wizard_chart_creation", config["routing"]["forbidden_routes"])
-        self.assertTrue(config["_meta"]["compatibility_migrations"])
+            with self.assertRaises(ValueError):
+                load_local_config(config_path, project_root=ROOT)
 
     def test_invalid_readback_and_write_defaults_are_rejected(self):
         invalid_configs = [
@@ -174,13 +166,13 @@ class LocalConfigTests(unittest.TestCase):
         self.assertEqual(sanitized["nested"]["password"], "<redacted>")
         self.assertEqual(sanitized["execution"]["writes"], True)
 
-    def test_v1_execution_and_approval_config_is_migrated_in_memory(self):
+    def test_obsolete_execution_and_approval_sections_are_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
-            config_path = Path(tmp) / "legacy-v1.json"
+            config_path = Path(tmp) / "obsolete-execution.json"
             config_path.write_text(
                 json.dumps(
                     {
-                        "schema_version": "2026-06-04.datalens_mcp_local_config.v1",
+                        "schema_id": "datalens_mcp_local_config",
                         "safe_mode": {
                             "default": "plan_only",
                             "allow_writes": False,
@@ -204,25 +196,16 @@ class LocalConfigTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            config = load_local_config(config_path, project_root=ROOT)
+            with self.assertRaises(ValueError):
+                load_local_config(config_path, project_root=ROOT)
 
-        self.assertEqual(config["schema_version"], "2026-07-19.datalens_mcp_local_config.v3")
-        self.assertEqual(config["execution"]["default"], "follow_user_request")
-        self.assertTrue(config["execution"]["writes"])
-        self.assertTrue(config["execution"]["save"])
-        self.assertTrue(config["execution"]["publish"])
-        self.assertNotIn("safe_mode", config)
-        self.assertNotIn("approval_gates", config)
-        self.assertNotIn("require_approved_plan_path", config["safe_apply"])
-        self.assertIn("local_config:v1->v3_follow_user_request", config["_meta"]["compatibility_migrations"])
-
-    def test_v2_selector_budget_is_migrated_to_responsive_default(self):
+    def test_obsolete_selector_budget_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
-            config_path = Path(tmp) / "legacy-v2.json"
+            config_path = Path(tmp) / "obsolete-selector.json"
             config_path.write_text(
                 json.dumps(
                     {
-                        "schema_version": "2026-07-15.datalens_mcp_local_config.v2",
+                        "schema_id": "datalens_mcp_local_config",
                         "selectors": {
                             "row_width_percent": 96,
                             "default_selector_width_percent": 24,
@@ -233,25 +216,18 @@ class LocalConfigTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            config = load_local_config(config_path, project_root=ROOT)
+            with self.assertRaises(ValueError):
+                load_local_config(config_path, project_root=ROOT)
 
-        self.assertEqual(config["schema_version"], "2026-07-19.datalens_mcp_local_config.v3")
-        self.assertEqual(config["selectors"]["row_width_percent"], 94)
-        self.assertIn(
-            "local_config:v2->v3_responsive_selector_budget",
-            config["_meta"]["compatibility_migrations"],
-        )
-
-    def test_legacy_mcp_profile_config_is_tolerated_but_removed_from_effective_config(self):
+    def test_obsolete_mcp_profile_section_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             config_path = Path(tmp) / "legacy.json"
             config_path.write_text(
                 json.dumps({"mcp": {"tool_profile": "all", "unknown_profile_policy": "error"}}),
                 encoding="utf-8",
             )
-            config = load_local_config(config_path, project_root=ROOT)
-
-        self.assertNotIn("mcp", config)
+            with self.assertRaises(ValueError):
+                load_local_config(config_path, project_root=ROOT)
 
     def test_example_config_matches_json_schema(self):
         schema_result = validate_schema_file(ROOT / "schemas" / "datalens-mcp-local-config.schema.json")

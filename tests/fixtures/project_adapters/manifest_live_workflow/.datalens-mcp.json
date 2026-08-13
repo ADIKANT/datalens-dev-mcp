@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-07-01.project_live_workflow_manifest.v4",
+  "schema_id": "project_live_workflow_manifest",
   "project_name": "manifest_live_workflow_fixture",
   "workbook_id": "workbook_fixture",
   "dashboard_ids": ["dashboard_fixture"],

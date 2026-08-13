@@ -18,6 +18,6 @@
   ],
   "response_schema_hash": "8ce06d12d28cbb6ec9b1a8eae5e09a96daba2e41a69d376e1f83840fcebf3cb7",
   "response_schema_ref": "DlsSuggestResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "supported_tool"
 }

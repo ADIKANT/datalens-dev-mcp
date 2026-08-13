@@ -6,7 +6,7 @@ from copy import deepcopy
 from typing import Any
 
 from datalens_dev_mcp.editor.render_compiler import (
-    RENDER_COMPILER_VERSION,
+    RENDER_COMPILER_ID,
     compile_bundle_render_contract,
     validate_compiled_render_contract,
 )
@@ -16,19 +16,19 @@ from datalens_dev_mcp.runtime_resources import resource_text
 
 
 STANDARD_DASHBOARD_RUNTIME_RESOURCE = (
-    "templates/datalens/authoring_profiles/standard_dashboard_v1/advanced_editor_runtime.js"
+    "templates/datalens/authoring_profiles/standard_dashboard/advanced_editor_runtime.js"
 )
 STANDARD_DASHBOARD_ADAPTER_RESOURCE = (
-    "templates/datalens/authoring_profiles/standard_dashboard_v1/prepare_adapter.js"
+    "templates/datalens/authoring_profiles/standard_dashboard/prepare_adapter.js"
 )
 STANDARD_DASHBOARD_RUNTIME_SHA256 = (
-    "790657cf4e79ea435038e28b343d6db0475ca0909e69ac06d8a9831942c84a3a"
+    "c3e69739a22f825f80654afd0a70a9602e7cb1f63c5cfcda1f3dc7040ea96e13"
 )
-STANDARD_DASHBOARD_RUNTIME_BYTES = 94_162
+STANDARD_DASHBOARD_RUNTIME_BYTES = 96_888
 STANDARD_DASHBOARD_ADAPTER_SHA256 = (
-    "e24a4ebd8c04e3a508b6da2456335a1a2547a7ed4b08280ead16f1fecc15602a"
+    "facfa61fb1a75e8c0abc1fc520b1b80b6f13f65f1135c3c531f544a5cfded407"
 )
-STANDARD_DASHBOARD_RENDER_COMPILER_VERSION = "2026-08-06.resolved_render_contract.v5"
+STANDARD_DASHBOARD_RENDER_COMPILER_ID = "resolved_render_contract"
 
 REFERENCE_RUNTIME_FAMILY_ADAPTERS = {
     "kpi_value_only": "metric_tile",
@@ -37,7 +37,7 @@ REFERENCE_RUNTIME_FAMILY_ADAPTERS = {
     "kpi_value_delta_sparkline": "metric_tile",
     "line_chart": "combo_line",
     "multiline_chart": "combo_line",
-    "area_completion": "combo_line",
+    "area_completion": "combo_area",
     "vertical_bar_time_bucket": "combo_bar",
     "combo_time_series_combo": "combo_mixed",
     "horizontal_bar": "horizontal",
@@ -55,7 +55,7 @@ def compile_standard_dashboard_renderer(
     render_contract: dict[str, Any],
     title_contract: dict[str, Any],
 ) -> dict[str, Any]:
-    """Compile v5 chrome and use the exact registered runtime where supported."""
+    """Compile canonical chrome and use the exact registered runtime where supported."""
 
     title_issues = validate_title_contract(title_contract)
     if title_issues:
@@ -71,13 +71,13 @@ def compile_standard_dashboard_renderer(
     else:
         compiled = compile_bundle_render_contract(bundle, render_contract=render_contract)
         compiled["title_contract"] = deepcopy(title_contract)
-        compiled = _apply_title_chrome_v5(compiled, title_contract=title_contract)
+        compiled = _apply_title_chrome(compiled, title_contract=title_contract)
         provenance = deepcopy(compiled.get("template_provenance") or {})
         provenance.update(
             {
-                "dashboard_render_compiler_version": STANDARD_DASHBOARD_RENDER_COMPILER_VERSION,
-                "base_render_compiler_version": RENDER_COMPILER_VERSION,
-                "renderer_kind": "registered_template_v5",
+                "dashboard_render_compiler_id": STANDARD_DASHBOARD_RENDER_COMPILER_ID,
+                "base_render_compiler_id": RENDER_COMPILER_ID,
+                "renderer_kind": "registered_template",
                 "title_contract_sha256": title_contract["sha256"],
             }
         )
@@ -91,7 +91,7 @@ def compile_standard_dashboard_renderer(
     return compiled
 
 
-def _apply_title_chrome_v5(
+def _apply_title_chrome(
     bundle: dict[str, Any],
     *,
     title_contract: dict[str, Any],
@@ -103,7 +103,7 @@ def _apply_title_chrome_v5(
     prepare = str(tabs.get("prepare.js") or "")
     needle = "  return Editor.generateHtml(output);\n}"
     if needle not in prepare:
-        raise StandardDashboardRuntimeError("registered v5 title chrome insertion point is missing")
+        raise StandardDashboardRuntimeError("registered title chrome insertion point is missing")
     encoded = json.dumps(
         title_contract,
         ensure_ascii=False,
@@ -159,8 +159,8 @@ def validate_standard_dashboard_renderer(bundle: dict[str, Any]) -> dict[str, An
     provenance = bundle.get("template_provenance") if isinstance(bundle.get("template_provenance"), dict) else {}
     title_contract = bundle.get("title_contract") if isinstance(bundle.get("title_contract"), dict) else {}
     issues.extend(validate_title_contract(title_contract))
-    if provenance.get("dashboard_render_compiler_version") != STANDARD_DASHBOARD_RENDER_COMPILER_VERSION:
-        issues.append("dashboard_render_compiler_version_mismatch")
+    if provenance.get("dashboard_render_compiler_id") != STANDARD_DASHBOARD_RENDER_COMPILER_ID:
+        issues.append("dashboard_render_compiler_id_mismatch")
     if provenance.get("title_contract_sha256") != title_contract.get("sha256"):
         issues.append("title_contract_provenance_mismatch")
     tabs = bundle.get("tabs") if isinstance(bundle.get("tabs"), dict) else {}
@@ -195,14 +195,14 @@ def validate_standard_dashboard_renderer(bundle: dict[str, Any]) -> dict[str, An
         )
         if f"const DASHBOARD_RENDER_SPEC = {encoded_spec};" not in prepare:
             issues.append("runtime_title_or_family_spec_mismatch")
-    elif renderer_kind == "registered_template_v5":
+    elif renderer_kind == "registered_template":
         base_validation = validate_compiled_render_contract(bundle)
         issues.extend(f"base:{issue}" for issue in base_validation["issues"])
     else:
         issues.append("unregistered_renderer_kind")
     return {
         "ok": not issues,
-        "schema_version": "2026-08-06.standard_dashboard_renderer_validation.v1",
+        "schema_id": "standard_dashboard_renderer_validation",
         "issues": issues,
         "renderer_kind": renderer_kind,
         "compiled_tabs_sha256": canonical_sha256(tabs),
@@ -248,7 +248,7 @@ def _compile_exact_reference_runtime(
         f"/* standard-dashboard-runtime:{STANDARD_DASHBOARD_RUNTIME_SHA256};"
         f" adapter:{STANDARD_DASHBOARD_ADAPTER_SHA256};"
         f" contract:{render_contract.get('composite_sha256') or ''};"
-        f" compiler:{STANDARD_DASHBOARD_RENDER_COMPILER_VERSION} */"
+        f" compiler:{STANDARD_DASHBOARD_RENDER_COMPILER_ID} */"
     )
     prepare = adapter.replace("__DATALENS_DASHBOARD_RENDER_SPEC__", encoded_spec).replace(
         "/* __DATALENS_STANDARD_DASHBOARD_RUNTIME__ */",
@@ -263,7 +263,7 @@ def _compile_exact_reference_runtime(
         {
             "base_compiled_tabs_sha256": base_tabs_sha256,
             "compiled_tabs_sha256": canonical_sha256(tabs),
-            "dashboard_render_compiler_version": STANDARD_DASHBOARD_RENDER_COMPILER_VERSION,
+            "dashboard_render_compiler_id": STANDARD_DASHBOARD_RENDER_COMPILER_ID,
             "renderer_kind": "exact_standard_dashboard_runtime",
             "canonical_runtime_resource": STANDARD_DASHBOARD_RUNTIME_RESOURCE,
             "canonical_runtime_bytes": len(runtime.encode("utf-8")),
@@ -283,7 +283,7 @@ def _compile_exact_reference_runtime(
 def _runtime_spec(bundle: dict[str, Any], *, title_contract: dict[str, Any]) -> dict[str, Any]:
     family = str(bundle.get("family") or "")
     return {
-        "schema_version": "2026-08-06.standard_dashboard_runtime_spec.v1",
+        "schema_id": "standard_dashboard_runtime_spec",
         "family": family,
         "adapter": REFERENCE_RUNTIME_FAMILY_ADAPTERS.get(family, ""),
         "title": str(title_contract.get("display_title") or ""),

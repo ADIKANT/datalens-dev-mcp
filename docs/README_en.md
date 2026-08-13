@@ -2,7 +2,7 @@
 
 [Русский](README.md) · **English** · [Project home](../README_en.md)
 
-[Quick start](../README_en.md#quick-start) · [DataLens access](access_en.md) · [Connect](codex_setup_en.md) · [Tools](tools_en.md) · [Workflows](usage-flow_en.md) · [Sources](sources_en.md) · [Safety](local-only-safety-model_en.md) · [Русский](README.md)
+[Quick start](../README_en.md#quick-start) · [DataLens access](access_en.md) · [Connect](codex_setup_en.md) · [Tools](tools_en.md) · [JS Cookbook](cookbook/README_en.md) · [Workflows](usage-flow_en.md) · [Sources](sources_en.md) · [Safety](local-only-safety-model_en.md) · [Русский](README.md)
 
 `datalens-dev-mcp` is a local MCP server through which Codex, Claude, and other
 MCP clients work with the Yandex DataLens Public API. The user states the task
@@ -23,6 +23,7 @@ responsibility boundaries.
 | Connect Codex | [Codex setup](codex_setup_en.md) |
 | Connect Claude or another stdio client | [Client examples](../examples/clients/README.md) |
 | Find the right tool | [Guide to all 39 tools](tools_en.md) |
+| Start from a ready JavaScript visualization | [JavaScript Visualization Cookbook](cookbook/README_en.md) |
 | Create or locally prepare an HTML Page | [HTML generation for DataLens](datalens/html_pages_en.md) |
 | Audit without writing | [Read-only audit](usage-flow_en.md#read-only-audit) |
 | Build a plan without applying it | [Plan without writing](usage-flow_en.md#plan-without-writing) |
@@ -58,6 +59,7 @@ browser is available or is explicitly reported as unavailable.
 - [DataLens access](access_en.md) — Yandex Cloud CLI, organization, IAM token, roles, env file, and access checks.
 - [Codex setup](codex_setup_en.md) — `config.toml`, `codex mcp add`, `/mcp`, and connection verification.
 - [Tool guide](tools_en.md) — purpose and operation class of all 39 calls.
+- [JavaScript Visualization Cookbook](cookbook/README_en.md) — shared Tips, 34 recipes, three linked cases, [interactive synthetic previews](https://adikant.github.io/datalens-dev-mcp/), Sources contracts, and complete copy-ready Editor tab sets.
 - [Workflows](usage-flow_en.md) — copyable sequences and prompts.
 - [Configuration](configuration_en.md) — local settings and hard-off switches.
 - [Safety](local-only-safety-model_en.md) — credential, revision, and deletion safeguards.

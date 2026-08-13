@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "datalens.runtime-publish-gate.delta-v6",
+  "$id": "datalens.runtime-publish-gate",
   "title": "Runtime Publish Gate",
   "type": "object",
   "required": ["status", "dashboard_id", "checked_error_markers", "changed_object_ids", "proof_artifacts"],
   "properties": {
-    "schema_version": {"type": "string"},
+    "schema_id": {"type": "string"},
     "status": {"enum": ["passed", "failed", "blocked", "not_run"]},
     "dashboard_id": {"type": "string"},
     "tab_id": {"type": "string"},

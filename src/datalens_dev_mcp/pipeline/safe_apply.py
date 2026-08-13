@@ -237,7 +237,7 @@ def create_safe_apply_plan(
         }
         normalized_actions.append(item)
     return {
-        "schema_version": "2026-07-23.safe_apply_plan.v2",
+        "schema_id": "safe_apply_plan",
         "created_at": created_at,
         "project_root": project_root,
         "read_only_default": True,
@@ -310,7 +310,7 @@ def _default_overlay_merge_contract(
 
     visit(overlay, "")
     return {
-        "schema_version": "2026-07-23.safe_apply_overlay_merge.v2",
+        "schema_id": "safe_apply_overlay_merge",
         "list_policies": policies,
     }
 
@@ -817,7 +817,7 @@ def validate_safe_apply_plan_exhaustive(plan: dict[str, Any]) -> dict[str, Any]:
         semantic_preflight = validate_payload_sql_performance(payload, source=f"safe_apply.action[{index}]")
         for issue in semantic_preflight["issues"]:
             action_issues.append(f"action {index} sql/performance preflight {issue}")
-        action_issues.extend(_delta_v7_evidence_issues(action=action, index=index))
+        action_issues.extend(_source_evidence_issues(action=action, index=index))
         issues.extend(action_issues)
         action_checks.append(
             {
@@ -1418,7 +1418,7 @@ def _write_safe_apply_execution_manifest(
             }
         )
     manifest = {
-        "schema_version": "datalens.safe_apply_execution_evidence.v1",
+        "schema_id": "datalens.safe_apply_execution_evidence",
         "generated_at": now_utc(),
         "project_root": str(plan.get("project_root") or root),
         "run_id": run_id,
@@ -1711,7 +1711,7 @@ def _create_inventory_pagination_evidence(
     error_category: str,
 ) -> dict[str, Any]:
     return {
-        "schema_version": "datalens.safe_apply.create_inventory_pagination.v1",
+        "schema_id": "datalens.safe_apply.create_inventory_pagination",
         "method": "getWorkbookEntries",
         "complete": complete,
         "page_count": page_count,
@@ -3381,7 +3381,7 @@ def _contract_issues(*, action: dict[str, Any], payload: dict[str, Any], index: 
     return issues
 
 
-def _delta_v7_evidence_issues(*, action: dict[str, Any], index: int) -> list[str]:
+def _source_evidence_issues(*, action: dict[str, Any], index: int) -> list[str]:
     issues: list[str] = []
     source_matrix = action.get("source_availability_matrix")
     if isinstance(source_matrix, dict):
@@ -3392,9 +3392,9 @@ def _delta_v7_evidence_issues(*, action: dict[str, Any], index: int) -> list[str
             issues.append(f"action {index} source availability {reason}")
     source_budget = action.get("editor_source_budget_evidence") or action.get("source_budget_evidence")
     if source_budget:
-        from datalens_dev_mcp.pipeline.performance_budget import normalize_editor_source_budget_evidence_v7
+        from datalens_dev_mcp.pipeline.performance_budget import normalize_editor_source_budget_evidence
 
-        rows = normalize_editor_source_budget_evidence_v7(source_budget)
+        rows = normalize_editor_source_budget_evidence(source_budget)
         for row in rows:
             if row.get("decision") in {"block", "insufficient_evidence"}:
                 issues.append(
@@ -3427,8 +3427,8 @@ def _dashboard_baseline_contract_issues(
     if not isinstance(contract, dict) or not contract:
         issues.append(f"action {index} dashboard update requires baseline_diff_contract")
         return issues
-    if contract.get("schema_version") != "datalens.baseline-diff-contract.delta-v6":
-        issues.append(f"action {index} dashboard baseline_diff_contract has unsupported schema_version")
+    if contract.get("schema_id") != "datalens.baseline-diff-contract":
+        issues.append(f"action {index} dashboard baseline_diff_contract has unsupported schema_id")
     expected_object_id = _action_object_id(action, payload)
     if expected_object_id and str(contract.get("dashboard_id") or "") != expected_object_id:
         issues.append(f"action {index} dashboard baseline_diff_contract.dashboard_id does not match action object_id")
@@ -3479,8 +3479,6 @@ def _temporary_object_name(payload: dict[str, Any], action: dict[str, Any]) -> b
         for token in (
             "runtime fix",
             "runtime_fix",
-            " v13",
-            "v13 ",
             "temp",
             "temporary",
             "repair",
@@ -3713,6 +3711,9 @@ def _classify_safe_apply_error(exc: Exception, *, write_attempted: bool) -> dict
     remote_code = str(getattr(exc, "remote_code", "") or "")
     response_received = getattr(exc, "response_received", None)
     request_phase = str(getattr(exc, "request_phase", "") or "")
+    transport_category = str(getattr(exc, "transport_category", "") or "")
+    retry_attempts = getattr(exc, "retry_attempts", None)
+    retry_exhausted = getattr(exc, "retry_exhausted", None)
     if http_status is not None:
         base["http_status"] = http_status
     if remote_code:
@@ -3721,6 +3722,12 @@ def _classify_safe_apply_error(exc: Exception, *, write_attempted: bool) -> dict
         base["request_phase"] = request_phase
     if response_received is not None:
         base["response_received"] = bool(response_received)
+    if transport_category:
+        base["transport_category"] = transport_category
+    if isinstance(retry_attempts, int):
+        base["retry_attempts"] = max(0, retry_attempts)
+    if retry_exhausted is not None:
+        base["retry_exhausted"] = bool(retry_exhausted)
     if "ENTRY_IS_LOCKED" in upper:
         return {
             **base,

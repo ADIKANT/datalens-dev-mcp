@@ -5,8 +5,8 @@
   "type": "object",
   "required": ["scope"],
   "properties": {
-    "schema_version": {
-      "const": "2026-07-23.user_decision_patch.v1"
+    "schema_id": {
+      "const": "user_decision_patch"
     },
     "scope": {
       "type": "object",

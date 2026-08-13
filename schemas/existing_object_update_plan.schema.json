@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "DataLens Existing Object Update Plan",
   "type": "object",
-  "required": ["schema_version", "actions"],
+  "required": ["schema_id", "actions"],
   "properties": {
-    "schema_version": {"const": "datalens.existing-object-update-plan.v1"},
+    "schema_id": {"const": "datalens.existing-object-update-plan"},
     "project_root": {"type": "string"},
     "actions": {
       "type": "array",

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "additionalProperties": true,
+      "description": "Ссылки DataLens Editor; меняйте placeholders.",
+      "type": "object"
+    },
+    "params": {
+      "additionalProperties": {
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "rows": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "comparator_value": {
+            "description": "Явное значение для сравнения",
+            "examples": [
+              120
+            ],
+            "type": "number"
+          },
+          "current_value": {
+            "description": "Текущее значение показателя",
+            "examples": [
+              128
+            ],
+            "type": "number"
+          },
+          "sparkline": {
+            "description": "Последовательность значений мини-графика",
+            "examples": [
+              "[82,91,97,104,128]"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "current_value",
+          "comparator_value",
+          "sparkline"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "rows",
+    "meta",
+    "params"
+  ],
+  "title": "Показатель: дельта и тренд",
+  "type": "object"
+}

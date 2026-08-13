@@ -10,7 +10,7 @@
 - Запрос содержит `Authorization: Bearer <IAM_TOKEN>`, `x-dl-org-id`,
   `x-dl-api-version`, `content-type: application/json` и
   `accept: application/json`.
-- `DATALENS_API_VERSION=auto` выбирает версию, закреплённую в скомпилированном контракте.
+- Значение `x-dl-api-version` всегда берётся из закреплённого OpenAPI-контракта и не настраивается отдельно.
 - Диагностика очищается от токенов, заголовков авторизации, паролей и закрытых ключей.
 
 ## Статус метода

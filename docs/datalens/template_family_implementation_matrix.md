@@ -1,6 +1,11 @@
 # Template Family Implementation Matrix
 
 Generated from `templates/datalens/standard_chart_templates.json` for final activation.
+Rows describe available Editor implementations, including explicit-JavaScript
+variants. Canonical default routing is controlled separately by
+`config/datalens_chart_param_matrix.json`; for example, `funnel_snapshot`
+defaults to native Wizard `funnel` while its Editor recipe remains available
+after a direct JavaScript request.
 
 | Family | Route | Template | Status | Implemented Behavior | Required Inputs | Fallback |
 | --- | --- | --- | --- | --- | --- | --- |

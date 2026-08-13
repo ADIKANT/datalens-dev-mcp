@@ -21,7 +21,7 @@ class FinalNoGapFinding:
 class FinalNoGapResult:
     ok: bool
     findings: list[FinalNoGapFinding] = field(default_factory=list)
-    schema_version: str = "2026-06-30.final_no_gap_validator.v1"
+    schema_id: str = "final_no_gap_validator"
 
     def to_dict(self) -> dict[str, Any]:
         return {**asdict(self), "findings": [finding.to_dict() for finding in self.findings]}

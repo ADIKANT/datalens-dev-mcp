@@ -10,6 +10,8 @@
  * - Interactions: interactions stay explicit and selector bindings are represented outside chart body.
  * - Extension points: future edits should change schema, params, or shared helpers before ad hoc JS.
  */
+// @cookbook-locale ru Prepare принимает временные интервалы из Sources и не требует изменений при стабильных aliases.
+// @cookbook-locale en Prepare consumes time intervals from Sources and needs no changes while aliases stay stable.
 /* __DATALENS_SHARED_STYLE_TOKENS__ */
 /* __DATALENS_SHARED_RENDER_HELPERS__ */
 const TEMPLATE_VARIANT = '__TEMPLATE_VARIANT__';

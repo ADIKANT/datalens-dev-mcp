@@ -10,6 +10,8 @@
  * - Interactions: interactions stay explicit and selector bindings are represented outside chart body.
  * - Extension points: future edits should change schema, params, or shared helpers before ad hoc JS.
  */
+// @cookbook-locale ru Числовые поля проверяются до построения распределения или связи.
+// @cookbook-locale en Numeric fields are validated before rendering a distribution or relationship.
 /* __DATALENS_SHARED_STYLE_TOKENS__ */
 /* __DATALENS_SHARED_RENDER_HELPERS__ */
 const TEMPLATE_VARIANT = '__TEMPLATE_VARIANT__';

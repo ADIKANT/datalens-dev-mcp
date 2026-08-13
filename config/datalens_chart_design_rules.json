@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-07-15.chart_design_rules.public.v1",
+  "schema_id": "chart_design_rules.public",
   "source_trace": [
     "project-authored visual quality policy",
     "https://yandex.cloud/ru/docs/datalens/visualization-ref/",

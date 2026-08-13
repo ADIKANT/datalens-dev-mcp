@@ -12,7 +12,7 @@ from datalens_dev_mcp.serialization import sanitize_response, serialized_metadat
 from datalens_dev_mcp.validators.editor_sql_lint import lint_editor_sql_text
 
 
-SCHEMA_VERSION = "2026-06-25.sql_performance.v1"
+SCHEMA_ID = "sql_performance"
 ARTIFACT_DIR = "artifacts/sql_performance"
 AGGREGATE_FUNCTIONS = {
     "avg",
@@ -96,7 +96,7 @@ def analyze_sql(
     if not tokens:
         return {
             "ok": False,
-            "schema_version": SCHEMA_VERSION,
+            "schema_id": SCHEMA_ID,
             "source_name": source_name,
             "source_hash": _sha256(sql),
             "parser": "tokenized_clickhouse_subset",
@@ -123,7 +123,7 @@ def analyze_sql(
     parse_status = "ok" if not lexical_issues and not parsed["partial_spans"] else "parse_partial"
     return {
         "ok": not any(item["severity"] == "error" for item in diagnostics),
-        "schema_version": SCHEMA_VERSION,
+        "schema_id": SCHEMA_ID,
         "source_name": source_name,
         "source_hash": _sha256(sql),
         "parser": "tokenized_clickhouse_subset",
@@ -174,7 +174,7 @@ def analyze_aggregation_grain(payload: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "ok": not blockers,
-        "schema_version": SCHEMA_VERSION,
+        "schema_id": SCHEMA_ID,
         "dataset_id": dataset["dataset_id"],
         "physical_source_grain": dataset["physical_grain"],
         "dataset_output_grain": dataset["output_grain"],
@@ -234,7 +234,7 @@ def analyze_semantic_graph(payload: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "ok": not any(item["severity"] == "error" for item in findings),
-        "schema_version": SCHEMA_VERSION,
+        "schema_id": SCHEMA_ID,
         "datasets": [dataset["dataset_id"] for dataset in datasets],
         "active_chart_count": len(active_ids) or sum(1 for chart in charts if chart.get("active", True)),
         "edges": edges,
@@ -285,7 +285,7 @@ def profile_performance(payload: dict[str, Any]) -> dict[str, Any]:
             stage_plans.append(_stage_isolation_plan(row, sql_report))
     return {
         "ok": True,
-        "schema_version": SCHEMA_VERSION,
+        "schema_id": SCHEMA_ID,
         "coverage": {
             "chart_count": len(rows),
             "measured_chart_count": sum(1 for row in rows if row["timing_status"] == "measured"),
@@ -379,7 +379,7 @@ def plan_optimizations(payload: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "ok": not any(item.get("status") == "unsafe" for item in blocked),
-        "schema_version": SCHEMA_VERSION,
+        "schema_id": SCHEMA_ID,
         "automatic_mutation": False,
         "approximate_distinct_allowed": False,
         "hard_history_cap_allowed": False,
@@ -522,7 +522,7 @@ def validate_project_sql_performance(project_root: str | Path = ".") -> dict[str
         issues.append("zero_semantic_sql_coverage: checked_sql_count is 0; an empty fixture cannot produce a pass")
     result = {
         "ok": not issues,
-        "schema_version": SCHEMA_VERSION,
+        "schema_id": SCHEMA_ID,
         "checked_sql_count": len(reports),
         "sql_hashes": [report.get("source_hash") for report in reports],
         "issues": issues,
@@ -607,7 +607,7 @@ def build_acceptance_summary(payload: dict[str, Any] | None = None) -> dict[str,
         and bool(graph.get("ok") is False)
         and bool(performance.get("timing_sources_are_separated", True))
         and not bool(optimization.get("automatic_mutation", True)),
-        "schema_version": SCHEMA_VERSION,
+        "schema_id": SCHEMA_ID,
         "sql_analyzer_accuracy": {
             "golden_cases": len(sql_reports),
             "detected_rules": sorted(incident_rules),
@@ -629,7 +629,7 @@ def build_acceptance_summary(payload: dict[str, Any] | None = None) -> dict[str,
 
 def inspector_import_contract() -> dict[str, Any]:
     return {
-        "schema_version": "2026-06-25.browser_inspector_import.v1",
+        "schema_id": "browser_inspector_import",
         "signed_import_required": True,
         "fields": [
             "chart_id",
@@ -841,7 +841,7 @@ def build_reviewed_sql_semantic_cases() -> dict[str, Any]:
             }
         )
     return {
-        "schema_version": SCHEMA_VERSION,
+        "schema_id": SCHEMA_ID,
         "review_status": "reviewed_template_corpus",
         "sql_cases": sql_cases,
         "semantic_cases": semantic_cases,
@@ -891,7 +891,7 @@ def run_reviewed_case_corpus(corpus: dict[str, Any] | None = None) -> dict[str, 
     stability_hash = _sha256(stable_json_text({"sql": sql_results, "semantic": semantic_results}))
     return {
         "ok": not any(item["missing_rules"] for item in [*sql_results, *semantic_results]),
-        "schema_version": SCHEMA_VERSION,
+        "schema_id": SCHEMA_ID,
         "review_status": corpus["review_status"],
         "case_count": corpus["case_count"],
         "sql_case_count": len(sql_results),

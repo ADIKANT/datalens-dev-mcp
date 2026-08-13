@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "additionalProperties": true,
+      "description": "Ссылки DataLens Editor; меняйте placeholders.",
+      "type": "object"
+    },
+    "params": {
+      "additionalProperties": {
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "rows": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "description": "Отображаемая подпись варианта",
+            "examples": [
+              "Сегмент A"
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "value": {
+            "description": "Стабильное значение варианта, записываемое в Params",
+            "examples": [
+              "segment_a"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "rows",
+    "meta",
+    "params"
+  ],
+  "title": "Группа селекторов",
+  "type": "object"
+}

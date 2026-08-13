@@ -21,7 +21,7 @@ python3 scripts/smoke_mcp_stdio.py
 
 ## Execution mode
 
-Local config v2 includes:
+Local config includes:
 
 ```json
 {
@@ -45,7 +45,7 @@ Local config v2 includes:
   `confirm_delete=true` for the unchanged plan; arbitrary whole-object
   deletion is unavailable.
 
-Older local configuration is migrated to v2 when loaded. Use `dl_get_local_config` to inspect the effective settings.
+The server accepts only the current canonical local configuration. Use `dl_get_local_config` to inspect the effective settings.
 
 ## Canonical env file
 
@@ -55,7 +55,6 @@ Store credentials and hard-off switches outside the repository:
 DATALENS_ORG_ID=<ORGANIZATION_ID>
 DATALENS_IAM_TOKEN=<IAM_TOKEN>
 DATALENS_API_BASE_URL=https://api.datalens.tech
-DATALENS_API_VERSION=auto
 DATALENS_REQUEST_INTERVAL_SEC=1.05
 DATALENS_MAX_READ_CONCURRENCY=3
 DATALENS_READ_TRANSIENT_RETRIES=2
@@ -79,11 +78,11 @@ All clients in one process share a scheduler for the same API endpoint. Settings
 | --- | --- | --- | --- |
 | `request_interval_sec` | `DATALENS_REQUEST_INTERVAL_SEC` | `1.05` | Minimum interval between API request starts |
 | `max_read_concurrency` | `DATALENS_MAX_READ_CONCURRENCY` | `3` | From 1 to 3 independent reads in flight |
-| `read_transient_retries` | `DATALENS_READ_TRANSIENT_RETRIES` | `2` | From 0 to 2 safe-read retries after timeout, connection close/reset, or HTTP 502/503/504 |
+| `read_transient_retries` | `DATALENS_READ_TRANSIENT_RETRIES` | `2` | From 0 to 2 safe-read retries after timeout, TLS handshake timeout/unexpected EOF, connection close/reset, or HTTP 502/503/504 |
 | `rate_limit_retries` | `DATALENS_RATE_LIMIT_RETRIES` | `6` | Read retries after the shared HTTP 429 cooldown |
 | `request_timeout_sec` | `DATALENS_REQUEST_TIMEOUT_SEC` | `30` | Timeout for one HTTP request |
 
-An interval of `1.05` permits about 57 request starts per minute, leaving headroom under the [60 requests per minute per-user limit](https://yandex.cloud/ru/docs/datalens/concepts/limits). Independent reads may overlap, but every start passes through the shared limiter. Fresh read/write/save/readback/publish sequences are exclusive, and an ambiguous write is never retried automatically. HTTP 429 pauses every new start for `Retry-After` and temporarily reduces read concurrency to one worker.
+An interval of `1.05` permits about 57 request starts per minute, leaving headroom under the [60 requests per minute per-user limit](https://yandex.cloud/ru/docs/datalens/concepts/limits). Independent reads may overlap, but every start passes through the shared limiter. A TLS certificate failure is terminal rather than transient. Fresh read/write/save/readback/publish sequences are exclusive, and an ambiguous write is never retried automatically; it requires readback/reconciliation. HTTP 429 pauses every new start for `Retry-After` and temporarily reduces read concurrency to one worker.
 
 ## Hard-off switches
 

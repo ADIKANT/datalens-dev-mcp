@@ -495,7 +495,7 @@ def _inline_title_issues(payload: Any, *, strict: bool) -> list[DashboardPayload
                             path=path,
                             message=f"Unknown title_mode {title_mode!r}.",
                             object_type=object_type,
-                            suggested_fix="Use a registered Renderer Visual Spec v5 title_mode.",
+                            suggested_fix="Use the registered Renderer Visual Spec title_mode.",
                         )
                     )
             if title and object_type in {"advanced_editor", "editor_chart", "widget"}:

@@ -45,6 +45,6 @@
   "response_schema_closure_refs": [],
   "response_schema_hash": "",
   "response_schema_ref": "",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "guarded_plan_only"
 }

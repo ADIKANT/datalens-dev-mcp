@@ -69,6 +69,31 @@ def compact_chars(value):
 
 
 class McpObjectLifecycleToolTests(unittest.TestCase):
+    def test_transport_failures_are_not_reported_as_unknown_runtime_errors(self):
+        from datalens_dev_mcp.api.errors import DataLensApiError
+        from datalens_dev_mcp.mcp.tools.object_lifecycle import dl_read_object
+
+        class TransportFailingClient:
+            def rpc(self, method, payload):
+                raise DataLensApiError(
+                    f"{method} failed before HTTP response: transport_category=tls_handshake_timeout",
+                    request_phase="transport",
+                    response_received=False,
+                    transport_category="tls_handshake_timeout",
+                    retry_attempts=2,
+                    retry_exhausted=True,
+                )
+
+        result = dl_read_object(
+            object_type="editor_chart",
+            object_id="chart_fixture",
+            branch="saved",
+            client=TransportFailingClient(),
+        )
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["category"], "transport_failure")
+
     def test_server_lists_object_lifecycle_tools_without_sync_tools(self):
         from datalens_dev_mcp.server import list_tools
 
@@ -358,8 +383,8 @@ class McpObjectLifecycleToolTests(unittest.TestCase):
                         self.assertEqual(result["object_id"], "dataset_1")
                         self.assertEqual(result["branch"], "")
                         self.assertEqual(
-                            result["contract"]["schema_version"],
-                    "2026-07-29.object_read_registry.v2",
+                            result["contract"]["schema_id"],
+                    "object_read_registry",
                         )
                         self.assertTrue(result["contract"]["truncated"])
                         self.assertTrue(Path(result["artifact"]["path"]).is_file())

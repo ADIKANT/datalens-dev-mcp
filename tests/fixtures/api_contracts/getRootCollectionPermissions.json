@@ -15,6 +15,6 @@
   ],
   "response_schema_hash": "55e589ccce882e9968ddede35f90eae1bc2fd13a7523a1ad1b09b51d19330053",
   "response_schema_ref": "GetRootCollectionPermissionsResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "supported_tool"
 }

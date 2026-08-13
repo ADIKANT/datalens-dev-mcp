@@ -75,7 +75,7 @@ class ApprovalIntentDecision:
     literal_chat_phrase_required: bool = False
     delivery_state: str = ""
     delivery_reason: str = ""
-    policy: str = "2026-07-01.delivery_approval_policy_v4"
+    policy: str = "delivery_approval_policy"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

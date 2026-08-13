@@ -21,7 +21,7 @@
 
 - Required: —
 - Optional: `config_path`, `project_root`
-- Возвращает объединённую local config v2 и источник настроек. Поля с секретами очищаются.
+- Возвращает объединённую local config и источник настроек. Поля с секретами очищаются.
 
 ### `dl_runtime_status`
 
@@ -116,10 +116,10 @@
   `dataset_readbacks`, если они переданы, проверяют Wizard field GUID и роли;
   отсутствие аргумента не подменяется пустым readback.
   Для create/full redesign без явного профиля применяется
-  `standard_dashboard_v1`; `strict_dashboard` — его alias. Сначала сохраняется
+  `standard_dashboard`; `strict_dashboard` — его alias. Сначала сохраняется
   канонический Wizard-first route, затем защищённый renderer того же профиля
   применяется только к выбранным Editor-объектам. Исторические имена профилей
-  являются aliases и сразу нормализуются в `standard_dashboard_v1`; старые
+  являются aliases и сразу нормализуются в `standard_dashboard`; старые
   assets и поведение не исполняются даже при update существующего dashboard.
 - `chart_specs` выполняет до 100 виджетов одним batch-вызовом и возвращает
   компактные статусы и artifact paths вместо содержимого tabs. Strict
@@ -147,7 +147,7 @@
 - Required: `decision_text`
 - Optional: `project_root`, `decision_id`, `decision_patch`
 - Записывает читаемую коррекцию в `requirements/user_decisions.md`.
-  `decision_patch` дополнительно создаёт hash-bound ledger v2 со scope
+  `decision_patch` дополнительно создаёт hash-bound ledger со scope
   `project`, `family` или `object`, metric/Visual Spec overlay, semantic roles
   и `supersedes`. Поле `acceptance_criteria` сохраняет проверяемые коррекции
   из пользовательского или browser review и привязывает их к последующей

@@ -32,7 +32,7 @@ class VisualQualityGateTests(unittest.TestCase):
         result = validate_visual_quality_contract(spec)
 
         self.assertTrue(result.ok, [finding.to_dict() for finding in result.findings])
-        self.assertEqual(spec["schema_version"], "2026-08-06.renderer_visual_intent.v1")
+        self.assertEqual(spec["schema_id"], "renderer_visual_intent")
         self.assertEqual(spec["value_semantics"]["missing_label"], "N/A")
         self.assertTrue(spec["value_semantics"]["observed_zero_distinct_from_missing"])
         self.assertEqual(spec["formatting"]["axis_tick_strategy"], "nice_1_2_2_5_5_10")
@@ -46,7 +46,7 @@ class VisualQualityGateTests(unittest.TestCase):
             spec["colors"]["semantic_roles"]["focus"],
         )
 
-    def test_v3_spec_blocks_future_zero_fill_fixed_min_width_and_implicit_ellipsis(self):
+    def test_spec_blocks_future_zero_fill_fixed_min_width_and_implicit_ellipsis(self):
         from datalens_dev_mcp.editor.visual_spec import build_renderer_visual_spec
         from datalens_dev_mcp.pipeline.visual_quality import validate_visual_quality_contract
 

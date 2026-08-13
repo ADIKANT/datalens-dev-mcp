@@ -17,6 +17,6 @@
   ],
   "response_schema_hash": "086545bfa95835309c152e6c6389b8508e8e42668d32ef2f90c3d4dd3f4d1dc2",
   "response_schema_ref": "GetPermissionsBulkResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "supported_tool"
 }

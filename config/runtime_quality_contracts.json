@@ -25,15 +25,15 @@
     ]
   },
   "kpi_indicator": {
+    "contract_id": "kpi_indicator_contract",
     "previous_period_delta": "explicit_only",
-    "separate_objects": true,
-    "version": "2026-07-01.kpi_indicator_contract"
+    "separate_objects": true
   },
   "native_table": {
+    "contract_id": "native_table_contract",
     "html_svg_div_tables": "blocked",
     "required_route": "wizard_native",
     "specialized_js_route": "editor_table",
-    "version": "2026-07-01.native_table_contract_v2",
     "visualization_id": "flatTable"
   },
   "object_granularity": {
@@ -59,6 +59,7 @@
       "selector": "editor_js_control",
       "standard_chart": "wizard_native"
     },
+    "contract_id": "route_selection_policy",
     "forbidden_silent_fallbacks": [
       "failed_wizard_request_to_js",
       "automatic_ql_selection",
@@ -67,10 +68,9 @@
       "kpi_group_to_html_card_grid",
       "dataset_to_embedded_js"
     ],
-    "policy_artifact": "config/route_selection_policy_v5.json",
-    "version": "2026-07-13.route_selection_policy_v5"
+    "policy_artifact": "config/route_selection_policy.json"
   },
-  "schema_version": "2026-07-01.final_runtime_quality_contracts",
+  "schema_id": "final_runtime_quality_contracts",
   "selector_layout": {
     "native_object_type": "control_node",
     "overflow": "new_row",

@@ -269,7 +269,7 @@ def load_standard_template_bundle(
         tabs=tabs,
     )
     return {
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "widget_id": widget_id,
         "name": _canonical_name(route=route, title=title, technical_key=widget_id),
         "display_title": title,
@@ -366,6 +366,13 @@ def _selector_controls_js(
         f"      width: '{width}',\n"
         "      updateOnChange: true,\n"
     )
+    header = (
+        "/**\n"
+        " * Ready-to-use DataLens Controls tab.\n"
+        " * EDIT HERE only when the parameter name, label, options, or reset contract must change.\n"
+        " * Keep labelPlacement, percentage width, and updateOnChange aligned with the dashboard profile.\n"
+        " */\n"
+    )
     if variant == "date_range_selector":
         if contract.get("param"):
             parameter_binding = f"      param: {json.dumps(contract['param'], ensure_ascii=False)},\n"
@@ -375,7 +382,8 @@ def _selector_controls_js(
                 f"      paramTo: {json.dumps(contract['param_to'], ensure_ascii=False)},\n"
             )
         return (
-            "module.exports = {\n"
+            header
+            + "module.exports = {\n"
             "  controls: [\n"
             "    {\n"
             "      type: 'range-datepicker',\n"
@@ -389,7 +397,12 @@ def _selector_controls_js(
     dynamic = variant == DYNAMIC_SELECTOR_FAMILY
     if dynamic:
         content_source = (
-            "const loaded = Editor.getLoadedData();\n"
+            header
+            + "const loaded = Editor.getLoadedData();\n"
+            "/** Convert either supported DataLens source shape into named row objects.\n"
+            " * @param {Array|Object} source Loaded source value.\n"
+            " * @returns {Array} Normalized rows.\n"
+            " */\n"
             "function preparedRows(source) {\n"
             "  if (Array.isArray(source)) {\n"
             "    const names = source.find((item) => item && item.event === 'metadata')?.data?.names || [];\n"
@@ -421,7 +434,7 @@ def _selector_controls_js(
         )
         content_expression = "content"
     else:
-        content_source = ""
+        content_source = header
         content_expression = json.dumps(contract["options"], ensure_ascii=False)
     multiselect = variant == "multi_select_dropdown"
     searchable = variant in {"multi_select_dropdown", "search_selector", "selector_family_dynamic"}
@@ -476,10 +489,20 @@ def _selector_params_js(
 def _selector_group_controls_js(contract: dict[str, Any]) -> str:
     controls = list(contract.get("controls") or [])
     has_dynamic = any(item.get("family") == DYNAMIC_SELECTOR_FAMILY for item in controls)
-    preamble = ""
+    preamble = (
+        "/**\n"
+        " * Ready-to-use DataLens selector group.\n"
+        " * EDIT HERE only for explicit parameters, labels, option values, or source field names.\n"
+        " * Keep the planned rows, left labels, immediate updates, and 94 percent row totals unchanged.\n"
+        " */\n"
+    )
     if has_dynamic:
-        preamble = (
+        preamble += (
             "const loaded = Editor.getLoadedData();\n"
+            "/** Convert a DataLens event stream or result object into named rows.\n"
+            " * @param {Array|Object} source Loaded source value.\n"
+            " * @returns {Array} Normalized rows.\n"
+            " */\n"
             "function preparedRows(source) {\n"
             "  if (Array.isArray(source)) {\n"
             "    const names = source.find((item) => item && item.event === 'metadata')?.data?.names || [];\n"
@@ -492,6 +515,11 @@ def _selector_group_controls_js(contract: dict[str, Any]) -> str:
             "  const names = fields.map((field, index) => String(field.title || field.guid || index));\n"
             "  return rows.map((row) => Object.fromEntries(row.map((value, index) => [names[index] || `column_${index + 1}`, value])));\n"
             "}\n"
+            "/** Build unique selector options from one loaded source.\n"
+            " * @param {string} sourceName Sources export name.\n"
+            " * @param {string} valueField Stable output field used as the option value.\n"
+            " * @returns {Array} Unique native control options.\n"
+            " */\n"
             "function selectorOptions(sourceName, valueField) {\n"
             "  const seen = new Set();\n"
             "  return preparedRows(loaded[sourceName] || []).flatMap((row) => {\n"
@@ -626,6 +654,11 @@ def build_dataset_source_binding(
     tabs = {
         "meta.json": json.dumps({"links": {"dataset": alias}}, ensure_ascii=False, indent=2),
         "sources.js": (
+            "/**\n"
+            " * EDIT HERE: bind Meta.dataset to your DataLens dataset and list its stable output fields below.\n"
+            " * Keep the exported source name `rows`; Params and Prepare are already wired to it.\n"
+            " * @type {Object}\n"
+            " */\n"
             "const {buildSource} = require('libs/dataset/v2');\n\n"
             "module.exports = {\n"
             "  rows: buildSource({\n"

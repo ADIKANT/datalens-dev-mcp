@@ -1,0 +1,27 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "dateFrom": [
+      "2026-01-01"
+    ],
+    "dateTo": [
+      "2026-01-30"
+    ],
+    "segment": [],
+    "status": []
+  },
+  "rows": [
+    {
+      "title": "Segment A",
+      "value": "segment_a"
+    },
+    {
+      "title": "Segment B",
+      "value": "segment_b"
+    }
+  ]
+}

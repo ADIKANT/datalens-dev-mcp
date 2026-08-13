@@ -8,7 +8,7 @@ from typing import Any
 
 
 DEFAULT_LOCAL_CONFIG: dict[str, Any] = {
-    "schema_version": "2026-07-19.datalens_mcp_local_config.v3",
+    "schema_id": "datalens_mcp_local_config",
     "defaults": {
         "workbook_id": "<WORKBOOK_ID>",
         "project_id": "<PROJECT_ID>",
@@ -105,13 +105,12 @@ DEFAULT_LOCAL_CONFIG: dict[str, Any] = {
     },
 }
 
-LOCAL_CONFIG_SCHEMA_VERSION = "2026-07-19.datalens_mcp_local_config.v3"
+LOCAL_CONFIG_SCHEMA_ID = "datalens_mcp_local_config"
 ALLOWED_EXECUTION_MODES = {"follow_user_request"}
 ALLOWED_READBACK_MODES = {"none", "minimal", "full", "debug"}
 ALLOWED_VALIDATION_STRICTNESS = {"permissive", "normal", "strict"}
 ALLOWED_CHART_CREATION_ROUTES = {"wizard_native", "advanced_editor_js", "ql_explicit"}
 TOP_LEVEL_KEYS = set(DEFAULT_LOCAL_CONFIG)
-LEGACY_TOP_LEVEL_KEYS = {"mcp", "safe_mode", "approval_gates"}
 
 
 def load_local_config(config_path: str | Path | None = None, *, project_root: str | Path = ".") -> dict[str, Any]:
@@ -123,12 +122,8 @@ def load_local_config(config_path: str | Path | None = None, *, project_root: st
         if is_project_live_manifest_payload(data):
             project_manifest = data
             data = {}
-    data, config_migrations = _migrate_local_config_v2(data)
-    data, routing_migrations = _migrate_legacy_routing_config(data)
-    migrations = [*config_migrations, *routing_migrations]
     config = _deep_merge(DEFAULT_LOCAL_CONFIG, data)
     validate_local_config(config)
-    config.pop("mcp", None)
     requested_project_profile = project_manifest.get("authoring_profile") if project_manifest else ""
     normalized_project_profile = requested_project_profile
     if requested_project_profile:
@@ -143,7 +138,6 @@ def load_local_config(config_path: str | Path | None = None, *, project_root: st
     config["_meta"] = {
         "config_path": str(path) if path else "",
         "loaded_from_file": bool(path and path.is_file() and not project_manifest),
-        "compatibility_migrations": migrations,
         "project_manifest_detected": bool(project_manifest),
         "project_manifest_path": str(path) if project_manifest and path else "",
         "project_authoring_profile": normalized_project_profile,
@@ -166,12 +160,12 @@ def is_project_live_manifest_payload(value: Any) -> bool:
 
 
 def validate_local_config(config: dict[str, Any]) -> None:
-    unknown_top_level = sorted(set(config) - TOP_LEVEL_KEYS - LEGACY_TOP_LEVEL_KEYS - {"_meta"})
+    unknown_top_level = sorted(set(config) - TOP_LEVEL_KEYS - {"_meta"})
     if unknown_top_level:
         raise ValueError(f"unknown local config sections: {unknown_top_level}")
 
-    if config.get("schema_version") != LOCAL_CONFIG_SCHEMA_VERSION:
-        raise ValueError(f"schema_version must be {LOCAL_CONFIG_SCHEMA_VERSION}")
+    if config.get("schema_id") != LOCAL_CONFIG_SCHEMA_ID:
+        raise ValueError(f"schema_id must be {LOCAL_CONFIG_SCHEMA_ID}")
 
     execution = config.get("execution") or {}
     execution_mode = execution.get("default")
@@ -299,103 +293,6 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
         else:
             merged[key] = copy.deepcopy(value)
     return merged
-
-
-def _migrate_legacy_routing_config(data: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
-    """Normalize the pre-v5 map-only local config without rewriting the file."""
-
-    migrated = copy.deepcopy(data)
-    routing = migrated.get("routing")
-    if not isinstance(routing, dict):
-        return migrated, []
-    changes: list[str] = []
-    routes = routing.get("chart_creation_routes")
-    if isinstance(routes, list) and "wizard_map_native" in routes:
-        normalized = ["wizard_native" if route == "wizard_map_native" else route for route in routes]
-        if "ql_explicit" not in normalized:
-            normalized.append("ql_explicit")
-        routing["chart_creation_routes"] = list(dict.fromkeys(normalized))
-        changes.append("routing.chart_creation_routes:wizard_map_native->wizard_native+ql_explicit")
-    legacy_wizard = routing.pop("wizard_map_native", None)
-    if isinstance(legacy_wizard, dict):
-        routing.setdefault(
-            "wizard_map_native_alias",
-            {"enabled": bool(legacy_wizard.get("enabled", True)), "visualization_id": "geolayer"},
-        )
-        changes.append("routing.wizard_map_native->wizard_map_native_alias")
-    if routing.get("ql_behavior") == "reference_only":
-        routing["ql_behavior"] = "explicit_user_request_only"
-        changes.append("routing.ql_behavior:reference_only->explicit_user_request_only")
-    forbidden = routing.get("forbidden_routes")
-    if isinstance(forbidden, list):
-        obsolete = {"ql_chart_creation", "non_map_wizard_chart_creation", "native_first_fallback"}
-        normalized_forbidden = [route for route in forbidden if route not in obsolete]
-        for required in ("automatic_ql_selection", "runtime_route_fallback"):
-            if required not in normalized_forbidden:
-                normalized_forbidden.append(required)
-        if normalized_forbidden != forbidden:
-            routing["forbidden_routes"] = normalized_forbidden
-            changes.append("routing.forbidden_routes:route_policy_v5")
-    return migrated, changes
-
-
-def _migrate_local_config_v2(data: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
-    """Normalize older execution, approval, and selector defaults into the current contract."""
-
-    migrated = copy.deepcopy(data)
-    changes: list[str] = []
-    supplied_version = str(migrated.get("schema_version") or "")
-    legacy_version = supplied_version.endswith("datalens_mcp_local_config.v1")
-    legacy_v2 = supplied_version.endswith("datalens_mcp_local_config.v2")
-    legacy_safe_mode = migrated.pop("safe_mode", None)
-    legacy_approval = migrated.pop("approval_gates", None)
-    supplied_safe_apply = migrated.get("safe_apply")
-    legacy_safe_apply = isinstance(supplied_safe_apply, dict) and bool(
-        {
-            "require_approved_plan_path",
-            "require_approval_flag",
-            "require_env_write_enablement",
-            "allow_publish_by_default",
-        }
-        & set(supplied_safe_apply)
-    )
-    if legacy_version or legacy_v2 or isinstance(legacy_safe_mode, dict) or isinstance(legacy_approval, dict) or legacy_safe_apply:
-        migrated["schema_version"] = LOCAL_CONFIG_SCHEMA_VERSION
-        execution = migrated.setdefault("execution", {})
-        if isinstance(execution, dict):
-            execution.update(
-                {
-                    "default": "follow_user_request",
-                    "writes": True,
-                    "save": True,
-                    "publish": True,
-                    "delete_requires_confirmation": True,
-                }
-            )
-        safe_apply = migrated.setdefault("safe_apply", {})
-        if isinstance(safe_apply, dict):
-            for obsolete in (
-                "require_approved_plan_path",
-                "require_approval_flag",
-                "require_env_write_enablement",
-                "allow_publish_by_default",
-            ):
-                safe_apply.pop(obsolete, None)
-            if isinstance(legacy_safe_mode, dict):
-                for key in ("require_safe_apply_plan", "require_fresh_read", "preserve_revision"):
-                    if key in legacy_safe_mode:
-                        safe_apply[key] = legacy_safe_mode[key]
-        if legacy_version or isinstance(legacy_safe_mode, dict) or isinstance(legacy_approval, dict) or legacy_safe_apply:
-            changes.append("local_config:v1->v3_follow_user_request")
-        if legacy_version or legacy_v2:
-            selectors = migrated.setdefault("selectors", {})
-            if isinstance(selectors, dict) and int(selectors.get("row_width_percent") or 96) == 96:
-                selectors["row_width_percent"] = 94
-                if int(selectors.get("max_selector_width_percent") or 0) > 94:
-                    selectors["max_selector_width_percent"] = 94
-        if legacy_v2:
-            changes.append("local_config:v2->v3_responsive_selector_budget")
-    return migrated, changes
 
 
 def _is_placeholder(value: str) -> bool:

@@ -1,32 +1,25 @@
 {
-  "schema_version": "2026-08-06.editor_authoring_profiles.v4",
+  "schema_id": "editor_authoring_profiles",
   "source_basis": [
     "templates/datalens/standard_chart_templates.json",
     "templates/datalens/advanced_editor/_shared/style_tokens.js",
     "templates/datalens/advanced_editor/_shared/render_helpers.js"
   ],
   "profiles": {
-    "standard_dashboard_v1": {
+    "standard_dashboard": {
       "aliases": [
-        "standard_dashboard",
         "strict_dashboard",
         "registered_dashboard",
-        "standard_dashboard_v2",
         "standard_editor",
         "standard_js",
-        "registered_editor",
-        "standard_editor_v1",
-        "standard_editor_v2",
-        "standard_editor_v3",
-        "registered_editor_v2",
-        "registered_editor_v3"
+        "registered_editor"
       ],
       "description": "Use one canonical Wizard-first dashboard contract and the exact protected renderer for every selected Editor route.",
       "route_policy": "canonical_route_then_registered_editor",
       "template_policy": "exact_registered_asset",
       "fallback_policy": "block",
       "family_registry": "templates/datalens/standard_chart_templates.json",
-      "template_set_sha256": "6ce84e5e14cefa09beb8774f5d8b306fdaee212532fbfda8b5acebd5e4ca20a4",
+      "template_set_sha256": "4fc1a7a8c7fd36d609372d75a131b52832202617e7a27fc8f1656ee83649177b",
       "allowed_routes": [
         "wizard_native",
         "editor_advanced",
@@ -35,14 +28,14 @@
         "editor_js_control"
       ],
       "style_contract": {
-        "render_profile_id": "standard_dashboard_v1",
-        "render_profile_sha256": "feb155602f22bbd30926b1a6b38de10fe0a317eb118fb0e83bd0e84a8eaba67d",
-        "render_compiler_version": "2026-08-06.resolved_render_contract.v5",
-        "renderer_visual_spec": "2026-08-06.renderer_visual_spec.v5",
-        "editor_render_profile": "standard_dashboard_v1",
-        "runtime_sha256": "790657cf4e79ea435038e28b343d6db0475ca0909e69ac06d8a9831942c84a3a",
-        "adapter_sha256": "e24a4ebd8c04e3a508b6da2456335a1a2547a7ed4b08280ead16f1fecc15602a",
-        "dashboard_composition": "2026-08-06.dashboard_composition.v2",
+        "render_profile_id": "standard_dashboard",
+        "render_profile_sha256": "70fb8647e0ed8fe5f6f8dbab1f4aceda07b780e73de1a1c9cee55cb07ce41135",
+        "render_compiler_id": "resolved_render_contract",
+        "renderer_visual_spec": "renderer_visual_spec",
+        "editor_render_profile": "standard_dashboard",
+        "runtime_sha256": "c3e69739a22f825f80654afd0a70a9602e7cb1f63c5cfcda1f3dc7040ea96e13",
+        "adapter_sha256": "facfa61fb1a75e8c0abc1fc520b1b80b6f13f65f1135c3c531f544a5cfded407",
+        "dashboard_composition": "dashboard_composition",
         "template_identity": "sha256",
         "compiled_identity": "composite_sha256",
         "fallback": "block"

@@ -68,7 +68,7 @@ URI_ESCAPE_WRAPPER_NAMES = {"esc", "escapeHtml"}
 RENDER_WRAP_RE = re.compile(r"render\s*:\s*Editor\.wrapFn\s*\(\s*\{", re.S)
 CONTRACT_RESOURCE = "validators/editor_runtime_contract.json"
 ALLOWLIST_RESOURCE = "schemas/datalens-api/editor-runtime-allowlist.json"
-EDITOR_VALIDATION_CACHE_VERSION = "2026-07-23.editor_validation_cache.v2"
+EDITOR_VALIDATION_CACHE_ID = "editor_validation_cache"
 EDITOR_VALIDATION_CACHE_MAX_ENTRIES = 128
 _EDITOR_VALIDATION_CACHE: OrderedDict[str, dict[str, Any]] = OrderedDict()
 _EDITOR_VALIDATION_CACHE_LOCK = RLock()
@@ -233,8 +233,8 @@ def _validate_editor_runtime_contract_uncached(value: dict[str, Any]) -> dict[st
     warnings = [finding for finding in findings if finding["severity"] == "warning"]
     return {
         "ok": not blocking,
-        "schema_version": "2026-06-25.editor_runtime_contract.result.v2",
-        "rule_version": contract["rule_version"],
+        "schema_id": "editor_runtime_contract.result",
+        "rule_id": contract["rule_id"],
         "source": "<payload>",
         "allow_unknown_warnings": False,
         "blocking_warning_rules": sorted(blocking_warning_rules),
@@ -269,7 +269,7 @@ def _packaged_editor_validation_rule_token() -> str:
 
 def _build_editor_validation_rule_token() -> str:
     digest = hashlib.sha256()
-    digest.update(EDITOR_VALIDATION_CACHE_VERSION.encode("utf-8"))
+    digest.update(EDITOR_VALIDATION_CACHE_ID.encode("utf-8"))
     for relative in (CONTRACT_RESOURCE, ALLOWLIST_RESOURCE):
         try:
             digest.update(resource_text(relative).encode("utf-8"))
@@ -914,7 +914,7 @@ def _finding(
         "severity": severity,
         "layer": layer,
         "rule": rule,
-        "rule_version": contract["rule_version"],
+        "rule_id": contract["rule_id"],
         "path": path,
         "line": line,
         "source": source,
@@ -940,7 +940,7 @@ def _date_range_rerender_findings(
             "severity": "warning",
             "layer": "selector_runtime_safety",
             "rule": str(item["rule"]),
-            "rule_version": contract["rule_version"],
+            "rule_id": contract["rule_id"],
             "path": path,
             "line": line,
             "source": source,

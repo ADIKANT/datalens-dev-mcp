@@ -6,6 +6,8 @@ from pathlib import Path
 class WizardTemplateTests(unittest.TestCase):
     def _config(self, visualization_id, spec, *, saved_seed=None):
         bindings = {role: f"field_{index}" for index, role in enumerate(spec["required_roles"], start=1)}
+        if visualization_id == "funnel":
+            bindings["measures"] = ["stage_field", "value_field"]
         config = {
             "route": "wizard_native",
             "visualization_id": visualization_id,
@@ -24,7 +26,7 @@ class WizardTemplateTests(unittest.TestCase):
         from datalens_dev_mcp.pipeline.wizard_templates import build_wizard_payload_plan, load_wizard_template_registry
 
         registry = load_wizard_template_registry()
-        self.assertEqual(len(registry["templates"]), 16)
+        self.assertEqual(len(registry["templates"]), 17)
         for visualization_id, spec in registry["templates"].items():
             with self.subTest(visualization_id=visualization_id):
                 plan = build_wizard_payload_plan(self._config(visualization_id, spec))
@@ -147,6 +149,45 @@ class WizardTemplateTests(unittest.TestCase):
         self.assertTrue(valid["ok"], valid.get("validation"))
         self.assertFalse(invalid_geo["ok"])
         self.assertIn("requires a geographic field", "\n".join(invalid_geo["validation"]["errors"]))
+
+    def test_funnel_uses_native_id_and_combines_category_with_measures(self):
+        from datalens_dev_mcp.pipeline.route_registry import decide_registered_route
+        from datalens_dev_mcp.pipeline.wizard_templates import build_wizard_payload_plan
+
+        decision = decide_registered_route("funnel_snapshot")
+        plan = build_wizard_payload_plan(
+            {
+                "route": "wizard_native",
+                "visualization_id": "funnel",
+                "semantic_family": "funnel_snapshot",
+                "location": {"key": "folder/funnel"},
+                "dataset": "dataset_fixture",
+                "dimensions": [{"guid": "stage_guid", "type": "string", "title": "Stage"}],
+                "measures": [{"guid": "value_guid", "type": "float", "title": "Value"}],
+            }
+        )
+
+        self.assertEqual(decision.route, "wizard_native")
+        self.assertEqual(decision.visualization_id, "funnel")
+        self.assertTrue(plan["ok"], plan.get("validation"))
+        placeholders = plan["compiled_payload"]["data"]["visualization"]["placeholders"]
+        self.assertEqual([item["id"] for item in placeholders], ["measures"])
+        self.assertEqual(
+            [item["guid"] for item in placeholders[0]["items"]],
+            ["stage_guid", "value_guid"],
+        )
+
+        incomplete = build_wizard_payload_plan(
+            {
+                "route": "wizard_native",
+                "visualization_id": "funnel",
+                "location": {"key": "folder/incomplete-funnel"},
+                "dataset": "dataset_fixture",
+                "field_bindings": {"measures": ["value_guid"]},
+            }
+        )
+        self.assertFalse(incomplete["ok"])
+        self.assertIn("at least two bound items", "\n".join(incomplete["validation"]["errors"]))
 
     def test_saved_dataset_readback_makes_plan_live_ready_and_is_compacted(self):
         from datalens_dev_mcp.pipeline.wizard_templates import build_wizard_payload_plan

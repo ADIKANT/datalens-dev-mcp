@@ -14,8 +14,9 @@ from urllib.parse import urlparse
 from datalens_dev_mcp.validators.redaction import redact_text
 
 
-RUNTIME_GATE_SCHEMA_VERSION = "datalens.delta_v7.runtime_gate_evidence.v1"
-BROWSER_RUNTIME_SMOKE_SCHEMA_VERSION = "datalens.delta_v8.browser_runtime_smoke.v1"
+RUNTIME_GATE_SCHEMA_ID = "datalens.runtime_gate_evidence"
+BROWSER_RUNTIME_SMOKE_SCHEMA_ID = "datalens.browser_runtime_smoke"
+BROWSER_CAPTURE_SCHEMA_ID = "datalens.browser_capture"
 MAX_CAPTURE_IMAGE_DIMENSION = 65_535
 MAX_CAPTURE_IMAGE_PIXELS = 50_000_000
 MAX_CAPTURE_DECODED_BYTES = 256 * 1024 * 1024
@@ -91,11 +92,11 @@ def build_runtime_gate_evidence(
     rendering_pass = normalized == "passed" and not non_rendering_exemption.strip()
     selector_interaction: dict[str, Any] = {}
     scroll_check: dict[str, Any] = {}
-    browser_capture_schema_version = ""
+    browser_capture_schema_id = ""
     change_scope = ""
     viewport_checks: list[dict[str, Any]] = []
     if rendering_pass and capture:
-        browser_capture_schema_version = str(capture.get("schema_version") or "")
+        browser_capture_schema_id = str(capture.get("schema_id") or "")
         change_scope = str(capture.get("change_scope") or "")
         viewport_checks = [
             dict(item)
@@ -260,7 +261,7 @@ def build_runtime_gate_evidence(
     if normalized == "not_run" and blocked_reason:
         normalized = "blocked"
     return {
-        "schema_version": RUNTIME_GATE_SCHEMA_VERSION,
+        "schema_id": RUNTIME_GATE_SCHEMA_ID,
         "status": normalized,
         "target_url": target_url,
         "tab_id": tab_id,
@@ -272,7 +273,7 @@ def build_runtime_gate_evidence(
         "required_object_revisions": normalized_required_object_revisions,
         "revision_mismatch_object_ids": revision_mismatch_object_ids,
         "delivery_stage": str(delivery_stage or "").strip(),
-        "browser_capture_schema_version": browser_capture_schema_version,
+        "browser_capture_schema_id": browser_capture_schema_id,
         "change_scope": change_scope,
         "viewport_checks": viewport_checks,
         "changed_object_ids": changed_ids,
@@ -387,7 +388,7 @@ def build_browser_runtime_smoke(
     non_rendering_exemption: str = "",
     blocked_reason: str = "",
 ) -> dict[str, Any]:
-    """Build the v8 targeted browser/runtime smoke contract from observed text."""
+    """Build the canonical targeted browser/runtime smoke contract from observed text."""
 
     gate = build_runtime_gate_evidence(
         status=status,
@@ -423,7 +424,7 @@ def build_browser_runtime_smoke(
         blocked_reason=blocked_reason,
     )
     return {
-        "schema_version": BROWSER_RUNTIME_SMOKE_SCHEMA_VERSION,
+        "schema_id": BROWSER_RUNTIME_SMOKE_SCHEMA_ID,
         "status": gate["status"],
         "target_url": gate["target_url"],
         "tab_id": gate["tab_id"],
@@ -435,7 +436,7 @@ def build_browser_runtime_smoke(
         "required_object_revisions": gate["required_object_revisions"],
         "revision_mismatch_object_ids": gate["revision_mismatch_object_ids"],
         "delivery_stage": gate["delivery_stage"],
-        "browser_capture_schema_version": gate["browser_capture_schema_version"],
+        "browser_capture_schema_id": gate["browser_capture_schema_id"],
         "change_scope": gate["change_scope"],
         "viewport_checks": gate["viewport_checks"],
         "changed_chart_ids": gate["changed_object_ids"],
@@ -588,17 +589,13 @@ def validate_browser_capture_artifact(
                 "message": "browser capture sidecar must contain one JSON object",
             }
         )
-    capture_schema_version = str(document.get("schema_version") or "") if document else ""
-    if document and capture_schema_version not in {
-        "datalens.browser_capture.v1",
-        "datalens.browser_capture.v2",
-        "datalens.browser_capture.v3",
-    }:
+    capture_schema_id = str(document.get("schema_id") or "") if document else ""
+    if document and capture_schema_id != BROWSER_CAPTURE_SCHEMA_ID:
         issues.append(
             {
-                "rule": "browser_capture_schema_version",
+                "rule": "browser_capture_schema_id",
                 "path": str(sidecar_path),
-                "message": "browser capture sidecar has an unsupported schema_version",
+                "message": "browser capture sidecar has an unsupported schema_id",
             }
         )
     if document and str(document.get("status") or "").strip().lower() != "passed":
@@ -668,7 +665,7 @@ def validate_browser_capture_artifact(
             )
     if document:
         issues.extend(_browser_interaction_issues(document, path=sidecar_path))
-        if capture_schema_version in {"datalens.browser_capture.v2", "datalens.browser_capture.v3"}:
+        if capture_schema_id == BROWSER_CAPTURE_SCHEMA_ID:
             issues.extend(_responsive_viewport_issues(document, path=sidecar_path))
     capture_time_issue = _capture_time_issue(str(document.get("captured_at") or "")) if document else ""
     if capture_time_issue:
@@ -682,7 +679,7 @@ def validate_browser_capture_artifact(
     image = document.get("image_artifact") if isinstance(document.get("image_artifact"), dict) else {}
     image_validation = {"verified_artifacts": [], "image_artifacts": [], "image_details": {}, "issues": []}
     image_details: dict[str, Any] = {}
-    if capture_schema_version == "datalens.browser_capture.v1" or image:
+    if image:
         image_validation = _validate_capture_image_binding(
             image,
             sidecar_path=sidecar_path,
@@ -692,7 +689,7 @@ def validate_browser_capture_artifact(
         image_details = dict(image_validation.get("image_details") or {})
     viewport_validations: list[dict[str, Any]] = []
     viewport_image_details: list[dict[str, Any]] = []
-    if capture_schema_version in {"datalens.browser_capture.v2", "datalens.browser_capture.v3"}:
+    if capture_schema_id == BROWSER_CAPTURE_SCHEMA_ID:
         viewport_checks = document.get("viewport_checks")
         if isinstance(viewport_checks, list):
             for index, check in enumerate(viewport_checks):
@@ -744,7 +741,7 @@ def validate_browser_capture_artifact(
                             **dict(validation["image_details"]),
                         }
                     )
-    if capture_schema_version in {"datalens.browser_capture.v2", "datalens.browser_capture.v3"} and not viewport_validations:
+    if capture_schema_id == BROWSER_CAPTURE_SCHEMA_ID and not viewport_validations:
         issues.append(
             {
                 "rule": "browser_capture_viewport_screenshot_binding",
@@ -1032,7 +1029,7 @@ def _responsive_viewport_issues(
     path: Path,
 ) -> list[dict[str, str]]:
     issues: list[dict[str, str]] = []
-    capture_schema_version = str(document.get("schema_version") or "")
+    capture_schema_id = str(document.get("schema_id") or "")
     change_scope = str(document.get("change_scope") or "").strip()
     if change_scope not in {"content", "layout", "dashboard"}:
         issues.append(
@@ -1160,7 +1157,7 @@ def _responsive_viewport_issues(
                     f"{label} reports missing objects: {', '.join(missing_ids)}",
                 )
             )
-        if capture_schema_version == "datalens.browser_capture.v3":
+        if capture_schema_id == BROWSER_CAPTURE_SCHEMA_ID:
             truncated_ids = item.get("truncated_text_object_ids")
             overlap_pairs = item.get("overlap_pairs")
             if not isinstance(truncated_ids, list):

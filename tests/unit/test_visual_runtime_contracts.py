@@ -187,7 +187,7 @@ class VisualRuntimeContractTests(unittest.TestCase):
         )
 
         self.assertTrue(result.ok, [finding.to_dict() for finding in result.findings])
-        self.assertNotIn("delta_v6_labels_required", {finding.rule for finding in result.findings})
+        self.assertNotIn("labels_required", {finding.rule for finding in result.findings})
 
     def test_project_dashboard_payload_preflight_runs_visual_contracts(self):
         from datalens_dev_mcp.mcp.tools.pipeline import dl_validate_project

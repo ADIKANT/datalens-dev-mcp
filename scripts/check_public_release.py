@@ -25,7 +25,7 @@ from urllib.parse import parse_qsl, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 
-SCHEMA_VERSION = 1
+SCHEMA_ID = "public_release_report"
 MAX_FILE_BYTES = 16 * 1024 * 1024
 MAX_ARCHIVE_BYTES = 128 * 1024 * 1024
 MAX_ARCHIVE_MEMBERS = 20_000
@@ -682,7 +682,7 @@ def run_check(root: Path = ROOT, archives: Iterable[Path | str] = ()) -> dict[st
     ordered = sorted(set(issues))
     return {
         "ok": not ordered,
-        "schema_version": SCHEMA_VERSION,
+        "schema_id": SCHEMA_ID,
         "root": str(root),
         "file_count": len(files),
         "archive_count": len(archive_paths),

@@ -5,8 +5,8 @@
   "type": "object",
   "required": ["requirement_id", "source_text", "scope", "status"],
   "properties": {
-    "schema_version": {
-      "const": "2026-06-30.negative_requirement.v1"
+    "schema_id": {
+      "const": "negative_requirement"
     },
     "requirement_id": {
       "type": "string"

@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "DataLens Active Dashboard Graph",
   "type": "object",
-  "required": ["schema_version", "dashboard_id", "workbook_id", "entries"],
+  "required": ["schema_id", "dashboard_id", "workbook_id", "entries"],
   "properties": {
-    "schema_version": {"const": "datalens.active-dashboard-graph.v1"},
+    "schema_id": {"const": "datalens.active-dashboard-graph"},
     "dashboard_id": {"type": "string"},
     "workbook_id": {"type": "string"},
     "requested_tab": {"type": "string"},

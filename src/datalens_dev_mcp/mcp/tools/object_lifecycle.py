@@ -384,7 +384,7 @@ def dl_validate_object(
             "payload",
             "source_adapter",
             "compiled_from_openapi",
-            "lifecycle_schema_version",
+            "lifecycle_schema_id",
             "delivery_intent_decision",
             "approval_provenance",
         }
@@ -1007,7 +1007,7 @@ def _guarded_write_plan(
         "mode": None if operation == "create" else mode,
         "source_adapter": prepared["adapter"],
         "compiled_from_openapi": True,
-        "lifecycle_schema_version": "2026-06-25.lifecycle.v1",
+        "lifecycle_schema_id": "lifecycle",
         "safe_apply_required": True,
         "execute_now": False,
         "fresh_read_required": operation != "create",
@@ -1509,7 +1509,7 @@ def _read_contract_variants(contract: dict[str, Any]) -> list[dict[str, Any]]:
         return [{}]
     contract_text = json.dumps(full, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
     shared = {
-        "schema_version": str(full.get("schema_version") or ""),
+        "schema_id": str(full.get("schema_id") or ""),
         "object_type": str(full.get("object_type") or ""),
         "read_method": str(full.get("read_method") or ""),
         "identity_field": str(full.get("identity_field") or ""),
@@ -1531,7 +1531,7 @@ def _read_contract_variants(contract: dict[str, Any]) -> list[dict[str, Any]]:
         "truncated": True,
     }
     minimal = {
-        "schema_version": shared["schema_version"],
+        "schema_id": shared["schema_id"],
         "truncated": True,
     }
     # Even the smallest projection must retain the registry schema identity.
@@ -1581,7 +1581,7 @@ def _fit_read_object_result(result: dict[str, Any], *, budget: int) -> dict[str,
         "object_id": _bounded_read_text(result.get("object_id"), 32),
         "attempted_method": _bounded_read_text(result.get("attempted_method"), 32),
         "contract": {
-            "schema_version": str(contract.get("schema_version") or "")
+            "schema_id": str(contract.get("schema_id") or "")
             if isinstance(contract, dict)
             else "",
             "truncated": True,
@@ -1646,7 +1646,7 @@ def _read_object_summary(response: dict[str, Any], *, object_type: str, object_i
                 }
             )
     return {
-        "schema_version": "2026-06-25.generic_object_summary.v1",
+        "schema_id": "generic_object_summary",
         "identity": {
             "id": _first_scalar(
                 entry,
@@ -1836,6 +1836,8 @@ def _error_result(exc: Exception, *, fallback_category: str = "unknown_runtime_e
         lowered = text.lower()
         if "http 401" in lowered or "auth_" in lowered:
             category = "auth_failure"
+        elif exc.request_phase == "transport" or exc.transport_category:
+            category = "transport_failure"
         elif "validation_error" in lowered:
             category = "datalens_validation_error"
     return _error(category, _sanitize_message(text or exc.__class__.__name__))

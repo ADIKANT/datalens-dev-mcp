@@ -45,7 +45,7 @@ def build_object_cleanup_report(
             )
         )
     return {
-        "schema_version": "datalens.object-cleanup-report.delta-v6",
+        "schema_id": "datalens.object-cleanup-report",
         "dashboard_id": dashboard_id,
         "workbook_id": workbook_id,
         "generated_at": _now(),
@@ -85,7 +85,7 @@ def build_final_handoff_contract(
     if cleanup_report:
         verification["cleanup_report"] = cleanup_report
     return {
-        "schema_version": "datalens.final-handoff.delta-v6",
+        "schema_id": "datalens.final-handoff",
         "status": normalized_status,
         "dashboard_id": dashboard_id,
         "workbook_id": workbook_id,

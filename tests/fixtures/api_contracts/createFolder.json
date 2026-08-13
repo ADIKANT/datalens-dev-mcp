@@ -4,13 +4,12 @@
   "operation_id": "createFolder",
   "path": "/rpc/createFolder",
   "request_payload": {},
-  "request_schema_closure_hash": "e382f941dc42951b0324ba571838044cea5cbe7959992706e0a715dbfaf85be8",
+  "request_schema_closure_hash": "8fb392e5ed4d4b7693772b909a483ce8233aab4f2a19c0a6df739a94a4d5718b",
   "request_schema_closure_refs": [
     "CreateFolderArgs",
-    "DlsInitialPermissionItem",
-    "DlsInitialPermissions"
+    "DlsInitialPermissionItem"
   ],
-  "request_schema_hash": "9eb2c6b0009f5d62275d9c929f473b3e970ade21d7423b02c021ce0bf53756fd",
+  "request_schema_hash": "bed78a31e8bf1c34c0e64b03b8d760a51c21794a7bbb61ee56052b42996ba064",
   "request_schema_ref": "CreateFolderArgs",
   "response_payload": {},
   "response_schema_closure_hash": "c9ec77747528293301175a7a9a545c8d12f312028582e99fdbaa4bdd4b52ccc2",
@@ -19,6 +18,6 @@
   ],
   "response_schema_hash": "d9e238cce5f7fab20c477ea8deecd9201b0b913aaadeb898641fbf223f74e19a",
   "response_schema_ref": "CreateFolderResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "unsupported_explicit"
 }

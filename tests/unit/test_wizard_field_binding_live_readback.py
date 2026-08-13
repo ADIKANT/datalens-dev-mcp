@@ -180,6 +180,58 @@ class WizardFieldBindingLiveReadbackTests(unittest.TestCase):
         self.assertNotIn("dataset_readbacks", omitted_config)
         self.assertEqual(explicit_config["dataset_readbacks"], evidence)
 
+    def test_public_generator_binds_all_explicit_funnel_fields_to_native_placeholder(self):
+        from datalens_dev_mcp.mcp.tools.pipeline import (
+            dl_generate_editor_bundle,
+            dl_start_pipeline,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            dl_start_pipeline(str(root), dashboard_name="Native funnel")
+            Path(root, "artifacts", "dashboard_brief.json").write_text(
+                json.dumps(
+                    {
+                        "dashboard_name": "Native funnel",
+                        "dashboard_type": "overview",
+                        "data_contract": {
+                            "contract_id": "DATA-001",
+                            "dataset_id": "dataset_1",
+                            "fields": [],
+                        },
+                        "chart_decisions": [
+                            {
+                                "decision_id": "CD-001",
+                                "widget_id": "funnel",
+                                "route": "wizard_native",
+                                "family": "funnel_snapshot",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with patch(
+                "datalens_dev_mcp.mcp.tools.pipeline.build_wizard_payload_plan",
+                return_value={"ok": False, "validation": {"errors": ["stub"]}},
+            ) as build:
+                dl_generate_editor_bundle(
+                    str(root),
+                    widget_id="funnel",
+                    dataset_alias="dataset_1",
+                    columns=["stage_guid", "value_guid"],
+                )
+            config = build.call_args.args[0]
+
+        self.assertEqual(config["visualization_id"], "funnel")
+        self.assertEqual(
+            config["field_bindings"]["measures"],
+            [
+                {"guid": "stage_guid", "title": "stage_guid"},
+                {"guid": "value_guid", "title": "value_guid"},
+            ],
+        )
+
     def test_stale_partial_field_fails_against_dataset_readback(self):
         from datalens_dev_mcp.pipeline.wizard_contracts import validate_wizard_field_binding_against_dataset_readback
 

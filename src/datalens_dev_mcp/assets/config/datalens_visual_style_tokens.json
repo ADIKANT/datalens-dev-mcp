@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-07-19.renderer_style_tokens.v2",
+  "schema_id": "renderer_style_tokens",
   "font": {
     "family": "Inter, Arial, sans-serif",
     "base_px": 12,

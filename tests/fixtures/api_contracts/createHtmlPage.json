@@ -4,24 +4,20 @@
   "operation_id": "createHtmlPage",
   "path": "/rpc/createHtmlPage",
   "request_payload": {},
-  "request_schema_closure_hash": "e4b887240c778b3e27b265c9929d7eeceb95d1d0af650fecf78350435c3ccce5",
+  "request_schema_closure_hash": "66c1e90530df715aac83aaac44c6ee3766ba0f2f1e81be933f004e19f407954f",
   "request_schema_closure_refs": [
     "CreateHtmlPageArgs",
-    "EntryAnnotationArg",
     "EntryLocationIdentifiers"
   ],
-  "request_schema_hash": "7f31d0d1d01d26147801680bff5b31d102fe6ee4e00bcf50de65e5ff0c4a9b91",
+  "request_schema_hash": "3810dedb4b408906bbe5bb781a0b79451d559454eaf82515005090add4222cff",
   "request_schema_ref": "CreateHtmlPageArgs",
   "response_payload": {},
-  "response_schema_closure_hash": "4ad52fb34dbb9174cc1b95fc620536ccf40741c78f0f4a4e67ae9440d7559405",
+  "response_schema_closure_hash": "1282591b65b668a895dacc4e042c530ee1c015b580f477b78d4ae64c7d56e2c3",
   "response_schema_closure_refs": [
-    "CreateHtmlPageResult",
-    "EntryAnnotation",
-    "EntryPermissions",
-    "HtmlPage"
+    "CreateHtmlPageResult"
   ],
-  "response_schema_hash": "db559e7cbe9140c47adb1da7fcc29c9e4bad24178d47dca6d4f9b07d58c21ed3",
+  "response_schema_hash": "afbf886360fb00c938409a0169e41fa8e3755d928f87579b1ed9d1e4f61feb5e",
   "response_schema_ref": "CreateHtmlPageResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "guarded_plan_only"
 }

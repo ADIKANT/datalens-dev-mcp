@@ -761,7 +761,7 @@
       "support_status": "EXECUTABLE_TOOL_SUPPORTED"
     }
   ],
-  "schema_version": "2026-06-25.api_tool_support_matrix.v2",
+  "schema_id": "api_tool_support_matrix",
   "source": "https://api.datalens.tech/json/",
   "support_policy_overlay": "schemas/datalens-api/support-policy-overlay.json"
 }

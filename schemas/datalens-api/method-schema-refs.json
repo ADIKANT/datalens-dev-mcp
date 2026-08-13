@@ -178,7 +178,7 @@
     "request_schema_kind": "ref",
     "request_schema_ref": "DeleteEntryLockArgs",
     "response_schema_kind": "ref",
-    "response_schema_ref": "DeleteEntryLockResult",
+    "response_schema_ref": "EntryLock",
     "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
   },
   "deleteFolder": {
@@ -241,7 +241,7 @@
     "request_schema_kind": "ref",
     "request_schema_ref": "ExtendEntryLockArgs",
     "response_schema_kind": "ref",
-    "response_schema_ref": "ExtendEntryLockResult",
+    "response_schema_ref": "EntryLock",
     "support_status": "UNSUPPORTED_NO_VALIDATED_METHOD"
   },
   "getAuditEntriesUpdates": {

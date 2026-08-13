@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="480" viewBox="0 0 960 480">
+<rect width="960" height="480" fill="#F4F6F9"/><rect x="28" y="28" width="904" height="424" rx="18" fill="#FFF" stroke="#E4E7EC"/>
+<text x="56" y="72" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#667085">Synthetic static preview · Area chart</text>
+<path data-role="area-fill" d="M100 350 L100 270 L280 225 L460 250 L640 165 L820 210 L820 350 Z" fill="#2B75E2" opacity=".18"/><polyline points="100,270 280,225 460,250 640,165 820,210" fill="none" stroke="#2B75E2" stroke-width="5"/>
+</svg>

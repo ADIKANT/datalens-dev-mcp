@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-06-03.standard_chart_templates.v1",
+  "schema_id": "standard_chart_templates",
   "source_basis": "Project-authored MCP-native chart feedback and implementation patterns.",
   "families": {
     "kpi_value_only": {

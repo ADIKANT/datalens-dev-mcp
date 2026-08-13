@@ -1,4 +1,5 @@
 import json
+import ssl
 import tempfile
 import threading
 import unittest
@@ -7,6 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 from urllib.error import HTTPError
+from urllib.error import URLError
 
 from datalens_dev_mcp.api.client import DataLensApiClient, _retry_after_seconds
 from datalens_dev_mcp.api.errors import DataLensApiError
@@ -313,6 +315,56 @@ class ApiSchedulerAndBatchTests(unittest.TestCase):
                 "getWorkbooksList", {"page": 1, "pageSize": 1}
             )
         self.assertEqual(len(missing_transport.requests), 1)
+
+    def test_tls_eof_and_handshake_timeout_are_bounded_read_retries(self):
+        config = DataLensConfig(
+            iam_token="token",
+            org_id="org",
+            request_interval_sec=0,
+            read_transient_retries=2,
+        )
+        eof_transport = SequenceTransport(
+            [URLError(ssl.SSLEOFError(8, "UNEXPECTED_EOF_WHILE_READING")), {"workbooks": []}]
+        )
+        with patch("datalens_dev_mcp.api.client._transient_retry_pause", return_value=None):
+            result = DataLensApiClient(config, transport=eof_transport).rpc_readonly(
+                "getWorkbooksList", {"page": 1, "pageSize": 1}
+            )
+        self.assertEqual(result, {"workbooks": []})
+        self.assertEqual(len(eof_transport.requests), 2)
+
+        timeout_transport = SequenceTransport(
+            [TimeoutError("_ssl.c:1000: The handshake operation timed out") for _ in range(3)]
+        )
+        with patch("datalens_dev_mcp.api.client._transient_retry_pause", return_value=None):
+            with self.assertRaises(DataLensApiError) as raised:
+                DataLensApiClient(config, transport=timeout_transport).rpc_readonly(
+                    "getWorkbooksList", {"page": 1, "pageSize": 1}
+                )
+        self.assertEqual(len(timeout_transport.requests), 3)
+        self.assertEqual(raised.exception.transport_category, "tls_handshake_timeout")
+        self.assertEqual(raised.exception.retry_attempts, 2)
+        self.assertTrue(raised.exception.retry_exhausted)
+
+    def test_tls_write_failure_is_never_retried(self):
+        transport = SequenceTransport(
+            [ssl.SSLEOFError(8, "UNEXPECTED_EOF_WHILE_READING"), {"ok": True}]
+        )
+        config = DataLensConfig(
+            iam_token="token",
+            org_id="org",
+            request_interval_sec=0,
+            read_transient_retries=2,
+        )
+        with patch("datalens_dev_mcp.api.client._transient_retry_pause", return_value=None):
+            with self.assertRaises(DataLensApiError) as raised:
+                DataLensApiClient(config, transport=transport).rpc(
+                    "updateDashboard", {"entry": {"entryId": "dashboard_1"}}
+                )
+        self.assertEqual(len(transport.requests), 1)
+        self.assertEqual(raised.exception.transport_category, "tls_unexpected_eof")
+        self.assertEqual(raised.exception.retry_attempts, 0)
+        self.assertFalse(raised.exception.retry_exhausted)
 
     def test_token_refresh_is_single_flight(self):
         coordinator = TokenRefreshCoordinator()

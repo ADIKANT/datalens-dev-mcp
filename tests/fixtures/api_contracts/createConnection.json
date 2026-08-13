@@ -46,6 +46,6 @@
   ],
   "response_schema_hash": "3797626bd17e346de1adbbe242cd2c4e41a5956ccf7424c65cf45e2bbef10c81",
   "response_schema_ref": "CreateConnectionResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "guarded_plan_only"
 }

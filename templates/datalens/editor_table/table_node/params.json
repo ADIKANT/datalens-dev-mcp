@@ -1,3 +1,4 @@
 {
-  "page_size": ["100"]
+  "page_size": ["100"],
+  "table_variant": ["standard"]
 }

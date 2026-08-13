@@ -54,7 +54,7 @@ def classify_datalens_source_error(error_payload: dict[str, Any]) -> dict[str, A
     preview_source_access = category == "dataset_preview_source_access"
     return {
         "ok": True,
-        "schema_version": "2026-06-23.datalens_source_diagnostic.v1",
+        "schema_id": "datalens_source_diagnostic",
         "category": category,
         "stage": stage or "unknown",
         "query_available": query not in (None, ""),

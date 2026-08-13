@@ -49,13 +49,14 @@ class ApiSchemaRequestResponseContractsTests(unittest.TestCase):
 
     def test_dashboard_and_report_neuro_widget_hide_actions_stays_optional(self):
         for bundle_name, schemas in (("selected", self.schemas), ("closed", self.closed_schemas)):
-            collections = {
-                "DashboardData": schemas["DashboardData"]["properties"]["tabs"],
-                "ReportData": schemas["ReportData"]["properties"]["slideGroups"],
+            variant_sets = {
+                "DashTabItem": schemas["DashTabItem"]["oneOf"],
+                "ReportData": schemas["ReportData"]["properties"]["slideGroups"]["items"][
+                    "properties"
+                ]["items"]["items"]["oneOf"],
             }
-            for schema_name, collection in collections.items():
+            for schema_name, variants in variant_sets.items():
                 with self.subTest(bundle=bundle_name, schema=schema_name):
-                    variants = collection["items"]["properties"]["items"]["items"]["oneOf"]
                     neuro_widget = next(
                         variant
                         for variant in variants

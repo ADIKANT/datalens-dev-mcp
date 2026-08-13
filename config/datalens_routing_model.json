@@ -38,7 +38,7 @@
       "route": "wizard_native"
     }
   },
-  "policy_registry": "config/route_selection_policy_v5.json",
+  "policy_registry": "config/route_selection_policy.json",
   "rules": [
     "Updates preserve the technology and visualization id from fresh saved readback.",
     "Standard creates use Wizard canonical templates or a fresh saved seed of the same visualization id.",
@@ -46,7 +46,7 @@
     "QL is selected only for an explicit user request and is never a fallback.",
     "Delete, move, permission writes, d3_node, regular Editor Chart, and Gravity UI Charts remain closed."
   ],
-  "schema_version": "2026-07-13.datalens_operation_routing.v3",
+  "schema_id": "datalens_operation_routing",
   "selection_order": [
     "preserve_existing_saved_route_and_visualization",
     "explicit_user_route",

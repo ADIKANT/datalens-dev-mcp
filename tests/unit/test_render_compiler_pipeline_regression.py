@@ -19,13 +19,12 @@ from datalens_dev_mcp.mcp.tools.pipeline import dl_generate_editor_bundle
 from datalens_dev_mcp.runtime_resources import resource_json
 
 
-PROFILE_V1 = "standard_editor_v1"
-PROFILE_V2 = "standard_editor_v2"
-TEMPLATE_SET_SHA256 = "6ce84e5e14cefa09beb8774f5d8b306fdaee212532fbfda8b5acebd5e4ca20a4"
-FAMILY_V1_TAB_HASHES = {
-    "kpi_value_only": "9fcd6b5e01d9f07ac79f1c7ceb1be7d74a5d378b8953b72fa846b96585c40020",
-    "line_chart": "02f52f3c1eed2ed8bc5e084436065c729ea8bd6208ec103f607bca427a2bbb9d",
-    "horizontal_bar": "19d0571d7718e59545359905f9720219a0f328bc569350d1bcc7b66ab2c6b736",
+PROFILE = "standard_dashboard"
+TEMPLATE_SET_SHA256 = "4fc1a7a8c7fd36d609372d75a131b52832202617e7a27fc8f1656ee83649177b"
+FAMILY_TAB_HASHES = {
+    "kpi_value_only": "c425e3e0d86063a4be04fe7b926c0d7772fc195f39c70d260b7181327faf1824",
+    "line_chart": "a3c073ef61615ee3efc29073cb29b12f6dedb9513bd6f8f97367ec7a8ee88109",
+    "horizontal_bar": "590dc1aab4f7284b992e58be029178db48db89406174567880736efea375f2de",
 }
 FAMILY_SOURCE_COLUMNS = {
     "kpi_value_only": ["current_value"],
@@ -65,8 +64,8 @@ SELECTOR_FAMILIES = {
 
 
 class RenderCompilerPipelineRegressionTests(unittest.TestCase):
-    def test_legacy_editor_alias_uses_only_the_canonical_protected_runtime(self):
-        for family, expected_tabs_sha256 in FAMILY_V1_TAB_HASHES.items():
+    def test_canonical_profile_uses_only_the_protected_runtime(self):
+        for family, expected_tabs_sha256 in FAMILY_TAB_HASHES.items():
             with self.subTest(family=family), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 self._write_brief(root, family=family)
@@ -76,7 +75,7 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
                 generated = self._generate(
                     root,
                     family=family,
-                    authoring_profile=PROFILE_V1,
+                    authoring_profile=PROFILE,
                 )
                 direct = generate_editor_bundle(
                     widget_id="chart",
@@ -102,7 +101,7 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
                     generated["authoring_profile"]["id"],
                     CANONICAL_AUTHORING_PROFILE_ID,
                 )
-                self.assertEqual(generated["authoring_profile"]["normalized_from"], PROFILE_V1)
+                self.assertEqual(generated["authoring_profile"]["normalized_from"], "")
                 self.assertEqual(
                     generated["render_contract"]["profile_id"],
                     CANONICAL_AUTHORING_PROFILE_ID,
@@ -114,24 +113,24 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
                 self.assertTrue(generated["standard_dashboard_renderer_validation"]["ok"])
                 self.assertIn("standard-dashboard-runtime:", generated["tabs"]["prepare.js"])
 
-    def test_legacy_v2_alias_compiles_the_same_current_contract_for_key_families(self):
+    def test_canonical_profile_compiles_the_same_current_contract_for_key_families(self):
         node = shutil.which("node")
         if not node:
             self.skipTest("node is required for generated JavaScript validation")
 
-        for family, base_tabs_sha256 in FAMILY_V1_TAB_HASHES.items():
+        for family, base_tabs_sha256 in FAMILY_TAB_HASHES.items():
             with self.subTest(family=family), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 self._write_brief(root, family=family)
-                legacy = self._generate(
+                first = self._generate(
                     root,
                     family=family,
-                    authoring_profile=PROFILE_V2,
+                    authoring_profile=PROFILE,
                 )
-                legacy_repeat = self._generate(
+                repeat = self._generate(
                     root,
                     family=family,
-                    authoring_profile=PROFILE_V2,
+                    authoring_profile=PROFILE,
                 )
                 canonical = self._generate(
                     root,
@@ -139,48 +138,48 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
                     authoring_profile=CANONICAL_AUTHORING_PROFILE_ID,
                 )
 
-                legacy_hash = legacy["template_provenance"]["compiled_tabs_sha256"]
-                self.assertEqual(legacy["tabs"], canonical["tabs"])
+                first_hash = first["template_provenance"]["compiled_tabs_sha256"]
+                self.assertEqual(first["tabs"], canonical["tabs"])
                 self.assertEqual(
-                    legacy_hash,
+                    first_hash,
                     canonical["template_provenance"]["compiled_tabs_sha256"],
                 )
                 self.assertEqual(
-                    legacy["template_provenance"]["base_compiled_tabs_sha256"],
+                    first["template_provenance"]["base_compiled_tabs_sha256"],
                     base_tabs_sha256,
                 )
                 self.assertEqual(
-                    legacy["authoring_profile"]["id"],
+                    first["authoring_profile"]["id"],
                     CANONICAL_AUTHORING_PROFILE_ID,
                 )
                 self.assertEqual(
-                    legacy["authoring_profile"]["normalized_from"],
-                    PROFILE_V2,
+                    first["authoring_profile"]["normalized_from"],
+                    "",
                 )
                 self.assertEqual(
-                    legacy["tabs"],
-                    legacy_repeat["tabs"],
+                    first["tabs"],
+                    repeat["tabs"],
                 )
                 self.assertEqual(
-                    legacy["render_contract"],
+                    first["render_contract"],
                     canonical["render_contract"],
                 )
                 self.assertEqual(
-                    legacy["renderer_visual_spec"]["schema_version"],
-                    "2026-08-06.renderer_visual_spec.v5",
+                    first["renderer_visual_spec"]["schema_id"],
+                    "renderer_visual_spec",
                 )
                 self.assertEqual(
-                    legacy["template_provenance"]["canonical_runtime_sha256"],
+                    first["template_provenance"]["canonical_runtime_sha256"],
                     STANDARD_DASHBOARD_RUNTIME_SHA256,
                 )
-                self.assertTrue(legacy["standard_dashboard_renderer_validation"]["ok"])
-                prepare = legacy["tabs"]["prepare.js"]
+                self.assertTrue(first["standard_dashboard_renderer_validation"]["ok"])
+                prepare = first["tabs"]["prepare.js"]
                 self.assertIn(STANDARD_DASHBOARD_RUNTIME_SHA256, prepare)
                 self.assertIn(
-                    legacy["render_contract"]["composite_sha256"],
+                    first["render_contract"]["composite_sha256"],
                     prepare,
                 )
-                self.assertEqual(_tabs_sha256(legacy["tabs"]), legacy_hash)
+                self.assertEqual(_tabs_sha256(first["tabs"]), first_hash)
                 self._node_check(prepare, node=node, root=root)
 
     def test_all_39_registered_families_compile_with_route_specific_contract_binding(self):
@@ -202,7 +201,7 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
                 generated = dl_generate_editor_bundle(
                     project_root=str(root),
                     widget_id="chart",
-                    authoring_profile=PROFILE_V2,
+                    authoring_profile=PROFILE,
                     dataset_alias="dataset" if columns else "",
                     columns=columns or None,
                     selector_contract=(
@@ -271,7 +270,7 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
             generated = self._generate(
                 root,
                 family="line_chart",
-                authoring_profile=PROFILE_V2,
+                authoring_profile=PROFILE,
             )
             html = self._execute_prepare(
                 generated["tabs"]["prepare.js"],
@@ -309,7 +308,7 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
             "width: '100%'",
         )
         resolved = resolve_dashboard_render_contract(
-            profile_id="standard_dashboard_v1",
+            profile_id="standard_dashboard",
             family=family,
         )
         with self.assertRaises(RenderContractCompileError):
@@ -325,7 +324,7 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
             incomplete = dl_generate_editor_bundle(
                 project_root=str(root),
                 widget_id="chart",
-                authoring_profile=PROFILE_V2,
+                authoring_profile=PROFILE,
             )
 
         self.assertNotIn("error", incomplete, incomplete)
@@ -347,7 +346,7 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
             generated = dl_generate_editor_bundle(
                 project_root=str(root),
                 widget_id="chart",
-                authoring_profile=PROFILE_V2,
+                authoring_profile=PROFILE,
                 dataset_alias="dataset",
                 columns=FAMILY_SOURCE_COLUMNS[family],
                 render_overrides={
@@ -386,7 +385,7 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
                 generated = self._generate(
                     family_root,
                     family=family,
-                    authoring_profile=PROFILE_V2,
+                    authoring_profile=PROFILE,
                 )
                 meaningful_html[family] = self._execute_prepare(
                     generated["tabs"]["prepare.js"],
@@ -401,7 +400,7 @@ class RenderCompilerPipelineRegressionTests(unittest.TestCase):
             generated = self._generate(
                 family_root,
                 family=family,
-                authoring_profile=PROFILE_V2,
+                authoring_profile=PROFILE,
             )
             sanitized_html = self._execute_prepare(
                 generated["tabs"]["prepare.js"],

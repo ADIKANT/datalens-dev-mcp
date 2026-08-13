@@ -19,6 +19,6 @@
   ],
   "response_schema_hash": "cbcf4f455facf5758298035aac10f3ff3a7445fbf9756759ad414b9c5271812d",
   "response_schema_ref": "MoveEntryResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "readonly_reference"
 }

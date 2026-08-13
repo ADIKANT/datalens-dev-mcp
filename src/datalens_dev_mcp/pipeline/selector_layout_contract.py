@@ -33,7 +33,7 @@ class SelectorLayoutResult:
     selector_count: int
     row_widths_pct: list[float]
     findings: list[SelectorFinding] = field(default_factory=list)
-    schema_version: str = "2026-07-01.selector_layout_contract.v1"
+    schema_id: str = "selector_layout_contract"
 
     def to_dict(self) -> dict[str, Any]:
         return {**asdict(self), "findings": [finding.to_dict() for finding in self.findings]}

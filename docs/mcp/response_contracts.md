@@ -80,6 +80,14 @@
 
 Ошибочный ответ содержит очищенное сообщение и рекомендацию, но не значение или производные токена.
 
+Транспортная ошибка DataLens API сохраняет `request_phase=transport`,
+`response_received=false`, число выполненных read-retry и один из безопасных
+подтипов: `tls_handshake_timeout`, `tls_unexpected_eof`,
+`tls_connection_closed`, `transport_timeout`, `connection_reset` или
+`remote_disconnected`. `tls_certificate_failure` и общий `tls_failure` не
+повторяются как временные ошибки. Инструменты object lifecycle возвращают для
+них `error.category=transport_failure`, а не `unknown_runtime_error`.
+
 ## Компактный и полный ответ чтения
 
 Инструменты чтения поддерживают компактный ответ для чата и полный artifact для последующей работы:
@@ -143,7 +151,18 @@ Safe-apply/publish plans, guarded RPC и manifest-backed workflow использ
   "status": "planned",
   "response_mode": "summary",
   "summary": {
-    "action_count": 3
+    "action_count": 1,
+    "action_contracts": [
+      {
+        "method": "updateEditorChart",
+        "safety_guard_mode": "save",
+        "write_mode": "publish",
+        "readback_branch": "published"
+      }
+    ],
+    "write_modes": ["publish"],
+    "readback_branches": ["published"],
+    "top_level_mode_contract": "safety_guard_save; payload.mode controls the publish RPC"
   },
   "canonical_artifact": {
     "path": "artifacts/runtime/mcp_runs/<RUN>/create_safe_apply_plan.<SHA>.full.json",
@@ -156,7 +175,7 @@ Safe-apply/publish plans, guarded RPC и manifest-backed workflow использ
 }
 ```
 
-Канонический очищенный результат записывается один раз; повторная выдача того же SHA не меняет файл. `response_mode="full"` сохраняет обратную совместимость и возвращает полные поля inline.
+Канонический очищенный результат записывается один раз; повторная выдача того же SHA не меняет файл. В publish-плане верхний `actions[].mode=save` означает защитный save-first guard, а фактический RPC-режим находится в `actions[].payload.mode=publish`; compact summary показывает оба значения явно. `response_mode="full"` сохраняет обратную совместимость и возвращает полные поля inline.
 
 ## Диагностика
 

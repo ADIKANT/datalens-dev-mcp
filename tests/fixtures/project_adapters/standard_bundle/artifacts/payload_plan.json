@@ -1,4 +1,4 @@
 {
-  "schema_version": "fixture",
+  "schema_id": "fixture",
   "payloads": [{"object_id": "chart_a", "method": "updateEditorChart"}]
 }

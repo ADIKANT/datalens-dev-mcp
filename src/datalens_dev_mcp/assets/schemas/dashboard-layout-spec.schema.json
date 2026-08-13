@@ -52,10 +52,9 @@
   },
   "properties": {
     "dashboard_name": {"type": "string"},
-    "version": {"enum": [1, 2]},
     "authoring_profile": {"type": "string"},
     "editor_render_profile": {"type": "string"},
-    "render_contract_version": {"type": "string"},
+    "render_contract_id": {"type": "string"},
     "desktop_grid": {
       "oneOf": [
         {"const": 36},

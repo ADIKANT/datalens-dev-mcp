@@ -26,7 +26,7 @@ def build_readback_summary(
     normalized_mode = normalize_readback_mode(mode)
     normalized_proof_level = proof_level if proof_level in PROOF_LEVELS else "source_static"
     return {
-        "schema_version": "2026-05-25.readback.v1",
+        "schema_id": "readback",
         "target": target,
         "mode": normalized_mode,
         "proof_level": normalized_proof_level if normalized_mode != "none" else "source_static",

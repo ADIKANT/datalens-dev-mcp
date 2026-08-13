@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-07-13.wizard_template_registry.v2",
+  "schema_id": "wizard_template_registry",
   "canonical_route": "wizard_native",
   "compatibility_aliases": {"wizard_map_native": "geolayer"},
   "template_provenance": {
@@ -26,6 +26,7 @@
     "donut": {"visualization_id": "donut", "semantic_families": ["donut"], "required_roles": ["dimensions", "measures"], "optional_roles": ["colors"], "creation_supported": true},
     "scatter": {"visualization_id": "scatter", "semantic_families": ["scatter", "bubble"], "required_roles": ["x", "y"], "optional_roles": ["points", "size"], "creation_supported": true},
     "treemap": {"visualization_id": "treemap", "semantic_families": ["treemap"], "required_roles": ["dimensions", "measures"], "optional_roles": [], "creation_supported": true},
+    "funnel": {"visualization_id": "funnel", "semantic_families": ["funnel_snapshot"], "required_roles": ["measures"], "optional_roles": ["colors", "labels"], "creation_supported": true},
     "geolayer": {"visualization_id": "geolayer", "semantic_families": ["native_map_geo_widget"], "required_roles": ["geo"], "optional_roles": ["measures", "colors", "labels"], "creation_supported": true}
   }
 }

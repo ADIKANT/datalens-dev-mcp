@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/javascript_cookbook.json",
+  "title": "JavaScript Visualization Cookbook catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "profile_id", "pages_url", "locales", "default_locale", "viewports", "tips", "field_glossary", "recipes", "cases", "source_modes"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "schema_id": {"const": "javascript_cookbook"},
+    "profile_id": {"const": "standard_dashboard"},
+    "pages_url": {"type": "string", "pattern": "^https://.+/$"},
+    "dataset_placeholder": {"type": "string", "minLength": 1},
+    "locales": {"const": ["ru", "en"]},
+    "default_locale": {"enum": ["ru", "en"]},
+    "viewports": {
+      "type": "object",
+      "required": ["compact", "dashboard", "wide"],
+      "additionalProperties": {"$ref": "#/$defs/viewport"}
+    },
+    "tips": {"type": "array", "minItems": 7, "items": {"$ref": "#/$defs/tip"}},
+    "field_glossary": {"type": "object", "minProperties": 10, "additionalProperties": {"$ref": "#/$defs/field"}},
+    "recipes": {"type": "array", "minItems": 34, "maxItems": 34, "items": {"$ref": "#/$defs/recipe"}},
+    "cases": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/case"}},
+    "source_modes": {"const": ["dataset", "clickhouse"]}
+  },
+  "$defs": {
+    "localized": {"type": "object", "additionalProperties": false, "required": ["ru", "en"], "properties": {"ru": {"type": "string", "minLength": 1}, "en": {"type": "string", "minLength": 1}}},
+    "viewport": {"type": "object", "additionalProperties": false, "required": ["width", "height"], "properties": {"width": {"type": "integer", "minimum": 280}, "height": {"type": "integer", "minimum": 160}}},
+    "tip": {"type": "object", "additionalProperties": false, "required": ["id", "title", "body"], "properties": {"id": {"type": "string", "pattern": "^[a-z0-9-]+$"}, "title": {"$ref": "#/$defs/localized"}, "body": {"$ref": "#/$defs/localized"}}},
+    "field": {"type": "object", "required": ["type", "format", "nullable", "example", "meaning", "null_behavior"], "properties": {"alias": {"type": "string"}, "type": {"enum": ["string", "number", "boolean"]}, "format": {"type": "string"}, "nullable": {"type": "boolean"}, "example": {}, "meaning": {"$ref": "#/$defs/localized"}, "null_behavior": {"$ref": "#/$defs/localized"}}},
+    "recipe": {"type": "object", "required": ["slug", "variant", "family", "route", "group", "title", "summary", "use_case", "behavior", "tooltip", "tabs", "source_columns", "fixture_rows", "params"], "properties": {"slug": {"type": "string", "pattern": "^[a-z0-9-]+$"}, "variant": {"type": "string", "minLength": 1}, "family": {"type": "string", "minLength": 1}, "route": {"enum": ["editor_advanced", "editor_table", "editor_js_control"]}, "group": {"type": "string"}, "title": {"$ref": "#/$defs/localized"}, "summary": {"$ref": "#/$defs/localized"}, "use_case": {"$ref": "#/$defs/localized"}, "behavior": {"$ref": "#/$defs/localized"}, "tooltip": {"enum": ["native", "inline", "none"]}, "tabs": {"type": "array", "minItems": 4, "items": {"type": "string"}, "uniqueItems": true}, "source_columns": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}, "fixture_rows": {"type": "array"}, "params": {"type": "object"}, "selector_contract": {"type": "object"}}},
+    "parameter": {"type": "object", "required": ["name", "owner", "readers", "type", "default", "purpose"], "properties": {"name": {"type": "string"}, "owner": {"type": "string"}, "readers": {"type": "array", "items": {"type": "string"}, "minItems": 1}, "type": {"type": "string"}, "default": {"type": "array"}, "purpose": {"$ref": "#/$defs/localized"}}},
+    "case": {"type": "object", "required": ["slug", "kind", "title", "summary", "params", "objects"], "properties": {"slug": {"type": "string", "pattern": "^[a-z0-9-]+$"}, "kind": {"enum": ["period_comparison", "filters_detail", "status_monitoring"]}, "title": {"$ref": "#/$defs/localized"}, "summary": {"$ref": "#/$defs/localized"}, "params": {"type": "array", "items": {"$ref": "#/$defs/parameter"}}, "objects": {"type": "array", "minItems": 3, "items": {"type": "object", "required": ["id", "route", "role"], "properties": {"id": {"type": "string"}, "route": {"enum": ["editor_advanced", "editor_table", "editor_js_control"]}, "role": {"type": "string"}, "recipe": {"type": "string"}}}}}}
+  }
+}

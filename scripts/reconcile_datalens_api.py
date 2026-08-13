@@ -31,8 +31,7 @@ PACKAGE_CONFIG_DIR = ROOT / "src" / "datalens_dev_mcp" / "assets" / "config"
 PACKAGE_SCHEMA_DIR = ROOT / "src" / "datalens_dev_mcp" / "assets" / "schemas" / "datalens-api"
 
 SOURCE = "https://api.datalens.tech/json/"
-LEGACY_API_HEADER_VERSION = "1"
-SCHEMA_VERSION = "2026-07-29.datalens_api_methods.v4"
+SCHEMA_ID = "datalens_api_methods"
 EXPECTED_OPERATION_COUNT = 95
 EXPECTED_PATH_COUNT = 95
 
@@ -240,7 +239,9 @@ def required_api_header_version(spec: dict[str, Any]) -> str:
     parameter = ((spec.get("components") or {}).get("parameters") or {}).get("ApiVersionHeader") or {}
     schema = parameter.get("schema") or {}
     value = schema.get("const") or schema.get("default") or schema.get("example")
-    return str(value or LEGACY_API_HEADER_VERSION)
+    if value is None or not str(value).strip():
+        raise ValueError("OpenAPI ApiVersionHeader must define one required value")
+    return str(value).strip()
 
 
 def infer_mode(method: str, tag: str) -> str:
@@ -290,7 +291,7 @@ def doc_url(method: str, inventory_by_method: dict[str, dict[str, Any]]) -> str:
 
 def build_support_overlay() -> dict[str, Any]:
     return {
-        "schema_version": "2026-06-25.datalens_api_support_policy.v1",
+        "schema_id": "datalens_api_support_policy",
         "guarded_write_methods": sorted(GUARDED_WRITE_METHODS),
         "unsupported_methods": sorted(UNSUPPORTED_METHODS),
         "forbidden_methods": sorted(FORBIDDEN_METHODS),
@@ -353,7 +354,7 @@ def build_catalog(
             )
     methods.sort(key=lambda item: item["method"])
     return {
-        "schema_version": SCHEMA_VERSION,
+        "schema_id": SCHEMA_ID,
         "generated_at": generated_at,
         "source": inventory.get("source_url") or SOURCE,
         "openapi_version": spec.get("openapi"),
@@ -504,7 +505,7 @@ def build_editor_allowlist(corpus_root: Path) -> dict[str, Any]:
     tags = extract_cut_list(methods_text, "Поддерживаемые HTML-теги")
     attributes = extract_cut_list(methods_text, "Поддерживаемые атрибуты тегов")
     return {
-        "schema_version": "2026-06-25.editor_runtime_allowlist.v1",
+        "schema_id": "editor_runtime_allowlist",
         "source_refs": [
             "raw/md/datalens/charts/editor/methods.md",
             "raw/md/datalens/charts/editor/widgets/advanced.md",
@@ -537,7 +538,7 @@ def build_openapi_lock(
     generated_at: str,
 ) -> dict[str, Any]:
     return {
-        "schema_version": "2026-06-25.openapi_lock.v1",
+        "schema_id": "openapi_lock",
         "generated_at": generated_at,
         "source_path_category": "external_corpus",
         "corpus_root_hint": "<DATALENS_DOCS_CORPUS_ROOT>",
@@ -585,7 +586,7 @@ def build_docs() -> dict[Path, str]:
 - Запрос содержит `Authorization: Bearer <IAM_TOKEN>`, `x-dl-org-id`,
   `x-dl-api-version`, `content-type: application/json` и
   `accept: application/json`.
-- `DATALENS_API_VERSION=auto` выбирает версию, закреплённую в скомпилированном контракте.
+- Значение `x-dl-api-version` всегда берётся из закреплённого OpenAPI-контракта и не настраивается отдельно.
 - Диагностика очищается от токенов, заголовков авторизации, паролей и закрытых ключей.
 
 ## Статус метода
@@ -737,7 +738,7 @@ def build_examples(api_version: str) -> dict[str, Any]:
 
 def build_source_trace(corpus_root: Path, lock: dict[str, Any]) -> dict[str, Any]:
     return {
-        "schema_version": "2026-06-25.datalens_source_trace.v1",
+        "schema_id": "datalens_source_trace",
         "source_class": "official_documentation",
         "source_path_category": "external_compiler_input",
         "corpus_root_hint": "<DATALENS_DOCS_CORPUS_ROOT>",
@@ -809,7 +810,7 @@ def render_outputs(corpus_root: Path) -> dict[Path, str]:
     editor_allowlist = build_editor_allowlist(corpus_root)
     source_trace = build_source_trace(corpus_root, lock)
     tool_support = {
-        "schema_version": "2026-06-25.api_tool_support_matrix.v2",
+        "schema_id": "api_tool_support_matrix",
         "source": SOURCE,
         "support_policy_overlay": "schemas/datalens-api/support-policy-overlay.json",
         "methods": [
@@ -830,7 +831,7 @@ def render_outputs(corpus_root: Path) -> dict[Path, str]:
         SCHEMA_DIR / "operation-schema-index.json": operation_index,
         SCHEMA_DIR / "selected-openapi-schema-refs.json": schema_bundle,
         SCHEMA_DIR / "closed-schema-bundle.json": {
-            "schema_version": "2026-06-25.closed_openapi_schema_bundle.v1",
+            "schema_id": "closed_openapi_schema_bundle",
             "openapi_lock_sha256": openapi_sha,
             "schema_count": len(schema_bundle),
             "missing_refs": missing,

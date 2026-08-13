@@ -50,8 +50,7 @@ class LauncherHardeningTests(unittest.TestCase):
                 "printf 'SAVE=%s\\n' \"$DATALENS_MCP_LIVE_ALLOW_SAVE\"\n"
                 "printf 'PUBLISH=%s\\n' \"$DATALENS_MCP_LIVE_ALLOW_PUBLISH\"\n"
                 "printf 'REFRESH=%s\\n' \"$DATALENS_ENABLE_TOKEN_REFRESH_ON_401\"\n"
-                "printf 'BASE=%s\\n' \"$DATALENS_API_BASE_URL\"\n"
-                "printf 'VERSION=%s\\n' \"$DATALENS_API_VERSION\"\n",
+                "printf 'BASE=%s\\n' \"$DATALENS_API_BASE_URL\"\n",
                 encoding="utf-8",
             )
             fake_python.chmod(0o755)
@@ -84,7 +83,6 @@ class LauncherHardeningTests(unittest.TestCase):
         self.assertIn("REFRESH=1", result.stdout)
         self.assertIn(f"--project-root {REPO_ROOT}", result.stdout)
         self.assertIn("BASE=https://api.datalens.tech", result.stdout)
-        self.assertIn("VERSION=auto", result.stdout)
 
     def test_launcher_honors_explicit_yc_binary_only_when_refresh_is_enabled(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -272,7 +270,6 @@ class RuntimeDiagnosticsTests(unittest.TestCase):
                 "DATALENS_IAM_TOKEN": "super-secret-token-value",
                 "DATALENS_ORG_ID": "org_synthetic",
                 "DATALENS_API_BASE_URL": "https://api.datalens.tech",
-                "DATALENS_API_VERSION": "1",
                 "DATALENS_MCP_ENABLE_WRITES": "1",
                 "DATALENS_MCP_ENABLE_EXPERT_RPC": "1",
                 "DATALENS_MCP_LIVE_ALLOW_SAVE": "1",
@@ -292,21 +289,18 @@ class RuntimeDiagnosticsTests(unittest.TestCase):
         self.assertTrue(result["token_refresh_on_401"])
         self.assertTrue(result["yc_binary_configured"])
         self.assertEqual(result["api_base_url"], "https://api.datalens.tech")
-        self.assertEqual(result["api_version"], "1")
+        self.assertEqual(result["api_version"], "2")
         self.assertEqual(result["project_root"], "/tmp/project")
         self.assertEqual(result["local_config_path"], "/tmp/config.json")
         self.assertEqual(result["runtime_env"]["auth"]["token_source"], "process_env")
         self.assertEqual(result["runtime_env"]["api"]["base_url_source"], "process_env")
-        self.assertTrue(result["api_version_selection"]["explicit_version_mismatch"])
-        self.assertFalse(result["api_version_selection"]["write_compatible"])
-        self.assertIn("explicit_v1_readonly_compatibility_only", result["api_version_selection"]["write_block_reason"])
-        self.assertFalse(result["write_compatible"])
+        self.assertEqual(result["runtime_env"]["api"]["api_version"], "2")
+        self.assertEqual(result["runtime_env"]["api"]["api_version_source"], "compiled_openapi_contract")
         self.assertTrue(result["runtime_env"]["auth"]["refresh_available"])
         self.assertEqual(result["config_defaults"]["execution_default"], "follow_user_request")
         self.assertTrue(result["config_defaults"]["writes_default"])
         self.assertTrue(result["config_defaults"]["save_default"])
         self.assertTrue(result["config_defaults"]["publish_default"])
-        self.assertIn("explicit_api_version_mismatch", {item["category"] for item in result["diagnostics"]})
         self.assertIn("standalone_script_env_mismatch", {item["category"] for item in result["diagnostics"]})
         self.assertIn("supported", result["route_policy"])
         self.assertNotIn("super-secret-token-value", dumped)

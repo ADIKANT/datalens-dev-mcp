@@ -30,7 +30,7 @@ class LayoutIntentRecord:
     primary_user_path: str = ""
     secondary_user_path: str = ""
     evidence: list[str] = field(default_factory=list)
-    schema_version: str = "2026-06-30.layout_intent_record.v1"
+    schema_id: str = "layout_intent_record"
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)

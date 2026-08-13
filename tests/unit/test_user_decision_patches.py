@@ -151,7 +151,7 @@ class UserDecisionPatchTests(unittest.TestCase):
 
             self.assertFalse(result["ok"])
             self.assertEqual(result["error"]["category"], "invalid_decision_patch")
-            self.assertFalse((root / "requirements" / "user_decisions.v2.json").exists())
+            self.assertFalse((root / "requirements" / "user_decisions.json").exists())
             self.assertNotIn("DEC-BAD", (root / "requirements" / "user_decisions.md").read_text())
 
     def test_safe_apply_plan_blocks_after_decision_ledger_changes(self):

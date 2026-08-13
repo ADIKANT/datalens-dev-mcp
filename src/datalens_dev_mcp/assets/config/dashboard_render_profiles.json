@@ -1,8 +1,8 @@
 {
-  "schema_version": "2026-08-06.dashboard_render_profiles.v4",
-  "default_profile_id": "standard_dashboard_v1",
+  "schema_id": "dashboard_render_profiles",
+  "default_profile_id": "standard_dashboard",
   "profiles": {
-    "standard_dashboard_v1": {
+    "standard_dashboard": {
       "description": "Single canonical role-owned rendering and semantic dashboard composition contract",
       "fallback_policy": "registered_families_only",
       "registered_family_count": 39,
@@ -191,7 +191,7 @@
           "height_policy": "content_lines_1_to_3"
         },
         "dashboard_composition": {
-          "schema_version": "2026-08-06.dashboard_composition.v2",
+          "schema_id": "dashboard_composition",
           "desktop_grid_columns": 36,
           "selector_row_width_percent": 94,
           "selector_height_units": {
@@ -208,7 +208,7 @@
           "equal_height_within_semantic_row": true
         },
         "title_contract": {
-          "schema_version": "2026-08-06.dashboard_title_contract.v1",
+          "schema_id": "dashboard_title_contract",
           "modes": [
             "embedded_title",
             "content_label",
@@ -256,7 +256,7 @@
         }
       },
       "adapters": {
-        "generic_chart_v1": {
+        "generic_chart": {
           "allowed_tooltip_owners": [
             "native"
           ],
@@ -267,7 +267,7 @@
             }
           }
         },
-        "metric_tile_v2": {
+        "metric_tile": {
           "allowed_tooltip_owners": [
             "native"
           ],
@@ -284,7 +284,7 @@
             }
           }
         },
-        "combo_v2": {
+        "combo": {
           "allowed_tooltip_owners": [
             "native"
           ],
@@ -295,7 +295,7 @@
             }
           }
         },
-        "horizontal_rank_generic_v1": {
+        "horizontal_rank": {
           "allowed_tooltip_owners": [
             "native"
           ],
@@ -316,7 +316,7 @@
             }
           }
         },
-        "horizontal_rank_scroll_v1": {
+        "horizontal_rank_scroll": {
           "allowed_tooltip_owners": [
             "native"
           ],
@@ -339,7 +339,7 @@
             }
           }
         },
-        "resource_schedule_v1": {
+        "resource_schedule": {
           "allowed_tooltip_owners": [
             "native"
           ],
@@ -355,7 +355,7 @@
             }
           }
         },
-        "selector_rows_v1": {
+        "selector_rows": {
           "allowed_tooltip_owners": [
             "native"
           ],
@@ -370,7 +370,7 @@
             }
           }
         },
-        "comparison_context_v1": {
+        "comparison_context": {
           "allowed_tooltip_owners": [
             "native"
           ],
@@ -385,7 +385,7 @@
             }
           }
         },
-        "native_table_v1": {
+        "native_table": {
           "allowed_tooltip_owners": [
             "native"
           ],
@@ -398,8 +398,8 @@
         }
       },
       "horizontal_adapters": {
-        "generic": "horizontal_rank_generic_v1",
-        "scroll": "horizontal_rank_scroll_v1"
+        "generic": "horizontal_rank",
+        "scroll": "horizontal_rank_scroll"
       },
       "override_contract": {
         "density": [
@@ -420,135 +420,135 @@
       },
       "family_map": {
         "kpi_value_only": {
-          "adapter": "metric_tile_v2"
+          "adapter": "metric_tile"
         },
         "kpi_value_delta": {
-          "adapter": "metric_tile_v2"
+          "adapter": "metric_tile"
         },
         "kpi_value_sparkline": {
-          "adapter": "metric_tile_v2"
+          "adapter": "metric_tile"
         },
         "kpi_value_delta_sparkline": {
-          "adapter": "metric_tile_v2"
+          "adapter": "metric_tile"
         },
         "line_chart": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "multiline_chart": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "area_completion": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "vertical_bar_time_bucket": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "combo_time_series_combo": {
-          "adapter": "combo_v2"
+          "adapter": "combo"
         },
         "horizontal_bar": {
-          "adapter": "horizontal_rank_generic_v1",
+          "adapter": "horizontal_rank",
           "horizontal_adapter_override": true
         },
         "grouped_bar": {
-          "adapter": "horizontal_rank_generic_v1",
+          "adapter": "horizontal_rank",
           "horizontal_adapter_override": true
         },
         "stacked_100": {
-          "adapter": "horizontal_rank_generic_v1",
+          "adapter": "horizontal_rank",
           "horizontal_adapter_override": true
         },
         "bullet_assignees": {
-          "adapter": "horizontal_rank_generic_v1",
+          "adapter": "horizontal_rank",
           "horizontal_adapter_override": true
         },
         "heatmap": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "waterfall": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "funnel_snapshot": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "sankey_status_flow": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "histogram": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "box_plot": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "scatter": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "bubble": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "pie": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "donut": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "treemap": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "table_node": {
-          "adapter": "native_table_v1"
+          "adapter": "native_table"
         },
         "resource_schedule_exception": {
-          "adapter": "resource_schedule_v1"
+          "adapter": "resource_schedule"
         },
         "md_methodology_block": {
-          "adapter": "comparison_context_v1"
+          "adapter": "comparison_context"
         },
         "md_section_header": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "md_dashboard_owner": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "md_contact_block": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "md_requirements_link_block": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "md_source_notes": {
-          "adapter": "generic_chart_v1"
+          "adapter": "generic_chart"
         },
         "single_select_dropdown": {
-          "adapter": "selector_rows_v1"
+          "adapter": "selector_rows"
         },
         "multi_select_dropdown": {
-          "adapter": "selector_rows_v1"
+          "adapter": "selector_rows"
         },
         "search_selector": {
-          "adapter": "selector_rows_v1"
+          "adapter": "selector_rows"
         },
         "date_range_selector": {
-          "adapter": "selector_rows_v1"
+          "adapter": "selector_rows"
         },
         "selector_family_static": {
-          "adapter": "selector_rows_v1"
+          "adapter": "selector_rows"
         },
         "selector_family_dynamic": {
-          "adapter": "selector_rows_v1"
+          "adapter": "selector_rows"
         },
         "selector_group": {
-          "adapter": "selector_rows_v1"
+          "adapter": "selector_rows"
         }
       },
       "runtime_assets": {
-        "advanced_editor_runtime": "templates/datalens/authoring_profiles/standard_dashboard_v1/advanced_editor_runtime.js",
-        "advanced_editor_runtime_sha256": "790657cf4e79ea435038e28b343d6db0475ca0909e69ac06d8a9831942c84a3a",
-        "prepare_adapter": "templates/datalens/authoring_profiles/standard_dashboard_v1/prepare_adapter.js",
-        "prepare_adapter_sha256": "e24a4ebd8c04e3a508b6da2456335a1a2547a7ed4b08280ead16f1fecc15602a"
+        "advanced_editor_runtime": "templates/datalens/authoring_profiles/standard_dashboard/advanced_editor_runtime.js",
+        "advanced_editor_runtime_sha256": "c3e69739a22f825f80654afd0a70a9602e7cb1f63c5cfcda1f3dc7040ea96e13",
+        "prepare_adapter": "templates/datalens/authoring_profiles/standard_dashboard/prepare_adapter.js",
+        "prepare_adapter_sha256": "facfa61fb1a75e8c0abc1fc520b1b80b6f13f65f1135c3c531f544a5cfded407"
       },
-      "sha256": "feb155602f22bbd30926b1a6b38de10fe0a317eb118fb0e83bd0e84a8eaba67d"
+      "sha256": "70fb8647e0ed8fe5f6f8dbab1f4aceda07b780e73de1a1c9cee55cb07ce41135"
     }
   },
-  "sha256": "860be270197536fd6cb0a9016623a3517980873ea87eda4f074452325831c34c"
+  "sha256": "39cdac0e2e5eedf0dedda2631d127344f3e471cac311851293f48d5c021e1de8"
 }

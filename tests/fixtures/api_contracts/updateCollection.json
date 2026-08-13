@@ -17,6 +17,6 @@
   ],
   "response_schema_hash": "4dd9be8897df54651e001c349aa6a03ff71f4ab5772d390a3a46eadfe044d907",
   "response_schema_ref": "Collection",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "unsupported_explicit"
 }

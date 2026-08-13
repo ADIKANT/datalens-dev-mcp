@@ -4,15 +4,15 @@
   "title": "Hash-locked project-local authoring profile",
   "type": "object",
   "required": [
-    "schema_version",
+    "schema_id",
     "id",
     "allowed_routes",
     "family_registry",
     "template_set_sha256"
   ],
   "properties": {
-    "schema_version": {
-      "const": "2026-07-23.project_authoring_profile.v1"
+    "schema_id": {
+      "const": "project_authoring_profile"
     },
     "id": {
       "type": "string",

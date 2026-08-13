@@ -1,0 +1,38 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "label": "Group A",
+      "max": 63,
+      "median": 31,
+      "min": 10,
+      "q1": 22,
+      "q3": 44,
+      "size": 1,
+      "value": 0,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "label": "Group B",
+      "max": 71,
+      "median": 39,
+      "min": 16,
+      "q1": 28,
+      "q3": 52,
+      "size": 1,
+      "value": 0,
+      "x": 0,
+      "y": 0
+    }
+  ]
+}
