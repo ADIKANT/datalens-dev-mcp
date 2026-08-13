@@ -127,8 +127,9 @@ def request_with_auth_refresh(
 def refresh_iam_token_with_yc(*, yc_binary: str = "yc", timeout_sec: float = 15.0) -> str:
     try:
         result = subprocess.run(
-            [yc_binary, "iam", "create-token"],
+            [yc_binary, "iam", "create-token", "--no-browser", "--no-user-output"],
             check=False,
+            stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -139,7 +140,10 @@ def refresh_iam_token_with_yc(*, yc_binary: str = "yc", timeout_sec: float = 15.
     except OSError as exc:
         raise DataLensApiError("yc iam create-token could not be started") from exc
     if result.returncode != 0:
-        raise DataLensApiError("yc iam create-token failed; stderr is intentionally not echoed")
+        raise DataLensApiError(
+            "yc iam create-token failed in non-interactive mode; "
+            "run yc iam create-token in an interactive terminal; stderr is intentionally not echoed"
+        )
     token = result.stdout.strip()
     if not token:
         raise DataLensApiError("yc iam create-token returned an empty token")
@@ -158,9 +162,9 @@ def _safe_auth_error(exc: Exception) -> str:
 def token_refresh_operator_note() -> dict[str, str]:
     return {
         "mode": "refresh_once_on_auth_failure",
-        "command": "yc iam create-token",
+        "command": "yc iam create-token --no-browser --no-user-output",
         "policy": (
-            "Never print token values, prefixes, lengths, Authorization, "
+            "Background refresh never starts an interactive browser flow. Never print token values, prefixes, lengths, Authorization, "
             "x-yacloud-subjecttoken, DATALENS_IAM_TOKEN, or YC_IAM_TOKEN."
         ),
     }
