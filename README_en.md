@@ -2,7 +2,7 @@
 
 [Русский](README.md) · **English**
 
-[Quick start](#quick-start) · [DataLens access](docs/access_en.md) · [Connect](#connect-an-mcp-client) · [Tools](docs/tools_en.md) · [JS Cookbook](docs/cookbook/README_en.md) · [Workflows](#example-tasks) · [Sources](docs/sources_en.md) · [Safety](#change-safety) · [Русский](README.md)
+[Quick start](#quick-start) · [DataLens access](docs/access_en.md) · [Connect](#connect-an-mcp-client) · [Tools](docs/tools_en.md) · [Interactive JS Cookbook](https://adikant.github.io/datalens-dev-mcp/?lang=en) · [Workflows](#example-tasks) · [Sources](docs/sources_en.md) · [Safety](#change-safety) · [Русский](README.md)
 
 `datalens-dev-mcp` is a local [MCP server](https://modelcontextprotocol.io/) that connects Codex, Claude, and other MCP clients to Yandex DataLens. The user describes a task in plain language, the client calls the server's typed tools, and the server reads current objects through the DataLens Public API, checks dependencies and request schemas, prepares changes, saves them, and publishes when requested with result readback.
 
@@ -53,10 +53,11 @@ The user states the objective, and the MCP client selects and calls the appropri
 | Deliver the result | Save, saved readback, publish from verified saved state, and published readback |
 | Work locally | Standalone HTML artifacts, project manifests, snapshots, plans, and reports inside the project root |
 
-Shared Tips, 34 copy-ready JavaScript visualizations, three linked application
-cases, source contracts, and complete Editor tab sets are collected in the
-[JavaScript Visualization Cookbook](docs/cookbook/README_en.md);
-the [interactive version](https://adikant.github.io/datalens-dev-mcp/) is published through GitHub Pages.
+[Open the interactive JavaScript Visualization Cookbook →](https://adikant.github.io/datalens-dev-mcp/?lang=en)
+
+It contains shared Tips, 34 copy-ready JavaScript visualizations, three linked
+application cases, source contracts, and complete Editor tab sets.
+The [Markdown catalog and source files](docs/cookbook/README_en.md) remain available in the repository.
 
 ### What the server does and what remains with the MCP client
 

@@ -995,10 +995,17 @@ def render_html(payload: dict[str, Any], *, base: str) -> str:
 
 def render_index_markdown(catalog: dict[str, Any], lang: str) -> str:
     en = lang == "en"
+    pages_url = catalog["pages_url"]
     lines = [
         "# JavaScript Visualization Cookbook",
         "",
         "[Русский](README.md) · **English**" if en else "**Русский** · [English](README_en.md)",
+        "",
+        (
+            f"[Open the interactive Cookbook →]({pages_url}?lang={lang})"
+            if en
+            else f"[Открыть интерактивный Cookbook →]({pages_url}?lang={lang})"
+        ),
         "",
         (
             "The cookbook starts with shared Tips, then provides 34 standalone recipes and three linked cases."
@@ -1006,9 +1013,9 @@ def render_index_markdown(catalog: dict[str, Any], lang: str) -> str:
             else "Cookbook начинается с общих Tips, затем содержит 34 самостоятельных рецепта и три связанных кейса."
         ),
         "",
-        f"- [Tips](index.html?lang={lang})",
-        f"- [{'Visualizations' if en else 'Визуализации'}](visualizations/index.html?lang={lang})",
-        f"- [{'Cases' if en else 'Кейсы применения'}](cases/index.html?lang={lang})",
+        f"- [Tips]({pages_url}?lang={lang})",
+        f"- [{'Visualizations' if en else 'Визуализации'}]({pages_url}visualizations/?lang={lang})",
+        f"- [{'Cases' if en else 'Кейсы применения'}]({pages_url}cases/?lang={lang})",
         "",
         f"## {'Visualizations' if en else 'Визуализации'}",
         "",

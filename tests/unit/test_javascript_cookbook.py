@@ -79,6 +79,20 @@ class JavaScriptCookbookTests(unittest.TestCase):
                     self.assertEqual(len(data), item["bytes"], item["path"])
                     self.assertEqual(hashlib.sha256(data).hexdigest(), item["sha256"], item["path"])
 
+    def test_public_readmes_promote_the_interactive_cookbook(self):
+        pages_url = self.catalog["pages_url"]
+        for lang, root_readme, docs_readme, generated_readme in (
+            ("ru", "README.md", "docs/README.md", "README.md"),
+            ("en", "README_en.md", "docs/README_en.md", "README_en.md"),
+        ):
+            interactive_url = f"{pages_url}?lang={lang}"
+            self.assertIn(interactive_url, (ROOT / root_readme).read_text(encoding="utf-8"))
+            self.assertIn(interactive_url, (ROOT / docs_readme).read_text(encoding="utf-8"))
+            generated = self.expected[generated_readme]
+            self.assertIn(interactive_url, generated)
+            self.assertIn(f"{pages_url}visualizations/?lang={lang}", generated)
+            self.assertIn(f"{pages_url}cases/?lang={lang}", generated)
+
     def test_localized_code_trees_are_structurally_equivalent_and_not_mixed(self):
         for item in self.manifest["recipes"]:
             ru = item["locales"]["ru"]["structure_hashes"]

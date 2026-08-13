@@ -2,11 +2,13 @@
 
 **Русский** · [English](README_en.md)
 
+[Открыть интерактивный Cookbook →](https://adikant.github.io/datalens-dev-mcp/?lang=ru)
+
 Cookbook начинается с общих Tips, затем содержит 34 самостоятельных рецепта и три связанных кейса.
 
-- [Tips](index.html?lang=ru)
-- [Визуализации](visualizations/index.html?lang=ru)
-- [Кейсы применения](cases/index.html?lang=ru)
+- [Tips](https://adikant.github.io/datalens-dev-mcp/?lang=ru)
+- [Визуализации](https://adikant.github.io/datalens-dev-mcp/visualizations/?lang=ru)
+- [Кейсы применения](https://adikant.github.io/datalens-dev-mcp/cases/?lang=ru)
 
 ## Визуализации
 
