@@ -2,7 +2,7 @@
 
 **Русский** · [English](README_en.md)
 
-[Быстрый старт](#быстрый-старт) · [Доступ к DataLens](docs/access.md) · [Подключение](#подключение-mcp-клиента) · [Инструменты](docs/tools.md) · [JS Cookbook](docs/cookbook/README.md) · [Сценарии](#примеры-задач) · [Источники](docs/sources.md) · [Безопасность](#безопасность-изменений) · [English](README_en.md)
+[Быстрый старт](#быстрый-старт) · [Доступ к DataLens](docs/access.md) · [Подключение](#подключение-mcp-клиента) · [Инструменты](docs/tools.md) · [Интерактивный JS Cookbook](https://adikant.github.io/datalens-dev-mcp/?lang=ru) · [Сценарии](#примеры-задач) · [Источники](docs/sources.md) · [Безопасность](#безопасность-изменений) · [English](README_en.md)
 
 `datalens-dev-mcp` — локальный [MCP-сервер](https://modelcontextprotocol.io/), который подключает Codex, Claude и другие MCP-клиенты к Yandex DataLens. Пользователь описывает задачу в клиенте обычным языком, клиент вызывает типизированные инструменты сервера, а сервер читает актуальные объекты через DataLens Public API, проверяет зависимости и схемы запросов, готовит изменения, сохраняет их и при необходимости публикует с контрольным чтением результата.
 
@@ -53,10 +53,11 @@ project root
 | Доставить результат | Save, saved readback, publish из проверенного saved state и published readback |
 | Работать локально | Standalone HTML artifacts, project manifests, снимки, планы и отчёты внутри project root |
 
-Стартовые Tips, 34 готовые JavaScript-визуализации, три связанных прикладных
-кейса, контракты источников и полный набор вкладок для копирования собраны в
-[JavaScript Visualization Cookbook](docs/cookbook/README.md);
-[интерактивная версия](https://adikant.github.io/datalens-dev-mcp/) публикуется через GitHub Pages.
+[Открыть интерактивный JavaScript Visualization Cookbook →](https://adikant.github.io/datalens-dev-mcp/?lang=ru)
+
+В нём собраны стартовые Tips, 34 готовые JavaScript-визуализации, три связанных
+прикладных кейса, контракты источников и полный набор вкладок для копирования.
+[Markdown-каталог и исходники](docs/cookbook/README.md) доступны прямо в репозитории.
 
 ### Что делает сервер, а что остаётся за MCP-клиентом
 
