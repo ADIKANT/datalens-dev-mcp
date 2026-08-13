@@ -16,7 +16,7 @@ from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.pipeline.dashboard_composition import validate_dashboard_composition
 
 
-FINAL_PAYLOAD_ATTESTATION_SCHEMA_VERSION = "2026-08-06.final_payload_attestation.v1"
+FINAL_PAYLOAD_ATTESTATION_SCHEMA_ID = "final_payload_attestation"
 ATTESTATION_ARTIFACT = "artifacts/final_payload_attestation.json"
 ATTESTED_PROFILE_IDS = frozenset({CANONICAL_AUTHORING_PROFILE_ID})
 _DESTINATION_KEYS = frozenset(
@@ -82,7 +82,7 @@ def build_final_payload_attestation(root: str | Path) -> dict[str, Any]:
             if actual_text != expected_text:
                 issues.append(f"{relative}: materialized tab {tab_name} differs from bundle.json")
         render_spec = str((profile.get("style_contract") or {}).get("renderer_visual_spec") or "")
-        if render_spec.endswith("renderer_visual_spec.v5"):
+        if render_spec.endswith("renderer_visual_spec"):
             render_validation = validate_standard_dashboard_renderer(bundle)
             issues.extend(
                 f"{relative}: protected renderer: {issue}"
@@ -104,7 +104,7 @@ def build_final_payload_attestation(root: str | Path) -> dict[str, Any]:
                 "family": str(bundle.get("family") or ""),
                 "authoring_profile": profile_id,
                 "editor_render_profile": str(profile.get("editor_render_profile") or ""),
-                "render_contract_version": str(profile.get("render_contract_version") or render_spec),
+                "render_contract_id": str(profile.get("render_contract_id") or render_spec),
                 "runtime": {
                     "renderer_kind": str(provenance.get("renderer_kind") or ""),
                     "runtime_sha256": str(provenance.get("canonical_runtime_sha256") or ""),
@@ -166,7 +166,7 @@ def build_final_payload_attestation(root: str | Path) -> dict[str, Any]:
                 "family": str(plan.get("semantic_family") or plan.get("visualization_id") or ""),
                 "authoring_profile": profile_id,
                 "editor_render_profile": str(profile.get("editor_render_profile") or ""),
-                "render_contract_version": str(profile.get("render_contract_version") or ""),
+                "render_contract_id": str(profile.get("render_contract_id") or ""),
                 "runtime": {},
                 "title_mode": str(title_contract.get("mode") or "native_title"),
                 "display_title": str(title_contract.get("display_title") or (plan.get("options") or {}).get("title") or ""),
@@ -181,7 +181,7 @@ def build_final_payload_attestation(root: str | Path) -> dict[str, Any]:
         )
 
     requires_attestation = canonical_profile_requested or bool(profile_ids & ATTESTED_PROFILE_IDS) or any(
-        str(item.get("render_contract_version") or "").endswith("renderer_visual_spec.v5")
+        str(item.get("render_contract_id") or "").endswith("renderer_visual_spec")
         for item in components
     )
     composition_path = project_root / "artifacts" / "dashboard_composition.json"
@@ -204,7 +204,7 @@ def build_final_payload_attestation(root: str | Path) -> dict[str, Any]:
 
     ordered_components = sorted(components, key=lambda item: item["widget_id"])
     attestation: dict[str, Any] = {
-        "schema_version": FINAL_PAYLOAD_ATTESTATION_SCHEMA_VERSION,
+        "schema_id": FINAL_PAYLOAD_ATTESTATION_SCHEMA_ID,
         "ok": not issues,
         "status": "attested" if not issues else "blocked",
         "applicability": "required" if requires_attestation else "legacy_optional",

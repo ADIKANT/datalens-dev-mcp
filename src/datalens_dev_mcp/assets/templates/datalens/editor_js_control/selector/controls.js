@@ -1,3 +1,5 @@
+// @cookbook-locale ru Controls описывает параметры, подписи и варианты без скрытых связей.
+// @cookbook-locale en Controls declares parameters, labels, and options without hidden bindings.
 /*
  * Editor JS Control template contract:
  * - Source/data contract: sources.js may supply dynamic options; static options stay explicit here.
@@ -8,6 +10,9 @@
  * - Labels/tooltips: labels describe the controlled field, while dashboard hints stay metadata.
  * - Theme tokens: native controls inherit DataLens light/dark theme variables.
  * - Interactions: affected widgets must be represented in dashboard selector relations.
+ *
+ * The production compiler replaces this fixture with an explicit selector_contract.
+ * Do not edit this fixture directly; keep native control layout invariants unchanged.
  */
 module.exports = {
   controls: [

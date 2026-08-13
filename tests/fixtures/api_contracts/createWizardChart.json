@@ -19,6 +19,6 @@
   ],
   "response_schema_hash": "0f43c53ef801a2df2f7ed7e71164a100d780fe120c8f14846628153ceceb98e4",
   "response_schema_ref": "CreateWizardChartResponse",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "guarded_plan_only"
 }

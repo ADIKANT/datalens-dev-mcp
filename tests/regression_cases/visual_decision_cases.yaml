@@ -1,4 +1,4 @@
-schema_version: 2026-06-30.visual_decision_regression_cases.v1
+schema_id: visual_decision_regression_cases
 cases:
   - id: kpi_current_status_no_implicit_delta
     business_question: Current KPI status with optional trend context

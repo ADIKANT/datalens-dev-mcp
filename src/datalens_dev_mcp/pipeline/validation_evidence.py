@@ -83,7 +83,7 @@ def build_validation_evidence_report(project_root: str | Path = ".") -> dict[str
         root=root,
     )
     report = {
-        "schema_version": "2026-06-05.validation_evidence.v1",
+        "schema_id": "validation_evidence",
         "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "ok": ok,
         "ok_proof_context": {
@@ -296,7 +296,7 @@ def _source_availability_summary(payload: dict[str, Any]) -> dict[str, Any]:
     return {
         "status": "recorded" if sources else payload.get("status", "not_run"),
         "proof_level": "live_read_only_api" if payload.get("generated_from") else "source_static",
-        "schema_version": payload.get("schema_version") or "",
+        "schema_id": payload.get("schema_id") or "",
         "project": payload.get("project") or "",
         "source_count": len(sources),
         "generated_from": payload.get("generated_from") or "",
@@ -308,7 +308,7 @@ def _active_graph_summary(payload: dict[str, Any]) -> dict[str, Any]:
     return {
         "status": "recorded" if entries else payload.get("status", "not_run"),
         "proof_level": "live_read_only_api" if entries else "source_static",
-        "schema_version": payload.get("schema_version") or "",
+        "schema_id": payload.get("schema_id") or "",
         "entry_count": len(entries),
         "blocked_reasons": payload.get("blocked_reasons") or [],
     }
@@ -319,7 +319,7 @@ def _chart_validation_summary(payload: dict[str, Any]) -> dict[str, Any]:
     return {
         "status": "recorded" if payload.get("charts") else payload.get("status", "not_run"),
         "proof_level": "live_read_only_api" if payload.get("charts") else "source_static",
-        "schema_version": payload.get("schema_version") or "",
+        "schema_id": payload.get("schema_id") or "",
         "chart_count": summary.get("chart_count", len(payload.get("charts") or [])),
         "failed_chart_count": summary.get("failed_chart_count", 0),
         "browser_checked_count": summary.get("browser_checked_count", 0),
@@ -333,7 +333,7 @@ def _source_budget_summary(payload: dict[str, Any]) -> dict[str, Any]:
     return {
         "status": "recorded" if sources else payload.get("status", "not_run"),
         "proof_level": "live_read_only_api" if sources else "source_static",
-        "schema_version": payload.get("schema_version") or "",
+        "schema_id": payload.get("schema_id") or "",
         "source_count": summary.get("source_count", len(sources)),
         "failed_source_count": summary.get("failed_source_count", 0),
         "unknown_source_count": summary.get("unknown_source_count", 0),

@@ -11,13 +11,12 @@
   "request_schema_hash": "874bc47c174b035318c4141e3cc47842a79aee964b0a15d7ed0ec8fe8edf6701",
   "request_schema_ref": "GetEntriesPermissionsArgs",
   "response_payload": {},
-  "response_schema_closure_hash": "d5278fc531a0c4bcdae690607e84dced99988589d6b56b1c6d97f5ea2b9c37cd",
+  "response_schema_closure_hash": "b8e6b65b6357b04ecf8be8344c4ed0e8b3b9d693afd429ddbb906c528322eab2",
   "response_schema_closure_refs": [
-    "EntryPermissions",
     "GetEntriesPermissionsResult"
   ],
-  "response_schema_hash": "f064bc6cccc95b460a967b1f950604d8fb2b6e3d372f22b86ffdb2bba682bae1",
+  "response_schema_hash": "2c3185916f0165bf3148b406a772fc4b6fdaa273fa01d09f8ca008561061c264",
   "response_schema_ref": "GetEntriesPermissionsResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "supported_tool"
 }

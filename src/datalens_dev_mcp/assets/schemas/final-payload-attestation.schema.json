@@ -4,9 +4,9 @@
   "title": "Final payload attestation",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "ok", "status", "applicability", "issues", "authoring_profiles", "routes", "components", "dashboard_composition", "dashboard_payload", "payload_set_sha256", "qa_requirement", "attestation_sha256"],
+  "required": ["schema_id", "ok", "status", "applicability", "issues", "authoring_profiles", "routes", "components", "dashboard_composition", "dashboard_payload", "payload_set_sha256", "qa_requirement", "attestation_sha256"],
   "properties": {
-    "schema_version": {"const": "2026-08-06.final_payload_attestation.v1"},
+    "schema_id": {"const": "final_payload_attestation"},
     "ok": {"type": "boolean"},
     "status": {"enum": ["attested", "blocked"]},
     "applicability": {"enum": ["required", "legacy_optional"]},

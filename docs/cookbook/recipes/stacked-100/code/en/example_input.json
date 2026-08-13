@@ -1,0 +1,32 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "group": "All",
+      "label": "Core",
+      "target": 0,
+      "value": 54
+    },
+    {
+      "group": "All",
+      "label": "Additional",
+      "target": 0,
+      "value": 31
+    },
+    {
+      "group": "All",
+      "label": "Other",
+      "target": 0,
+      "value": 15
+    }
+  ]
+}

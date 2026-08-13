@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "additionalProperties": true,
+      "description": "DataLens Editor links; replace placeholders.",
+      "type": "object"
+    },
+    "params": {
+      "additionalProperties": {
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "rows": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "description": "Numeric amount to format",
+            "examples": [
+              1250.5
+            ],
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "entity_id": {
+            "description": "Stable row identifier",
+            "examples": [
+              "OBJ-1042"
+            ],
+            "type": "string"
+          },
+          "entity_name": {
+            "description": "Object name",
+            "examples": [
+              "Object 1042"
+            ],
+            "type": "string"
+          },
+          "owner": {
+            "description": "Responsible owner",
+            "examples": [
+              "Team A"
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "description": "Technical status key",
+            "examples": [
+              "ready"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "Last update time",
+            "examples": [
+              "2026-01-05T12:30:00Z"
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "entity_id",
+          "entity_name",
+          "status"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "rows",
+    "meta",
+    "params"
+  ],
+  "title": "Wide detail table",
+  "type": "object"
+}

@@ -21,7 +21,7 @@ python3 scripts/smoke_mcp_stdio.py
 
 ## Режим выполнения
 
-Local config v2 содержит раздел:
+Local config содержит раздел:
 
 ```json
 {
@@ -45,7 +45,7 @@ Local config v2 содержит раздел:
   `confirm_delete=true` для неизменившегося плана; произвольное удаление
   целого объекта недоступно.
 
-Конфигурация старого формата автоматически приводится к v2 при загрузке. Итоговые настройки можно проверить через `dl_get_local_config`.
+Сервер принимает только текущую каноническую локальную конфигурацию. Итоговые настройки можно проверить через `dl_get_local_config`.
 
 ## Основной env-файл
 
@@ -55,7 +55,6 @@ Local config v2 содержит раздел:
 DATALENS_ORG_ID=<ID_ОРГАНИЗАЦИИ>
 DATALENS_IAM_TOKEN=<IAM_ТОКЕН>
 DATALENS_API_BASE_URL=https://api.datalens.tech
-DATALENS_API_VERSION=auto
 DATALENS_REQUEST_INTERVAL_SEC=1.05
 DATALENS_MAX_READ_CONCURRENCY=3
 DATALENS_READ_TRANSIENT_RETRIES=2
@@ -79,11 +78,11 @@ DATALENS_MCP_ENABLE_EXPERT_RPC=0
 | --- | --- | --- | --- |
 | `request_interval_sec` | `DATALENS_REQUEST_INTERVAL_SEC` | `1.05` | Минимальный интервал между стартами API-запросов |
 | `max_read_concurrency` | `DATALENS_MAX_READ_CONCURRENCY` | `3` | От 1 до 3 одновременно выполняющихся независимых чтений |
-| `read_transient_retries` | `DATALENS_READ_TRANSIENT_RETRIES` | `2` | От 0 до 2 повторов безопасного чтения после timeout, обрыва соединения или HTTP 502/503/504 |
+| `read_transient_retries` | `DATALENS_READ_TRANSIENT_RETRIES` | `2` | От 0 до 2 повторов безопасного чтения после timeout, TLS handshake timeout/неожиданного EOF, обрыва соединения или HTTP 502/503/504 |
 | `rate_limit_retries` | `DATALENS_RATE_LIMIT_RETRIES` | `6` | Повторы чтения после общего cooldown по HTTP 429 |
 | `request_timeout_sec` | `DATALENS_REQUEST_TIMEOUT_SEC` | `30` | Timeout одного HTTP-запроса |
 
-Интервал `1.05` соответствует примерно 57 стартам в минуту и оставляет запас относительно [лимита 60 запросов в минуту на пользователя](https://yandex.cloud/ru/docs/datalens/concepts/limits). Независимые чтения могут перекрываться по времени, но каждый старт проходит через общий limiter. Запись, fresh read/write/save/readback/publish выполняются эксклюзивно; неоднозначно завершившийся write не повторяется автоматически. HTTP 429 приостанавливает все новые старты на `Retry-After` и временно снижает read concurrency до одного worker.
+Интервал `1.05` соответствует примерно 57 стартам в минуту и оставляет запас относительно [лимита 60 запросов в минуту на пользователя](https://yandex.cloud/ru/docs/datalens/concepts/limits). Независимые чтения могут перекрываться по времени, но каждый старт проходит через общий limiter. TLS certificate failure не считается временной ошибкой. Запись, fresh read/write/save/readback/publish выполняются эксклюзивно; неоднозначно завершившийся write не повторяется автоматически и требует readback/reconciliation. HTTP 429 приостанавливает все новые старты на `Retry-After` и временно снижает read concurrency до одного worker.
 
 ## Жёсткие выключатели
 

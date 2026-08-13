@@ -20,7 +20,7 @@ Confidence = Literal["high", "medium", "low", "blocked"]
 
 @dataclass(frozen=True)
 class ChartDecisionRecord:
-    schema_version: str
+    schema_id: str
     chart_id: str
     business_question: str
     analytical_task: str
@@ -120,7 +120,7 @@ class VisualDecisionEngine:
         confidence: Confidence = "blocked" if not business_question.strip() else "low" if questions else "high"
         rejected = _rejected_families(analytical_task, selected_family, negative_concepts, forbidden_families)
         return ChartDecisionRecord(
-            schema_version="2026-06-30.dataviz_chart_decision.v1",
+            schema_id="dataviz_chart_decision",
             chart_id=chart_id,
             business_question=business_question.strip() or "missing business question",
             audience=audience or [],
@@ -156,7 +156,7 @@ def decide_chart(**kwargs: Any) -> ChartDecisionRecord:
 
 def validate_chart_decision_record(record: dict[str, Any]) -> dict[str, Any]:
     required = [
-        "schema_version",
+        "schema_id",
         "chart_id",
         "business_question",
         "analytical_task",

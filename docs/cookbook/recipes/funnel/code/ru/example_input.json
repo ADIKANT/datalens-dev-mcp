@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "bucket": "Получено",
+      "value": 120
+    },
+    {
+      "bucket": "Проверено",
+      "value": 91
+    },
+    {
+      "bucket": "Принято",
+      "value": 64
+    },
+    {
+      "bucket": "Завершено",
+      "value": 43
+    }
+  ]
+}

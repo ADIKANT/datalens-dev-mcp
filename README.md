@@ -2,7 +2,7 @@
 
 **Русский** · [English](README_en.md)
 
-[Быстрый старт](#быстрый-старт) · [Доступ к DataLens](docs/access.md) · [Подключение](#подключение-mcp-клиента) · [Инструменты](docs/tools.md) · [Сценарии](#примеры-задач) · [Источники](docs/sources.md) · [Безопасность](#безопасность-изменений) · [English](README_en.md)
+[Быстрый старт](#быстрый-старт) · [Доступ к DataLens](docs/access.md) · [Подключение](#подключение-mcp-клиента) · [Инструменты](docs/tools.md) · [JS Cookbook](docs/cookbook/README.md) · [Сценарии](#примеры-задач) · [Источники](docs/sources.md) · [Безопасность](#безопасность-изменений) · [English](README_en.md)
 
 `datalens-dev-mcp` — локальный [MCP-сервер](https://modelcontextprotocol.io/), который подключает Codex, Claude и другие MCP-клиенты к Yandex DataLens. Пользователь описывает задачу в клиенте обычным языком, клиент вызывает типизированные инструменты сервера, а сервер читает актуальные объекты через DataLens Public API, проверяет зависимости и схемы запросов, готовит изменения, сохраняет их и при необходимости публикует с контрольным чтением результата.
 
@@ -52,6 +52,11 @@ project root
 | Изменить часть решения | Точечное обновление вкладки дашборда, модели датасета или связанной группы объектов |
 | Доставить результат | Save, saved readback, publish из проверенного saved state и published readback |
 | Работать локально | Standalone HTML artifacts, project manifests, снимки, планы и отчёты внутри project root |
+
+Стартовые Tips, 34 готовые JavaScript-визуализации, три связанных прикладных
+кейса, контракты источников и полный набор вкладок для копирования собраны в
+[JavaScript Visualization Cookbook](docs/cookbook/README.md);
+[интерактивная версия](https://adikant.github.io/datalens-dev-mcp/) публикуется через GitHub Pages.
 
 ### Что делает сервер, а что остаётся за MCP-клиентом
 
@@ -163,12 +168,12 @@ project root
 
 ### Wizard, Editor и QL
 
-- Новые стандартные KPI, таблицы, линии, области, столбцы, комбинированные чарты, круговые диаграммы, scatter/bubble, treemap и карты по умолчанию используют Wizard.
+- Новые стандартные KPI, таблицы, линии, области, столбцы, комбинированные чарты, круговые диаграммы, scatter/bubble, treemap, воронки и карты по умолчанию используют Wizard.
 - При обновлении существующего чарта сохраняются его технология и `visualization_id`.
 - Editor выбирается по прямому запросу на JavaScript либо при документированном недостатке Wizard.
 - QL используется только по прямому запросу и с явным payload или актуальной QL-версией; он не выбирается автоматически и не служит fallback.
-- Create и full redesign автоматически используют `standard_dashboard_v1`:
-  role-based заголовки, composition v2, защищённый Editor runtime и финальная
+- Create и full redesign автоматически используют `standard_dashboard`:
+  role-based заголовки, dashboard composition, защищённый Editor runtime и финальная
   payload/QA attestation без изменения поверхности из 39 инструментов.
 
 Подробная политика: [`docs/route-policy.md`](docs/route-policy.md).
@@ -209,7 +214,6 @@ python3 scripts/smoke_mcp_stdio.py
 DATALENS_ORG_ID=<ID_ОРГАНИЗАЦИИ>
 DATALENS_IAM_TOKEN=<IAM_ТОКЕН>
 DATALENS_API_BASE_URL=https://api.datalens.tech
-DATALENS_API_VERSION=auto
 DATALENS_MCP_ENABLE_WRITES=1
 DATALENS_MCP_LIVE_ALLOW_SAVE=1
 DATALENS_MCP_LIVE_ALLOW_PUBLISH=1
@@ -326,8 +330,8 @@ API-readback подтверждает структуру и состояние �
 - Независимый проект, не относящийся к официальным продуктам Yandex или Yandex Cloud.
 - Статус Python-пакета: **Alpha**.
 - Для реальных записей рекомендуется выбирать специальные целевые объекты и проверять результат.
-- Ветка `main` может содержать изменения из `Unreleased`, ещё не вошедшие в опубликованную версию.
-- Источник точного набора инструментов — `tools/list` текущей установленной версии; стандартная поверхность версии 0.5.0 содержит 39 инструментов.
+- `main` содержит единственную актуальную реализацию сервера; история изменений сохраняется в Git и прошедших review pull requests.
+- Источник точного набора инструментов — `tools/list` текущей установки; стандартная поверхность содержит 39 инструментов.
 
 ## Разработка
 

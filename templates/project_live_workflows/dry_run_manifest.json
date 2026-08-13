@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-07-01.project_live_workflow_manifest.v4",
+  "schema_id": "project_live_workflow_manifest",
   "project_name": "sample_project_dry_run",
   "workbook_id": "<workbook_id>",
   "dashboard_ids": ["<dashboard_id>"],

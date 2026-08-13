@@ -122,10 +122,10 @@ class ServerPerformanceOptimizationTests(unittest.TestCase):
                 target.write_text("second", encoding="utf-8")
                 self.assertEqual(resource_text("fixture.txt"), "second")
                 manifest_path = Path(tmp) / "resource_manifest.json"
-                manifest_path.write_text('{"schema_version":"first","resources":[]}', encoding="utf-8")
-                self.assertEqual(declared_resource_manifest()["schema_version"], "first")
-                manifest_path.write_text('{"schema_version":"second","resources":[]}', encoding="utf-8")
-                self.assertEqual(declared_resource_manifest()["schema_version"], "second")
+                manifest_path.write_text('{"schema_id":"first","resources":[]}', encoding="utf-8")
+                self.assertEqual(declared_resource_manifest()["schema_id"], "first")
+                manifest_path.write_text('{"schema_id":"second","resources":[]}', encoding="utf-8")
+                self.assertEqual(declared_resource_manifest()["schema_id"], "second")
 
     def test_runtime_cache_metrics_are_aggregate_only(self):
         REQUEST_SCHEDULER.reset_for_tests()
@@ -228,7 +228,7 @@ class ServerPerformanceOptimizationTests(unittest.TestCase):
                 first = validate_editor_runtime_contract({"prepare": "module.exports = {};"})
                 second = validate_editor_runtime_contract({"prepare": "module.exports = {};"})
                 contract = json.loads(contract_path.read_text(encoding="utf-8"))
-                contract["rule_version"] = str(contract["rule_version"]) + ".changed"
+                contract["rule_id"] = str(contract["rule_id"]) + ".changed"
                 contract_path.write_text(json.dumps(contract), encoding="utf-8")
                 changed = validate_editor_runtime_contract({"prepare": "module.exports = {};"})
 
@@ -297,6 +297,32 @@ class ServerPerformanceOptimizationTests(unittest.TestCase):
             self.assertEqual(artifact_payload, sanitize_response(payload))
             self.assertEqual(first["canonical_artifact"]["sha256"], second["canonical_artifact"]["sha256"])
             self.assertEqual(artifact_path.stat().st_mtime_ns, old_ns)
+
+    def test_publish_plan_summary_distinguishes_guard_mode_from_rpc_mode(self):
+        payload = {
+            "ok": True,
+            "actions": [
+                {
+                    "method": "updateEditorChart",
+                    "mode": "save",
+                    "payload": {"mode": "publish", "entry": {"entryId": "chart_fixture"}},
+                }
+            ],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            projected = project_heavy_tool_response(
+                "dl_create_publish_from_saved_plan",
+                payload,
+                response_mode="summary",
+                inline_char_budget=15_000,
+                project_root=tmp,
+            )
+
+        summary = projected["summary"]
+        self.assertEqual(summary["write_modes"], ["publish"])
+        self.assertEqual(summary["readback_branches"], ["published"])
+        self.assertEqual(summary["action_contracts"][0]["safety_guard_mode"], "save")
+        self.assertIn("payload.mode", summary["top_level_mode_contract"])
 
     def test_api_default_precedence_is_env_then_local_then_builtin(self):
         with patch.dict(os.environ, {}, clear=True):

@@ -20,15 +20,14 @@
       }
     ]
   },
-  "response_schema_closure_hash": "f42cbab9a77d0d1753cd4e7a04889c4f4c9a0c9515ecb5ee53cf393239962450",
+  "response_schema_closure_hash": "3a60dc15b3319ea6760b9b389b464cef30a6e24e3e2d8d79705fff45a9bc9658",
   "response_schema_closure_refs": [
-    "EntryPermissions",
     "EntryScope",
     "GetWorkbookEntriesEntry",
     "GetWorkbookEntriesResult"
   ],
   "response_schema_hash": "b92649abb21d3cbee99bddf2639fe547c7325b46d9ffa3c40a3c01d9b9635a12",
   "response_schema_ref": "GetWorkbookEntriesResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "supported_tool"
 }

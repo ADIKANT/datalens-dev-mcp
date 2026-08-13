@@ -16,7 +16,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARTIFACT_ROOT = ROOT / "artifacts" / "validation_profiles"
-PROFILE_SCHEMA_VERSION = "2026-07-01.validation_profiles.v1"
+PROFILE_SCHEMA_ID = "validation_profiles"
 PROFILE_NAMES = ("quick", "standard", "full")
 CONTROLLED_LIVE_ENABLE_ENV = "DATALENS_MCP_RUN_CONTROLLED_LIVE_PROOF"
 CONTROLLED_LIVE_APPROVAL_ENV = "DATALENS_MCP_APPROVED_CONTROLLED_LIVE_WRITES"
@@ -84,10 +84,17 @@ def docs_corpus_available() -> bool:
 def static_policy_steps() -> list[dict[str, Any]]:
     steps = [
         command_step("clean_runtime_artifacts", py("scripts/clean_local_runtime_artifacts.py"), 60),
+        command_step("canonical_server_surface", py("scripts/check_canonical_server_surface.py"), 120),
         command_step("lint_local", py("scripts/lint_local.py"), 120),
         command_step("schema_validation", py("scripts/validate_schemas.py"), 120),
         command_step("runtime_resource_manifest", py("scripts/build_runtime_resource_manifest.py", "--check"), 120),
         command_step("js_template_contracts", py("scripts/check_js_templates.py"), 120),
+        command_step("javascript_cookbook", py("scripts/build_javascript_cookbook.py", "--check"), 120),
+        command_step(
+            "javascript_cookbook_runtime",
+            py("scripts/check_javascript_cookbook_runtime.py", "--strict"),
+            120,
+        ),
         command_step("docs_consistency", py("scripts/check_docs_consistency.py"), 120),
         command_step("api_contract_policy", py("scripts/validate_api_contract_coverage.py"), 120),
         command_step("public_release_surface", py("scripts/check_public_release.py"), 120),
@@ -441,7 +448,7 @@ def run_profile(profile: str, *, artifact_root: Path = DEFAULT_ARTIFACT_ROOT) ->
     clean_tree_safe = not delta["added"] and not delta["removed"]
     duration_ms = round((time.perf_counter() - started) * 1000, 3)
     report = {
-        "schema_version": PROFILE_SCHEMA_VERSION,
+        "schema_id": PROFILE_SCHEMA_ID,
         "ok": not failed and clean_tree_safe,
         "profile": normalized,
         "run_id": run_id,

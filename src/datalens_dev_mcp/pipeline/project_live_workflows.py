@@ -15,6 +15,7 @@ from threading import RLock
 from typing import Any
 
 from datalens_dev_mcp.api.auth import refresh_iam_token_with_yc
+from datalens_dev_mcp.api.methods import compiled_api_version
 from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.editor.authoring_profiles import (
     CANONICAL_AUTHORING_PROFILE_ID,
@@ -152,7 +153,6 @@ RESERVED_PARENT_ENV_PREFIXES = (
 )
 INJECTED_DATALENS_ENV_NAMES = (
     "DATALENS_API_BASE_URL",
-    "DATALENS_API_VERSION",
     "DATALENS_IAM_TOKEN",
     "DATALENS_ORG_ID",
     "DATALENS_YC_BINARY",
@@ -385,7 +385,7 @@ def plan_project_manifest(
     if existing.get("path"):
         manifest_path = Path(existing["path"])
     proposed = _suggested_manifest(root, detected_scripts)
-    proposed["schema_version"] = "2026-07-01.project_live_workflow_manifest.v4"
+    proposed["schema_id"] = "project_live_workflow_manifest"
     proposed["workbook_id"] = target_workbook_id or proposed.get("workbook_id") or "<workbook_id>"
     proposed["dashboard_ids"] = [dashboard_id] if dashboard_id else proposed.get("dashboard_ids", ["<dashboard_id>"])
     proposed["target"] = {
@@ -699,7 +699,7 @@ def _start_project_live_action(
         else package_root
     )
     worker_spec = {
-        "schema_version": "2026-07-23.project_live_worker_spec.v1",
+        "schema_id": "project_live_worker_spec",
         "execution_id": execution_id,
         "project_root": str(root),
         "command": command,
@@ -713,7 +713,7 @@ def _start_project_live_action(
     }
     write_json(spec_path, worker_spec)
     state: dict[str, Any] = {
-        "schema_version": "2026-07-23.project_live_execution.v2",
+        "schema_id": "project_live_execution",
         "execution_id": execution_id,
         "execution_key": execution_key,
         "project_root": str(root),
@@ -992,7 +992,7 @@ def _finalize_project_live_state(
     }
     terminal_state = {
         **state,
-        "schema_version": "2026-07-23.project_live_execution.v2",
+        "schema_id": "project_live_execution",
         "status": result["status"],
         "heartbeat_epoch": worker_result.get("completed_epoch") or time.time(),
         "completed_epoch": worker_result.get("completed_epoch") or time.time(),
@@ -1761,9 +1761,6 @@ def _safe_project_env(
     if cfg.base_url:
         env["DATALENS_API_BASE_URL"] = cfg.base_url
         injected_env_names.append("DATALENS_API_BASE_URL")
-    if cfg.api_version:
-        env["DATALENS_API_VERSION"] = cfg.api_version
-        injected_env_names.append("DATALENS_API_VERSION")
 
     allowed_env_names = required_env_validation["allowed_env_names"]
     missing_required_env_names = sorted(name for name in allowed_env_names if name not in env)
@@ -1789,7 +1786,7 @@ def _safe_project_env(
             "token_present": bool(token),
             "org_id_set": bool(cfg.org_id),
             "api_base_url": cfg.base_url,
-            "api_version": cfg.api_version,
+            "api_version": compiled_api_version(),
             "yc_binary_resolved": bool(yc_path),
         },
         secret_values,
@@ -2353,7 +2350,7 @@ def _safe_manifest_summary(manifest: dict[str, Any]) -> dict[str, Any]:
         allowed_sensitive_names=_allowed_sensitive_required_env_names(manifest, {}, {}),
     )
     return {
-        "schema_version": manifest.get("schema_version") or "",
+        "schema_id": manifest.get("schema_id") or "",
         "project_name": manifest.get("project_name") or manifest.get("name") or "",
         "workbook_id": manifest.get("workbook_id") or "",
         "dashboard_ids": manifest.get("dashboard_ids") or [],
@@ -2571,7 +2568,7 @@ def _suggested_manifest(root: Path, detected_scripts: list[str]) -> dict[str, An
     ]
     return {
         "path": str(root / ".datalens-mcp.json"),
-        "schema_version": "2026-07-01.project_live_workflow_manifest.v4",
+        "schema_id": "project_live_workflow_manifest",
         "project_name": root.name,
         "workbook_id": "<workbook_id>",
         "dashboard_ids": ["<dashboard_id>"],

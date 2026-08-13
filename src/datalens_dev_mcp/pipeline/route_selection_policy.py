@@ -4,7 +4,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
 from datalens_dev_mcp.pipeline.route_registry import (
-    POLICY_VERSION,
+    POLICY_ID,
     QL_EXPLICIT_ROUTE,
     WIZARD_NATIVE_ROUTE,
     capability_gap_for_family,
@@ -33,7 +33,7 @@ class RouteSelectionDecision:
     nearest_supported_route: str = ""
     forbidden_fallback: bool = False
     required_evidence: list[str] = field(default_factory=list)
-    policy: str = POLICY_VERSION
+    policy: str = POLICY_ID
 
     @property
     def route(self) -> str:
@@ -45,7 +45,7 @@ class RouteSelectionDecision:
         return payload
 
 
-class RouteSelectionPolicyV5:
+class RouteSelectionPolicy:
     """Deterministic Wizard-first routing with explicit-only QL selection."""
 
     def __init__(
@@ -55,7 +55,7 @@ class RouteSelectionPolicyV5:
         docs_feature_policy: dict[str, Any] | None = None,
         api_operation_policy: dict[str, Any] | None = None,
     ) -> None:
-        self.route_policy = route_policy or _load_json("config/route_selection_policy_v5.json", {})
+        self.route_policy = route_policy or _load_json("config/route_selection_policy.json", {})
         self.docs_feature_policy = docs_feature_policy or _load_json("config/datalens_docs_feature_policy.json", {})
         self.api_operation_policy = api_operation_policy or _load_json("config/datalens_api_operation_policy.json", {})
 
@@ -315,7 +315,7 @@ class RouteSelectionPolicyV5:
         return {str(item.get("method_name")): item for item in self.api_operation_policy.get("operations") or []}
 
 
-def select_route_v5(
+def select_route(
     request: str | NormalizedUserRequest,
     *,
     existing_route: str = "",
@@ -323,25 +323,13 @@ def select_route_v5(
     existing_visualization_id: str = "",
     semantic_output: str = "",
 ) -> RouteSelectionDecision:
-    return RouteSelectionPolicyV5().select(
+    return RouteSelectionPolicy().select(
         request,
         existing_route=existing_route,
         existing_object_type=existing_object_type,
         existing_visualization_id=existing_visualization_id,
         semantic_output=semantic_output,
     )
-
-
-def select_route_v4(*args: Any, **kwargs: Any) -> RouteSelectionDecision:
-    return select_route_v5(*args, **kwargs)
-
-
-def select_route_v3(*args: Any, **kwargs: Any) -> RouteSelectionDecision:
-    return select_route_v5(*args, **kwargs)
-
-
-RouteSelectionPolicyV4 = RouteSelectionPolicyV5
-RouteSelectionPolicyV3 = RouteSelectionPolicyV5
 
 
 def _load_json(resource_name: str, default: Any) -> Any:

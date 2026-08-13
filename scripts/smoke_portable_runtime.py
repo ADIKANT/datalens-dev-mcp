@@ -31,7 +31,7 @@ def _metadata(value: Any) -> dict[str, Any]:
             "method": value.get("method"),
             "mode": value.get("mode"),
             "result_count": value.get("result_count"),
-            "schema_version": value.get("schema_version"),
+            "schema_id": value.get("schema_id"),
         }
     return {}
 

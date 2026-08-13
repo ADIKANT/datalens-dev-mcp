@@ -15,7 +15,7 @@ class EvidenceModeDecision:
     metadata_fetch_artifacts: list[str] = field(default_factory=list)
     gates: list[str] = field(default_factory=list)
     blocked_reasons: list[str] = field(default_factory=list)
-    schema_version: str = "datalens.evidence-mode-decision.v1"
+    schema_id: str = "datalens.evidence-mode-decision"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

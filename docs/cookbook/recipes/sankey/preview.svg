@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="480" viewBox="0 0 960 480">
+<rect width="960" height="480" fill="#F4F6F9"/><rect x="28" y="28" width="904" height="424" rx="18" fill="#FFF" stroke="#E4E7EC"/>
+<text x="56" y="72" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#667085">Синтетический статический preview · Диаграмма потоков</text>
+<rect data-role="sankey-node" x="140" y="130" width="24" height="130" fill="#2B75E2"/><path data-role="sankey-link" d="M164 155 C390 155 470 220 700 220" fill="none" stroke="#2B75E2" stroke-width="24" opacity=".35"/><rect data-role="sankey-node" x="700" y="165" width="24" height="130" fill="#008A91"/>
+</svg>

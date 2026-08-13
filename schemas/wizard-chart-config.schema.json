@@ -5,9 +5,9 @@
   "type": "object",
   "required": ["visualization_id", "dataset", "field_bindings"],
   "properties": {
-    "schema_version": {"type": "string"},
+    "schema_id": {"type": "string"},
     "route": {"enum": ["wizard_native", "wizard_map_native"]},
-    "visualization_id": {"enum": ["metric", "flatTable", "pivotTable", "line", "area", "area100p", "column", "column100p", "bar", "bar100p", "combined-chart", "pie", "donut", "scatter", "treemap", "geolayer"]},
+    "visualization_id": {"enum": ["metric", "flatTable", "pivotTable", "line", "area", "area100p", "column", "column100p", "bar", "bar100p", "combined-chart", "pie", "donut", "scatter", "treemap", "funnel", "geolayer"]},
     "semantic_family": {"type": "string"},
     "widget_id": {"type": "string"},
     "dataset": {

@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "current_value": 128
+    }
+  ]
+}

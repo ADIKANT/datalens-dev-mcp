@@ -30,7 +30,7 @@
 Manifest должен содержать точные команды, идентификаторы целей, допустимые имена переменных окружения, ожидаемые файлы и проверки. Произвольные команды через этот механизм не запускаются.
 
 Manifest может дополнительно объявить единый встроенный контракт
-`"authoring_profile": {"id": "standard_dashboard_v1"}`. Тогда
+`"authoring_profile": {"id": "standard_dashboard"}`. Тогда
 `dl_generate_editor_bundle` сначала фиксирует Wizard-first route, а для
 выбранных Editor-объектов берёт шаблон семейства из актуального реестра,
 сверяет SHA-256 всего набора assets и результата и блокирует несовместимый
@@ -44,8 +44,8 @@ fingerprint неизменившихся пакетных ресурсов.
 ```json
 {
   "authoring_profile": {
-    "id": "project_style_v1",
-    "descriptor_path": "profiles/project_style_v1/profile.json",
+    "id": "project_style",
+    "descriptor_path": "profiles/project_style/profile.json",
     "descriptor_sha256": "<SHA256>"
   }
 }
@@ -69,7 +69,7 @@ files и никогда не перезапускает исходную ком�
 
 `dl_update_user_decision` по-прежнему сохраняет читаемое решение в
 `requirements/user_decisions.md`. Необязательный `decision_patch` добавляет
-машиночитаемую запись в `requirements/user_decisions.v2.json` со scope
+машиночитаемую запись в `requirements/user_decisions.json` со scope
 `project`, `family` или `object`, изменениями metric semantics/Visual Spec,
 семантическими ролями, `acceptance_criteria` и `supersedes`. Каждая коррекция
 из пользовательского или browser review записывается один раз как критерий

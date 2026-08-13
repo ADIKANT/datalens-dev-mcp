@@ -1,42 +1,171 @@
 /*
- * Editor Table template contract:
- * - Source/data contract: sources.js returns metadata and row events with stable column order.
- * - Params/config: params.json/config.js own paginator, density, and table options.
- * - Prepare/model normalization: prepare.js converts loaded events into head/rows only.
- * - Render lifecycle: table_node renders head/rows natively, no ad hoc HTML render.
- * - Layout/scales: table sizing is route-native; selector rows use dashboard relation rules.
- * - Labels/tooltips: column names come from metadata, not duplicated dashboard titles.
- * - Theme tokens: CSS uses DataLens/Gravity variables for light and dark themes.
- * - Interactions: selector bindings live in dashboard relations, not hidden in table cells.
+ * Canonical native table_node model for the cookbook table variants.
+ * Meta and Sources are the normal edit boundary. Params selects a registered
+ * variant; Prepare always returns native head/rows and never Advanced HTML.
  */
+// @cookbook-locale ru Таблица остаётся нативным table_node: закрепление, ячейки и заголовки описаны в head.
+// @cookbook-locale en The table stays a native table_node: pinning, cells, and headers are declared in head.
+// @cookbook-locale ru Контракт источника и данных: Sources возвращает строки со стабильными aliases выбранного варианта.
+// @cookbook-locale en Source/data contract: Sources returns rows with the selected variant's stable aliases.
+// @cookbook-locale ru Параметры и config: table_variant выбирает один из четырёх нативных контрактов таблицы.
+// @cookbook-locale en Params/config: table_variant selects one of four native table contracts.
+// @cookbook-locale ru Подготовка и нормализация модели: события metadata/row преобразуются в именованные объекты.
+// @cookbook-locale en Prepare/model normalization: metadata/row events are converted into named objects.
+// @cookbook-locale ru Жизненный цикл рендера: Prepare возвращает head/rows, а table_node выполняет отрисовку.
+// @cookbook-locale en Render lifecycle: Prepare returns head/rows and table_node performs the rendering.
+// @cookbook-locale ru Токены темы: цвета берутся из переменных Gravity для светлой и тёмной темы.
+// @cookbook-locale en Theme tokens: colors come from Gravity variables for light and dark themes.
+// @cookbook-locale ru Взаимодействия: закрепление, ссылки, подсказки и пагинация остаются нативными возможностями таблицы.
+// @cookbook-locale en Interactions: pinning, links, hints, and pagination remain native table features.
+
+/** @typedef {Object} TableSourceEvent */
+/** @typedef {Object} NativeTableCell */
+/** @typedef {Object} NativeTableRow */
+
+const params = Editor.getParams ? (Editor.getParams() || {}) : {};
+const rawVariant = Array.isArray(params.table_variant) ? params.table_variant[0] : params.table_variant;
+const TABLE_VARIANT = ['standard', 'detail', 'status', 'grouped_summary'].includes(String(rawVariant))
+  ? String(rawVariant)
+  : 'standard';
 const THEME = {
   text: 'var(--g-color-text-primary, inherit)',
   textSecondary: 'var(--g-color-text-secondary, inherit)',
   cellBg: 'var(--g-color-base-background, transparent)',
   headerBg: 'var(--g-color-base-neutral-light, transparent)',
+  positiveBg: 'var(--g-color-base-positive-light, transparent)',
+  warningBg: 'var(--g-color-base-warning-light, transparent)',
+  dangerBg: 'var(--g-color-base-danger-light, transparent)',
 };
-const HEADER_CSS = {
-  'background-color': THEME.headerBg,
-  color: THEME.text,
-  'font-weight': 'normal',
-  'text-align': 'left',
-};
-const BODY_CSS = {
-  color: THEME.text,
-  'background-color': THEME.cellBg,
-};
-const loaded = Editor.getLoadedData() || {};
-const source = loaded.rows || [];
-const metadata = Array.isArray(source) ? source.find((item) => item && item.event === 'metadata') : null;
-const names = metadata?.data?.names || ['status', 'item', 'value'];
-const rawRows = Array.isArray(source) ? source.filter((item) => item && item.event === 'row') : [];
-const rows = rawRows.length
-  ? rawRows.map((item, index) => ({id: `row_${index + 1}`, cells: item.data.map((value) => ({value, css: BODY_CSS}))}))
-  : [{id: 'row_1', cells: [{value: 'No data', css: BODY_CSS}, {value: 'Adjust sources.js', css: BODY_CSS}, {value: 0, css: BODY_CSS}]}];
-const values = rows.map((row) => Number(((row.cells || [])[names.indexOf('value')] || {}).value || 0));
-const maxValue = Math.max(1, ...values);
-const head = names.map((name) => name === 'value'
-  ? ({id: name, name, type: 'bar', min: 0, max: maxValue, barColor: '#2f80ed', barHeight: '70%', showLabel: true, css: HEADER_CSS})
-  : ({id: name, name, type: 'text', css: HEADER_CSS}));
+const HEADER_CSS = {'background-color': THEME.headerBg, color: THEME.text, 'font-weight': 'normal', 'text-align': 'left'};
+const BODY_CSS = {color: THEME.text, 'background-color': THEME.cellBg};
+const TABLE_COPY = Object.freeze({
+  noData: 'No data', checkSources: 'Check sources.js', identifier: 'Identifier', object: 'Object',
+  status: 'Status', owner: 'Owner', updated: 'Updated', amount: 'Amount', details: 'Details',
+  item: 'Item', category: 'Category', completion: 'Completion', completed: 'Completed', total: 'Total', progress: 'Progress', open: 'Open',
+  ready: 'Ready', warning: 'Needs attention', review: 'In review', error: 'Error', failed: 'Failed', unknown: 'Unknown',
+});
 
-module.exports = {head, rows};
+/** Normalize metadata/row events into named objects. */
+function tableObjects(sourceName) {
+  const loaded = Editor.getLoadedData() || {};
+  const source = loaded[sourceName] || [];
+  const metadata = Array.isArray(source) ? source.find((item) => item && item.event === 'metadata') : null;
+  const names = metadata?.data?.names || [];
+  return (Array.isArray(source) ? source : [])
+    .filter((item) => item && item.event === 'row')
+    .map((item) => Object.fromEntries(names.map((name, index) => [name, item.data[index]])));
+}
+
+/** Accept only absolute HTTPS links for native link cells. */
+function safeHttps(value) {
+  const text = String(value || '').trim();
+  return /^https:\/\/[^\s]+$/i.test(text) ? text : '';
+}
+
+/** Format finite numbers without turning null into zero. */
+function formattedNumber(value) {
+  if (value === null || value === undefined || value === '' || !Number.isFinite(Number(value))) return '—';
+  return new Intl.NumberFormat('en-US', {maximumFractionDigits: 2}).format(Number(value));
+}
+
+/** Return conditional native cell CSS for a documented status key. */
+function statusCss(value) {
+  const key = String(value || '').toLowerCase();
+  const background = key === 'ready' || key === 'ok'
+    ? THEME.positiveBg
+    : key === 'warning' || key === 'review'
+      ? THEME.warningBg
+      : key === 'error' || key === 'failed'
+        ? THEME.dangerBg
+        : THEME.cellBg;
+  return {...BODY_CSS, 'background-color': background, 'font-weight': '600'};
+}
+
+/** Keep technical status keys stable while localizing their visible labels. */
+function statusLabel(value) {
+  const key = String(value || '').toLowerCase();
+  return TABLE_COPY[key] || TABLE_COPY.unknown;
+}
+
+const objects = tableObjects('rows');
+let head = [];
+let rows = [];
+
+if (TABLE_VARIANT === 'detail') {
+  head = [
+    {id: 'entity_id', name: TABLE_COPY.identifier, type: 'text', pinned: true, width: 126, hint: 'Stable row key', css: HEADER_CSS},
+    {id: 'entity_name', name: TABLE_COPY.object, type: 'text', pinned: true, width: 220, hint: 'Primary display name', css: HEADER_CSS},
+    {id: 'status', name: TABLE_COPY.status, type: 'status', width: 120, css: HEADER_CSS},
+    {id: 'owner', name: TABLE_COPY.owner, type: 'text', width: 160, css: HEADER_CSS},
+    {id: 'updated_at', name: TABLE_COPY.updated, type: 'datetime', width: 170, hint: 'ISO-8601 source value', css: HEADER_CSS},
+    {id: 'amount', name: TABLE_COPY.amount, type: 'number', width: 140, css: HEADER_CSS},
+  ];
+  rows = objects.filter((item) => item.entity_id).map((item, index) => ({
+    id: String(item.entity_id || `row_${index + 1}`),
+    cells: [
+      {value: item.entity_id, css: BODY_CSS},
+      {value: item.entity_name || item.entity_id, css: BODY_CSS},
+      {value: item.status || '', formattedValue: statusLabel(item.status), css: statusCss(item.status)},
+      {value: item.owner || '—', css: BODY_CSS},
+      {value: item.updated_at || TABLE_COPY.noData, css: BODY_CSS},
+      {value: item.amount, formattedValue: formattedNumber(item.amount), css: BODY_CSS},
+    ],
+  }));
+} else if (TABLE_VARIANT === 'status') {
+  head = [
+    {id: 'entity_id', name: TABLE_COPY.identifier, type: 'text', pinned: true, width: 126, css: HEADER_CSS},
+    {id: 'item', name: TABLE_COPY.item, type: 'text', width: 260, css: HEADER_CSS},
+    {id: 'status', name: TABLE_COPY.status, type: 'status', width: 140, css: HEADER_CSS},
+    {id: 'updated_at', name: TABLE_COPY.updated, type: 'datetime', width: 180, css: HEADER_CSS},
+    {id: 'details_url', name: TABLE_COPY.details, type: 'link', width: 100, css: HEADER_CSS},
+  ];
+  rows = objects.filter((item) => item.entity_id).map((item, index) => {
+    const href = safeHttps(item.details_url);
+    return {
+      id: String(item.entity_id || `row_${index + 1}`),
+      cells: [
+        {value: item.entity_id, css: BODY_CSS},
+        {value: item.item || item.entity_id, css: BODY_CSS},
+        {value: item.status || '', formattedValue: statusLabel(item.status), css: statusCss(item.status)},
+        {value: item.updated_at || TABLE_COPY.noData, css: BODY_CSS},
+        {value: href, href, formattedValue: href ? TABLE_COPY.open : '—', css: BODY_CSS},
+      ],
+    };
+  });
+} else if (TABLE_VARIANT === 'grouped_summary') {
+  head = [
+    {id: 'category', name: TABLE_COPY.category, type: 'text', pinned: true, width: 220, css: HEADER_CSS},
+    {id: 'completion', name: TABLE_COPY.completion, sub: [
+      {id: 'completed', name: TABLE_COPY.completed, type: 'bar', min: 0, max: Math.max(1, ...objects.map((item) => Number(item.total) || 0)), barColor: '#2B75E2', showLabel: true, css: HEADER_CSS},
+      {id: 'total', name: TABLE_COPY.total, type: 'number', css: HEADER_CSS},
+      {id: 'progress', name: TABLE_COPY.progress, type: 'progress', min: 0, max: 100, barColor: '#008A91', showLabel: true, css: HEADER_CSS},
+    ]},
+  ];
+  rows = objects.filter((item) => item.category).map((item, index) => {
+    const completed = Math.max(0, Number(item.completed) || 0);
+    const total = Math.max(0, Number(item.total) || 0);
+    const progress = total > 0 ? Math.min(100, completed / total * 100) : 0;
+    return {id: `row_${index + 1}`, cells: [
+      {value: item.category, css: BODY_CSS},
+      {value: completed, formattedValue: formattedNumber(completed), css: BODY_CSS},
+      {value: total, formattedValue: formattedNumber(total), css: BODY_CSS},
+      {value: progress, formattedValue: `${Math.round(progress)}%`, css: BODY_CSS},
+    ]};
+  });
+} else {
+  const names = ['status', 'item', 'value'];
+  const maximum = Math.max(1, ...objects.map((item) => Number(item.value) || 0));
+  head = [
+    {id: 'status', name: TABLE_COPY.status, type: 'status', css: HEADER_CSS},
+    {id: 'item', name: TABLE_COPY.item, type: 'text', css: HEADER_CSS},
+    {id: 'value', name: 'Value', type: 'bar', min: 0, max: maximum, barColor: '#2B75E2', barHeight: '70%', showLabel: true, css: HEADER_CSS},
+  ];
+  rows = objects.map((item, index) => ({id: `row_${index + 1}`, cells: names.map((name) => ({value: item[name] ?? '', formattedValue: name === 'status' ? statusLabel(item[name]) : undefined, css: name === 'status' ? statusCss(item[name]) : BODY_CSS}))}));
+}
+
+if (!rows.length) {
+  const leafCount = head.reduce((count, item) => count + (Array.isArray(item.sub) ? item.sub.length : 1), 0);
+  rows = [{id: 'empty', cells: Array.from({length: leafCount}, (_unused, index) => ({value: index === 0 ? TABLE_COPY.noData : index === 1 ? TABLE_COPY.checkSources : '', css: BODY_CSS}))}];
+}
+
+module.exports = {head, rows, tableVariant: TABLE_VARIANT};

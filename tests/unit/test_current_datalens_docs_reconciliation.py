@@ -30,9 +30,9 @@ class CurrentDataLensDocsReconciliationTests(unittest.TestCase):
         report = self.validator.validate(self.corpus_root, strict=True)
 
         self.assertTrue(report["ok"], report["issues"])
-        self.assertEqual(report["checked"]["pages"], 653)
-        self.assertEqual(report["checked"]["chunks"], 5019)
-        self.assertEqual(report["checked"]["assets"], 890)
+        self.assertEqual(report["checked"]["pages"], 655)
+        self.assertEqual(report["checked"]["chunks"], 5033)
+        self.assertEqual(report["checked"]["assets"], 910)
         self.assertEqual(report["checked"]["new_pages"], 2)
         self.assertEqual(report["checked"]["openapi_operations"], 95)
         self.assertEqual(report["checked"]["openapi_paths"], 95)
@@ -58,13 +58,16 @@ class CurrentDataLensDocsReconciliationTests(unittest.TestCase):
         reports = self.validator.load_update_reports(self.corpus_root)
         policy = self.validator.build_policy(self.corpus_root)
 
-        self.assertEqual(reports["snapshot_summary"]["docs"]["changed_count"], 9)
-        self.assertEqual(reports["snapshot_summary"]["docs"]["new_count"], 2)
-        self.assertEqual(reports["delta_summary"]["docs"]["changed_count"], 9)
+        self.assertEqual(reports["snapshot_summary"]["docs"]["changed_count"], 0)
+        self.assertEqual(reports["snapshot_summary"]["docs"]["new_count"], 0)
+        self.assertEqual(reports["delta_summary"]["docs"]["changed_count"], 105)
         self.assertEqual(reports["delta_summary"]["docs"]["new_count"], 2)
-        self.assertEqual(policy["expected_counts"]["docs_changed_pages"], 9)
+        self.assertEqual(policy["expected_counts"]["docs_changed_pages"], 105)
         self.assertEqual(policy["expected_counts"]["docs_new_pages"], 2)
-        self.assertEqual(policy["source"]["applied_delta_report"], "reports/update_report_2026-07-29.md")
+        self.assertEqual(
+            policy["source"]["applied_delta_report"],
+            "reports/update_check_delta_2026-08-11.md",
+        )
         self.assertEqual(policy["source"]["openapi_sha256"], self.validator.EXPECTED_OPENAPI_SHA256)
 
 

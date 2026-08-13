@@ -4,7 +4,7 @@ import re
 from typing import Any
 
 
-SQL_RUNTIME_REALITY_SCHEMA_VERSION = "datalens.delta_v8.sql_runtime_reality_check.v1"
+SQL_RUNTIME_REALITY_SCHEMA_ID = "datalens.sql_runtime_reality_check"
 
 
 def build_sql_runtime_reality_check(
@@ -42,7 +42,7 @@ def build_sql_runtime_reality_check(
     if risk_patterns and runtime_validated and normalized_result == "passed":
         normalized_result = "failed"
     return {
-        "schema_version": SQL_RUNTIME_REALITY_SCHEMA_VERSION,
+        "schema_id": SQL_RUNTIME_REALITY_SCHEMA_ID,
         "dialect": normalized_dialect,
         "target_execution_engine": normalized_engine,
         "validated_by": validators,

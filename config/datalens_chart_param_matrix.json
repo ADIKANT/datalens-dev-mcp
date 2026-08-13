@@ -467,7 +467,6 @@
         "metric_definition_or_owner_is_missing",
         "source_freshness_or_quality_is_unknown"
       ],
-      "capability_gap": "wizard_has_no_funnel_semantics",
       "color_strategy": "neutral_first_palette_with_single_focus_color_when_needed",
       "data_shape": {
         "date_fields": "optional snapshot period",
@@ -503,9 +502,9 @@
         "ordered_stage_list",
         "snapshot_period"
       ],
-      "route": "editor_advanced",
-      "selection_origin": "registered_capability_gap",
-      "template_dir": "templates/datalens/advanced_editor/time_series",
+      "route": "wizard_native",
+      "selection_origin": "wizard_first_default",
+      "template_dir": "templates/datalens/wizard/canonical_templates.json",
       "template_variant": "funnel_snapshot",
       "value_formatting": [
         "link_values_show_volume_unit",
@@ -518,7 +517,8 @@
         "prefer_direct_labels_when_they_reduce_lookup",
         "keep_gridlines_light_and_only_when_value_lookup_matters",
         "ask_targeted_question_when_required_evidence_is_missing"
-      ]
+      ],
+      "visualization_id": "funnel"
     },
     "grouped_bar": {
       "ask_user_when": [
@@ -1952,63 +1952,6 @@
         "ask_targeted_question_when_required_evidence_is_missing"
       ]
     },
-    "selector_group": {
-      "ask_user_when": [
-        "control_order_is_missing",
-        "row_assignment_is_missing",
-        "parameter_binding_is_missing",
-        "reset_behavior_is_missing"
-      ],
-      "color_strategy": "theme_default_controls_no_custom_decoration",
-      "data_shape": {
-        "date_fields": "optional date bounds for date selectors",
-        "dimensions": "ordered parameter controls and their option sources",
-        "geo_fields": "none",
-        "measures": "none"
-      },
-      "default_sorting": "declared_control_order",
-      "description": "Ordered one- or two-row selector control group with one shared layout contract.",
-      "fallback_family": "selector_family_static",
-      "fallback_reason": "Use an individual selector only when the grouped row contract is not required.",
-      "intent": "dashboard_control_group",
-      "interaction_expectations": [
-        "updates_bound_parameters_immediately",
-        "supports_clear_without_refill",
-        "empty_multiselect_means_all_values",
-        "preserves_declared_control_order"
-      ],
-      "labels_axes_gridlines": [
-        "labels_stay_left_of_controls",
-        "rows_use_exactly_94_percent_width",
-        "selected_and_clear_states_are_visible"
-      ],
-      "optional_parameters": [
-        "date_loaded_companion",
-        "dynamic_sources",
-        "depends_on_param"
-      ],
-      "required_parameters": [
-        "controls",
-        "rows",
-        "label_placement",
-        "reset_behavior"
-      ],
-      "route": "editor_js_control",
-      "selection_origin": "registered_dashboard_component",
-      "template_dir": "templates/datalens/editor_js_control/selector",
-      "template_variant": "selector_group",
-      "value_formatting": [
-        "option_labels_are_human_readable",
-        "blank_multiselect_state_remains_blank"
-      ],
-      "visual_constraints": [
-        "one_row_uses_native_height_2",
-        "two_rows_use_native_height_3",
-        "no_apply_button",
-        "date_loaded_companion_matches_peer_height",
-        "ask_targeted_question_when_required_evidence_is_missing"
-      ]
-    },
     "selector_family_static": {
       "ask_user_when": [
         "goal_or_action_is_missing",
@@ -2066,6 +2009,63 @@
         "use_color_for_semantics_focus_or_grouping_not_decoration",
         "prefer_direct_labels_when_they_reduce_lookup",
         "keep_gridlines_light_and_only_when_value_lookup_matters",
+        "ask_targeted_question_when_required_evidence_is_missing"
+      ]
+    },
+    "selector_group": {
+      "ask_user_when": [
+        "control_order_is_missing",
+        "row_assignment_is_missing",
+        "parameter_binding_is_missing",
+        "reset_behavior_is_missing"
+      ],
+      "color_strategy": "theme_default_controls_no_custom_decoration",
+      "data_shape": {
+        "date_fields": "optional date bounds for date selectors",
+        "dimensions": "ordered parameter controls and their option sources",
+        "geo_fields": "none",
+        "measures": "none"
+      },
+      "default_sorting": "declared_control_order",
+      "description": "Ordered one- or two-row selector control group with one shared layout contract.",
+      "fallback_family": "selector_family_static",
+      "fallback_reason": "Use an individual selector only when the grouped row contract is not required.",
+      "intent": "dashboard_control_group",
+      "interaction_expectations": [
+        "updates_bound_parameters_immediately",
+        "supports_clear_without_refill",
+        "empty_multiselect_means_all_values",
+        "preserves_declared_control_order"
+      ],
+      "labels_axes_gridlines": [
+        "labels_stay_left_of_controls",
+        "rows_use_exactly_94_percent_width",
+        "selected_and_clear_states_are_visible"
+      ],
+      "optional_parameters": [
+        "date_loaded_companion",
+        "dynamic_sources",
+        "depends_on_param"
+      ],
+      "required_parameters": [
+        "controls",
+        "rows",
+        "label_placement",
+        "reset_behavior"
+      ],
+      "route": "editor_js_control",
+      "selection_origin": "specialized_editor_route",
+      "template_dir": "templates/datalens/editor_js_control/selector",
+      "template_variant": "selector_group",
+      "value_formatting": [
+        "option_labels_are_human_readable",
+        "blank_multiselect_state_remains_blank"
+      ],
+      "visual_constraints": [
+        "one_row_uses_native_height_2",
+        "two_rows_use_native_height_3",
+        "no_apply_button",
+        "date_loaded_companion_matches_peer_height",
         "ask_targeted_question_when_required_evidence_is_missing"
       ]
     },
@@ -2584,8 +2584,8 @@
       "selection_origin": "registered_capability_gap"
     }
   ],
-  "route_policy_ref": "config/route_selection_policy_v5.json",
-  "schema_version": "2026-07-15.datalens_chart_param_matrix.public.v1",
+  "route_policy_ref": "config/route_selection_policy.json",
+  "schema_id": "datalens_chart_param_matrix.public",
   "source_trace": [
     "project-authored route and validation policy",
     "https://yandex.cloud/ru/docs/datalens/visualization-ref/",

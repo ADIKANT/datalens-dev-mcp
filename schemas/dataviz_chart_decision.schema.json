@@ -4,7 +4,7 @@
   "title": "DataLens Chart Decision Record",
   "type": "object",
   "required": [
-    "schema_version",
+    "schema_id",
     "chart_id",
     "business_question",
     "analytical_task",
@@ -14,8 +14,8 @@
     "confidence"
   ],
   "properties": {
-    "schema_version": {
-      "const": "2026-06-30.dataviz_chart_decision.v1"
+    "schema_id": {
+      "const": "dataviz_chart_decision"
     },
     "chart_id": {
       "type": "string",
@@ -146,7 +146,7 @@
     "renderer_visual_spec": {
       "type": "object",
       "required": [
-        "schema_version",
+        "schema_id",
         "style_tokens",
         "encoding",
         "value_semantics",
@@ -158,10 +158,10 @@
         "runtime_constraints"
       ],
       "properties": {
-        "schema_version": {
+        "schema_id": {
           "enum": [
-            "2026-08-06.renderer_visual_intent.v1",
-            "2026-08-06.renderer_visual_spec.v5"
+            "renderer_visual_intent",
+            "renderer_visual_spec"
           ]
         },
         "style_tokens": {

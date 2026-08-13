@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-06-25.regression.incident_fixtures.v1",
+  "schema_id": "regression.incident_fixtures",
   "event_dashboard": {
     "dashboard_id": "dash_event_core",
     "workbook_id": "wb_event_core",

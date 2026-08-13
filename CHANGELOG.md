@@ -6,17 +6,36 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- A generated JavaScript Visualization Cookbook with copy-ready Editor tabs,
+  source contracts, linked application cases, and runtime validation.
+- Native Wizard funnel routing and templates compiled from the current public
+  DataLens documentation and OpenAPI corpus.
+- A static acceptance check that prevents versioned internal routes, profiles,
+  symbols, schemas, and configuration switches from re-entering the server.
+
+### Changed
+
+- Consolidated runtime code, schemas, profiles, fixtures, and packaged assets
+  into one canonical server surface. Git history and reviewed pull requests now
+  carry implementation history instead of parallel in-code generations.
+- Removed legacy API-version selection and retry fallback. Every request is
+  compiled against the single current official DataLens API contract.
+- Hardened read-only transport diagnostics for TLS failures while keeping all
+  write operations single-attempt and target-locked.
+
 ## [0.5.0] - 2026-08-06
 
 ### Added
 
-- One Wizard-first `standard_dashboard_v1` authoring profile with the protected
+- One Wizard-first `standard_dashboard` authoring profile with the protected
   registered renderer for selected Editor capability gaps.
-- Renderer Visual Spec v5 with role-owned `embedded_title`, `content_label`,
+- Renderer Visual Spec with role-owned `embedded_title`, `content_label`,
   `tab_only`, `native_title`, and `tab_strip` title modes.
 - A checksum-locked neutral Editor runtime, reusable visual adapters, and
   protected renderer identities.
-- Dashboard composition v2 with semantic rows, 36-column geometry, selector
+- Dashboard composition with semantic rows, 36-column geometry, selector
   groups, safe KPI density, schema-valid create/update envelopes, and exact
   mount-to-tab-to-widget-to-chart relationships.
 - Final payload and browser-QA attestations bound to routes, runtime, titles,
@@ -26,10 +45,10 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- `strict_dashboard` now resolves to `standard_dashboard_v1`; standard KPI,
+- `strict_dashboard` now resolves to `standard_dashboard`; standard KPI,
   table, and chart creation keeps the canonical Wizard technology.
 - New and existing dashboards use the same current contract. Historical
-  profile names are input aliases that normalize to `standard_dashboard_v1`
+  profile names are input aliases that normalize to `standard_dashboard`
   and cannot select old assets, behavior, or project-local descriptors.
 - Safe Apply rejects unattested payloads, protected-runtime rewrites,
   post-validation title/layout/selector changes, route substitution, and
@@ -46,13 +65,13 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Standalone HTML artifact generation and strict sandbox validation through the
   existing bounded authoring and runtime-validation tools.
-- Versioned responsive browser evidence for compact and wide dashboard layouts.
+- Responsive browser evidence for compact and wide dashboard layouts.
 - Deterministic visual, value-semantics, hint, and layout-ownership contracts.
 - Explicit complete, partial, and unsafe classifications for dashboard snapshots.
 - Typed selector contracts with validated parameter bindings and dashboard
   relation checks.
 - Dataset-backed Wizard role validation and create/readback evidence.
-- A versioned `standard_editor_v1` authoring profile that selects registered
+- A standard dashboard authoring profile that selects registered
   Editor templates for all supported families, fingerprints the complete
   template set and compiled output, and blocks unregistered visual fallbacks.
 - Resumable project-live execution IDs for commands longer than the synchronous
@@ -61,7 +80,7 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   portable path containment, and blocked fallback.
 - Scoped user-decision patches with project/family/object precedence,
   supersession, deterministic resolution, and plan drift hashes.
-- Renderer visual-spec v3 and browser-capture v3 contracts for semantic color
+- Renderer visual-spec and browser-capture contracts for semantic color
   roles, label overflow, exact tooltip buckets, text truncation, and overlap.
 
 ### Changed

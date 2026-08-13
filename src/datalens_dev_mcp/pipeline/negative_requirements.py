@@ -87,7 +87,7 @@ class NegativeRequirement:
     replacement_policy: str = ""
     status: str = "active"
     created_from_user_decision: str = ""
-    schema_version: str = "2026-06-30.negative_requirement.v1"
+    schema_id: str = "negative_requirement"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -199,7 +199,7 @@ def record_negative_requirements(
     for requirement in detected:
         by_id[requirement.requirement_id] = requirement.to_dict()
     payload = {
-        "schema_version": "2026-06-30.negative_requirement_ledger.v1",
+        "schema_id": "negative_requirement_ledger",
         "requirements": list(by_id.values()),
     }
     write_json(root / LEDGER_PATH, payload)

@@ -34,6 +34,6 @@
   ],
   "response_schema_hash": "aeb5b1c9ec3d35463997c5b00b5da10b1d791c966ec21e56a059d8e73a69a2fb",
   "response_schema_ref": "GetWorkbookImportStatusResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "supported_tool"
 }

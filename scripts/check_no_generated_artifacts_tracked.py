@@ -59,7 +59,7 @@ def run_check(*, write: bool = False, output_dir: Path = DEFAULT_ARTIFACT_DIR) -
     offenders = forbidden_existing(paths)
     report = {
         "ok": not offenders,
-        "schema_version": "2026-07-01.generated_artifact_tracking.v1",
+        "schema_id": "generated_artifact_tracking",
         "forbidden_patterns": FORBIDDEN_PATTERNS,
         "offender_count": len(offenders),
         "offenders": offenders[:100],

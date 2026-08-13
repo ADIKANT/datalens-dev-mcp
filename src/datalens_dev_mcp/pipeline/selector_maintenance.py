@@ -12,7 +12,7 @@ from datalens_dev_mcp.pipeline.layout_contract import plan_selector_row_widths
 
 
 DATE_RANGE_MAINTENANCE_KIND = "date_range_selector_merge"
-DATE_RANGE_FAST_PATH_SCHEMA_VERSION = "datalens.selector_date_range_maintenance.v1"
+DATE_RANGE_FAST_PATH_SCHEMA_ID = "datalens.selector_date_range_maintenance"
 
 
 def compile_date_range_selector_merge(
@@ -169,7 +169,7 @@ def compile_date_range_selector_merge(
     ]
     return {
         "ok": True,
-        "schema_version": DATE_RANGE_FAST_PATH_SCHEMA_VERSION,
+        "schema_id": DATE_RANGE_FAST_PATH_SCHEMA_ID,
         "kind": DATE_RANGE_MAINTENANCE_KIND,
         "actions": actions,
         "selector_contract": normalized_contract,
@@ -1031,7 +1031,7 @@ def _blocked(
 ) -> dict[str, Any]:
     return {
         "ok": False,
-        "schema_version": DATE_RANGE_FAST_PATH_SCHEMA_VERSION,
+        "schema_id": DATE_RANGE_FAST_PATH_SCHEMA_ID,
         "kind": DATE_RANGE_MAINTENANCE_KIND,
         "blocked_reasons": list(dict.fromkeys(str(reason) for reason in reasons if str(reason))),
         "selector_contract": selector_contract or {},

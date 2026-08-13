@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "datalens.delta_v8.sql_runtime_reality_check.schema.json",
-  "title": "DataLens Delta v8 SQL Runtime Reality Check",
+  "$id": "datalens.sql_runtime_reality_check.schema.json",
+  "title": "DataLens SQL Runtime Reality Check",
   "type": "object",
   "required": ["dialect", "target_execution_engine", "runtime_probe_required", "risk_patterns"],
   "properties": {

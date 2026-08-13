@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "datalens.delta_v8.runtime_first_run.schema.json",
-  "title": "DataLens Delta v8 Runtime First Run",
+  "$id": "datalens.runtime_first_run.schema.json",
+  "title": "DataLens Runtime First Run",
   "type": "object",
-  "required": ["schema_version", "target", "mode", "status", "validation_budget", "runtime_smoke"],
+  "required": ["schema_id", "target", "mode", "status", "validation_budget", "runtime_smoke"],
   "properties": {
-    "schema_version": {"const": "datalens.delta_v8.runtime_first_run.v1"},
+    "schema_id": {"const": "datalens.runtime_first_run"},
     "target": {
       "type": "object",
       "properties": {

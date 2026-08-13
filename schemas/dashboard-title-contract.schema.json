@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.com/datalens-dev-mcp/schemas/dashboard-title-contract.schema.json",
-  "title": "Renderer Visual Spec v5 title contract",
+  "title": "Renderer Visual Spec title contract",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "mode", "route", "family", "display_title", "hint", "native_metadata", "runtime", "mutual_exclusion", "sha256"],
+  "required": ["schema_id", "mode", "route", "family", "display_title", "hint", "native_metadata", "runtime", "mutual_exclusion", "sha256"],
   "properties": {
-    "schema_version": {"const": "2026-08-06.dashboard_title_contract.v1"},
+    "schema_id": {"const": "dashboard_title_contract"},
     "mode": {"enum": ["embedded_title", "content_label", "tab_only", "native_title", "tab_strip"]},
     "route": {"type": "string", "minLength": 1},
     "family": {"type": "string", "minLength": 1},

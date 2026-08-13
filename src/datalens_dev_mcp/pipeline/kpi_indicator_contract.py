@@ -22,7 +22,7 @@ class KpiIndicatorValidation:
     publish_allowed: bool
     checked_kpi_count: int
     findings: list[KpiIndicatorFinding] = field(default_factory=list)
-    schema_version: str = "2026-07-01.kpi_indicator_contract.v1"
+    schema_id: str = "kpi_indicator_contract"
 
     def to_dict(self) -> dict[str, Any]:
         return {**asdict(self), "findings": [finding.to_dict() for finding in self.findings]}

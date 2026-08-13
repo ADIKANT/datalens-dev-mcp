@@ -28,15 +28,15 @@
 
 API-readback подтверждает структуру объекта. Видимое изменение считается проверенным в runtime после проверки изменённой вкладки или объекта в DataLens. Если такая проверка недоступна, итоговый статус — `runtime_not_verified`.
 
-Browser evidence версии `datalens.browser_capture.v2` фиксирует
+Browser evidence с контрактом `datalens.browser_capture` фиксирует
 `change_scope`. Для `content` достаточно одного viewport. Для `layout` и
 `dashboard` обязательны разные compact (`<=1280`) и wide (`>=1366`) профили.
 Каждый профиль подтверждает размеры viewport, привязку изменённых ID,
 отсутствие горизонтального overflow более 2 px, видимость без clipping и
 декодируемый screenshot с совпадающим SHA-256.
 
-Версия `datalens.browser_capture.v3` сохраняет этот контракт и дополнительно
-требует для каждого viewport явные массивы `truncated_text_object_ids` и
+Этот контракт также требует для каждого viewport явные массивы
+`truncated_text_object_ids` и
 `overlap_pairs`. Для успешного evidence оба массива пусты. Наличие обрезанного
-текста или пересечения объектов блокирует visual runtime gate. V1/V2 остаются
-доступны для чтения исторических evidence.
+текста или пересечения объектов блокирует visual runtime gate. Исторические
+форматы evidence не принимаются.

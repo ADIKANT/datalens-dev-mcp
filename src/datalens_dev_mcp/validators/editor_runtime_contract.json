@@ -1,5 +1,5 @@
 {
-  "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+  "rule_id": "datalens_advanced_editor_runtime",
   "official_sanitizer": {
     "allowlist_artifact": "schemas/datalens-api/editor-runtime-allowlist.json",
     "layers": [

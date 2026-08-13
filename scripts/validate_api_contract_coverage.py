@@ -16,7 +16,7 @@ POLICY_PATH = ROOT / "config" / "datalens_api_operation_policy.json"
 PACKAGE_POLICY_PATH = ROOT / "src" / "datalens_dev_mcp" / "assets" / "config" / "datalens_api_operation_policy.json"
 DOC_PATH = ROOT / "docs" / "datalens" / "api_contract_coverage.md"
 FIXTURE_DIR = ROOT / "tests" / "fixtures" / "api_contracts"
-SCHEMA_VERSION = "2026-06-30.api_operation_policy.v1"
+SCHEMA_ID = "api_operation_policy"
 EXPECTED_OPERATIONS = 95
 EXPECTED_PATHS = 95
 
@@ -199,7 +199,7 @@ def build_policy() -> tuple[dict[str, Any], dict[Path, dict[str, Any]]]:
         }
         records.append(record)
         fixtures[ROOT / record["fixture_path"]] = {
-            "schema_version": "2026-06-30.api_contract_fixture.v1",
+            "schema_id": "api_contract_fixture",
             "operation_id": record["operation_id"],
             "method_name": record["method_name"],
             "path": record["path"],
@@ -217,7 +217,7 @@ def build_policy() -> tuple[dict[str, Any], dict[Path, dict[str, Any]]]:
             "response_payload": representative_response_payload(method["method"]),
         }
     policy = {
-        "schema_version": SCHEMA_VERSION,
+        "schema_id": SCHEMA_ID,
         "source": {
             "catalog": "config/datalens_api_methods.json",
             "schema_bundle": "schemas/datalens-api/selected-openapi-schema-refs.json",

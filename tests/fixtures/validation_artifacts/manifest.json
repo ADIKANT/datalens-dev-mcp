@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-07-01.validation_artifact_manifest.v1",
+  "schema_id": "validation_artifact_manifest",
   "purpose": "Offline replay fixtures for validation profiles. These replace repeated live workbook inventory or dataset schema calls in tests.",
   "artifacts": [
     {

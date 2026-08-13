@@ -3,9 +3,9 @@ import unittest
 
 class ExplicitWizardRequestNotSilentlyJsTests(unittest.TestCase):
     def test_explicit_wizard_request_returns_supported_route_or_blocker(self):
-        from datalens_dev_mcp.pipeline.route_selection_policy import select_route_v3
+        from datalens_dev_mcp.pipeline.route_selection_policy import select_route
 
-        decision = select_route_v3("Build this through Wizard")
+        decision = select_route("Build this through Wizard")
 
         self.assertEqual(decision.status, "approved")
         self.assertEqual(decision.selected_route, "wizard_native")

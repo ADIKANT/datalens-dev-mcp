@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "label": "Object A",
+      "max": 0,
+      "median": 0,
+      "min": 0,
+      "q1": 0,
+      "q3": 0,
+      "size": 12,
+      "value": 0,
+      "x": 18,
+      "y": 42
+    },
+    {
+      "label": "Object B",
+      "max": 0,
+      "median": 0,
+      "min": 0,
+      "q1": 0,
+      "q3": 0,
+      "size": 38,
+      "value": 0,
+      "x": 31,
+      "y": 58
+    },
+    {
+      "label": "Object C",
+      "max": 0,
+      "median": 0,
+      "min": 0,
+      "q1": 0,
+      "q3": 0,
+      "size": 22,
+      "value": 0,
+      "x": 44,
+      "y": 49
+    }
+  ]
+}

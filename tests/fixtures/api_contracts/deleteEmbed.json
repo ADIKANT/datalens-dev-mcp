@@ -17,6 +17,6 @@
   ],
   "response_schema_hash": "b5c20bc16d1c5ee835f9b6f93bfd904767d8bc9a9e2100b159c1b002ed231ae0",
   "response_schema_ref": "DeleteEmbedResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "readonly_reference"
 }

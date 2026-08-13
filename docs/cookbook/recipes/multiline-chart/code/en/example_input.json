@@ -1,0 +1,44 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "bucket": "2026-01-01",
+      "metric": "Created",
+      "value": 42
+    },
+    {
+      "bucket": "2026-01-01",
+      "metric": "Completed",
+      "value": 36
+    },
+    {
+      "bucket": "2026-01-02",
+      "metric": "Created",
+      "value": 48
+    },
+    {
+      "bucket": "2026-01-02",
+      "metric": "Completed",
+      "value": 41
+    },
+    {
+      "bucket": "2026-01-03",
+      "metric": "Created",
+      "value": 51
+    },
+    {
+      "bucket": "2026-01-03",
+      "metric": "Completed",
+      "value": 47
+    }
+  ]
+}

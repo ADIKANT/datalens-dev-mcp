@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-07-01.validation_readback_fixture.v1",
+  "schema_id": "validation_readback_fixture",
   "method": "getWorkbookEntries",
   "workbook_id": "workbook_fixture",
   "captured_at": "2026-07-01T00:00:00Z",

@@ -283,7 +283,7 @@ class FollowUserRequestContractTests(unittest.TestCase):
             "post_retire_readback_paths": ["artifacts/retire/post_retire_readback.json"],
         }
         manifest = {
-            "schema_version": "2026-07-15.project_live_workflow_manifest.v5",
+            "schema_id": "project_live_workflow_manifest",
             "project_name": "delete_contract",
             "workbook_id": "workbook_1",
             "workflows": [

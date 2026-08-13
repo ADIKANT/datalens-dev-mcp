@@ -16,8 +16,7 @@ from datalens_dev_mcp.pipeline.layout_contract import (
 from datalens_dev_mcp.validators.route_validator import ValidationResult
 
 
-RELATION_SCHEMA_VERSION = "2026-08-06.dashboard_object_relations.v4"
-LEGACY_RELATION_SCHEMA_VERSION = "2026-07-20.dashboard_object_relations.v3"
+RELATION_SCHEMA_ID = "dashboard_object_relations"
 
 
 def build_default_dashboard_relations(
@@ -64,7 +63,7 @@ def build_default_dashboard_relations(
             "enableHint": True,
         }
     return {
-        "schema_version": RELATION_SCHEMA_VERSION,
+        "schema_id": RELATION_SCHEMA_ID,
         "dashboard": {
             "dashboard_id_placeholder": "dashboard_target",
             "name": brief.get("dashboard_name") or "DataLens Dashboard",
@@ -215,7 +214,7 @@ def merge_dashboard_relations(
     """Merge one generated widget relation without losing prior widgets."""
     if not existing:
         return deepcopy(incoming)
-    if existing.get("schema_version") != incoming.get("schema_version"):
+    if existing.get("schema_id") != incoming.get("schema_id"):
         raise ValueError("dashboard relation schema versions must match before merge")
     merged = deepcopy(existing)
     merged["dashboard"] = deepcopy(incoming.get("dashboard") or existing.get("dashboard") or {})
@@ -588,7 +587,7 @@ def _selector_relation(
         relation["param_to"] = contract["param_to"]
     if contract:
         relation["contract"] = {
-            "schema_version": contract.get("schema_version"),
+            "schema_id": contract.get("schema_id"),
             "family": contract.get("family"),
             "option_source": contract.get("option_source"),
             "reset_behavior": contract.get("reset_behavior"),

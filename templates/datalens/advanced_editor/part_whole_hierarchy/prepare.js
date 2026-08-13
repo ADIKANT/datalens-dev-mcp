@@ -10,6 +10,8 @@
  * - Interactions: interactions stay explicit and selector bindings are represented outside chart body.
  * - Extension points: future edits should change schema, params, or shared helpers before ad hoc JS.
  */
+// @cookbook-locale ru Части должны быть неотрицательными и образовывать положительный итог.
+// @cookbook-locale en Parts must be non-negative and produce a positive total.
 /* __DATALENS_SHARED_STYLE_TOKENS__ */
 /* __DATALENS_SHARED_RENDER_HELPERS__ */
 const TEMPLATE_VARIANT = '__TEMPLATE_VARIANT__';

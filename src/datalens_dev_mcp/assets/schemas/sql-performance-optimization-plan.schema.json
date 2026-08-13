@@ -4,7 +4,7 @@
   "title": "SQL Performance Optimization Plan",
   "type": "object",
   "required": [
-    "schema_version",
+    "schema_id",
     "automatic_mutation",
     "approximate_distinct_allowed",
     "hard_history_cap_allowed",
@@ -12,7 +12,7 @@
     "blocked"
   ],
   "properties": {
-    "schema_version": {"type": "string"},
+    "schema_id": {"type": "string"},
     "automatic_mutation": {"type": "boolean", "const": false},
     "approximate_distinct_allowed": {"type": "boolean", "const": false},
     "hard_history_cap_allowed": {"type": "boolean", "const": false},

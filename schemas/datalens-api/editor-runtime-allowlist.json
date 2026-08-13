@@ -207,7 +207,7 @@
     "updateParams",
     "wrapFn"
   ],
-  "schema_version": "2026-06-25.editor_runtime_allowlist.v1",
+  "schema_id": "editor_runtime_allowlist",
   "source_refs": [
     "raw/md/datalens/charts/editor/methods.md",
     "raw/md/datalens/charts/editor/widgets/advanced.md"

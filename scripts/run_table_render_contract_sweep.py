@@ -18,7 +18,7 @@ ARTIFACT_DIR = ROOT / "artifacts" / "table_render_contract"
 def run_sweep() -> dict[str, Any]:
     from datalens_dev_mcp.editor.bundle import generate_editor_bundle
     from datalens_dev_mcp.pipeline.native_table_contract import validate_native_table_contract
-    from datalens_dev_mcp.pipeline.route_selection_policy import select_route_v3
+    from datalens_dev_mcp.pipeline.route_selection_policy import select_route
 
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     table_bundle = generate_editor_bundle(
@@ -58,7 +58,7 @@ def run_sweep() -> dict[str, Any]:
     }
     good = validate_native_table_contract(good_payload)
     bad = validate_native_table_contract(bad_payload)
-    route = select_route_v3("Сделай таблицу с bars", semantic_output="table")
+    route = select_route("Сделай таблицу с bars", semantic_output="table")
     issues = []
     if not good.ok:
         issues.append(f"good native table fixture failed: {[item.to_dict() for item in good.findings]}")

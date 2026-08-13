@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-05-25.wizard_payload_plan.v1",
+  "schema_id": "wizard_payload_plan",
   "widget_id": "synthetic_map",
   "route": "wizard_map_native",
   "canonical_route": "wizard_native",

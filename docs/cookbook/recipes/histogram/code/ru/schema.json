@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "additionalProperties": true,
+      "description": "Ссылки DataLens Editor; меняйте placeholders.",
+      "type": "object"
+    },
+    "params": {
+      "additionalProperties": {
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "rows": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "description": "Отображаемая категория",
+            "examples": [
+              "Категория A"
+            ],
+            "type": "string"
+          },
+          "max": {
+            "description": "Максимум распределения",
+            "examples": [
+              63
+            ],
+            "type": "number"
+          },
+          "median": {
+            "description": "Медиана",
+            "examples": [
+              31
+            ],
+            "type": "number"
+          },
+          "min": {
+            "description": "Минимум распределения",
+            "examples": [
+              10
+            ],
+            "type": "number"
+          },
+          "q1": {
+            "description": "Первый квартиль",
+            "examples": [
+              22
+            ],
+            "type": "number"
+          },
+          "q3": {
+            "description": "Третий квартиль",
+            "examples": [
+              44
+            ],
+            "type": "number"
+          },
+          "size": {
+            "description": "Относительная площадь пузырька",
+            "examples": [
+              34
+            ],
+            "type": "number"
+          },
+          "value": {
+            "description": "Числовое значение отметки",
+            "examples": [
+              42
+            ],
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "x": {
+            "description": "Координата по горизонтальной оси",
+            "examples": [
+              24
+            ],
+            "type": "number"
+          },
+          "y": {
+            "description": "Координата по вертикальной оси",
+            "examples": [
+              68
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "label",
+          "x",
+          "y",
+          "size",
+          "min",
+          "q1",
+          "median",
+          "q3",
+          "max"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "rows",
+    "meta",
+    "params"
+  ],
+  "title": "Гистограмма",
+  "type": "object"
+}

@@ -3,9 +3,9 @@ import unittest
 
 class EditorSourceBudgetExtractorTests(unittest.TestCase):
     def test_external_control_source_is_extracted_and_blocks_without_budget_evidence(self):
-        from datalens_dev_mcp.pipeline.performance_budget import extract_editor_source_budget_evidence_v7
+        from datalens_dev_mcp.pipeline.performance_budget import extract_editor_source_budget_evidence
 
-        evidence = extract_editor_source_budget_evidence_v7(
+        evidence = extract_editor_source_budget_evidence(
             {
                 "entryId": "chart_qzy",
                 "external_controls": [
@@ -23,9 +23,9 @@ class EditorSourceBudgetExtractorTests(unittest.TestCase):
         self.assertTrue(evidence["blocked_reasons"])
 
     def test_bounded_deduped_source_passes_with_supplied_evidence(self):
-        from datalens_dev_mcp.pipeline.performance_budget import extract_editor_source_budget_evidence_v7
+        from datalens_dev_mcp.pipeline.performance_budget import extract_editor_source_budget_evidence
 
-        evidence = extract_editor_source_budget_evidence_v7(
+        evidence = extract_editor_source_budget_evidence(
             {
                 "entryId": "chart_qzy",
                 "external_controls": [

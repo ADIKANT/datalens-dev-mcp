@@ -166,15 +166,15 @@ For a visible chart or dashboard change, final verification should cover the cha
 
 ## Standard dashboard build path
 
-Create and full-redesign calls default to `standard_dashboard_v1`;
+Create and full-redesign calls default to `standard_dashboard`;
 `strict_dashboard` is an alias. It fixes Wizard-first decisions and applies the
 same profile's protected renderer only to selected Editor objects. Historical
-profile names are input aliases that normalize to `standard_dashboard_v1`, so
+profile names are input aliases that normalize to `standard_dashboard`, so
 both new and existing dashboards use one current contract.
 
 One batch may contain up to 100 unique widgets and returns compact statuses,
 artifact paths, and hashes. It also writes a hash-bound
-`dashboard_composition.version=2` skeleton. `dl_validate_project` rebuilds the
+`dashboard_composition` skeleton. `dl_validate_project` rebuilds the
 actual final payload and emits `final_payload_attestation`; a later route,
 runtime, title, selector, layout, or payload change invalidates it.
 

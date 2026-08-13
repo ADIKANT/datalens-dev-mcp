@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "additionalProperties": true,
+      "description": "Ссылки DataLens Editor; меняйте placeholders.",
+      "type": "object"
+    },
+    "params": {
+      "additionalProperties": {
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "rows": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "group": {
+            "description": "Группа, ряд или вторая координата матрицы",
+            "examples": [
+              "Текущий период"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "description": "Отображаемая категория",
+            "examples": [
+              "Категория A"
+            ],
+            "type": "string"
+          },
+          "target": {
+            "description": "Целевое значение маркера",
+            "examples": [
+              50
+            ],
+            "type": "number"
+          },
+          "value": {
+            "description": "Числовое значение отметки",
+            "examples": [
+              42
+            ],
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "label",
+          "group",
+          "target"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "rows",
+    "meta",
+    "params"
+  ],
+  "title": "Столбцы с нормировкой до 100%",
+  "type": "object"
+}

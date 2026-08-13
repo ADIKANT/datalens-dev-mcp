@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "page_size": [
+      "50"
+    ],
+    "table_variant": [
+      "status"
+    ]
+  },
+  "rows": [
+    {
+      "details_url": "https://example.invalid/item/201",
+      "entity_id": "OBJ-201",
+      "item": "Check A",
+      "status": "ready",
+      "updated_at": "2026-01-05T12:30:00Z"
+    },
+    {
+      "details_url": "javascript:alert(1)",
+      "entity_id": "OBJ-202",
+      "item": "Check B",
+      "status": "warning",
+      "updated_at": "2026-01-05T10:00:00Z"
+    }
+  ]
+}

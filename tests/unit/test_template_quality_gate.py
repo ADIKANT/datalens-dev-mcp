@@ -40,7 +40,7 @@ class TemplateQualityGateTests(unittest.TestCase):
         registry = json.loads((ROOT / "templates" / "datalens" / "wizard" / "wizard_template_registry.json").read_text(encoding="utf-8"))
 
         supported = [name for name, spec in registry["templates"].items() if spec.get("creation_supported")]
-        self.assertEqual(len(supported), 16)
+        self.assertEqual(len(supported), 17)
         self.assertEqual(registry["canonical_route"], "wizard_native")
         self.assertEqual(registry["compatibility_aliases"]["wizard_map_native"], "geolayer")
         for name, spec in registry["templates"].items():

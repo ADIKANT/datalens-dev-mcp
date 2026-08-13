@@ -22,7 +22,7 @@ def build_deployment_report(
     if write_executed:
         proof_levels.append("controlled_live_write")
     return {
-        "schema_version": "2026-05-25.deployment_report.v1",
+        "schema_id": "deployment_report",
         "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "proof_level": "controlled_live_write" if write_executed else readback_proof_level,
         "proof_levels": sorted(dict.fromkeys(proof_levels)),

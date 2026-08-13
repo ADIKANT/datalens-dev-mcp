@@ -1018,7 +1018,7 @@ def _all_tool_schemas() -> tuple[dict[str, Any], ...]:
             "dl_run_live_maintenance_update",
             "Validate supplied live-maintenance evidence.",
         ),
-        _tool_schema("dl_build_dashboard_source_availability_matrix", "Build Delta v7 supplied-evidence source availability matrix."),
+        _tool_schema("dl_build_dashboard_source_availability_matrix", "Build the supplied-evidence source availability matrix."),
         _tool_schema("dl_validate_source_availability_consumers", "Validate dashboard consumers against one source availability matrix."),
         _tool_schema("dl_plan_source_availability_patch", "Plan source availability corrections without querying source systems."),
         _tool_schema("dl_create_safe_apply_plan", "Create a target-locked safe-apply plan from the user request."),
@@ -1051,7 +1051,7 @@ def _all_tool_schemas() -> tuple[dict[str, Any], ...]:
         _tool_schema("dl_plan_object_create", "Plan OpenAPI-backed object creation with named source adapters."),
         _tool_schema("dl_plan_object_update", "Plan OpenAPI-backed object update with named source adapters."),
         _tool_schema("dl_validate_object", "Validate an OpenAPI-backed object payload without mutation."),
-        _tool_schema("dl_compile_guarded_rpc_request", "Compile a Delta v7 guarded RPC request contract."),
+        _tool_schema("dl_compile_guarded_rpc_request", "Compile the guarded RPC request contract."),
         _tool_schema("dl_plan_publish_from_saved", "Plan publish from a saved-branch readback artifact."),
         _tool_schema("dl_list_related_objects", "List related DataLens objects for entry ids."),
         _tool_schema("dl_get_dataset_schema", "Extract dataset schema and validate requested fields."),
@@ -1497,6 +1497,8 @@ def _structured_tool_error(name: str, exc: Exception) -> dict[str, Any]:
         lowered = str(exc).lower()
         if "auth" in lowered or "401" in lowered or "blocked_live_credentials" in lowered or "missing datalens" in lowered:
             category = "auth_failure"
+        elif exc.request_phase == "transport" or exc.transport_category:
+            category = "transport_failure"
         elif "required" in lowered:
             category = "missing_input"
         else:

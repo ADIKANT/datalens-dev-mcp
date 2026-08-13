@@ -1,0 +1,38 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "group": "Шаг",
+      "label": "Начало",
+      "target": 0,
+      "value": 80
+    },
+    {
+      "group": "Шаг",
+      "label": "Рост",
+      "target": 0,
+      "value": 24
+    },
+    {
+      "group": "Шаг",
+      "label": "Снижение",
+      "target": 0,
+      "value": -17
+    },
+    {
+      "group": "Шаг",
+      "label": "Корректировка",
+      "target": 0,
+      "value": 9
+    }
+  ]
+}

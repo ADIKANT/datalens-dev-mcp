@@ -1,16 +1,16 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "title": "Delta v7 Wizard Field Binding Report",
+  "title": "Wizard Field Binding Report",
   "type": "object",
   "required": [
-    "schema_version",
+    "schema_id",
     "ok",
     "findings"
   ],
   "properties": {
-    "schema_version": {
-      "const": "datalens.delta_v7.wizard_field_binding_report.v1"
+    "schema_id": {
+      "const": "datalens.wizard_field_binding_report"
     },
     "ok": {
       "type": "boolean"

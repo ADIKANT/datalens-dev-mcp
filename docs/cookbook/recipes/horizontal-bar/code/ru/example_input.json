@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "label": "Категория A",
+      "value": 72
+    },
+    {
+      "label": "Категория B с длинной подписью",
+      "value": 58
+    },
+    {
+      "label": "Категория C",
+      "value": 41
+    }
+  ]
+}

@@ -13,7 +13,7 @@ Budget rules:
   readback, and current/proposed-state guidance remains inline. Schemas are
   generated through the cached runtime registry so repeated startup/list calls
   do not rebuild previous-version schemas.
-- Project context is supplied as `project_context_ref.v1` by Project Memory
+- Project context is supplied as `project_context_ref` by Project Memory
   Bank; DataLens does not duplicate startup-file reads in its responses.
 - `dl_reference`: bounded inline response with `summary`, at most five `rules`,
   exact next standard tools, artifact paths for longer details, version, and

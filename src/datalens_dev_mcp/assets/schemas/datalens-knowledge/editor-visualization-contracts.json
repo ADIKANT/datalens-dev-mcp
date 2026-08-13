@@ -749,7 +749,7 @@
       "title": "Типы визуализаций"
     },
     {
-      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Типы визуализаций > Markdown Markdown Визуализация для отрисовки Markdown — упрощенного языка разметки. Поддерживается язык разметки GitHub Flavored Markdown (GFM), за исключением вставок raw HTML , части плагинов и функциональности Yandex Flavored Markdown. Для отрисовки чарта используется библиотека @diplodoc/transform. Подробнее в документац...",
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Чарты в Editor > Типы визуализаций > Markdown Markdown Визуализация для отрисовки Markdown — упрощенного языка разметки. Поддерживается язык разметки GitHub Flavored Markdown (GFM), за исключением вставок raw HTML, части плагинов и функциональности Yandex Flavored Markdown. Для отрисовки чарта используется библиотека @diplodoc/transform. Подробнее в документаци...",
       "contract_id": "contract_f8524026253db64e",
       "editor_route": "editor_markdown",
       "html_tags_or_attributes": [
@@ -1511,6 +1511,28 @@
       "title": "Комбинированная диаграмма ![](../../_assets/datalens/combined.svg) в Yandex DataLens"
     },
     {
+      "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Воронка Воронка ../../assets/datalens/funnel.svg в Yandex DataLens Воронка показывает последовательное уменьшение значений показателя по этапам. Каждый этап воронки представляет собой сегмент, ширина которого соответствует значению показателя. Подходит для анализа процессов, где данные последовательно проходят через несколько этапов. Н...",
+      "contract_id": "contract_56900dc3b5df6f44",
+      "editor_route": "editor_advanced_reference",
+      "html_tags_or_attributes": [],
+      "kind": "visualization-ref",
+      "limits": [],
+      "local_policy_status": "allowed_with_safe_apply_guards",
+      "methods": [],
+      "mirror_path": "datalens/visualization-ref/funnel.md",
+      "native_route": "wizard_native",
+      "official_status": "documented",
+      "required_tabs": [],
+      "source_trace": {
+        "anchor": "воронка-_assets-datalens-funnel-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/funnel.md#воронка-_assets-datalens-funnel-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/funnel.md",
+        "sha256": "ceb8d1933cb2e1f9d3ce406984da267abae9471c53b704548838e992da51091f",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/funnel"
+      },
+      "title": "Воронка ![](../../_assets/datalens/funnel.svg) в Yandex DataLens"
+    },
+    {
       "bounded_excerpt": "Документация Yandex Cloud > Yandex DataLens > Чарты > Справочник визуализаций > Карта > Тепловая карта Тепловая карта ../../assets/datalens/heatmap.svg в Yandex DataLens Тепловая карта показывает плотность распределения точек. Области на карте окрашиваются градиентом от зеленого цвета к красному: чем больше точек сгруппированы в области, тем ближе к красному будет ее цвет. Что нужно знать о тепловых картах + Тепло...",
       "contract_id": "contract_ed3c382b27b5a697",
       "editor_route": "editor_advanced_reference",
@@ -1890,5 +1912,5 @@
       "title": "Древовидная диаграмма ![](../../_assets/datalens/treemap.svg) в Yandex DataLens"
     }
   ],
-  "schema_version": "2026-06-25.semantic_authoring.v2"
+  "schema_id": "semantic_authoring"
 }

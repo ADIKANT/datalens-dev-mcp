@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-07-13.requirements_dashboard_blueprint_plan.v2",
+  "schema_id": "requirements_dashboard_blueprint_plan",
   "dashboard_type": "self_service",
   "confidence": "high",
   "job_to_be_done": "Slice trusted data, inspect exact values, and reuse the same dashboard for many related questions.",

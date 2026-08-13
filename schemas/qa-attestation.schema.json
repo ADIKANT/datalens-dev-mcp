@@ -4,9 +4,9 @@
   "title": "Published revision browser QA attestation",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "ok", "status", "dashboard_id", "saved_revision", "published_revision", "final_payload_attestation_sha256", "payload_set_sha256", "dashboard_composition_sha256", "browser_qa_plan_sha256", "viewport_widths", "tab_ids", "full_scroll_checked", "coverage", "runtime_errors", "issues", "artifact_paths", "artifact_hashes", "sha256"],
+  "required": ["schema_id", "ok", "status", "dashboard_id", "saved_revision", "published_revision", "final_payload_attestation_sha256", "payload_set_sha256", "dashboard_composition_sha256", "browser_qa_plan_sha256", "viewport_widths", "tab_ids", "full_scroll_checked", "coverage", "runtime_errors", "issues", "artifact_paths", "artifact_hashes", "sha256"],
   "properties": {
-    "schema_version": {"const": "2026-08-06.qa_attestation.v1"},
+    "schema_id": {"const": "qa_attestation"},
     "ok": {"type": "boolean"},
     "status": {"enum": ["passed", "failed"]},
     "dashboard_id": {"type": "string", "minLength": 1},

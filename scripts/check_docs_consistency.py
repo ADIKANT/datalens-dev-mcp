@@ -25,6 +25,8 @@ ACTIVE_DOCS = (
     "SECURITY.md",
     "docs/README.md",
     "docs/README_en.md",
+    "docs/cookbook/README.md",
+    "docs/cookbook/README_en.md",
     "docs/access.md",
     "docs/access_en.md",
     "docs/tools.md",
@@ -87,6 +89,7 @@ PUBLIC_TEXT_SUFFIXES = frozenset({".md", ".json", ".toml", ".yaml", ".yml"})
 LANGUAGE_PAIRS = (
     ("README.md", "README_en.md"),
     ("docs/README.md", "docs/README_en.md"),
+    ("docs/cookbook/README.md", "docs/cookbook/README_en.md"),
     ("docs/access.md", "docs/access_en.md"),
     ("docs/tools.md", "docs/tools_en.md"),
     ("docs/usage-flow.md", "docs/usage-flow_en.md"),

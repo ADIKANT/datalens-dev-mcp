@@ -33,6 +33,6 @@
   ],
   "response_schema_hash": "85c87641b56316bcd3a32ef4526ced565721ba28f85a67061065213c8e7851e0",
   "response_schema_ref": "GetWorkbookExportStatusResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "supported_tool"
 }

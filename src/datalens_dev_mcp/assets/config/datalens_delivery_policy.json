@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-07-15.delivery_intent_state_machine.v3",
+  "schema_id": "delivery_intent_state_machine",
   "states": [
     "read_only",
     "plan_only",

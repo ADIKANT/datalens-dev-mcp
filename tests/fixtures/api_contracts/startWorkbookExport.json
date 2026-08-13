@@ -17,6 +17,6 @@
   ],
   "response_schema_hash": "adff3feb54b9f112ac5d4696334e9744ab858d1db00df77de12f17ab85379f68",
   "response_schema_ref": "StartWorkbookExportResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "guarded_plan_only"
 }

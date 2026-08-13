@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "additionalProperties": true,
+      "description": "Ссылки DataLens Editor; меняйте placeholders.",
+      "type": "object"
+    },
+    "params": {
+      "additionalProperties": {
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "rows": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "current_value": {
+            "description": "Текущее значение показателя",
+            "examples": [
+              128
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "current_value"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "rows",
+    "meta",
+    "params"
+  ],
+  "title": "Показатель: одно значение",
+  "type": "object"
+}

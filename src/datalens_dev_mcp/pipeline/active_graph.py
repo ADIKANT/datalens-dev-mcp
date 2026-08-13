@@ -65,7 +65,7 @@ def build_active_dashboard_graph(
             )
         )
     return {
-        "schema_version": "datalens.active-dashboard-graph.v1",
+        "schema_id": "datalens.active-dashboard-graph",
         "dashboard_id": dashboard_id or str(dashboard.get("dashboardId") or dashboard.get("entryId") or ""),
         "workbook_id": workbook_id or str(dashboard.get("workbookId") or ""),
         "requested_tab": requested_tab,

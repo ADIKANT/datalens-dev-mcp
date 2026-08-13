@@ -24,8 +24,8 @@ DECORATIVE_CSS_RE = re.compile(r"(box-shadow|text-shadow|filter\s*:\s*drop-shado
 STALE_KPI_RE = re.compile(r"(previous_value|previous_period|previousPeriod|period_bucket|delta_pct)")
 FORBIDDEN_HTML_RE = re.compile(r"<\s*/?\s*(section|script|iframe|object|embed)\b|\son[a-z]+\s*=|\ssrcdoc\s*=", re.I)
 LOCKED_TEMPLATE_RULE_EXCEPTIONS: dict[str, dict[str, Any]] = {
-    "templates/datalens/authoring_profiles/standard_dashboard_v1/advanced_editor_runtime.js": {
-        "sha256": "790657cf4e79ea435038e28b343d6db0475ca0909e69ac06d8a9831942c84a3a",
+    "templates/datalens/authoring_profiles/standard_dashboard/advanced_editor_runtime.js": {
+        "sha256": "c3e69739a22f825f80654afd0a70a9602e7cb1f63c5cfcda1f3dc7040ea96e13",
         "rules": ["stale_implicit_kpi_comparator"],
     },
 }
@@ -240,8 +240,8 @@ def rendered_geometry_issues(
 
 def iter_template_files() -> list[Path]:
     roots = [
-        ROOT / "templates",
-        ROOT / "src" / "datalens_dev_mcp" / "assets" / "templates",
+        ROOT / "templates" / "datalens",
+        ROOT / "src" / "datalens_dev_mcp" / "assets" / "templates" / "datalens",
     ]
     files: list[Path] = []
     for root in roots:

@@ -43,7 +43,7 @@ class ApiClientTests(unittest.TestCase):
             DataLensConfig(
                 iam_token="secret-token",
                 org_id="org_synthetic",
-                api_version="2",
+
                 request_interval_sec=0,
                 request_timeout_sec=4.25,
             )
@@ -165,7 +165,7 @@ class ApiClientTests(unittest.TestCase):
 
         transport = FakeTransport([{"ok": True}])
         client = DataLensApiClient(
-            DataLensConfig(iam_token="secret-token", org_id="org_synthetic", api_version="2", request_interval_sec=0),
+            DataLensConfig(iam_token="secret-token", org_id="org_synthetic", request_interval_sec=0),
             transport=transport,
         )
 
@@ -198,7 +198,7 @@ class ApiClientTests(unittest.TestCase):
 
         transport = FakeTransport([{"ok": True}])
         client = DataLensApiClient(
-            DataLensConfig(iam_token="secret-token", org_id="org_synthetic", api_version="2", request_interval_sec=0),
+            DataLensConfig(iam_token="secret-token", org_id="org_synthetic", request_interval_sec=0),
             transport=transport,
         )
 
@@ -232,7 +232,7 @@ class ApiClientTests(unittest.TestCase):
             DataLensConfig(
                 iam_token="super-secret-token-value",
                 org_id="org_synthetic",
-                api_version="2",
+
                 request_interval_sec=0,
             ),
             transport=transport,
@@ -271,7 +271,7 @@ class ApiClientTests(unittest.TestCase):
                 DataLensConfig(
                     iam_token="old-token-value",
                     org_id="org_synthetic",
-                    api_version="2",
+
                     request_interval_sec=0,
                     env_file_path=str(env_file),
                 ),
@@ -296,7 +296,7 @@ class ApiClientTests(unittest.TestCase):
             DataLensConfig(
                 iam_token="super-secret-token-value",
                 org_id="org_synthetic",
-                api_version="2",
+
                 request_interval_sec=0,
             ),
             transport=transport,
@@ -335,7 +335,7 @@ class ApiClientTests(unittest.TestCase):
             ]
         )
         client = DataLensApiClient(
-            DataLensConfig(iam_token="old-token-value", org_id="org_synthetic", api_version="2", request_interval_sec=0),
+            DataLensConfig(iam_token="old-token-value", org_id="org_synthetic", request_interval_sec=0),
             transport=transport,
             token_refresher=lambda: "new-token-value",
         )
@@ -354,7 +354,7 @@ class ApiClientTests(unittest.TestCase):
 
         transport = FakeTransport([http_error(400, {"code": "VALIDATION_ERROR", "message": "bad field"})])
         client = DataLensApiClient(
-            DataLensConfig(iam_token="token-value", org_id="org_synthetic", api_version="2", request_interval_sec=0),
+            DataLensConfig(iam_token="token-value", org_id="org_synthetic", request_interval_sec=0),
             transport=transport,
         )
 
@@ -380,7 +380,7 @@ class ApiClientTests(unittest.TestCase):
         self.assertNotIn("password1234567890", detail)
         self.assertIn("<redacted>", detail)
 
-    def test_auto_api_version_uses_compiled_version_without_probe(self):
+    def test_compiled_api_version_is_used_without_probe(self):
         from datalens_dev_mcp.api.client import DataLensApiClient
         from datalens_dev_mcp.config import DataLensConfig
 
@@ -395,7 +395,7 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual([request[0].rsplit("/", 1)[-1] for request in transport.requests], ["updateEditorChart"])
         self.assertEqual([request[2]["x-dl-api-version"] for request in transport.requests], ["2"])
 
-    def test_auto_api_version_does_not_fallback_for_readonly_version_failure(self):
+    def test_readonly_contract_failure_is_not_retried_with_another_version(self):
         from datalens_dev_mcp.api.client import DataLensApiClient, DataLensApiError
         from datalens_dev_mcp.config import DataLensConfig
 
@@ -411,7 +411,7 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual([request[0].rsplit("/", 1)[-1] for request in transport.requests], ["getDashboard"])
         self.assertEqual([request[2]["x-dl-api-version"] for request in transport.requests], ["2"])
 
-    def test_explicit_v1_readonly_compatibility_is_user_controlled(self):
+    def test_read_uses_the_compiled_api_contract(self):
         from datalens_dev_mcp.api.client import DataLensApiClient
         from datalens_dev_mcp.config import DataLensConfig
 
@@ -420,7 +420,6 @@ class ApiClientTests(unittest.TestCase):
             DataLensConfig(
                 iam_token="token-value",
                 org_id="org_synthetic",
-                api_version="1",
                 request_interval_sec=0,
             ),
             transport=transport,
@@ -429,9 +428,9 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(client.rpc_readonly("getDashboard", {"dashboardId": "dash_1"}), {"ok": True})
 
         self.assertEqual([request[0].rsplit("/", 1)[-1] for request in transport.requests], ["getDashboard"])
-        self.assertEqual([request[2]["x-dl-api-version"] for request in transport.requests], ["1"])
+        self.assertEqual([request[2]["x-dl-api-version"] for request in transport.requests], ["2"])
 
-    def test_auto_api_version_does_not_fallback_for_write_mutations(self):
+    def test_write_contract_failure_is_not_retried_with_another_version(self):
         from datalens_dev_mcp.api.client import DataLensApiClient, DataLensApiError
         from datalens_dev_mcp.config import DataLensConfig
 
@@ -444,7 +443,7 @@ class ApiClientTests(unittest.TestCase):
         with self.assertRaises(DataLensApiError) as raised:
             client.rpc("updateEditorChart", {"entry": {"entryId": "chart_1"}})
 
-        self.assertIn("writes are not retried under another API version", str(raised.exception))
+        self.assertIn("HTTP 400", str(raised.exception))
         self.assertEqual([request[0].rsplit("/", 1)[-1] for request in transport.requests], ["updateEditorChart"])
         self.assertEqual([request[2]["x-dl-api-version"] for request in transport.requests], ["2"])
 

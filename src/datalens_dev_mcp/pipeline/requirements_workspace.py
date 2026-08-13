@@ -318,7 +318,7 @@ def select_dashboard_blueprint(
         required_inputs_questions.extend(operational_lifecycle["required_questions"])
     acceptance_checklist.extend(conditional_ux["acceptance_checklist"])
     return {
-        "schema_version": "2026-07-13.dashboard_blueprint_selection.v2",
+        "schema_id": "dashboard_blueprint_selection",
         "dashboard_type": selected["dashboard_type"],
         "confidence": confidence,
         "matched_keywords": selected["matched_keywords"],
@@ -547,7 +547,7 @@ def build_dashboard_blueprint_plan(
     source_inputs = read_text(req / "source_inputs.md")
     critical_questions = _critical_requirement_questions(source_inputs or text)
     plan = {
-        "schema_version": "2026-07-13.requirements_dashboard_blueprint_plan.v2",
+        "schema_id": "requirements_dashboard_blueprint_plan",
         "dashboard_type": selection["dashboard_type"],
         "confidence": selection["confidence"],
         "reason": selection["reason"],
@@ -583,7 +583,7 @@ def validate_chart_plan_against_requirements(
     root = Path(project_root)
     combined = "\n".join(read_text(root / "requirements" / name).lower() for name in REQUIREMENTS_FILES)
     decision_record = chart_plan.get("chart_decision_record") or (
-        chart_plan if chart_plan.get("schema_version") == "2026-06-30.dataviz_chart_decision.v1" else None
+        chart_plan if chart_plan.get("schema_id") == "dataviz_chart_decision" else None
     )
     if decision_record is None:
         negative_requirements = load_negative_requirement_ledger(root)

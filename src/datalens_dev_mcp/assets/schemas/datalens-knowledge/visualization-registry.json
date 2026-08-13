@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-06-25.semantic_authoring.v2",
+  "schema_id": "semantic_authoring",
   "visualizations": [
     {
       "analytical_intent": "time_trend",
@@ -257,6 +257,47 @@
       ],
       "title": "Комбинированная диаграмма ![](../../_assets/datalens/combined.svg) в Yandex DataLens",
       "wizard_visualization_id": "combined-chart"
+    },
+    {
+      "analytical_intent": "documented_visual_analysis",
+      "data_volume_limits": [],
+      "dimensions_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "editor_route": "editor_advanced_reference",
+      "id": "funnel",
+      "local_policy": "wizard_first_supported",
+      "measures_limit": {
+        "max_detected": 1,
+        "source": "compact_line_number_scan"
+      },
+      "native_route": "wizard_native",
+      "official_capability": "documented",
+      "restrictions": [],
+      "settings": [
+        "sorting",
+        "filtering",
+        "color",
+        "labels"
+      ],
+      "source_trace": {
+        "anchor": "воронка-_assets-datalens-funnel-svg-в-yandex-datalens",
+        "chunk_id": "datalens/visualization-ref/funnel.md#воронка-_assets-datalens-funnel-svg-в-yandex-datalens#1",
+        "mirror_path": "datalens/visualization-ref/funnel.md",
+        "sha256": "ceb8d1933cb2e1f9d3ce406984da267abae9471c53b704548838e992da51091f",
+        "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/funnel"
+      },
+      "supported_slots": [
+        "dimension",
+        "measure",
+        "color",
+        "sort",
+        "filter",
+        "label"
+      ],
+      "title": "Воронка ![](../../_assets/datalens/funnel.svg) в Yandex DataLens",
+      "wizard_visualization_id": "funnel"
     },
     {
       "analytical_intent": "geospatial",

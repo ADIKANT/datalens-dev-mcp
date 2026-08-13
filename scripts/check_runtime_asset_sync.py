@@ -16,7 +16,11 @@ EXCLUDED_SOURCE_FILES = {
     "config/datalens_mcp.local.json",
 }
 SOURCE_ONLY_RESOURCES = {
+    "config/javascript_cookbook.json",
+    "config/javascript_cookbook.schema.json",
     "schemas/datalens-api/selected-openapi-schema-refs.json",
+    "templates/cookbook/app.js",
+    "templates/cookbook/styles.css",
 }
 IGNORED_ASSET_FILES = {
     "__init__.py",
@@ -34,7 +38,7 @@ def sha256_file(path: Path) -> str:
 def expected_pairs() -> list[tuple[Path, Path]]:
     pairs: list[tuple[Path, Path]] = []
     for rel in _source_files("config"):
-        if rel.as_posix() in EXCLUDED_SOURCE_FILES:
+        if rel.as_posix() in EXCLUDED_SOURCE_FILES or rel.as_posix() in SOURCE_ONLY_RESOURCES:
             continue
         pairs.append((ROOT / rel, ASSETS_ROOT / rel))
     for rel in _source_files("schemas"):
@@ -42,6 +46,8 @@ def expected_pairs() -> list[tuple[Path, Path]]:
             continue
         pairs.append((ROOT / rel, ASSETS_ROOT / rel))
     for rel in _source_files("templates"):
+        if rel.as_posix() in SOURCE_ONLY_RESOURCES:
+            continue
         pairs.append((ROOT / rel, ASSETS_ROOT / rel))
     return sorted(pairs, key=lambda item: item[0].relative_to(ROOT).as_posix())
 
@@ -91,6 +97,7 @@ def check_sync() -> dict[str, Any]:
         "missing_assets": missing_assets,
         "hash_mismatches": hash_mismatches,
         "unexpected_assets": unexpected_assets,
+        "source_only_resources": sorted(SOURCE_ONLY_RESOURCES),
         "generated_asset_exceptions": GENERATED_ASSET_EXCEPTIONS,
         "raw_assets": raw_assets,
     }

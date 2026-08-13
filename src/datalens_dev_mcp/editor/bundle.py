@@ -264,7 +264,7 @@ def generate_editor_bundle(
         )
     generation_status = "ready" if not blocking_issues else "blocked_missing_source_or_family"
     return {
-        "schema_version": "2026-05-25.editor_tab_bundle.v1",
+        "schema_id": "editor_tab_bundle",
         "widget_id": widget_id,
         "name": _canonical_name(route=normalized, title=title, widget_id=widget_id),
         "display_title": title,
@@ -335,7 +335,7 @@ def _gallery_bundle(*, widget_id: str, route: str, title: str, family: str | Non
             continue
         spec = ROUTE_CONTRACT.spec(route)
         return {
-            "schema_version": "2026-06-04.editor_tab_bundle.local.v1",
+            "schema_id": "editor_tab_bundle.local",
             "widget_id": widget_id,
             "name": _canonical_name(route=route, title=title, widget_id=widget_id),
             "display_title": title,

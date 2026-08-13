@@ -57,18 +57,18 @@ Safe Apply связывает исходную задачу пользовате
 Layout/redesign по умолчанию заменяет объявленный список, поэтому старые
 виджеты не добавляются к новой раскладке.
 
-Если проект содержит `requirements/user_decisions.v2.json`, план привязывается
+Если проект содержит `requirements/user_decisions.json`, план привязывается
 к его `decision_ledger_sha256`. Любая новая пользовательская коррекция делает
 старый план невалидным до повторной генерации.
 
 ## Final payload и QA attestation
 
-Для `standard_dashboard_v1` `dl_validate_project` заново собирает фактические
+Для `standard_dashboard` `dl_validate_project` заново собирает фактические
 Editor/Wizard payloads и dashboard composition. Полученный
 `final_payload_attestation` связывает routes, runtime, `title_mode`, selectors,
 layout, tabs и весь dashboard payload. Safe Apply отклоняет отсутствующий или
 устаревший attestation, переписанный protected runtime, Wizard→Editor drift,
-новый dashboard на v1 и любое изменение payload после validation.
+новый dashboard и любое изменение payload после validation.
 
 Dashboard publish дополнительно требует успешный `qa_attestation`, связанный с
 тем же dashboard ID, точной saved revision, выбранной для publish, ожидаемой
@@ -143,6 +143,7 @@ smoke результат изменения помечается `runtime_smoke_
 - Полученный HTTP 4xx с кодом API означает `remote_rejected_no_write` и не
   запускает reconciliation: сервер подтвердил отказ до записи.
 - Ошибка после отправки записи без подтверждённого результата возвращает `write_outcome_unknown`; перед продолжением выполняется чтение текущего состояния.
+- TLS handshake timeout и unexpected EOF до ответа классифицируются отдельно. Для чтения разрешены только ограниченные повторы; write после dispatch никогда не повторяется автоматически.
 - Повтор создания после прерывания начинается с `dl_reconcile_partial_creates`, чтобы не создавать дубликаты.
 
 Каждое действие отдельно сообщает `execution_stage`, `write_outcome` и

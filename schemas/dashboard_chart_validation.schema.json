@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "datalens.dashboard-chart-validation.v1",
+  "$id": "datalens.dashboard-chart-validation",
   "type": "object",
   "required": [
-    "schema_version",
+    "schema_id",
     "dashboard_id",
     "workbook_id",
     "branch",
@@ -12,8 +12,8 @@
     "summary"
   ],
   "properties": {
-    "schema_version": {
-      "const": "datalens.dashboard-chart-validation.v1"
+    "schema_id": {
+      "const": "datalens.dashboard-chart-validation"
     },
     "dashboard_id": {
       "type": "string"

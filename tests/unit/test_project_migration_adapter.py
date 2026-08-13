@@ -214,7 +214,7 @@ class Goal10ProjectMigrationAdapterTests(unittest.TestCase):
     @staticmethod
     def _write_summary_requirement_manifest(root: Path) -> None:
         manifest = {
-            "schema_version": "2026-07-01.project_live_workflow_manifest.v4",
+            "schema_id": "project_live_workflow_manifest",
             "project_name": "summary_requirement_fixture",
             "workbook_id": "workbook_1",
             "dashboard_ids": ["dashboard_1"],

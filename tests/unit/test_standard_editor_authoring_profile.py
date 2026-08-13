@@ -25,7 +25,7 @@ from datalens_dev_mcp.runtime_resources import RESOURCE_OVERRIDE_ENV, resource_j
 
 
 PROFILE_ID = CANONICAL_AUTHORING_PROFILE_ID
-TEMPLATE_SET_SHA256 = "6ce84e5e14cefa09beb8774f5d8b306fdaee212532fbfda8b5acebd5e4ca20a4"
+TEMPLATE_SET_SHA256 = "4fc1a7a8c7fd36d609372d75a131b52832202617e7a27fc8f1656ee83649177b"
 
 
 class StandardEditorAuthoringProfileTests(unittest.TestCase):
@@ -101,8 +101,8 @@ class StandardEditorAuthoringProfileTests(unittest.TestCase):
             descriptor_path.write_text(
                 json.dumps(
                     {
-                        "schema_version": "2026-07-23.project_authoring_profile.v1",
-                        "id": "project_fleet_v1",
+                        "schema_id": "project_authoring_profile",
+                        "id": "fleet_dashboard",
                         "route_policy": "project_registered_editor_family",
                         "template_policy": "exact_registered_asset",
                         "fallback_policy": "block",
@@ -123,7 +123,7 @@ class StandardEditorAuthoringProfileTests(unittest.TestCase):
                 json.dumps(
                     {
                         "authoring_profile": {
-                            "id": "project_fleet_v1",
+                            "id": "fleet_dashboard",
                             "descriptor_path": "profiles/fleet/profile.json",
                             "descriptor_sha256": descriptor_sha256,
                         }
@@ -134,7 +134,7 @@ class StandardEditorAuthoringProfileTests(unittest.TestCase):
 
             profile = resolve_authoring_profile(
                 project_root=root,
-                requested_profile="project_fleet_v1",
+                requested_profile="fleet_dashboard",
             )
             route = authoring_profile_route_decision(profile=profile, family="line_chart")
             bundle = load_project_authoring_profile_bundle(
@@ -213,16 +213,16 @@ class StandardEditorAuthoringProfileTests(unittest.TestCase):
                     canonical["style_contract_sha256"],
                 )
 
-    def test_reserved_historical_alias_cannot_bind_a_project_local_descriptor(self):
+    def test_canonical_profile_cannot_be_shadowed_by_a_project_local_descriptor(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            descriptor = root / "obsolete.json"
-            descriptor.write_text('{"id":"standard_editor_v1"}', encoding="utf-8")
+            descriptor = root / "shadow.json"
+            descriptor.write_text('{"id":"standard_dashboard"}', encoding="utf-8")
             (root / ".datalens-mcp.json").write_text(
                 json.dumps(
                     {
                         "authoring_profile": {
-                            "id": "standard_editor_v1",
+                            "id": "standard_dashboard",
                             "descriptor_path": descriptor.name,
                             "descriptor_sha256": hashlib.sha256(
                                 descriptor.read_bytes()
@@ -235,7 +235,7 @@ class StandardEditorAuthoringProfileTests(unittest.TestCase):
 
             resolved = resolve_authoring_profile(
                 project_root=root,
-                requested_profile="standard_editor_v1",
+                requested_profile="standard_dashboard",
             )
 
         self.assertTrue(resolved["ok"], resolved)
@@ -383,7 +383,7 @@ class StandardEditorAuthoringProfileTests(unittest.TestCase):
                 encoding="utf-8",
             )
             manifest = {
-                "schema_version": "2026-07-01.project_live_workflow_manifest.v4",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "async_test",
                 "workbook_id": "workbook_1",
                 "dashboard_ids": ["dashboard_1"],

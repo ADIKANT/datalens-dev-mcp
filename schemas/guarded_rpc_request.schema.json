@@ -1,18 +1,18 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "title": "Delta v7 Guarded RPC Request",
+  "title": "Guarded RPC Request",
   "type": "object",
   "required": [
-    "schema_version",
+    "schema_id",
     "method",
     "object_type",
     "mode",
     "fresh_read"
   ],
   "properties": {
-    "schema_version": {
-      "const": "datalens.delta_v7.guarded_rpc_request.v1"
+    "schema_id": {
+      "const": "datalens.guarded_rpc_request"
     },
     "method": {
       "type": "string"

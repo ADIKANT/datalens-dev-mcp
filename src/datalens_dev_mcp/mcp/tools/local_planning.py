@@ -239,7 +239,7 @@ def dl_build_workbook_source_resolution(
     blockers.extend(alias_blockers)
 
     return {
-        "version": 1,
+        "schema_id": "workbook_source_resolution",
         "generated_at": _now_utc(),
         "source": {"method": "getWorkbookEntries + getConnection", "workbook_id": workbook_id},
         "workbook_id": workbook_id,
@@ -325,7 +325,7 @@ def dl_build_selector_wiring_summary(
 def dl_build_runtime_verification_plan(workbook_id: str, run_id: str | None = None, execute: bool = False) -> dict[str, Any]:
     run_id = run_id or _compact_run_id()
     return {
-        "version": 1,
+        "schema_id": "runtime_verification_plan",
         "execute": execute,
         "mode": "save",
         "workbook_id": workbook_id,
@@ -441,7 +441,7 @@ def dl_run_wizard_to_js_plan(
         raise DataLensApiError("Requested workbook IDs are missing from the classification file: " + ", ".join(sorted(missing)))
 
     plan = {
-        "version": 1,
+        "schema_id": "wizard_to_js_conversion_plan",
         "scenario": "wizard_to_js",
         "generated_at": _now_utc(),
         "classification_path": str(classification),

@@ -27,7 +27,7 @@ class DashboardObjectGranularityResult:
     selector_count: int
     kpi_count: int
     findings: list[DashboardObjectFinding] = field(default_factory=list)
-    schema_version: str = "2026-07-01.dashboard_object_granularity.v1"
+    schema_id: str = "dashboard_object_granularity"
 
     def to_dict(self) -> dict[str, Any]:
         return {**asdict(self), "findings": [finding.to_dict() for finding in self.findings]}

@@ -19,6 +19,6 @@
   ],
   "response_schema_hash": "4a629b213a09957a8118d84d78b45eafaa1a77fadd3684216c331aa623f04160",
   "response_schema_ref": "RenameEntryResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "readonly_reference"
 }

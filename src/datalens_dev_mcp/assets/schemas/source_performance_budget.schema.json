@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "DataLens Source Performance Budget Evidence",
   "type": "object",
-  "required": ["schema_version", "sources"],
+  "required": ["schema_id", "sources"],
   "properties": {
-    "schema_version": {"const": "datalens.source-performance-budget.v1"},
+    "schema_id": {"const": "datalens.source-performance-budget"},
     "dashboard_id": {"type": "string"},
     "sources": {
       "type": "array",

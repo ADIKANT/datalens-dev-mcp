@@ -11,7 +11,7 @@ class PromptPackAvailabilityContractsTests(unittest.TestCase):
         from datalens_dev_mcp.pipeline.source_availability import effective_availability
 
         matrix = {
-            "schema_version": "datalens.dashboard-source-availability.v1",
+            "schema_id": "datalens.dashboard-source-availability",
             "project": "generic",
             "sources": {
                 "optional_events": {
@@ -37,7 +37,7 @@ class PromptPackAvailabilityContractsTests(unittest.TestCase):
         from datalens_dev_mcp.pipeline.source_availability import effective_availability
 
         matrix = {
-            "schema_version": "datalens.dashboard-source-availability.v1",
+            "schema_id": "datalens.dashboard-source-availability",
             "project": "generic",
             "sources": {
                 "event_log": {
@@ -56,7 +56,7 @@ class PromptPackAvailabilityContractsTests(unittest.TestCase):
         from datalens_dev_mcp.pipeline.dashboard_chart_validation import build_dashboard_chart_validation
 
         matrix = {
-            "schema_version": "datalens.dashboard-source-availability.v1",
+            "schema_id": "datalens.dashboard-source-availability",
             "project": "generic",
             "sources": {
                 "source_a": {
@@ -77,7 +77,7 @@ class PromptPackAvailabilityContractsTests(unittest.TestCase):
         )
 
         result = artifact["charts"][0]["environment_results"]["stage"]
-        self.assertEqual(artifact["schema_version"], "datalens.dashboard-chart-validation.v1")
+        self.assertEqual(artifact["schema_id"], "datalens.dashboard-chart-validation")
         self.assertEqual(result["sql_status"], "compiled")
         self.assertEqual(result["render_status"], "browser_auth_required")
 
@@ -131,7 +131,7 @@ class PromptPackGraphBudgetAndQaTests(unittest.TestCase):
         )
 
         row = evidence["sources"][0]
-        self.assertEqual(evidence["schema_version"], "datalens.source-performance-budget.v1")
+        self.assertEqual(evidence["schema_id"], "datalens.source-performance-budget")
         self.assertEqual(row["source_budget_status"], "fail")
         self.assertIn("single_source_50mb_limit_exceeded", row["blocked_reasons"])
         self.assertIn("single_source_95s_limit_exceeded", row["blocked_reasons"])
@@ -204,7 +204,7 @@ class PromptPackPlanningContractsTests(unittest.TestCase):
             root = Path(tmp)
             (root / "scripts").mkdir()
             manifest = {
-                "schema_version": "2026-07-07.project_live_workflow_manifest.v5",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "default_publish",
                 "workbook_id": "workbook_live",
                 "dashboard_ids": ["dashboard_live"],
@@ -275,7 +275,7 @@ class PromptPackDocsOpenApiContractsTests(unittest.TestCase):
 
         self.assertEqual(catalog["operation_count"], 95)
         self.assertEqual(lock["operation_count"], 95)
-        self.assertEqual(lock["component_schema_count"], 495)
+        self.assertEqual(lock["component_schema_count"], 500)
         self.assertEqual(methods["getPermissionsBulk"]["mcp_tool"], "dl_rpc_readonly")
         self.assertEqual(methods["getPermissionsBulk"]["support_status"], "EXECUTABLE_TOOL_SUPPORTED")
         for key in ("entryIds", "workbookIds", "collectionIds"):

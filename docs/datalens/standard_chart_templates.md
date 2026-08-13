@@ -67,6 +67,11 @@ inputs are read only in `golden_fixture` mode.
 
 ## Active Archetypes
 
+This table inventories Editor implementations, not default routing. The route
+policy and chart-parameter matrix remain authoritative; `funnel_snapshot`, for
+example, now defaults to native Wizard `funnel`, while this implementation is
+kept for an explicit JavaScript request.
+
 | Template | Families |
 |---|---|
 | `templates/datalens/advanced_editor/kpi_card` | `kpi_value_only`, `kpi_value_delta`, `kpi_value_sparkline`, `kpi_value_delta_sparkline` |

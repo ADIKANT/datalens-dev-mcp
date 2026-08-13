@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-"""Compatibility entrypoint for the canonical Wizard-first route registry.
-
-The pre-v5 implementation duplicated route defaults and could regenerate a
-JS-default/map-only matrix. Matrix construction now belongs to
-``sync_wizard_first_route_policy.py`` so every caller receives the same policy.
-"""
+"""Build the canonical Wizard-first route matrix from the shared registry."""
 
 import json
 import shutil

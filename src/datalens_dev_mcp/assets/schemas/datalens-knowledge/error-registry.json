@@ -2225,5 +2225,5 @@
       "title": "Все ошибки в Yandex DataLens"
     }
   ],
-  "schema_version": "2026-06-25.semantic_authoring.v2"
+  "schema_id": "semantic_authoring"
 }

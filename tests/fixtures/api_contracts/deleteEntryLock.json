@@ -11,12 +11,12 @@
   "request_schema_hash": "fbb23613bbbd3a660da805bef1f50068294559a5dcb704d14db1657e781d712c",
   "request_schema_ref": "DeleteEntryLockArgs",
   "response_payload": {},
-  "response_schema_closure_hash": "3ab7789a29ad8cc499d50bf55d4ea8b9b98efe2d16d18df0e71fe20f8e6af8a0",
+  "response_schema_closure_hash": "dab7ceaf6d038cf6cf727eaf70bee7cca95c3327b3013ef46f87dfe707edfcc9",
   "response_schema_closure_refs": [
-    "DeleteEntryLockResult"
+    "EntryLock"
   ],
   "response_schema_hash": "20cd59c80bc5b04609425529746addbddb0b4f0063a33ac17f63090f571bc877",
-  "response_schema_ref": "DeleteEntryLockResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "response_schema_ref": "EntryLock",
+  "schema_id": "api_contract_fixture",
   "status": "unsupported_explicit"
 }

@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from datalens_dev_mcp.html_pages import (
-    HTML_PAGE_CONTRACT_VERSION,
+    HTML_PAGE_CONTRACT_ID,
     render_standalone_html_page,
     validate_standalone_html_page,
 )
@@ -26,7 +26,7 @@ class HtmlPageAuthoringTests(unittest.TestCase):
 
         self.assertTrue(first["ok"], first["validation"])
         self.assertEqual(first["sha256"], second["sha256"])
-        self.assertEqual(first["schema_version"], HTML_PAGE_CONTRACT_VERSION)
+        self.assertEqual(first["schema_id"], HTML_PAGE_CONTRACT_ID)
         self.assertNotIn("</script><img src=x>", first["html"])
         self.assertIn("URLSearchParams", first["html"])
         self.assertIn("'EXPORT'", first["html"])

@@ -1,0 +1,34 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "source": "New",
+      "target": "In progress",
+      "value": 72
+    },
+    {
+      "source": "New",
+      "target": "Deferred",
+      "value": 18
+    },
+    {
+      "source": "In progress",
+      "target": "Done",
+      "value": 56
+    },
+    {
+      "source": "Deferred",
+      "target": "In progress",
+      "value": 11
+    }
+  ]
+}

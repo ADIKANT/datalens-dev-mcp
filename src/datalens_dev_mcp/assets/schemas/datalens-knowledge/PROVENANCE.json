@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-07-15.public_provenance.v1",
+  "schema_id": "public_provenance",
   "source_class": "official_documentation",
   "source_name": "Yandex Cloud documentation",
   "source_repository": "https://github.com/yandex-cloud/docs",
@@ -20,8 +20,8 @@
     "compiled"
   ],
   "snapshot": {
-    "generated_at": "2026-07-29T17:43:49.679499Z",
-    "pages_content_sha256": "3ec257e8d9be37788366e9369ede3a60a7668daa60e174809147f3f7301e3c67"
+    "generated_at": "2026-08-11T10:45:59.595971Z",
+    "pages_content_sha256": "e17c75e496c34a0faecbe314cbb809ba674a9b60aaf93821ff49e56531c8c144"
   },
   "covered_files": [
     "capability-matrix.json",

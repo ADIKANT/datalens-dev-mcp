@@ -1,15 +1,15 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "title": "Delta v7 Source Availability Consumer Matrix",
+  "title": "Source Availability Consumer Matrix",
   "type": "object",
   "required": [
-    "schema_version",
+    "schema_id",
     "sources"
   ],
   "properties": {
-    "schema_version": {
-      "const": "datalens.delta_v7.source_availability_consumer_matrix.v1"
+    "schema_id": {
+      "const": "datalens.source_availability_consumer_matrix"
     },
     "evidence_paths": {
       "type": "array",

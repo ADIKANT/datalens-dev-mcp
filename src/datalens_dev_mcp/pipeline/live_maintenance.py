@@ -10,7 +10,7 @@ from datalens_dev_mcp.api.request_compiler import compile_guarded_rpc_request
 from datalens_dev_mcp.serialization import serialized_metadata
 from datalens_dev_mcp.pipeline.artifacts import ensure_project_dirs, write_json
 from datalens_dev_mcp.pipeline.baseline_preservation import build_baseline_diff_contract
-from datalens_dev_mcp.pipeline.performance_budget import normalize_editor_source_budget_evidence_v7
+from datalens_dev_mcp.pipeline.performance_budget import normalize_editor_source_budget_evidence
 from datalens_dev_mcp.pipeline.runtime_gate import (
     build_browser_runtime_smoke,
     build_runtime_gate_evidence,
@@ -28,9 +28,9 @@ from datalens_dev_mcp.pipeline.safe_apply import (
 from datalens_dev_mcp.pipeline.source_availability import validate_source_availability_consumers
 
 
-LIVE_MAINTENANCE_SCHEMA_VERSION = "datalens.delta_v7.live_maintenance_run.v1"
-FINAL_HANDOFF_SCHEMA_VERSION = "datalens.delta_v7.final_maintenance_handoff.v1"
-RUNTIME_FIRST_RUN_SCHEMA_VERSION = "datalens.delta_v8.runtime_first_run.v1"
+LIVE_MAINTENANCE_SCHEMA_ID = "datalens.live_maintenance_run"
+FINAL_HANDOFF_SCHEMA_ID = "datalens.final_maintenance_handoff"
+RUNTIME_FIRST_RUN_SCHEMA_ID = "datalens.runtime_first_run"
 
 MAINTENANCE_MODES = {
     "quick_visible_patch",
@@ -327,7 +327,7 @@ def run_live_maintenance_update(
         elapsed_seconds=monotonic() - started,
     )
     runtime_first_run = {
-        "schema_version": RUNTIME_FIRST_RUN_SCHEMA_VERSION,
+        "schema_id": RUNTIME_FIRST_RUN_SCHEMA_ID,
         "target": target,
         "mode": mode,
         "status": runtime_first_status,
@@ -369,7 +369,7 @@ def run_live_maintenance_update(
     phases.append(_phase("handoff", final_status, [str(handoff_path)]))
 
     run = {
-        "schema_version": LIVE_MAINTENANCE_SCHEMA_VERSION,
+        "schema_id": LIVE_MAINTENANCE_SCHEMA_ID,
         "run_id": run_id,
         "target": target,
         "intent": intent,
@@ -399,7 +399,7 @@ def run_live_maintenance_update(
     write_json(run_path, run)
     return {
         "ok": final_status not in {"blocked", "rolled_back"},
-        "schema_version": LIVE_MAINTENANCE_SCHEMA_VERSION,
+        "schema_id": LIVE_MAINTENANCE_SCHEMA_ID,
         "run_id": run_id,
         "status": final_status,
         "execution_performed": False,
@@ -522,7 +522,7 @@ def _source_availability_phase(source_availability_artifact: str, *, strict_publ
 def _source_budget_phase(source_budget_evidence: dict[str, Any] | list[dict[str, Any]] | None) -> dict[str, Any]:
     if not source_budget_evidence:
         return {"phase": _phase("source_budget", "not_supplied"), "blocked_reasons": []}
-    evidence = normalize_editor_source_budget_evidence_v7(source_budget_evidence)
+    evidence = normalize_editor_source_budget_evidence(source_budget_evidence)
     blocked = [
         (
             f"source_budget:{row.get('entry_id') or '<unknown>'}:"
@@ -567,7 +567,7 @@ def _safe_apply_phase(
         prepared_actions.append(prepared)
     plan = create_safe_apply_plan(project_root=str(root), actions=prepared_actions, approved=approved)
     preflight = validate_safe_apply_plan_exhaustive(plan)
-    path = root / "artifacts" / "live_maintenance" / "safe_apply_plan.delta_v7.json"
+    path = root / "artifacts" / "live_maintenance" / "safe_apply_plan.json"
     write_json(path, plan)
     return {
         "phase": _phase("safe_apply", "blocked" if not preflight["ok"] else "planned", [str(path)]),
@@ -841,8 +841,8 @@ def _validate_execution_manifest(
     manifest = documents[0] if len(documents) == 1 else {}
     if len(documents) != 1:
         issues.append("execution evidence requires exactly one parsed JSON execution manifest")
-    if manifest.get("schema_version") != "datalens.safe_apply_execution_evidence.v1":
-        issues.append("execution manifest has an unsupported schema_version")
+    if manifest.get("schema_id") != "datalens.safe_apply_execution_evidence":
+        issues.append("execution manifest has an unsupported schema_id")
     if str(manifest.get("status") or "") != "completed":
         issues.append("execution manifest status must be completed")
     actions = [item for item in manifest.get("actions") or [] if isinstance(item, dict)]
@@ -1295,7 +1295,7 @@ def _cleanup_plan(
         if item.get("cleanup_requested") and item.get("active_in_saved_or_published_graph"):
             blocked.append("cleanup_refuses_active_saved_or_published_graph_object")
     return {
-        "schema_version": "datalens.delta_v7.cleanup_plan.v1",
+        "schema_id": "datalens.cleanup_plan",
         "mode": cleanup_mode,
         "status": "blocked" if blocked else "plan_only" if created or safe_apply_blocked else "not_required",
         "created_object_count": len(created),
@@ -1349,7 +1349,7 @@ def _handoff(
         )
     )
     return {
-        "schema_version": FINAL_HANDOFF_SCHEMA_VERSION,
+        "schema_id": FINAL_HANDOFF_SCHEMA_ID,
         "status": status,
         "runtime_first_status": runtime_first_status,
         "target": target,
@@ -1766,4 +1766,4 @@ def _phase(name: str, status: str, artifact_paths: list[str] | None = None) -> d
 
 
 def _run_id() -> str:
-    return datetime.now(timezone.utc).strftime("delta_v7_%Y%m%dT%H%M%SZ")
+    return datetime.now(timezone.utc).strftime("maintenance_%Y%m%dT%H%M%SZ")

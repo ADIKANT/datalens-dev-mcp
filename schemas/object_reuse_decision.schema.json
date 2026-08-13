@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "datalens.delta_v8.object_reuse_decision.schema.json",
-  "title": "DataLens Delta v8 Object Reuse Decision",
+  "$id": "datalens.object_reuse_decision.schema.json",
+  "title": "DataLens Object Reuse Decision",
   "type": "object",
   "required": ["target_object_type", "decision", "create_allowed", "blocked_reasons"],
   "properties": {

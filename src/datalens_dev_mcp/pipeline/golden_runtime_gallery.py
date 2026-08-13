@@ -17,7 +17,7 @@ from datalens_dev_mcp.validators.route_validator import validate_route_payload
 
 INVENTORY_RESOURCE = "config/golden_runtime_gallery_inventory.json"
 CONTRACTS_RESOURCE = "config/golden_runtime_gallery_contracts.json"
-SCHEMA_VERSION = "2026-07-01.golden_runtime_gallery_contracts.v1"
+SCHEMA_ID = "golden_runtime_gallery_contracts"
 STATIC_WORKBOOK_PLACEHOLDER = "<GOLDEN_TEST_WORKBOOK_ID>"
 DEFAULT_BROWSER_UNAVAILABLE_REASON = (
     "No rendered DataLens URL, browser authentication, or browser capture artifact is configured for this static run."
@@ -45,8 +45,8 @@ def build_golden_contracts(
         for family in active_inventory["supported_family_inventory"]
     ]
     return {
-        "schema_version": SCHEMA_VERSION,
-        "inventory_schema_version": active_inventory["schema_version"],
+        "schema_id": SCHEMA_ID,
+        "inventory_schema_id": active_inventory["schema_id"],
         "inventory_digest": _sha256_json(
             {
                 "route_inventory": active_inventory["route_inventory"],
@@ -99,7 +99,7 @@ def compare_generated_to_golden(
             mismatches.append({"family_id": "<root>", "field": "<document>", "message": "root metadata drift"})
     return {
         "ok": not mismatches,
-        "schema_version": "2026-07-01.golden_runtime_gallery_compare.v1",
+        "schema_id": "golden_runtime_gallery_compare",
         "generated_family_count": len(generated.get("contracts") or []),
         "golden_family_count": len(expected.get("contracts") or []),
         "mismatches": mismatches,
@@ -216,7 +216,7 @@ def _build_editor_contract(
             "observed_tabs": sorted(bundle["tabs"]),
             "tab_hashes": {name: _sha256_text(bundle["tabs"][name]) for name in sorted(bundle["tabs"])},
             "source_template": bundle.get("source_template", bundle.get("source_gallery", "")),
-            "schema_version": bundle.get("schema_version", ""),
+            "schema_id": bundle.get("schema_id", ""),
         },
         "generated_payload": {
             "kind": "compiled_editor_save_payload",
@@ -230,7 +230,7 @@ def _build_editor_contract(
             "route_payload": {"ok": route_validation.ok, "issues": route_validation.issues},
             "editor_runtime_contract": {
                 "ok": runtime_validation["ok"],
-                "rule_version": runtime_validation["rule_version"],
+                "rule_id": runtime_validation["rule_id"],
                 "summary": runtime_validation["summary"],
             },
         },
@@ -251,6 +251,11 @@ def _build_wizard_contract(
     for index, role in enumerate(template_spec.get("required_roles") or []):
         field = fields[min(index, len(fields) - 1)]
         bindings[str(role)] = {"guid": str(field.get("name") or f"field_{index}"), "title": str(field.get("name") or "Field")}
+    if visualization_id == "funnel":
+        bindings["measures"] = [
+            {"guid": str(field.get("name") or f"field_{index}"), "title": str(field.get("name") or "Field")}
+            for index, field in enumerate(fields[:2])
+        ]
     if family_id == "bubble":
         field = fields[-1]
         bindings["size"] = {"guid": str(field.get("name") or "size"), "title": str(field.get("name") or "Size")}
@@ -273,7 +278,7 @@ def _build_wizard_contract(
             "template_name": plan.get("template_name", "native_map"),
             "payload_shape_status": plan.get("payload_shape_status", ""),
             "geo_evidence_kind": (plan.get("geo_evidence") or {}).get("kind", ""),
-            "schema_version": plan.get("schema_version", ""),
+            "schema_id": plan.get("schema_id", ""),
         },
         "generated_payload": {
             "kind": "wizard_payload_plan",
@@ -318,7 +323,7 @@ def _build_ql_contract(
             "required_tabs": [],
             "observed_tabs": [],
             "payload_policy": "explicit_payload_or_fresh_saved_seed",
-            "schema_version": "2026-07-13.ql_explicit_fixture.v1",
+            "schema_id": "ql_explicit_fixture",
         },
         "generated_payload": {
             "kind": "explicit_ql_payload_fixture",

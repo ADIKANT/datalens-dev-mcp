@@ -115,6 +115,7 @@ class RuntimeDeliveryStageTests(unittest.TestCase):
 
 class SafeApplyIncidentTests(unittest.TestCase):
     def test_conflicts_and_unknown_write_outcome_are_structured(self):
+        from datalens_dev_mcp.api.errors import DataLensApiError
         from datalens_dev_mcp.pipeline.safe_apply import _classify_safe_apply_error
 
         locked = _classify_safe_apply_error(
@@ -128,6 +129,17 @@ class SafeApplyIncidentTests(unittest.TestCase):
             write_attempted=True,
         )
         unknown = _classify_safe_apply_error(RuntimeError("connection reset"), write_attempted=True)
+        tls_unknown = _classify_safe_apply_error(
+            DataLensApiError(
+                "updateEditorChart failed before HTTP response: transport_category=tls_handshake_timeout",
+                request_phase="transport",
+                response_received=False,
+                transport_category="tls_handshake_timeout",
+                retry_attempts=0,
+                retry_exhausted=False,
+            ),
+            write_attempted=True,
+        )
 
         self.assertEqual((locked["category"], locked["remote_code"]), ("conflict_no_write", "ENTRY_IS_LOCKED"))
         self.assertEqual(locked["retry_after"], 3)
@@ -136,6 +148,10 @@ class SafeApplyIncidentTests(unittest.TestCase):
         self.assertTrue(unique["reconciliation_required"])
         self.assertEqual(unknown["category"], "write_outcome_unknown")
         self.assertFalse(unknown["retry_safe"])
+        self.assertEqual(tls_unknown["category"], "write_outcome_unknown")
+        self.assertEqual(tls_unknown["transport_category"], "tls_handshake_timeout")
+        self.assertFalse(tls_unknown["response_received"])
+        self.assertTrue(tls_unknown["reconciliation_required"])
 
     def test_conflict_resume_retries_lock_but_reconciles_unique(self):
         from datalens_dev_mcp.pipeline.safe_apply import _retry_resume_summary
@@ -647,7 +663,7 @@ class ValidationIncidentTests(unittest.TestCase):
                 encoding="utf-8",
             )
             manifest = {
-                "schema_version": "2026-06-25.project_live_workflow_manifest.v3",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "mutation_guard",
                 "workflows": [
                     {

@@ -1099,5 +1099,5 @@
       "widget_contract": "html_page"
     }
   ],
-  "schema_version": "2026-06-25.semantic_authoring.v2"
+  "schema_id": "semantic_authoring"
 }

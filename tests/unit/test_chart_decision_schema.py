@@ -12,7 +12,7 @@ class ChartDecisionSchemaTests(unittest.TestCase):
         self.assertEqual(
             schema["properties"]["renderer_visual_spec"]["required"],
             [
-                "schema_version",
+                "schema_id",
                 "style_tokens",
                 "encoding",
                 "value_semantics",

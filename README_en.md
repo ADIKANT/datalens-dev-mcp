@@ -2,7 +2,7 @@
 
 [Русский](README.md) · **English**
 
-[Quick start](#quick-start) · [DataLens access](docs/access_en.md) · [Connect](#connect-an-mcp-client) · [Tools](docs/tools_en.md) · [Workflows](#example-tasks) · [Sources](docs/sources_en.md) · [Safety](#change-safety) · [Русский](README.md)
+[Quick start](#quick-start) · [DataLens access](docs/access_en.md) · [Connect](#connect-an-mcp-client) · [Tools](docs/tools_en.md) · [JS Cookbook](docs/cookbook/README_en.md) · [Workflows](#example-tasks) · [Sources](docs/sources_en.md) · [Safety](#change-safety) · [Русский](README.md)
 
 `datalens-dev-mcp` is a local [MCP server](https://modelcontextprotocol.io/) that connects Codex, Claude, and other MCP clients to Yandex DataLens. The user describes a task in plain language, the client calls the server's typed tools, and the server reads current objects through the DataLens Public API, checks dependencies and request schemas, prepares changes, saves them, and publishes when requested with result readback.
 
@@ -52,6 +52,11 @@ The user states the objective, and the MCP client selects and calls the appropri
 | Change part of a solution | A bounded dashboard-tab, dataset-model, or related-object-group update |
 | Deliver the result | Save, saved readback, publish from verified saved state, and published readback |
 | Work locally | Standalone HTML artifacts, project manifests, snapshots, plans, and reports inside the project root |
+
+Shared Tips, 34 copy-ready JavaScript visualizations, three linked application
+cases, source contracts, and complete Editor tab sets are collected in the
+[JavaScript Visualization Cookbook](docs/cookbook/README_en.md);
+the [interactive version](https://adikant.github.io/datalens-dev-mcp/) is published through GitHub Pages.
 
 ### What the server does and what remains with the MCP client
 
@@ -163,12 +168,12 @@ An explicit `0` in a write/save/publish environment setting hard-disables that c
 
 ### Wizard, Editor, and QL
 
-- New standard KPIs, tables, lines, areas, columns, combined charts, pie charts, scatter/bubble charts, treemaps, and maps use Wizard by default.
+- New standard KPIs, tables, lines, areas, columns, combined charts, pie charts, scatter/bubble charts, treemaps, funnels, and maps use Wizard by default.
 - Updates preserve the existing chart technology and `visualization_id`.
 - Editor is selected for an explicit JavaScript request or a documented Wizard capability gap.
 - QL is used only on a direct request with an explicit payload or current QL version; it is never selected automatically or used as a fallback.
-- Create and full redesign automatically use `standard_dashboard_v1`, including
-  role-based titles, composition v2, a protected Editor runtime, and final
+- Create and full redesign automatically use `standard_dashboard`, including
+  role-based titles, dashboard composition, a protected Editor runtime, and final
   payload/QA attestation without changing the 39-tool surface.
 
 See the full policy in [`docs/route-policy_en.md`](docs/route-policy_en.md).
@@ -209,7 +214,6 @@ Follow the [DataLens access guide](docs/access_en.md). A minimal protected env f
 DATALENS_ORG_ID=<ORGANIZATION_ID>
 DATALENS_IAM_TOKEN=<IAM_TOKEN>
 DATALENS_API_BASE_URL=https://api.datalens.tech
-DATALENS_API_VERSION=auto
 DATALENS_MCP_ENABLE_WRITES=1
 DATALENS_MCP_LIVE_ALLOW_SAVE=1
 DATALENS_MCP_LIVE_ALLOW_PUBLISH=1
@@ -326,8 +330,8 @@ The exact schema and complete public surface of the currently installed version 
 - Independent project and not an official Yandex or Yandex Cloud product.
 - Python package maturity: **Alpha**.
 - Use deliberately selected targets for live writes and verify the result.
-- `main` may include `Unreleased` changes that are not part of the published version yet.
-- The installed version's `tools/list` is authoritative; the standard 0.5.0 surface contains 39 tools.
+- `main` contains the single current server implementation; Git history and reviewed pull requests preserve change history.
+- The current installation's `tools/list` is authoritative; the standard surface contains 39 tools.
 
 ## Development
 

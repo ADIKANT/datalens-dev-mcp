@@ -27,7 +27,7 @@ from datalens_dev_mcp.editor.render_compiler import (
     RenderContractCompileError,
 )
 from datalens_dev_mcp.editor.reference_runtime import (
-    STANDARD_DASHBOARD_RENDER_COMPILER_VERSION,
+    STANDARD_DASHBOARD_RENDER_COMPILER_ID,
     StandardDashboardRuntimeError,
     compile_standard_dashboard_renderer,
     protected_renderer_identity,
@@ -35,10 +35,10 @@ from datalens_dev_mcp.editor.reference_runtime import (
 )
 from datalens_dev_mcp.editor.render_contract import (
     DashboardRenderContractError,
-    RENDERER_VISUAL_SPEC_V5,
+    RENDERER_VISUAL_SPEC_ID,
     render_contract_to_dict,
     resolve_dashboard_render_contract,
-    upgrade_renderer_visual_spec_v5,
+    build_renderer_visual_spec,
 )
 from datalens_dev_mcp.editor.selector_contract import SELECTOR_FAMILIES
 from datalens_dev_mcp.editor.title_contract import normalize_title_contract
@@ -264,7 +264,7 @@ def dl_start_pipeline(
     selected = normalize_scenario(scenario)
     initialize_requirements_workspace(root)
     registry = {
-        "version": 1,
+        "schema_id": "governance_memory_registry",
         "dashboard_name": dashboard_name,
         "scenario": selected,
         "stage_batch": {"current_stage": "intake", "current_batch": "none"},
@@ -297,7 +297,7 @@ def dl_load_project_context(
         "response_mode": mode,
         "deprecated": True,
         "internal_compatibility_only": True,
-        "replacement": "Call project-memory-bank memory_context, then pass its project_context_ref.v1 to DataLens tools.",
+        "replacement": "Call project-memory-bank memory_context, then pass its project_context_ref to DataLens tools.",
     }
 
 
@@ -433,7 +433,7 @@ def _case_from_requirements(requirements_text: str, data_profile: dict[str, Any]
         family = "kpi_value_only"
         task = "monitoring"
     return {
-        "schema_version": "2026-06-04.local_mcp_intake.case.v1",
+        "schema_id": "local_mcp_intake.case",
         "case_id": "mcp_intake",
         "domain": "local_mcp_dashboard",
         "source_manifest": [{"source_id": "REQ-001", "role": "customer_requirements", "short_evidence": requirements_text[:240]}],
@@ -559,7 +559,7 @@ def dl_build_governance_brief(project_root: str = ".", requirements_text: str = 
         brief = _brief_from_governance_bundle(build_governance_bundle(case))
     write_json(root / "artifacts" / "dashboard_brief.json", brief)
     write_json(root / "datalens_mapping" / "governance_memory_registry.json", {
-        "version": 1,
+        "schema_id": "governance_memory_registry",
         "source_documents": [{"source_id": "REQ-001", "role": "customer_requirements", "status": "parsed"}],
         "dashboard_passport": {"dashboard_name": brief["dashboard_name"], "status": "parsed"},
         "metric_registry": [{"metric_id": "MET-001", "name": brief["dashboard_name"], "status": "active"}],
@@ -842,10 +842,10 @@ def dl_generate_editor_bundle(
                         f"resolved {resolved_render_contract.get('profile_sha256')}"
                     ),
                 )
-            if style_contract.get("renderer_visual_spec") != RENDERER_VISUAL_SPEC_V5:
+            if style_contract.get("renderer_visual_spec") != RENDERER_VISUAL_SPEC_ID:
                 raise DashboardRenderContractError(
-                    "legacy_renderer_visual_spec_forbidden",
-                    "all registered dashboard profiles must use the canonical Renderer Visual Spec v5",
+                    "noncanonical_renderer_visual_spec_forbidden",
+                    "all registered dashboard profiles must use the canonical Renderer Visual Spec",
                 )
             title_contract = normalize_title_contract(
                 route=selected_route,
@@ -859,7 +859,7 @@ def dl_generate_editor_bundle(
                     "invalid_dashboard_title_contract",
                     "; ".join(title_contract["issues"]),
                 )
-            visual_spec = upgrade_renderer_visual_spec_v5(
+            visual_spec = build_renderer_visual_spec(
                 decision_record.get("renderer_visual_spec")
                 or decision.get("renderer_visual_spec")
                 or {},
@@ -923,12 +923,14 @@ def dl_generate_editor_bundle(
         for index, role_name in enumerate(registry_spec.get("required_roles") or []):
             if field_values:
                 field_bindings[str(role_name)] = field_values[min(index, len(field_values) - 1)]
+        if visualization_id == "funnel" and field_values:
+            field_bindings["measures"] = field_values
         if requested_family == "bubble" and field_values:
             field_bindings["size"] = field_values[-1]
         dataset_id = dataset_alias.strip() or str(data_contract.get("dataset_id") or "").strip()
         plan = build_wizard_payload_plan(
             {
-                "schema_version": "2026-07-13.wizard_chart_compiler_input.v1",
+                "schema_id": "wizard_chart_compiler_input",
                 "widget_id": widget_id,
                 "route": "wizard_native",
                 "visualization_id": visualization_id,
@@ -964,12 +966,12 @@ def dl_generate_editor_bundle(
                 "id": profile.get("id"),
                 "route_policy": profile.get("route_policy"),
                 "editor_render_profile": style_contract.get("editor_render_profile") or "",
-                "render_contract_version": style_contract.get("renderer_visual_spec") or "",
+                "render_contract_id": style_contract.get("renderer_visual_spec") or "",
             }
             plan["editor_render_profile"] = str(
                 style_contract.get("editor_render_profile") or ""
             )
-            plan["render_contract_version"] = str(
+            plan["render_contract_id"] = str(
                 style_contract.get("renderer_visual_spec") or ""
             )
             plan["title_mode"] = str(title_contract.get("mode") or "native_title")
@@ -1099,12 +1101,12 @@ def dl_generate_editor_bundle(
                     provenance.get("render_contract_composite_sha256")
                     == resolved_render_contract.get("composite_sha256")
                     and (
-                        provenance.get("dashboard_render_compiler_version")
-                        or provenance.get("render_compiler_version")
+                        provenance.get("dashboard_render_compiler_id")
+                        or provenance.get("render_compiler_id")
                     )
                     == (
-                        style_contract.get("dashboard_render_compiler_version")
-                        or style_contract.get("render_compiler_version")
+                        style_contract.get("dashboard_render_compiler_id")
+                        or style_contract.get("render_compiler_id")
                     )
                 )
             )
@@ -1128,12 +1130,12 @@ def dl_generate_editor_bundle(
             "enforced": True,
             "exact_template_reused": True,
             "editor_render_profile": str(style_contract.get("editor_render_profile") or ""),
-            "render_contract_version": str(style_contract.get("renderer_visual_spec") or ""),
+            "render_contract_id": str(style_contract.get("renderer_visual_spec") or ""),
         }
         bundle["editor_render_profile"] = str(
             style_contract.get("editor_render_profile") or ""
         )
-        bundle["render_contract_version"] = str(
+        bundle["render_contract_id"] = str(
             style_contract.get("renderer_visual_spec") or ""
         )
         bundle["profile_route_decision"] = profile_route
@@ -1405,7 +1407,7 @@ def _aggregate_batch_browser_render_contract(
 
     if not contract_rows:
         return {
-            "schema_version": "2026-07-29.browser_render_contract_aggregation.v2",
+            "schema_id": "browser_render_contract_aggregation",
             "ok": True,
             "issues": [],
             "render_contract": {},
@@ -1514,14 +1516,14 @@ def _aggregate_batch_browser_render_contract(
 
     render_contract = (
         {
-            "schema_version": "2026-07-29.batch_browser_render_contract.v2",
+            "schema_id": "batch_browser_render_contract",
             "effective_tokens": combined_tokens,
         }
         if combined_tokens
         else {}
     )
     return {
-        "schema_version": "2026-07-29.browser_render_contract_aggregation.v2",
+        "schema_id": "browser_render_contract_aggregation",
         "ok": not issues,
         "issues": issues,
         "render_contract": render_contract,
@@ -1553,7 +1555,7 @@ def _write_dashboard_composition_artifact(
 
 def _composition_binding(root: Path, composition: dict[str, Any]) -> dict[str, Any]:
     return {
-        "schema_version": "2026-08-06.dashboard_composition_binding.v1",
+        "schema_id": "dashboard_composition_binding",
         "composition_sha256": composition["sha256"],
         "payload_skeleton_sha256": composition["payload_skeleton_sha256"],
         "composition_path": str(root / "artifacts" / "dashboard_composition.json"),
@@ -1565,8 +1567,7 @@ def _composition_binding(root: Path, composition: dict[str, Any]) -> dict[str, A
 
 def _composition_summary(root: Path, composition: dict[str, Any]) -> dict[str, Any]:
     return {
-        "schema_version": composition["schema_version"],
-        "version": composition["version"],
+        "schema_id": composition["schema_id"],
         "sha256": composition["sha256"],
         "payload_skeleton_sha256": composition["payload_skeleton_sha256"],
         "tab_count": len(composition["tabs"]),
@@ -1616,7 +1617,7 @@ def _write_bundle_browser_qa_plan(
     plan_path = root / "artifacts" / "browser_qa" / f"{safe_stem or 'dashboard'}.plan.json"
     write_json(plan_path, plan)
     return {
-        "schema_version": plan["schema_version"],
+        "schema_id": plan["schema_id"],
         "plan_sha256": plan["canonical_sha256"],
         "artifact_path": str(plan_path),
         "max_browser_calls": plan["execution"]["max_browser_calls"],
@@ -2046,7 +2047,7 @@ def _generate_editor_bundle_batch(
             batch_profile.get("style_contract")
             if isinstance(batch_profile.get("style_contract"), dict)
             else {}
-        ).get("renderer_visual_spec") == RENDERER_VISUAL_SPEC_V5
+        ).get("renderer_visual_spec") == RENDERER_VISUAL_SPEC_ID
     )
     if all_widgets_ready and composition_required:
         try:
@@ -2060,7 +2061,7 @@ def _generate_editor_bundle_batch(
             write_json(composition_path, composition)
             write_json(dashboard_payload_path, composition["payload_skeleton"])
             binding = {
-                "schema_version": "2026-08-06.dashboard_composition_binding.v1",
+                "schema_id": "dashboard_composition_binding",
                 "composition_sha256": composition["sha256"],
                 "payload_skeleton_sha256": composition["payload_skeleton_sha256"],
                 "composition_path": str(composition_path),
@@ -2098,7 +2099,7 @@ def _generate_editor_bundle_batch(
         if not result.get("blocking_issues"):
             result.pop("blocking_issues", None)
     batch = {
-        "schema_version": "2026-07-29.editor_bundle_batch.v2",
+        "schema_id": "editor_bundle_batch",
         "ok": batch_ready,
         "status": batch_status,
         "batch_summary": {
@@ -2112,8 +2113,7 @@ def _generate_editor_bundle_batch(
     }
     if composition:
         batch["dashboard_composition"] = {
-            "schema_version": composition.get("schema_version"),
-            "version": composition.get("version"),
+            "schema_id": composition.get("schema_id"),
             "sha256": composition.get("sha256"),
             "payload_skeleton_sha256": composition.get("payload_skeleton_sha256"),
             "tab_count": len(composition.get("tabs") or []),
@@ -2158,7 +2158,7 @@ def _generate_standalone_html_artifact(
     if not rendered["ok"] or not privacy.ok:
         return {
             "ok": False,
-            "schema_version": rendered["schema_version"],
+            "schema_id": rendered["schema_id"],
             "kind": "standalone_html_page",
             "generation_status": "blocked_validation",
             "page_id": normalized_id,
@@ -2170,7 +2170,7 @@ def _generate_standalone_html_artifact(
     manifest_relative = Path("artifacts") / "html_pages" / f"{normalized_id}.manifest.json"
     write_text(root / artifact_relative, rendered["html"])
     manifest = {
-        "schema_version": rendered["schema_version"],
+        "schema_id": rendered["schema_id"],
         "kind": "standalone_html_page",
         "page_id": normalized_id,
         "artifact": {
@@ -2184,7 +2184,7 @@ def _generate_standalone_html_artifact(
     write_json(root / manifest_relative, manifest)
     return {
         "ok": True,
-        "schema_version": rendered["schema_version"],
+        "schema_id": rendered["schema_id"],
         "kind": "standalone_html_page",
         "generation_status": "ready_local_artifact",
         "page_id": normalized_id,
@@ -2307,7 +2307,7 @@ def dl_validate_project(project_root: str = ".") -> dict[str, Any]:
     if standalone_html_only:
         sql_performance = {
             "ok": True,
-            "schema_version": "2026-06-25.sql_performance.v1",
+            "schema_id": "sql_performance",
             "applicability": "not_applicable_standalone_html",
             "checked_sql_count": 0,
             "sql_hashes": [],
@@ -2647,7 +2647,7 @@ def dl_build_payload_plan(
         proof_path=str(root / "artifacts" / "payload_plan.json"),
     )
     plan = {
-        "schema_version": "2026-05-25.payload_plan.v1",
+        "schema_id": "payload_plan",
         "status": "blocked" if blocking_issues else "ready",
         "workbook_id": workbook_id,
         "target_lock": target_lock.to_dict(),
@@ -2947,7 +2947,7 @@ def _project_live_delete_confirmation(
         and pending.get("delete_targets") == targets
     )
     confirmation = {
-        "schema_version": "datalens.delete_confirmation.v1",
+        "schema_id": "datalens.delete_confirmation",
         "confirmed": matched,
         "confirm_delete": bool(confirm_delete),
         "plan_hash": plan_hash,
@@ -3415,7 +3415,7 @@ def dl_create_safe_apply_plan(
             result = {
                 "ok": False,
                 "status": "maintenance_contract_blocked",
-                "schema_version": compiled_maintenance.get("schema_version"),
+                "schema_id": compiled_maintenance.get("schema_id"),
                 "project_root": str(root_path.resolve()),
                 "maintenance_contract": compiled_maintenance,
                 "actions": [],
@@ -3476,7 +3476,7 @@ def dl_create_safe_apply_plan(
         result = {
             "ok": False,
             "status": "payload_plan_blocked",
-            "schema_version": "2026-07-23.safe_apply_plan.v2",
+            "schema_id": "safe_apply_plan",
             "project_root": str(root),
             "actions": [],
             "blocked_reasons": ["payload_plan_has_blocking_issues"],
@@ -3560,7 +3560,7 @@ def dl_create_safe_apply_plan(
                 "action": action_name,
                 "action_type": "create",
                 "creation_necessity_proof": {
-                    "schema_version": "datalens.object-creation-necessity.delta-v6",
+                    "schema_id": "datalens.object-creation-necessity",
                     "status": "required",
                     "update_insufficient_reason": (
                         "Payload plan describes a new chart object; pass workbook entries_payload to reconcile and reuse "
@@ -3686,7 +3686,7 @@ def dl_create_safe_apply_plan(
                 reused_existing_objects.append(item)
                 continue
             creation_proof = {
-                "schema_version": "datalens.object-creation-necessity.delta-v6",
+                "schema_id": "datalens.object-creation-necessity",
                 "status": "validated",
                 "update_insufficient_reason": (
                     "Workbook entry reconciliation found no compatible existing object for the requested role."
@@ -3846,7 +3846,7 @@ def _create_existing_object_update_safe_apply_plan(
         for action in actions:
             action["target_lock_hash"] = str(target_lock.get("lock_hash") or "")
     update_plan = {
-        "schema_version": "datalens.existing-object-update-plan.v1",
+        "schema_id": "datalens.existing-object-update-plan",
         "project_root": str(root),
         "actions": plan_actions,
         "blocked_reasons": blocked_reasons,
@@ -3857,7 +3857,7 @@ def _create_existing_object_update_safe_apply_plan(
         result = {
             "ok": False,
             "status": "blocked",
-            "schema_version": "datalens.existing-object-update-plan.v1",
+            "schema_id": "datalens.existing-object-update-plan",
             "project_root": str(root),
             "existing_object_update_plan": update_plan,
             "actions": actions,
@@ -5144,7 +5144,7 @@ def _brief_from_governance_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
             }
         )
     return {
-        "schema_version": "2026-06-04.dashboard_brief.local.v1",
+        "schema_id": "dashboard_brief.local",
         "dashboard_name": passport.get("dashboard_name", "Local Dashboard"),
         "audience": passport.get("audience") or [],
         "decision_action": passport.get("decision_action", "missing"),
@@ -5739,7 +5739,7 @@ def _write_dashboard_preflight_candidate(root: Path, *, workbook_id: str, payloa
     composition_path = root / "artifacts" / "dashboard_composition.json"
     generated_path = root / "artifacts" / "dashboard_payloads" / "generated.dashboard.payload.json"
     if composition_path.is_file() and generated_path.is_file():
-        # The composition-v2 payload is the attested dashboard source. A chart-only
+        # The composition payload is the attested dashboard source. A chart-only
         # compatibility candidate must never overwrite its title/layout binding.
         return
     items = []
@@ -5754,7 +5754,7 @@ def _write_dashboard_preflight_candidate(root: Path, *, workbook_id: str, payloa
             }
         )
     dashboard_payload = {
-        "schema_version": "2026-06-25.dashboard_preflight_candidate.v1",
+        "schema_id": "dashboard_preflight_candidate",
         "dashboardId": "local_dashboard_preflight",
         "workbookId": workbook_id,
         "tabs": [{"id": "main", "title": "Main", "items": [item["id"] for item in items]}],

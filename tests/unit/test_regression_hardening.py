@@ -37,7 +37,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             (root / "scripts").mkdir()
             sentinel = root / "reports" / "ran.txt"
             manifest = {
-                "schema_version": "2026-06-05.project_live_workflow_manifest.v1",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "synthetic_project",
                 "workbook_id": "workbook_synthetic",
                 "dashboard_ids": ["dashboard_synthetic"],
@@ -96,7 +96,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             root = Path(tmp)
             (root / "scripts").mkdir()
             manifest = {
-                "schema_version": "2026-06-11.project_live_workflow_manifest.v2",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "synthetic_project",
                 "workbook_id": "workbook_synthetic",
                 "dashboard_ids": ["dashboard_synthetic"],
@@ -202,7 +202,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             (root / "scripts").mkdir()
             (root / "reports").mkdir()
             manifest = {
-                "schema_version": "2026-06-05.project_live_workflow_manifest.v1",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "synthetic_project",
                 "workbook_id": "workbook_synthetic",
                 "dashboard_ids": ["dashboard_synthetic"],
@@ -239,7 +239,6 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
                 "DATALENS_IAM_TOKEN": "secret-token-value",
                 "DATALENS_ORG_ID": "org_1",
                 "DATALENS_API_BASE_URL": "https://api.datalens.tech",
-                "DATALENS_API_VERSION": "1",
             }
             with patched_env(env, clear=True):
                 result = dl_run_project_live_dry_run(str(root), workflow_name="apply_layout", execute_now=True)
@@ -269,7 +268,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             (root / "scripts").mkdir()
             (root / "reports").mkdir()
             manifest = {
-                "schema_version": "2026-06-25.project_live_workflow_manifest.v3",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "env_isolation",
                 "workflows": [
                     {
@@ -348,7 +347,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             (root / "scripts").mkdir()
             (root / "reports").mkdir()
             manifest = {
-                "schema_version": "2026-06-25.project_live_workflow_manifest.v3",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "bad_env",
                 "required_env_names": ["UNRELATED_SECRET"],
                 "workflows": [
@@ -407,7 +406,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
                 encoding="utf-8",
             )
             manifest = {
-                "schema_version": "2026-06-25.project_live_workflow_manifest.v3",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "summary_actions",
                 "workbook_id": "workbook_summary",
                 "dashboard_ids": ["dashboard_summary"],
@@ -480,7 +479,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             (root / "reports" / "dry.json").write_text(json.dumps({"dashboard_id": "dry_dash"}), encoding="utf-8")
             (root / "reports" / "apply.json").write_text(json.dumps({"dashboard_id": "apply_dash"}), encoding="utf-8")
             manifest = {
-                "schema_version": "2026-06-25.project_live_workflow_manifest.v3",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "summary_actions",
                 "workbook_id": "workbook_summary",
                 "dashboard_ids": ["dashboard_summary"],
@@ -547,7 +546,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             root = Path(tmp)
             (root / "scripts").mkdir()
             manifest = {
-                "schema_version": "2026-07-02.project_live_workflow_manifest.v4",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "auto_publish",
                 "workbook_id": "workbook_live",
                 "dashboard_ids": ["dashboard_live"],
@@ -613,7 +612,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             root = Path(tmp)
             (root / "scripts").mkdir()
             manifest = {
-                "schema_version": "2026-07-02.project_live_workflow_manifest.v4",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "missing_publish",
                 "workbook_id": "workbook_live",
                 "dashboard_ids": ["dashboard_live"],
@@ -665,7 +664,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             (root / "reports").mkdir()
             (root / "reports" / "dry.json").write_text(json.dumps({"dashboard_id": "dry_dash"}), encoding="utf-8")
             manifest = {
-                "schema_version": "2026-06-25.project_live_workflow_manifest.v3",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "summary_actions",
                 "workbook_id": "workbook_summary",
                 "dashboard_ids": ["dashboard_summary"],
@@ -711,7 +710,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             root = Path(tmp)
             (root / "scripts").mkdir()
             manifest = {
-                "schema_version": "2026-07-02.project_live_workflow_manifest.v4",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "missing_apply_summary",
                 "workbook_id": "workbook_live",
                 "dashboard_ids": ["dashboard_live"],
@@ -769,7 +768,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             root = Path(tmp)
             (root / "scripts").mkdir()
             manifest = {
-                "schema_version": "2026-07-02.project_live_workflow_manifest.v4",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "blocked_apply_summary",
                 "workbook_id": "workbook_live",
                 "dashboard_ids": ["dashboard_live"],
@@ -833,7 +832,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             root = Path(tmp)
             (root / "reports").mkdir()
             manifest = {
-                "schema_version": "2026-06-25.project_live_workflow_manifest.v3",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "zero_coverage",
                 "workflows": [
                     {
@@ -894,7 +893,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             root = Path(tmp)
             (root / "scripts").mkdir()
             manifest = {
-                "schema_version": "2026-07-01.project_live_workflow_manifest.v4",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "hidden_delete",
                 "workbook_id": "workbook_1",
                 "workflows": [
@@ -925,7 +924,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             manifest = {
-                "schema_version": "2026-07-01.project_live_workflow_manifest.v4",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "bad_manifest",
                 "workflows": [
                     {
@@ -954,7 +953,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             root = Path(tmp)
             (root / "scripts").mkdir()
             manifest = {
-                "schema_version": "2026-07-01.project_live_workflow_manifest.v4",
+                "schema_id": "project_live_workflow_manifest",
                 "project_name": "bad_constraint",
                 "workflows": [
                     {
@@ -1075,7 +1074,7 @@ class ProjectLiveWorkflowTests(unittest.TestCase):
             "post_retire_readback_paths": ["artifacts/retire/post_retire_readback.json"],
         }
         manifest = {
-            "schema_version": "2026-07-01.project_live_workflow_manifest.v4",
+            "schema_id": "project_live_workflow_manifest",
             "project_name": "retire_project",
             "workbook_id": "workbook_1",
             "workflows": [

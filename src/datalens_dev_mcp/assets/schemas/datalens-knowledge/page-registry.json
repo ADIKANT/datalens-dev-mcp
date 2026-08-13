@@ -608,7 +608,7 @@
         "вкладки"
       ],
       "asset_count": 0,
-      "bytes": 25583,
+      "bytes": 25619,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/rule-cards.jsonl"
@@ -616,12 +616,12 @@
         "reason": "Editor authoring rule page.",
         "status": "compiled_rule"
       },
-      "fetched_at": "2026-07-07T06:47:46.955185Z",
+      "fetched_at": "2026-08-03T04:29:32.332297Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:27 GMT",
       "link_count": 39,
       "local_path": "raw/md/datalens/charts/editor/tabs.md",
       "mirror_path": "datalens/charts/editor/tabs.md",
@@ -632,7 +632,7 @@
         "editor",
         "tabs"
       ],
-      "sha256": "5a0e229a944643f3cebe8c3bfbd9b82a57a9e8a6c4046e3b419ded3b883006c3",
+      "sha256": "d18ed478a7fdc050e7525a595432711ead8133cc39b49523be56a14792398436",
       "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/tabs",
       "title": "Вкладки"
     },
@@ -824,7 +824,7 @@
         "перенос-строки"
       ],
       "asset_count": 2,
-      "bytes": 18292,
+      "bytes": 18291,
       "classification": {
         "generated_artifact_owners": [
           "templates/datalens/recipes/recipe-registry.json"
@@ -832,12 +832,12 @@
         "reason": "Editor quickstart/widget page feeds authoring recipes.",
         "status": "compiled_recipe"
       },
-      "fetched_at": "2026-07-07T06:49:27.545807Z",
+      "fetched_at": "2026-08-11T10:38:51.221864Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Mon, 10 Aug 2026 14:10:03 GMT",
       "link_count": 17,
       "local_path": "raw/md/datalens/charts/editor/widgets/markdown.md",
       "mirror_path": "datalens/charts/editor/widgets/markdown.md",
@@ -849,7 +849,7 @@
         "widgets",
         "markdown"
       ],
-      "sha256": "ca23c3a9af8172ece524006057468add2753d79ed16cd730dfc71f745548adb6",
+      "sha256": "d80f3c4752a64a6cb29f6d3118a74eb87c02d656f60d8aec300a4b707dac96e3",
       "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/markdown",
       "title": "Markdown"
     },
@@ -870,12 +870,12 @@
         "reason": "Editor quickstart/widget page feeds authoring recipes.",
         "status": "compiled_recipe"
       },
-      "fetched_at": "2026-07-07T06:47:46.106473Z",
+      "fetched_at": "2026-08-11T10:35:31.096295Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Mon, 10 Aug 2026 14:10:03 GMT",
       "link_count": 14,
       "local_path": "raw/md/datalens/charts/editor/widgets/table.md",
       "mirror_path": "datalens/charts/editor/widgets/table.md",
@@ -887,7 +887,7 @@
         "widgets",
         "table"
       ],
-      "sha256": "36ee7e342ecb3b3264722182a0987bec2667d95e0325c4fc6255b2e88e8f90e6",
+      "sha256": "4e8efae169452231a71bb2a5fa1640918d605bfd4a4db7223377dd5b170e44e1",
       "source_url": "https://yandex.cloud/ru/docs/datalens/charts/editor/widgets/table",
       "title": "Таблица"
     },
@@ -1061,7 +1061,7 @@
         "вычисляемые-поля-в-yandex-datalens"
       ],
       "asset_count": 7,
-      "bytes": 9552,
+      "bytes": 9553,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -1069,12 +1069,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:51:51.551840Z",
+      "fetched_at": "2026-08-11T10:37:55.811456Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
+      "last_modified": "Mon, 10 Aug 2026 14:09:55 GMT",
       "link_count": 25,
       "local_path": "raw/md/datalens/concepts/calculations/index.md",
       "mirror_path": "datalens/concepts/calculations/index.md",
@@ -1084,7 +1084,7 @@
         "concepts",
         "calculations"
       ],
-      "sha256": "45d1c3b9c8087618536b5376b7d73490ade9050d600fe9556e52983e06c04076",
+      "sha256": "843fd11956a4a6a209076a4ecd0b6058881b94eef53cb4c24cc6ca42f93b0c56",
       "source_url": "https://yandex.cloud/ru/docs/datalens/concepts/calculations/",
       "title": "Вычисляемые поля в Yandex DataLens"
     },
@@ -1428,7 +1428,7 @@
         "версионирование-в-yandex-datalens"
       ],
       "asset_count": 13,
-      "bytes": 12711,
+      "bytes": 12724,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -1436,12 +1436,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:52:20.142049Z",
+      "fetched_at": "2026-08-03T04:31:09.168227Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:27 GMT",
       "link_count": 23,
       "local_path": "raw/md/datalens/concepts/chart/versioning.md",
       "mirror_path": "datalens/concepts/chart/versioning.md",
@@ -1452,7 +1452,7 @@
         "chart",
         "versioning"
       ],
-      "sha256": "3c84fac772f07d6c7dde422e476d0abec542d1f6ad3ec2efc0342b1ee690c2c0",
+      "sha256": "18abf7c6107ca8b96099d6f0e550fb4234aac11bd0fd14b1d08aa034c3791525",
       "source_url": "https://yandex.cloud/ru/docs/datalens/concepts/chart/versioning",
       "title": "Версионирование в Yandex DataLens"
     },
@@ -1511,12 +1511,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:52:35.272100Z",
+      "fetched_at": "2026-08-11T10:39:51.665969Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
+      "last_modified": "Mon, 10 Aug 2026 14:09:58 GMT",
       "link_count": 11,
       "local_path": "raw/md/datalens/concepts/connection/versioning.md",
       "mirror_path": "datalens/concepts/connection/versioning.md",
@@ -1527,7 +1527,7 @@
         "connection",
         "versioning"
       ],
-      "sha256": "997c210358573022395322116a41a228f43395bb5d36ffc0edae2f946ca5a3d3",
+      "sha256": "bc1588d3b39ab2be5f7a1de84422f987a368dc286426048a09fac49ac5c14e21",
       "source_url": "https://yandex.cloud/ru/docs/datalens/concepts/connection/versioning",
       "title": "Версионирование"
     },
@@ -1537,7 +1537,7 @@
         "дашборд-yandex-datalens"
       ],
       "asset_count": 0,
-      "bytes": 4543,
+      "bytes": 5458,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -1545,13 +1545,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:49:17.011280Z",
+      "fetched_at": "2026-08-11T10:35:23.557915Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:14 GMT",
-      "link_count": 34,
+      "last_modified": "Mon, 10 Aug 2026 14:10:01 GMT",
+      "link_count": 45,
       "local_path": "raw/md/datalens/concepts/dashboard.md",
       "mirror_path": "datalens/concepts/dashboard.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/concepts/dashboard.md",
@@ -1560,7 +1560,7 @@
         "concepts",
         "dashboard"
       ],
-      "sha256": "073312f86fe2727441b84e11442aff3c09e0177538fdf06ad4e3e8606d8f2e1b",
+      "sha256": "3890e2d57a32ec5c16da37dc2a9d6ea6492f629c421e4fa67cee3ad6cf37c010",
       "source_url": "https://yandex.cloud/ru/docs/datalens/concepts/dashboard",
       "title": "Дашборд Yandex DataLens"
     },
@@ -1579,7 +1579,7 @@
         "объединение-данных-yandex-datalens"
       ],
       "asset_count": 18,
-      "bytes": 16941,
+      "bytes": 16944,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -1587,12 +1587,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:52:19.163880Z",
+      "fetched_at": "2026-08-11T10:37:04.045581Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:14 GMT",
+      "last_modified": "Mon, 10 Aug 2026 14:10:01 GMT",
       "link_count": 36,
       "local_path": "raw/md/datalens/concepts/data-join.md",
       "mirror_path": "datalens/concepts/data-join.md",
@@ -1602,7 +1602,7 @@
         "concepts",
         "data-join"
       ],
-      "sha256": "5fc200350c619aae28df65e8539459d5a094f978a51a85ad0825ef9b1093b7fa",
+      "sha256": "6ada9dcbcb485742acd90a88abb7f81c27ee996e81788cfe20783fe2a605938c",
       "source_url": "https://yandex.cloud/ru/docs/datalens/concepts/data-join",
       "title": "Объединение данных Yandex DataLens"
     },
@@ -2220,7 +2220,7 @@
         "нейроаналитик-на-дашборде-в-yandex-datalens"
       ],
       "asset_count": 13,
-      "bytes": 10577,
+      "bytes": 10673,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -2228,12 +2228,12 @@
         "reason": "dashboard page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:51:03.237768Z",
+      "fetched_at": "2026-08-03T04:33:52.937428Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:14 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:29 GMT",
       "link_count": 23,
       "local_path": "raw/md/datalens/dashboard/insights.md",
       "mirror_path": "datalens/dashboard/insights.md",
@@ -2243,7 +2243,7 @@
         "dashboard",
         "insights"
       ],
-      "sha256": "786b21e86702a7b40209a66e4f3f5f5ff45c9cbf0fb8a5e485d70992939a317b",
+      "sha256": "833dd9fd08297f5815c92df6663bef145809c600728395db982cb880da3bc93f",
       "source_url": "https://yandex.cloud/ru/docs/datalens/dashboard/insights",
       "title": "Нейроаналитик на дашборде в Yandex DataLens"
     },
@@ -2625,7 +2625,7 @@
         "работа-с-датасетом-в-yandex-datalens"
       ],
       "asset_count": 25,
-      "bytes": 34182,
+      "bytes": 34180,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -2633,12 +2633,12 @@
         "reason": "dataset page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:51:48.078125Z",
+      "fetched_at": "2026-08-03T04:28:51.490677Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:14 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:29 GMT",
       "link_count": 75,
       "local_path": "raw/md/datalens/dataset/create-dataset.md",
       "mirror_path": "datalens/dataset/create-dataset.md",
@@ -2648,7 +2648,7 @@
         "dataset",
         "create-dataset"
       ],
-      "sha256": "577019d79b52f29945254ba5e5a1e17863dd4989b20c54745bc15ca1edc3e0c5",
+      "sha256": "c3c93ab1f2cc6ad72f6ecea0f8c6bce28efc40ae350bc769079eb029cedf0183",
       "source_url": "https://yandex.cloud/ru/docs/datalens/dataset/create-dataset",
       "title": "Работа с датасетом в Yandex DataLens"
     },
@@ -2783,8 +2783,8 @@
       "anchors": [
         "параметризация-источников-датасета-в-yandex-datalens"
       ],
-      "asset_count": 2,
-      "bytes": 2253,
+      "asset_count": 3,
+      "bytes": 2491,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -2792,13 +2792,13 @@
         "reason": "dataset page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:49:22.480856Z",
+      "fetched_at": "2026-08-11T10:36:57.234984Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:14 GMT",
-      "link_count": 13,
+      "last_modified": "Mon, 10 Aug 2026 14:09:59 GMT",
+      "link_count": 14,
       "local_path": "raw/md/datalens/dataset/parametrization.md",
       "mirror_path": "datalens/dataset/parametrization.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/dataset/parametrization.md",
@@ -2807,7 +2807,7 @@
         "dataset",
         "parametrization"
       ],
-      "sha256": "8072c045a546bc8d8182f702fafa2188bddd9fd42ad2a931b2becd41baa6868f",
+      "sha256": "6e2153a6bb7621489c214140420d3cb6df0dbfa24e4ccd77284b7f05c2f307cf",
       "source_url": "https://yandex.cloud/ru/docs/datalens/dataset/parametrization",
       "title": "Параметризация источников датасета в Yandex DataLens"
     },
@@ -11379,7 +11379,7 @@
         "чарты-в-визарде"
       ],
       "asset_count": 0,
-      "bytes": 48798,
+      "bytes": 48901,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -11387,19 +11387,19 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-29T17:38:15.565597Z",
+      "fetched_at": "2026-08-11T10:35:18.066225Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Wed, 29 Jul 2026 13:19:02 GMT",
-      "link_count": 653,
+      "last_modified": "Mon, 10 Aug 2026 14:09:49 GMT",
+      "link_count": 655,
       "local_path": "raw/md/datalens/index.md",
       "mirror_path": "datalens/index.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/index.md",
       "section": "",
       "section_path": [],
-      "sha256": "3783aaf7add98884246424652d6856e1bcfdc57fe12c85e682a44f9bf04115d8",
+      "sha256": "e7873ba719be62357847e52082eabb4fb54b5a2be663a12512d8d3cb9cc98b6c",
       "source_url": "https://yandex.cloud/ru/docs/datalens/",
       "title": "Yandex DataLens"
     },
@@ -14394,7 +14394,7 @@
         "создание-чарта-в-yandex-datalens"
       ],
       "asset_count": 5,
-      "bytes": 4368,
+      "bytes": 4366,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -14402,12 +14402,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:49:12.960514Z",
+      "fetched_at": "2026-08-03T04:32:39.368758Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:27 GMT",
       "link_count": 20,
       "local_path": "raw/md/datalens/operations/chart/create-chart.md",
       "mirror_path": "datalens/operations/chart/create-chart.md",
@@ -14418,7 +14418,7 @@
         "chart",
         "create-chart"
       ],
-      "sha256": "543b88a51e6b2e02080957f139685b9f34f9994bbbb99715db37a7210bebd937",
+      "sha256": "07bf3ba043ab41669b8c5f223e121ba0f7412170d82f57fb35a721d1dfda5f3e",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/chart/create-chart",
       "title": "Создание чарта в Yandex DataLens"
     },
@@ -14427,7 +14427,7 @@
         "создание-мультидатасетного-чарта"
       ],
       "asset_count": 2,
-      "bytes": 3472,
+      "bytes": 3468,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -14435,12 +14435,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:52:05.380664Z",
+      "fetched_at": "2026-08-03T04:31:50.953194Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:30 GMT",
       "link_count": 10,
       "local_path": "raw/md/datalens/operations/chart/create-multidataset-chart.md",
       "mirror_path": "datalens/operations/chart/create-multidataset-chart.md",
@@ -14451,7 +14451,7 @@
         "chart",
         "create-multidataset-chart"
       ],
-      "sha256": "3559a8ca47af3aef3c01d3566344820eafa0096b2dbb6f3f1c6a23cac99eb113",
+      "sha256": "3bacf67047a359cfc48de12fda6c71cd9ce6f33882347ccf26f18a8d5f3715f6",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/chart/create-multidataset-chart",
       "title": "Создание мультидатасетного чарта"
     },
@@ -14505,7 +14505,7 @@
         "создание-ql-чарта-в-yandex-datalens"
       ],
       "asset_count": 3,
-      "bytes": 15019,
+      "bytes": 15015,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -14513,12 +14513,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:48:31.607013Z",
+      "fetched_at": "2026-08-11T10:36:13.370187Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
+      "last_modified": "Mon, 10 Aug 2026 14:09:55 GMT",
       "link_count": 20,
       "local_path": "raw/md/datalens/operations/chart/create-sql-chart.md",
       "mirror_path": "datalens/operations/chart/create-sql-chart.md",
@@ -14529,7 +14529,7 @@
         "chart",
         "create-sql-chart"
       ],
-      "sha256": "fc134084d4d65eb8177e9330185891b27386968940458395016272010a95a5e6",
+      "sha256": "72111b52da24b3009422ddf2cf95315f630a97ad79435a434eafcda1f8591e2e",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/chart/create-sql-chart",
       "title": "Создание QL-чарта в Yandex DataLens"
     },
@@ -14571,7 +14571,7 @@
         "замена-датасета-в-чарте-yandex-datalens"
       ],
       "asset_count": 3,
-      "bytes": 1828,
+      "bytes": 1829,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -14579,12 +14579,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:50:37.331675Z",
+      "fetched_at": "2026-08-03T04:34:04.001496Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:30 GMT",
       "link_count": 7,
       "local_path": "raw/md/datalens/operations/chart/replace-dataset.md",
       "mirror_path": "datalens/operations/chart/replace-dataset.md",
@@ -14595,7 +14595,7 @@
         "chart",
         "replace-dataset"
       ],
-      "sha256": "a7d48ab108c0229a27e04954338175521c2150aac1dfd03afda8f51fa46087e0",
+      "sha256": "c3e39a2514f86696cbc8d5a04d0b5cfe3a7d7e6aa3a4cad47f015b4dd05698a3",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/chart/replace-dataset",
       "title": "Замена датасета в чарте Yandex DataLens"
     },
@@ -14636,8 +14636,8 @@
       "anchors": [
         "добавление-информации-о-подключении-в-yandex-datalens"
       ],
-      "asset_count": 2,
-      "bytes": 1675,
+      "asset_count": 3,
+      "bytes": 1851,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -14645,13 +14645,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:51:46.491401Z",
+      "fetched_at": "2026-08-11T10:36:42.566227Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
-      "link_count": 6,
+      "last_modified": "Mon, 10 Aug 2026 14:09:55 GMT",
+      "link_count": 7,
       "local_path": "raw/md/datalens/operations/connection/add-description.md",
       "mirror_path": "datalens/operations/connection/add-description.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/operations/connection/add-description.md",
@@ -14661,7 +14661,7 @@
         "connection",
         "add-description"
       ],
-      "sha256": "4c5a309f25154f9b1a63dc06a73703fab2965a6249b7cd7037714787611733f5",
+      "sha256": "2012c3fa6629aa08ead6a736d7833843f1cc6c52956b415308104195d71465e0",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/add-description",
       "title": "Добавление информации о подключении в Yandex DataLens"
     },
@@ -14713,7 +14713,7 @@
         "рекомендации-по-созданию-подключения-к-chyt-в-yandex-datalens"
       ],
       "asset_count": 0,
-      "bytes": 8840,
+      "bytes": 8838,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -14721,12 +14721,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:52:38.831474Z",
+      "fetched_at": "2026-08-11T10:39:21.945309Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Mon, 10 Aug 2026 14:10:03 GMT",
       "link_count": 6,
       "local_path": "raw/md/datalens/operations/connection/chyt/chyt-recommendations.md",
       "mirror_path": "datalens/operations/connection/chyt/chyt-recommendations.md",
@@ -14738,7 +14738,7 @@
         "chyt",
         "chyt-recommendations"
       ],
-      "sha256": "9fd08bf2350df581253d0b2fa282c165534aa89c8a80e76d948c763acaf1050e",
+      "sha256": "ba71a28f702afbe7ebdf097c383516c3540994178f0cb03fce8cef8a0336df99",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/chyt/chyt-recommendations",
       "title": "Рекомендации по созданию подключения к CHYT в Yandex DataLens"
     },
@@ -14748,8 +14748,8 @@
         "examples",
         "создание-подключения-к-ytsaurus-chyt-в-yandex-datalens"
       ],
-      "asset_count": 1,
-      "bytes": 4567,
+      "asset_count": 2,
+      "bytes": 4652,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -14757,13 +14757,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:52:04.831346Z",
+      "fetched_at": "2026-08-11T10:40:40.424734Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
-      "link_count": 11,
+      "last_modified": "Mon, 10 Aug 2026 14:10:03 GMT",
+      "link_count": 12,
       "local_path": "raw/md/datalens/operations/connection/chyt/create-chyt.md",
       "mirror_path": "datalens/operations/connection/chyt/create-chyt.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/operations/connection/chyt/create-chyt.md",
@@ -14774,7 +14774,7 @@
         "chyt",
         "create-chyt"
       ],
-      "sha256": "bf1b95784f3a7533245c70d093fe892b70ee525fb0b333d66a8b14784e252e82",
+      "sha256": "07073b5fcb9e1e8965bdb5f514291b8728f7e29c9216b94c01966ff655df4d0a",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/chyt/create-chyt",
       "title": "Создание подключения к YTsaurus CHYT в Yandex DataLens"
     },
@@ -14818,7 +14818,7 @@
         "создание-подключения-к-appmetrica-в-yandex-datalens"
       ],
       "asset_count": 0,
-      "bytes": 6193,
+      "bytes": 6189,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -14826,12 +14826,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:49:17.984925Z",
+      "fetched_at": "2026-08-03T04:30:40.449168Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:27 GMT",
       "link_count": 13,
       "local_path": "raw/md/datalens/operations/connection/create-appmetrica.md",
       "mirror_path": "datalens/operations/connection/create-appmetrica.md",
@@ -14842,7 +14842,7 @@
         "connection",
         "create-appmetrica"
       ],
-      "sha256": "9cb002b4d4f0e56507254ad7f87318afc63a143c49a03f9204fb07c63c37c562",
+      "sha256": "e15bcf036a7abc9a984038b6c46187596d6780a976c1d82ffb5db8dc4c522d83",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/create-appmetrica",
       "title": "Создание подключения к AppMetrica в Yandex DataLens"
     },
@@ -14892,8 +14892,8 @@
         "organization",
         "создание-подключения-к-clickhouse-в-yandex-datalens"
       ],
-      "asset_count": 2,
-      "bytes": 21233,
+      "asset_count": 4,
+      "bytes": 20404,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -14901,13 +14901,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-23T08:53:38.737272Z",
+      "fetched_at": "2026-08-11T10:38:49.833684Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Wed, 22 Jul 2026 13:43:58 GMT",
-      "link_count": 37,
+      "last_modified": "Mon, 10 Aug 2026 14:09:56 GMT",
+      "link_count": 39,
       "local_path": "raw/md/datalens/operations/connection/create-clickhouse.md",
       "mirror_path": "datalens/operations/connection/create-clickhouse.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/operations/connection/create-clickhouse.md",
@@ -14917,7 +14917,7 @@
         "connection",
         "create-clickhouse"
       ],
-      "sha256": "4c494f68cd7f5649da2d1a79cf908d809897040d81c6b69c5ca9b4c8d80b97f0",
+      "sha256": "063ea809df308561dc503354ee8f4c6a380ca095f713a3a0684513ed0140107d",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/create-clickhouse",
       "title": "Создание подключения к ClickHouse® в Yandex DataLens"
     },
@@ -14995,7 +14995,7 @@
         "создание-подключения-к-файлу"
       ],
       "asset_count": 2,
-      "bytes": 6944,
+      "bytes": 6940,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -15003,12 +15003,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:52:16.683134Z",
+      "fetched_at": "2026-08-03T04:30:35.436231Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:27 GMT",
       "link_count": 12,
       "local_path": "raw/md/datalens/operations/connection/create-file.md",
       "mirror_path": "datalens/operations/connection/create-file.md",
@@ -15019,7 +15019,7 @@
         "connection",
         "create-file"
       ],
-      "sha256": "9fb8dad88978f38d9e35b03fc9828b391a877640c3f70d59110bf060b3c6572e",
+      "sha256": "9028456f8e2cea47281143c8220c676bc8faf0ecfae0138aa81855169a5992b1",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/create-file",
       "title": "Создание подключения к файлу"
     },
@@ -15068,8 +15068,8 @@
         "organization",
         "создание-подключения-к-greenplum-в-yandex-datalens"
       ],
-      "asset_count": 2,
-      "bytes": 11501,
+      "asset_count": 3,
+      "bytes": 11624,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -15077,13 +15077,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:47:33.697092Z",
+      "fetched_at": "2026-08-11T10:39:06.788395Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
-      "link_count": 18,
+      "last_modified": "Mon, 10 Aug 2026 14:09:56 GMT",
+      "link_count": 19,
       "local_path": "raw/md/datalens/operations/connection/create-greenplum.md",
       "mirror_path": "datalens/operations/connection/create-greenplum.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/operations/connection/create-greenplum.md",
@@ -15093,7 +15093,7 @@
         "connection",
         "create-greenplum"
       ],
-      "sha256": "23b34aa749f9085bd8b16a2bfb5c2b40221835fc05c9e5e260351bba485ad38a",
+      "sha256": "c0a4d1ddaee0a8c7c6afb6ab9615d27a3e79aebf16791f4bfbf9e6d1f1393e9d",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/create-greenplum",
       "title": "Создание подключения к Greenplum® в Yandex DataLens"
     },
@@ -15103,7 +15103,7 @@
         "создание-подключения-к-metrica-в-yandex-datalens"
       ],
       "asset_count": 0,
-      "bytes": 6349,
+      "bytes": 6345,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -15111,12 +15111,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:49:28.025736Z",
+      "fetched_at": "2026-08-03T04:32:01.564516Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:27 GMT",
       "link_count": 13,
       "local_path": "raw/md/datalens/operations/connection/create-metrica-api.md",
       "mirror_path": "datalens/operations/connection/create-metrica-api.md",
@@ -15127,7 +15127,7 @@
         "connection",
         "create-metrica-api"
       ],
-      "sha256": "51f92890fc7e2c33e7c6d39d6e8ed574527fed763033bc93262aacd235a58796",
+      "sha256": "8206f22cc60727fe4eb79f7bc0bf33ab0d40fdbe4cc20ea65f727a2b7c1a20d7",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/create-metrica-api",
       "title": "Создание подключения к Metrica в Yandex DataLens"
     },
@@ -15173,7 +15173,7 @@
         "создание-подключения-к-sql-server-в-yandex-datalens"
       ],
       "asset_count": 2,
-      "bytes": 5896,
+      "bytes": 5997,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -15181,13 +15181,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:47:30.306813Z",
+      "fetched_at": "2026-08-11T10:38:53.200003Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
-      "link_count": 11,
+      "last_modified": "Mon, 10 Aug 2026 14:09:56 GMT",
+      "link_count": 12,
       "local_path": "raw/md/datalens/operations/connection/create-mssql-server.md",
       "mirror_path": "datalens/operations/connection/create-mssql-server.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/operations/connection/create-mssql-server.md",
@@ -15197,7 +15197,7 @@
         "connection",
         "create-mssql-server"
       ],
-      "sha256": "3f5a6f6c672b9acdf106ca21ceaba424ee9255c8c85cded3905d9323d2443322",
+      "sha256": "dd9ed118fd04e4b4039ac7301701680a111d73a42a404c57f962f68f186a4a28",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/create-mssql-server",
       "title": "Создание подключения к SQL Server в Yandex DataLens"
     },
@@ -15211,8 +15211,8 @@
         "organization",
         "создание-подключения-к-mysql-в-yandex-datalens"
       ],
-      "asset_count": 2,
-      "bytes": 15369,
+      "asset_count": 4,
+      "bytes": 15576,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -15220,13 +15220,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:49:37.626804Z",
+      "fetched_at": "2026-08-11T10:37:48.815962Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
-      "link_count": 25,
+      "last_modified": "Mon, 10 Aug 2026 14:09:56 GMT",
+      "link_count": 27,
       "local_path": "raw/md/datalens/operations/connection/create-mysql.md",
       "mirror_path": "datalens/operations/connection/create-mysql.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/operations/connection/create-mysql.md",
@@ -15236,7 +15236,7 @@
         "connection",
         "create-mysql"
       ],
-      "sha256": "3a36441755aa25554b1b4188b37aabcdc68b24ba2c5bbe4a55f6ec6dff48c839",
+      "sha256": "796d50be6a017a9e70cc49e62ff2f4c91c7e7c95a9020dd97b650b5d73524667",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/create-mysql",
       "title": "Создание подключения к MySQL® в Yandex DataLens"
     },
@@ -15247,8 +15247,8 @@
         "ipv6",
         "создание-подключения-к-oracle-database-в-yandex-datalens"
       ],
-      "asset_count": 1,
-      "bytes": 6603,
+      "asset_count": 2,
+      "bytes": 6683,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -15256,13 +15256,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:51:15.586610Z",
+      "fetched_at": "2026-08-11T10:40:23.124072Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
-      "link_count": 10,
+      "last_modified": "Mon, 10 Aug 2026 14:09:56 GMT",
+      "link_count": 11,
       "local_path": "raw/md/datalens/operations/connection/create-oracle.md",
       "mirror_path": "datalens/operations/connection/create-oracle.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/operations/connection/create-oracle.md",
@@ -15272,7 +15272,7 @@
         "connection",
         "create-oracle"
       ],
-      "sha256": "a6d1f636deba522876eaa87649984e16054b13363b76ae2f38c8b010ee35941c",
+      "sha256": "aa4e120bf70b11fa123f6077f9d81d0af83919dc3b6b814eb5852d2a9cb27ead",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/create-oracle",
       "title": "Создание подключения к Oracle Database в Yandex DataLens"
     },
@@ -15320,8 +15320,8 @@
         "postgresql-additional-settings",
         "создание-подключения-к-postgresql-в-yandex-datalens"
       ],
-      "asset_count": 3,
-      "bytes": 15501,
+      "asset_count": 6,
+      "bytes": 15836,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -15329,13 +15329,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:48:38.131937Z",
+      "fetched_at": "2026-08-11T10:35:37.106832Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
-      "link_count": 27,
+      "last_modified": "Mon, 10 Aug 2026 14:09:56 GMT",
+      "link_count": 30,
       "local_path": "raw/md/datalens/operations/connection/create-postgresql.md",
       "mirror_path": "datalens/operations/connection/create-postgresql.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/operations/connection/create-postgresql.md",
@@ -15345,7 +15345,7 @@
         "connection",
         "create-postgresql"
       ],
-      "sha256": "d5a97bde6ed9ae5938878109d8d556574dd12d28cde9efc5cddf54a5ea8a22b5",
+      "sha256": "843c28d31a718a83acd37789d31b8ee3e677e45033ee4fc1d7184d6117d8b0af",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/create-postgresql",
       "title": "Создание подключения к PostgreSQL в Yandex DataLens"
     },
@@ -15356,7 +15356,7 @@
         "создание-подключения-к-prometheus"
       ],
       "asset_count": 2,
-      "bytes": 4343,
+      "bytes": 4339,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -15364,12 +15364,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:52:01.079973Z",
+      "fetched_at": "2026-08-03T04:30:20.196455Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:27 GMT",
       "link_count": 8,
       "local_path": "raw/md/datalens/operations/connection/create-prometheus.md",
       "mirror_path": "datalens/operations/connection/create-prometheus.md",
@@ -15380,7 +15380,7 @@
         "connection",
         "create-prometheus"
       ],
-      "sha256": "de9d55e70134c1af52f0669e6d1c48a5ea8a673f07b8ec735854841ad1ec2de3",
+      "sha256": "966ed1373f7fc50264b8a5dccca247313014fca97be65b1008c548a373116fe1",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/create-prometheus",
       "title": "Создание подключения к Prometheus"
     },
@@ -15389,7 +15389,7 @@
         "создание-подключения-к-snowflake"
       ],
       "asset_count": 1,
-      "bytes": 5111,
+      "bytes": 5107,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -15397,12 +15397,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:50:46.863140Z",
+      "fetched_at": "2026-08-03T04:32:09.214056Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:30 GMT",
       "link_count": 15,
       "local_path": "raw/md/datalens/operations/connection/create-snowflake.md",
       "mirror_path": "datalens/operations/connection/create-snowflake.md",
@@ -15413,7 +15413,7 @@
         "connection",
         "create-snowflake"
       ],
-      "sha256": "3d7c04b5c055301235ee67fc1335953103d804d6728f3a4240ee2f5d53bcb3b3",
+      "sha256": "77a28ac9cb8dceb037e8ed2f09d29e67c6c92d8cbbfd5164ce42fbd8472101e4",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/create-snowflake",
       "title": "Создание подключения к Snowflake"
     },
@@ -15459,8 +15459,8 @@
         "ipv6",
         "создание-подключения-к-starrocks-в-yandex-datalens"
       ],
-      "asset_count": 2,
-      "bytes": 6655,
+      "asset_count": 3,
+      "bytes": 6738,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -15468,13 +15468,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:50:43.334957Z",
+      "fetched_at": "2026-08-11T10:36:01.831109Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
-      "link_count": 11,
+      "last_modified": "Mon, 10 Aug 2026 14:09:56 GMT",
+      "link_count": 12,
       "local_path": "raw/md/datalens/operations/connection/create-starrocks.md",
       "mirror_path": "datalens/operations/connection/create-starrocks.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/operations/connection/create-starrocks.md",
@@ -15484,7 +15484,7 @@
         "connection",
         "create-starrocks"
       ],
-      "sha256": "def890a015eaea77ba0351da8ddaf4fd45f22dc8561c8f86c4998b6e848514b8",
+      "sha256": "d942df4fa16410292b8a69fc6ad27dd7aba93359a72380506604b70dfd524561",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/create-starrocks",
       "title": "Создание подключения к StarRocks в Yandex DataLens"
     },
@@ -15499,8 +15499,8 @@
         "organization",
         "создание-подключения-к-trino-в-yandex-datalens"
       ],
-      "asset_count": 4,
-      "bytes": 11933,
+      "asset_count": 6,
+      "bytes": 12124,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -15508,13 +15508,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:48:30.039095Z",
+      "fetched_at": "2026-08-11T10:36:39.506018Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
-      "link_count": 21,
+      "last_modified": "Mon, 10 Aug 2026 14:09:56 GMT",
+      "link_count": 23,
       "local_path": "raw/md/datalens/operations/connection/create-trino.md",
       "mirror_path": "datalens/operations/connection/create-trino.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/operations/connection/create-trino.md",
@@ -15524,7 +15524,7 @@
         "connection",
         "create-trino"
       ],
-      "sha256": "19dc50e9e17461bfd0ffbcd9319c8c2054a1af2f8d552bf6cf8b4f55cc49250f",
+      "sha256": "ea09d408b5312e4d615dfa50c05eedd79fce0948064c995524b9a38bd064f9fe",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/create-trino",
       "title": "Создание подключения к Trino в Yandex DataLens"
     },
@@ -15568,7 +15568,7 @@
         "создание-подключения-к-яндекс-документам"
       ],
       "asset_count": 3,
-      "bytes": 8664,
+      "bytes": 8660,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -15576,12 +15576,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:49:12.477028Z",
+      "fetched_at": "2026-08-03T04:29:13.132968Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:27 GMT",
       "link_count": 10,
       "local_path": "raw/md/datalens/operations/connection/create-yadocs.md",
       "mirror_path": "datalens/operations/connection/create-yadocs.md",
@@ -15592,7 +15592,7 @@
         "connection",
         "create-yadocs"
       ],
-      "sha256": "c7a494fb6d977e3f1c56656b26ba811c600cb8686cdf320d2e67badec52d1c78",
+      "sha256": "13e89adcb39bc28215e6ca34794337437217c662c5fedd9a897adde9b7186946",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/create-yadocs",
       "title": "Создание подключения к Яндекс Документам"
     },
@@ -15634,8 +15634,8 @@
       "anchors": [
         "создание-подключения-к-ydb-в-yandex-datalens"
       ],
-      "asset_count": 0,
-      "bytes": 6344,
+      "asset_count": 1,
+      "bytes": 6427,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -15643,13 +15643,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:50:31.676756Z",
+      "fetched_at": "2026-08-11T10:39:48.124370Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
-      "link_count": 17,
+      "last_modified": "Mon, 10 Aug 2026 14:09:56 GMT",
+      "link_count": 18,
       "local_path": "raw/md/datalens/operations/connection/create-ydb.md",
       "mirror_path": "datalens/operations/connection/create-ydb.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/operations/connection/create-ydb.md",
@@ -15659,7 +15659,7 @@
         "connection",
         "create-ydb"
       ],
-      "sha256": "78e833630c1aa61c82455edc04db537eabf361b7898f7de710053098b554baf8",
+      "sha256": "34406d38f340dd1d654c6a14f8228b4f4bdcea09fa4dcef3882f08a2cc2a5c11",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/connection/create-ydb",
       "title": "Создание подключения к YDB в Yandex DataLens"
     },
@@ -16167,7 +16167,7 @@
         "добавление-заголовка-на-дашборд-в-yandex-datalens"
       ],
       "asset_count": 4,
-      "bytes": 3503,
+      "bytes": 3698,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -16175,13 +16175,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:47:26.141821Z",
+      "fetched_at": "2026-08-11T10:36:57.688329Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
-      "link_count": 10,
+      "last_modified": "Mon, 10 Aug 2026 14:09:56 GMT",
+      "link_count": 11,
       "local_path": "raw/md/datalens/operations/dashboard/add-title.md",
       "mirror_path": "datalens/operations/dashboard/add-title.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/operations/dashboard/add-title.md",
@@ -16191,7 +16191,7 @@
         "dashboard",
         "add-title"
       ],
-      "sha256": "034b737d3a13aebee770b10feb6ac66c5603dda8fd8850d275edc9c49b2e88ec",
+      "sha256": "af67d9721ae42c34bca4ab11c2601e2cc6291b4a80b0a63505f6cf9f46df4986",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/dashboard/add-title",
       "title": "Добавление заголовка на дашборд в Yandex DataLens"
     },
@@ -16336,7 +16336,7 @@
         "создание-дашборда-в-yandex-datalens"
       ],
       "asset_count": 5,
-      "bytes": 4229,
+      "bytes": 4227,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -16344,12 +16344,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:50:56.956907Z",
+      "fetched_at": "2026-08-03T04:28:50.952750Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:27 GMT",
       "link_count": 16,
       "local_path": "raw/md/datalens/operations/dashboard/create.md",
       "mirror_path": "datalens/operations/dashboard/create.md",
@@ -16360,7 +16360,7 @@
         "dashboard",
         "create"
       ],
-      "sha256": "773bf146737c306e4a9793e1c9ad9078c3715d755b818eedb3ea5f7d9961b801",
+      "sha256": "ae5f9ad558bade0948aa6c6ac473c48919cff362e7315cab6d3b6e49e541ac3c",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/dashboard/create",
       "title": "Создание дашборда в Yandex DataLens"
     },
@@ -17130,16 +17130,17 @@
         "add-line-numeration",
         "get-geo",
         "how-to-change-source-data",
+        "how-to-join-tables",
         "how-to-link-two-tables",
         "incorrectly-identified-date-field",
         "make-geocode",
+        "sql-to-create-dataset",
         "unix-time",
         "where-is-materialization",
-        "датасеты",
-        "можно-ли-использовать-sql-запросы-для-формирования-датасета"
+        "датасеты"
       ],
       "asset_count": 1,
-      "bytes": 5679,
+      "bytes": 6397,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -17147,13 +17148,13 @@
         "reason": "Non-authoring support/commercial page; indexed for coverage only.",
         "status": "excluded_non_authoring"
       },
-      "fetched_at": "2026-07-07T06:49:16.462320Z",
+      "fetched_at": "2026-08-03T04:32:17.138967Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:14 GMT",
-      "link_count": 16,
+      "last_modified": "Fri, 31 Jul 2026 13:17:33 GMT",
+      "link_count": 18,
       "local_path": "raw/md/datalens/qa/datasets.md",
       "mirror_path": "datalens/qa/datasets.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/qa/datasets.md",
@@ -17162,7 +17163,7 @@
         "qa",
         "datasets"
       ],
-      "sha256": "c0c5aa846be8b445d787b8d90324a0ad19b5c5d04605151415404640b55e8a83",
+      "sha256": "c08dcecf0db36335e579ccdb5edd604a2d8ae68f9a123d18951e375eadd1b8d7",
       "source_url": "https://yandex.cloud/ru/docs/datalens/qa/datasets",
       "title": "Датасеты"
     },
@@ -17463,8 +17464,8 @@
         "whats-next",
         "как-начать-работать-с-yandex-datalens"
       ],
-      "asset_count": 33,
-      "bytes": 22809,
+      "asset_count": 34,
+      "bytes": 22957,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -17472,13 +17473,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:49:13.640636Z",
+      "fetched_at": "2026-08-11T10:38:07.445714Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:11 GMT",
-      "link_count": 72,
+      "last_modified": "Mon, 10 Aug 2026 14:09:49 GMT",
+      "link_count": 73,
       "local_path": "raw/md/datalens/quickstart.md",
       "mirror_path": "datalens/quickstart.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/quickstart.md",
@@ -17486,7 +17487,7 @@
       "section_path": [
         "quickstart"
       ],
-      "sha256": "857ec39b7b8b14da83d2587becae7b4ab3abbd2635cf4f162aaa6ae945377dea",
+      "sha256": "59037d465cbbf7534e523d1af5803ea4a9b686fd82ab76732adff0f98dbed3cc",
       "source_url": "https://yandex.cloud/ru/docs/datalens/quickstart",
       "title": "Как начать работать с Yandex DataLens"
     },
@@ -18544,7 +18545,7 @@
         "история-изменений-в-yandex-datalens-в-январе-2026"
       ],
       "asset_count": 1,
-      "bytes": 8471,
+      "bytes": 8484,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/supersession-registry.json"
@@ -18552,12 +18553,12 @@
         "reason": "Release-note page may supersede older instructions.",
         "status": "deprecated_or_superseded"
       },
-      "fetched_at": "2026-07-07T06:51:23.650357Z",
+      "fetched_at": "2026-08-11T10:37:01.272964Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:14 GMT",
+      "last_modified": "Mon, 10 Aug 2026 14:10:05 GMT",
       "link_count": 24,
       "local_path": "raw/md/datalens/release-notes/2601.md",
       "mirror_path": "datalens/release-notes/2601.md",
@@ -18567,7 +18568,7 @@
         "release-notes",
         "2601"
       ],
-      "sha256": "2438d26c95670a6aa5c84c4c85aa6361d3a93c8c6e46aeffccd3c50ba9349a19",
+      "sha256": "eb4417ef43c9500fdac5e0490d999ef6992fb0e3bcb201249ba5fdcf6ffeed63",
       "source_url": "https://yandex.cloud/ru/docs/datalens/release-notes/2601",
       "title": "История изменений в Yandex DataLens в январе 2026"
     },
@@ -18655,7 +18656,7 @@
         "история-изменений-в-yandex-datalens-в-апреле-2026"
       ],
       "asset_count": 5,
-      "bytes": 6690,
+      "bytes": 6782,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/supersession-registry.json"
@@ -18663,13 +18664,13 @@
         "reason": "Release-note page may supersede older instructions.",
         "status": "deprecated_or_superseded"
       },
-      "fetched_at": "2026-07-07T06:48:59.271594Z",
+      "fetched_at": "2026-08-03T04:30:24.813333Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:14 GMT",
-      "link_count": 29,
+      "last_modified": "Fri, 31 Jul 2026 13:17:31 GMT",
+      "link_count": 31,
       "local_path": "raw/md/datalens/release-notes/2604.md",
       "mirror_path": "datalens/release-notes/2604.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/release-notes/2604.md",
@@ -18678,7 +18679,7 @@
         "release-notes",
         "2604"
       ],
-      "sha256": "c8cc4d5de2c51bc277e44a002545b33cf758f60d072478b8c8bd99055c02c36a",
+      "sha256": "2867d9057fa837dfd4859cd4b2049d5a3832f53fb359beee3eb1893d8fad9e3b",
       "source_url": "https://yandex.cloud/ru/docs/datalens/release-notes/2604",
       "title": "История изменений в Yandex DataLens в апреле 2026"
     },
@@ -18719,6 +18720,46 @@
       "sha256": "e1d68f95234b73c82c75950fb7deac6572cd695d5149e61c1b424f6d3a76fd76",
       "source_url": "https://yandex.cloud/ru/docs/datalens/release-notes/2605",
       "title": "История изменений в Yandex DataLens в мае 2026"
+    },
+    {
+      "anchors": [
+        "base",
+        "chart-fixes",
+        "connection-fixes",
+        "dashboard-fixes",
+        "dataset-fixes",
+        "editor-fixes",
+        "fixes",
+        "report-fixes",
+        "история-изменений-в-yandex-datalens-в-июне-2026"
+      ],
+      "asset_count": 5,
+      "bytes": 18787,
+      "classification": {
+        "generated_artifact_owners": [
+          "schemas/datalens-knowledge/supersession-registry.json"
+        ],
+        "reason": "Release-note page may supersede older instructions.",
+        "status": "deprecated_or_superseded"
+      },
+      "fetched_at": "2026-08-11T10:38:24.665884Z",
+      "freshness": "current_official_docs_snapshot",
+      "knowledge_layers": [
+        "official_docs"
+      ],
+      "last_modified": "Mon, 10 Aug 2026 14:10:02 GMT",
+      "link_count": 48,
+      "local_path": "raw/md/datalens/release-notes/2606.md",
+      "mirror_path": "datalens/release-notes/2606.md",
+      "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/release-notes/2606.md",
+      "section": "release-notes",
+      "section_path": [
+        "release-notes",
+        "2606"
+      ],
+      "sha256": "e78e470c30cb668c34c0aa3a513936db50923765bb7e9703f453f2fe07946ea7",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/release-notes/2606",
+      "title": "История изменений в Yandex DataLens в июне 2026"
     },
     {
       "anchors": [
@@ -18765,13 +18806,12 @@
         "connection-fixes",
         "dashboard-fixes",
         "dataset-fixes",
-        "editor-fixes",
         "fixes",
         "report-fixes",
-        "история-изменений-в-yandex-datalens-в-июне-2026"
+        "история-изменений-в-yandex-datalens-в-июле-2026"
       ],
-      "asset_count": 5,
-      "bytes": 18775,
+      "asset_count": 1,
+      "bytes": 9654,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/supersession-registry.json"
@@ -18779,13 +18819,13 @@
         "reason": "Release-note page may supersede older instructions.",
         "status": "deprecated_or_superseded"
       },
-      "fetched_at": "2026-07-13T13:30:28.673373Z",
+      "fetched_at": "2026-08-11T10:40:03.311842Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Fri, 10 Jul 2026 13:43:32 GMT",
-      "link_count": 47,
+      "last_modified": "Mon, 10 Aug 2026 14:10:02 GMT",
+      "link_count": 27,
       "local_path": "raw/md/datalens/release-notes/index.md",
       "mirror_path": "datalens/release-notes/index.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/release-notes/index.md",
@@ -18793,9 +18833,9 @@
       "section_path": [
         "release-notes"
       ],
-      "sha256": "fd06327622473f06cf35b36e30cdab295beb3a7c2782c0473e088391ab3b3b14",
+      "sha256": "c361a8f89532ad3e4959aa02a0b4fdccb5c7ef3d47774a70d05b51c1f3bb04e9",
       "source_url": "https://yandex.cloud/ru/docs/datalens/release-notes/",
-      "title": "История изменений в Yandex DataLens в июне 2026"
+      "title": "История изменений в Yandex DataLens в июле 2026"
     },
     {
       "anchors": [
@@ -18806,7 +18846,7 @@
         "селекторы-в-отчетах"
       ],
       "asset_count": 19,
-      "bytes": 24607,
+      "bytes": 24604,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -18814,12 +18854,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:47:54.979797Z",
+      "fetched_at": "2026-08-03T04:33:29.765991Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:14 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 51,
       "local_path": "raw/md/datalens/reports/add-selector.md",
       "mirror_path": "datalens/reports/add-selector.md",
@@ -18829,7 +18869,7 @@
         "reports",
         "add-selector"
       ],
-      "sha256": "8159fe38b3b265534db5a0828e69304757286c106934ef4a34f1008fca59fb74",
+      "sha256": "3fa9a3481f262b77a5b3160310449621683551718c9b6abaadee4880b7df529e",
       "source_url": "https://yandex.cloud/ru/docs/datalens/reports/add-selector",
       "title": "Селекторы в отчетах"
     },
@@ -18926,7 +18966,7 @@
         "работа-с-отчетом"
       ],
       "asset_count": 42,
-      "bytes": 32183,
+      "bytes": 32180,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -18934,12 +18974,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:48:38.701083Z",
+      "fetched_at": "2026-08-03T04:29:46.434701Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:14 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 87,
       "local_path": "raw/md/datalens/reports/report-operations.md",
       "mirror_path": "datalens/reports/report-operations.md",
@@ -18949,7 +18989,7 @@
         "reports",
         "report-operations"
       ],
-      "sha256": "28877ca3122093d76403eaed45a48a1ddf0315d533b962cddac8e0d7a1cce339",
+      "sha256": "292a499244bd13b28a508ecc873442ab056d8fa377902ffabf78cd8a0ef72b68",
       "source_url": "https://yandex.cloud/ru/docs/datalens/reports/report-operations",
       "title": "Работа с отчетом"
     },
@@ -18964,7 +19004,7 @@
         "версионирование"
       ],
       "asset_count": 5,
-      "bytes": 7144,
+      "bytes": 7160,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -18972,12 +19012,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:48:14.558879Z",
+      "fetched_at": "2026-08-03T04:29:17.667590Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:14 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 13,
       "local_path": "raw/md/datalens/reports/versioning.md",
       "mirror_path": "datalens/reports/versioning.md",
@@ -18987,7 +19027,7 @@
         "reports",
         "versioning"
       ],
-      "sha256": "46419ba5858c11637280f65f4b7a41c6c020454ef8686539ca9e5b70ddfc955e",
+      "sha256": "f470489922a7fc13ec4b0ca03ccca12cd60df0fcaaae143efcb24d25d86b9d21",
       "source_url": "https://yandex.cloud/ru/docs/datalens/reports/versioning",
       "title": "Версионирование"
     },
@@ -19245,14 +19285,13 @@
       "anchors": [
         "dataset-rls",
         "datasource-rls",
-        "group-rls",
         "how-to-manage-rls",
-        "special-",
-        "user-rls",
+        "interface_datalens",
+        "json",
         "управление-доступом-на-уровне-строк-данных-rls"
       ],
-      "asset_count": 3,
-      "bytes": 15674,
+      "asset_count": 5,
+      "bytes": 13916,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -19260,13 +19299,13 @@
         "reason": "security page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-29T17:42:10.782320Z",
+      "fetched_at": "2026-08-11T10:36:19.981238Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Wed, 29 Jul 2026 13:19:14 GMT",
-      "link_count": 16,
+      "last_modified": "Mon, 10 Aug 2026 14:10:02 GMT",
+      "link_count": 14,
       "local_path": "raw/md/datalens/security/row-level-security.md",
       "mirror_path": "datalens/security/row-level-security.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/security/row-level-security.md",
@@ -19275,7 +19314,7 @@
         "security",
         "row-level-security"
       ],
-      "sha256": "4159e5e08bc9a5125aa189ca0bbfe41210864fe65413f6efa644927be209eee4",
+      "sha256": "4f808793bb89dd6409d371f8df26840e5d03d5d01586c58009e7bfebe8888a47",
       "source_url": "https://yandex.cloud/ru/docs/datalens/security/row-level-security",
       "title": "Управление доступом на уровне строк данных (RLS)"
     },
@@ -19376,7 +19415,7 @@
         "права-доступа-в-воркбуках-и-коллекциях"
       ],
       "asset_count": 4,
-      "bytes": 3929,
+      "bytes": 3931,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -19384,12 +19423,12 @@
         "reason": "security page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:48:08.500418Z",
+      "fetched_at": "2026-08-03T04:31:33.829390Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:14 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 12,
       "local_path": "raw/md/datalens/security/workbooks-access.md",
       "mirror_path": "datalens/security/workbooks-access.md",
@@ -19399,7 +19438,7 @@
         "security",
         "workbooks-access"
       ],
-      "sha256": "f072041cbefea887df7c7c447e88e42c2d08f913e43f2409676518a843baeb85",
+      "sha256": "ab32b2cef7e2f5427dbcaaa00aff8a1f7ecadc9d3c8dfe91fd9b10c5d2928f3c",
       "source_url": "https://yandex.cloud/ru/docs/datalens/security/workbooks-access",
       "title": "Права доступа в воркбуках и коллекциях"
     },
@@ -19586,10 +19625,10 @@
         "history",
         "see-also",
         "service-plans",
-        "настройки-тарифов-и-оплаты-в-yandex-datalens"
+        "настройки-тарификации-и-оплаты-в-yandex-datalens"
       ],
-      "asset_count": 4,
-      "bytes": 8736,
+      "asset_count": 3,
+      "bytes": 9608,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -19597,13 +19636,13 @@
         "reason": "settings page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:51:51.090205Z",
+      "fetched_at": "2026-08-11T10:39:22.443970Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:14 GMT",
-      "link_count": 23,
+      "last_modified": "Mon, 10 Aug 2026 14:10:02 GMT",
+      "link_count": 24,
       "local_path": "raw/md/datalens/settings/service-plan.md",
       "mirror_path": "datalens/settings/service-plan.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/settings/service-plan.md",
@@ -19612,9 +19651,9 @@
         "settings",
         "service-plan"
       ],
-      "sha256": "a96c405abe7f7bbd987ba0f84e99445a5882d9813402c90923ca66ad2a1942d3",
+      "sha256": "8c72b8e85df901cc22da9e73adbbb2335a5adb8ddc871e0a717a36ae81d941d6",
       "source_url": "https://yandex.cloud/ru/docs/datalens/settings/service-plan",
-      "title": "Настройки тарифов и оплаты в Yandex DataLens"
+      "title": "Настройки тарификации и оплаты в Yandex DataLens"
     },
     {
       "anchors": [
@@ -22553,8 +22592,8 @@
         "processing-filter-parameters-values",
         "создание-чартов-в-editor-yandex-datalens"
       ],
-      "asset_count": 22,
-      "bytes": 70146,
+      "asset_count": 23,
+      "bytes": 70300,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -22562,13 +22601,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:47:46.628998Z",
+      "fetched_at": "2026-08-11T10:40:19.009013Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:14 GMT",
-      "link_count": 71,
+      "last_modified": "Mon, 10 Aug 2026 14:10:02 GMT",
+      "link_count": 72,
       "local_path": "raw/md/datalens/tutorials/create-chart-editor.md",
       "mirror_path": "datalens/tutorials/create-chart-editor.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/tutorials/create-chart-editor.md",
@@ -22577,7 +22616,7 @@
         "tutorials",
         "create-chart-editor"
       ],
-      "sha256": "ed8c3dcd111f8544a0fd408b5c309aa2ca950ad54a27c2d099b5354d72baa45d",
+      "sha256": "b1f9f30411bc7f7b5e60f7c395a5fa12d803340337d171c1acb3745f0d4d97d9",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/create-chart-editor",
       "title": "Создание чартов в Editor Yandex DataLens"
     },
@@ -22682,7 +22721,7 @@
         "uploading-data-from-appmetrica"
       ],
       "asset_count": 22,
-      "bytes": 25704,
+      "bytes": 25815,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -22690,13 +22729,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:51:55.136062Z",
+      "fetched_at": "2026-08-03T04:30:00.065647Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
-      "link_count": 44,
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
+      "link_count": 47,
       "local_path": "raw/md/datalens/tutorials/data-from-appmetrica-yc-visualization.md",
       "mirror_path": "datalens/tutorials/data-from-appmetrica-yc-visualization.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/tutorials/data-from-appmetrica-yc-visualization.md",
@@ -22705,7 +22744,7 @@
         "tutorials",
         "data-from-appmetrica-yc-visualization"
       ],
-      "sha256": "43dc20eaba9e582658fad4e2ca68ec8b1eff5aba1a4fb32a46083f055feab1f3",
+      "sha256": "342b2e96221443489b981554ca3752a07e048874605db06c826d01e0fddca4f7",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/data-from-appmetrica-yc-visualization",
       "title": "AppMetrica: экспорт, постобработка и визуализация данных"
     },
@@ -22764,8 +22803,8 @@
         "new",
         "параметризация-источников-в-datalens"
       ],
-      "asset_count": 23,
-      "bytes": 21115,
+      "asset_count": 24,
+      "bytes": 21243,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -22773,13 +22812,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:49:22.077368Z",
+      "fetched_at": "2026-08-11T10:40:47.660000Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
-      "link_count": 49,
+      "last_modified": "Mon, 10 Aug 2026 14:10:05 GMT",
+      "link_count": 50,
       "local_path": "raw/md/datalens/tutorials/data-from-ch-dataset-parametrization.md",
       "mirror_path": "datalens/tutorials/data-from-ch-dataset-parametrization.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/tutorials/data-from-ch-dataset-parametrization.md",
@@ -22788,7 +22827,7 @@
         "tutorials",
         "data-from-ch-dataset-parametrization"
       ],
-      "sha256": "9f92b2874c803af1e180e1390e3005943a934342fc2797fd9d06ccf8059d7133",
+      "sha256": "582e1177a8732eaeba0af6e3707a657a744bad93973e2a2f05f912e0f650a1c9",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/data-from-ch-dataset-parametrization",
       "title": "Параметризация источников в DataLens"
     },
@@ -22849,8 +22888,8 @@
         "questions",
         "визуализация-данных-из-chyt"
       ],
-      "asset_count": 2,
-      "bytes": 13397,
+      "asset_count": 3,
+      "bytes": 13474,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -22858,13 +22897,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:47:31.179641Z",
+      "fetched_at": "2026-08-11T10:37:45.836619Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
-      "link_count": 17,
+      "last_modified": "Mon, 10 Aug 2026 14:10:05 GMT",
+      "link_count": 18,
       "local_path": "raw/md/datalens/tutorials/data-from-ch-over-yt.md",
       "mirror_path": "datalens/tutorials/data-from-ch-over-yt.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/tutorials/data-from-ch-over-yt.md",
@@ -22873,7 +22912,7 @@
         "tutorials",
         "data-from-ch-over-yt"
       ],
-      "sha256": "e3412d6ae331079d8c0c9e5b3b265a2b21234ce9e1cb6ae70e232b7125121570",
+      "sha256": "2f656643f20ef0fed7e631ffb7090c45debe7ece54ea2c1b4b369c229ca37f48",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/data-from-ch-over-yt",
       "title": "Визуализация данных из CHYT"
     },
@@ -22937,8 +22976,8 @@
         "see-also",
         "примеры-создания-ql-чартов"
       ],
-      "asset_count": 22,
-      "bytes": 18525,
+      "asset_count": 23,
+      "bytes": 18679,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -22946,13 +22985,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:47:54.436082Z",
+      "fetched_at": "2026-08-11T10:39:12.902483Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
-      "link_count": 47,
+      "last_modified": "Mon, 10 Aug 2026 14:10:02 GMT",
+      "link_count": 48,
       "local_path": "raw/md/datalens/tutorials/data-from-ch-to-sql-chart.md",
       "mirror_path": "datalens/tutorials/data-from-ch-to-sql-chart.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/tutorials/data-from-ch-to-sql-chart.md",
@@ -22961,7 +23000,7 @@
         "tutorials",
         "data-from-ch-to-sql-chart"
       ],
-      "sha256": "554f826bd9d8bc81905492504212cf73d1dffe9a24ef2dc7ec4cd73f76671bda",
+      "sha256": "f574d3f95f68c02200bf6e62b6c3207a01b234816a9b2823c80b0900173e6728",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/data-from-ch-to-sql-chart",
       "title": "Примеры создания QL-чартов"
     },
@@ -22981,8 +23020,8 @@
         "new",
         "дашборд-сети-магазинов-из-бд-clickhouse"
       ],
-      "asset_count": 41,
-      "bytes": 26012,
+      "asset_count": 42,
+      "bytes": 26166,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -22990,13 +23029,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:50:07.097453Z",
+      "fetched_at": "2026-08-11T10:39:32.071032Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
-      "link_count": 70,
+      "last_modified": "Mon, 10 Aug 2026 14:10:02 GMT",
+      "link_count": 71,
       "local_path": "raw/md/datalens/tutorials/data-from-ch-visualization.md",
       "mirror_path": "datalens/tutorials/data-from-ch-visualization.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/tutorials/data-from-ch-visualization.md",
@@ -23005,7 +23044,7 @@
         "tutorials",
         "data-from-ch-visualization"
       ],
-      "sha256": "927c6f36287e7b5308dfb2041c7cb42942e632b53b70777628a3ac7d5df051f8",
+      "sha256": "baac2b25a2412e2dedfc1ea19a3d7ac657520a293b5dd471fad23c849fc57b4c",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/data-from-ch-visualization",
       "title": "Дашборд сети магазинов из БД ClickHouse®"
     },
@@ -23025,8 +23064,8 @@
         "see-also",
         "использование-параметров-в-вычисляемых-полях"
       ],
-      "asset_count": 26,
-      "bytes": 21078,
+      "asset_count": 27,
+      "bytes": 21365,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -23034,13 +23073,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:51:19.667362Z",
+      "fetched_at": "2026-08-11T10:37:54.906942Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
-      "link_count": 50,
+      "last_modified": "Mon, 10 Aug 2026 14:10:02 GMT",
+      "link_count": 51,
       "local_path": "raw/md/datalens/tutorials/data-from-ch-with-parameters.md",
       "mirror_path": "datalens/tutorials/data-from-ch-with-parameters.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/tutorials/data-from-ch-with-parameters.md",
@@ -23049,7 +23088,7 @@
         "tutorials",
         "data-from-ch-with-parameters"
       ],
-      "sha256": "048ff08f8a7c588254ee6c6c9bc22cecdfa183f5da5eeb73779b066c8d707ba4",
+      "sha256": "7f33cd5022171ee5d964add5900a9399baf412d891c66315c92a7fb86e1ff083",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/data-from-ch-with-parameters",
       "title": "Использование параметров в вычисляемых полях"
     },
@@ -23262,7 +23301,7 @@
         "яндекс-метрика-экспорт-постобработка-и-визуализация-данных"
       ],
       "asset_count": 12,
-      "bytes": 44087,
+      "bytes": 44143,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -23270,13 +23309,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:51:59.163362Z",
+      "fetched_at": "2026-08-11T10:40:30.503919Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
-      "link_count": 58,
+      "last_modified": "Mon, 10 Aug 2026 14:10:05 GMT",
+      "link_count": 59,
       "local_path": "raw/md/datalens/tutorials/data-from-metrica-yc-visualization.md",
       "mirror_path": "datalens/tutorials/data-from-metrica-yc-visualization.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/tutorials/data-from-metrica-yc-visualization.md",
@@ -23285,7 +23324,7 @@
         "tutorials",
         "data-from-metrica-yc-visualization"
       ],
-      "sha256": "1567576860fcb0a0cf34f040faa8024a18ca1226d0a36287e9bba0ff4f13ea54",
+      "sha256": "875b7b847bd974981dc6ce4755b5ff4f99f42b07e0ced9d79ac5701702c5b0f0",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/data-from-metrica-yc-visualization",
       "title": "Яндекс Метрика: экспорт, постобработка и визуализация данных"
     },
@@ -23359,7 +23398,7 @@
         "подкасты-яндекс-музыки-статистика"
       ],
       "asset_count": 39,
-      "bytes": 50149,
+      "bytes": 50151,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -23367,12 +23406,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:51:19.268948Z",
+      "fetched_at": "2026-08-11T10:38:01.957993Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Mon, 10 Aug 2026 14:10:02 GMT",
       "link_count": 82,
       "local_path": "raw/md/datalens/tutorials/data-from-podcasts.md",
       "mirror_path": "datalens/tutorials/data-from-podcasts.md",
@@ -23382,7 +23421,7 @@
         "tutorials",
         "data-from-podcasts"
       ],
-      "sha256": "832385931c0bab0c670ef8f1a492a0f69cba797369a360a6468a468fa2f269cf",
+      "sha256": "81f528f305c5a3a8e2aefb1fbc1a9fb92add59521d4999324f3e1b860624b328",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/data-from-podcasts",
       "title": "Подкасты Яндекс Музыки: статистика"
     },
@@ -23402,7 +23441,7 @@
         "яндекс-трекер-экспорт-и-визуализация-данных"
       ],
       "asset_count": 7,
-      "bytes": 18451,
+      "bytes": 18545,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -23410,13 +23449,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:50:02.510228Z",
+      "fetched_at": "2026-08-11T10:40:26.887002Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
-      "link_count": 39,
+      "last_modified": "Mon, 10 Aug 2026 14:10:02 GMT",
+      "link_count": 41,
       "local_path": "raw/md/datalens/tutorials/data-from-tracker.md",
       "mirror_path": "datalens/tutorials/data-from-tracker.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/tutorials/data-from-tracker.md",
@@ -23425,7 +23464,7 @@
         "tutorials",
         "data-from-tracker"
       ],
-      "sha256": "dd766c091a45cccc8ddc08e6448fe4aceb33d2317d25104de44f906c7fc303cc",
+      "sha256": "93bc77525eef37b595496a0b77239658a51e4bf419551ce582119f273e9d6b36",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/data-from-tracker",
       "title": "Яндекс Трекер: экспорт и визуализация данных"
     },
@@ -23439,7 +23478,7 @@
         "визуализация-данных-из-yandex-object-storage-в-yandex-datalens"
       ],
       "asset_count": 16,
-      "bytes": 13378,
+      "bytes": 13405,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -23447,13 +23486,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:52:24.653905Z",
+      "fetched_at": "2026-08-03T04:33:28.267647Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
-      "link_count": 44,
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
+      "link_count": 45,
       "local_path": "raw/md/datalens/tutorials/data-from-yandex-query-visualization.md",
       "mirror_path": "datalens/tutorials/data-from-yandex-query-visualization.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/tutorials/data-from-yandex-query-visualization.md",
@@ -23462,7 +23501,7 @@
         "tutorials",
         "data-from-yandex-query-visualization"
       ],
-      "sha256": "e1142177962a48a1ec68c8f3afc371bd759a771ff8955b798fc9c2e2202a9823",
+      "sha256": "30af76b10d45d67b9a06eb75e8ed0a8ab127a23563d5de608000b5ca52d1e4f2",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/data-from-yandex-query-visualization",
       "title": "Визуализация данных из Yandex Object Storage в Yandex DataLens"
     },
@@ -23543,7 +23582,7 @@
         "мониторинг-состояния-географически-распределенных-устройств"
       ],
       "asset_count": 3,
-      "bytes": 47922,
+      "bytes": 48592,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -23551,13 +23590,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-23T08:52:56.424587Z",
+      "fetched_at": "2026-08-11T10:37:14.086420Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Wed, 22 Jul 2026 13:44:04 GMT",
-      "link_count": 91,
+      "last_modified": "Mon, 10 Aug 2026 14:10:03 GMT",
+      "link_count": 107,
       "local_path": "raw/md/datalens/tutorials/datalens.md",
       "mirror_path": "datalens/tutorials/datalens.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/tutorials/datalens.md",
@@ -23566,7 +23605,7 @@
         "tutorials",
         "datalens"
       ],
-      "sha256": "4b885fdbb4d735d0f7c2846d0c868584ee84122bbb9740ed73eecc4bdd90fff9",
+      "sha256": "63570508ef7ef22a5d7f3b95e8f21bb09d7a9d3acfa50a637586af79441d0dc9",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/datalens",
       "title": "Мониторинг состояния географически распределенных устройств"
     },
@@ -23603,8 +23642,8 @@
         "ydb",
         "передача-событий-yandex-cloud-postbox-в-yandex-data-streams-и-их-анализ-с-помощью-yandex-datalens"
       ],
-      "asset_count": 11,
-      "bytes": 43322,
+      "asset_count": 10,
+      "bytes": 43713,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -23612,13 +23651,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-23T08:54:52.820034Z",
+      "fetched_at": "2026-08-11T10:40:31.909340Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Wed, 22 Jul 2026 13:44:04 GMT",
-      "link_count": 106,
+      "last_modified": "Mon, 10 Aug 2026 14:10:03 GMT",
+      "link_count": 115,
       "local_path": "raw/md/datalens/tutorials/events-from-postbox-to-yds.md",
       "mirror_path": "datalens/tutorials/events-from-postbox-to-yds.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/tutorials/events-from-postbox-to-yds.md",
@@ -23627,7 +23666,7 @@
         "tutorials",
         "events-from-postbox-to-yds"
       ],
-      "sha256": "8a08c7fc304caade7d68829e55173ae4283deddfbe461f6ecbed5c094c6f4b88",
+      "sha256": "76778e8df4708fc8bc238a9b37820260014472b41e89122db5b7483fe3d93a6b",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/events-from-postbox-to-yds",
       "title": "Передача событий Yandex Cloud Postbox в Yandex Data Streams и их анализ с помощью Yandex DataLens"
     },
@@ -23658,7 +23697,7 @@
         "поставка-данных-из-яндекс-формы-в-yandex-datalens-с-использованием-yandex-cloud-functions-и-yandex-query-при-помощи-консоли-управления"
       ],
       "asset_count": 3,
-      "bytes": 26249,
+      "bytes": 26620,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -23666,13 +23705,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:48:03.036287Z",
+      "fetched_at": "2026-08-03T04:31:21.814255Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
-      "link_count": 52,
+      "last_modified": "Fri, 31 Jul 2026 13:17:27 GMT",
+      "link_count": 61,
       "local_path": "raw/md/datalens/tutorials/forms-and-datalens-integration/console.md",
       "mirror_path": "datalens/tutorials/forms-and-datalens-integration/console.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/tutorials/forms-and-datalens-integration/console.md",
@@ -23682,7 +23721,7 @@
         "forms-and-datalens-integration",
         "console"
       ],
-      "sha256": "66b15b0418a04fe977bd9cd246c38994d90dbcd9a9fbb39200b82afc78821404",
+      "sha256": "8cc35d2619d9725e86caedb223d7add59b881a0aa32348d6c86c60770ea22757",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/forms-and-datalens-integration/console",
       "title": "Поставка данных из Яндекс Формы в Yandex DataLens с использованием Yandex Cloud Functions и Yandex Query при помощи консоли управления"
     },
@@ -23741,7 +23780,7 @@
         "поставка-данных-из-яндекс-формы-в-yandex-datalens-с-использованием-yandex-cloud-functions-и-yandex-query-при-помощи-terraform"
       ],
       "asset_count": 2,
-      "bytes": 23570,
+      "bytes": 23677,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -23749,13 +23788,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:52:23.705191Z",
+      "fetched_at": "2026-08-03T04:32:02.657153Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:13 GMT",
-      "link_count": 47,
+      "last_modified": "Fri, 31 Jul 2026 13:17:27 GMT",
+      "link_count": 50,
       "local_path": "raw/md/datalens/tutorials/forms-and-datalens-integration/terraform.md",
       "mirror_path": "datalens/tutorials/forms-and-datalens-integration/terraform.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/tutorials/forms-and-datalens-integration/terraform.md",
@@ -23765,7 +23804,7 @@
         "forms-and-datalens-integration",
         "terraform"
       ],
-      "sha256": "0b6eafef59ca0fc76520cbe83ec278ede8fbbb193040a590e8b7025c75e1be41",
+      "sha256": "ef7430d1da3a30004f94d7dfbbfa7b988666628dfed57d20a49270390614f360",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/forms-and-datalens-integration/terraform",
       "title": "Поставка данных из Яндекс Формы в Yandex DataLens с использованием Yandex Cloud Functions и Yandex Query при помощи Terraform"
     },
@@ -23826,7 +23865,7 @@
         "анализ-логов-object-storage-при-помощи-datalens"
       ],
       "asset_count": 4,
-      "bytes": 36699,
+      "bytes": 36805,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -23834,13 +23873,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:47:37.416387Z",
+      "fetched_at": "2026-08-11T10:37:32.258391Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
-      "link_count": 55,
+      "last_modified": "Mon, 10 Aug 2026 14:10:05 GMT",
+      "link_count": 57,
       "local_path": "raw/md/datalens/tutorials/storage-logs-analysis.md",
       "mirror_path": "datalens/tutorials/storage-logs-analysis.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/tutorials/storage-logs-analysis.md",
@@ -23849,7 +23888,7 @@
         "tutorials",
         "storage-logs-analysis"
       ],
-      "sha256": "56c54784715f56512bf511606b347166164af41cd65769481112c93266dfb406",
+      "sha256": "f6b3f7b28b9516c3399274061333895c67904a5e4bbd4af2bfe1081418bdcc73",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/storage-logs-analysis",
       "title": "Анализ логов Object Storage при помощи DataLens"
     },
@@ -23864,7 +23903,7 @@
         "диаграмма-с-областями-_assets-datalens-area-svg-в-yandex-datalens"
       ],
       "asset_count": 11,
-      "bytes": 13093,
+      "bytes": 13091,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -23872,12 +23911,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:52:45.832603Z",
+      "fetched_at": "2026-08-03T04:31:06.127939Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 31,
       "local_path": "raw/md/datalens/visualization-ref/area-chart.md",
       "mirror_path": "datalens/visualization-ref/area-chart.md",
@@ -23887,7 +23926,7 @@
         "visualization-ref",
         "area-chart"
       ],
-      "sha256": "381089efc3ff22ef2aec3cc3b7093d8408ed260aee3f28f923f7c917b54e3253",
+      "sha256": "c84f42f55eba220bdb215de048309ce5529d8d47c78263e5a855b38fcc348b88",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/area-chart",
       "title": "Диаграмма с областями ![](../../_assets/datalens/area.svg) в Yandex DataLens"
     },
@@ -23908,7 +23947,7 @@
         "линейчатая-диаграмма-_assets-datalens-horizontal-bar-svg-в-yandex-datalens"
       ],
       "asset_count": 14,
-      "bytes": 17349,
+      "bytes": 17347,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -23916,12 +23955,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:50:33.224927Z",
+      "fetched_at": "2026-08-03T04:33:47.868349Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 38,
       "local_path": "raw/md/datalens/visualization-ref/bar-chart.md",
       "mirror_path": "datalens/visualization-ref/bar-chart.md",
@@ -23931,7 +23970,7 @@
         "visualization-ref",
         "bar-chart"
       ],
-      "sha256": "b20effe82de2a12e94c5d78ea6b5be776c9ed980ad4587869021ca4b1180d99f",
+      "sha256": "4d8a0b54e4dce32ec8075a998347a30262104fee732bfd71d01c4b38530005a0",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/bar-chart",
       "title": "Линейчатая диаграмма ![](../../_assets/datalens/horizontal-bar.svg) в Yandex DataLens"
     },
@@ -23944,7 +23983,7 @@
         "фоновая-карта-_assets-datalens-heatmap-svg-в-yandex-datalens"
       ],
       "asset_count": 5,
-      "bytes": 7456,
+      "bytes": 7454,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -23952,12 +23991,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:48:09.073784Z",
+      "fetched_at": "2026-08-03T04:31:25.279600Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 25,
       "local_path": "raw/md/datalens/visualization-ref/choropleth-map-chart.md",
       "mirror_path": "datalens/visualization-ref/choropleth-map-chart.md",
@@ -23967,7 +24006,7 @@
         "visualization-ref",
         "choropleth-map-chart"
       ],
-      "sha256": "88fdf37e1dddd238c9c7c4056f81bb72592cbed082cd2ec002c5ce15a7ba3eec",
+      "sha256": "3a50a0243f8bfa3a357adad61021e7aacc4ea5779c0433684bd38250db744a65",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/choropleth-map-chart",
       "title": "Фоновая карта ![](../../_assets/datalens/heatmap.svg) в Yandex DataLens"
     },
@@ -23980,7 +24019,7 @@
         "точечная-карта-с-кластеризацией-_assets-datalens-heatmap-svg-yandex-datalens"
       ],
       "asset_count": 6,
-      "bytes": 7871,
+      "bytes": 7869,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -23988,12 +24027,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:49:09.885721Z",
+      "fetched_at": "2026-08-03T04:29:04.570185Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 21,
       "local_path": "raw/md/datalens/visualization-ref/cluster-point-map-chart.md",
       "mirror_path": "datalens/visualization-ref/cluster-point-map-chart.md",
@@ -24003,7 +24042,7 @@
         "visualization-ref",
         "cluster-point-map-chart"
       ],
-      "sha256": "2142a09f8865c66e130251740290302ece8f67a850c59b637b2210ab8c6c2750",
+      "sha256": "c5e3910bd1cb6d41727c8d5f12636fe746cee3c49f5ffbf16ccc9f3506c3a652",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/cluster-point-map-chart",
       "title": "Точечная карта с кластеризацией ![](../../_assets/datalens/heatmap.svg) Yandex DataLens"
     },
@@ -24025,7 +24064,7 @@
         "столбчатая-диаграмма-_assets-datalens-column-svg-в-yandex-datalens"
       ],
       "asset_count": 19,
-      "bytes": 19553,
+      "bytes": 19551,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -24033,12 +24072,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:51:45.625656Z",
+      "fetched_at": "2026-08-03T04:30:58.096218Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 41,
       "local_path": "raw/md/datalens/visualization-ref/column-chart.md",
       "mirror_path": "datalens/visualization-ref/column-chart.md",
@@ -24048,7 +24087,7 @@
         "visualization-ref",
         "column-chart"
       ],
-      "sha256": "d7b84b8cc898e516e1e6e834b4af7496888d1b3faaf6f2875f480fe6bcac32a5",
+      "sha256": "3a99521bff36dec359c114bb6eeeb8a96a699a47f4a84b229d143dd6f5470009",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/column-chart",
       "title": "Столбчатая диаграмма ![](../../_assets/datalens/column.svg) в Yandex DataLens"
     },
@@ -24062,7 +24101,7 @@
         "что-важно-знать"
       ],
       "asset_count": 11,
-      "bytes": 9130,
+      "bytes": 9128,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -24070,12 +24109,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:52:28.709630Z",
+      "fetched_at": "2026-08-03T04:33:40.356099Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 34,
       "local_path": "raw/md/datalens/visualization-ref/combined-chart.md",
       "mirror_path": "datalens/visualization-ref/combined-chart.md",
@@ -24085,9 +24124,46 @@
         "visualization-ref",
         "combined-chart"
       ],
-      "sha256": "8487f5dca889e8a5e4fb2248f96dc50e246a12ee1f5ee326ed20935e5e105ec8",
+      "sha256": "c56a28b0d116794d3163b9a42eb800374ba9b4eaacc882339107a7c7be0d3b83",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/combined-chart",
       "title": "Комбинированная диаграмма ![](../../_assets/datalens/combined.svg) в Yandex DataLens"
+    },
+    {
+      "anchors": [
+        "chart-settings",
+        "create-diagram",
+        "recommendations",
+        "see-also",
+        "wizard-sections",
+        "воронка-_assets-datalens-funnel-svg-в-yandex-datalens"
+      ],
+      "asset_count": 7,
+      "bytes": 7872,
+      "classification": {
+        "generated_artifact_owners": [
+          "schemas/datalens-knowledge/domain-registries.json"
+        ],
+        "reason": "visualization-ref page feeds a machine registry.",
+        "status": "compiled_registry"
+      },
+      "fetched_at": "2026-08-03T04:30:15.132773Z",
+      "freshness": "current_official_docs_snapshot",
+      "knowledge_layers": [
+        "official_docs"
+      ],
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
+      "link_count": 22,
+      "local_path": "raw/md/datalens/visualization-ref/funnel.md",
+      "mirror_path": "datalens/visualization-ref/funnel.md",
+      "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/funnel.md",
+      "section": "visualization-ref",
+      "section_path": [
+        "visualization-ref",
+        "funnel"
+      ],
+      "sha256": "7d6a9763f027d37a2af42fbdc449b78930baf8a65c73d96bac9ad1d96464b7e2",
+      "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/funnel",
+      "title": "Воронка ![](../../_assets/datalens/funnel.svg) в Yandex DataLens"
     },
     {
       "anchors": [
@@ -24101,7 +24177,7 @@
         "что-нужно-знать-о-тепловых-картах"
       ],
       "asset_count": 7,
-      "bytes": 7548,
+      "bytes": 7546,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -24109,12 +24185,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:49:54.060032Z",
+      "fetched_at": "2026-08-03T04:33:23.284662Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 22,
       "local_path": "raw/md/datalens/visualization-ref/heat-map-chart.md",
       "mirror_path": "datalens/visualization-ref/heat-map-chart.md",
@@ -24124,7 +24200,7 @@
         "visualization-ref",
         "heat-map-chart"
       ],
-      "sha256": "e215dc53e6d997ac5726b934abdb487c6b718142136815886d22b21b4a608ee2",
+      "sha256": "b9734fd6c0ad2cca5a95f509968988edbcb3221f25fa3f0498a4e07f6c0f6657",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/heat-map-chart",
       "title": "Тепловая карта ![](../../_assets/datalens/heatmap.svg) в Yandex DataLens"
     },
@@ -24133,7 +24209,7 @@
         "справочник-визуализаций-в-yandex-datalens"
       ],
       "asset_count": 0,
-      "bytes": 2738,
+      "bytes": 2770,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -24141,13 +24217,13 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:47:44.858722Z",
+      "fetched_at": "2026-08-03T04:31:30.800577Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
-      "link_count": 27,
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
+      "link_count": 28,
       "local_path": "raw/md/datalens/visualization-ref/index.md",
       "mirror_path": "datalens/visualization-ref/index.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/index.md",
@@ -24155,7 +24231,7 @@
       "section_path": [
         "visualization-ref"
       ],
-      "sha256": "2bbcc9207b6ad07be1abad7d54721188c7e580cb9cf8be0b8da65c7e562f0747",
+      "sha256": "36c719091b0fd0c6e20b88e45847ae14ae3dee014f21698069d0858125bdc375",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/",
       "title": "Справочник визуализаций в Yandex DataLens"
     },
@@ -24173,7 +24249,7 @@
         "индикатор-_assets-datalens-indicator-svg-в-yandex-datalens"
       ],
       "asset_count": 14,
-      "bytes": 12238,
+      "bytes": 12236,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -24181,12 +24257,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:48:18.664627Z",
+      "fetched_at": "2026-08-03T04:30:01.556408Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 30,
       "local_path": "raw/md/datalens/visualization-ref/indicator-chart.md",
       "mirror_path": "datalens/visualization-ref/indicator-chart.md",
@@ -24196,7 +24272,7 @@
         "visualization-ref",
         "indicator-chart"
       ],
-      "sha256": "a122af910edf415893ed6f4ae0230442cb3364a96cdb1e5ca1c807c5119a40b7",
+      "sha256": "bdc6c41a036b7bce04abd384c787ec01a3058cc081f7f05093a81c87a415c0ee",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/indicator-chart",
       "title": "Индикатор ![](../../_assets/datalens/indicator.svg) в Yandex DataLens"
     },
@@ -24213,7 +24289,7 @@
         "что-можно-увидеть"
       ],
       "asset_count": 17,
-      "bytes": 20085,
+      "bytes": 20083,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -24221,12 +24297,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:47:26.687415Z",
+      "fetched_at": "2026-08-03T04:29:37.365063Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 48,
       "local_path": "raw/md/datalens/visualization-ref/line-chart.md",
       "mirror_path": "datalens/visualization-ref/line-chart.md",
@@ -24236,7 +24312,7 @@
         "visualization-ref",
         "line-chart"
       ],
-      "sha256": "d659747f1e7c18432259cbc247e0af5f19cf5f182fada7c7a8367216fd4875f9",
+      "sha256": "f2f06b5a2bc76b2c3b8b28b4d1ed1aafdf96fc7c8d2e8e4b8d717c0ff907beb0",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/line-chart",
       "title": "Линейная диаграмма ![](../../_assets/datalens/line.svg) в Yandex DataLens"
     },
@@ -24251,7 +24327,7 @@
         "что-нужно-знать-о-картах"
       ],
       "asset_count": 2,
-      "bytes": 4339,
+      "bytes": 4341,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -24259,12 +24335,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:47:43.320759Z",
+      "fetched_at": "2026-08-11T10:36:27.433901Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Mon, 10 Aug 2026 14:10:03 GMT",
       "link_count": 13,
       "local_path": "raw/md/datalens/visualization-ref/map-chart.md",
       "mirror_path": "datalens/visualization-ref/map-chart.md",
@@ -24274,7 +24350,7 @@
         "visualization-ref",
         "map-chart"
       ],
-      "sha256": "2ddb1e45ace4997891918ab577b9e4406de8bc6f924bb76f71976347cb83a9d5",
+      "sha256": "d7d6fb5a8e7cf2a941d5e9afafbdc8fa07396b4c01b902dca12ac771aea987c3",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/map-chart",
       "title": "Карта ![](../../_assets/datalens/heatmap.svg) в Yandex DataLens"
     },
@@ -24287,7 +24363,7 @@
         "нормированная-диаграмма-с-областями-_assets-datalens-normalized-area-svg-в-yandex-datalens"
       ],
       "asset_count": 12,
-      "bytes": 12243,
+      "bytes": 12241,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -24295,12 +24371,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:49:06.391858Z",
+      "fetched_at": "2026-08-03T04:29:56.471951Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 31,
       "local_path": "raw/md/datalens/visualization-ref/normalized-area-chart.md",
       "mirror_path": "datalens/visualization-ref/normalized-area-chart.md",
@@ -24310,7 +24386,7 @@
         "visualization-ref",
         "normalized-area-chart"
       ],
-      "sha256": "96c9a16eb247309fd97631ec92171f237d102b489dc8b47864e198771361efe7",
+      "sha256": "a910e492e0439a775fa9d0dcd3a20f213c25ed23ab3430ce417fced2702441b2",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/normalized-area-chart",
       "title": "Нормированная диаграмма с областями ![](../../_assets/datalens/normalized-area.svg) в Yandex DataLens"
     },
@@ -24323,7 +24399,7 @@
         "нормированная-линейчатая-диаграмма-_assets-datalens-normalized-horizontal-bar-svg-в-yandex-datalens"
       ],
       "asset_count": 9,
-      "bytes": 10410,
+      "bytes": 10408,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -24331,12 +24407,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:50:16.599852Z",
+      "fetched_at": "2026-08-03T04:32:33.874397Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 29,
       "local_path": "raw/md/datalens/visualization-ref/normalized-bar-chart.md",
       "mirror_path": "datalens/visualization-ref/normalized-bar-chart.md",
@@ -24346,7 +24422,7 @@
         "visualization-ref",
         "normalized-bar-chart"
       ],
-      "sha256": "e6b8f524c1fb3e580282c5d0d020a90372e9c447992875a67c9e6bf091bbaff6",
+      "sha256": "86e1f575ee16c82e18a1744f371e4c3ade42fab32f14284248da4ac4695687b1",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/normalized-bar-chart",
       "title": "Нормированная линейчатая диаграмма ![](../../_assets/datalens/normalized-horizontal-bar.svg) в Yandex DataLens"
     },
@@ -24359,7 +24435,7 @@
         "нормированная-столбчатая-диаграмма-_assets-datalens-normalized-column-svg-в-yandex-datalens"
       ],
       "asset_count": 9,
-      "bytes": 10148,
+      "bytes": 10146,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -24367,12 +24443,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:48:06.029616Z",
+      "fetched_at": "2026-08-03T04:29:38.830159Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 29,
       "local_path": "raw/md/datalens/visualization-ref/normalized-column-chart.md",
       "mirror_path": "datalens/visualization-ref/normalized-column-chart.md",
@@ -24382,7 +24458,7 @@
         "visualization-ref",
         "normalized-column-chart"
       ],
-      "sha256": "8586e2c0049bc0b47a9cce8bbc06e9995e5e5ec2b169e4bdcae1cbf609394a6f",
+      "sha256": "f9fb16602f37420770e3f012b1900907640e9d16841fde1a7df436e2e85ed41e",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/normalized-column-chart",
       "title": "Нормированная столбчатая диаграмма ![](../../_assets/datalens/normalized-column.svg) в Yandex DataLens"
     },
@@ -24395,7 +24471,7 @@
         "круговая-диаграмма-_assets-datalens-pie-svg-в-yandex-datalens"
       ],
       "asset_count": 9,
-      "bytes": 9132,
+      "bytes": 9130,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -24403,12 +24479,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:49:35.076258Z",
+      "fetched_at": "2026-08-03T04:31:55.534975Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 23,
       "local_path": "raw/md/datalens/visualization-ref/pie-chart.md",
       "mirror_path": "datalens/visualization-ref/pie-chart.md",
@@ -24418,7 +24494,7 @@
         "visualization-ref",
         "pie-chart"
       ],
-      "sha256": "2e161f00e46cd1120321b2505ac20c9b156e32eb0f73127488617ac793f290f3",
+      "sha256": "bc5b7619804b218e4abb070ea1d48569668ecfeaa8e1346c6fb249dd56970626",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/pie-chart",
       "title": "Круговая диаграмма ![](../../_assets/datalens/pie.svg) в Yandex DataLens"
     },
@@ -24445,7 +24521,7 @@
         "сводная-таблица-_assets-datalens-pivot-table-svg-в-yandex-datalens"
       ],
       "asset_count": 22,
-      "bytes": 34082,
+      "bytes": 34080,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -24453,12 +24529,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-29T17:41:37.548934Z",
+      "fetched_at": "2026-08-03T04:33:08.645233Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Wed, 29 Jul 2026 13:19:14 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 54,
       "local_path": "raw/md/datalens/visualization-ref/pivot-table-chart.md",
       "mirror_path": "datalens/visualization-ref/pivot-table-chart.md",
@@ -24468,7 +24544,7 @@
         "visualization-ref",
         "pivot-table-chart"
       ],
-      "sha256": "6446131a090a252855bff32dd57471a85c8aa4b9f66bb58fb6f4b12e1abedd20",
+      "sha256": "2c758f8f89cad191c184d4955a7f01642757838be6816a1d952885f60c925802",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/pivot-table-chart",
       "title": "Сводная таблица ![](../../_assets/datalens/pivot-table.svg) в Yandex DataLens"
     },
@@ -24482,7 +24558,7 @@
         "точечная-карта-_assets-datalens-heatmap-svg-в-yandex-datalens"
       ],
       "asset_count": 6,
-      "bytes": 7017,
+      "bytes": 7015,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -24490,12 +24566,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:49:44.134634Z",
+      "fetched_at": "2026-08-03T04:30:21.673771Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 22,
       "local_path": "raw/md/datalens/visualization-ref/point-map-chart.md",
       "mirror_path": "datalens/visualization-ref/point-map-chart.md",
@@ -24505,7 +24581,7 @@
         "visualization-ref",
         "point-map-chart"
       ],
-      "sha256": "272c1a0182c98bb327f5adf5dd9d69ffa3a0c76192381c2d694abb41ffd8ab85",
+      "sha256": "427a4e0682e10d7efc75fb1b8530a04f6c2202e04a9ab02a3d927f6b10956ca0",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/point-map-chart",
       "title": "Точечная карта ![](../../_assets/datalens/heatmap.svg) в Yandex DataLens"
     },
@@ -24518,7 +24594,7 @@
         "полилинейная-карта-_assets-datalens-polyline-map-svg-в-yandex-datalens"
       ],
       "asset_count": 7,
-      "bytes": 7628,
+      "bytes": 7626,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -24526,12 +24602,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:47:50.944455Z",
+      "fetched_at": "2026-08-03T04:31:07.648487Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 22,
       "local_path": "raw/md/datalens/visualization-ref/polyline-map-chart.md",
       "mirror_path": "datalens/visualization-ref/polyline-map-chart.md",
@@ -24541,7 +24617,7 @@
         "visualization-ref",
         "polyline-map-chart"
       ],
-      "sha256": "44e6b08ebc482c34770392d6dc187691023ed00d930699a70008ed325066c472",
+      "sha256": "52bcebcd6205d7d4345f19dab6f206edb0ddf498b95b16857172a02a568271c3",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/polyline-map-chart",
       "title": "Полилинейная карта ![](../../_assets/datalens/polyline-map.svg) в Yandex DataLens"
     },
@@ -24554,7 +24630,7 @@
         "кольцевая-диаграмма-_assets-datalens-ring-svg-в-yandex-datalens"
       ],
       "asset_count": 10,
-      "bytes": 10143,
+      "bytes": 10141,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -24562,12 +24638,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:51:43.509032Z",
+      "fetched_at": "2026-08-03T04:29:31.331606Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 27,
       "local_path": "raw/md/datalens/visualization-ref/ring-chart.md",
       "mirror_path": "datalens/visualization-ref/ring-chart.md",
@@ -24577,7 +24653,7 @@
         "visualization-ref",
         "ring-chart"
       ],
-      "sha256": "2112083d94abebb68cb6678e434f0de6c4da1eb9eb513d24f9448d70df6af761",
+      "sha256": "e02753ffeb2d2be34307af1584c1fbc44b6569a1e153c55fd7aa37e082b602b6",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/ring-chart",
       "title": "Кольцевая диаграмма ![](../../_assets/datalens/ring.svg) в Yandex DataLens"
     },
@@ -24592,7 +24668,7 @@
         "точечная-диаграмма-_assets-datalens-scatter-chart-svg-в-yandex-datalens"
       ],
       "asset_count": 9,
-      "bytes": 11606,
+      "bytes": 11604,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -24600,12 +24676,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:52:34.741198Z",
+      "fetched_at": "2026-08-03T04:33:26.720643Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 26,
       "local_path": "raw/md/datalens/visualization-ref/scatter-chart.md",
       "mirror_path": "datalens/visualization-ref/scatter-chart.md",
@@ -24615,7 +24691,7 @@
         "visualization-ref",
         "scatter-chart"
       ],
-      "sha256": "8c1e36c0dfd8a748cb5d80f31cd35782954b9a45ad472d84a251d813353049cc",
+      "sha256": "94efd79b0b44aa0b9b0d4271d1366e11735ecd1256cd03c15e3e259c1b19d593",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/scatter-chart",
       "title": "Точечная диаграмма ![](../../_assets/datalens/scatter-chart.svg) в Yandex DataLens"
     },
@@ -24632,7 +24708,7 @@
         "таблица-_assets-datalens-table-chart-svg-в-yandex-datalens"
       ],
       "asset_count": 25,
-      "bytes": 29874,
+      "bytes": 29872,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -24640,12 +24716,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-29T17:42:13.361016Z",
+      "fetched_at": "2026-08-03T04:32:37.511110Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Wed, 29 Jul 2026 13:19:14 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 60,
       "local_path": "raw/md/datalens/visualization-ref/table-chart.md",
       "mirror_path": "datalens/visualization-ref/table-chart.md",
@@ -24655,7 +24731,7 @@
         "visualization-ref",
         "table-chart"
       ],
-      "sha256": "766d665324ec6cc1493d0724e950df8be8ea3c1d45ec8cbc757e1a9f1cfba230",
+      "sha256": "3edbf97f628e4dbd0590e4c4331d78469729f81fe4d36f532962db27e3b69bf0",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/table-chart",
       "title": "Таблица ![](../../_assets/datalens/table-chart.svg) в Yandex DataLens"
     },
@@ -24668,7 +24744,7 @@
         "древовидная-диаграмма-_assets-datalens-treemap-svg-в-yandex-datalens"
       ],
       "asset_count": 5,
-      "bytes": 6627,
+      "bytes": 6625,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/domain-registries.json"
@@ -24676,12 +24752,12 @@
         "reason": "visualization-ref page feeds a machine registry.",
         "status": "compiled_registry"
       },
-      "fetched_at": "2026-07-07T06:50:28.424690Z",
+      "fetched_at": "2026-08-03T04:30:04.598744Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 16,
       "local_path": "raw/md/datalens/visualization-ref/tree-chart.md",
       "mirror_path": "datalens/visualization-ref/tree-chart.md",
@@ -24691,7 +24767,7 @@
         "visualization-ref",
         "tree-chart"
       ],
-      "sha256": "266a7027f8d25c267892668cffadc474c75f9f64b35584adaa439baca4238b86",
+      "sha256": "f0b035fafabae3297c601e2a82678d5454d17c3237cd1bd947f8b9b0d79645fb",
       "source_url": "https://yandex.cloud/ru/docs/datalens/visualization-ref/tree-chart",
       "title": "Древовидная диаграмма ![](../../_assets/datalens/treemap.svg) в Yandex DataLens"
     },
@@ -24707,7 +24783,7 @@
         "работа-с-коллекцией-yandex-datalens"
       ],
       "asset_count": 7,
-      "bytes": 7802,
+      "bytes": 7806,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -24715,12 +24791,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:49:43.143323Z",
+      "fetched_at": "2026-08-03T04:32:41.862615Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
       "link_count": 20,
       "local_path": "raw/md/datalens/workbooks-collections/collections-operations.md",
       "mirror_path": "datalens/workbooks-collections/collections-operations.md",
@@ -24730,7 +24806,7 @@
         "workbooks-collections",
         "collections-operations"
       ],
-      "sha256": "c1046b559faa9d96a93ee685553f97b4af5f549e8778688bae4978c1440b8b02",
+      "sha256": "284ae5578b82cb60fcf59787c3478039b4d2c784edee015502be04211ec8a2c8",
       "source_url": "https://yandex.cloud/ru/docs/datalens/workbooks-collections/collections-operations",
       "title": "Работа с коллекцией Yandex DataLens"
     },
@@ -24838,7 +24914,7 @@
         "воркбуки-и-коллекции-yandex-datalens"
       ],
       "asset_count": 4,
-      "bytes": 4622,
+      "bytes": 4674,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -24846,13 +24922,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-27T10:49:54.272538Z",
+      "fetched_at": "2026-08-03T04:28:43.943921Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Thu, 23 Jul 2026 14:46:49 GMT",
-      "link_count": 19,
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
+      "link_count": 20,
       "local_path": "raw/md/datalens/workbooks-collections/index.md",
       "mirror_path": "datalens/workbooks-collections/index.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/workbooks-collections/index.md",
@@ -24860,7 +24936,7 @@
       "section_path": [
         "workbooks-collections"
       ],
-      "sha256": "744467dbfeded9aba72ee7bba81577fcb2dcd1182d145f967dd4e8fce9726c3b",
+      "sha256": "02f7a3a3be5590f990ea08ff3a5fa66e5b13297c1d6921c768dd56e7e897ea45",
       "source_url": "https://yandex.cloud/ru/docs/datalens/workbooks-collections/",
       "title": "Воркбуки и коллекции Yandex DataLens"
     },
@@ -24873,7 +24949,7 @@
         "миграция-объектов-в-воркбуки-из-папок"
       ],
       "asset_count": 3,
-      "bytes": 6842,
+      "bytes": 6880,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -24881,13 +24957,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-07-07T06:48:54.277571Z",
+      "fetched_at": "2026-08-03T04:32:38.330132Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Mon, 06 Jul 2026 13:44:15 GMT",
-      "link_count": 23,
+      "last_modified": "Fri, 31 Jul 2026 13:17:32 GMT",
+      "link_count": 24,
       "local_path": "raw/md/datalens/workbooks-collections/migrations.md",
       "mirror_path": "datalens/workbooks-collections/migrations.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/workbooks-collections/migrations.md",
@@ -24896,7 +24972,7 @@
         "workbooks-collections",
         "migrations"
       ],
-      "sha256": "c222618a9726df8094100444401e1f3863b18c75397a0b727c540e40e3ce6165",
+      "sha256": "7d2f4b13166555e7f50eca8c67c684eebb1ee2ad735c4c6522e333c7dbe17b88",
       "source_url": "https://yandex.cloud/ru/docs/datalens/workbooks-collections/migrations",
       "title": "Миграция объектов в воркбуки из папок"
     },
@@ -24943,5 +25019,5 @@
       "title": "Работа с воркбуком Yandex DataLens"
     }
   ],
-  "schema_version": "2026-06-25.semantic_authoring.v2"
+  "schema_id": "semantic_authoring"
 }

@@ -1,0 +1,21 @@
+/**
+ * Готовые значения параметров. Не меняйте их при обычном копировании рецепта.
+ * Route: editor_advanced. Технические имена параметров и aliases оставлены без перевода.
+ */
+module.exports = {
+  "comparisonMethod": [
+    "previous_period"
+  ],
+  "dateFrom": [
+    "2026-01-01"
+  ],
+  "dateTo": [
+    "2026-01-30"
+  ],
+  "theme": [
+    "light"
+  ],
+  "timeStep": [
+    "auto"
+  ]
+};

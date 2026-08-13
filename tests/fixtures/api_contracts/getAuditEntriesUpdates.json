@@ -27,6 +27,6 @@
   ],
   "response_schema_hash": "8243ee821d10eeca7c30beb8505fab34a71c0ed294e17d4779298d6cc3343393",
   "response_schema_ref": "GetAuditEntriesUpdatesResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "supported_tool"
 }

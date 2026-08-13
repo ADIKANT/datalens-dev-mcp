@@ -28,8 +28,8 @@ RUNTIME_ERROR_MARKERS = [
     "Data fetching error",
 ]
 
-BROWSER_QA_PLAN_SCHEMA_VERSION = "datalens.browser-qa-plan.v4"
-BROWSER_QA_RESULT_SCHEMA_VERSION = "datalens.browser-qa-result.v4"
+BROWSER_QA_PLAN_SCHEMA_ID = "datalens.browser-qa-plan"
+BROWSER_QA_RESULT_SCHEMA_ID = "datalens.browser-qa-result"
 BROWSER_QA_MAX_CALLS = 3
 BROWSER_QA_VIEWPORTS = (
     {"id": "narrow", "width": 720, "height": 900},
@@ -227,7 +227,7 @@ def build_browser_qa_plan(
     evaluate_source = _build_browser_qa_evaluate_source(evaluation_input)
     artifact_stem = _safe_artifact_stem(normalized_dashboard_id)
     plan: dict[str, Any] = {
-        "schema_version": BROWSER_QA_PLAN_SCHEMA_VERSION,
+        "schema_id": BROWSER_QA_PLAN_SCHEMA_ID,
         "target": {
             "dashboard_id": normalized_dashboard_id,
             "dashboard_url": str(dashboard_url or "").strip(),
@@ -291,7 +291,7 @@ def build_browser_qa_plan(
             "assertions": [dict(assertion) for assertion in BROWSER_QA_ASSERTIONS],
         },
         "expected_result": {
-            "schema_version": BROWSER_QA_RESULT_SCHEMA_VERSION,
+            "schema_id": BROWSER_QA_RESULT_SCHEMA_ID,
             "required_fields": ["viewport", "passed", "assertions", "observations"],
             "assertion_ids": [assertion["id"] for assertion in BROWSER_QA_ASSERTIONS],
             "pass_condition": "all_assertions_true",
@@ -325,8 +325,8 @@ def validate_browser_qa_plan(plan: dict[str, Any]) -> dict[str, Any]:
     """Validate the deterministic browser plan without executing it."""
 
     issues: list[str] = []
-    if not isinstance(plan, dict) or plan.get("schema_version") != BROWSER_QA_PLAN_SCHEMA_VERSION:
-        return {"ok": False, "issues": ["invalid_schema_version"]}
+    if not isinstance(plan, dict) or plan.get("schema_id") != BROWSER_QA_PLAN_SCHEMA_ID:
+        return {"ok": False, "issues": ["invalid_schema_id"]}
 
     viewports = plan.get("viewports")
     expected_viewports = [dict(viewport) for viewport in BROWSER_QA_VIEWPORTS]
@@ -1116,7 +1116,7 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
     lazy_full_scroll_contract: objectRows.every((row) => row.found && row.visible && row.nonempty)
   };
   return {
-    schema_version: "datalens.browser-qa-result.v4",
+    schema_id: "datalens.browser-qa-result",
     viewport: {width: window.innerWidth, height: window.innerHeight},
     passed: Object.values(assertions).every(Boolean),
     assertions,
@@ -1501,7 +1501,7 @@ def _normalize_composition_binding(value: dict[str, Any]) -> dict[str, Any]:
                 and row["browser_proof"].get("passed") is True
             )
     return {
-        "schema_version": str(value.get("schema_version") or ""),
+        "schema_id": str(value.get("schema_id") or ""),
         "sha256": str(value.get("sha256") or ""),
         "rows": rows,
         "four_kpi_override_verified": four_kpi_override_verified,
@@ -1559,7 +1559,7 @@ def browser_qa_evidence(
     elif normalized in {"browser_auth_required", "browser_tool_timeout", "browser_not_authorized_by_user", "not_checked"}:
         blocked_reasons.append(normalized)
     return {
-        "schema_version": "datalens.browser-runtime-qa.v1",
+        "schema_id": "datalens.browser-runtime-qa",
         "status": normalized,
         "proof_level": "browser_rendered" if normalized in {"browser_pass", "browser_fail"} else "source_static",
         "browser_verified": normalized == "browser_pass",
@@ -1604,8 +1604,8 @@ def build_qa_attestation(
         scroll_position = str(result.get("scroll_position") or "")
         if isinstance(width, int) and not isinstance(width, bool):
             coverage.add((width, tab_id, scroll_position))
-        if result.get("schema_version") != BROWSER_QA_RESULT_SCHEMA_VERSION:
-            result_issues.append(f"viewport_results[{index}] has an unsupported schema_version")
+        if result.get("schema_id") != BROWSER_QA_RESULT_SCHEMA_ID:
+            result_issues.append(f"viewport_results[{index}] has an unsupported schema_id")
         if result.get("passed") is not True:
             result_issues.append(f"viewport_results[{index}] did not pass every assertion")
         assertions = result.get("assertions") if isinstance(result.get("assertions"), dict) else {}
@@ -1671,7 +1671,7 @@ def build_qa_attestation(
     if not paths or len(artifact_hashes) != len(paths):
         issues.append("browser QA requires readable screenshot or evaluation artifacts")
     attestation: dict[str, Any] = {
-        "schema_version": "2026-08-06.qa_attestation.v1",
+        "schema_id": "qa_attestation",
         "ok": not issues,
         "status": "passed" if not issues else "failed",
         "dashboard_id": normalized_dashboard_id,
@@ -1723,8 +1723,8 @@ def validate_qa_attestation_binding(
     if not isinstance(qa, dict) or not qa:
         return ["qa_attestation is required"]
     issues: list[str] = []
-    if qa.get("schema_version") != "2026-08-06.qa_attestation.v1":
-        issues.append("qa_attestation schema_version is unsupported")
+    if qa.get("schema_id") != "qa_attestation":
+        issues.append("qa_attestation schema_id is unsupported")
     if qa.get("ok") is not True or qa.get("status") != "passed":
         issues.append("qa_attestation must have status=passed")
     expected = {
@@ -1846,7 +1846,7 @@ def build_runtime_publish_gate(
     if normalized == "not_run" and blocked_reason:
         normalized = "blocked"
     return {
-        "schema_version": "datalens.runtime-publish-gate.delta-v6",
+        "schema_id": "datalens.runtime-publish-gate",
         "status": normalized,
         "dashboard_id": dashboard_id,
         "tab_id": tab_id,

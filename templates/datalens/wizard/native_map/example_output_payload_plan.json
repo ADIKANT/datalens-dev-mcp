@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "schema_version": "2026-06-04.wizard_payload_plan.v2",
+  "schema_id": "wizard_payload_plan",
   "template_name": "native_map",
   "widget_id": "region_map",
   "route": "wizard_native",

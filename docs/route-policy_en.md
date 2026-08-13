@@ -2,7 +2,7 @@
 
 [Русский](route-policy.md) · **English** · [Tools](tools_en.md) · [Sources](sources_en.md)
 
-Official model: [Wizard, QL, and Editor](https://yandex.cloud/ru/docs/datalens/concepts/chart/). The server's versioned rules are in `config/route_selection_policy_v5.json`.
+Official model: [Wizard, QL, and Editor](https://yandex.cloud/ru/docs/datalens/concepts/chart/). The server's canonical rules are in `config/route_selection_policy.json`.
 
 ## Selection rules
 
@@ -29,9 +29,14 @@ The decision contains route, `visualization_id`, and an explanation.
 | Pie and donut | `pie`, `donut` |
 | Scatter and bubble | `scatter` |
 | Treemap | `treemap` |
+| Funnel | `funnel` |
 | Map | `geolayer` |
 
-A bubble chart requires a size field and a map requires verified geo data. `wizard_map_native` is normalized to `wizard_native` with `visualization_id=geolayer`.
+For Funnel, a category and one or more measures bind to the native `measures`
+section; color, sorting, labels, and filters are supported. A bubble chart
+requires a size field and a map requires verified geo data.
+`wizard_map_native` is normalized to `wizard_native` with
+`visualization_id=geolayer`.
 
 ## Editor
 
@@ -43,15 +48,15 @@ A bubble chart requires a size field and a map requires verified geo data. `wiza
 Before save, an Editor object passes `dl_validate_editor_runtime_contract` against official [tabs](https://yandex.cloud/ru/docs/datalens/charts/editor/tabs) and [methods](https://yandex.cloud/ru/docs/datalens/charts/editor/methods).
 
 Create and full-redesign calls without an explicit profile use
-`standard_dashboard_v1`; `strict_dashboard`, `standard_dashboard`, and
+`standard_dashboard`; `strict_dashboard`, `standard_dashboard`, and
 `registered_dashboard` are aliases. The profile fixes the canonical route
 first: standard KPI, table, and chart creation stays on Wizard. It applies
-For a selected Editor object, the same `standard_dashboard_v1` profile applies
+For a selected Editor object, the same `standard_dashboard` profile applies
 the current protected renderer only to an explicitly requested Editor object,
 a verified capability gap, or preserved Editor technology during an update.
 
 There is one executable built-in contract. Historical profile names are input
-aliases that immediately normalize to `standard_dashboard_v1`; they cannot
+aliases that immediately normalize to `standard_dashboard`; they cannot
 select historical assets or rules. A saved Editor object stays Editor, but its
 bundle is regenerated with the current contract. The profile returns SHA-256
 identities for its template set, selected assets, render
@@ -78,7 +83,7 @@ An update takes technology, visualization, unknown fields, and revision from cur
 
 ## Composition and title contract
 
-Renderer Visual Spec v5 assigns title ownership through `title_mode`: an Editor
+Renderer Visual Spec assigns title ownership through `title_mode`: an Editor
 chart uses `embedded_title`, a KPI uses `content_label`, content named only by
 its dashboard tab uses `tab_only`, Wizard/native tables use `native_title`, and
 an inner tab switcher uses `tab_strip`. Native and runtime title ownership may

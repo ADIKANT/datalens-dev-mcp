@@ -6,7 +6,7 @@ from typing import Any
 from datalens_dev_mcp.editor.render_tokens import load_visual_style_tokens
 
 
-RENDERER_VISUAL_INTENT_V1 = "2026-08-06.renderer_visual_intent.v1"
+RENDERER_VISUAL_INTENT_ID = "renderer_visual_intent"
 
 
 @dataclass(frozen=True)
@@ -33,7 +33,7 @@ class RendererVisualSpec:
     advanced_runtime_budget: dict[str, Any]
     style_tokens: dict[str, Any] = field(default_factory=dict)
     runtime_constraints: dict[str, Any] = field(default_factory=dict)
-    schema_version: str = RENDERER_VISUAL_INTENT_V1
+    schema_id: str = RENDERER_VISUAL_INTENT_ID
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -102,7 +102,7 @@ def build_renderer_visual_spec(
         gridlines={
             "show": False,
             "style": "none",
-            "reason": "delta_v6_default_off; enable only when numeric lookup is explicitly required",
+            "reason": "default_off; enable only when numeric lookup is explicitly required",
         },
         tooltip={
             "include_metric_definition": True,

@@ -32,10 +32,10 @@ class RequirementsToDashboardBlueprintsTests(unittest.TestCase):
             self.assertTrue(ingest["ok"])
             self.assertEqual(ingest["dashboard_blueprint"]["dashboard_type"], "experiment_report")
             self.assertEqual(
-                ingest["dashboard_blueprint"]["schema_version"],
-                "2026-07-13.dashboard_blueprint_selection.v2",
+                ingest["dashboard_blueprint"]["schema_id"],
+                "dashboard_blueprint_selection",
             )
-            self.assertEqual(plan["schema_version"], "2026-07-13.requirements_dashboard_blueprint_plan.v2")
+            self.assertEqual(plan["schema_id"], "requirements_dashboard_blueprint_plan")
             self.assertEqual(plan["dashboard_type"], "experiment_report")
             self.assertTrue(plan["chart_plan"])
             self.assertIn("conversion rate", (root / "metrics.md").read_text(encoding="utf-8"))

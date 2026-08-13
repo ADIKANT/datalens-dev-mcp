@@ -1,6 +1,6 @@
 # Модель выбора операции DataLens
 
-Основное руководство: [`docs/route-policy.md`](../route-policy.md). Правила хранятся в `config/route_selection_policy_v5.json`.
+Основное руководство: [`docs/route-policy.md`](../route-policy.md). Правила хранятся в `config/route_selection_policy.json`.
 
 Сначала сервер определяет вид операции, затем технологию чарта.
 

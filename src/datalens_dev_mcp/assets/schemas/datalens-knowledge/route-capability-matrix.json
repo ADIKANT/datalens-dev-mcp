@@ -197,12 +197,12 @@
       "update_supported": false
     }
   ],
-  "schema_version": "2026-06-25.semantic_authoring.v2",
+  "schema_id": "semantic_authoring",
   "tool_budget": {
     "all_tool_count": 93,
-    "all_tools_list_bytes": 49512,
+    "all_tools_list_bytes": 49500,
     "default_tool_count": 39,
-    "default_tools_list_bytes": 24492,
-    "default_tools_list_chars": 24492
+    "default_tools_list_bytes": 24487,
+    "default_tools_list_chars": 24487
   }
 }

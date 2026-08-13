@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-06-04.datalens_operation_decision.v2",
+  "schema_id": "datalens_operation_decision",
   "operation_kind": "advanced_editor_chart",
   "route": "editor_table",
   "family": "table_node",

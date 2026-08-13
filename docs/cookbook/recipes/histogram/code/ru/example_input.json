@@ -1,0 +1,62 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "label": "0–10",
+      "max": 0,
+      "median": 0,
+      "min": 0,
+      "q1": 0,
+      "q3": 0,
+      "size": 1,
+      "value": 8,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "label": "10–20",
+      "max": 0,
+      "median": 0,
+      "min": 0,
+      "q1": 0,
+      "q3": 0,
+      "size": 1,
+      "value": 21,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "label": "20–30",
+      "max": 0,
+      "median": 0,
+      "min": 0,
+      "q1": 0,
+      "q3": 0,
+      "size": 1,
+      "value": 34,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "label": "30–40",
+      "max": 0,
+      "median": 0,
+      "min": 0,
+      "q1": 0,
+      "q3": 0,
+      "size": 1,
+      "value": 17,
+      "x": 0,
+      "y": 0
+    }
+  ]
+}

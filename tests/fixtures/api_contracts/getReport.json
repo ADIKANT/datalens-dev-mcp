@@ -11,9 +11,17 @@
   "request_schema_hash": "17fb71e89fa26df00e8c12fe692d380f47b40d48dc7c85864425ce11e9367dc7",
   "request_schema_ref": "GetReportV1Args",
   "response_payload": {},
-  "response_schema_closure_hash": "f8eac298283957582bc606649dea9a037e338d29a11c9fe80799f4144867af12",
+  "response_schema_closure_hash": "c89521d0bb9f9c96304fa467520d5481fbcc843d6ec73a619e7af99c7f97e993",
   "response_schema_closure_refs": [
-    "DashboardMeta",
+    "DashColorByTheme",
+    "DashConnection",
+    "DashControlElement",
+    "DashControlSourceDataset",
+    "DashControlSourceExternal",
+    "DashControlSourceManual",
+    "DashLayoutItem",
+    "DashMeta",
+    "DashStringDefaultValue",
     "EntryAnnotation",
     "EntryPermissions",
     "GetReportV1Result",
@@ -22,6 +30,6 @@
   ],
   "response_schema_hash": "a659dd5bc37a4160dd06a69b2f220d89e2e3bd7b0a72fc666761430b145845ed",
   "response_schema_ref": "GetReportV1Result",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "supported_tool"
 }

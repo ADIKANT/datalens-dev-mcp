@@ -46,7 +46,7 @@ class SourceAvailabilityOrchestratorTests(unittest.TestCase):
         from datalens_dev_mcp.pipeline.source_availability import validate_source_availability_consumers
 
         matrix = {
-            "schema_version": "datalens.delta_v7.source_availability_consumer_matrix.v1",
+            "schema_id": "datalens.source_availability_consumer_matrix",
             "sources": [
                 {
                     "source_key": "prod_optional_events",

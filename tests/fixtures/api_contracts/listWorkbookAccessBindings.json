@@ -11,16 +11,14 @@
   "request_schema_hash": "ab1c08f33d876eba1f46b1e3798eb6382a818c93eb7aa315577c186f01d77d79",
   "request_schema_ref": "ListWorkbookAccessBindingsArgs",
   "response_payload": {},
-  "response_schema_closure_hash": "ba8c373da0621f11f163ddad8e72f74aea5ec8a29941683e721aec9d9d51bfd2",
+  "response_schema_closure_hash": "4fca89793caf0561c12fe655e750963f3a3f0aaf351dde2c35d34ae0bb471ddd",
   "response_schema_closure_refs": [
     "IamAccessBinding",
-    "IamAccessBindingSubject",
-    "IamResourceSchema",
     "IamSubjectWithBindings",
     "ListIamAccessBindingsResult"
   ],
   "response_schema_hash": "e2d96a42e8d60b4407e7a02076dc64551ec12249f74eadcc8d8e1c462b83df6d",
   "response_schema_ref": "ListIamAccessBindingsResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "supported_tool"
 }

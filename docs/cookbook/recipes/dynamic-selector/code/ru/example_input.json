@@ -1,0 +1,20 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "segment": []
+  },
+  "rows": [
+    {
+      "title": "Сегмент A",
+      "value": "segment_a"
+    },
+    {
+      "title": "Сегмент B",
+      "value": "segment_b"
+    }
+  ]
+}

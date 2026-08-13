@@ -1,0 +1,44 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "bucket": "2026-01-01",
+      "metric": "Создано",
+      "value": 42
+    },
+    {
+      "bucket": "2026-01-01",
+      "metric": "Завершено",
+      "value": 36
+    },
+    {
+      "bucket": "2026-01-02",
+      "metric": "Создано",
+      "value": 48
+    },
+    {
+      "bucket": "2026-01-02",
+      "metric": "Завершено",
+      "value": 41
+    },
+    {
+      "bucket": "2026-01-03",
+      "metric": "Создано",
+      "value": 51
+    },
+    {
+      "bucket": "2026-01-03",
+      "metric": "Завершено",
+      "value": 47
+    }
+  ]
+}

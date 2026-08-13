@@ -1,13 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.com/datalens-dev-mcp/schemas/dashboard-composition.schema.json",
-  "title": "Dashboard composition v2",
+  "title": "Dashboard composition",
   "type": "object",
   "additionalProperties": true,
-  "required": ["schema_version", "version", "operation", "dashboard_id", "dashboard_title", "dashboard_internal_name", "workbook_id", "grid_columns", "defaults", "tabs", "mounts", "payload_skeleton", "payload_skeleton_sha256", "sha256"],
+  "required": ["schema_id", "operation", "dashboard_id", "dashboard_title", "dashboard_internal_name", "workbook_id", "grid_columns", "defaults", "tabs", "mounts", "payload_skeleton", "payload_skeleton_sha256", "sha256"],
   "properties": {
-    "schema_version": {"const": "2026-08-06.dashboard_composition.v2"},
-    "version": {"const": 2},
+    "schema_id": {"const": "dashboard_composition"},
     "operation": {"enum": ["create", "update"]},
     "dashboard_id": {"type": "string", "minLength": 1},
     "dashboard_title": {"type": "string", "minLength": 1},

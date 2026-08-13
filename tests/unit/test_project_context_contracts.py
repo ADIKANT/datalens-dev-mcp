@@ -25,7 +25,7 @@ class ProjectContextContractTests(unittest.TestCase):
             metadata_artifact.write_text('{"ok":true}\n', encoding="utf-8")
             metadata_hash = hashlib.sha256(metadata_artifact.read_bytes()).hexdigest()
             context_ref = {
-                "schema_version": "project_context_ref.v1",
+                "schema_id": "project_context_ref",
                 "workspace_root": str(root),
                 "workspace_id": "fixture",
                 "context_id": "ctx_fixture",
@@ -34,7 +34,7 @@ class ProjectContextContractTests(unittest.TestCase):
                 "issued_at": "2026-07-14T00:00:00Z",
             }
             metadata_ref = {
-                "schema_version": "evidence_ref.v1",
+                "schema_id": "evidence_ref",
                 "producer": "metadata-fetch",
                 "workspace_root": str(root),
                 "run_id": "metadata_fixture",
@@ -65,7 +65,7 @@ class ProjectContextContractTests(unittest.TestCase):
             self.assertEqual(body["consumed_evidence"][0]["sha256"], metadata_hash)
             produced = body["evidence_refs"][0]
             produced_path = root / produced["artifact_path"]
-            self.assertEqual(produced["schema_version"], "evidence_ref.v1")
+            self.assertEqual(produced["schema_id"], "evidence_ref")
             self.assertEqual(produced["producer"], "datalens-dev-mcp")
             self.assertEqual(produced["sha256"], hashlib.sha256(produced_path.read_bytes()).hexdigest())
             self.assertTrue(body["suggested_records"])

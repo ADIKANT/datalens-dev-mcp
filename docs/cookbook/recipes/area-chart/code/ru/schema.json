@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "additionalProperties": true,
+      "description": "Ссылки DataLens Editor; меняйте placeholders.",
+      "type": "object"
+    },
+    "params": {
+      "additionalProperties": {
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "rows": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "bucket": {
+            "description": "Начало отображаемого временного интервала после группировки — например дня, недели или месяца. Значения должны сортироваться по времени.",
+            "examples": [
+              "2026-01-01"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "description": "Числовое значение отметки",
+            "examples": [
+              42
+            ],
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "bucket"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "rows",
+    "meta",
+    "params"
+  ],
+  "title": "График с заливкой",
+  "type": "object"
+}

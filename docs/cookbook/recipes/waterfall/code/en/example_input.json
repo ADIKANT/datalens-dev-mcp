@@ -1,0 +1,38 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "group": "Step",
+      "label": "Start",
+      "target": 0,
+      "value": 80
+    },
+    {
+      "group": "Step",
+      "label": "Growth",
+      "target": 0,
+      "value": 24
+    },
+    {
+      "group": "Step",
+      "label": "Reduction",
+      "target": 0,
+      "value": -17
+    },
+    {
+      "group": "Step",
+      "label": "Adjustment",
+      "target": 0,
+      "value": 9
+    }
+  ]
+}

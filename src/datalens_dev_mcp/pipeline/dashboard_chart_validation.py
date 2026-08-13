@@ -65,7 +65,7 @@ def build_dashboard_chart_validation(
         if result["render_status"] == "browser_auth_required"
     )
     return {
-        "schema_version": "datalens.dashboard-chart-validation.v1",
+        "schema_id": "datalens.dashboard-chart-validation",
         "dashboard_id": dashboard_id,
         "workbook_id": workbook_id,
         "branch": branch,

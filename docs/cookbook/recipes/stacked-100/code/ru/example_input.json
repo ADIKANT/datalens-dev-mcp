@@ -1,0 +1,32 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "group": "Все",
+      "label": "Основное",
+      "target": 0,
+      "value": 54
+    },
+    {
+      "group": "Все",
+      "label": "Дополнительное",
+      "target": 0,
+      "value": 31
+    },
+    {
+      "group": "Все",
+      "label": "Прочее",
+      "target": 0,
+      "value": 15
+    }
+  ]
+}

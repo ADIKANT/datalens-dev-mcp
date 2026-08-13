@@ -10,7 +10,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-POLICY_PATH = ROOT / "config" / "route_selection_policy_v5.json"
+POLICY_PATH = ROOT / "config" / "route_selection_policy.json"
 MATRIX_PATH = ROOT / "config" / "datalens_chart_param_matrix.json"
 CHART_ROUTING_PATH = ROOT / "config" / "datalens_chart_routing.json"
 ROUTING_MODEL_PATH = ROOT / "config" / "datalens_routing_model.json"
@@ -40,8 +40,8 @@ def _expected_matrix(policy: dict[str, Any]) -> dict[str, Any]:
     matrix = deepcopy(_read(MATRIX_PATH))
     mapping = _family_visualizations(policy)
     gaps = policy.get("js_capability_gaps") or {}
-    matrix["schema_version"] = "2026-07-15.datalens_chart_param_matrix.public.v1"
-    matrix["route_policy_ref"] = "config/route_selection_policy_v5.json"
+    matrix["schema_id"] = "datalens_chart_param_matrix.public"
+    matrix["route_policy_ref"] = "config/route_selection_policy.json"
     matrix["allowed_creation_routes"] = [
         "wizard_native",
         "editor_advanced",
@@ -91,7 +91,7 @@ def _expected_matrix(policy: dict[str, Any]) -> dict[str, Any]:
 
 def _expected_chart_routing() -> dict[str, Any]:
     return {
-        "schema_version": "2026-07-13.chart_routing.v3",
+        "schema_id": "chart_routing",
         "creation_routes": [
             "wizard_native",
             "editor_advanced",
@@ -108,7 +108,7 @@ def _expected_chart_routing() -> dict[str, Any]:
         "source_trace": [
             "AGENTS.md",
             "docs/route-policy.md",
-            "config/route_selection_policy_v5.json",
+            "config/route_selection_policy.json",
             "config/datalens_chart_param_matrix.json",
             "OpenAPI create/update methods",
         ],
@@ -117,8 +117,8 @@ def _expected_chart_routing() -> dict[str, Any]:
 
 def _expected_routing_model() -> dict[str, Any]:
     return {
-        "schema_version": "2026-07-13.datalens_operation_routing.v3",
-        "policy_registry": "config/route_selection_policy_v5.json",
+        "schema_id": "datalens_operation_routing",
+        "policy_registry": "config/route_selection_policy.json",
         "selection_order": [
             "preserve_existing_saved_route_and_visualization",
             "explicit_user_route",
@@ -159,8 +159,8 @@ def _expected_decision_rules(policy: dict[str, Any]) -> dict[str, Any]:
     rules = deepcopy(_read(DECISION_RULES_PATH))
     mapping = _family_visualizations(policy)
     gaps = policy.get("js_capability_gaps") or {}
-    rules["schema_version"] = "2026-07-13.chart_family_rules.v2"
-    rules["route_policy_ref"] = "config/route_selection_policy_v5.json"
+    rules["schema_id"] = "chart_family_rules"
+    rules["route_policy_ref"] = "config/route_selection_policy.json"
     for rule in rules.get("rules") or []:
         preferred = str(rule.get("prefer") or "")
         if preferred == "wizard_map_native":
@@ -188,11 +188,11 @@ def _expected_golden_inventory(policy: dict[str, Any]) -> dict[str, Any]:
     inventory = deepcopy(_read(GOLDEN_INVENTORY_PATH))
     family_visualizations = _family_visualizations(policy)
     gaps = policy.get("js_capability_gaps") or {}
-    inventory["schema_version"] = "2026-07-13.golden_runtime_gallery_inventory.v2"
+    inventory["schema_id"] = "golden_runtime_gallery_inventory"
     inventory["policy_basis"] = [
         "AGENTS.md",
         "docs/route-policy.md",
-        "config/route_selection_policy_v5.json",
+        "config/route_selection_policy.json",
         "src/datalens_dev_mcp/pipeline/route_contract.py",
         "templates/datalens/wizard/wizard_template_registry.json",
     ]
@@ -348,8 +348,8 @@ def _expected_golden_inventory(policy: dict[str, Any]) -> dict[str, Any]:
 def _expected_runtime_quality(policy: dict[str, Any]) -> dict[str, Any]:
     contracts = deepcopy(_read(RUNTIME_QUALITY_PATH))
     route_policy = contracts["route_selection_policy"]
-    route_policy["version"] = policy["schema_version"]
-    route_policy["policy_artifact"] = "config/route_selection_policy_v5.json"
+    route_policy["contract_id"] = policy["schema_id"]
+    route_policy["policy_artifact"] = "config/route_selection_policy.json"
     route_policy["advanced_editor_default"] = "registered_capability_gap_or_explicit_js"
     route_policy["canonical_routes"] = {
         "standard_chart": "wizard_native",
@@ -390,8 +390,6 @@ def _source_payloads(policy: dict[str, Any]) -> dict[Path, str]:
 def _mirrors() -> dict[Path, Path]:
     return {
         POLICY_PATH: ASSET_ROOT / "config" / POLICY_PATH.name,
-        ROOT / "config/route_selection_policy_v4.json": ASSET_ROOT / "config/route_selection_policy_v4.json",
-        ROOT / "config/route_selection_policy_v3.json": ASSET_ROOT / "config/route_selection_policy_v3.json",
         MATRIX_PATH: ASSET_ROOT / "config" / MATRIX_PATH.name,
         CHART_ROUTING_PATH: ASSET_ROOT / "config" / CHART_ROUTING_PATH.name,
         ROUTING_MODEL_PATH: ASSET_ROOT / "config" / ROUTING_MODEL_PATH.name,
@@ -448,7 +446,7 @@ def main() -> int:
         for source, target in _mirrors().items():
             if not target.is_file() or source.read_bytes() != target.read_bytes():
                 issues.append(f"stale packaged mirror: {target.relative_to(ROOT)}")
-    print(json.dumps({"ok": not issues, "issues": issues, "policy": policy.get("schema_version")}, ensure_ascii=False, sort_keys=True))
+    print(json.dumps({"ok": not issues, "issues": issues, "policy": policy.get("schema_id")}, ensure_ascii=False, sort_keys=True))
     return 0 if not issues else 1
 
 

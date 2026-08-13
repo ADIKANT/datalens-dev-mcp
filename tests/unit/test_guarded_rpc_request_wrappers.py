@@ -15,7 +15,7 @@ class GuardedRpcRequestWrapperTests(unittest.TestCase):
         )
 
         self.assertTrue(request["ok"], request["blocked_reasons"])
-        self.assertEqual(request["schema_version"], "datalens.delta_v7.guarded_rpc_request.v1")
+        self.assertEqual(request["schema_id"], "datalens.guarded_rpc_request")
         self.assertEqual(request["payload"]["datasetId"], "dataset_1")
         self.assertIn("dataset", request["payload"]["data"])
         self.assertEqual(request["mode"], "validate")

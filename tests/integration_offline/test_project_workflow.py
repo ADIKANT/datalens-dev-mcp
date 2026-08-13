@@ -89,7 +89,7 @@ class ProjectWorkflowTests(unittest.TestCase):
             self.assertTrue(Path(workspace["requirements_root"]).is_dir())
             self.assertTrue(brief["chart_decisions"])
             self.assertEqual(canvas["ok"], True)
-            self.assertEqual(blueprint["schema_version"], "2026-07-13.requirements_dashboard_blueprint_plan.v2")
+            self.assertEqual(blueprint["schema_id"], "requirements_dashboard_blueprint_plan")
             self.assertTrue(blueprint["chart_plan"])
             self.assertTrue(connector_plan["ok"])
             self.assertEqual(connector_plan["method"], "createConnection")

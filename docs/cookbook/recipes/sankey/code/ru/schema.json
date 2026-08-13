@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "additionalProperties": true,
+      "description": "Ссылки DataLens Editor; меняйте placeholders.",
+      "type": "object"
+    },
+    "params": {
+      "additionalProperties": {
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "rows": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "description": "Исходный узел потока",
+            "examples": [
+              "Новый"
+            ],
+            "type": "string"
+          },
+          "target": {
+            "description": "Целевой узел потока",
+            "examples": [
+              "В работе"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "description": "Числовое значение отметки",
+            "examples": [
+              42
+            ],
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "source",
+          "target"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "rows",
+    "meta",
+    "params"
+  ],
+  "title": "Диаграмма потоков",
+  "type": "object"
+}

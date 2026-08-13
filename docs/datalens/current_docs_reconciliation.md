@@ -1,16 +1,18 @@
 # Current DataLens Docs Reconciliation
 
-Source update report: `reports/update_report.md` generated at `2026-07-29T17:38:13.358317Z`.
-Applied delta report: `reports/update_report_2026-07-29.md` generated at `2026-07-29T17:38:13.358317Z`.
+Source update report: `reports/update_report.md` generated at `2026-08-11T11:02:01.906247Z`.
+Applied delta reports:
+- `reports/update_check_delta_2026-08-03.md` generated at `2026-08-03T04:22:02.049761Z`.
+- `reports/update_check_delta_2026-08-11.md` generated at `2026-08-11T10:27:37.720053Z`.
 
 This file is a distilled policy matrix. It does not copy raw documentation pages into the repository.
 
 ## Corpus Counts
 
-- Current pages: `653`.
-- Current chunks: `5019`.
-- Changed pages: `9`.
-- New pages: `2`.
+- Current pages: `655`.
+- Current chunks: `5033`.
+- Changed-page observations across applied deltas: `105`.
+- New pages across applied deltas: `2`.
 - Removed candidates: `0`.
 - Failed page checks: `0`.
 - OpenAPI operations/paths: `95` / `95`.
@@ -18,16 +20,17 @@ This file is a distilled policy matrix. It does not copy raw documentation pages
 
 ## New Pages Covered
 
-- https://docs.yandex.cloud/ru/ru/datalens/html-pages/index.md
-- https://docs.yandex.cloud/ru/ru/datalens/html-pages/versioning.md
+- https://docs.yandex.cloud/ru/ru/datalens/release-notes/2606.md
+- https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/funnel.md
 
 ## Feature Policy Matrix
 
 | Cluster ID | Classification | MCP surface | Server decision |
 | --- | --- | --- | --- |
-| `api_versioning` | `supported` | DataLens API client version policy | Keep auto pinned to the compiled OpenAPI version; permit explicit latest only for curated read-only calls. |
-| `api_changelog_v2` | `supported` | request compiler and read-only RPC validation | Validate getEntries with v2 arrays, pageToken, and ignoreSharedEntries semantics. |
+| `api_versioning` | `supported` | DataLens API client OpenAPI contract | Use the required x-dl-api-version value from the compiled OpenAPI contract for every call. |
+| `api_changelog` | `supported` | request compiler and read-only RPC validation | Validate getEntries with arrays, pageToken, and ignoreSharedEntries semantics from the current contract. |
 | `release_notes_2605` | `read_only` | dl_reference and feature policy | Index the release note as capability context without inferring new API routes. |
+| `release_notes_2606` | `read_only` | dl_reference and feature policy | Index the release note as current capability context without inferring undocumented API writes. |
 | `html_pages_lifecycle` | `supported` | html_page lifecycle planners, Safe Apply, readback, and local sandbox validator | Use create/get/update HTML Page methods through the ordinary guarded lifecycle. |
 | `table_column_alignment` | `guarded_plan_only` | Wizard table and pivot payload planning | Preserve current per-column alignment and use only documented auto, left, center, or right values. |
 | `dashboard_margins` | `guarded_plan_only` | dashboard payload preflight and safe apply | Preserve current dashboard margin fields and allow guarded save plans; do not strip unknown style fields. |
@@ -36,7 +39,7 @@ This file is a distilled policy matrix. It does not copy raw documentation pages
 | `dashboard_background` | `guarded_plan_only` | dashboard payload preflight | Preserve dashboard background settings through safe apply. |
 | `dashboard_hide_tabs` | `guarded_plan_only` | dashboard tab update planner | Preserve hide-tabs settings and do not infer tab visibility from local templates. |
 | `dashboard_tabs` | `guarded_plan_only` | dl_plan_dashboard_tab_update | Append/replace tabs only through fresh-read guarded plans. |
-| `dashboard_title` | `guarded_plan_only` | role-based dashboard title/hint policy | Renderer Visual Spec v5 assigns one owner through `title_mode`; native and runtime headers cannot coexist. |
+| `dashboard_title` | `guarded_plan_only` | dashboard native title/hint policy | Dashboard metadata renders titles and hints except narrative Markdown widgets. |
 | `dashboard_contents` | `guarded_plan_only` | dashboard layout validation | Treat contents widgets as dashboard structure; preserve through readback and safe apply. |
 | `dashboard_ai_widget` | `unsupported_explicit` | reference and preservation only | Do not create AI widgets from MCP; preserve unknown AI widget payloads on fresh-read update. |
 | `dashboard_ai_reference_tab` | `unsupported_explicit` | reference and preservation only | Do not create AI/reference tabs from MCP; preserve existing fields when updating other tabs. |
@@ -63,6 +66,7 @@ This file is a distilled policy matrix. It does not copy raw documentation pages
 | `visual_map` | `guarded_plan_only` | wizard_native route with geolayer visualization | Maps use the Wizard-first geolayer contract and require validated geo evidence. |
 | `visual_combined` | `supported` | VisualDecisionEngine and wizard_native combined-chart route | Combined charts require explicit axis/metric compatibility. |
 | `visual_choropleth` | `guarded_plan_only` | wizard_native route with geolayer visualization | Choropleth uses the validated Wizard geolayer planning contract. |
+| `visual_funnel` | `supported` | VisualDecisionEngine and wizard_native funnel route | New funnel_snapshot charts default to Wizard visualization id funnel; existing charts keep their saved technology. |
 | `dataset_cache_invalidation` | `read_only` | dl_reference and dataset diagnostics | Cache invalidation docs are reference-only unless a validated API method is present. |
 | `dataset_data_model` | `supported` | dataset planners and guarded update validators | Dataset field/model changes are represented inside dataset payloads. |
 | `dataset_versioning_drafts` | `unsupported_explicit` | dl_reference and dataset request validation | Explain draft/current-version behavior but do not invent draft or promotion request fields. |
@@ -75,6 +79,7 @@ This file is a distilled policy matrix. It does not copy raw documentation pages
 ## Unsupported Or Reference-Only Decisions
 
 - `release_notes_2605`: StarRocks, mailings, shared objects, roles, cache invalidation, and hidden tabs do not enable guessed mutations.
+- `release_notes_2606`: New UI capabilities remain read-only context until an OpenAPI method and guarded lifecycle are verified.
 - `dashboard_ai_widget`: Unsupported route returns explicit policy instead of a guessed payload.
 - `dashboard_ai_reference_tab`: Unsupported route remains explicit and tested.
 - `workbook_access_basic`: Permission mutation is outside the MCP route contract.

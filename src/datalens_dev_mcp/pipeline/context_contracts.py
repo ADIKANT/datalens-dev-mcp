@@ -8,8 +8,8 @@ from pathlib import Path
 from typing import Any
 
 
-PROJECT_CONTEXT_SCHEMA = "project_context_ref.v1"
-EVIDENCE_SCHEMA = "evidence_ref.v1"
+PROJECT_CONTEXT_SCHEMA = "project_context_ref"
+EVIDENCE_SCHEMA = "evidence_ref"
 _SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 
 _CANONICAL_ARTIFACTS: dict[str, tuple[str, ...]] = {
@@ -34,10 +34,10 @@ def validate_project_contract_inputs(
     root = Path(project_root).expanduser().resolve()
     if context_ref is None:
         if evidence_refs:
-            raise ValueError("evidence_refs require project_context_ref.v1")
+            raise ValueError("evidence_refs require project_context_ref")
         return None, []
-    if not isinstance(context_ref, dict) or context_ref.get("schema_version") != PROJECT_CONTEXT_SCHEMA:
-        raise ValueError("context_ref must use project_context_ref.v1")
+    if not isinstance(context_ref, dict) or context_ref.get("schema_id") != PROJECT_CONTEXT_SCHEMA:
+        raise ValueError("context_ref must use project_context_ref")
     required = {"workspace_root", "workspace_id", "context_id", "index_sha256", "task", "issued_at"}
     missing = sorted(required - set(context_ref))
     if missing:
@@ -52,7 +52,7 @@ def validate_project_contract_inputs(
     for key in ("workspace_id", "context_id", "task", "issued_at"):
         if not str(context_ref[key]).strip():
             raise ValueError(f"context_ref.{key} must not be empty")
-    normalized_context = {"schema_version": PROJECT_CONTEXT_SCHEMA, **{key: context_ref[key] for key in sorted(required)}}
+    normalized_context = {"schema_id": PROJECT_CONTEXT_SCHEMA, **{key: context_ref[key] for key in sorted(required)}}
     normalized_evidence = [_validate_evidence_ref(item, workspace_root) for item in evidence_refs or []]
     return normalized_context, normalized_evidence
 
@@ -71,7 +71,7 @@ def finalize_project_contract_result(
     workspace_root = Path(str(context_ref["workspace_root"])).expanduser().resolve()
     result = dict(output)
     result["project_context"] = {
-        "schema_version": PROJECT_CONTEXT_SCHEMA,
+        "schema_id": PROJECT_CONTEXT_SCHEMA,
         "workspace_id": context_ref["workspace_id"],
         "context_id": context_ref["context_id"],
         "index_sha256": context_ref["index_sha256"],
@@ -109,8 +109,8 @@ def finalize_project_contract_result(
 
 
 def _validate_evidence_ref(evidence: Any, workspace_root: Path) -> dict[str, Any]:
-    if not isinstance(evidence, dict) or evidence.get("schema_version") != EVIDENCE_SCHEMA:
-        raise ValueError("evidence_refs items must use evidence_ref.v1")
+    if not isinstance(evidence, dict) or evidence.get("schema_id") != EVIDENCE_SCHEMA:
+        raise ValueError("evidence_refs items must use evidence_ref")
     required = {
         "producer",
         "workspace_root",
@@ -142,7 +142,7 @@ def _validate_evidence_ref(evidence: Any, workspace_root: Path) -> dict[str, Any
     digest = str(evidence["sha256"])
     if not _SHA256_RE.fullmatch(digest) or hashlib.sha256(artifact.read_bytes()).hexdigest() != digest:
         raise ValueError("evidence_ref artifact hash does not match")
-    return {"schema_version": EVIDENCE_SCHEMA, **{key: evidence[key] for key in sorted(required)}}
+    return {"schema_id": EVIDENCE_SCHEMA, **{key: evidence[key] for key in sorted(required)}}
 
 
 def _snapshot_evidence(
@@ -168,7 +168,7 @@ def _snapshot_evidence(
     relative_project = project_root.relative_to(workspace_root)
     scope = relative_project.as_posix() if relative_project.parts else project_root.name
     reference: dict[str, Any] = {
-        "schema_version": EVIDENCE_SCHEMA,
+        "schema_id": EVIDENCE_SCHEMA,
         "producer": "datalens-dev-mcp",
         "workspace_root": str(workspace_root),
         "run_id": run_id,

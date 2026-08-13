@@ -4,7 +4,7 @@
   "title": "Safe apply plan",
   "type": "object",
   "required": [
-    "schema_version",
+    "schema_id",
     "created_at",
     "project_root",
     "read_only_default",
@@ -17,7 +17,7 @@
     "actions"
   ],
   "properties": {
-    "schema_version": {"type": "string", "pattern": "safe_apply_plan"},
+    "schema_id": {"type": "string", "pattern": "safe_apply_plan"},
     "created_at": {"type": "string", "minLength": 1},
     "project_root": {"type": "string", "minLength": 1},
     "read_only_default": {"const": true},
@@ -226,9 +226,9 @@
     },
     "overlayMergeContract": {
       "type": "object",
-      "required": ["schema_version", "list_policies"],
+      "required": ["schema_id", "list_policies"],
       "properties": {
-        "schema_version": {"const": "2026-07-23.safe_apply_overlay_merge.v2"},
+        "schema_id": {"const": "safe_apply_overlay_merge"},
         "list_policies": {
           "type": "object",
           "propertyNames": {"pattern": "^/"},

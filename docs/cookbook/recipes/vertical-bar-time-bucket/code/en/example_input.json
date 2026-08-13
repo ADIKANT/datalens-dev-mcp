@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "bucket": "2026-01",
+      "value": 42
+    },
+    {
+      "bucket": "2026-02",
+      "value": 51
+    },
+    {
+      "bucket": "2026-03",
+      "value": 47
+    },
+    {
+      "bucket": "2026-04",
+      "value": 63
+    }
+  ]
+}

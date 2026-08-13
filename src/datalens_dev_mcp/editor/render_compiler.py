@@ -9,7 +9,7 @@ from typing import Any
 from datalens_dev_mcp.editor.render_contract import render_contract_to_dict
 
 
-RENDER_COMPILER_VERSION = "2026-08-06.resolved_render_contract.v5"
+RENDER_COMPILER_ID = "resolved_render_contract"
 _HTML_ROUTES = {"editor_advanced"}
 _NATIVE_TABLE_ROUTES = {"editor_table"}
 _MARKER_ROUTES = {"editor_markdown"}
@@ -134,7 +134,7 @@ def compile_bundle_render_contract(
         {
             "base_compiled_tabs_sha256": base_tabs_sha256,
             "compiled_tabs_sha256": compiled_tabs_sha256,
-            "render_compiler_version": RENDER_COMPILER_VERSION,
+            "render_compiler_id": RENDER_COMPILER_ID,
             "render_contract_profile_sha256": contract.get("profile_sha256"),
             "render_contract_composite_sha256": contract.get("composite_sha256"),
             "render_adapter_ids": list(contract.get("adapter_ids") or []),
@@ -183,8 +183,8 @@ def validate_compiled_render_contract(bundle: dict[str, Any]) -> dict[str, Any]:
         issues.append("compiled_tabs_sha256_mismatch")
     if provenance.get("render_contract_composite_sha256") != composite:
         issues.append("render_contract_provenance_mismatch")
-    if provenance.get("render_compiler_version") != RENDER_COMPILER_VERSION:
-        issues.append("render_compiler_version_mismatch")
+    if provenance.get("render_compiler_id") != RENDER_COMPILER_ID:
+        issues.append("render_compiler_id_mismatch")
     route = str(bundle.get("route") or "")
     if route in _HTML_ROUTES:
         if not composite or marker not in prepare:
@@ -288,7 +288,7 @@ def validate_compiled_render_contract(bundle: dict[str, Any]) -> dict[str, Any]:
                 issues.append(f"kpi_runtime_invariant_missing:{token}")
     return {
         "ok": not issues,
-        "schema_version": "2026-07-29.compiled_render_contract_validation.v2",
+        "schema_id": "compiled_render_contract_validation",
         "issues": issues,
         "compiled_tabs_sha256": _tabs_sha256(tabs),
         "render_contract_composite_sha256": composite,
@@ -535,7 +535,7 @@ def _contract_marker(contract: dict[str, Any]) -> str:
     return (
         "/* resolved-render-contract:"
         + str(contract.get("composite_sha256") or "")
-        + f"; compiler:{RENDER_COMPILER_VERSION} */"
+        + f"; compiler:{RENDER_COMPILER_ID} */"
     )
 
 

@@ -6,7 +6,7 @@ from typing import Any
 from datalens_dev_mcp.editor.render_contract import canonical_sha256
 
 
-TITLE_CONTRACT_SCHEMA_VERSION = "2026-08-06.dashboard_title_contract.v1"
+TITLE_CONTRACT_SCHEMA_ID = "dashboard_title_contract"
 TITLE_MODES = frozenset(
     {
         "embedded_title",
@@ -63,7 +63,7 @@ def normalize_title_contract(
 
     native_visible = mode in {"native_title", "tab_strip"}
     contract: dict[str, Any] = {
-        "schema_version": TITLE_CONTRACT_SCHEMA_VERSION,
+        "schema_id": TITLE_CONTRACT_SCHEMA_ID,
         "mode": mode,
         "route": str(route or ""),
         "family": str(family or ""),
@@ -104,7 +104,7 @@ def validate_title_contract(contract: dict[str, Any]) -> list[str]:
         title_mode=str(contract.get("mode") or ""),
     )
     issues = list(expected["issues"])
-    for key in ("schema_version", "native_metadata", "runtime", "mutual_exclusion", "sha256"):
+    for key in ("schema_id", "native_metadata", "runtime", "mutual_exclusion", "sha256"):
         if contract.get(key) != expected.get(key):
             issues.append(f"title_contract.{key} is stale or inconsistent")
     return issues

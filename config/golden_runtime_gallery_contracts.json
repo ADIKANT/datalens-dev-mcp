@@ -21,7 +21,7 @@
         "kind": "wizard_payload_plan",
         "method": "createWizardChart",
         "mode": "plan_only",
-        "sha256": "8ceee9c7539ec5ce493816e181fb427c25824d5dfb9fe86636d94e62c643091e",
+        "sha256": "56b7da16bd8a0d71989fc1e3079c32ac83b20b033d76675fb63d95c4c9529810",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -126,7 +126,7 @@
         "payload_shape_status": "COMPILED_FROM_SANITIZED_TEMPLATE",
         "required_tabs": [],
         "route": "wizard_native",
-        "schema_version": "2026-07-13.wizard_payload_plan.v3",
+        "schema_id": "wizard_payload_plan",
         "template_name": "metric"
       },
       "validators": {
@@ -167,7 +167,7 @@
         "kind": "wizard_payload_plan",
         "method": "createWizardChart",
         "mode": "plan_only",
-        "sha256": "befb5b3999ee5158b97ee914d1a61359c9eeaf6a069185f6d144c23deeda27b1",
+        "sha256": "0e3df644fc1dd410b18c6fb8cc3f7bc99d554e13b020caf0746bea688d762f99",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -272,7 +272,7 @@
         "payload_shape_status": "COMPILED_FROM_SANITIZED_TEMPLATE",
         "required_tabs": [],
         "route": "wizard_native",
-        "schema_version": "2026-07-13.wizard_payload_plan.v3",
+        "schema_id": "wizard_payload_plan",
         "template_name": "metric"
       },
       "validators": {
@@ -312,7 +312,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "61415d44bdb12ad1b166a54690298d84e4dcfaf37ac0354326517f806f37913f",
+        "sha256": "826aff7d049fe04b48ef228b824906fc3b0cfd8dbd0783d3123fac4948421977",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -426,20 +426,20 @@
           "prepare.js"
         ],
         "route": "editor_advanced",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/advanced_editor/kpi_card",
         "tab_hashes": {
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
           "params.js": "25a45521fdc5f5c1d3329d9cc63d50568669c1e5cb79aed49b920777d9b62070",
           "prepare.js": "f49f234f946ba396f4b4e1c99a9e2c4b91ca9e6575607eb0a052bc5b01f83173",
-          "sources.js": "83cd5cbe307b8f1735f5aa5d4c64aae48f4314f100a8d9cfd28085bd3283202d"
+          "sources.js": "4ea3d6bcb7bdd9150e47c87c61e21edafb9ea57a2a2243519e9625912dda21a9"
         }
       },
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -474,7 +474,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "a5f3f52e72bc174e0d271e94b4be9292fbbc9a8c887172130fdf3d481ec03f97",
+        "sha256": "971b8f21978777553053f504fc94a089bb96329b9cf07ef96e227ac5da1738aa",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -588,20 +588,20 @@
           "prepare.js"
         ],
         "route": "editor_advanced",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/advanced_editor/kpi_card",
         "tab_hashes": {
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
           "params.js": "25a45521fdc5f5c1d3329d9cc63d50568669c1e5cb79aed49b920777d9b62070",
           "prepare.js": "97942f7c661052d443a7479162033c1215f430aca8921169c62b5ccfe90ca2f0",
-          "sources.js": "83cd5cbe307b8f1735f5aa5d4c64aae48f4314f100a8d9cfd28085bd3283202d"
+          "sources.js": "4ea3d6bcb7bdd9150e47c87c61e21edafb9ea57a2a2243519e9625912dda21a9"
         }
       },
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -636,7 +636,7 @@
         "kind": "wizard_payload_plan",
         "method": "createWizardChart",
         "mode": "plan_only",
-        "sha256": "da2b84f3b11b16309a7d8a7054c8687aa8b17af0190bf8d77e7143e097db1b5d",
+        "sha256": "0d5a6964a2b6b637fb7a26ca5c3c5e4c7533db5f5c893c8e94170f808fd54116",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -740,7 +740,7 @@
         "payload_shape_status": "COMPILED_FROM_SANITIZED_TEMPLATE",
         "required_tabs": [],
         "route": "wizard_native",
-        "schema_version": "2026-07-13.wizard_payload_plan.v3",
+        "schema_id": "wizard_payload_plan",
         "template_name": "line"
       },
       "validators": {
@@ -780,7 +780,7 @@
         "kind": "wizard_payload_plan",
         "method": "createWizardChart",
         "mode": "plan_only",
-        "sha256": "6785db68ddfb8598284b345be02ebabfb969828d71e9421f51124da199055497",
+        "sha256": "fecd22c29f478e8d5cba14ce44f05395039c17ca522eeebf7e11543f08973adf",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -884,7 +884,7 @@
         "payload_shape_status": "COMPILED_FROM_SANITIZED_TEMPLATE",
         "required_tabs": [],
         "route": "wizard_native",
-        "schema_version": "2026-07-13.wizard_payload_plan.v3",
+        "schema_id": "wizard_payload_plan",
         "template_name": "line"
       },
       "validators": {
@@ -924,7 +924,7 @@
         "kind": "wizard_payload_plan",
         "method": "createWizardChart",
         "mode": "plan_only",
-        "sha256": "cd5379af225c198beeb57f1578af2dfe40ba9492f9f90dc08444ae15a0327677",
+        "sha256": "883fbf688a552fb3205256fa687fb203532cab05dc26749bb7f3fe771aedd2ce",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -1028,7 +1028,7 @@
         "payload_shape_status": "COMPILED_FROM_SANITIZED_TEMPLATE",
         "required_tabs": [],
         "route": "wizard_native",
-        "schema_version": "2026-07-13.wizard_payload_plan.v3",
+        "schema_id": "wizard_payload_plan",
         "template_name": "area"
       },
       "validators": {
@@ -1069,7 +1069,7 @@
         "kind": "wizard_payload_plan",
         "method": "createWizardChart",
         "mode": "plan_only",
-        "sha256": "72ef59c2ee952ec7a219eaebcb368385a2b0c183bf0be19b9dd48d6e75533a0f",
+        "sha256": "59697e7b3076d97ea69a86252be201b5d463acbd944ddf9fb3abf53eb863e01c",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -1173,7 +1173,7 @@
         "payload_shape_status": "COMPILED_FROM_SANITIZED_TEMPLATE",
         "required_tabs": [],
         "route": "wizard_native",
-        "schema_version": "2026-07-13.wizard_payload_plan.v3",
+        "schema_id": "wizard_payload_plan",
         "template_name": "column"
       },
       "validators": {
@@ -1214,7 +1214,7 @@
         "kind": "wizard_payload_plan",
         "method": "createWizardChart",
         "mode": "plan_only",
-        "sha256": "fe1f0f34d79c40baf276079a651be34c47ee58a72b86c6141f8483c8815711e1",
+        "sha256": "7bf9b3db34a4054811e3d4464ada420b01dc3bc4e1e86d9f1f02e4e34910d34a",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -1318,7 +1318,7 @@
         "payload_shape_status": "COMPILED_FROM_SANITIZED_TEMPLATE",
         "required_tabs": [],
         "route": "wizard_native",
-        "schema_version": "2026-07-13.wizard_payload_plan.v3",
+        "schema_id": "wizard_payload_plan",
         "template_name": "combined-chart"
       },
       "validators": {
@@ -1358,7 +1358,7 @@
         "kind": "wizard_payload_plan",
         "method": "createWizardChart",
         "mode": "plan_only",
-        "sha256": "a35b5aa6a32c147ce3659dbecbfeb144e60f39c4af566ad45956f4bdfd9d955d",
+        "sha256": "120f20118f1a49a980326eff60731405998d62482e2b7bb986e08ff0b3973c5e",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -1462,7 +1462,7 @@
         "payload_shape_status": "COMPILED_FROM_SANITIZED_TEMPLATE",
         "required_tabs": [],
         "route": "wizard_native",
-        "schema_version": "2026-07-13.wizard_payload_plan.v3",
+        "schema_id": "wizard_payload_plan",
         "template_name": "bar"
       },
       "validators": {
@@ -1503,7 +1503,7 @@
         "kind": "wizard_payload_plan",
         "method": "createWizardChart",
         "mode": "plan_only",
-        "sha256": "f268220ebb04a8225569cea8eb80ff5596e33c6c51f1071f6cdb62dbf4839961",
+        "sha256": "5ec8e359a82113b5047b566c5d0fc0980f02d2c454734da9b883768d19ca0b74",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -1607,7 +1607,7 @@
         "payload_shape_status": "COMPILED_FROM_SANITIZED_TEMPLATE",
         "required_tabs": [],
         "route": "wizard_native",
-        "schema_version": "2026-07-13.wizard_payload_plan.v3",
+        "schema_id": "wizard_payload_plan",
         "template_name": "bar"
       },
       "validators": {
@@ -1648,7 +1648,7 @@
         "kind": "wizard_payload_plan",
         "method": "createWizardChart",
         "mode": "plan_only",
-        "sha256": "68508bec33c4a113ae2e2b2702dc409b0c44fcea0e497df8729cadff2b58438c",
+        "sha256": "bc3324f719cdc19b13344d4238ec2850f65346ed961b5cd2180e6570fc0b6528",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -1752,7 +1752,7 @@
         "payload_shape_status": "COMPILED_FROM_SANITIZED_TEMPLATE",
         "required_tabs": [],
         "route": "wizard_native",
-        "schema_version": "2026-07-13.wizard_payload_plan.v3",
+        "schema_id": "wizard_payload_plan",
         "template_name": "column100p"
       },
       "validators": {
@@ -1792,7 +1792,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "40284c5fcb2022b13c5d544ba3fca086b634ce7fa09c1d6fb1a72c10ec8e7046",
+        "sha256": "91edbc5c6e4214babbc1d70b659ea79d47bb184f745940dbe952eeda7f499d18",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -1905,20 +1905,20 @@
           "prepare.js"
         ],
         "route": "editor_advanced",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/advanced_editor/category_comparison",
         "tab_hashes": {
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
           "params.js": "25a45521fdc5f5c1d3329d9cc63d50568669c1e5cb79aed49b920777d9b62070",
-          "prepare.js": "9524b71466853c35f96b18e9b51f1f00f7a2b759e6cbb0e9c7979bedfc6760af",
+          "prepare.js": "3e475715c405a2d214d3e1947917269a80680841d2d564398ead2a2987fd72bf",
           "sources.js": "87c2339eb93334905b4dd5241ca577ea80c7d2741fa9118df810153c75016ad9"
         }
       },
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -1952,7 +1952,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "a9726a657b59a0127fbac26d370bc627e02e3b930d1dbf06299dadafa6c13ea7",
+        "sha256": "5ca5ab42e7086454ac4c48e57d1a27b343e02e3ef7b890ed91cad90bacb810ef",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -2065,20 +2065,20 @@
           "prepare.js"
         ],
         "route": "editor_advanced",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/advanced_editor/category_comparison",
         "tab_hashes": {
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
           "params.js": "25a45521fdc5f5c1d3329d9cc63d50568669c1e5cb79aed49b920777d9b62070",
-          "prepare.js": "9536b63cb96b59b1b826ed8b41d1fcc25dd5b0319a0b323b3a540515e961765f",
+          "prepare.js": "2fa0d5988517113693753fa09b4aa030accb7fc21bfb38b6e351e26cbf0ed3c3",
           "sources.js": "87c2339eb93334905b4dd5241ca577ea80c7d2741fa9118df810153c75016ad9"
         }
       },
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -2112,7 +2112,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "8806f42996607adb6e3aec235eb32cf3e050746b08adf0f1d8bececb6b005584",
+        "sha256": "c4b517224cc2f2f3f960c95a4ca4d5078487542f5006cdd9833eb4858596a7dd",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -2225,20 +2225,20 @@
           "prepare.js"
         ],
         "route": "editor_advanced",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/advanced_editor/category_comparison",
         "tab_hashes": {
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
           "params.js": "25a45521fdc5f5c1d3329d9cc63d50568669c1e5cb79aed49b920777d9b62070",
-          "prepare.js": "7f96cb8ab2ee256a0fb5ed08dd124ad5edc7caed32a2346cbc4e4cba9d3353a4",
+          "prepare.js": "2bd8ec53f0a2eecbd30fbc35feb550b58f95bc43935c846d822c2c0a16030180",
           "sources.js": "87c2339eb93334905b4dd5241ca577ea80c7d2741fa9118df810153c75016ad9"
         }
       },
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -2263,20 +2263,22 @@
         "screenshot_path": null
       },
       "do_not_change_runtime_contract": [
-        "Keep one visual per object and the Advanced Editor runtime allowlist."
+        "Prefer a fresh saved seed of the same visualization id.",
+        "Never fall back to JS after a failed Wizard request."
       ],
-      "entry_type": "advanced-chart_node",
+      "entry_type": "wizard_chart",
       "family_id": "funnel_snapshot",
       "generated_payload": {
         "hash_algorithm": "sha256(canonical_json)",
-        "kind": "compiled_editor_save_payload",
-        "method": "updateEditorChart",
-        "mode": "save",
-        "sha256": "9c275e04d14a785c062986bed345556e0a00090fa7c340f2c09d520251352020",
+        "kind": "wizard_payload_plan",
+        "method": "createWizardChart",
+        "mode": "plan_only",
+        "sha256": "0bec54cdfc75f799d5d6a672381f566ac87c9131d171e4466ac32e3ea4c2b060",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
-        "Selected only by direct request or registered capability gap."
+        "Unknown visualization IDs are blocked for create.",
+        "Live verification is not claimed by canonical fixtures."
       ],
       "params_contract": {
         "contract_id": "editor_advanced_metric_params",
@@ -2304,20 +2306,20 @@
           "fresh saved-object readback"
         ],
         "revision_id": null,
-        "route": "editor_advanced",
+        "route": "wizard_native",
         "stage": "published_readback",
         "status": "unavailable"
       },
       "representative_object": {
-        "create_method": "createEditorChart",
-        "generator": "generate_editor_bundle",
-        "read_method": "getEditorChart",
+        "create_method": "createWizardChart",
+        "generator": "build_wizard_payload_plan",
+        "read_method": "getWizardChart",
         "template_family": "funnel_snapshot",
         "title": "Golden Funnel Snapshot",
-        "update_method": "updateEditorChart",
+        "update_method": "updateWizardChart",
         "widget_id": "golden_funnel_snapshot"
       },
-      "route": "editor_advanced",
+      "route": "wizard_native",
       "saved_readback": {
         "artifact_path": null,
         "must_not_claim_passed": true,
@@ -2330,7 +2332,7 @@
           "fresh saved-object readback"
         ],
         "revision_id": null,
-        "route": "editor_advanced",
+        "route": "wizard_native",
         "stage": "saved_readback",
         "status": "unavailable"
       },
@@ -2370,45 +2372,27 @@
       },
       "support_status": "supported",
       "template_contract": {
-        "observed_tabs": [
-          "controls.js",
-          "meta.json",
-          "params.js",
-          "prepare.js",
-          "sources.js"
-        ],
-        "required_tabs": [
-          "meta.json",
-          "params.js",
-          "sources.js",
-          "controls.js",
-          "prepare.js"
-        ],
-        "route": "editor_advanced",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
-        "source_template": "templates/datalens/advanced_editor/time_series",
-        "tab_hashes": {
-          "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
-          "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
-          "params.js": "25a45521fdc5f5c1d3329d9cc63d50568669c1e5cb79aed49b920777d9b62070",
-          "prepare.js": "9904b9a999f425b3f5eae28d1109f339b1855d0aac6046751b62ba80b9e278b4",
-          "sources.js": "840dad94c56918f6a901c9bb7c459afda4b59ee88d2c709f426442a19fefa285"
-        }
+        "geo_evidence_kind": "",
+        "observed_tabs": [],
+        "payload_shape_status": "COMPILED_FROM_SANITIZED_TEMPLATE",
+        "required_tabs": [],
+        "route": "wizard_native",
+        "schema_id": "wizard_payload_plan",
+        "template_name": "funnel"
       },
       "validators": {
-        "editor_runtime_contract": {
-          "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
-          "summary": {
-            "blocking_findings": 0,
-            "errors": 0,
-            "findings": 0,
-            "warnings": 0
-          }
-        },
         "route_payload": {
           "issues": [],
           "ok": true
+        },
+        "wizard_template_config": {
+          "errors": [],
+          "ok": true,
+          "required_roles": [
+            "measures"
+          ],
+          "visualization_id": "funnel",
+          "warnings": []
         }
       },
       "widget_kind": "visual"
@@ -2432,7 +2416,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "25e7ddc476d0b9fc17234604f2348f53650326e05230142fe92386728544ccdf",
+        "sha256": "461754f1a56feb06e91ce5920b27169a700b07d5915910908e5a1333ccf53dd9",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -2545,25 +2529,25 @@
           "prepare.js"
         ],
         "route": "editor_advanced",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/advanced_editor/flow_sankey",
         "tab_hashes": {
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
           "params.js": "25a45521fdc5f5c1d3329d9cc63d50568669c1e5cb79aed49b920777d9b62070",
-          "prepare.js": "ecac2965766065d7e4689a6499d136bada64b2de7e644b98191442cbb4f56467",
+          "prepare.js": "1d561c71d994fc1bc33c1bef9a7226b4cf02ce12688e9b40ac988d9b32ed6fde",
           "sources.js": "1144ef939d7e289ba80b8cce701293abe48381a73e17bb4c149316a380ef4a74"
         }
       },
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
-            "findings": 0,
-            "warnings": 0
+            "findings": 1,
+            "warnings": 1
           }
         },
         "route_payload": {
@@ -2592,7 +2576,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "7d1b836ea0961d553f218fcd9104101f3a11ade6da69a3e70a5915f549b8d4d2",
+        "sha256": "f6cb1366718f8410620f1142e4dc4ba9de8ee41d6baeca387bf8ce305da64874",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -2705,20 +2689,20 @@
           "prepare.js"
         ],
         "route": "editor_advanced",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/advanced_editor/distribution_relationship",
         "tab_hashes": {
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
           "params.js": "25a45521fdc5f5c1d3329d9cc63d50568669c1e5cb79aed49b920777d9b62070",
-          "prepare.js": "6301022e6a42258fefb211ae7e094d305cde4951989b46d0b5bf030115950e12",
+          "prepare.js": "8b715f5026dfa1c53f3574c4754213a38fd32d1adbd11ce25f9b6ca9ec19c26c",
           "sources.js": "4a05d96658eea9e6d7e9f5d1e3f315114476893eebee35e0888cb3e8f650f9e6"
         }
       },
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -2752,7 +2736,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "d149fd6d7b97f27b0393a560c936c82fd47a8a4432b7c659bdfab599241481d3",
+        "sha256": "8298f8ebc4efac45abfb86d1d933c20ffd6cd271fb16d042474e956b34eda4fa",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -2865,20 +2849,20 @@
           "prepare.js"
         ],
         "route": "editor_advanced",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/advanced_editor/distribution_relationship",
         "tab_hashes": {
           "controls.js": "8222b8169ee86f25cdccd84d340340060ae3f0cff55e2ea9d344d7c332733b71",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
           "params.js": "25a45521fdc5f5c1d3329d9cc63d50568669c1e5cb79aed49b920777d9b62070",
-          "prepare.js": "1fb1fe8cb10a755f7996755093938a37228f183c7a31965fd5fbf73c5b107a48",
+          "prepare.js": "0a482825fecb0df1e68e3f523ae927e38912df7cfc59d5b9260c44a8b759de98",
           "sources.js": "4a05d96658eea9e6d7e9f5d1e3f315114476893eebee35e0888cb3e8f650f9e6"
         }
       },
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -2913,7 +2897,7 @@
         "kind": "wizard_payload_plan",
         "method": "createWizardChart",
         "mode": "plan_only",
-        "sha256": "e4561d96c06ead7edb30af7785ba343072983f4f2bc5071f373d4195e203b3ef",
+        "sha256": "4ab410ea523f4d518fa7aed26c59ebc2b3ef2b786981db3ec4d129bc0647b20a",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -3017,7 +3001,7 @@
         "payload_shape_status": "COMPILED_FROM_SANITIZED_TEMPLATE",
         "required_tabs": [],
         "route": "wizard_native",
-        "schema_version": "2026-07-13.wizard_payload_plan.v3",
+        "schema_id": "wizard_payload_plan",
         "template_name": "scatter"
       },
       "validators": {
@@ -3058,7 +3042,7 @@
         "kind": "wizard_payload_plan",
         "method": "createWizardChart",
         "mode": "plan_only",
-        "sha256": "624023221a40f9caf844c332ca5d194071d9e7f169e4184af85ebe2d52ed6f26",
+        "sha256": "326c35013667074cd7e72c80b571e47d8823fa509ce0abfc45ef59c605cbb71d",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -3162,7 +3146,7 @@
         "payload_shape_status": "COMPILED_FROM_SANITIZED_TEMPLATE",
         "required_tabs": [],
         "route": "wizard_native",
-        "schema_version": "2026-07-13.wizard_payload_plan.v3",
+        "schema_id": "wizard_payload_plan",
         "template_name": "scatter"
       },
       "validators": {
@@ -3203,7 +3187,7 @@
         "kind": "wizard_payload_plan",
         "method": "createWizardChart",
         "mode": "plan_only",
-        "sha256": "c15323781fd8c1a65493e29c1c9c11ddd6ad83fff28e9bb45ed414e8abd74daf",
+        "sha256": "0e8a076c0014ac90b155f0b02c766ba96ae9c6c0af51dc4927e1d402f7f60eba",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -3302,7 +3286,7 @@
         "payload_shape_status": "COMPILED_FROM_SANITIZED_TEMPLATE",
         "required_tabs": [],
         "route": "wizard_native",
-        "schema_version": "2026-07-13.wizard_payload_plan.v3",
+        "schema_id": "wizard_payload_plan",
         "template_name": "pie"
       },
       "validators": {
@@ -3343,7 +3327,7 @@
         "kind": "wizard_payload_plan",
         "method": "createWizardChart",
         "mode": "plan_only",
-        "sha256": "3b4208c2bc1ee133561c528610127a03849b6d034863754f74cd3dcaea58e99e",
+        "sha256": "5e5cdbdc2284a453b9db56a8a5013b345e856e79cbff91b48d61c40b78d6c1a4",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -3442,7 +3426,7 @@
         "payload_shape_status": "COMPILED_FROM_SANITIZED_TEMPLATE",
         "required_tabs": [],
         "route": "wizard_native",
-        "schema_version": "2026-07-13.wizard_payload_plan.v3",
+        "schema_id": "wizard_payload_plan",
         "template_name": "donut"
       },
       "validators": {
@@ -3483,7 +3467,7 @@
         "kind": "wizard_payload_plan",
         "method": "createWizardChart",
         "mode": "plan_only",
-        "sha256": "705a502b36e1c590bc602c6a478ddd92f0b069a190f5276080137134fb5e5c8d",
+        "sha256": "44155e4c977af45453dabc2357f2b1e47113bbf3af77ab564f93977d4f85db89",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -3582,7 +3566,7 @@
         "payload_shape_status": "COMPILED_FROM_SANITIZED_TEMPLATE",
         "required_tabs": [],
         "route": "wizard_native",
-        "schema_version": "2026-07-13.wizard_payload_plan.v3",
+        "schema_id": "wizard_payload_plan",
         "template_name": "treemap"
       },
       "validators": {
@@ -3623,7 +3607,7 @@
         "kind": "wizard_payload_plan",
         "method": "createWizardChart",
         "mode": "plan_only",
-        "sha256": "5706a07480faadc922db9861cfd8adfacfa640203102a6c4dde4287aff88618f",
+        "sha256": "cb55246f31646ecdbbacb8f7b18d002fd82b0c66c7d4d585992f91911dd50ba0",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -3727,7 +3711,7 @@
         "payload_shape_status": "COMPILED_FROM_SANITIZED_TEMPLATE",
         "required_tabs": [],
         "route": "wizard_native",
-        "schema_version": "2026-07-13.wizard_payload_plan.v3",
+        "schema_id": "wizard_payload_plan",
         "template_name": "flatTable"
       },
       "validators": {
@@ -3852,7 +3836,7 @@
           "prepare.js"
         ],
         "route": "editor_markdown",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/editor_markdown/markdown_block",
         "tab_hashes": {
           "meta.json": "6985d23eb1570d460cae3027be39aec3e95de07ab9587271ae62dbac27ee8b50",
@@ -3864,7 +3848,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -3984,7 +3968,7 @@
           "prepare.js"
         ],
         "route": "editor_markdown",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/editor_markdown/markdown_block",
         "tab_hashes": {
           "meta.json": "6985d23eb1570d460cae3027be39aec3e95de07ab9587271ae62dbac27ee8b50",
@@ -3996,7 +3980,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -4116,7 +4100,7 @@
           "prepare.js"
         ],
         "route": "editor_markdown",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/editor_markdown/markdown_block",
         "tab_hashes": {
           "meta.json": "6985d23eb1570d460cae3027be39aec3e95de07ab9587271ae62dbac27ee8b50",
@@ -4128,7 +4112,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -4248,7 +4232,7 @@
           "prepare.js"
         ],
         "route": "editor_markdown",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/editor_markdown/markdown_block",
         "tab_hashes": {
           "meta.json": "6985d23eb1570d460cae3027be39aec3e95de07ab9587271ae62dbac27ee8b50",
@@ -4260,7 +4244,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -4380,7 +4364,7 @@
           "prepare.js"
         ],
         "route": "editor_markdown",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/editor_markdown/markdown_block",
         "tab_hashes": {
           "meta.json": "6985d23eb1570d460cae3027be39aec3e95de07ab9587271ae62dbac27ee8b50",
@@ -4392,7 +4376,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -4512,7 +4496,7 @@
           "prepare.js"
         ],
         "route": "editor_markdown",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/editor_markdown/markdown_block",
         "tab_hashes": {
           "meta.json": "6985d23eb1570d460cae3027be39aec3e95de07ab9587271ae62dbac27ee8b50",
@@ -4524,7 +4508,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -4558,7 +4542,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "64e5ed6f834f642e1ba5508950d5b51abbef802f73b71000658f95a99e7c31fd",
+        "sha256": "bcd022f1644753e906e7befb01ef729b3481c7869f86bf937430bec44642dc75",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -4659,10 +4643,10 @@
           "controls.js"
         ],
         "route": "editor_js_control",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/editor_js_control/selector",
         "tab_hashes": {
-          "controls.js": "4103041dd3342eeae3fc53b2199a82e2ebe6bbe2fa547adac8083ce442727b1d",
+          "controls.js": "628c28de633542fbfd489b74b6c31baf108f222c6b728cbd7af65aef6eec515a",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
           "params.js": "71232d14945d6cc7ba04059d35b661dbd43f011add0aaeec8872ee76bee5055c",
           "sources.js": "0cc3847efabc1c42b674b41a8c438ee7e3220a2b367419ce284d0c855bf403a7"
@@ -4671,7 +4655,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -4705,7 +4689,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "e83704dcf34c50f4893b5e0065df9dc0556709ea029db0688b19ac2be12f72a1",
+        "sha256": "448b03427ac3d127fca7796f9de62c742af8027e0af9ff12825c5761649b7b2a",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -4806,10 +4790,10 @@
           "controls.js"
         ],
         "route": "editor_js_control",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/editor_js_control/selector",
         "tab_hashes": {
-          "controls.js": "13572d114c5f46bb42c5c352705e04456757c3203898eaab5fee7f12c9d7d19a",
+          "controls.js": "0fa3dba4d23bcd1cf4e237bcb26413d3e4d14101ca89ac614a1ad87732397880",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
           "params.js": "71232d14945d6cc7ba04059d35b661dbd43f011add0aaeec8872ee76bee5055c",
           "sources.js": "0cc3847efabc1c42b674b41a8c438ee7e3220a2b367419ce284d0c855bf403a7"
@@ -4818,7 +4802,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -4852,7 +4836,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "8b82d550652dc9f56a89b94e7f6d4bb3407863c5a70ed3f4249322cae7fbbb72",
+        "sha256": "373fc34f3b70188bd0a7a7824557a1de9afa7d770750ad2a928bde87d596f67a",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -4953,10 +4937,10 @@
           "controls.js"
         ],
         "route": "editor_js_control",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/editor_js_control/selector",
         "tab_hashes": {
-          "controls.js": "238acdbb12c5bd4fcf3b2df838f855976c383e3cb2e334ab5e36e24d5f26a17f",
+          "controls.js": "8ba066bea50e9cfd25925c3a87172ef0b2d63c7951449973bd346c3b1e89c99a",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
           "params.js": "71232d14945d6cc7ba04059d35b661dbd43f011add0aaeec8872ee76bee5055c",
           "sources.js": "0cc3847efabc1c42b674b41a8c438ee7e3220a2b367419ce284d0c855bf403a7"
@@ -4965,7 +4949,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -4999,7 +4983,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "f48af552c6d76c343a1b1ed920bdd2c5e2f5023aa14962456b9bb43ec4273a7a",
+        "sha256": "185a39fae5d3987493f7cf8b7017e8ceafb857e3faf708f29de1626c9910950c",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -5100,10 +5084,10 @@
           "controls.js"
         ],
         "route": "editor_js_control",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/editor_js_control/selector",
         "tab_hashes": {
-          "controls.js": "2ca32d95780ab0f72de066a1f320bfb162645bacc0deb1b26a14a7de7f9916d3",
+          "controls.js": "1c6aa5af668cc59366854553e47965f354e5a348a251fde9cd1f3f859c0d68fb",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
           "params.js": "71232d14945d6cc7ba04059d35b661dbd43f011add0aaeec8872ee76bee5055c",
           "sources.js": "0cc3847efabc1c42b674b41a8c438ee7e3220a2b367419ce284d0c855bf403a7"
@@ -5112,7 +5096,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -5146,7 +5130,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "98482aef8d1a7c4308b94b65a476f7b8c09e028ceb2254a3b56c1b2ef0b493ff",
+        "sha256": "ffb6347591266b05581f9a39469827b26c19d4359e1596545eea54846551cf03",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -5247,10 +5231,10 @@
           "controls.js"
         ],
         "route": "editor_js_control",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/editor_js_control/selector",
         "tab_hashes": {
-          "controls.js": "2f4b645acaeba009fa64b8c6ca4e684ba5ab6e6059bf68f8b4df131fd53b9df8",
+          "controls.js": "5ddd844b2a28760a93126f5c2d97d038c70471bc949da330116e8bd689a4de6b",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
           "params.js": "71232d14945d6cc7ba04059d35b661dbd43f011add0aaeec8872ee76bee5055c",
           "sources.js": "0cc3847efabc1c42b674b41a8c438ee7e3220a2b367419ce284d0c855bf403a7"
@@ -5259,7 +5243,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -5293,7 +5277,7 @@
         "kind": "compiled_editor_save_payload",
         "method": "updateEditorChart",
         "mode": "save",
-        "sha256": "774aeb7d46e1f85363536a0ced6b3e2a58dbf9456b33f02e3f660d755a8c9856",
+        "sha256": "a12d2e5cc520a471a1dfbee78254524ba4f2f55ae5ccba35b3f5b103d44afc04",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -5394,10 +5378,10 @@
           "controls.js"
         ],
         "route": "editor_js_control",
-        "schema_version": "2026-06-03.standard_template_bundle.v1",
+        "schema_id": "standard_template_bundle",
         "source_template": "templates/datalens/editor_js_control/selector",
         "tab_hashes": {
-          "controls.js": "60685582478b274c0cba11e9b7e0464a5e75f08d6e12222078c1977881eff382",
+          "controls.js": "d354b31f3cff5ec0b3b40afec3181c5918bcd661751027609d0fa0d88be5e80e",
           "meta.json": "88d58a69c08f29f8ee985665ef1a606a6c95776232fe34d357336bf032a804ed",
           "params.js": "71232d14945d6cc7ba04059d35b661dbd43f011add0aaeec8872ee76bee5055c",
           "sources.js": "0cc3847efabc1c42b674b41a8c438ee7e3220a2b367419ce284d0c855bf403a7"
@@ -5406,7 +5390,7 @@
       "validators": {
         "editor_runtime_contract": {
           "ok": true,
-          "rule_version": "2026-07-21.datalens_advanced_editor_runtime.v3",
+          "rule_id": "datalens_advanced_editor_runtime",
           "summary": {
             "blocking_findings": 0,
             "errors": 0,
@@ -5441,7 +5425,7 @@
         "kind": "wizard_payload_plan",
         "method": "createWizardChart",
         "mode": "plan_only",
-        "sha256": "d5bbf35c4f96ccd2ad78134576701e114e30e73183e803c1d5fd102ef01252a6",
+        "sha256": "bed95e47d2ecfb104e96514b89af26f456a5323d9f633bca176ecae46aa78371",
         "workbook_id": "<GOLDEN_TEST_WORKBOOK_ID>"
       },
       "known_limits": [
@@ -5544,7 +5528,7 @@
         "payload_shape_status": "COMPILED_FROM_SANITIZED_TEMPLATE",
         "required_tabs": [],
         "route": "wizard_native",
-        "schema_version": "2026-07-13.wizard_payload_plan.v3",
+        "schema_id": "wizard_payload_plan",
         "template_name": "geolayer"
       },
       "validators": {
@@ -5687,7 +5671,7 @@
         "payload_policy": "explicit_payload_or_fresh_saved_seed",
         "required_tabs": [],
         "route": "ql_explicit",
-        "schema_version": "2026-07-13.ql_explicit_fixture.v1"
+        "schema_id": "ql_explicit_fixture"
       },
       "validators": {
         "ql_explicit_provenance": {
@@ -5702,8 +5686,8 @@
       "widget_kind": "visual"
     }
   ],
-  "inventory_digest": "a12fe292c7620881369d20b62ddd282e87c826e1852a92495c59e2b7afaf371d",
-  "inventory_schema_version": "2026-07-13.golden_runtime_gallery_inventory.v2",
+  "inventory_digest": "543330f9b333336c074042fb1bef5c54c7ceb192f7786ac138069a65812395d0",
+  "inventory_schema_id": "golden_runtime_gallery_inventory",
   "route_inventory": {
     "banned": [
       {
@@ -5762,6 +5746,7 @@
           "combo_time_series_combo",
           "donut",
           "flat_table",
+          "funnel_snapshot",
           "grouped_bar",
           "horizontal_bar",
           "horizontal_stacked_100",
@@ -5799,7 +5784,6 @@
         "families": [
           "box_plot",
           "bullet_assignees",
-          "funnel_snapshot",
           "heatmap",
           "histogram",
           "kpi_value_delta_sparkline",
@@ -5918,17 +5902,17 @@
       }
     ]
   },
-  "schema_version": "2026-07-01.golden_runtime_gallery_contracts.v1",
+  "schema_id": "golden_runtime_gallery_contracts",
   "static_workbook_placeholder": "<GOLDEN_TEST_WORKBOOK_ID>",
   "summary": {
     "browser_rendered_available_count": 0,
     "browser_rendered_unavailable_count": 39,
     "families_by_route": {
-      "editor_advanced": 9,
+      "editor_advanced": 8,
       "editor_js_control": 6,
       "editor_markdown": 6,
       "ql_explicit": 1,
-      "wizard_native": 17
+      "wizard_native": 18
     },
     "published_readback_available_count": 0,
     "saved_readback_available_count": 0,

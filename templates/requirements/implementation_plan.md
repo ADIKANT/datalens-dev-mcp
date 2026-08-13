@@ -33,7 +33,7 @@ Source of truth: `requirements/*.md`.
 
 ### Runtime And Responsive Acceptance
 
-- Browser capture contract: `datalens.browser_capture.v2`.
+- Browser capture contract: `datalens.browser_capture`.
 - Change scope: `content`, `layout`, or `dashboard`.
 - Compact and wide desktop viewport evidence for layout/dashboard changes.
 - Changed tabs checked from top through bottom; internal table scrolling checked.

@@ -17,6 +17,6 @@
   ],
   "response_schema_hash": "98eab3ddf0b2a272ed9167fe9377fa548d35e2fb9e5b7f15059bf632cfebfdad",
   "response_schema_ref": "ModifyPermissionsResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "readonly_reference"
 }

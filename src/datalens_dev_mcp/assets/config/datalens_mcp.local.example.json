@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-07-19.datalens_mcp_local_config.v3",
+  "schema_id": "datalens_mcp_local_config",
   "defaults": {
     "workbook_id": "<WORKBOOK_ID>",
     "project_id": "<PROJECT_ID>",

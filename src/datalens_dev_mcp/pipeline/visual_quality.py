@@ -21,7 +21,7 @@ class VisualQualityResult:
     publish_allowed: bool
     visual_qa_status: str
     findings: list[VisualQualityFinding] = field(default_factory=list)
-    schema_version: str = "2026-06-30.visual_quality_contract.v1"
+    schema_id: str = "visual_quality_contract"
 
     def to_dict(self) -> dict[str, Any]:
         return {**asdict(self), "findings": [finding.to_dict() for finding in self.findings]}
@@ -60,9 +60,9 @@ def validate_visual_quality_contract(
         if not direct_labels and not _explicit_label_axis_alternative(spec):
             findings.append(
                 _finding(
-                    "delta_v6_labels_required",
+                    "labels_required",
                     "$.labels",
-                    "Delta v6 requires labels on bar/column charts unless an explicit exception is justified",
+                    "The canonical contract requires labels on bar/column charts unless an explicit exception is justified",
                 )
             )
         readable_axis = bool(axes.get("show") or axes.get("unit_label_required") or gridlines.get("show"))
@@ -84,7 +84,7 @@ def validate_visual_quality_contract(
         if not direct_labels and not line_label_alternative:
             findings.append(
                 _finding(
-                    "delta_v6_labels_required",
+                    "labels_required",
                     "$.labels",
                     "Line charts require direct labels, readable axes with value tooltips, or an explicit alternative",
                 )
@@ -100,17 +100,17 @@ def validate_visual_quality_contract(
         if gridlines.get("show") is True and not _explicit_gridline_exception(spec):
             findings.append(
                 _finding(
-                    "delta_v6_gridlines_default_off",
+                    "gridlines_default_off",
                     "$.gridlines.show",
-                    "Delta v6 keeps gridlines off unless numeric lookup is explicitly required",
+                    "The canonical contract keeps gridlines off unless numeric lookup is explicitly required",
                 )
             )
         if axes.get("measure_axis_title") is True or axes.get("y_axis_title") is True:
             findings.append(
                 _finding(
-                    "delta_v6_measure_axis_title_default_off",
+                    "measure_axis_title_default_off",
                     "$.axes",
-                    "Delta v6 keeps measure-axis titles off when title/labels/legend already carry the meaning",
+                    "The canonical contract keeps measure-axis titles off when title/labels/legend already carry the meaning",
                 )
             )
     comparator = str(kpi_context.get("comparator") or "").strip()
@@ -129,10 +129,10 @@ def validate_visual_quality_contract(
     for key in ("decorative_css", "shadows", "gradients", "three_d"):
         if runtime_constraints.get(key):
             findings.append(_finding("chartjunk_forbidden", f"$.runtime_constraints.{key}", f"{key} is forbidden"))
-    schema_version = str(spec.get("schema_version") or "")
-    if schema_version in {
-        "2026-08-06.renderer_visual_intent.v1",
-        "2026-08-06.renderer_visual_spec.v5",
+    schema_id = str(spec.get("schema_id") or "")
+    if schema_id in {
+        "renderer_visual_intent",
+        "renderer_visual_spec",
     }:
         findings.extend(
             _v2_renderer_contract_findings(
@@ -152,7 +152,7 @@ def validate_visual_quality_contract(
                     "comparison tooltips must identify both intervals and both values",
                 )
             )
-        if schema_version == "2026-08-06.renderer_visual_intent.v1":
+        if schema_id == "renderer_visual_intent":
             findings.extend(
                 _renderer_visual_intent_findings(
                     colors=colors,
@@ -168,8 +168,8 @@ def validate_visual_quality_contract(
         findings.append(
             _finding(
                 "renderer_visual_spec_current_contract_missing",
-                "$.schema_version",
-                "legacy visual specs are not executable; regenerate the object with Renderer Visual Spec v5",
+                "$.schema_id",
+                "noncanonical visual specs are not executable; regenerate the object with Renderer Visual Spec",
             )
         )
     if visual_qa_status == "pass_unverified":
@@ -281,7 +281,7 @@ def _v2_renderer_contract_findings(
     }
     for name, value in required_objects.items():
         if not value:
-            findings.append(_finding("renderer_v2_contract_missing", f"$.{name}", f"{name} is required"))
+            findings.append(_finding("renderer_contract_missing", f"$.{name}", f"{name} is required"))
     if value_semantics:
         if value_semantics.get("missing_label") != "N/A":
             findings.append(
@@ -567,7 +567,7 @@ def _v5_renderer_contract_findings(
     from datalens_dev_mcp.editor.render_contract import (
         DashboardRenderContractError,
         resolve_dashboard_render_contract,
-        validate_renderer_visual_spec_v5,
+        validate_renderer_visual_spec,
     )
 
     binding = spec.get("render_contract") if isinstance(spec.get("render_contract"), dict) else {}
@@ -578,7 +578,7 @@ def _v5_renderer_contract_findings(
             family=str(binding.get("family") or spec.get("family") or ""),
             overrides=binding.get("overrides") if isinstance(binding.get("overrides"), dict) else {},
         )
-        issue_codes = validate_renderer_visual_spec_v5(
+        issue_codes = validate_renderer_visual_spec(
             spec,
             render_contract=contract,
             title_contract=title_contract,
@@ -586,14 +586,14 @@ def _v5_renderer_contract_findings(
     except DashboardRenderContractError as exc:
         return [
             _finding(
-                "renderer_v5_render_contract_resolution",
+                "renderer_render_contract_resolution",
                 "$.render_contract",
                 str(exc),
             )
         ]
     return [
         _finding(
-            "renderer_v5_render_contract",
+            "renderer_render_contract",
             "$." + issue.replace(".", ".", 1),
             issue,
         )

@@ -16,7 +16,7 @@ The validator blocks:
   titles;
 - selector layout violations: labels stay left, each declared row uses exactly
   94 percent, Apply is disabled, and Clear keeps an empty multiselect empty;
-- composition-v2 drift in row heights, KPI density, undeclared vertical gaps,
+- composition drift in row heights, KPI density, undeclared vertical gaps,
   table labels, or mount-to-tab-to-widget relationships;
 - selector `impactTabsIds` values that reference tabs absent from the payload;
 - invalid or mixed `autoHeight` policies in newly generated native-grid

@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "label": "Category A",
+      "value": 72
+    },
+    {
+      "label": "Category B with a longer label",
+      "value": 58
+    },
+    {
+      "label": "Category C",
+      "value": 41
+    }
+  ]
+}

@@ -37,7 +37,7 @@ def ingest_dq_control_summary(
     root = Path(project_root)
     sanitized = _sanitize_control_summary(control_summary)
     artifact = {
-        "schema_version": "2026-06-11.dq_control_summary.v1",
+        "schema_id": "dq_control_summary",
         "ingested_at": _now(),
         "source_name": source_name,
         "raw_control_file_committed": False,
@@ -75,7 +75,7 @@ def build_dq_layer_reconciliation_plan(
     ]
     plan = {
         "ok": True,
-        "schema_version": "2026-06-11.dq_layer_reconciliation_plan.v1",
+        "schema_id": "dq_layer_reconciliation_plan",
         "project_root": str(Path(project_root)),
         "control_summary": _sanitize_control_summary(control_summary or {}),
         "identity_keys": {
@@ -178,7 +178,7 @@ def classify_dq_reconciliation(
     ]
     return {
         "ok": bridge["baseline_reconciles"] and bridge["dashboard_reconciles"],
-        "schema_version": "2026-06-11.dq_reconciliation.v1",
+        "schema_id": "dq_reconciliation",
         "classification_buckets": bucket_totals,
         "classified_rows": rows,
         "amount_count_bridge": bridge,
@@ -211,7 +211,7 @@ def build_dq_before_after_report(
     )
     report = {
         "ok": not blocked,
-        "schema_version": "2026-06-11.dq_before_after_report.v1",
+        "schema_id": "dq_before_after_report",
         "generated_at": _now(),
         "fix_scope": fix_scope,
         "before": _report_summary(before),

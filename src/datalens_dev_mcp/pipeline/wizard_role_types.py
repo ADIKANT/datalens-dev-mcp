@@ -52,6 +52,10 @@ def expected_role_type(*, visualization_id: str, role: str) -> str:
     normalized_role = role.strip().lower()
     if normalized_role == "geo":
         return "geo"
+    if visualization_id == "funnel" and normalized_role in {"measures", "measure"}:
+        # Funnel deliberately accepts one dimension plus one or more measures
+        # in its single source placeholder.
+        return ""
     if normalized_role in {"measures", "measure", "size"}:
         return "numeric"
     if normalized_role in {"y", "y2"}:

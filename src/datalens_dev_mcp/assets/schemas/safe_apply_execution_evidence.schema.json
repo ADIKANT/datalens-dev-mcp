@@ -4,9 +4,9 @@
   "title": "Bound safe-apply execution evidence",
   "type": "object",
   "additionalProperties": true,
-  "required": ["schema_version", "generated_at", "project_root", "run_id", "run_binding", "status", "actions"],
+  "required": ["schema_id", "generated_at", "project_root", "run_id", "run_binding", "status", "actions"],
   "properties": {
-    "schema_version": {"const": "datalens.safe_apply_execution_evidence.v1"},
+    "schema_id": {"const": "datalens.safe_apply_execution_evidence"},
     "generated_at": {"type": "string", "format": "date-time"},
     "project_root": {"type": "string", "minLength": 1},
     "run_id": {"type": "string", "pattern": "^safe_apply_[a-f0-9]{12}$"},

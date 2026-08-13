@@ -4,22 +4,20 @@
   "operation_id": "getEntries",
   "path": "/rpc/getEntries",
   "request_payload": {},
-  "request_schema_closure_hash": "1820023cafd8d0478285dcb83b078aefc7f4cad7c75d61a3207be78614834cbb",
+  "request_schema_closure_hash": "79bb41f825aa3f9ba7d4682cb6c921f35e355795c1bb34980dbf99a3cb1d0294",
   "request_schema_closure_refs": [
-    "EntryScope",
     "GetEntriesV2Args"
   ],
-  "request_schema_hash": "900ab2e0f88fb592c7e3633d634a5bc24c864aa481e0cd3948379b77d21da20d",
+  "request_schema_hash": "228ca310b488986ea7c43e85ff0702c959327a3eb5736cba6c4dae0075ce4ea3",
   "request_schema_ref": "GetEntriesV2Args",
   "response_payload": {},
-  "response_schema_closure_hash": "8ce57ac45a7aec8abdfa56ad745323623621d759fa58711130637c54203a3295",
+  "response_schema_closure_hash": "3e769b996ee7ed866c1b53039ffee4720b97d7d5efd77e6760a46d2a3f2f9a0b",
   "response_schema_closure_refs": [
-    "EntryPermissions",
     "EntryScope",
     "GetEntriesV2Result"
   ],
-  "response_schema_hash": "5fd3c2a17818c3cf7ab3f70fad452d55f69049f5aa45a0b2806cbde624e6fd53",
+  "response_schema_hash": "ae357353b5de9919ea27f7c4b8f4d0e697b0b76c3e03567659b424a18d9eff3d",
   "response_schema_ref": "GetEntriesV2Result",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "supported_tool"
 }

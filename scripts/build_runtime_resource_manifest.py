@@ -13,13 +13,13 @@ from datalens_dev_mcp.runtime_resources import resource_manifest  # noqa: E402
 
 
 MANIFEST_PATH = ROOT / "src" / "datalens_dev_mcp" / "assets" / "resource_manifest.json"
-SCHEMA_VERSION = "2026-06-25.runtime_resource_manifest.v1"
+SCHEMA_ID = "runtime_resource_manifest"
 
 
 def build_manifest() -> dict[str, object]:
     rows = resource_manifest()
     return {
-        "schema_version": SCHEMA_VERSION,
+        "schema_id": SCHEMA_ID,
         "resource_count": len(rows),
         "resources": rows,
     }

@@ -11,17 +11,14 @@
   "request_schema_hash": "1eed7f6b0b70e7b7aab10faf9eb180400e168bb4dbd3dd05ae5217779623e55f",
   "request_schema_ref": "GetStructureItemsArgs",
   "response_payload": {},
-  "response_schema_closure_hash": "7d7b82c85d929921c6f9c812af09236725081428ee31e8f0ee08063585a055b3",
+  "response_schema_closure_hash": "9994512d49f4c461ecb8802760b40161a034c5042ded99c4c4188d53689147c5",
   "response_schema_closure_refs": [
-    "CollectionPermissions",
     "EntryScope",
     "GetStructureItemsResult",
-    "SharedEntryPermissions",
-    "StructureItemEntry",
-    "WorkbookPermissions"
+    "StructureItemEntry"
   ],
-  "response_schema_hash": "9f2ada8a2118035f5a213778f0d72b0b7d1d69c8ce4095b1ca624da1eb62bdcf",
+  "response_schema_hash": "ded14d45055c82ca144e8b7e645e87ab9ad2c09bfc01bd714bbde034d280a002",
   "response_schema_ref": "GetStructureItemsResult",
-  "schema_version": "2026-06-30.api_contract_fixture.v1",
+  "schema_id": "api_contract_fixture",
   "status": "supported_tool"
 }

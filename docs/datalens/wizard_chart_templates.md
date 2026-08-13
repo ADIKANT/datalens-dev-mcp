@@ -1,13 +1,13 @@
 # Wizard Chart Templates
 
-Source trace: OpenAPI Wizard methods, `config/route_selection_policy_v5.json`,
+Source trace: OpenAPI Wizard methods, `config/route_selection_policy.json`,
 `templates/datalens/wizard/wizard_template_registry.json`,
 `templates/datalens/wizard/canonical_templates.json`, and the Wizard schemas.
 
-All 16 observed native IDs have anonymized canonical templates: `metric`,
+All 17 observed native IDs have anonymized canonical templates: `metric`,
 `flatTable`, `pivotTable`, `line`, `area`, `area100p`, `column`, `column100p`,
-`bar`, `bar100p`, `combined-chart`, `pie`, `donut`, `scatter`, `treemap`, and
-`geolayer`. The registry records semantic families, required/optional roles,
+`bar`, `bar100p`, `combined-chart`, `pie`, `donut`, `scatter`, `treemap`,
+`funnel`, and `geolayer`. The registry records semantic families, required/optional roles,
 template provenance, seed policy, and live verification state.
 
 ## Builder Contract
@@ -36,7 +36,13 @@ location identities while preserving unknown `data` fields, then rebinds the
 dataset and field GUIDs. Missing seed uses the canonical template. Canonical
 fixtures are offline evidence and have `live_verification=false`.
 
-Bubble requires `size`; geolayer requires validated geo evidence. Unknown
+Funnel uses the native `funnel` ID. Its current payload contract places the
+category dimension and one or more measures in the required `measures`
+placeholder; alternatively, multiple measures generate the Measure Names
+category. The compiler therefore requires at least two bound items. The
+visualization permits color, labels, filters, and sorting; exact optional
+presentation fields are preserved from a fresh saved seed. Bubble requires
+`size`; geolayer requires validated geo evidence. Unknown
 visualization IDs block create. Update can preserve an unknown ID only from
 fresh saved readback. No identifier token is guessed.
 

@@ -115,7 +115,7 @@ class DeliveryIntentDecision:
     satisfied_gates: list[str] = field(default_factory=list)
     next_action: str = ""
     proof_path: str = ""
-    policy: str = "2026-07-15.delivery_intent_state_machine.v3"
+    policy: str = "delivery_intent_state_machine"
     task_intent: str = "unknown"
     approval_source: str = ""
     target_lock_status: str = ""

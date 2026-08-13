@@ -18,7 +18,7 @@ from datalens_dev_mcp.pipeline.route_registry import decide_registered_route
 sys.dont_write_bytecode = True
 
 
-SCHEMA_VERSION = "2026-05-17.requirements_s2t_intake.v1"
+SCHEMA_ID = "requirements_s2t_intake"
 MAX_SAMPLE_PROFILE_ROWS = 10000
 NULL_RATIO_QUALITY_FAIL = 0.2
 SMALL_SAMPLE_FAIL = 30
@@ -1272,7 +1272,7 @@ def build_governance_bundle(case: dict[str, Any], *, sample_profiles: list[dict[
     }
     visuals_with_metadata = [*visuals, metadata_visual]
     bundle = {
-        "schema_version": SCHEMA_VERSION,
+        "schema_id": SCHEMA_ID,
         "case_id": normalized["case_id"],
         "domain": normalized["domain"],
         "source_manifest": normalized.get("source_manifest") or [],

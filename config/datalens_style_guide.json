@@ -1,5 +1,5 @@
 {
-  "schema_version": "2026-06-03.datalens_style_guide.v1",
+  "schema_id": "datalens_style_guide",
   "themes": {
     "light": {
       "dashboard_background": "var(--g-color-base-background, #FFFFFF)",

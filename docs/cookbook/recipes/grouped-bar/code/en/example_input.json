@@ -1,0 +1,34 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "group": "Current",
+      "label": "Category A",
+      "value": 72
+    },
+    {
+      "group": "Comparison",
+      "label": "Category A",
+      "value": 64
+    },
+    {
+      "group": "Current",
+      "label": "Category B",
+      "value": 58
+    },
+    {
+      "group": "Comparison",
+      "label": "Category B",
+      "value": 52
+    }
+  ]
+}

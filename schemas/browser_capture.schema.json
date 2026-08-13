@@ -5,7 +5,7 @@
   "type": "object",
   "additionalProperties": true,
   "required": [
-    "schema_version",
+    "schema_id",
     "status",
     "captured_at",
     "target_url",
@@ -19,16 +19,12 @@
     "visible_widget_titles",
     "console_messages",
     "dom_error_texts",
-    "console_error_count"
+    "console_error_count",
+    "change_scope",
+    "viewport_checks"
   ],
   "properties": {
-    "schema_version": {
-      "enum": [
-        "datalens.browser_capture.v1",
-        "datalens.browser_capture.v2",
-        "datalens.browser_capture.v3"
-      ]
-    },
+    "schema_id": {"const": "datalens.browser_capture"},
     "status": {"const": "passed"},
     "captured_at": {"type": "string", "format": "date-time"},
     "target_url": {"type": "string", "format": "uri", "minLength": 1},
@@ -167,6 +163,8 @@
         "visible_object_ids",
         "clipped_object_ids",
         "missing_object_ids",
+        "truncated_text_object_ids",
+        "overlap_pairs",
         "screenshot_artifact"
       ],
       "properties": {
@@ -218,93 +216,47 @@
     {
       "if": {
         "properties": {
-          "schema_version": {"const": "datalens.browser_capture.v1"}
+          "change_scope": {"const": "content"}
         }
       },
       "then": {
-        "required": ["image_artifact"]
+        "properties": {
+          "viewport_checks": {"minItems": 1}
+        }
       }
     },
     {
       "if": {
         "properties": {
-          "schema_version": {
-            "enum": [
-              "datalens.browser_capture.v2",
-              "datalens.browser_capture.v3"
-            ]
-          }
-        }
-      },
-      "then": {
-        "required": ["change_scope", "viewport_checks"],
-        "allOf": [
-          {
-            "if": {
-              "properties": {
-                "change_scope": {"const": "content"}
-              }
-            },
-            "then": {
-              "properties": {
-                "viewport_checks": {"minItems": 1}
-              }
-            }
-          },
-          {
-            "if": {
-              "properties": {
-                "change_scope": {"enum": ["layout", "dashboard"]}
-              }
-            },
-            "then": {
-              "properties": {
-                "viewport_checks": {
-                  "minItems": 2,
-                  "allOf": [
-                    {
-                      "contains": {
-                        "type": "object",
-                        "required": ["width"],
-                        "properties": {
-                          "width": {"maximum": 1280}
-                        }
-                      },
-                      "minContains": 1
-                    },
-                    {
-                      "contains": {
-                        "type": "object",
-                        "required": ["width"],
-                        "properties": {
-                          "width": {"minimum": 1366}
-                        }
-                      },
-                      "minContains": 1
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "schema_version": {"const": "datalens.browser_capture.v3"}
+          "change_scope": {"enum": ["layout", "dashboard"]}
         }
       },
       "then": {
         "properties": {
           "viewport_checks": {
-            "items": {
-              "required": [
-                "truncated_text_object_ids",
-                "overlap_pairs"
-              ]
-            }
+            "minItems": 2,
+            "allOf": [
+              {
+                "contains": {
+                  "type": "object",
+                  "required": ["width"],
+                  "properties": {
+                    "width": {"maximum": 1280}
+                  }
+                },
+                "minContains": 1
+              },
+              {
+                "contains": {
+                  "type": "object",
+                  "required": ["width"],
+                  "properties": {
+                    "width": {"minimum": 1366}
+                  }
+                },
+                "minContains": 1
+              }
+            ]
           }
         }
       }

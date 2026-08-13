@@ -15,8 +15,8 @@ AvailabilityClassification = Literal[
     "unknown",
 ]
 
-DELTA_V7_SOURCE_MATRIX_SCHEMA_VERSION = "datalens.delta_v7.source_availability_consumer_matrix.v1"
-DELTA_V8_SOURCE_MATRIX_SCHEMA_VERSION = "datalens.delta_v8.source_availability_runtime_matrix.v1"
+SOURCE_CONSUMER_MATRIX_SCHEMA_ID = "datalens.source_availability_consumer_matrix"
+SOURCE_RUNTIME_MATRIX_SCHEMA_ID = "datalens.source_availability_runtime_matrix"
 
 
 @dataclass(frozen=True)
@@ -30,7 +30,7 @@ class AvailabilityDecision:
     table_present: bool | None = None
     expected_exception: bool = False
     reason: str = ""
-    schema_version: str = "datalens.dashboard-source-availability-decision.v1"
+    schema_id: str = "datalens.dashboard-source-availability-decision"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -131,7 +131,7 @@ def load_source_availability_matrix(
             return source_availability_from_metadata_fetch(payload, project=project, generated_from=str(path))
     if fallback:
         return validate_source_availability_matrix(fallback, project=project)
-    return {"schema_version": "datalens.dashboard-source-availability.v1", "project": project, "sources": {}}
+    return {"schema_id": "datalens.dashboard-source-availability", "project": project, "sources": {}}
 
 
 def source_availability_from_metadata_fetch(
@@ -169,7 +169,7 @@ def source_availability_from_metadata_fetch(
         }
     return validate_source_availability_matrix(
         {
-            "schema_version": "datalens.dashboard-source-availability.v1",
+            "schema_id": "datalens.dashboard-source-availability",
             "project": project,
             "generated_from": generated_from,
             "sources": sources,
@@ -180,7 +180,7 @@ def source_availability_from_metadata_fetch(
 
 def validate_source_availability_matrix(matrix: dict[str, Any], *, project: str = "") -> dict[str, Any]:
     result = dict(matrix)
-    result["schema_version"] = "datalens.dashboard-source-availability.v1"
+    result["schema_id"] = "datalens.dashboard-source-availability"
     if project and not result.get("project"):
         result["project"] = project
     result.setdefault("project", project)
@@ -220,7 +220,7 @@ def build_source_availability_contract(
     )
     conflicts = _source_matrix_conflicts(normalized_sources, envs)
     return {
-        "schema_version": "datalens.source-availability-matrix.delta-v6",
+        "schema_id": "datalens.source-availability-matrix",
         "dashboard_id": dashboard_id,
         "workbook_id": workbook_id,
         "generated_at": _generated_at(),
@@ -299,12 +299,12 @@ def build_dashboard_source_availability_matrix(
     payloads = [_read_json_payload(path) for path in evidence_paths]
     rows: list[dict[str, Any]] = []
     for payload in payloads:
-        rows.extend(_delta_v7_rows_from_payload(payload))
+        rows.extend(_source_rows_from_payload(payload))
     if not rows:
         return {
             "ok": False,
             "status": "insufficient_evidence",
-            "schema_version": DELTA_V7_SOURCE_MATRIX_SCHEMA_VERSION,
+            "schema_id": SOURCE_CONSUMER_MATRIX_SCHEMA_ID,
             "evidence_paths": evidence_paths,
             "sources": [],
             "blocked_reasons": ["insufficient_evidence"],
@@ -321,7 +321,7 @@ def build_dashboard_source_availability_matrix(
             continue
         if object_filter and not _row_mentions_any_object(row, object_filter):
             continue
-        normalized.append(_delta_v7_source_row(row, source_key=source_key, environment=environment, strict=strict_publish_gate))
+        normalized.append(_source_consumer_row(row, source_key=source_key, environment=environment, strict=strict_publish_gate))
     blocked = [
         f"{row['source_key']}:{row['environment']}:{row['expected_status']}"
         for row in normalized
@@ -330,7 +330,7 @@ def build_dashboard_source_availability_matrix(
     return {
         "ok": not blocked,
         "status": "blocked" if blocked else "pass",
-        "schema_version": DELTA_V7_SOURCE_MATRIX_SCHEMA_VERSION,
+        "schema_id": SOURCE_CONSUMER_MATRIX_SCHEMA_ID,
         "evidence_paths": evidence_paths,
         "sources": normalized,
         "blocked_reasons": blocked,
@@ -350,17 +350,17 @@ def validate_source_availability_consumers(
             "blocked_reasons": ["insufficient_evidence"],
             "issues": [],
         }
-    if matrix.get("schema_version") == DELTA_V7_SOURCE_MATRIX_SCHEMA_VERSION:
+    if matrix.get("schema_id") == SOURCE_CONSUMER_MATRIX_SCHEMA_ID:
         rows = [row for row in matrix.get("sources") or [] if isinstance(row, dict)]
     else:
         rows = [
-            _delta_v7_source_row(
+            _source_consumer_row(
                 row,
                 source_key=str(row.get("source_key") or ""),
                 environment=str(row.get("environment") or "default"),
                 strict=strict_publish_gate,
             )
-            for row in _delta_v7_rows_from_payload(matrix)
+            for row in _source_rows_from_payload(matrix)
             if isinstance(row, dict)
         ]
     extra_consumer_rows = [
@@ -404,9 +404,9 @@ def build_source_availability_runtime_matrix(
     strict_publish_gate: bool = True,
 ) -> dict[str, Any]:
     source = matrix if isinstance(matrix, dict) else {}
-    if source.get("schema_version") == DELTA_V7_SOURCE_MATRIX_SCHEMA_VERSION:
+    if source.get("schema_id") == SOURCE_CONSUMER_MATRIX_SCHEMA_ID:
         rows = [
-            _delta_v7_source_row(
+            _source_consumer_row(
                 row,
                 source_key=str(row.get("source_key") or ""),
                 environment=str(row.get("environment") or "default"),
@@ -417,16 +417,16 @@ def build_source_availability_runtime_matrix(
         ]
     else:
         rows = [
-            _delta_v7_source_row(
+            _source_consumer_row(
                 row,
                 source_key=str(row.get("source_key") or row.get("source") or row.get("name") or ""),
                 environment=str(row.get("environment") or row.get("env") or "default"),
                 strict=strict_publish_gate,
             )
-            for row in _delta_v7_rows_from_payload(source)
+            for row in _source_rows_from_payload(source)
             if isinstance(row, dict)
         ]
-    normalized = [_delta_v8_source_row(row) for row in rows]
+    normalized = [_source_runtime_row(row) for row in rows]
     conflicts = [
         {
             "source_key": row["source_key"],
@@ -446,7 +446,7 @@ def build_source_availability_runtime_matrix(
     return {
         "ok": not blocked and not conflicts,
         "status": "blocked" if blocked or conflicts else "pass",
-        "schema_version": DELTA_V8_SOURCE_MATRIX_SCHEMA_VERSION,
+        "schema_id": SOURCE_RUNTIME_MATRIX_SCHEMA_ID,
         "sources": normalized,
         "conflicts": conflicts,
         "blocked_reasons": blocked
@@ -501,7 +501,7 @@ def _list_values(value: Any) -> list[str]:
     return []
 
 
-def _delta_v7_rows_from_payload(payload: dict[str, Any]) -> list[dict[str, Any]]:
+def _source_rows_from_payload(payload: dict[str, Any]) -> list[dict[str, Any]]:
     if not isinstance(payload, dict):
         return []
     rows = payload.get("sources") or payload.get("source_matrix") or payload.get("rows") or []
@@ -512,7 +512,7 @@ def _delta_v7_rows_from_payload(payload: dict[str, Any]) -> list[dict[str, Any]]
     return []
 
 
-def _delta_v7_source_row(row: dict[str, Any], *, source_key: str, environment: str, strict: bool) -> dict[str, Any]:
+def _source_consumer_row(row: dict[str, Any], *, source_key: str, environment: str, strict: bool) -> dict[str, Any]:
     physical_present = _optional_bool(
         row.get("physical_table_present", row.get("table_present", row.get("present")))
     )
@@ -523,7 +523,7 @@ def _delta_v7_source_row(row: dict[str, Any], *, source_key: str, environment: s
     error = str(row.get("error") or row.get("runtime_error") or "").strip()
     expected_status = str(row.get("expected_status") or "").strip().upper()
     if expected_status not in {"OK", "NO_DATA", "NO_TABLE", "ERROR", "UNKNOWN"}:
-        expected_status = _delta_v7_expected_status(
+        expected_status = _source_expected_status(
             static_supported=static_supported,
             physical_present=physical_present,
             row_count=row_count,
@@ -557,7 +557,7 @@ def _delta_v7_source_row(row: dict[str, Any], *, source_key: str, environment: s
     }
 
 
-def _delta_v8_source_row(row: dict[str, Any]) -> dict[str, Any]:
+def _source_runtime_row(row: dict[str, Any]) -> dict[str, Any]:
     physical_present = row.get("physical_table_present")
     physical_tables = row.get("physical_tables")
     if not isinstance(physical_tables, list):
@@ -583,7 +583,7 @@ def _delta_v8_source_row(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _delta_v7_expected_status(
+def _source_expected_status(
     *,
     static_supported: bool,
     physical_present: bool | None,

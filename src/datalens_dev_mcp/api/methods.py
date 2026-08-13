@@ -58,12 +58,14 @@ def get_method_schema(name: str) -> dict[str, object]:
             "experimental": value.get("experimental"),
             "trace": {"source": value.get("source"), "doc_url": value.get("doc_url")},
         }
-    return {"name": name, "mode": "unknown", "description": "Method is not in the curated v1 catalog."}
+    return {"name": name, "mode": "unknown", "description": "Method is not in the curated API catalog."}
 
 
 def compiled_api_version() -> str:
-    value = str(_openapi_lock().get("required_api_header_version") or _catalog().get("required_api_header_version") or "1")
-    return value.strip() or "1"
+    value = str(_openapi_lock().get("required_api_header_version") or _catalog().get("required_api_header_version") or "").strip()
+    if not value:
+        raise RuntimeError("compiled OpenAPI contract does not define required_api_header_version")
+    return value
 
 
 def openapi_lock_hash() -> str:

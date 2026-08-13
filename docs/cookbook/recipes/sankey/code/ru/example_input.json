@@ -1,0 +1,34 @@
+{
+  "meta": {
+    "links": {
+      "dataset": "replace_with_dataset_id"
+    }
+  },
+  "params": {
+    "theme": [
+      "light"
+    ]
+  },
+  "rows": [
+    {
+      "source": "Новый",
+      "target": "В работе",
+      "value": 72
+    },
+    {
+      "source": "Новый",
+      "target": "Отложен",
+      "value": 18
+    },
+    {
+      "source": "В работе",
+      "target": "Готово",
+      "value": 56
+    },
+    {
+      "source": "Отложен",
+      "target": "В работе",
+      "value": 11
+    }
+  ]
+}

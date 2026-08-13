@@ -2,7 +2,7 @@
 
 **Русский** · [English](route-policy_en.md) · [Инструменты](tools.md) · [Источники](sources.md)
 
-Официальное описание технологий: [Wizard, QL и Editor](https://yandex.cloud/ru/docs/datalens/concepts/chart/). Версионированные правила сервера находятся в `config/route_selection_policy_v5.json`.
+Официальное описание технологий: [Wizard, QL и Editor](https://yandex.cloud/ru/docs/datalens/concepts/chart/). Канонические правила сервера находятся в `config/route_selection_policy.json`.
 
 ## Правила выбора
 
@@ -29,9 +29,14 @@
 | Круговая и кольцевая диаграмма | `pie`, `donut` |
 | Точечная и пузырьковая диаграмма | `scatter` |
 | Treemap | `treemap` |
+| Воронка | `funnel` |
 | Карта | `geolayer` |
 
-Для пузырьковой диаграммы требуется поле размера, для карты — подтверждённые геоданные. `wizard_map_native` нормализуется в `wizard_native` с `visualization_id=geolayer`.
+Для воронки категория и один или несколько показателей связываются с нативной
+секцией `measures`; доступны цвет, сортировка, подписи и фильтры. Для пузырьковой
+диаграммы требуется поле размера, для карты — подтверждённые геоданные.
+`wizard_map_native` нормализуется в `wizard_native` с
+`visualization_id=geolayer`.
 
 ## Editor
 
@@ -43,15 +48,15 @@
 Перед сохранением Editor-объект проходит `dl_validate_editor_runtime_contract` по официальным [вкладкам](https://yandex.cloud/ru/docs/datalens/charts/editor/tabs) и [методам](https://yandex.cloud/ru/docs/datalens/charts/editor/methods).
 
 Для create и full redesign без явного профиля сервер применяет
-`standard_dashboard_v1`; aliases `strict_dashboard`, `standard_dashboard` и
+`standard_dashboard`; aliases `strict_dashboard`, `standard_dashboard` и
 `registered_dashboard` ведут к нему. Профиль сначала фиксирует канонический
 route: стандартные KPI, таблицы и графики остаются Wizard. Затем
-Для выбранного Editor тот же `standard_dashboard_v1` применяет актуальный
+Для выбранного Editor тот же `standard_dashboard` применяет актуальный
 защищённый renderer только к прямо запрошенному Editor, доказанному capability
 gap или сохранённой Editor-технологии при update.
 
 Исполняемый встроенный контракт один. Исторические имена профилей принимаются
-только как входные aliases и сразу нормализуются в `standard_dashboard_v1` без
+только как входные aliases и сразу нормализуются в `standard_dashboard` без
 доступа к старым assets или правилам. Сохранённая Editor-технология остаётся
 Editor, но bundle пересобирается по текущему контракту. Профиль возвращает
 SHA-256 набора шаблонов, выбранных assets,
@@ -78,14 +83,14 @@ assets, сам и все зависимости остаются внутри pr
 
 ## Контракт композиции и заголовков
 
-`Renderer Visual Spec v5` назначает владельца заголовка через `title_mode`:
+`Renderer Visual Spec` назначает владельца заголовка через `title_mode`:
 Editor-график использует `embedded_title`, KPI — `content_label`, вкладка без
 внутреннего заголовка — `tab_only`, Wizard/нативная таблица — `native_title`,
 внутренний переключатель — `tab_strip`. Одновременный native и runtime title
 запрещён. Точный `display_title` входит в acceptance и не заменяется
 техническим именем.
 
-`dashboard_composition.version=2` фиксирует 36-колоночную геометрию,
+`dashboard_composition` фиксирует 36-колоночную геометрию,
 семантические строки, selectors и mount → tab → widget связи. Любая смена
 route, title, selector, runtime или layout после `dl_validate_project`
 инвалидирует final payload attestation.

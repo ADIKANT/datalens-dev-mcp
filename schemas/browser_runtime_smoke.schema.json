@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "datalens.delta_v8.browser_runtime_smoke.schema.json",
-  "title": "DataLens Delta v8 Browser Runtime Smoke",
+  "$id": "datalens.browser_runtime_smoke.schema.json",
+  "title": "DataLens Browser Runtime Smoke",
   "type": "object",
   "required": ["status", "target_url", "checked_markers", "blocking_markers_found"],
   "properties": {
@@ -16,12 +16,12 @@
     "required_object_revisions": {"type": "object", "additionalProperties": {"type": "string"}},
     "revision_mismatch_object_ids": {"type": "array", "items": {"type": "string"}},
     "delivery_stage": {"enum": ["", "saved_runtime", "published_runtime"]},
-    "browser_capture_schema_version": {
+    "browser_capture_schema_id": {
       "enum": [
         "",
-        "datalens.browser_capture.v1",
-        "datalens.browser_capture.v2",
-        "datalens.browser_capture.v3"
+        "datalens.browser_capture",
+        "datalens.browser_capture",
+        "datalens.browser_capture"
       ]
     },
     "change_scope": {"enum": ["", "content", "layout", "dashboard"]},

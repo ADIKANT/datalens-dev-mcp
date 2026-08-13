@@ -33,7 +33,7 @@ class NativeTableValidation:
     checked_cell_count: int
     effective_page_size: int
     findings: list[NativeTableFinding] = field(default_factory=list)
-    schema_version: str = "2026-07-01.native_table_contract_v2"
+    schema_id: str = "native_table_contract"
 
     def to_dict(self) -> dict[str, Any]:
         return {
