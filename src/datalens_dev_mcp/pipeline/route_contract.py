@@ -13,6 +13,7 @@ class RouteSpec:
     widget_kind: str
     required_tabs: tuple[str, ...]
     allowed_use: str
+    write_context_fields: tuple[str, ...] = ("task_contract_hash",)
 
 
 @dataclass(frozen=True)
@@ -125,3 +126,18 @@ def route_contract_document() -> str:
         ]
     )
     return "\n".join(lines) + "\n"
+
+
+def validate_write_route_context(route: str, task_contract_hash: str) -> tuple[str, ...]:
+    spec = ROUTE_CONTRACT.spec(route)
+    if "task_contract_hash" not in spec.write_context_fields:
+        return ("route does not declare task_contract_hash write context",)
+    if not re_full_sha256(task_contract_hash):
+        return ("task_contract_hash must be a lowercase SHA-256",)
+    return ()
+
+
+def re_full_sha256(value: str) -> bool:
+    import re
+
+    return re.fullmatch(r"[a-f0-9]{64}", str(value or "")) is not None

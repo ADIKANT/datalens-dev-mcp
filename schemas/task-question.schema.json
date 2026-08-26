@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/task-question.schema.json",
+  "title": "DataLens task question",
+  "type": "object",
+  "required": ["schema_id", "category", "question", "why_not_discoverable", "max_answers"],
+  "properties": {
+    "schema_id": {"const": "datalens_task_question"},
+    "category": {
+      "enum": [
+        "business_key",
+        "metric_semantics",
+        "empty_data_semantics",
+        "exact_reference",
+        "destructive_scope",
+        "unavailable_business_info"
+      ]
+    },
+    "question": {"type": "string", "minLength": 1},
+    "why_not_discoverable": {"type": "string", "minLength": 1},
+    "max_answers": {"const": 1}
+  },
+  "additionalProperties": false
+}

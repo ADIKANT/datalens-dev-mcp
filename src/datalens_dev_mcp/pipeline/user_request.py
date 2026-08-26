@@ -27,6 +27,7 @@ RouteIntent = Literal[
     "unspecified",
 ]
 PublishOverride = Literal["none", "plan_only", "dry_run", "draft", "save_only", "no_publish"]
+BrowserPreference = Literal["forbidden", "required", "unspecified"]
 
 
 @dataclass(frozen=True)
@@ -43,6 +44,8 @@ class NormalizedUserRequest:
     target_object_type: str = ""
     approval_sources: list[str] = field(default_factory=lambda: ["current_user_request"])
     evidence: list[str] = field(default_factory=list)
+    browser_preference: BrowserPreference = "unspecified"
+    explicit_constraints: list[str] = field(default_factory=list)
 
     @property
     def target_known(self) -> bool:
@@ -301,7 +304,33 @@ class UserRequestNormalizer:
             target_object_type=str(ctx.get("target_object_type") or extracted.get("object_type") or ""),
             approval_sources=sources,
             evidence=extracted.get("evidence", []),
+            browser_preference=self._browser_preference(raw),
+            explicit_constraints=self._explicit_constraints(raw),
         )
+
+    @staticmethod
+    def _browser_preference(raw: str) -> BrowserPreference:
+        lowered = raw.lower()
+        if re.search(r"\b(?:do not|don't|without|no)\s+(?:use\s+|open\s+)?(?:the\s+)?browser\b", lowered):
+            return "forbidden"
+        if any(term in lowered for term in ("не надо в браузер", "не используй браузер", "без браузера")):
+            return "forbidden"
+        if re.search(r"\b(?:use|open|check|verify)\s+(?:(?:in|with)\s+)?(?:the\s+)?browser\b", lowered):
+            return "required"
+        if any(term in lowered for term in ("используй браузер", "открой браузер", "проверь в браузере")):
+            return "required"
+        return "unspecified"
+
+    @staticmethod
+    def _explicit_constraints(raw: str) -> list[str]:
+        return [
+            line.strip(" -\t")
+            for line in raw.splitlines()
+            if line.strip() and any(
+                marker in line.lower()
+                for marker in ("do not", "don't", "preserve", "keep", "не меня", "не надо", "сохрани", "оставь")
+            )
+        ]
 
     def _destructive_actions(self, lowered: str) -> list[str]:
         positive_text = self._positive_mutation_text(lowered)

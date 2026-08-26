@@ -1,0 +1,1048 @@
+{
+  "schema_id": "task_contract_fixture_cases",
+  "case_count": 43,
+  "cases": [
+    {
+      "name": "review_without_writes",
+      "request": "review dashboard dashboard:synthetic_dash_01",
+      "expect": {
+        "mode": "review",
+        "save": false,
+        "publish": false,
+        "question": null
+      }
+    },
+    {
+      "name": "diagnose_without_writes",
+      "request": "diagnose root cause for dashboard:synthetic_dash_02",
+      "expect": {
+        "mode": "diagnose",
+        "save": false,
+        "publish": false
+      }
+    },
+    {
+      "name": "update_auto_delivery",
+      "request": "update chart:synthetic_chart_01",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        }
+      },
+      "expect": {
+        "mode": "update",
+        "save": true,
+        "publish": true,
+        "status": "ready"
+      }
+    },
+    {
+      "name": "save_only",
+      "request": "fix chart:synthetic_chart_02 save only",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        }
+      },
+      "expect": {
+        "save": true,
+        "publish": false
+      }
+    },
+    {
+      "name": "no_publish",
+      "request": "update chart:synthetic_chart_03 without publishing",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        }
+      },
+      "expect": {
+        "save": true,
+        "publish": false
+      }
+    },
+    {
+      "name": "draft",
+      "request": "update chart:synthetic_chart_04 as draft",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        }
+      },
+      "expect": {
+        "save": true,
+        "publish": false
+      }
+    },
+    {
+      "name": "no_browser_en",
+      "request": "update chart:synthetic_chart_05; do not use the browser",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        }
+      },
+      "expect": {
+        "browser": "forbidden"
+      }
+    },
+    {
+      "name": "no_browser_ru",
+      "request": "обнови chart:synthetic_chart_06, не надо в браузер",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        }
+      },
+      "expect": {
+        "browser": "forbidden"
+      }
+    },
+    {
+      "name": "browser_required_en",
+      "request": "update chart:synthetic_chart_07 and verify in the browser",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        }
+      },
+      "expect": {
+        "browser": "required"
+      }
+    },
+    {
+      "name": "browser_required_ru",
+      "request": "обнови chart:synthetic_chart_08 и проверь в браузере",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        }
+      },
+      "expect": {
+        "browser": "required"
+      }
+    },
+    {
+      "name": "workspace_browser_required",
+      "request": "update chart:synthetic_chart_09",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        },
+        "workspace_policy": {
+          "browser_mode": "required"
+        }
+      },
+      "expect": {
+        "browser": "required",
+        "browser_source": "workspace_policy"
+      }
+    },
+    {
+      "name": "exact_js_reference",
+      "request": "preserve this JS format exactly for chart:synthetic_chart_10",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        },
+        "reference": {
+          "kind": "portfolio_object",
+          "locator": "portfolio/synthetic-reference",
+          "source_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      "expect": {
+        "reference_exact": true,
+        "reference_kind": "portfolio_object"
+      }
+    },
+    {
+      "name": "preserve_layout",
+      "request": "update chart:synthetic_chart_11",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        },
+        "corrections": [
+          "do not change layout"
+        ]
+      },
+      "expect": {
+        "forbidden_change": "layout_change"
+      }
+    },
+    {
+      "name": "partial_removal_update",
+      "request": "remove the legend from chart:synthetic_chart_12",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        }
+      },
+      "expect": {
+        "mode": "update",
+        "destructive": false
+      }
+    },
+    {
+      "name": "ql_explicit",
+      "request": "update QL chart chart:synthetic_chart_13",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        }
+      },
+      "expect": {
+        "route": "ql_explicit"
+      }
+    },
+    {
+      "name": "business_key_question",
+      "request": "update chart:synthetic_chart_14",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        },
+        "unresolved_facts": {
+          "business_key": true
+        }
+      },
+      "expect": {
+        "question": "business_key"
+      }
+    },
+    {
+      "name": "metric_semantics_question",
+      "request": "update chart:synthetic_chart_15",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        },
+        "unresolved_facts": {
+          "metric_semantics": true
+        }
+      },
+      "expect": {
+        "question": "metric_semantics"
+      }
+    },
+    {
+      "name": "empty_semantics_question",
+      "request": "update chart:synthetic_chart_16",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        },
+        "unresolved_facts": {
+          "empty_data_semantics": true
+        }
+      },
+      "expect": {
+        "question": "empty_data_semantics"
+      }
+    },
+    {
+      "name": "exact_reference_question",
+      "request": "reproduce the style exactly for chart:synthetic_chart_17",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        },
+        "reference": {
+          "candidates": [
+            "synthetic_ref_a",
+            "synthetic_ref_b"
+          ]
+        }
+      },
+      "expect": {
+        "question": "exact_reference"
+      }
+    },
+    {
+      "name": "destructive_scope_question",
+      "request": "delete chart:synthetic_chart_18",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        }
+      },
+      "expect": {
+        "question": "destructive_scope",
+        "destructive": true
+      }
+    },
+    {
+      "name": "unavailable_business_question",
+      "request": "update chart:synthetic_chart_19",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        },
+        "unresolved_facts": {
+          "unavailable_business_info": "not in read-only sources"
+        }
+      },
+      "expect": {
+        "question": "unavailable_business_info"
+      }
+    },
+    {
+      "name": "discoverable_target_no_question",
+      "request": "update the current chart",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available",
+          "chart_id": "synthetic_chart_live",
+          "object_ids": [
+            "synthetic_chart_live"
+          ],
+          "object_types": [
+            "editor_chart"
+          ]
+        }
+      },
+      "expect": {
+        "question": null,
+        "target": "synthetic_chart_live"
+      }
+    },
+    {
+      "name": "missing_technology_is_discovery",
+      "request": "update chart:synthetic_chart_20",
+      "kwargs": {
+        "current_live": {
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "sources.js"
+          ],
+          "saved_revision": "synthetic_saved_rev"
+        }
+      },
+      "expect": {
+        "question": null,
+        "discovery": "technology"
+      }
+    },
+    {
+      "name": "historical_target_ignored",
+      "request": "review current dashboard",
+      "kwargs": {
+        "historical_context": {
+          "dashboard_id": "synthetic_history_dash",
+          "saved_revision": "synthetic_history_rev"
+        }
+      },
+      "expect": {
+        "target_absent": "synthetic_history_dash",
+        "ignored_historical": "dashboard_id"
+      }
+    },
+    {
+      "name": "direct_target_wins_live",
+      "request": "review dashboard:synthetic_direct_dash",
+      "kwargs": {
+        "current_live": {
+          "dashboard_id": "synthetic_live_dash"
+        }
+      },
+      "expect": {
+        "target": "synthetic_direct_dash"
+      }
+    },
+    {
+      "name": "live_target_fills",
+      "request": "review the current dashboard",
+      "kwargs": {
+        "current_live": {
+          "dashboard_id": "synthetic_live_dash_02",
+          "object_ids": [
+            "synthetic_live_dash_02"
+          ],
+          "object_types": [
+            "dashboard"
+          ]
+        }
+      },
+      "expect": {
+        "target": "synthetic_live_dash_02"
+      }
+    },
+    {
+      "name": "portfolio_target_fills",
+      "request": "review the referenced dashboard",
+      "kwargs": {
+        "portfolio_source": {
+          "dashboard_id": "synthetic_portfolio_dash",
+          "object_ids": [
+            "synthetic_portfolio_dash"
+          ],
+          "object_types": [
+            "dashboard"
+          ]
+        }
+      },
+      "expect": {
+        "target": "synthetic_portfolio_dash"
+      }
+    },
+    {
+      "name": "workspace_target_fills",
+      "request": "review the configured dashboard",
+      "kwargs": {
+        "workspace_policy": {
+          "dashboard_id": "synthetic_workspace_dash",
+          "object_ids": [
+            "synthetic_workspace_dash"
+          ],
+          "object_types": [
+            "dashboard"
+          ]
+        }
+      },
+      "expect": {
+        "target": "synthetic_workspace_dash"
+      }
+    },
+    {
+      "name": "journal_target_fills",
+      "request": "review the active task dashboard",
+      "kwargs": {
+        "current_task_journal": {
+          "dashboard_id": "synthetic_journal_dash",
+          "object_ids": [
+            "synthetic_journal_dash"
+          ],
+          "object_types": [
+            "dashboard"
+          ]
+        }
+      },
+      "expect": {
+        "target": "synthetic_journal_dash"
+      }
+    },
+    {
+      "name": "correction_target_wins",
+      "request": "update chart:synthetic_old_chart",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        },
+        "corrections": [
+          "use chart:synthetic_new_chart"
+        ]
+      },
+      "expect": {
+        "target": "synthetic_new_chart"
+      }
+    },
+    {
+      "name": "preserve_dataset",
+      "request": "update chart:synthetic_chart_21",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        },
+        "corrections": [
+          "do not change dataset"
+        ]
+      },
+      "expect": {
+        "forbidden_change": "dataset_change"
+      }
+    },
+    {
+      "name": "preserve_connection",
+      "request": "update chart:synthetic_chart_22",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        },
+        "corrections": [
+          "do not change connection"
+        ]
+      },
+      "expect": {
+        "forbidden_change": "connection_change"
+      }
+    },
+    {
+      "name": "preserve_technology",
+      "request": "update chart:synthetic_chart_23",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        },
+        "corrections": [
+          "preserve chart technology"
+        ]
+      },
+      "expect": {
+        "forbidden_change": "technology_change"
+      }
+    },
+    {
+      "name": "selector_first_acceptance",
+      "request": "update chart:synthetic_chart_24",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        },
+        "corrections": [
+          "period selector must be first"
+        ]
+      },
+      "expect": {
+        "acceptance": "period selector must be first"
+      }
+    },
+    {
+      "name": "hide_technical_fields_acceptance",
+      "request": "update chart:synthetic_chart_25",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        },
+        "corrections": [
+          "do not show extra technical fields"
+        ]
+      },
+      "expect": {
+        "acceptance": "do not show extra technical fields"
+      }
+    },
+    {
+      "name": "preserve_js_acceptance",
+      "request": "update chart:synthetic_chart_26",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        },
+        "corrections": [
+          "preserve this JS format"
+        ]
+      },
+      "expect": {
+        "acceptance": "preserve this JS format"
+      }
+    },
+    {
+      "name": "create_wizard",
+      "request": "create a line chart in workbook:synthetic_workbook_01",
+      "kwargs": {
+        "discovered_facts": {
+          "workbook_id": "synthetic_workbook_01"
+        }
+      },
+      "expect": {
+        "mode": "create",
+        "route": "wizard_native",
+        "save": true,
+        "publish": true
+      }
+    },
+    {
+      "name": "publish_only",
+      "request": "publish from saved only chart:synthetic_chart_27",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        }
+      },
+      "expect": {
+        "mode": "publish_only",
+        "save": false,
+        "publish": true
+      }
+    },
+    {
+      "name": "plan_only",
+      "request": "plan only update for chart:synthetic_chart_28",
+      "expect": {
+        "mode": "plan",
+        "save": false,
+        "publish": false
+      }
+    },
+    {
+      "name": "live_editor_table_route",
+      "request": "update chart:synthetic_chart_29",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_table",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        }
+      },
+      "expect": {
+        "route": "editor_table"
+      }
+    },
+    {
+      "name": "current_ql_beats_history",
+      "request": "update QL chart chart:synthetic_chart_30",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        },
+        "historical_context": {
+          "technology": "wizard_native"
+        }
+      },
+      "expect": {
+        "route": "ql_explicit"
+      }
+    },
+    {
+      "name": "current_revision_beats_history",
+      "request": "update chart:synthetic_chart_31",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        },
+        "historical_context": {
+          "saved_revision": "synthetic_old_rev"
+        }
+      },
+      "expect": {
+        "saved_revision": "synthetic_saved_rev"
+      }
+    },
+    {
+      "name": "correction_browser_changes_policy",
+      "request": "update chart:synthetic_chart_32",
+      "kwargs": {
+        "current_live": {
+          "technology": "editor_advanced",
+          "layout": {
+            "widgets": [
+              "synthetic_widget"
+            ]
+          },
+          "tabs": [
+            "meta.json",
+            "sources.js",
+            "prepare.js"
+          ],
+          "saved_revision": "synthetic_saved_rev",
+          "published_revision": "synthetic_published_rev",
+          "auth_state": "available"
+        },
+        "corrections": [
+          "не надо в браузер"
+        ]
+      },
+      "expect": {
+        "browser": "forbidden",
+        "acceptance": "не надо в браузер"
+      }
+    }
+  ]
+}
