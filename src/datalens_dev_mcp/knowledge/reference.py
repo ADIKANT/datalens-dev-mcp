@@ -128,6 +128,7 @@ def build_reference_response(
     else:
         result = _search(term, limit)
         normalized = "search"
+    result = _limit_inline_fragments(result, limit=3)
     envelope = _reference_envelope(normalized, term, result)
     payload = {
         "ok": True,
@@ -146,12 +147,26 @@ def build_reference_response(
             "local_safety_governance_policy",
         ],
         **result,
+        "retrieval_contract": {
+            "max_inline_fragments": 3,
+            "freshness": "versioned_packaged_reference",
+            "stale_advisory": "Reconcile drift-sensitive claims with current official documentation.",
+            "full_text_policy": "Use the artifact or packaged resource URI instead of expanding full text inline.",
+        },
     }
     return _bound_payload(payload, max_chars=max_chars, project_root=Path(project_root))
 
 
 def lookup_error_reference(text: str, limit: int = 3) -> list[dict[str, Any]]:
     return _error(text, limit).get("results", [])
+
+
+def _limit_inline_fragments(result: dict[str, Any], *, limit: int) -> dict[str, Any]:
+    bounded = dict(result)
+    for key in ("results", "recipes", "capabilities"):
+        if isinstance(bounded.get(key), list):
+            bounded[key] = bounded[key][:limit]
+    return bounded
 
 
 def _load_json(relative: str, default: Any) -> Any:

@@ -118,6 +118,12 @@ class DataLensRequestScheduler:
         with self._condition:
             self._state(key).methods[method].transient_retries += 1
 
+    def cooldown_remaining(self, key: str) -> float:
+        """Return the shared Retry-After budget for one API endpoint."""
+
+        with self._condition:
+            return max(0.0, self._state(key).cooldown_until - self._clock())
+
     def note_cache_hit(self, category: str) -> None:
         normalized = str(category or "unknown").strip() or "unknown"
         with self._condition:

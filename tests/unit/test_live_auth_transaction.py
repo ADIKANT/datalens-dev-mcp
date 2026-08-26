@@ -57,7 +57,7 @@ class Refresh401Transport:
 
 
 class LiveAuthTransactionTests(unittest.TestCase):
-    def test_canonical_env_file_overrides_stale_process_token_and_reloads_on_401(self):
+    def test_probe_success_proves_failure_is_not_token_wide_and_forbids_retry(self):
         with tempfile.TemporaryDirectory() as tmp:
             env_file = Path(tmp) / "datalens.env"
             env_file.write_text(
@@ -74,14 +74,15 @@ class LiveAuthTransactionTests(unittest.TestCase):
                 cfg = DataLensConfig.from_env()
                 transport = Rotating401Transport(env_file)
                 client = DataLensApiClient(cfg, transport=transport)
-                response = client.rpc_readonly("getWorkbooksList", {"page": 1, "pageSize": 1})
+                with self.assertRaises(DataLensApiError) as raised:
+                    client.rpc_readonly("getWorkbooksList", {"page": 1, "pageSize": 1})
                 report = client.config.credential_report()
 
-        self.assertEqual(response["ok"], True)
+        self.assertIn("probe_status=success", str(raised.exception))
         self.assertEqual(client.config.credential_source, "env_file")
-        self.assertEqual(client.config.env_file_reload_state, "reloaded_after_401")
+        self.assertEqual(client.config.env_file_reload_state, "reloaded_before_rpc")
         self.assertIn("Bearer placeholder_a", transport.headers[0]["Authorization"])
-        self.assertIn("Bearer placeholder_b", transport.headers[-1]["Authorization"])
+        self.assertIn("Bearer placeholder_a", transport.headers[-1]["Authorization"])
         self.assertNotIn("placeholder_", json.dumps(report))
         self.assertNotIn("stale_process", json.dumps(report))
 
@@ -127,7 +128,7 @@ class LiveAuthTransactionTests(unittest.TestCase):
             client.rpc_readonly("getWorkbooksList", {"page": 1, "pageSize": 1})
 
         message = str(raised.exception)
-        self.assertEqual(transport.calls, 1)
+        self.assertEqual(transport.calls, 2)
         self.assertIn("token_refresh_failed", message)
         self.assertNotIn("leaked_token", message)
 

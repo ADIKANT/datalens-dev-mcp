@@ -16,6 +16,7 @@ from typing import Any, Iterator
 from datalens_dev_mcp import __version__
 from datalens_dev_mcp.pipeline.artifacts import append_jsonl, read_json, write_json, write_text
 from datalens_dev_mcp.pipeline.task_contract import task_contract_hash
+from datalens_dev_mcp.pipeline.evidence_compaction import compact_task_evidence
 from datalens_dev_mcp.pipeline.workflow_checkpoint import render_checkpoint
 from datalens_dev_mcp.pipeline.workflow_events import create_workflow_event
 from datalens_dev_mcp.pipeline.workflow_replay import repair_corrupt_event_tail, replay_workflow
@@ -91,6 +92,7 @@ class ProjectJournal:
         self.state_path = self.root / "state.json"
         self.events_path = self.root / "events.jsonl"
         self.checkpoint_path = self.root / "checkpoint.md"
+        self.compact_context_path = self.root / "compact-context.json"
         self.identity_path = self.root / "identity.json"
         self.lock_path = self.root / "locks" / "task.lock"
         self.lease_path = self.root / "locks" / "lease.json"
@@ -231,6 +233,19 @@ class ProjectJournal:
         write_text(
             self.checkpoint_path,
             render_checkpoint(contract=contract, state=state.to_dict(), completion_criteria=criteria),
+        )
+        write_json(
+            self.compact_context_path,
+            compact_task_evidence(
+                policy_version=__version__,
+                task_contract=contract,
+                target_binding=contract.get("target") or {},
+                style_binding=contract.get("style_binding") or {},
+                checkpoint=state.to_dict(),
+                active_blocker=state.blocker,
+                next_transition=state.next_transition,
+                artifact_root=self.root,
+            ),
         )
 
     @contextmanager

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/investigation-record.schema.json",
+  "title": "Bounded failure investigation record",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema_id", "family", "boundary_evidence", "corrective_attempts", "state", "next_action"],
+  "properties": {
+    "schema_id": {"const": "datalens_investigation_record"},
+    "family": {"type": "string"},
+    "exact_failure": {"type": "string"},
+    "boundary_evidence": {"type": "array", "maxItems": 10, "items": {"type": "string"}},
+    "active_hypothesis": {"type": "string"},
+    "discriminating_probe": {"type": "string"},
+    "corrective_attempts": {"type": "integer", "minimum": 0, "maximum": 3},
+    "verification": {"type": "string"},
+    "state": {"enum": ["INVESTIGATING", "FAILED_ARCHITECTURE_REVIEW_REQUIRED"]},
+    "next_action": {"type": "string"}
+  }
+}
