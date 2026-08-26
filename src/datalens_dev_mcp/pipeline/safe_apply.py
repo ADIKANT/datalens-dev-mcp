@@ -32,6 +32,12 @@ from datalens_dev_mcp.pipeline.reconciliation import (
     validate_entries_reconciliation_evidence,
 )
 from datalens_dev_mcp.pipeline.sql_performance import validate_payload_sql_performance
+from datalens_dev_mcp.pipeline.patch_preflight import (
+    preflight_semantic_patch_batch,
+    verify_semantic_patch_readback,
+)
+from datalens_dev_mcp.pipeline.semantic_patch import canonical_hash, validate_semantic_patch_plan
+from datalens_dev_mcp.pipeline.noop_guard import evaluate_noop_attempt
 from datalens_dev_mcp.pipeline.user_request import normalize_user_request
 from datalens_dev_mcp.pipeline.wizard_contracts import (
     validate_wizard_field_binding_against_dataset_readback,
@@ -623,6 +629,23 @@ def validate_safe_apply_plan_exhaustive(plan: dict[str, Any]) -> dict[str, Any]:
     for index, action in enumerate(actions):
         action_issues: list[str] = []
         payload = _payload_for_action(action)
+        semantic_patch_plan = action.get("semantic_patch_plan")
+        if semantic_patch_plan is not None:
+            if not isinstance(semantic_patch_plan, dict):
+                action_issues.append(f"action {index} semantic_patch_plan must be an object")
+            else:
+                action_issues.extend(
+                    f"action {index} semantic_patch_plan {issue}"
+                    for issue in validate_semantic_patch_plan(semantic_patch_plan)
+                )
+            retry_signature = action.get("semantic_patch_retry_signature")
+            retry_history = action.get("semantic_patch_attempt_history")
+            if isinstance(retry_signature, dict) and isinstance(retry_history, list):
+                progress = evaluate_noop_attempt(retry_history, retry_signature)
+                if not progress["repeat_write_allowed"]:
+                    action_issues.append(
+                        f"action {index} NO_PROGRESS: identical semantic patch attempt requires root-cause review"
+                    )
         text = " ".join(str(action.get(key, "")) for key in ("action", "method")).lower()
         if any(term.lower() in text for term in DESTRUCTIVE_TERMS):
             action_issues.append(f"action {index} is destructive or permission-changing")
@@ -935,6 +958,28 @@ def execute_safe_apply(
         from datalens_dev_mcp.api.client import DataLensApiClient
 
         client = DataLensApiClient(cfg)
+    semantic_runtime = preflight_semantic_patch_runtime(plan, client=client)
+    if not semantic_runtime["ok"]:
+        transaction_groups = _transaction_group_summary(plan, [])
+        return {
+            "ok": False,
+            "executed": False,
+            "status": "blocked",
+            "proof_level": "source_static",
+            "proof_levels": ["source_static", "saved_readback"],
+            "completed_action_count": 0,
+            "completed_action_indices": [],
+            "failed_action_index": None,
+            "failed_action_indices": [],
+            "skipped_action_indices": list(range(len(plan.get("actions") or []))),
+            "blocked_reasons": semantic_runtime["issues"],
+            "preflight": {**preflight, "semantic_patch_batch": semantic_runtime},
+            "actions": [],
+            "rollback": {"required": False, "available": False, "artifacts": []},
+            "readback_artifacts": [],
+            "transaction_groups": transaction_groups,
+            "publish_allowed": False,
+        }
     results = []
     root = Path(str(plan.get("project_root") or "."))
     run_id = safe_apply_run_id(plan)
@@ -943,6 +988,18 @@ def execute_safe_apply(
         payload = _payload_for_action(action)
         write_payload = payload
         action_result = _base_action_result(index=index, action=action, payload=payload, preflight=checks_by_index.get(index, {}))
+        if index in semantic_runtime.get("noop_action_indices", []):
+            action_result.update(
+                {
+                    "status": "noop",
+                    "changed": False,
+                    "execution_stage": "preflight_noop",
+                    "verification_outcome": "already_applied",
+                    "semantic_patch_preflight": "already_applied",
+                }
+            )
+            results.append(action_result)
+            continue
         transaction_error = _publish_transaction_group_error(
             plan=plan,
             results=results,
@@ -984,6 +1041,8 @@ def execute_safe_apply(
                     action_result["error"] = paginated_fresh["error"]
                     results.append(action_result)
                     break
+            elif index in semantic_runtime["fresh_by_action"]:
+                fresh = semantic_runtime["fresh_by_action"][index]
             else:
                 fresh = _exclusive_read(client, fresh_method, fresh_payload) if fresh_method else {}
             guarded_existing_write = action_type in {"update", "publish"}
@@ -1200,6 +1259,30 @@ def execute_safe_apply(
                     for key, value in readback_verification.items()
                     if key != "error"
                 }
+                semantic_plan = action.get("semantic_patch_plan")
+                if isinstance(semantic_plan, dict):
+                    semantic_targets = semantic_plan.get("targets") or []
+                    semantic_object_id = (
+                        str(semantic_targets[0].get("object_id") or "")
+                        if len(semantic_targets) == 1
+                        else _action_object_id(action, payload)
+                    )
+                    semantic_readback = verify_semantic_patch_readback(
+                        semantic_plan,
+                        readback_targets={
+                            semantic_object_id: {
+                                "object_type": str(action.get("object_type") or ""),
+                                "saved_revision": _revision_id(readback),
+                                "payload": _semantic_content_payload(readback),
+                            }
+                        },
+                    )
+                    action_result["semantic_patch_readback"] = semantic_readback
+                    if not semantic_readback["ok"]:
+                        readback_verification["error"] = {
+                            "category": "semantic_patch_readback_mismatch",
+                            "message": "post-write readback does not match the semantic patch expected after-hash",
+                        }
                 readback_error = readback_verification.get("error")
                 if readback_error:
                     action_result["status"] = "failed"
@@ -1284,6 +1367,107 @@ def execute_safe_apply(
         results=results,
     )
     return result
+
+
+def preflight_safe_apply_semantic_patches(
+    plan: dict[str, Any],
+    *,
+    fresh_targets: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    """Preflight every semantic patch action before the first write is permitted."""
+
+    issues: list[str] = []
+    action_results: list[dict[str, Any]] = []
+    for index, action in enumerate(plan.get("actions") or []):
+        semantic_plan = action.get("semantic_patch_plan") if isinstance(action, dict) else None
+        if not isinstance(semantic_plan, dict):
+            continue
+        result = preflight_semantic_patch_batch(semantic_plan, fresh_targets=fresh_targets)
+        expected_payloads = action.get("semantic_expected_payloads")
+        expected_payloads = expected_payloads if isinstance(expected_payloads, dict) else {}
+        targets = semantic_plan.get("targets") or []
+        if len(targets) == 1 and not expected_payloads:
+            expected_payloads = {str(targets[0].get("object_id") or ""): _payload_for_action(action)}
+        for object_id, expected in expected_payloads.items():
+            actual = result.get("materialized_payloads", {}).get(object_id)
+            if result.get("ok") and canonical_hash(actual) != canonical_hash(expected):
+                result["ok"] = False
+                result["status"] = "blocked"
+                result["issues"].append(
+                    f"target {object_id}: materialized semantic payload differs from guarded write payload"
+                )
+                result["materialized_payloads"] = {}
+        no_op = bool(result["ok"]) and all(
+            int(item.get("active_section_count") or 0) == 0
+            for item in result.get("targets") or []
+        )
+        action_results.append({"index": index, "no_op": no_op, **result})
+        issues.extend(f"action {index} {issue}" for issue in result["issues"])
+    return {
+        "ok": not issues,
+        "status": "ready" if not issues else "blocked",
+        "issues": issues,
+        "actions": action_results,
+        "noop_action_indices": [item["index"] for item in action_results if item.get("no_op")],
+        "write_count": 0,
+    }
+
+
+def preflight_semantic_patch_runtime(plan: dict[str, Any], *, client: Any) -> dict[str, Any]:
+    """Read and preflight all semantic targets before Safe Apply can dispatch a write."""
+
+    fresh_targets: dict[str, dict[str, Any]] = {}
+    fresh_by_action: dict[int, dict[str, Any]] = {}
+    read_issues: list[str] = []
+    for index, action in enumerate(plan.get("actions") or []):
+        semantic_plan = action.get("semantic_patch_plan") if isinstance(action, dict) else None
+        if not isinstance(semantic_plan, dict):
+            continue
+        targets = semantic_plan.get("targets") or []
+        read_specs = action.get("semantic_fresh_reads")
+        read_specs = read_specs if isinstance(read_specs, dict) else {}
+        for target in targets:
+            object_id = str(target.get("object_id") or "")
+            spec = read_specs.get(object_id) if isinstance(read_specs.get(object_id), dict) else {}
+            method = str(spec.get("method") or action.get("read_method") or action.get("fresh_read_method") or "")
+            payload = spec.get("payload") or action.get("fresh_read_payload") or {}
+            if not method:
+                read_issues.append(f"action {index} target {object_id}: semantic fresh read method is required")
+                continue
+            try:
+                fresh = _exclusive_read(client, method, payload)
+            except Exception as exc:  # noqa: BLE001
+                read_issues.append(
+                    f"action {index} target {object_id}: semantic fresh read failed ({exc.__class__.__name__})"
+                )
+                continue
+            fresh_targets[object_id] = {
+                "object_type": str(target.get("object_type") or ""),
+                "saved_revision": _revision_id(fresh),
+                "payload": _semantic_content_payload(fresh),
+            }
+            if len(targets) == 1:
+                fresh_by_action[index] = fresh
+    if read_issues:
+        return {
+            "ok": False,
+            "status": "blocked",
+            "issues": read_issues,
+            "actions": [],
+            "fresh_by_action": {},
+            "noop_action_indices": [],
+            "write_count": 0,
+        }
+    result = preflight_safe_apply_semantic_patches(plan, fresh_targets=fresh_targets)
+    result["fresh_by_action"] = fresh_by_action if result["ok"] else {}
+    return result
+
+
+def _semantic_content_payload(readback: dict[str, Any]) -> dict[str, Any]:
+    payload = deepcopy(readback)
+    for key in ("revId", "revision", "revisionId", "updatedAt", "createdAt"):
+        payload.pop(key, None)
+    return payload
 
 
 def _exclusive_read(client: Any, method: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -1401,6 +1585,9 @@ def _safe_apply_action_binding(action: dict[str, Any]) -> dict[str, Any]:
     saved_source = _saved_source_binding(action)
     if saved_source:
         binding["saved_source"] = saved_source
+    semantic_patch_plan_hash = str((action.get("semantic_patch_plan") or {}).get("plan_hash") or "")
+    if semantic_patch_plan_hash:
+        binding["semantic_patch_plan_hash"] = semantic_patch_plan_hash
     return binding
 
 

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Semantic Patch Plan",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema_id", "task_id", "targets", "plan_hash"],
+  "properties": {
+    "schema_id": {"const": "semantic_patch_plan"},
+    "task_id": {"type": "string", "minLength": 1},
+    "plan_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "targets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["object_id", "object_type", "saved_revision", "saved_hash", "expected_after_hash", "sections"],
+        "properties": {
+          "object_id": {"type": "string", "minLength": 1},
+          "object_type": {"type": "string", "minLength": 1},
+          "saved_revision": {},
+          "saved_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "expected_after_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": ["tab", "tab_hash", "anchor", "operation", "expected_after_hash", "expected_section_after_hash"],
+              "properties": {
+                "tab": {"type": "string"},
+                "tab_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+                "anchor": {"$ref": "patch-anchor.schema.json"},
+                "operation": {"const": "replace"},
+                "value_artifact": {"type": "string"},
+                "expected_after_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+                "expected_section_after_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -14,6 +14,7 @@ from datalens_dev_mcp.editor.render_contract import canonical_sha256
 from datalens_dev_mcp.editor.title_contract import validate_title_contract
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.pipeline.dashboard_composition import validate_dashboard_composition
+from datalens_dev_mcp.pipeline.semantic_patch import validate_semantic_patch_plan
 
 
 FINAL_PAYLOAD_ATTESTATION_SCHEMA_ID = "final_payload_attestation"
@@ -93,6 +94,15 @@ def build_final_payload_attestation(root: str | Path) -> dict[str, Any]:
         except (KeyError, TypeError, ValueError) as exc:
             compiled_payload = {}
             issues.append(f"{relative}: final Editor payload compile failed: {exc}")
+        semantic_patch_plan = bundle.get("semantic_patch_plan")
+        if semantic_patch_plan is not None:
+            if not isinstance(semantic_patch_plan, dict):
+                issues.append(f"{relative}: semantic_patch_plan must be an object")
+            else:
+                issues.extend(
+                    f"{relative}: semantic_patch_plan: {issue}"
+                    for issue in validate_semantic_patch_plan(semantic_patch_plan)
+                )
         provenance = bundle.get("template_provenance") if isinstance(bundle.get("template_provenance"), dict) else {}
         binding = bundle.get("dashboard_composition_binding") if isinstance(bundle.get("dashboard_composition_binding"), dict) else {}
         components.append(
@@ -123,6 +133,7 @@ def build_final_payload_attestation(root: str | Path) -> dict[str, Any]:
                 "binding_neutral_payload_sha256": canonical_sha256(_without_destination_binding(compiled_payload)),
                 "tabs_sha256": canonical_sha256(persisted_tabs),
                 "render_validation_ok": bool(render_validation.get("ok", True)),
+                "semantic_patch_plan_hash": str((semantic_patch_plan or {}).get("plan_hash") or ""),
             }
         )
 

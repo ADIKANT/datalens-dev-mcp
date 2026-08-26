@@ -1,5 +1,5 @@
 {
-  "resource_count": 282,
+  "resource_count": 285,
   "resources": [
     {
       "bytes": 15842,
@@ -402,6 +402,11 @@
       "sha256": "f6e814e616a1d9cc178c322606310ac704b8a604abf414b1f6b3c5b20231f978"
     },
     {
+      "bytes": 492,
+      "path": "schemas/patch-anchor.schema.json",
+      "sha256": "5c2ec53ed4752701abdb28fcd034fddae2c330540a2e7f8a3d02d7d2eee96927"
+    },
+    {
       "bytes": 1098,
       "path": "schemas/portfolio-style-profile.schema.json",
       "sha256": "2a6bc772fb2aa6c128ba67c29f3ff4f2d84d3d17b870fdd86ae46aa637f8152d"
@@ -460,6 +465,16 @@
       "bytes": 6202,
       "path": "schemas/safe_apply_execution_evidence.schema.json",
       "sha256": "739a45e3b6c2c116421751b5020a96e6d44bb8bb38646cd57a84d99c1b7d6ec7"
+    },
+    {
+      "bytes": 1839,
+      "path": "schemas/semantic-patch-plan.schema.json",
+      "sha256": "cf4f3118a8bdc95747297af23556ffc58feb6b5aa6a9adec74bd76f9dd169248"
+    },
+    {
+      "bytes": 526,
+      "path": "schemas/semantic-patch-result.schema.json",
+      "sha256": "e9ff39eddac7943cfe5194d3b89310ddb405d6f804b92e0b9cf5a9a83649373d"
     },
     {
       "bytes": 594,

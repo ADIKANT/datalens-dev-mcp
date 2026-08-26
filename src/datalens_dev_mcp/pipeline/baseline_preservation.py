@@ -3,8 +3,28 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from datalens_dev_mcp.pipeline.semantic_patch import canonical_hash
+
 
 BACKUP_CORPUS_ROOT = Path("backup")
+
+
+def build_semantic_patch_preservation_contract(
+    *,
+    before: Any,
+    after: Any,
+    targeted_paths: list[str],
+) -> dict[str, Any]:
+    """Bind a narrow patch to full before/after hashes while preserving unknown fields."""
+
+    return {
+        "schema_id": "semantic_patch_preservation_contract",
+        "before_hash": canonical_hash(before),
+        "after_hash": canonical_hash(after),
+        "targeted_paths": sorted({str(item) for item in targeted_paths if str(item)}),
+        "unknown_fields_preserved": True,
+        "raw_array_position_anchors_forbidden": True,
+    }
 
 
 def find_backup_baseline_path(
