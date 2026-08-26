@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/compact-evidence.schema.json",
+  "title": "Compact autonomous task evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "stable_context_sha256", "volatile_tail", "full_evidence"],
+  "properties": {
+    "schema_id": {"const": "datalens_compact_evidence"},
+    "stable_context": {"type": "object"},
+    "stable_context_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "volatile_tail": {"type": "object"},
+    "full_evidence": {
+      "type": "object",
+      "required": ["serialized_chars", "serialized_bytes", "sha256"],
+      "properties": {
+        "serialized_chars": {"type": "integer", "minimum": 0},
+        "serialized_bytes": {"type": "integer", "minimum": 0},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "uri": {"type": "string"},
+        "synopsis": {"type": "object"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

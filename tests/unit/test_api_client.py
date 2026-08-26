@@ -217,14 +217,14 @@ class ApiClientTests(unittest.TestCase):
         _, payload, _ = transport.requests[0]
         self.assertEqual(payload, {"dashboardId": "dash_1", "strict": False})
 
-    def test_401_refreshes_once_and_retries_original_request(self):
+    def test_401_on_write_refreshes_once_but_never_replays_original_request(self):
         from datalens_dev_mcp.api.client import DataLensApiClient, DataLensApiError
         from datalens_dev_mcp.config import DataLensConfig
 
         transport = FakeTransport(
             [
                 http_error(401, {"message": "unauthorized"}),
-                {"ok": True},
+                http_error(401, {"message": "minimal probe unauthorized"}),
             ]
         )
         refresh_calls = []
@@ -239,14 +239,16 @@ class ApiClientTests(unittest.TestCase):
             token_refresher=lambda: refresh_calls.append("called") or "refreshed-token-value",
         )
 
-        self.assertEqual(client.rpc("updateEditorChart", {"entryId": "entry_synthetic"}), {"ok": True})
+        with self.assertRaises(DataLensApiError) as raised:
+            client.rpc("updateEditorChart", {"entryId": "entry_synthetic"})
 
         self.assertEqual(refresh_calls, ["called"])
         self.assertEqual(len(transport.requests), 2)
         self.assertEqual(transport.requests[0][0], "https://api.datalens.tech/rpc/updateEditorChart")
-        self.assertEqual(transport.requests[1][0], "https://api.datalens.tech/rpc/updateEditorChart")
+        self.assertEqual(transport.requests[1][0], "https://api.datalens.tech/rpc/getWorkbooksList")
         self.assertIn("super-secret-token-value", transport.requests[0][2]["Authorization"])
-        self.assertIn("refreshed-token-value", transport.requests[1][2]["Authorization"])
+        self.assertIn("super-secret-token-value", transport.requests[1][2]["Authorization"])
+        self.assertIn("not replayed", str(raised.exception))
 
     def test_401_refresh_persists_env_file_atomically_with_0600(self):
         from datalens_dev_mcp.api.client import DataLensApiClient
@@ -256,7 +258,6 @@ class ApiClientTests(unittest.TestCase):
             [
                 http_error(401, {"message": "unauthorized"}),
                 http_error(401, {"message": "minimal probe unauthorized"}),
-                http_error(401, {"message": "reload unauthorized"}),
                 {"ok": True},
             ]
         )
@@ -291,7 +292,9 @@ class ApiClientTests(unittest.TestCase):
         from datalens_dev_mcp.api.client import DataLensApiClient, DataLensApiError
         from datalens_dev_mcp.config import DataLensConfig
 
-        transport = FakeTransport([http_error(401, {"message": "unauthorized"})])
+        transport = FakeTransport(
+            [http_error(401, {"message": "unauthorized"}), http_error(401, {"message": "probe unauthorized"})]
+        )
         client = DataLensApiClient(
             DataLensConfig(
                 iam_token="super-secret-token-value",
@@ -324,7 +327,7 @@ class ApiClientTests(unittest.TestCase):
         self.assertIn("BLOCKED_LIVE_CREDENTIALS", str(raised.exception))
         self.assertEqual(transport.requests, [])
 
-    def test_retry_auth_failure_after_refresh_is_actionable(self):
+    def test_write_auth_failure_after_refresh_is_not_replayed(self):
         from datalens_dev_mcp.api.client import DataLensApiClient, DataLensApiError
         from datalens_dev_mcp.config import DataLensConfig
 
@@ -344,9 +347,9 @@ class ApiClientTests(unittest.TestCase):
             client.rpc("updateEditorChart", {"entryId": "entry_synthetic"})
 
         text = str(raised.exception)
-        self.assertIn("auth_retry_failed_after_refresh", text)
+        self.assertIn("not replayed", text)
         self.assertEqual(len(transport.requests), 2)
-        self.assertEqual(transport.requests[0][0], transport.requests[1][0])
+        self.assertNotEqual(transport.requests[0][0], transport.requests[1][0])
 
     def test_400_validation_error_reports_sanitized_payload_keys(self):
         from datalens_dev_mcp.api.client import DataLensApiClient, DataLensApiError

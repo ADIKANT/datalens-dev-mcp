@@ -5,6 +5,7 @@ from typing import Any
 
 from datalens_dev_mcp.mcp.response_projection import (
     normalize_response_mode,
+    project_active_results,
     sanitize_response,
     serialized_metadata,
     write_full_artifact,
@@ -52,6 +53,10 @@ def project_task_tool_response(tool_name: str, output: Any) -> Any:
     if tool_name not in TASK_TOOL_NAMES or not isinstance(output, dict):
         return output
     sanitized = sanitize_response(output)
+    if isinstance(sanitized.get("result_ledger"), list):
+        sanitized["active_results"] = project_active_results(sanitized["result_ledger"])
+        sanitized["result_ledger_count"] = len(sanitized["result_ledger"])
+        sanitized.pop("result_ledger", None)
     budget = MAX_TASK_EVIDENCE_INLINE_CHAR_BUDGET if tool_name == "dl_evidence" else DEFAULT_TASK_INLINE_CHAR_BUDGET
     if serialized_metadata(sanitized)["serialized_chars"] <= budget:
         return sanitized
@@ -108,9 +113,15 @@ def project_heavy_tool_response(
             "canonical_artifact": artifact,
             "full_response": metadata,
         }
+    active_sanitized = sanitized
+    if isinstance(sanitized.get("result_ledger"), list):
+        active_sanitized = dict(sanitized)
+        active_sanitized["active_results"] = project_active_results(sanitized["result_ledger"])
+        active_sanitized["result_ledger_count"] = len(sanitized["result_ledger"])
+        active_sanitized.pop("result_ledger", None)
     envelope: dict[str, Any] = {
-        "ok": bool(sanitized.get("ok", True)),
-        "status": str(sanitized.get("status") or ""),
+        "ok": bool(active_sanitized.get("ok", True)),
+        "status": str(active_sanitized.get("status") or ""),
         "tool": tool_name,
         "response_mode": mode,
         "requested_response_mode": mode,
@@ -118,11 +129,11 @@ def project_heavy_tool_response(
         "full_response": metadata,
     }
     for key in ("approved", "request_intent", "delivery_intent_decision", "target_lock", "plan_path"):
-        if key in sanitized:
-            envelope[key] = sanitized[key]
+        if key in active_sanitized:
+            envelope[key] = active_sanitized[key]
     if mode == "artifact":
         return envelope
-    envelope["summary"] = _heavy_summary(tool_name, sanitized)
+    envelope["summary"] = _heavy_summary(tool_name, active_sanitized)
     if mode == "structure":
         envelope["structure"] = {
             "top_level_keys": sorted(sanitized),

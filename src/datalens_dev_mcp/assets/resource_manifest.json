@@ -1,5 +1,5 @@
 {
-  "resource_count": 291,
+  "resource_count": 294,
   "resources": [
     {
       "bytes": 15842,
@@ -140,6 +140,11 @@
       "bytes": 719,
       "path": "schemas/chart-spec.schema.json",
       "sha256": "1b64aa380dd99290d72aebbf2cd40ec15c98c8433a1d3079e9de6fc039563cf6"
+    },
+    {
+      "bytes": 1022,
+      "path": "schemas/compact-evidence.schema.json",
+      "sha256": "7fa832adacb1d3e7c366bd575e05020efc8938930835b0113ccdcd756f6c7222"
     },
     {
       "bytes": 870,
@@ -367,6 +372,11 @@
       "sha256": "7623774b5f1f5a08cdce47f41505f6514971d23801987e772834892b7ceb567b"
     },
     {
+      "bytes": 1272,
+      "path": "schemas/failure-classification.schema.json",
+      "sha256": "31cde73237d1e47115ae102b3fd530ceee8b1b96c88d9214cfda8582045431a6"
+    },
+    {
       "bytes": 613,
       "path": "schemas/field-config.schema.json",
       "sha256": "346bf2b7e9faf96d79f21ffe0a347b44eaf5368cd4b697235e97a21d064ff13a"
@@ -390,6 +400,11 @@
       "bytes": 1241,
       "path": "schemas/guarded_rpc_request.schema.json",
       "sha256": "5be029934e0c093abf7514709e794ea52b59d55c164d5ea4877f03e787f7e686"
+    },
+    {
+      "bytes": 926,
+      "path": "schemas/investigation-record.schema.json",
+      "sha256": "4916a3a4bbf113ecc9889a44c4e27e43cf4bad933753ec4c06fbecb15950faaf"
     },
     {
       "bytes": 1667,

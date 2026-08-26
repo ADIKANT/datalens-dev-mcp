@@ -15,6 +15,7 @@ from datalens_dev_mcp.serialization import (
     stable_sha256,
 )
 from datalens_dev_mcp.validators.redaction import redact_text
+from datalens_dev_mcp.pipeline.result_dedup import ACTIVE_CONTEXT_RESULTS
 
 
 DEFAULT_INLINE_CHAR_BUDGET = 20_000
@@ -86,6 +87,16 @@ _PUBLIC_WORDING_REPLACEMENTS = (
     (re.compile(r"\bapproval\b", re.IGNORECASE), "request authorization"),
     (re.compile(r"\bapprove\b", re.IGNORECASE), "authorize"),
 )
+
+
+def project_active_results(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Keep the durable ledger intact while omitting context-neutral results."""
+
+    return [
+        sanitize_response(record)
+        for record in records
+        if record.get("classification", "material") in ACTIVE_CONTEXT_RESULTS
+    ]
 
 
 def project_public_response(

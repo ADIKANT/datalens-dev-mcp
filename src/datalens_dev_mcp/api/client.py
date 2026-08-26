@@ -22,6 +22,8 @@ from datalens_dev_mcp.api.auth import is_auth_failure, is_missing_credentials, r
 from datalens_dev_mcp.api.errors import DataLensApiError
 from datalens_dev_mcp.api.scheduler import REQUEST_SCHEDULER, TOKEN_REFRESH_COORDINATOR
 from datalens_dev_mcp.config import DataLensConfig
+from datalens_dev_mcp.pipeline.failure_classifier import classify_failure
+from datalens_dev_mcp.pipeline.retry_controller import retry_decision
 from datalens_dev_mcp.validators.redaction import redact_text, sanitize_value
 
 COMPACT_READ_FALSE_KEYS = {
@@ -189,6 +191,7 @@ class DataLensApiClient:
         self._reload_canonical_env_file("reloaded_before_rpc", require_token=False)
         self._bootstrap_missing_token()
         compacted_payload = compact_rpc_payload(payload or {}, method=method) or {}
+        readonly = _is_readonly_method(method)
         try:
             return self._rpc_once(
                 method,
@@ -200,49 +203,51 @@ class DataLensApiClient:
                 raise first_exc
             if not is_auth_failure(first_exc):
                 raise
-            if self.config.env_file_path:
-                self._minimal_auth_probe()
-                if self._reload_canonical_env_file("reloaded_after_401"):
-                    try:
-                        return self._rpc_once(
-                            method,
-                            compacted_payload,
-                            exclusive=exclusive,
-                        )
-                    except Exception as reload_exc:  # noqa: BLE001
-                        if is_missing_credentials(reload_exc):
-                            raise reload_exc
-                        if not is_auth_failure(reload_exc):
-                            raise
-                        first_exc = reload_exc
-            if self._can_refresh_token():
+            classified = classify_failure(first_exc, operation=method, readonly=readonly)
+            probe = self._minimal_auth_probe()
+            decision = retry_decision(
+                classified.family,
+                readonly=readonly,
+                auth_probe=str(probe.get("status") or "other_failure"),
+            )
+            if decision.refresh_token and self._can_refresh_token():
                 try:
                     refreshed = self._refresh_token_once()
                     if refreshed:
                         self._persist_refreshed_token(refreshed)
                         self._reload_canonical_env_file("reloaded_after_refresh")
-                        try:
-                            return self._rpc_once(
-                                method,
-                                compacted_payload,
-                                exclusive=exclusive,
-                            )
-                        except Exception as retry_exc:  # noqa: BLE001
-                            if is_auth_failure(retry_exc):
-                                raise DataLensApiError(
-                                    f"{method} auth_retry_failed_after_refresh: {_safe_auth_error(retry_exc)}"
-                                ) from retry_exc
-                            raise
+                        if decision.retry:
+                            try:
+                                return self._rpc_once(
+                                    method,
+                                    compacted_payload,
+                                    exclusive=exclusive,
+                                )
+                            except Exception as retry_exc:  # noqa: BLE001
+                                if is_auth_failure(retry_exc):
+                                    raise DataLensApiError(
+                                        f"{method} auth_retry_failed_after_refresh",
+                                        failure_family="AUTH_401_TOKEN_INVALID_OR_EXPIRED",
+                                    ) from retry_exc
+                                raise
+                        raise DataLensApiError(
+                            f"{method} was not replayed after token refresh because it is not a safe read",
+                            failure_family="AUTH_401_TOKEN_INVALID_OR_EXPIRED",
+                        ) from first_exc
                 except Exception as refresh_exc:  # noqa: BLE001
-                    if isinstance(refresh_exc, DataLensApiError) and "auth_retry_failed_after_refresh" in str(refresh_exc):
+                    if isinstance(refresh_exc, DataLensApiError) and (
+                        "auth_retry_failed_after_refresh" in str(refresh_exc)
+                        or "was not replayed after token refresh" in str(refresh_exc)
+                    ):
                         raise
                     raise DataLensApiError(
-                        f"{method} failed with auth_invalid_or_expired; token_refresh_failed: "
-                        f"{_safe_auth_error(refresh_exc)}"
+                        f"{method} failed with auth_invalid_or_expired; token_refresh_failed",
+                        failure_family="AUTH_401_TOKEN_INVALID_OR_EXPIRED",
                     ) from refresh_exc
             raise DataLensApiError(
-                f"{method} failed with auth_invalid_or_expired; "
-                "canonical_env_reload_failed_or_unavailable"
+                f"{method} failed with auth_invalid_or_expired; recovery_action={decision.action}; "
+                f"probe_status={probe.get('status', 'other_failure')}",
+                failure_family="AUTH_401_TOKEN_INVALID_OR_EXPIRED",
             ) from first_exc
 
     def _rpc_once(
@@ -304,6 +309,7 @@ class DataLensApiClient:
                         f"compacted_payload_keys={compact_payload_keys(compacted_payload)}; "
                         f"detail={short_error_detail(raw_text)}",
                         **error_details,
+                        failure_family="AUTH_401_TOKEN_INVALID_OR_EXPIRED",
                     ) from exc
                 if exc.code == 400 and is_validation_error(raw_text):
                     raise DataLensApiError(
@@ -318,6 +324,18 @@ class DataLensApiClient:
                     f"{method} failed with HTTP {exc.code}: {short_error_detail(raw_text)}; "
                     f"compacted_payload_keys={compact_payload_keys(compacted_payload)}",
                     **error_details,
+                    failure_family=(
+                        "AUTH_403_PERMISSION_DENIED"
+                        if exc.code == 403
+                        else "NOT_FOUND_404"
+                        if exc.code == 404
+                        else "RATE_LIMIT_429"
+                        if exc.code == 429
+                        else "TRANSIENT_5XX"
+                        if exc.code in {500, 502, 503, 504}
+                        else ""
+                    ),
+                    retry_after_sec=(backoff if exc.code == 429 else None),
                 ) from exc
             except Exception as exc:
                 transport_category = _transport_error_category(exc)
@@ -344,6 +362,7 @@ class DataLensApiClient:
                         transport_category=transport_category,
                         retry_attempts=transient_attempts,
                         retry_exhausted=retry_exhausted,
+                        failure_family="NETWORK_TIMEOUT" if _is_transient_transport_category(transport_category) else "",
                     ) from exc
                 raise
 
@@ -396,12 +415,18 @@ class DataLensApiClient:
 
     def _minimal_auth_probe(self) -> dict[str, Any]:
         try:
-            return self._rpc_once(
+            self._rpc_once(
                 "getWorkbooksList",
                 {"page": 1, "pageSize": 1},
             )
+            return {"ok": True, "status": "success"}
         except Exception as exc:  # noqa: BLE001
-            return {"ok": False, "error": _safe_auth_error(exc)}
+            classified = classify_failure(exc, operation="getWorkbooksList", readonly=True)
+            return {
+                "ok": False,
+                "status": "auth_401" if classified.family == "AUTH_401_TOKEN_INVALID_OR_EXPIRED" else "other_failure",
+                "failure_family": classified.family,
+            }
 
     def _reload_canonical_env_file(self, reload_state: str, *, require_token: bool = True) -> bool:
         with self._state_lock:
@@ -529,10 +554,7 @@ class DataLensApiClient:
 
 
 def _safe_auth_error(exc: Exception) -> str:
-    text = str(exc) or exc.__class__.__name__
-    for key in ("DATALENS_IAM_TOKEN", "YC_IAM_TOKEN", "Authorization", "x-yacloud-subjecttoken", "token"):
-        text = text.replace(key, "<redacted-key>")
-    return text[:600]
+    return redact_text(str(exc) or exc.__class__.__name__)[:600]
 
 
 def _compiled_api_version() -> str:

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/failure-classification.schema.json",
+  "title": "Classified autonomous workflow failure",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "family", "retry_policy", "severity", "evidence"],
+  "properties": {
+    "schema_id": {"const": "datalens_failure_classification"},
+    "family": {
+      "enum": [
+        "AUTH_401_TOKEN_INVALID_OR_EXPIRED", "AUTH_403_PERMISSION_DENIED", "NOT_FOUND_404",
+        "REVISION_CONFLICT", "RATE_LIMIT_429", "TRANSIENT_5XX", "NETWORK_TIMEOUT",
+        "AMBIGUOUS_WRITE", "SCHEMA_INVALID", "ROUTE_INVALID", "DATA_EMPTY_EXPECTED",
+        "DATA_EMPTY_UNEXPECTED", "STYLE_BINDING_STALE", "PATCH_ANCHOR_STALE",
+        "BROWSER_FORBIDDEN", "BROWSER_REQUIRED_MISSING", "NO_PROGRESS",
+        "TOOL_OR_CAPABILITY_UNAVAILABLE"
+      ]
+    },
+    "retry_policy": {"enum": ["none", "never", "safe_read_only", "reconcile", "investigate"]},
+    "severity": {"enum": ["info", "warning", "error", "critical"]},
+    "http_status": {"type": ["integer", "null"]},
+    "remote_code": {"type": "string"},
+    "response_received": {"type": ["boolean", "null"]},
+    "evidence": {"type": "string", "maxLength": 600}
+  }
+}

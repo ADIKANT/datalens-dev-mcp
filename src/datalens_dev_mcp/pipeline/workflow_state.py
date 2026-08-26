@@ -4,7 +4,9 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 
-TERMINAL_STATES = frozenset({"COMPLETED", "BLOCKED", "BLOCKED_CONFLICT", "FAILED"})
+TERMINAL_STATES = frozenset(
+    {"COMPLETED", "BLOCKED", "BLOCKED_CONFLICT", "FAILED", "FAILED_ARCHITECTURE_REVIEW_REQUIRED"}
+)
 WRITE_TRANSITIONS = frozenset({"VALIDATED -> SAVED", "SAVED_READBACK -> PUBLISHED"})
 
 

@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from typing import Any, Callable, Mapping
 
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal, build_journal_identity
+from datalens_dev_mcp.pipeline.failure_classifier import classify_failure
+from datalens_dev_mcp.pipeline.investigation import ARCHITECTURE_REVIEW_STATE
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
 from datalens_dev_mcp.pipeline.workflow_state import WorkflowState, is_terminal, transition_name
 from datalens_dev_mcp.validators.redaction import sanitize_value
@@ -133,9 +135,15 @@ class WorkflowEngine:
         except (TimeoutError, ConnectionError) as exc:
             if spec.write:
                 return self._record_reconciliation(state, spec, idempotency_key, str(exc), ambiguous=True)
-            return self._record_retryable(state, spec, idempotency_key, str(exc))
+            classification = classify_failure(exc, operation=spec.handler, readonly=True)
+            return self._record_retryable(
+                state, spec, idempotency_key, classification.evidence, family=classification.family
+            )
         except Exception as exc:  # noqa: BLE001
-            return self._record_failed(state, spec, idempotency_key, str(exc))
+            classification = classify_failure(exc, operation=spec.handler, readonly=not spec.write)
+            return self._record_failed(
+                state, spec, idempotency_key, classification.evidence, family=classification.family
+            )
 
         result_status = str(result.get("status") or "success")
         if result_status in {"ambiguous", "partial"} and spec.write:
@@ -158,7 +166,15 @@ class WorkflowEngine:
                 details=result,
             )
         if result_status in {"failed", "error"}:
-            return self._record_failed(state, spec, idempotency_key, str(result.get("reason") or "handler failed"))
+            classification = classify_failure(result, operation=spec.handler, readonly=not spec.write)
+            return self._record_failed(
+                state,
+                spec,
+                idempotency_key,
+                str(result.get("reason") or "handler failed"),
+                family=str(result.get("failure_family") or classification.family),
+                corrective_attempts=int(result.get("corrective_attempts") or 0),
+            )
         if state.current_state == "RECONCILING" and result_status not in {"matched", "success"}:
             return self._record_blocked(
                 state,
@@ -259,7 +275,9 @@ class WorkflowEngine:
             blocker=blocker,
         )
 
-    def _record_retryable(self, state: WorkflowState, spec: TransitionSpec, key: str, reason: str) -> WorkflowState:
+    def _record_retryable(
+        self, state: WorkflowState, spec: TransitionSpec, key: str, reason: str, *, family: str = ""
+    ) -> WorkflowState:
         return self.journal.append_transition(
             state,
             transition=spec.name,
@@ -269,10 +287,20 @@ class WorkflowEngine:
             idempotency_key=key,
             next_state=state.current_state,
             next_transition=spec.name,
-            blocker={"reason": reason, "retryable": True},
+            blocker={"reason": reason, "retryable": True, "failure_family": family},
         )
 
-    def _record_failed(self, state: WorkflowState, spec: TransitionSpec, key: str, reason: str) -> WorkflowState:
+    def _record_failed(
+        self,
+        state: WorkflowState,
+        spec: TransitionSpec,
+        key: str,
+        reason: str,
+        *,
+        family: str = "",
+        corrective_attempts: int = 0,
+    ) -> WorkflowState:
+        architecture_review = corrective_attempts >= 3
         return self.journal.append_transition(
             state,
             transition=spec.name,
@@ -280,9 +308,15 @@ class WorkflowEngine:
             receipt_uri="",
             status="failed",
             idempotency_key=key,
-            next_state="FAILED",
+            next_state=ARCHITECTURE_REVIEW_STATE if architecture_review else "FAILED",
             next_transition="",
-            blocker={"reason": reason},
+            blocker={
+                "reason": reason,
+                "failure_family": family,
+                "corrective_attempts": corrective_attempts,
+                "architecture_review_required": architecture_review,
+                "next_action": "review route and architecture" if architecture_review else "inspect boundary evidence",
+            },
         )
 
     def _preview_next(self, target: str, *, reconciliation: dict[str, Any]) -> str:

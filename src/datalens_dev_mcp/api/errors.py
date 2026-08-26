@@ -15,6 +15,8 @@ class DataLensApiError(RuntimeError):
         transport_category: str = "",
         retry_attempts: int = 0,
         retry_exhausted: bool | None = None,
+        failure_family: str = "",
+        retry_after_sec: float | None = None,
     ) -> None:
         super().__init__(message)
         self.http_status = http_status
@@ -24,6 +26,8 @@ class DataLensApiError(RuntimeError):
         self.transport_category = str(transport_category or "")
         self.retry_attempts = max(0, int(retry_attempts))
         self.retry_exhausted = retry_exhausted
+        self.failure_family = str(failure_family or "")
+        self.retry_after_sec = max(0.0, float(retry_after_sec)) if retry_after_sec is not None else None
 
 
 class DataLensSafetyError(RuntimeError):
