@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/project-journal.schema.json",
+  "title": "Persisted DataLens project task journal",
+  "type": "object",
+  "required": ["task_id", "identity", "contract", "state", "events"],
+  "properties": {
+    "task_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "identity": {"type": "object"},
+    "contract": {"$ref": "task-contract.schema.json"},
+    "state": {"$ref": "workflow-state.schema.json"},
+    "events": {"type": "array", "items": {"$ref": "workflow-event.schema.json"}}
+  },
+  "additionalProperties": false
+}

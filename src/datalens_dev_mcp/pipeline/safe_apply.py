@@ -140,6 +140,7 @@ def create_safe_apply_plan(
     approved: bool = False,
     approval_note: str = "",
     user_request_text: str = "",
+    task_contract_hash: str = "",
 ) -> dict[str, Any]:
     normalized_actions = []
     project_path = Path(project_root)
@@ -254,6 +255,7 @@ def create_safe_apply_plan(
             request_digest=request_intent["request_sha256"],
         ),
         "request_intent": request_intent,
+        "task_contract_hash": str(task_contract_hash or ""),
         "decision_ledger_sha256": active_decision_ledger_sha256,
         "final_payload_attestation": {
             "required": attestation_required,
@@ -280,6 +282,47 @@ def create_safe_apply_plan(
             "partial_create_retry_requires_reconciliation": True,
         },
         "actions": normalized_actions,
+    }
+
+
+def workflow_safe_apply_result(result: dict[str, Any]) -> dict[str, Any]:
+    """Project a Safe Apply result into the persisted workflow contract."""
+
+    status = str(result.get("status") or "").strip().lower()
+    retry = result.get("retry_resume") if isinstance(result.get("retry_resume"), dict) else {}
+    groups = result.get("transaction_groups") if isinstance(result.get("transaction_groups"), list) else []
+    unknown = any(
+        str(((item.get("error") or {}) if isinstance(item, dict) else {}).get("write_outcome") or "").lower()
+        == "unknown"
+        for item in result.get("results") or []
+    )
+    partial = status == "partial" or any(
+        isinstance(group, dict) and group.get("status") == "partial" for group in groups
+    )
+    if unknown:
+        workflow_status = "ambiguous"
+    elif partial or retry.get("requires_partial_create_reconciliation"):
+        workflow_status = "partial"
+    elif status in {"completed", "success", "ok"} or result.get("ok") is True:
+        workflow_status = "success"
+    else:
+        workflow_status = "failed"
+    return {
+        "status": workflow_status,
+        "safe_apply_status": status,
+        "run_id": str(result.get("run_id") or ""),
+        "expected_revision": str(result.get("expected_revision") or ""),
+        "unknown_write_outcome": unknown,
+        "object_statuses": [
+            {
+                "index": item.get("index"),
+                "object_id": str(item.get("object_id") or ""),
+                "status": str(item.get("status") or ""),
+                "executed": bool(item.get("executed")),
+            }
+            for item in result.get("results") or []
+            if isinstance(item, dict)
+        ],
     }
 
 

@@ -45,6 +45,25 @@ def read_text(path: str | Path, default: str = "") -> str:
     return target.read_text(encoding="utf-8") if target.is_file() else default
 
 
+def append_jsonl(path: str | Path, payload: Any) -> None:
+    """Append one durable JSON record without exposing partial lines."""
+
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    line = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+    descriptor = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+    try:
+        remaining = memoryview(line.encode("utf-8"))
+        while remaining:
+            written = os.write(descriptor, remaining)
+            if written <= 0:
+                raise OSError("durable JSONL append made no progress")
+            remaining = remaining[written:]
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
 def _write_if_changed(target: Path, content: str) -> None:
     """Avoid rewriting stable artifacts and invalidating downstream caches."""
 

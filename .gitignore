@@ -38,6 +38,7 @@ datalens-dev-mcp-roadmap.md
 /docs/reports/
 /.external/
 /RUN_STATE.md
+/.datalens-mcp/tasks/
 
 # Legacy fine-grained rules retained for downstream project workspaces.
 /raw/

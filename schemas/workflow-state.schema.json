@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/workflow-state.schema.json",
+  "title": "Materialized DataLens workflow state",
+  "type": "object",
+  "required": ["schema_id", "task_id", "contract_hash", "current_state", "next_transition", "completed_transitions", "successful_idempotency_keys", "receipt_uris", "blocker", "reconciliation", "last_event_id", "last_event_hash", "revision"],
+  "properties": {
+    "schema_id": {"const": "datalens_workflow_state"},
+    "task_id": {"type": "string", "minLength": 1},
+    "contract_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "current_state": {"type": "string", "pattern": "^[A-Z_]+$"},
+    "next_transition": {"type": "string"},
+    "completed_transitions": {"type": "array", "items": {"type": "string"}},
+    "successful_idempotency_keys": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "receipt_uris": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "blocker": {"type": "object"},
+    "reconciliation": {"type": "object"},
+    "last_event_id": {"type": "integer", "minimum": 0},
+    "last_event_hash": {"type": "string", "pattern": "^$|^[a-f0-9]{64}$"},
+    "revision": {"type": "integer", "minimum": 1}
+  },
+  "additionalProperties": false
+}
