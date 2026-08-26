@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/data-assertion-result.schema.json",
+  "title": "Typed Data Assertion Result",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema_id", "ok", "status", "live_data_verified", "results"],
+  "properties": {
+    "schema_id": {"const": "data_assertion_result"},
+    "ok": {"type": "boolean"},
+    "status": {"enum": ["passed", "failed", "blocked", "blocked_budget", "insufficient_evidence"]},
+    "live_data_verified": {"type": "boolean"},
+    "proof_level": {"enum": ["live_read_only_api", "schema_static_fallback", "source_static"]},
+    "row_count": {"type": "integer", "minimum": 0},
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "status", "explanation", "metrics"],
+        "properties": {"status": {"enum": ["passed", "failed", "insufficient_evidence"]}}
+      }
+    },
+    "raw_rows_inline": {"const": false}
+  }
+}

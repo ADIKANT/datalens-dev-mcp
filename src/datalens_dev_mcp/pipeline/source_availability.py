@@ -118,6 +118,31 @@ def classify_availability(
     return "unknown"
 
 
+def explain_empty_data_availability(
+    decision: AvailabilityDecision,
+    *,
+    row_count: int,
+    provider_error: str = "",
+) -> dict[str, Any]:
+    """Keep missing, expected-empty, unexpected-empty, and provider failure semantically distinct."""
+    if provider_error:
+        status = "provider_failure"
+        explanation = "The provider failed, so source contents were not established."
+    elif decision.classification in {"missing", "expected_unavailable"}:
+        status = decision.classification
+        explanation = "The source availability contract explains why no rows can be returned."
+    elif row_count == 0 and decision.classification == "present_empty":
+        status = "expected_empty" if decision.expected_exception else "present_empty"
+        explanation = "The physical source is present but currently contains no matching data."
+    elif row_count == 0:
+        status = "unexpected_empty"
+        explanation = "The source is available; filters, parameters, dates, selectors, and branch alignment require diagnosis."
+    else:
+        status = "present_with_data"
+        explanation = "The source returned data."
+    return {"status": status, "explanation": explanation, "decision": decision.to_dict(), "row_count": row_count}
+
+
 def load_source_availability_matrix(
     *,
     project: str,

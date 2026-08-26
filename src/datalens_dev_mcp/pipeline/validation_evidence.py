@@ -50,6 +50,11 @@ def build_validation_evidence_report(project_root: str | Path = ".") -> dict[str
     source_budget = _artifact(root, "artifacts/source_performance_budget.json", default={"status": "not_run", "sources": []})
     active_graph = _artifact(root, "artifacts/active_dashboard_graph.json", default={"status": "not_run", "entries": []})
     browser_qa = _artifact(root, "artifacts/browser_qa.json", default={"status": "not_checked", "artifact_paths": []})
+    data_assertions = _artifact(
+        root,
+        "artifacts/data_assertion_result.json",
+        default={"status": "not_run", "live_data_verified": False, "results": []},
+    )
     evidence_mode = _artifact(root, "artifacts/evidence_mode_decision.json", default={"evidence_mode": "api_only"})
     workflow_summary = _first_existing_json(
         root,
@@ -101,6 +106,7 @@ def build_validation_evidence_report(project_root: str | Path = ".") -> dict[str
         "dashboard_chart_validation": _chart_validation_summary(chart_validation),
         "source_performance_budget": _source_budget_summary(source_budget),
         "browser_runtime_qa": _browser_qa_summary(browser_qa),
+        "typed_data_assertions": _typed_data_assertion_summary(data_assertions),
         "dry_run_summary": _dry_run_summary(workflow_summary),
         "saved_readback": _readback_summary(saved_readback, branch="saved"),
         "published_readback": _published_readback(root, workflow_summary),
@@ -117,6 +123,7 @@ def build_validation_evidence_report(project_root: str | Path = ".") -> dict[str
             "generated query inspection",
             "save/publish acceptance where present",
             "published object readback where present",
+            "typed bounded dataset assertions where present",
         ],
         "remaining_manual_checks": [
             "manual UI smoke for runtime ClickHouse query execution when direct SQL API remains unavailable",
@@ -131,6 +138,20 @@ def build_validation_evidence_report(project_root: str | Path = ".") -> dict[str
     }
     write_json(root / "artifacts" / "validation_evidence_report.json", report)
     return report
+
+
+def _typed_data_assertion_summary(payload: dict[str, Any]) -> dict[str, Any]:
+    results = payload.get("results") if isinstance(payload.get("results"), list) else []
+    return {
+        "status": payload.get("status", "not_run"),
+        "ok": bool(payload.get("ok")),
+        "proof_level": payload.get("proof_level") or "source_static",
+        "live_data_verified": bool(payload.get("live_data_verified")),
+        "row_count": payload.get("row_count"),
+        "assertion_count": len(results),
+        "failed_assertions": [item.get("kind") for item in results if item.get("status") == "failed"],
+        "artifact_path": payload.get("artifact_path") or "",
+    }
 
 
 def _artifact(root: Path, rel: str, *, default: dict[str, Any]) -> dict[str, Any]:

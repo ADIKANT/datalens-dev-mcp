@@ -1,5 +1,5 @@
 {
-  "resource_count": 285,
+  "resource_count": 288,
   "resources": [
     {
       "bytes": 15842,
@@ -177,9 +177,24 @@
       "sha256": "911f12a5f00c9dd0a88efb9806ba552c82cf2a5ca7f0e997b1568607e99fa339"
     },
     {
+      "bytes": 1009,
+      "path": "schemas/data-assertion-result.schema.json",
+      "sha256": "258fb8f1e70621a14d863fa2923b73c6aa341a7fd72171dd585e72aa0caec110"
+    },
+    {
+      "bytes": 1631,
+      "path": "schemas/data-assertion-spec.schema.json",
+      "sha256": "00096f40b6fd7318e67641978c79a4fde765be03402af14157bffe56d9ddf13c"
+    },
+    {
       "bytes": 449,
       "path": "schemas/data-contract.schema.json",
       "sha256": "841ccdaa64860031a810cdc916df114f0f954ab72c025582c677498d1d2b98cf"
+    },
+    {
+      "bytes": 703,
+      "path": "schemas/data-proof-plan.schema.json",
+      "sha256": "c8d2b1474cbc36b2e5576e2ded4d388d11f777b8d8db5b8c874709a97fb596a7"
     },
     {
       "bytes": 19413,
@@ -239,7 +254,7 @@
     {
       "bytes": 12873,
       "path": "schemas/datalens-knowledge/capability-matrix.json",
-      "sha256": "452f56f8e9662fcfa5ef603878bf74a5f5a50e997650499427d3d56b456eb2d1"
+      "sha256": "4bfd669e6b45894258bc624508b079965b79e4bf14ce85ca88f41560fdbdc99a"
     },
     {
       "bytes": 3130533,
@@ -274,7 +289,7 @@
     {
       "bytes": 6830,
       "path": "schemas/datalens-knowledge/route-capability-matrix.json",
-      "sha256": "9a2b092c827bd874e4e0ce3432ed01fde05aa1df08275ac796aa0b711756cb69"
+      "sha256": "9494bdc50965a7a1624e3bab955e1f660794a0bb67417235f7cd479b5de44646"
     },
     {
       "bytes": 318084,
