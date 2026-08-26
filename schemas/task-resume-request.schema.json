@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/task-resume-request.schema.json",
+  "title": "Autonomous DataLens task resume request",
+  "type": "object",
+  "required": ["task_id"],
+  "properties": {
+    "task_id": {"type": "string", "minLength": 1},
+    "project_root": {"type": "string", "default": "."},
+    "expected_state": {"type": "string"},
+    "expected_hash": {"type": "string", "pattern": "^$|^[a-f0-9]{64}$"},
+    "run_until": {"enum": ["blocked", "plan_ready", "completed"], "default": "completed"},
+    "transition_budget": {"type": "integer", "minimum": 1, "maximum": 100, "default": 20}
+  },
+  "additionalProperties": false
+}

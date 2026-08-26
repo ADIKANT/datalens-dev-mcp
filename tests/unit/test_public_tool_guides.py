@@ -5,7 +5,7 @@ import re
 import unittest
 from pathlib import Path
 
-from datalens_dev_mcp.server import STANDARD_TOOL_NAMES, list_tools
+from datalens_dev_mcp.server import AUTONOMOUS_TOOL_NAMES, LEGACY_TOOL_NAMES, list_tools
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -32,20 +32,20 @@ def public_text_files() -> list[Path]:
 
 
 class PublicToolGuideTests(unittest.TestCase):
-    def test_bilingual_guides_cover_exact_standard_surface(self):
+    def test_bilingual_guides_cover_exact_autonomous_surface(self):
         for rel in ("docs/tools.md", "docs/tools_en.md"):
             text = (ROOT / rel).read_text(encoding="utf-8")
             rows = TOOL_ROW_RE.findall(text)
-            self.assertEqual(len(rows), 39, rel)
+            self.assertEqual(len(rows), 8, rel)
             self.assertEqual(len(rows), len(set(rows)), rel)
-            self.assertEqual(set(rows), STANDARD_TOOL_NAMES, rel)
+            self.assertEqual(set(rows), AUTONOMOUS_TOOL_NAMES, rel)
             table_rows = [line for line in text.splitlines() if TOOL_ROW_RE.match(line)]
             self.assertTrue(all(line.count("|") == 7 for line in table_rows), rel)
 
     def test_public_schema_is_exact_and_has_no_approval_fields(self):
-        tools = list_tools()
-        self.assertEqual(len(tools), 39)
-        self.assertEqual({tool["name"] for tool in tools}, STANDARD_TOOL_NAMES)
+        tools = list_tools("autonomous-v2")
+        self.assertEqual(len(tools), 8)
+        self.assertEqual({tool["name"] for tool in tools}, AUTONOMOUS_TOOL_NAMES)
         forbidden = {"approved", "approval_source", "approved_plan_path", "approve_guid_changes"}
         for tool in tools:
             properties = set(tool["inputSchema"].get("properties") or {})
@@ -54,11 +54,12 @@ class PublicToolGuideTests(unittest.TestCase):
         self.assertNotIn("approval", rendered)
         self.assertNotIn("approved", rendered)
 
-    def test_all_public_content_names_only_standard_tools(self):
+    def test_all_public_content_names_only_registered_public_tools(self):
+        public_names = AUTONOMOUS_TOOL_NAMES | LEGACY_TOOL_NAMES
         failures: list[str] = []
         for path in public_text_files():
             text = path.read_text(encoding="utf-8", errors="replace")
-            unknown = sorted(set(TOOL_NAME_RE.findall(text)) - STANDARD_TOOL_NAMES)
+            unknown = sorted(set(TOOL_NAME_RE.findall(text)) - public_names)
             if unknown:
                 failures.append(f"{path.relative_to(ROOT)}: {', '.join(unknown)}")
         self.assertFalse(failures, "\n".join(failures))

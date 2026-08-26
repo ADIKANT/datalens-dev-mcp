@@ -33,6 +33,46 @@
 
 Учётные данные, заголовки авторизации и приватные ключи удаляются из всех вложенных полей.
 
+## Task-level ответы
+
+Восемь инструментов `autonomous-v2` используют компактный restart-safe envelope:
+
+```json
+{
+  "task_id": "<TASK_ID>",
+  "state": "PLAN_VALIDATED",
+  "task_revision": 6,
+  "state_etag": "<SHA256>",
+  "observed_facts": ["semantic scope bound to immutable task contract"],
+  "route": "wizard_native",
+  "performed": ["PLANNED -> VALIDATED"],
+  "result": {"status": "plan_validated"},
+  "not_performed": ["save", "publish"],
+  "blocked_by": null,
+  "risk": "No unresolved workflow risk is recorded.",
+  "next_action": "dl_verify",
+  "resource_uri": "datalens://tasks/<TASK_ID>"
+}
+```
+
+Внешнее состояние `PLAN_VALIDATED` соответствует внутреннему checkpoint `VALIDATED`. `state_etag` вычисляется из восстановленного state и может быть передан в `dl_task_resume.expected_hash`. Terminal-ответ имеет пустой или отсутствующий `next_action`; blocker всегда содержит проверяемую причину.
+
+Task journal хранится в `.datalens-mcp/tasks/<TASK_ID>/`: immutable contract, hash-chained events, checkpoint, plans и receipts. MCP resources публикуют status и разрешённые artifacts как `datalens://tasks/<TASK_ID>/...`. `dl_evidence` возвращает только один bounded excerpt:
+
+```json
+{
+  "task_id": "<TASK_ID>",
+  "resource_uri": "datalens://tasks/<TASK_ID>/plans/plan.json",
+  "offset": 0,
+  "returned_chars": 4000,
+  "total_chars": 12400,
+  "truncated": true,
+  "text": "..."
+}
+```
+
+Полный plan не дублируется в `dl_plan` или `dl_execute`: ответы содержат `plan_hash` и resource URI. Вызов `dl_execute` отклоняется до переходов при несовпадении task state, contract-bound plan hash или destructive token.
+
 ## Runtime и доступ
 
 `dl_runtime_status` возвращает локальные сведения без сетевого запроса:

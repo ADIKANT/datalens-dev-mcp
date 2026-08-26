@@ -30,6 +30,53 @@ COMPACT_ONLY_HEAVY_TOOL_NAMES = frozenset(
 )
 PROJECTED_HEAVY_TOOL_NAMES = HEAVY_TOOL_NAMES | COMPACT_ONLY_HEAVY_TOOL_NAMES
 DEFAULT_HEAVY_INLINE_CHAR_BUDGET = 15_000
+TASK_TOOL_NAMES = frozenset(
+    {
+        "dl_task_start",
+        "dl_task_resume",
+        "dl_task_status",
+        "dl_inspect",
+        "dl_plan",
+        "dl_execute",
+        "dl_verify",
+        "dl_evidence",
+    }
+)
+DEFAULT_TASK_INLINE_CHAR_BUDGET = 6_000
+MAX_TASK_EVIDENCE_INLINE_CHAR_BUDGET = 24_000
+
+
+def project_task_tool_response(tool_name: str, output: Any) -> Any:
+    """Keep autonomous replies compact while preserving task resource bindings."""
+
+    if tool_name not in TASK_TOOL_NAMES or not isinstance(output, dict):
+        return output
+    sanitized = sanitize_response(output)
+    budget = MAX_TASK_EVIDENCE_INLINE_CHAR_BUDGET if tool_name == "dl_evidence" else DEFAULT_TASK_INLINE_CHAR_BUDGET
+    if serialized_metadata(sanitized)["serialized_chars"] <= budget:
+        return sanitized
+    resource_uri = str(sanitized.get("resource_uri") or "")
+    compact_keys = (
+        "ok",
+        "task_id",
+        "state",
+        "task_revision",
+        "state_etag",
+        "route",
+        "route_reason",
+        "result",
+        "blocked_by",
+        "risk",
+        "next_action",
+        "plan_hash",
+        "plan_resource_uri",
+        "safe_apply_ready",
+    )
+    compact = {key: sanitized[key] for key in compact_keys if key in sanitized}
+    compact["resource_uri"] = resource_uri
+    compact["inline_truncated"] = True
+    compact["full_response"] = serialized_metadata(sanitized)
+    return compact
 
 
 def project_heavy_tool_response(

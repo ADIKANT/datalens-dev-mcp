@@ -53,6 +53,7 @@ _PUBLIC_DROP_KEYS = {"expert_rpc_requires_env", "read_only_default", "write_requ
 _NONPUBLIC_TOOL_PATTERN = re.compile(r"\bdl_[a-z0-9_]+\b")
 _PUBLIC_TOOL_ALIASES = {
     "dl_get_dataset_schema": "dl_read_object",
+    "dl_execute_safe_apply": "dl_execute",
 }
 _OPAQUE_DATA_KEYS = {
     "chart",

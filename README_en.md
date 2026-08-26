@@ -175,7 +175,7 @@ An explicit `0` in a write/save/publish environment setting hard-disables that c
 - QL is used only on a direct request with an explicit payload or current QL version; it is never selected automatically or used as a fallback.
 - Create and full redesign automatically use `standard_dashboard`, including
   role-based titles, dashboard composition, a protected Editor runtime, and final
-  payload/QA attestation without changing the 39-tool surface.
+  payload/QA attestation while the autonomous surface keeps lifecycle calls inside the server.
 
 See the full policy in [`docs/route-policy_en.md`](docs/route-policy_en.md).
 
@@ -318,13 +318,13 @@ See the [safety model](docs/local-only-safety-model_en.md) and [Safe Apply](docs
 | All documentation | [`docs/README_en.md`](docs/README_en.md) |
 | Access, IAM token, and roles | [`docs/access_en.md`](docs/access_en.md) |
 | Connect Codex | [`docs/codex_setup_en.md`](docs/codex_setup_en.md) |
-| All 39 tools | [`docs/tools_en.md`](docs/tools_en.md) |
+| 8 autonomous tools and compatibility | [`docs/tools_en.md`](docs/tools_en.md) |
 | Copyable workflows | [`docs/usage-flow_en.md`](docs/usage-flow_en.md) |
 | Wizard, Editor, and QL | [`docs/route-policy_en.md`](docs/route-policy_en.md) |
 | Safe Apply and readback | [`docs/safe-apply_en.md`](docs/safe-apply_en.md) |
 | Architecture and API coverage | [`docs/architecture.md`](docs/architecture.md), [`docs/datalens/api_contract_coverage.md`](docs/datalens/api_contract_coverage.md) |
 
-The exact schema and complete public surface of the currently installed version are available through MCP `tools/list`.
+The exact schema of the active surface is available through MCP `tools/list`. The compact `autonomous-v2` profile is the default; `legacy-v1` preserves the previous 39 lifecycle tools.
 
 ## Project status
 
@@ -332,7 +332,7 @@ The exact schema and complete public surface of the currently installed version 
 - Python package maturity: **Alpha**.
 - Use deliberately selected targets for live writes and verify the result.
 - `main` contains the single current server implementation; Git history and reviewed pull requests preserve change history.
-- The current installation's `tools/list` is authoritative; the standard surface contains 39 tools.
+- The current installation's `tools/list` is authoritative; the default `autonomous-v2` surface contains 8 task-level tools.
 
 ## Development
 

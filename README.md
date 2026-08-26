@@ -175,7 +175,7 @@ project root
 - QL используется только по прямому запросу и с явным payload или актуальной QL-версией; он не выбирается автоматически и не служит fallback.
 - Create и full redesign автоматически используют `standard_dashboard`:
   role-based заголовки, dashboard composition, защищённый Editor runtime и финальная
-  payload/QA attestation без изменения поверхности из 39 инструментов.
+  payload/QA attestation; автономная поверхность оставляет lifecycle-вызовы внутри сервера.
 
 Подробная политика: [`docs/route-policy.md`](docs/route-policy.md).
 
@@ -318,13 +318,13 @@ API-readback подтверждает структуру и состояние �
 | Все документы | [`docs/README.md`](docs/README.md) |
 | Доступ, IAM-токен и роли | [`docs/access.md`](docs/access.md) |
 | Подключение Codex | [`docs/codex_setup.md`](docs/codex_setup.md) |
-| Все 39 инструментов | [`docs/tools.md`](docs/tools.md) |
+| 8 автономных инструментов и совместимость | [`docs/tools.md`](docs/tools.md) |
 | Готовые сценарии | [`docs/usage-flow.md`](docs/usage-flow.md) |
 | Wizard, Editor и QL | [`docs/route-policy.md`](docs/route-policy.md) |
 | Safe Apply и readback | [`docs/safe-apply.md`](docs/safe-apply.md) |
 | Архитектура и API-покрытие | [`docs/architecture.md`](docs/architecture.md), [`docs/datalens/api_contract_coverage.md`](docs/datalens/api_contract_coverage.md) |
 
-Точная схема и полный публичный набор текущей установленной версии доступны через MCP `tools/list`.
+Точная схема активной поверхности текущей установки доступна через MCP `tools/list`. По умолчанию это компактный профиль `autonomous-v2`; профиль `legacy-v1` сохраняет прежние 39 lifecycle-инструментов.
 
 ## Статус проекта
 
@@ -332,7 +332,7 @@ API-readback подтверждает структуру и состояние �
 - Статус Python-пакета: **Alpha**.
 - Для реальных записей рекомендуется выбирать специальные целевые объекты и проверять результат.
 - `main` содержит единственную актуальную реализацию сервера; история изменений сохраняется в Git и прошедших review pull requests.
-- Источник точного набора инструментов — `tools/list` текущей установки; стандартная поверхность содержит 39 инструментов.
+- Источник точного набора инструментов — `tools/list` текущей установки; поверхность по умолчанию `autonomous-v2` содержит 8 task-level инструментов.
 
 ## Разработка
 

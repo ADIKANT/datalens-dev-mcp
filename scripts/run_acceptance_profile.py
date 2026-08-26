@@ -50,6 +50,7 @@ def command_step(
     *,
     proof_levels: list[str] | None = None,
     heavy_artifacts: bool = False,
+    env_overlay: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     return {
         "kind": "command",
@@ -58,6 +59,7 @@ def command_step(
         "timeout_sec": timeout,
         "proof_levels": proof_levels or ["source_static"],
         "heavy_artifacts": heavy_artifacts,
+        "env_overlay": env_overlay or {},
     }
 
 
@@ -87,6 +89,7 @@ def static_policy_steps() -> list[dict[str, Any]]:
         command_step("canonical_server_surface", py("scripts/check_canonical_server_surface.py"), 120),
         command_step("lint_local", py("scripts/lint_local.py"), 120),
         command_step("schema_validation", py("scripts/validate_schemas.py"), 120),
+        command_step("autonomous_tool_surface", py("scripts/check_autonomous_tool_surface.py"), 120),
         command_step("runtime_resource_manifest", py("scripts/build_runtime_resource_manifest.py", "--check"), 120),
         command_step("js_template_contracts", py("scripts/check_js_templates.py"), 120),
         command_step("javascript_cookbook", py("scripts/build_javascript_cookbook.py", "--check"), 120),
@@ -115,18 +118,29 @@ def static_policy_steps() -> list[dict[str, Any]]:
 def quick_profile_steps() -> list[dict[str, Any]]:
     return [
         *static_policy_steps(),
-        command_step("focused_unit_subset", py("-m", "unittest", *FOCUSED_UNIT_MODULES, "-v"), 300),
+        command_step(
+            "focused_unit_subset",
+            py("-m", "unittest", *FOCUSED_UNIT_MODULES, "-v"),
+            300,
+            env_overlay={"DATALENS_MCP_TOOL_SURFACE": "legacy-v1"},
+        ),
     ]
 
 
 def standard_profile_steps() -> list[dict[str, Any]]:
     return [
         *static_policy_steps(),
-        command_step("unit_tests", py("-m", "unittest", "discover", "-s", "tests/unit", "-p", "test_*.py", "-v"), 360),
+        command_step(
+            "unit_tests",
+            py("-m", "unittest", "discover", "-s", "tests/unit", "-p", "test_*.py", "-v"),
+            360,
+            env_overlay={"DATALENS_MCP_TOOL_SURFACE": "legacy-v1"},
+        ),
         command_step(
             "integration_offline_tests",
             py("-m", "unittest", "discover", "-s", "tests/integration_offline", "-p", "test_*.py", "-v"),
             240,
+            env_overlay={"DATALENS_MCP_TOOL_SURFACE": "legacy-v1"},
         ),
         command_step("server_efficiency_regressions", py("scripts/run_server_efficiency_suite.py", "--strict"), 60),
         command_step("repo_size_budget", py("scripts/check_repo_size_budget.py", "--strict"), 120),
@@ -373,10 +387,11 @@ def run_subprocess_step(step: dict[str, Any], *, env: dict[str, str], run_dir: P
     print(f"+ [{name}] {command_text(command)}", file=sys.stderr, flush=True)
     started = time.perf_counter()
     try:
+        step_env = {**env, **(step.get("env_overlay") or {})}
         completed = subprocess.run(
             command,
             cwd=ROOT,
-            env=env,
+            env=step_env,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

@@ -4,7 +4,23 @@
 
 [Быстрый старт](../README.md#быстрый-старт) · [Доступ к DataLens](access.md) · [Подключение](codex_setup.md) · [Инструменты](tools.md) · **Сценарии** · [Источники](sources.md) · [Безопасность](local-only-safety-model.md) · [English](usage-flow_en.md)
 
-Codex, Claude и другие stdio-клиенты используют один и тот же цикл. Отличается только способ регистрации сервера.
+Codex, Claude и другие stdio-клиенты используют один и тот же цикл. Отличается только способ регистрации сервера. По умолчанию клиент видит восемь task-level инструментов `autonomous-v2`; перечисленные ниже low-level шаги сервер выполняет внутри workflow.
+
+## Автономный task-workflow
+
+```text
+dl_task_start(request, run_until="plan_ready")
+  -> dl_task_status / dl_inspect при необходимости
+  -> dl_plan для явного повторного чтения hash-bound плана
+  -> dl_execute(task_id, plan_hash) для задач с записью
+     или dl_task_resume для продолжения server-owned workflow
+  -> dl_verify
+  -> dl_evidence для одного bounded artifact
+```
+
+`dl_task_start` компилирует неизменяемые target, delivery, evidence и browser-policy, записывает event chain и обычно останавливается в `PLAN_VALIDATED`. `dl_task_resume` продолжает тот же task после перезапуска процесса; `expected_state` и `expected_hash` предотвращают исполнение по устаревшему состоянию. Review, audit, diagnose и plan-only завершаются без записи. Write-task использует сохранённый Safe Apply plan и не принимает произвольные payload от модели на стадии `dl_execute`.
+
+Полные планы, receipts и доказательства читаются через `datalens://tasks/<TASK_ID>/...`; inline-ответ остаётся компактным. Для существующих клиентов можно локально включить `DATALENS_MCP_TOOL_SURFACE=legacy-v1`, но новый автономный цикл не требует прямого вызова внутренних инструментов.
 
 ## Полный цикл
 

@@ -27,7 +27,7 @@ class InstructionModelTests(unittest.TestCase):
             self.assertIn(phrase, model_text)
         for phrase in (
             "python3 scripts/run_offline_acceptance.py",
-            "39 инструментов",
+            "autonomous-v2",
             "save-only",
             "confirm_delete",
         ):
@@ -41,12 +41,14 @@ class InstructionModelTests(unittest.TestCase):
             self.assertIn("acceptance_criteria", text, name)
             self.assertIn("no legacy cache sync", text, name)
 
-    def test_develop_prompt_only_names_standard_tools(self):
-        from datalens_dev_mcp.server import STANDARD_TOOL_NAMES
+    def test_task_prompt_only_names_autonomous_tools(self):
+        from datalens_dev_mcp.server import AUTONOMOUS_TOOL_NAMES
 
-        named_tools = set(re.findall(r"\bdl_[a-z0-9_]+\b", PROMPTS["datalens.develop_dashboard"]["text"]))
+        from datalens_dev_mcp.mcp.prompts import AUTONOMOUS_PROMPTS
+
+        named_tools = set(re.findall(r"\bdl_[a-z0-9_]+\b", AUTONOMOUS_PROMPTS["datalens.task"]["text"]))
         self.assertTrue(named_tools)
-        self.assertLessEqual(named_tools, STANDARD_TOOL_NAMES)
+        self.assertLessEqual(named_tools, AUTONOMOUS_TOOL_NAMES)
 
 
 if __name__ == "__main__":

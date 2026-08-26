@@ -3074,7 +3074,7 @@ def build_lock(corpus: dict[str, Any], counts: dict[str, Any]) -> dict[str, Any]
 def measure_tool_budget() -> dict[str, Any]:
     from datalens_dev_mcp.server import list_tools
 
-    default_payload = {"tools": list_tools()}
+    default_payload = {"tools": list_tools("autonomous-v2")}
     all_payload = {"tools": list_tools("all")}
     return {
         "default_tool_count": len(default_payload["tools"]),

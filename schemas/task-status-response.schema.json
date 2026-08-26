@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/task-status-response.schema.json",
+  "title": "Compact autonomous DataLens task status",
+  "type": "object",
+  "required": ["task_id", "state", "task_revision", "state_etag", "route", "blocked_by", "next_action", "resource_uri"],
+  "properties": {
+    "task_id": {"type": "string", "minLength": 1},
+    "state": {"type": "string", "minLength": 1},
+    "task_revision": {"type": "integer", "minimum": 1},
+    "state_etag": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "route": {"type": "string"},
+    "blocked_by": {"type": ["object", "null"]},
+    "next_action": {"type": "string"},
+    "resource_uri": {"type": "string", "pattern": "^datalens://tasks/"}
+  },
+  "additionalProperties": true
+}

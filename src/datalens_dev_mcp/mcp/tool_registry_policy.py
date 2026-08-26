@@ -6,7 +6,10 @@ from collections.abc import Mapping
 HIDDEN_TOOL_CALLS_ENV = "DATALENS_MCP_ALLOW_HIDDEN_TOOL_CALLS"
 TEST_ONLY_REGISTRY_ENV = "DATALENS_MCP_TEST_ONLY_REGISTRY"
 LEGACY_TOOL_PROFILE_ENV = "DATALENS_MCP_TOOL_PROFILE"
-LEGACY_TOOL_SURFACE_ENV = "DATALENS_MCP_TOOL_SURFACE"
+TOOL_SURFACE_ENV = "DATALENS_MCP_TOOL_SURFACE"
+LEGACY_TOOL_SURFACE_ENV = TOOL_SURFACE_ENV
+DEFAULT_TOOL_SURFACE = "autonomous-v2"
+ALLOWED_TOOL_SURFACES = frozenset({DEFAULT_TOOL_SURFACE, "legacy-v1", "expert"})
 
 TRUE_ENV_VALUES = {"1", "true", "yes", "on"}
 INTERNAL_PROFILE_ENV_VARS = (LEGACY_TOOL_PROFILE_ENV, LEGACY_TOOL_SURFACE_ENV)
@@ -25,6 +28,17 @@ def hidden_tool_calls_enabled(env: Mapping[str, str] | None = None) -> bool:
     return env_truthy(HIDDEN_TOOL_CALLS_ENV, env) and test_only_registry_enabled(env)
 
 
+def resolve_tool_surface(env: Mapping[str, str] | None = None) -> str:
+    """Resolve the operator-owned surface once; user prompts cannot select it."""
+
+    source = env if env is not None else _os_environ()
+    value = str(source.get(TOOL_SURFACE_ENV, DEFAULT_TOOL_SURFACE) or DEFAULT_TOOL_SURFACE).strip().lower()
+    if value not in ALLOWED_TOOL_SURFACES:
+        allowed = ", ".join(sorted(ALLOWED_TOOL_SURFACES))
+        raise ValueError(f"invalid {TOOL_SURFACE_ENV}={value!r}; allowed: {allowed}")
+    return value
+
+
 def tool_registry_env_status(env: Mapping[str, str] | None = None) -> dict[str, object]:
     source = env if env is not None else _os_environ()
     hidden_env_present = bool(str(source.get(HIDDEN_TOOL_CALLS_ENV, "")).strip())
@@ -34,7 +48,8 @@ def tool_registry_env_status(env: Mapping[str, str] | None = None) -> dict[str, 
         name for name in INTERNAL_PROFILE_ENV_VARS if str(source.get(name, "")).strip()
     ]
     return {
-        "standard_surface": "standard",
+        "standard_surface": resolve_tool_surface(source),
+        "tool_surface_env": TOOL_SURFACE_ENV,
         "hidden_tool_calls_env": HIDDEN_TOOL_CALLS_ENV,
         "test_only_registry_env": TEST_ONLY_REGISTRY_ENV,
         "hidden_tool_calls_env_present": hidden_env_present,

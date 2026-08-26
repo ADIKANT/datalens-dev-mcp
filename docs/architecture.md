@@ -7,8 +7,8 @@
 ```text
 Codex / Claude / другой MCP-клиент
   -> stdio JSON-RPC
-  -> 39 инструментов MCP
-  -> чтение / планирование / валидация / Safe Apply
+  -> 8 autonomous task tools
+  -> server-owned чтение / планирование / валидация / Safe Apply
   -> DataLens Public API
 
 project root

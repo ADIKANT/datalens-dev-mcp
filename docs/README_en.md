@@ -22,7 +22,7 @@ responsibility boundaries.
 | Prepare an IAM token, organization ID, and roles | [DataLens access](access_en.md) |
 | Connect Codex | [Codex setup](codex_setup_en.md) |
 | Connect Claude or another stdio client | [Client examples](../examples/clients/README.md) |
-| Find the right tool | [Guide to all 39 tools](tools_en.md) |
+| Start an autonomous task | [Guide to the 8 task-level tools](tools_en.md) |
 | Start from a ready JavaScript visualization | [Interactive JavaScript Visualization Cookbook](https://adikant.github.io/datalens-dev-mcp/?lang=en) |
 | Create or locally prepare an HTML Page | [HTML generation for DataLens](datalens/html_pages_en.md) |
 | Audit without writing | [Read-only audit](usage-flow_en.md#read-only-audit) |
@@ -58,7 +58,7 @@ browser is available or is explicitly reported as unavailable.
 
 - [DataLens access](access_en.md) — Yandex Cloud CLI, organization, IAM token, roles, env file, and access checks.
 - [Codex setup](codex_setup_en.md) — `config.toml`, `codex mcp add`, `/mcp`, and connection verification.
-- [Tool guide](tools_en.md) — purpose and operation class of all 39 calls.
+- [Tool guide](tools_en.md) — eight autonomous calls, supported surfaces, and operation classes.
 - [Interactive JavaScript Visualization Cookbook](https://adikant.github.io/datalens-dev-mcp/?lang=en) — shared Tips, 34 recipes, three linked cases, synthetic previews, Sources contracts, and complete copy-ready Editor tab sets; the [Markdown catalog and source files](cookbook/README_en.md) remain in the repository.
 - [Workflows](usage-flow_en.md) — copyable sequences and prompts.
 - [Configuration](configuration_en.md) — local settings and hard-off switches.
@@ -76,4 +76,4 @@ browser is available or is explicitly reported as unavailable.
 - [DataLens API coverage](datalens/api_contract_coverage.md)
 - [Reference-data provenance](source_provenance.md)
 
-The standard `tools/list` contains 39 tools. Exact JSON schemas for the installed version are available directly through the MCP client and are summarized in the [technical catalog](mcp/tools.md).
+The default `autonomous-v2` profile contains 8 tools; `legacy-v1` preserves the previous 39. Exact JSON schemas for the active surface are available through the MCP client and summarized in the [technical catalog](mcp/tools.md).

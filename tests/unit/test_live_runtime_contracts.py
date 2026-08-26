@@ -8,7 +8,7 @@ from datalens_dev_mcp.mcp.response_projection import (
 )
 from datalens_dev_mcp.mcp.tools import discovery
 from datalens_dev_mcp.pipeline.safe_apply import create_safe_apply_plan, execute_safe_apply, validate_safe_apply_plan
-from datalens_dev_mcp.server import STANDARD_TOOL_NAMES, list_tools
+from datalens_dev_mcp.server import LEGACY_TOOL_NAMES, list_tools
 from datalens_dev_mcp.validators.advanced_editor_validator import validate_editor_runtime_contract
 from datalens_dev_mcp.validators.source_diagnostics import classify_datalens_source_error
 
@@ -245,9 +245,9 @@ module.exports = {{
         self.assertIn("response", connection)
 
     def test_standard_surface_contains_runtime_validation_and_compact_reads(self):
-        names = {tool["name"] for tool in list_tools()}
+        names = {tool["name"] for tool in list_tools("legacy-v1")}
 
-        self.assertEqual(names, STANDARD_TOOL_NAMES)
+        self.assertEqual(names, LEGACY_TOOL_NAMES)
         for required in (
             "dl_runtime_status",
             "dl_auth_probe",

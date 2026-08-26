@@ -14,7 +14,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from datalens_dev_mcp.server import STANDARD_TOOL_NAMES, list_tools  # noqa: E402
+from datalens_dev_mcp.server import AUTONOMOUS_TOOL_NAMES, LEGACY_TOOL_NAMES, list_tools  # noqa: E402
 from datalens_dev_mcp.knowledge.reference import build_reference_response  # noqa: E402
 
 
@@ -321,10 +321,13 @@ def _check_access_guides() -> list[str]:
 
 def _check_public_tool_schemas() -> list[str]:
     issues: list[str] = []
-    tools = list_tools()
+    tools = list_tools("autonomous-v2")
     names = {str(tool.get("name") or "") for tool in tools}
-    if names != STANDARD_TOOL_NAMES or len(tools) != 39:
-        issues.append("tools/list: public tool surface is not the exact 39 STANDARD_TOOL_NAMES")
+    if names != AUTONOMOUS_TOOL_NAMES or len(tools) > 9:
+        issues.append("tools/list: default public tool surface is not the compact autonomous contract")
+    legacy = list_tools("legacy-v1")
+    if {str(tool.get("name") or "") for tool in legacy} != LEGACY_TOOL_NAMES or len(legacy) != 39:
+        issues.append("tools/list: legacy-v1 no longer preserves the exact 39-tool compatibility surface")
     forbidden_fields = {"approved", "approval_source", "approved_plan_path", "approve_guid_changes"}
     for tool in tools:
         properties = set(((tool.get("inputSchema") or {}).get("properties") or {}))
@@ -375,7 +378,7 @@ def _check_public_content(provenance_values: tuple[str, ...]) -> tuple[list[str]
         for pattern in FORBIDDEN_PUBLIC_TERMS:
             if pattern.search(text):
                 issues.append(f"{rel}: internal implementation terminology is public: {pattern.pattern}")
-        unknown_tools = sorted(set(TOOL_NAME_RE.findall(text)) - STANDARD_TOOL_NAMES)
+        unknown_tools = sorted(set(TOOL_NAME_RE.findall(text)) - AUTONOMOUS_TOOL_NAMES - LEGACY_TOOL_NAMES)
         if unknown_tools:
             issues.append(f"{rel}: names non-public MCP tools: {', '.join(unknown_tools)}")
         for value in provenance_values:

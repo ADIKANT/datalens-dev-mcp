@@ -2,7 +2,61 @@
 
 [Пользовательский справочник на русском](../tools.md) · [User guide in English](../tools_en.md) · [Контракты ответов](response_contracts.md)
 
-Источник точной схемы установленной версии — ответ MCP `tools/list`. Стандартная поверхность содержит 39 инструментов. Все аргументы передаются как JSON-объект; неизвестные поля отклоняются схемой инструмента.
+Источник точной схемы установленной версии — ответ MCP `tools/list`. Профиль по умолчанию `autonomous-v2` содержит восемь task-level инструментов. `legacy-v1` сохраняет прежние 39 lifecycle-инструментов, а `expert` включает полный внутренний registry только по локальной настройке процесса. Все аргументы передаются как JSON-объект; неизвестные поля отклоняются схемой инструмента.
+
+## Autonomous task tools
+
+### `dl_task_start`
+
+- Required: `request`
+- Optional: `project_root`, `context`, `run_until`
+- Компилирует неизменяемый task contract, создаёт restart-safe journal и выполняет переходы до `plan_ready`, `blocked` или `completed`. Значение по умолчанию — `plan_ready`; запись до явного исполнения hash-bound плана не выполняется.
+
+### `dl_task_resume`
+
+- Required: `task_id`
+- Optional: `project_root`, `expected_state`, `expected_hash`, `run_until`, `transition_budget`
+- Восстанавливает state из hash-chained events и продолжает server-owned workflow. Optimistic поля блокируют продолжение по устаревшему состоянию.
+
+### `dl_task_status`
+
+- Required: `task_id`
+- Optional: `project_root`
+- Возвращает компактные state, revision, etag, blocker, next action и `datalens://tasks/<TASK_ID>` без исполнения переходов.
+
+### `dl_inspect`
+
+- Required: —
+- Optional: `project_root`, `task_id`, `target_url`, `max_nodes`
+- Возвращает bounded project-validation summary и не более указанного числа artifact nodes. Самостоятельную запись не выполняет.
+
+### `dl_plan`
+
+- Required: `task_id`
+- Optional: `project_root`
+- Доводит workflow до `PLAN_VALIDATED` и возвращает task-bound `plan_hash` и resource URI. Полный Safe Apply plan остаётся artifact.
+
+### `dl_execute`
+
+- Required: `task_id`, `plan_hash`
+- Optional: `project_root`, `destructive_token`
+- Исполняет только сохранённый план с точным hash. Произвольный payload не принимается. Для destructive scope требуется точный task-bound token; whole-object delete по-прежнему ограничен manifest-контрактом.
+
+### `dl_verify`
+
+- Required: `task_id`
+- Optional: `proof_target`, `project_root`
+- Проверяет replay, blockers, применимость project validation, recorded saved/published readbacks и browser policy.
+
+### `dl_evidence`
+
+- Required: `task_id`
+- Optional: `project_root`, `resource_uri`, `section`, `offset`, `limit`
+- Читает один artifact только из разрешённых task-подкаталогов. `limit` ограничен 20 000 символов; ответ сообщает total, offset и truncation.
+
+## Legacy lifecycle catalog
+
+Следующий каталог описывает совместимую поверхность `legacy-v1`. В `autonomous-v2` эти вызовы остаются внутренними и не публикуются модели.
 
 ## Общие правила
 
