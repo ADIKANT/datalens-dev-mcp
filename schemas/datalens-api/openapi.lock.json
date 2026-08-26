@@ -1,25 +1,3037 @@
 {
-  "closed_schema_count": 528,
-  "closed_schema_sha256": "626c4cd06c177c9a4beabdd702b78e2a619bb7994659f90b2acd6799c66716c4",
-  "component_schema_count": 500,
+  "closed_schema_count": 531,
+  "closed_schema_sha256": "81326f8980f4c76d90260b3ac0579732ce4fc385bd2b4d9a522c511b6a75beac",
+  "component_schema_count": 501,
   "content_hashes": {
-    "api_content_hash": "c64a9c2ddaecc12993ff992742b845852e76c3a953dbcd6048884b7fda393be7",
-    "assets_content_hash": "4397e16970e2d1cd3c23ac941dc3cd522c7522a9d5d3793196005f4248ef4286",
-    "manifest_stable_hash": "86f7945b7a2c7c1e1e3ba63ecc8fc39b645e3a5d9cd0f187af10345d67107c59",
-    "pages_content_hash": "e17c75e496c34a0faecbe314cbb809ba674a9b60aaf93821ff49e56531c8c144"
+    "api_content_hash": "ee44f86e42047f297b425552bfe0ad92deac80ee8fff00bd27ff87ba78c94636",
+    "assets_content_hash": "b0fbc4405c02d564fe9cc649d1ca685f40b7468bfe30688d1a69f5b01b76e75c",
+    "manifest_stable_hash": "1d25c07bbaad581b788b1761349352be7eaacdcdff2164c17688125f5c0a63ab",
+    "pages_content_hash": "8697d7d3e9958ee9f2ea76f49b161e1c684ab5be3570aa99d4b87a8d9f860dc8"
   },
   "corpus_root_hint": "<DATALENS_DOCS_CORPUS_ROOT>",
-  "generated_at": "2026-08-11T10:45:59.595971Z",
-  "inventory_openapi_sha256": "b623445b2c56108517b5e73515e25a3b979b4e9d0df966c53d38e2681cf5507f",
-  "inventory_operation_count": 95,
-  "inventory_path_count": 95,
+  "delta_from_openapi_sha256": "b623445b2c56108517b5e73515e25a3b979b4e9d0df966c53d38e2681cf5507f",
+  "generated_at": "2026-08-26T06:53:47.538275Z",
+  "inventory_openapi_sha256": "12afd0555509ef02e8fbe2b0254deb5f58f35a6a08481e5d64ef83c77a6ffb92",
+  "inventory_operation_count": 96,
+  "inventory_path_count": 96,
   "openapi_path": "raw/api/openapi.json",
-  "openapi_sha256": "b623445b2c56108517b5e73515e25a3b979b4e9d0df966c53d38e2681cf5507f",
+  "openapi_sha256": "12afd0555509ef02e8fbe2b0254deb5f58f35a6a08481e5d64ef83c77a6ffb92",
   "openapi_version": "3.1.0",
-  "operation_count": 95,
-  "path_count": 95,
+  "operation_count": 96,
+  "path_count": 96,
   "required_api_header_version": "2",
   "schema_id": "openapi_lock",
+  "semantic_delta": {
+    "added_operations": [
+      "getDatasetData"
+    ],
+    "baseline_hash": "501fc618843caa1d3c89024a6242c8a54c235f454fe81ee6e71a4baa19da4196",
+    "breaking": false,
+    "breaking_changes": [],
+    "candidate_hash": "0c8b533f6444d95378ebab76c1433434e569f1ed2bf64b0d35936552649933fd",
+    "changed_operations": [
+      {
+        "changed_fields": [
+          "request_schema_hash"
+        ],
+        "operation": "createReport"
+      },
+      {
+        "changed_fields": [
+          "request_schema_hash"
+        ],
+        "operation": "getEntries"
+      },
+      {
+        "changed_fields": [
+          "request_schema_hash"
+        ],
+        "operation": "getWorkbookEntries"
+      },
+      {
+        "changed_fields": [
+          "request_schema_hash"
+        ],
+        "operation": "updateReport"
+      }
+    ],
+    "policy_version": "api_delta_policy_v1",
+    "relocated_docs": [
+      {
+        "new": "datalens/api-ref/Licensing/rpcassignLicenses-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/assignLicenses",
+        "operation": "assignLicenses"
+      },
+      {
+        "new": "datalens/api-ref/Access/rpcbatchListMembers-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/batchListMembers",
+        "operation": "batchListMembers"
+      },
+      {
+        "new": "datalens/api-ref/WorkbookExport/rpccancelWorkbookExport-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/cancelWorkbookExport",
+        "operation": "cancelWorkbookExport"
+      },
+      {
+        "new": "datalens/api-ref/Collection/rpccreateCollection-post.md",
+        "old": "datalens/openapi-ref/createCollection.md",
+        "operation": "createCollection"
+      },
+      {
+        "new": "datalens/api-ref/Connection/rpccreateConnection-post.md",
+        "old": "datalens/openapi-ref/createConnection.md",
+        "operation": "createConnection"
+      },
+      {
+        "new": "datalens/api-ref/Dashboard/rpccreateDashboard-post.md",
+        "old": "datalens/openapi-ref/createDashboard.md",
+        "operation": "createDashboard"
+      },
+      {
+        "new": "datalens/api-ref/Dataset/rpccreateDataset-post.md",
+        "old": "datalens/openapi-ref/createDataset.md",
+        "operation": "createDataset"
+      },
+      {
+        "new": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createEditorChart",
+        "old": "datalens/openapi-ref/createEditorChart.md",
+        "operation": "createEditorChart"
+      },
+      {
+        "new": "datalens/api-ref/Embeds/rpccreateEmbed-post.md",
+        "old": "datalens/openapi-ref/createEmbed.md",
+        "operation": "createEmbed"
+      },
+      {
+        "new": "datalens/api-ref/EmbeddingSecrets/rpccreateEmbeddingSecret-post.md",
+        "old": "datalens/openapi-ref/createEmbeddingSecret.md",
+        "operation": "createEmbeddingSecret"
+      },
+      {
+        "new": "datalens/api-ref/EntryLock/rpccreateEntryLock-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createEntryLock",
+        "operation": "createEntryLock"
+      },
+      {
+        "new": "datalens/api-ref/Folder/rpccreateFolder-post.md",
+        "old": "datalens/openapi-ref/createFolder.md",
+        "operation": "createFolder"
+      },
+      {
+        "new": "datalens/api-ref/HtmlPages/rpccreateHtmlPage-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createHtmlPage",
+        "operation": "createHtmlPage"
+      },
+      {
+        "new": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createQLChart",
+        "old": "datalens/openapi-ref/createQlChart.md",
+        "operation": "createQLChart"
+      },
+      {
+        "new": "datalens/api-ref/Reports/rpccreateReport-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createReport",
+        "operation": "createReport"
+      },
+      {
+        "new": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createWizardChart",
+        "old": "datalens/openapi-ref/createWizardChart.md",
+        "operation": "createWizardChart"
+      },
+      {
+        "new": "datalens/api-ref/Workbook/rpccreateWorkbook-post.md",
+        "old": "datalens/openapi-ref/createWorkbook.md",
+        "operation": "createWorkbook"
+      },
+      {
+        "new": "datalens/api-ref/Collection/rpcdeleteCollection-post.md",
+        "old": "datalens/openapi-ref/deleteCollection.md",
+        "operation": "deleteCollection"
+      },
+      {
+        "new": "datalens/api-ref/Collection/rpcdeleteCollections-post.md",
+        "old": "datalens/openapi-ref/deleteCollections.md",
+        "operation": "deleteCollections"
+      },
+      {
+        "new": "datalens/api-ref/Connection/rpcdeleteConnection-post.md",
+        "old": "datalens/openapi-ref/deleteConnection.md",
+        "operation": "deleteConnection"
+      },
+      {
+        "new": "datalens/api-ref/Dashboard/rpcdeleteDashboard-post.md",
+        "old": "datalens/openapi-ref/deleteDashboard.md",
+        "operation": "deleteDashboard"
+      },
+      {
+        "new": "datalens/api-ref/Dataset/rpcdeleteDataset-post.md",
+        "old": "datalens/openapi-ref/deleteDataset.md",
+        "operation": "deleteDataset"
+      },
+      {
+        "new": "datalens/api-ref/Editor/rpcdeleteEditorChart-post.md",
+        "old": "datalens/openapi-ref/deleteEditorChart.md",
+        "operation": "deleteEditorChart"
+      },
+      {
+        "new": "datalens/api-ref/Embeds/rpcdeleteEmbed-post.md",
+        "old": "datalens/openapi-ref/deleteEmbed.md",
+        "operation": "deleteEmbed"
+      },
+      {
+        "new": "datalens/api-ref/EmbeddingSecrets/rpcdeleteEmbeddingSecret-post.md",
+        "old": "datalens/openapi-ref/deleteEmbeddingSecret.md",
+        "operation": "deleteEmbeddingSecret"
+      },
+      {
+        "new": "datalens/api-ref/EntryLock/rpcdeleteEntryLock-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteEntryLock",
+        "operation": "deleteEntryLock"
+      },
+      {
+        "new": "datalens/api-ref/Folder/rpcdeleteFolder-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteFolder",
+        "operation": "deleteFolder"
+      },
+      {
+        "new": "datalens/api-ref/HtmlPages/rpcdeleteHtmlPage-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteHtmlPage",
+        "operation": "deleteHtmlPage"
+      },
+      {
+        "new": "datalens/api-ref/QL/rpcdeleteQLChart-post.md",
+        "old": "datalens/openapi-ref/deleteQlChart.md",
+        "operation": "deleteQLChart"
+      },
+      {
+        "new": "datalens/api-ref/Reports/rpcdeleteReport-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteReport",
+        "operation": "deleteReport"
+      },
+      {
+        "new": "datalens/api-ref/Wizard/rpcdeleteWizardChart-post.md",
+        "old": "datalens/openapi-ref/deleteWizardChart.md",
+        "operation": "deleteWizardChart"
+      },
+      {
+        "new": "datalens/api-ref/Workbook/rpcdeleteWorkbook-post.md",
+        "old": "datalens/openapi-ref/deleteWorkbook.md",
+        "operation": "deleteWorkbook"
+      },
+      {
+        "new": "datalens/api-ref/Workbook/rpcdeleteWorkbooks-post.md",
+        "old": "datalens/openapi-ref/deleteWorkbooks.md",
+        "operation": "deleteWorkbooks"
+      },
+      {
+        "new": "datalens/api-ref/Folder/rpcdlsSuggest-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/dlsSuggest",
+        "operation": "dlsSuggest"
+      },
+      {
+        "new": "datalens/api-ref/EntryLock/rpcextendEntryLock-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/extendEntryLock",
+        "operation": "extendEntryLock"
+      },
+      {
+        "new": "datalens/api-ref/Audit/rpcgetAuditEntriesUpdates-post.md",
+        "old": "datalens/openapi-ref/getAuditEntriesUpdates.md",
+        "operation": "getAuditEntriesUpdates"
+      },
+      {
+        "new": "datalens/api-ref/Audit/rpcgetAuditEntryPermissionsForUser-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getAuditEntryPermissionsForUser",
+        "operation": "getAuditEntryPermissionsForUser"
+      },
+      {
+        "new": "datalens/api-ref/Collection/rpcgetCollection-post.md",
+        "old": "datalens/openapi-ref/getCollection.md",
+        "operation": "getCollection"
+      },
+      {
+        "new": "datalens/api-ref/Collection/rpcgetCollectionBreadcrumbs-post.md",
+        "old": "datalens/openapi-ref/getCollectionBreadcrumbs.md",
+        "operation": "getCollectionBreadcrumbs"
+      },
+      {
+        "new": "datalens/api-ref/Collection/rpcgetCollectionContent-post.md",
+        "old": "datalens/openapi-ref/getCollectionContent.md",
+        "operation": "getCollectionContent"
+      },
+      {
+        "new": "datalens/api-ref/Collection/rpcgetCollectionsByIds-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getCollectionsByIds",
+        "operation": "getCollectionsByIds"
+      },
+      {
+        "new": "datalens/api-ref/Connection/rpcgetConnection-post.md",
+        "old": "datalens/openapi-ref/getConnection.md",
+        "operation": "getConnection"
+      },
+      {
+        "new": "datalens/api-ref/Dashboard/rpcgetDashboard-post.md",
+        "old": "datalens/openapi-ref/getDashboard.md",
+        "operation": "getDashboard"
+      },
+      {
+        "new": "datalens/api-ref/Dataset/rpcgetDataset-post.md",
+        "old": "datalens/openapi-ref/getDataset.md",
+        "operation": "getDataset"
+      },
+      {
+        "new": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getEditorChart",
+        "old": "datalens/openapi-ref/getEditorChart.md",
+        "operation": "getEditorChart"
+      },
+      {
+        "new": "datalens/api-ref/EmbeddingSecrets/rpcgetEmbeddingSecret-post.md",
+        "old": "datalens/openapi-ref/getEmbeddingSecret.md",
+        "operation": "getEmbeddingSecret"
+      },
+      {
+        "new": "datalens/api-ref/Navigation/rpcgetEntries-post.md",
+        "old": "datalens/openapi-ref/getEntries.md",
+        "operation": "getEntries"
+      },
+      {
+        "new": "datalens/api-ref/Entries/rpcgetEntriesPermissions-post.md",
+        "old": "datalens/openapi-ref/getEntriesPermissions.md",
+        "operation": "getEntriesPermissions"
+      },
+      {
+        "new": "datalens/api-ref/Entries/rpcgetEntriesRelations-post.md",
+        "old": "datalens/openapi-ref/getEntriesRelations.md",
+        "operation": "getEntriesRelations"
+      },
+      {
+        "new": "datalens/api-ref/HtmlPages/rpcgetHtmlPage-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getHtmlPage",
+        "operation": "getHtmlPage"
+      },
+      {
+        "new": "datalens/api-ref/Licensing/rpcgetLicenses-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getLicenses",
+        "operation": "getLicenses"
+      },
+      {
+        "new": "datalens/api-ref/Licensing/rpcgetLicensesLimit-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getLicensesLimit",
+        "operation": "getLicensesLimit"
+      },
+      {
+        "new": "datalens/api-ref/Folder/rpcgetPermissions-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getPermissions",
+        "operation": "getPermissions"
+      },
+      {
+        "new": "datalens/api-ref/Permissions/rpcgetPermissionsBulk-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getPermissionsBulk",
+        "operation": "getPermissionsBulk"
+      },
+      {
+        "new": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getQLChart",
+        "old": "datalens/openapi-ref/getQlChart.md",
+        "operation": "getQLChart"
+      },
+      {
+        "new": "datalens/api-ref/Reports/rpcgetReport-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getReport",
+        "operation": "getReport"
+      },
+      {
+        "new": "datalens/api-ref/Collection/rpcgetRootCollectionPermissions-post.md",
+        "old": "datalens/openapi-ref/getRootCollectionPermissions.md",
+        "operation": "getRootCollectionPermissions"
+      },
+      {
+        "new": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getWizardChart",
+        "old": "datalens/openapi-ref/getWizardChart.md",
+        "operation": "getWizardChart"
+      },
+      {
+        "new": "datalens/api-ref/Workbook/rpcgetWorkbook-post.md",
+        "old": "datalens/openapi-ref/getWorkbook.md",
+        "operation": "getWorkbook"
+      },
+      {
+        "new": "datalens/api-ref/Workbook/rpcgetWorkbookEntries-post.md",
+        "old": "datalens/openapi-ref/getWorkbookEntries.md",
+        "operation": "getWorkbookEntries"
+      },
+      {
+        "new": "datalens/api-ref/WorkbookExport/rpcgetWorkbookExportResult-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookExportResult",
+        "operation": "getWorkbookExportResult"
+      },
+      {
+        "new": "datalens/api-ref/WorkbookExport/rpcgetWorkbookExportStatus-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookExportStatus",
+        "operation": "getWorkbookExportStatus"
+      },
+      {
+        "new": "datalens/api-ref/WorkbookImport/rpcgetWorkbookImportStatus-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookImportStatus",
+        "operation": "getWorkbookImportStatus"
+      },
+      {
+        "new": "datalens/api-ref/Workbook/rpcgetWorkbooksByIds-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbooksByIds",
+        "operation": "getWorkbooksByIds"
+      },
+      {
+        "new": "datalens/api-ref/Workbook/rpcgetWorkbooksList-post.md",
+        "old": "datalens/openapi-ref/getWorkbooksList.md",
+        "operation": "getWorkbooksList"
+      },
+      {
+        "new": "datalens/api-ref/Collection/rpclistCollectionAccessBindings-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/listCollectionAccessBindings",
+        "operation": "listCollectionAccessBindings"
+      },
+      {
+        "new": "datalens/api-ref/Navigation/rpclistDirectory-post.md",
+        "old": "datalens/openapi-ref/listDirectory.md",
+        "operation": "listDirectory"
+      },
+      {
+        "new": "datalens/api-ref/EmbeddingSecrets/rpclistEmbeddingSecrets-post.md",
+        "old": "datalens/openapi-ref/listEmbeddingSecrets.md",
+        "operation": "listEmbeddingSecrets"
+      },
+      {
+        "new": "datalens/api-ref/Embeds/rpclistEmbeds-post.md",
+        "old": "datalens/openapi-ref/listEmbeds.md",
+        "operation": "listEmbeds"
+      },
+      {
+        "new": "datalens/api-ref/SharedEntry/rpclistSharedEntryAccessBindings-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/listSharedEntryAccessBindings",
+        "operation": "listSharedEntryAccessBindings"
+      },
+      {
+        "new": "datalens/api-ref/Workbook/rpclistWorkbookAccessBindings-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/listWorkbookAccessBindings",
+        "operation": "listWorkbookAccessBindings"
+      },
+      {
+        "new": "datalens/api-ref/Folder/rpcmodifyPermissions-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/modifyPermissions",
+        "operation": "modifyPermissions"
+      },
+      {
+        "new": "datalens/api-ref/Collection/rpcmoveCollection-post.md",
+        "old": "datalens/openapi-ref/moveCollection.md",
+        "operation": "moveCollection"
+      },
+      {
+        "new": "datalens/api-ref/Collection/rpcmoveCollections-post.md",
+        "old": "datalens/openapi-ref/moveCollections.md",
+        "operation": "moveCollections"
+      },
+      {
+        "new": "datalens/api-ref/Folder/rpcmoveFolderEntry-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/moveFolderEntry",
+        "operation": "moveFolderEntry"
+      },
+      {
+        "new": "datalens/api-ref/Workbook/rpcmoveWorkbook-post.md",
+        "old": "datalens/openapi-ref/moveWorkbook.md",
+        "operation": "moveWorkbook"
+      },
+      {
+        "new": "datalens/api-ref/Workbook/rpcmoveWorkbooks-post.md",
+        "old": "datalens/openapi-ref/moveWorkbooks.md",
+        "operation": "moveWorkbooks"
+      },
+      {
+        "new": "datalens/api-ref/Entries/rpcrenameEntry-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/renameEntry",
+        "operation": "renameEntry"
+      },
+      {
+        "new": "datalens/api-ref/Licensing/rpcsetLicenseLimit-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/setLicenseLimit",
+        "operation": "setLicenseLimit"
+      },
+      {
+        "new": "datalens/api-ref/WorkbookExport/rpcstartWorkbookExport-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/startWorkbookExport",
+        "operation": "startWorkbookExport"
+      },
+      {
+        "new": "datalens/api-ref/WorkbookImport/rpcstartWorkbookImport-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/startWorkbookImport",
+        "operation": "startWorkbookImport"
+      },
+      {
+        "new": "datalens/api-ref/Collection/rpcupdateCollection-post.md",
+        "old": "datalens/openapi-ref/updateCollection.md",
+        "operation": "updateCollection"
+      },
+      {
+        "new": "datalens/api-ref/Collection/rpcupdateCollectionAccessBindings-post.md",
+        "old": "datalens/openapi-ref/updateCollectionAccessBindings.md",
+        "operation": "updateCollectionAccessBindings"
+      },
+      {
+        "new": "datalens/api-ref/Connection/rpcupdateConnection-post.md",
+        "old": "datalens/openapi-ref/updateConnection.md",
+        "operation": "updateConnection"
+      },
+      {
+        "new": "datalens/api-ref/Dashboard/rpcupdateDashboard-post.md",
+        "old": "datalens/openapi-ref/updateDashboard.md",
+        "operation": "updateDashboard"
+      },
+      {
+        "new": "datalens/api-ref/Dataset/rpcupdateDataset-post.md",
+        "old": "datalens/openapi-ref/updateDataset.md",
+        "operation": "updateDataset"
+      },
+      {
+        "new": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateEditorChart",
+        "old": "datalens/openapi-ref/updateEditorChart.md",
+        "operation": "updateEditorChart"
+      },
+      {
+        "new": "datalens/api-ref/Embeds/rpcupdateEmbed-post.md",
+        "old": "datalens/openapi-ref/updateEmbed.md",
+        "operation": "updateEmbed"
+      },
+      {
+        "new": "datalens/api-ref/HtmlPages/rpcupdateHtmlPage-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateHtmlPage",
+        "operation": "updateHtmlPage"
+      },
+      {
+        "new": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateQLChart",
+        "old": "datalens/openapi-ref/updateQlChart.md",
+        "operation": "updateQLChart"
+      },
+      {
+        "new": "datalens/api-ref/Reports/rpcupdateReport-post.md",
+        "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateReport",
+        "operation": "updateReport"
+      },
+      {
+        "new": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateWizardChart",
+        "old": "datalens/openapi-ref/updateWizardChart.md",
+        "operation": "updateWizardChart"
+      },
+      {
+        "new": "datalens/api-ref/Workbook/rpcupdateWorkbook-post.md",
+        "old": "datalens/openapi-ref/updateWorkbook.md",
+        "operation": "updateWorkbook"
+      },
+      {
+        "new": "datalens/api-ref/Workbook/rpcupdateWorkbookAccessBindings-post.md",
+        "old": "datalens/openapi-ref/updateWorkbookAccessBindings.md",
+        "operation": "updateWorkbookAccessBindings"
+      },
+      {
+        "new": "datalens/api-ref/Dataset/rpcvalidateDataset-post.md",
+        "old": "datalens/openapi-ref/validateDataset.md",
+        "operation": "validateDataset"
+      }
+    ],
+    "removed_operations": [],
+    "schema_delta": {
+      "added": [
+        "GetDatasetDataRequest",
+        "GetDatasetDataResponse",
+        "ReportMeta"
+      ],
+      "changed": [
+        "CreateReportV1Args",
+        "DashTabItem",
+        "DashboardV1",
+        "EntryScope",
+        "GetEntriesV2Args",
+        "GetWorkbookEntriesArgs",
+        "ReportData",
+        "ReportV1",
+        "UpdateReportV1Args"
+      ],
+      "removed": []
+    },
+    "schema_id": "datalens_api_delta_report",
+    "support_classification": {
+      "getDatasetData": "typed_supported"
+    }
+  },
+  "semantic_snapshot": {
+    "openapi_version": "3.1.0",
+    "operations": {
+      "assignLicenses": {
+        "docs_ref": "datalens/api-ref/Licensing/rpcassignLicenses-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "assignLicenses",
+        "path": "/rpc/assignLicenses",
+        "request_required": [
+          "userIds"
+        ],
+        "request_schema_hash": "c7729d5c215e39d16711a3361299d36c9b49b7b01995c4030a1bc326f5c8e935",
+        "response_schema_hash": "46185bdb0e22b11fb9000dc4524881901889fa16f1c8e1feb47331f968abef2d",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "batchListMembers": {
+        "docs_ref": "datalens/api-ref/Access/rpcbatchListMembers-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "batchListMembers",
+        "path": "/rpc/batchListMembers",
+        "request_required": [],
+        "request_schema_hash": "2b5fba68b1a03615f048b2eff599e9aaeadd74e35da0ff57dfe7cc887437459c",
+        "response_schema_hash": "d3b8c8073db47eb6b0409d80f1a5d0c3063456cdf2c7e68c09a3e751520ab0e4",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "cancelWorkbookExport": {
+        "docs_ref": "datalens/api-ref/WorkbookExport/rpccancelWorkbookExport-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "cancelWorkbookExport",
+        "path": "/rpc/cancelWorkbookExport",
+        "request_required": [
+          "exportId"
+        ],
+        "request_schema_hash": "adff3feb54b9f112ac5d4696334e9744ab858d1db00df77de12f17ab85379f68",
+        "response_schema_hash": "adff3feb54b9f112ac5d4696334e9744ab858d1db00df77de12f17ab85379f68",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "createCollection": {
+        "docs_ref": "datalens/api-ref/Collection/rpccreateCollection-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "createCollection",
+        "path": "/rpc/createCollection",
+        "request_required": [
+          "parentId",
+          "title"
+        ],
+        "request_schema_hash": "8cde2b778dffa0dc44fdcfaec0ddf7339a6b0b28f45128e17ce67fd48626c4e6",
+        "response_schema_hash": "f15d2bbc9f5d8a447644650f732f483c46ea7d6e2683ee4ebf44a01c898e8664",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "createConnection": {
+        "docs_ref": "datalens/api-ref/Connection/rpccreateConnection-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "createConnection",
+        "path": "/rpc/createConnection",
+        "request_required": [],
+        "request_schema_hash": "0dac9912ce0cf502ac7d707e49ba83dd3acd7a689a2da1e7212baa5ef68f4849",
+        "response_schema_hash": "3797626bd17e346de1adbbe242cd2c4e41a5956ccf7424c65cf45e2bbef10c81",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "createDashboard": {
+        "docs_ref": "datalens/api-ref/Dashboard/rpccreateDashboard-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "createDashboard",
+        "path": "/rpc/createDashboard",
+        "request_required": [
+          "entry"
+        ],
+        "request_schema_hash": "024997c1cf26cc4bce728a5651f931c0305df6ae79793b4f1664f99df5ce5e5b",
+        "response_schema_hash": "9df7fd3022dca784ba9650ddd7334addcdbea63cf337a30ba9506d761254c242",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "createDataset": {
+        "docs_ref": "datalens/api-ref/Dataset/rpccreateDataset-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "createDataset",
+        "path": "/rpc/createDataset",
+        "request_required": [
+          "dataset"
+        ],
+        "request_schema_hash": "d5803a4531475ac7ca10d73dfded82d9d6bfcd80376fd9ca223af41a65054a35",
+        "response_schema_hash": "bf65eb5388bb659c37608d597692d5c0b31cd88a50bce894e9ba589c4b4c8328",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "createEditorChart": {
+        "docs_ref": "https://yandex.cloud/ru/docs/datalens/api-ref/Editor/rpccreateEditorChart-post",
+        "experimental": true,
+        "http_method": "POST",
+        "operation": "createEditorChart",
+        "path": "/rpc/createEditorChart",
+        "request_required": [
+          "entry"
+        ],
+        "request_schema_hash": "c519003ba6df09d2020e98547a13a2836fe3b010c515e54e5e48f0e48735550e",
+        "response_schema_hash": "66bf7369e04819436cd30922f65b3f6f9a9fa3135da6a2789b6e4ddf89a769ad",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "createEmbed": {
+        "docs_ref": "datalens/api-ref/Embeds/rpccreateEmbed-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "createEmbed",
+        "path": "/rpc/createEmbed",
+        "request_required": [
+          "depsIds",
+          "embeddingSecretId",
+          "entryId",
+          "privateParams",
+          "publicParamsMode",
+          "settings",
+          "title",
+          "unsignedParams"
+        ],
+        "request_schema_hash": "81a005b49ded836d7ecd401bf2cdceb37b53b8c46aa3ac0b4152e7c918bb0838",
+        "response_schema_hash": "51aee40fc6f247d4b3793b6455cdcc4d0a37dd8f5f5532c1d29ab55a20acc272",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "createEmbeddingSecret": {
+        "docs_ref": "datalens/api-ref/EmbeddingSecrets/rpccreateEmbeddingSecret-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "createEmbeddingSecret",
+        "path": "/rpc/createEmbeddingSecret",
+        "request_required": [
+          "title",
+          "workbookId"
+        ],
+        "request_schema_hash": "7fd5e62b89910c8bfcd1dc839cd20b16484f186e32856aedfde71af9656a68a0",
+        "response_schema_hash": "13cd3849db39bed1604166e000c74618de9af022b3406d880aee17c51fc36022",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "createEntryLock": {
+        "docs_ref": "datalens/api-ref/EntryLock/rpccreateEntryLock-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "createEntryLock",
+        "path": "/rpc/createEntryLock",
+        "request_required": [
+          "data",
+          "entryId"
+        ],
+        "request_schema_hash": "4932318428eeaef8eca4d8c6799a20e505d9a1edfbf086ab65982d97d75ad1b1",
+        "response_schema_hash": "3256e30a8c99219c1faf5692824a73b4623a317e1ee3b255eec4baebdcc8e485",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "createFolder": {
+        "docs_ref": "datalens/api-ref/Folder/rpccreateFolder-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "createFolder",
+        "path": "/rpc/createFolder",
+        "request_required": [
+          "key"
+        ],
+        "request_schema_hash": "bed78a31e8bf1c34c0e64b03b8d760a51c21794a7bbb61ee56052b42996ba064",
+        "response_schema_hash": "d9e238cce5f7fab20c477ea8deecd9201b0b913aaadeb898641fbf223f74e19a",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "createHtmlPage": {
+        "docs_ref": "datalens/api-ref/HtmlPages/rpccreateHtmlPage-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "createHtmlPage",
+        "path": "/rpc/createHtmlPage",
+        "request_required": [],
+        "request_schema_hash": "3810dedb4b408906bbe5bb781a0b79451d559454eaf82515005090add4222cff",
+        "response_schema_hash": "afbf886360fb00c938409a0169e41fa8e3755d928f87579b1ed9d1e4f61feb5e",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "createQLChart": {
+        "docs_ref": "https://yandex.cloud/ru/docs/datalens/api-ref/QL/rpccreateQLChart-post",
+        "experimental": true,
+        "http_method": "POST",
+        "operation": "createQLChart",
+        "path": "/rpc/createQLChart",
+        "request_required": [],
+        "request_schema_hash": "ea26b2f69d93873ebc7db61c5474b77b73f72ee1cd618ab3c934e98003627de8",
+        "response_schema_hash": "0f43c53ef801a2df2f7ed7e71164a100d780fe120c8f14846628153ceceb98e4",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "createReport": {
+        "docs_ref": "datalens/api-ref/Reports/rpccreateReport-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "createReport",
+        "path": "/rpc/createReport",
+        "request_required": [],
+        "request_schema_hash": "202c16f33fbfe04bde92203e2e1f059e2733777f77f1893785861bc867cbe4d9",
+        "response_schema_hash": "0bcccf70e7e1bca9d7c7850b892a5aa76bb1a758a79a6abeaac0b13d1e811eda",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "createWizardChart": {
+        "docs_ref": "https://yandex.cloud/ru/docs/datalens/api-ref/Wizard/rpccreateWizardChart-post",
+        "experimental": true,
+        "http_method": "POST",
+        "operation": "createWizardChart",
+        "path": "/rpc/createWizardChart",
+        "request_required": [],
+        "request_schema_hash": "45fd46b183640a2f9e62c57f743e2146eb34d1d6d5c77cc32a167919c50fa1c2",
+        "response_schema_hash": "0f43c53ef801a2df2f7ed7e71164a100d780fe120c8f14846628153ceceb98e4",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "createWorkbook": {
+        "docs_ref": "datalens/api-ref/Workbook/rpccreateWorkbook-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "createWorkbook",
+        "path": "/rpc/createWorkbook",
+        "request_required": [
+          "title"
+        ],
+        "request_schema_hash": "e65bc1afce4f01900fc2931a84ec7038591463bc4aa3b50bdb9c76f92807f4d4",
+        "response_schema_hash": "0a140119dfdc152a5ad45a24e4115ebadaf4b84a603a51a5cefa58e53e36690f",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "deleteCollection": {
+        "docs_ref": "datalens/api-ref/Collection/rpcdeleteCollection-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "deleteCollection",
+        "path": "/rpc/deleteCollection",
+        "request_required": [
+          "collectionId"
+        ],
+        "request_schema_hash": "5c33e99101e730c8137167b0957a6a5030748ac821166446fcb354387f307633",
+        "response_schema_hash": "c942cfcb321a3eb85060134e9f49aa0106bc9b158d565c47f99dc056b7fe753f",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "deleteCollections": {
+        "docs_ref": "datalens/api-ref/Collection/rpcdeleteCollections-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "deleteCollections",
+        "path": "/rpc/deleteCollections",
+        "request_required": [
+          "collectionIds"
+        ],
+        "request_schema_hash": "f6266cba5e24ae77331c46a950a9b6d7632c6b7a8479e64f21ec2e7d772a88d4",
+        "response_schema_hash": "c942cfcb321a3eb85060134e9f49aa0106bc9b158d565c47f99dc056b7fe753f",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "deleteConnection": {
+        "docs_ref": "datalens/api-ref/Connection/rpcdeleteConnection-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "deleteConnection",
+        "path": "/rpc/deleteConnection",
+        "request_required": [
+          "connectionId"
+        ],
+        "request_schema_hash": "f1ceb72d00bf1e13a0ebbeb213a03d7c88e1cc75d6d4e4a3344b1926d36f47d2",
+        "response_schema_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "deleteDashboard": {
+        "docs_ref": "datalens/api-ref/Dashboard/rpcdeleteDashboard-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "deleteDashboard",
+        "path": "/rpc/deleteDashboard",
+        "request_required": [
+          "dashboardId"
+        ],
+        "request_schema_hash": "a4b81b6ad553f9522d0653a6e30876287f7bf40bc0c7f9852bf0b69eeb6d18e0",
+        "response_schema_hash": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "deleteDataset": {
+        "docs_ref": "datalens/api-ref/Dataset/rpcdeleteDataset-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "deleteDataset",
+        "path": "/rpc/deleteDataset",
+        "request_required": [
+          "datasetId"
+        ],
+        "request_schema_hash": "7eff16d1a278552d6f08f58025843d9642212aa9e22fc295a0bb0a021db95d72",
+        "response_schema_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "deleteEditorChart": {
+        "docs_ref": "datalens/api-ref/Editor/rpcdeleteEditorChart-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "deleteEditorChart",
+        "path": "/rpc/deleteEditorChart",
+        "request_required": [
+          "chartId"
+        ],
+        "request_schema_hash": "4b7e64e351c845786b371a31d3759bbfced7ded5414e957f9b810a3a38b9797c",
+        "response_schema_hash": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "deleteEmbed": {
+        "docs_ref": "datalens/api-ref/Embeds/rpcdeleteEmbed-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "deleteEmbed",
+        "path": "/rpc/deleteEmbed",
+        "request_required": [
+          "embedId"
+        ],
+        "request_schema_hash": "b5c20bc16d1c5ee835f9b6f93bfd904767d8bc9a9e2100b159c1b002ed231ae0",
+        "response_schema_hash": "b5c20bc16d1c5ee835f9b6f93bfd904767d8bc9a9e2100b159c1b002ed231ae0",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "deleteEmbeddingSecret": {
+        "docs_ref": "datalens/api-ref/EmbeddingSecrets/rpcdeleteEmbeddingSecret-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "deleteEmbeddingSecret",
+        "path": "/rpc/deleteEmbeddingSecret",
+        "request_required": [
+          "embeddingSecretId"
+        ],
+        "request_schema_hash": "f1a1acc4ef90be9d10a4a66f7628ccc69c9583813ca0e4d4933e1b1d25fa5502",
+        "response_schema_hash": "f1a1acc4ef90be9d10a4a66f7628ccc69c9583813ca0e4d4933e1b1d25fa5502",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "deleteEntryLock": {
+        "docs_ref": "datalens/api-ref/EntryLock/rpcdeleteEntryLock-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "deleteEntryLock",
+        "path": "/rpc/deleteEntryLock",
+        "request_required": [
+          "entryId",
+          "params"
+        ],
+        "request_schema_hash": "fbb23613bbbd3a660da805bef1f50068294559a5dcb704d14db1657e781d712c",
+        "response_schema_hash": "20cd59c80bc5b04609425529746addbddb0b4f0063a33ac17f63090f571bc877",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "deleteFolder": {
+        "docs_ref": "datalens/api-ref/Folder/rpcdeleteFolder-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "deleteFolder",
+        "path": "/rpc/deleteFolder",
+        "request_required": [
+          "folderId"
+        ],
+        "request_schema_hash": "ffb5a16d92b4992a8520eb9e6ac8b6f23d3eed925817a2afaf0f848286334ad1",
+        "response_schema_hash": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "deleteHtmlPage": {
+        "docs_ref": "datalens/api-ref/HtmlPages/rpcdeleteHtmlPage-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "deleteHtmlPage",
+        "path": "/rpc/deleteHtmlPage",
+        "request_required": [
+          "entryId"
+        ],
+        "request_schema_hash": "c53dc26677e4726adfb638f67a3654f8d5086250f56de8b7499f4507e4c77ae3",
+        "response_schema_hash": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "deleteQLChart": {
+        "docs_ref": "datalens/api-ref/QL/rpcdeleteQLChart-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "deleteQLChart",
+        "path": "/rpc/deleteQLChart",
+        "request_required": [
+          "chartId"
+        ],
+        "request_schema_hash": "65082e1657c6fa18f579020a0ec34e4cab7d0e880dbff7530fd60126aa7e2b02",
+        "response_schema_hash": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "deleteReport": {
+        "docs_ref": "datalens/api-ref/Reports/rpcdeleteReport-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "deleteReport",
+        "path": "/rpc/deleteReport",
+        "request_required": [
+          "entryId"
+        ],
+        "request_schema_hash": "994c7997130a7c5af7d589d6de4cbacc37d2aa8864c69080f33bd211c9f352e9",
+        "response_schema_hash": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "deleteWizardChart": {
+        "docs_ref": "datalens/api-ref/Wizard/rpcdeleteWizardChart-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "deleteWizardChart",
+        "path": "/rpc/deleteWizardChart",
+        "request_required": [
+          "chartId"
+        ],
+        "request_schema_hash": "65082e1657c6fa18f579020a0ec34e4cab7d0e880dbff7530fd60126aa7e2b02",
+        "response_schema_hash": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "deleteWorkbook": {
+        "docs_ref": "datalens/api-ref/Workbook/rpcdeleteWorkbook-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "deleteWorkbook",
+        "path": "/rpc/deleteWorkbook",
+        "request_required": [
+          "workbookId"
+        ],
+        "request_schema_hash": "4a7afee8824a65de21af31c907c14aafb8b6811954e55f8c2e5543311f9aad28",
+        "response_schema_hash": "8f099f5f037788f0a379a766cabdd92335054fbaa02bbd48ee9ace40dd7f8bbf",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "deleteWorkbooks": {
+        "docs_ref": "datalens/api-ref/Workbook/rpcdeleteWorkbooks-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "deleteWorkbooks",
+        "path": "/rpc/deleteWorkbooks",
+        "request_required": [
+          "workbookIds"
+        ],
+        "request_schema_hash": "27afcd9ee5a3ab73b94563a732156b87f7f8105dbbbb6a21327f2925c006e472",
+        "response_schema_hash": "35bbe555431abab36159997ebab5071e06e298164778da628e153f0a0f2ad182",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "dlsSuggest": {
+        "docs_ref": "datalens/api-ref/Folder/rpcdlsSuggest-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "dlsSuggest",
+        "path": "/rpc/dlsSuggest",
+        "request_required": [
+          "searchText"
+        ],
+        "request_schema_hash": "90b3a65a23cd9739956d77b3a9a6c37b12f2d0fcde2e09418c8d5dfb6d4ae82e",
+        "response_schema_hash": "8ce06d12d28cbb6ec9b1a8eae5e09a96daba2e41a69d376e1f83840fcebf3cb7",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "extendEntryLock": {
+        "docs_ref": "datalens/api-ref/EntryLock/rpcextendEntryLock-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "extendEntryLock",
+        "path": "/rpc/extendEntryLock",
+        "request_required": [
+          "data",
+          "entryId"
+        ],
+        "request_schema_hash": "fe5425ea6679fc3679b8b63ab289bedb0af5e0968d740e4e391d7c9a3e1c6514",
+        "response_schema_hash": "20cd59c80bc5b04609425529746addbddb0b4f0063a33ac17f63090f571bc877",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getAuditEntriesUpdates": {
+        "docs_ref": "datalens/api-ref/Audit/rpcgetAuditEntriesUpdates-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getAuditEntriesUpdates",
+        "path": "/rpc/getAuditEntriesUpdates",
+        "request_required": [
+          "from"
+        ],
+        "request_schema_hash": "77cb49dfda59a6e4007f4971a30127809e4fe64aa89495224c7fab7368259a27",
+        "response_schema_hash": "8243ee821d10eeca7c30beb8505fab34a71c0ed294e17d4779298d6cc3343393",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getAuditEntryPermissionsForUser": {
+        "docs_ref": "datalens/api-ref/Audit/rpcgetAuditEntryPermissionsForUser-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getAuditEntryPermissionsForUser",
+        "path": "/rpc/getAuditEntryPermissionsForUser",
+        "request_required": [
+          "entryIds",
+          "userId"
+        ],
+        "request_schema_hash": "5942b9d2fda786e7f5f17b729d6f4c186f394e3a7e1893ca9979bbfec69160f3",
+        "response_schema_hash": "2c3185916f0165bf3148b406a772fc4b6fdaa273fa01d09f8ca008561061c264",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getCollection": {
+        "docs_ref": "datalens/api-ref/Collection/rpcgetCollection-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getCollection",
+        "path": "/rpc/getCollection",
+        "request_required": [
+          "collectionId"
+        ],
+        "request_schema_hash": "6c934933d3d8091308d0a400efb02f61f23d3bf0f173f99b929f8eb6e712c5cb",
+        "response_schema_hash": "612ba77e8ae182641bbafaf13a5c6e0a5312388314b82a18153ae3ca63cc3dbc",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getCollectionBreadcrumbs": {
+        "docs_ref": "datalens/api-ref/Collection/rpcgetCollectionBreadcrumbs-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getCollectionBreadcrumbs",
+        "path": "/rpc/getCollectionBreadcrumbs",
+        "request_required": [
+          "collectionId"
+        ],
+        "request_schema_hash": "6c934933d3d8091308d0a400efb02f61f23d3bf0f173f99b929f8eb6e712c5cb",
+        "response_schema_hash": "79c8ee91cbedd98231c8beaa8d4792a41808c2325a14d3a92958577cc1a3d54b",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getCollectionContent": {
+        "docs_ref": "datalens/api-ref/Collection/rpcgetCollectionContent-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getCollectionContent",
+        "path": "/rpc/getCollectionContent",
+        "request_required": [
+          "collectionId"
+        ],
+        "request_schema_hash": "1eed7f6b0b70e7b7aab10faf9eb180400e168bb4dbd3dd05ae5217779623e55f",
+        "response_schema_hash": "ded14d45055c82ca144e8b7e645e87ab9ad2c09bfc01bd714bbde034d280a002",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getCollectionsByIds": {
+        "docs_ref": "datalens/api-ref/Collection/rpcgetCollectionsByIds-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getCollectionsByIds",
+        "path": "/rpc/getCollectionsByIds",
+        "request_required": [
+          "collectionIds"
+        ],
+        "request_schema_hash": "595cc683236d41888fb86adf5a21112e9d97232dcf4f7703757522cf94e88cc9",
+        "response_schema_hash": "76c6a5da2699a50903d71273254c89a46ee14994170271e2ac5382519471e006",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getConnection": {
+        "docs_ref": "datalens/api-ref/Connection/rpcgetConnection-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getConnection",
+        "path": "/rpc/getConnection",
+        "request_required": [
+          "connectionId"
+        ],
+        "request_schema_hash": "9b868319364a3b26d92dd3ead13f97a1436eb899f8603d59219a19e920ba8614",
+        "response_schema_hash": "534a09814ae88a03afa63571147d2357c27cca5a74d0e89a29c2cb599b6f839d",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getDashboard": {
+        "docs_ref": "datalens/api-ref/Dashboard/rpcgetDashboard-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getDashboard",
+        "path": "/rpc/getDashboard",
+        "request_required": [
+          "dashboardId"
+        ],
+        "request_schema_hash": "3faff663bd9c0841f870008a0341470d3ae70a64c93031dd9cc237db7b2267e5",
+        "response_schema_hash": "3fad6f481665b9c8c680c5ee9a22a64104d539a97304e996d79508643266b471",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getDataset": {
+        "docs_ref": "datalens/api-ref/Dataset/rpcgetDataset-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getDataset",
+        "path": "/rpc/getDataset",
+        "request_required": [
+          "datasetId"
+        ],
+        "request_schema_hash": "6fd761800166229b854f407fe945070ac844dbf22088a13e8afebcb8959f554f",
+        "response_schema_hash": "bf65eb5388bb659c37608d597692d5c0b31cd88a50bce894e9ba589c4b4c8328",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getDatasetData": {
+        "docs_ref": "https://yandex.cloud/ru/docs/datalens/api-ref/Data/rpcgetDatasetData-post",
+        "experimental": true,
+        "http_method": "POST",
+        "operation": "getDatasetData",
+        "path": "/rpc/getDatasetData",
+        "request_required": [
+          "columns",
+          "datasetId"
+        ],
+        "request_schema_hash": "4e7cc1eeee6be2ac71a758383767cf38a5d1d11e8fd333a155198f168b060d3e",
+        "response_schema_hash": "f1261027cbda5b3a415ca2a4123219f0495cde476072ba1db8e27f4d7d4d0a6b",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getEditorChart": {
+        "docs_ref": "https://yandex.cloud/ru/docs/datalens/api-ref/Editor/rpcgetEditorChart-post",
+        "experimental": true,
+        "http_method": "POST",
+        "operation": "getEditorChart",
+        "path": "/rpc/getEditorChart",
+        "request_required": [
+          "chartId"
+        ],
+        "request_schema_hash": "c7e9b7aebe8e3e2c2d681ac16fb5f11657c1622c83f4393ef10efe0c39d600af",
+        "response_schema_hash": "2d98809a4cf9d4fc01cb57a5b2d024ca005326f236d0db1cd5347aa391becd7d",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getEmbeddingSecret": {
+        "docs_ref": "datalens/api-ref/EmbeddingSecrets/rpcgetEmbeddingSecret-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getEmbeddingSecret",
+        "path": "/rpc/getEmbeddingSecret",
+        "request_required": [
+          "embeddingSecretId"
+        ],
+        "request_schema_hash": "f1a1acc4ef90be9d10a4a66f7628ccc69c9583813ca0e4d4933e1b1d25fa5502",
+        "response_schema_hash": "b5cae66260fdef8134eadaeed0b05c840f2b36ca123736c05af3888b84631376",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getEntries": {
+        "docs_ref": "datalens/api-ref/Navigation/rpcgetEntries-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getEntries",
+        "path": "/rpc/getEntries",
+        "request_required": [],
+        "request_schema_hash": "97c70c4fb2d29a5878417e389abe3b77022fee7dc803ecd9beda8f4c29bb7cab",
+        "response_schema_hash": "ae357353b5de9919ea27f7c4b8f4d0e697b0b76c3e03567659b424a18d9eff3d",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getEntriesPermissions": {
+        "docs_ref": "datalens/api-ref/Entries/rpcgetEntriesPermissions-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getEntriesPermissions",
+        "path": "/rpc/getEntriesPermissions",
+        "request_required": [
+          "entryIds"
+        ],
+        "request_schema_hash": "874bc47c174b035318c4141e3cc47842a79aee964b0a15d7ed0ec8fe8edf6701",
+        "response_schema_hash": "2c3185916f0165bf3148b406a772fc4b6fdaa273fa01d09f8ca008561061c264",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getEntriesRelations": {
+        "docs_ref": "datalens/api-ref/Entries/rpcgetEntriesRelations-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getEntriesRelations",
+        "path": "/rpc/getEntriesRelations",
+        "request_required": [
+          "entryIds"
+        ],
+        "request_schema_hash": "24ad47d7736e28ef85e27470f1ac7c081c48f6fe255bc881d480d1e603a8af86",
+        "response_schema_hash": "d1a7d7196c41fc41464989b20eca58dff8b55fae6381d2b1768fd3cb4422a691",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getHtmlPage": {
+        "docs_ref": "datalens/api-ref/HtmlPages/rpcgetHtmlPage-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getHtmlPage",
+        "path": "/rpc/getHtmlPage",
+        "request_required": [
+          "entryId"
+        ],
+        "request_schema_hash": "6c273b9265507c5c4aa191762b346e9e3e56de0dbc55799d358bff7021c69801",
+        "response_schema_hash": "62de35ab3da0933eb220399069a2949344b29848f8953454172e5bdd3f8a49d7",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getLicenses": {
+        "docs_ref": "datalens/api-ref/Licensing/rpcgetLicenses-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getLicenses",
+        "path": "/rpc/getLicenses",
+        "request_required": [],
+        "request_schema_hash": "7346d0509d45681ab02e6bd66688939d2732cebc4046ebde9720050e7449b4ad",
+        "response_schema_hash": "c7f2d834593b40e932163c2a495910465f29b30fec1e98c10b328c4310f31e77",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getLicensesLimit": {
+        "docs_ref": "datalens/api-ref/Licensing/rpcgetLicensesLimit-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getLicensesLimit",
+        "path": "/rpc/getLicensesLimit",
+        "request_required": [],
+        "request_schema_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "response_schema_hash": "95d93e33ae90705704cc2bba5e658df3cc9e36f3d9dc58e464f634b38ca518b4",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getPermissions": {
+        "docs_ref": "datalens/api-ref/Folder/rpcgetPermissions-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getPermissions",
+        "path": "/rpc/getPermissions",
+        "request_required": [
+          "entryId"
+        ],
+        "request_schema_hash": "c53dc26677e4726adfb638f67a3654f8d5086250f56de8b7499f4507e4c77ae3",
+        "response_schema_hash": "2b6c7ff05b68ec7a96f6a113392992977bb1ba58a38676d15da4848aa20aaf08",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getPermissionsBulk": {
+        "docs_ref": "datalens/api-ref/Permissions/rpcgetPermissionsBulk-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getPermissionsBulk",
+        "path": "/rpc/getPermissionsBulk",
+        "request_required": [],
+        "request_schema_hash": "6f7b52ee1aacbeba16f1f80b635698fb5035a697f2325099605c6f7670eb76da",
+        "response_schema_hash": "086545bfa95835309c152e6c6389b8508e8e42668d32ef2f90c3d4dd3f4d1dc2",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getQLChart": {
+        "docs_ref": "https://yandex.cloud/ru/docs/datalens/api-ref/QL/rpcgetQLChart-post",
+        "experimental": true,
+        "http_method": "POST",
+        "operation": "getQLChart",
+        "path": "/rpc/getQLChart",
+        "request_required": [
+          "chartId"
+        ],
+        "request_schema_hash": "0b18f19e29663bb6aa3f3ee6fb8b722c6304d269e73de4f8ede2f082243baa1b",
+        "response_schema_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getReport": {
+        "docs_ref": "datalens/api-ref/Reports/rpcgetReport-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getReport",
+        "path": "/rpc/getReport",
+        "request_required": [
+          "entryId"
+        ],
+        "request_schema_hash": "17fb71e89fa26df00e8c12fe692d380f47b40d48dc7c85864425ce11e9367dc7",
+        "response_schema_hash": "a659dd5bc37a4160dd06a69b2f220d89e2e3bd7b0a72fc666761430b145845ed",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getRootCollectionPermissions": {
+        "docs_ref": "datalens/api-ref/Collection/rpcgetRootCollectionPermissions-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getRootCollectionPermissions",
+        "path": "/rpc/getRootCollectionPermissions",
+        "request_required": [],
+        "request_schema_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "response_schema_hash": "55e589ccce882e9968ddede35f90eae1bc2fd13a7523a1ad1b09b51d19330053",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getWizardChart": {
+        "docs_ref": "https://yandex.cloud/ru/docs/datalens/api-ref/Wizard/rpcgetWizardChart-post",
+        "experimental": true,
+        "http_method": "POST",
+        "operation": "getWizardChart",
+        "path": "/rpc/getWizardChart",
+        "request_required": [
+          "chartId"
+        ],
+        "request_schema_hash": "0b18f19e29663bb6aa3f3ee6fb8b722c6304d269e73de4f8ede2f082243baa1b",
+        "response_schema_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getWorkbook": {
+        "docs_ref": "datalens/api-ref/Workbook/rpcgetWorkbook-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getWorkbook",
+        "path": "/rpc/getWorkbook",
+        "request_required": [
+          "workbookId"
+        ],
+        "request_schema_hash": "2a90bb5975c91b834c685b42126e53c1cfab82b754e8f14c39a5eed640d74290",
+        "response_schema_hash": "d68ae3e6e6f157a263186067face6894660b5bae03b795f27e927cd3232ed2b5",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getWorkbookEntries": {
+        "docs_ref": "datalens/api-ref/Workbook/rpcgetWorkbookEntries-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getWorkbookEntries",
+        "path": "/rpc/getWorkbookEntries",
+        "request_required": [
+          "workbookId"
+        ],
+        "request_schema_hash": "a52fe0468822a451204bef84686088b206453d01f2c8eb5506c13a6eaa48c335",
+        "response_schema_hash": "b92649abb21d3cbee99bddf2639fe547c7325b46d9ffa3c40a3c01d9b9635a12",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getWorkbookExportResult": {
+        "docs_ref": "datalens/api-ref/WorkbookExport/rpcgetWorkbookExportResult-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getWorkbookExportResult",
+        "path": "/rpc/getWorkbookExportResult",
+        "request_required": [
+          "exportId"
+        ],
+        "request_schema_hash": "adff3feb54b9f112ac5d4696334e9744ab858d1db00df77de12f17ab85379f68",
+        "response_schema_hash": "61bf5d35b51cc1080ea0a82187bed73f5bb5bada65f1d65712d7dc9f57a5d3c1",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getWorkbookExportStatus": {
+        "docs_ref": "datalens/api-ref/WorkbookExport/rpcgetWorkbookExportStatus-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getWorkbookExportStatus",
+        "path": "/rpc/getWorkbookExportStatus",
+        "request_required": [
+          "exportId"
+        ],
+        "request_schema_hash": "adff3feb54b9f112ac5d4696334e9744ab858d1db00df77de12f17ab85379f68",
+        "response_schema_hash": "85c87641b56316bcd3a32ef4526ced565721ba28f85a67061065213c8e7851e0",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getWorkbookImportStatus": {
+        "docs_ref": "datalens/api-ref/WorkbookImport/rpcgetWorkbookImportStatus-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getWorkbookImportStatus",
+        "path": "/rpc/getWorkbookImportStatus",
+        "request_required": [
+          "importId"
+        ],
+        "request_schema_hash": "cebcb948b1c6d1043c080be85e5c4ad2430d8b2653681a8f6bacb8b995d714eb",
+        "response_schema_hash": "aeb5b1c9ec3d35463997c5b00b5da10b1d791c966ec21e56a059d8e73a69a2fb",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getWorkbooksByIds": {
+        "docs_ref": "datalens/api-ref/Workbook/rpcgetWorkbooksByIds-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getWorkbooksByIds",
+        "path": "/rpc/getWorkbooksByIds",
+        "request_required": [
+          "workbookIds"
+        ],
+        "request_schema_hash": "5c9359dcd63bbad39eeebc1a528e6b71dff4b385e17d708c75fc2b99114dc376",
+        "response_schema_hash": "f584766a5c6e8a9560a5868b5f2a615c0ba260c3f4b52e4ca8e105b25336195a",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "getWorkbooksList": {
+        "docs_ref": "datalens/api-ref/Workbook/rpcgetWorkbooksList-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "getWorkbooksList",
+        "path": "/rpc/getWorkbooksList",
+        "request_required": [],
+        "request_schema_hash": "669a65724c03cf8f81c967663e3c96be3ed2982924362224c86e5c641c5798b6",
+        "response_schema_hash": "661643812fde2005a6068d25fbf2f64d46c69d461c3d165546c4845e67ad7440",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "listCollectionAccessBindings": {
+        "docs_ref": "datalens/api-ref/Collection/rpclistCollectionAccessBindings-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "listCollectionAccessBindings",
+        "path": "/rpc/listCollectionAccessBindings",
+        "request_required": [
+          "collectionId"
+        ],
+        "request_schema_hash": "fbda8b93325d50a372c96ad1842bc014a18485f7cd190847d80cf991f75dc0af",
+        "response_schema_hash": "e2d96a42e8d60b4407e7a02076dc64551ec12249f74eadcc8d8e1c462b83df6d",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "listDirectory": {
+        "docs_ref": "datalens/api-ref/Navigation/rpclistDirectory-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "listDirectory",
+        "path": "/rpc/listDirectory",
+        "request_required": [],
+        "request_schema_hash": "f6d2a601231097f75387308b8d9f53a8be2a3f0386870f90f698fbea2935cd52",
+        "response_schema_hash": "01f29d8a46a1ac582b035f168ff021ec1c910487d8e54a570b14e1d940884575",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "listEmbeddingSecrets": {
+        "docs_ref": "datalens/api-ref/EmbeddingSecrets/rpclistEmbeddingSecrets-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "listEmbeddingSecrets",
+        "path": "/rpc/listEmbeddingSecrets",
+        "request_required": [
+          "workbookId"
+        ],
+        "request_schema_hash": "4a7afee8824a65de21af31c907c14aafb8b6811954e55f8c2e5543311f9aad28",
+        "response_schema_hash": "8218098107569a7fe704121417676c13e17dc53d9eebd11471dabaeef5f5df1a",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "listEmbeds": {
+        "docs_ref": "datalens/api-ref/Embeds/rpclistEmbeds-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "listEmbeds",
+        "path": "/rpc/listEmbeds",
+        "request_required": [
+          "entryId"
+        ],
+        "request_schema_hash": "c53dc26677e4726adfb638f67a3654f8d5086250f56de8b7499f4507e4c77ae3",
+        "response_schema_hash": "cc3aab1e935576a81379932583d8d4ca1e0a4c95b667528b2ba05db4819ead89",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "listSharedEntryAccessBindings": {
+        "docs_ref": "datalens/api-ref/SharedEntry/rpclistSharedEntryAccessBindings-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "listSharedEntryAccessBindings",
+        "path": "/rpc/listSharedEntryAccessBindings",
+        "request_required": [
+          "entryId"
+        ],
+        "request_schema_hash": "5b88d1ba787745a864180f8929c29bbad9657aefc9f43d21a6e9b23b4ef4effb",
+        "response_schema_hash": "e2d96a42e8d60b4407e7a02076dc64551ec12249f74eadcc8d8e1c462b83df6d",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "listWorkbookAccessBindings": {
+        "docs_ref": "datalens/api-ref/Workbook/rpclistWorkbookAccessBindings-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "listWorkbookAccessBindings",
+        "path": "/rpc/listWorkbookAccessBindings",
+        "request_required": [
+          "workbookId"
+        ],
+        "request_schema_hash": "ab1c08f33d876eba1f46b1e3798eb6382a818c93eb7aa315577c186f01d77d79",
+        "response_schema_hash": "e2d96a42e8d60b4407e7a02076dc64551ec12249f74eadcc8d8e1c462b83df6d",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "modifyPermissions": {
+        "docs_ref": "datalens/api-ref/Folder/rpcmodifyPermissions-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "modifyPermissions",
+        "path": "/rpc/modifyPermissions",
+        "request_required": [
+          "body",
+          "entryId"
+        ],
+        "request_schema_hash": "bba8a864c119487a1a7d07af407715c2c847fcfd1259d017969f4b20ecbcdd15",
+        "response_schema_hash": "98eab3ddf0b2a272ed9167fe9377fa548d35e2fb9e5b7f15059bf632cfebfdad",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "moveCollection": {
+        "docs_ref": "datalens/api-ref/Collection/rpcmoveCollection-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "moveCollection",
+        "path": "/rpc/moveCollection",
+        "request_required": [
+          "collectionId",
+          "parentId"
+        ],
+        "request_schema_hash": "f74f922b59b9338c74b85dd1372467f79c04af98e12e998fcc18c8765595da2f",
+        "response_schema_hash": "4dd9be8897df54651e001c349aa6a03ff71f4ab5772d390a3a46eadfe044d907",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "moveCollections": {
+        "docs_ref": "datalens/api-ref/Collection/rpcmoveCollections-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "moveCollections",
+        "path": "/rpc/moveCollections",
+        "request_required": [
+          "collectionIds",
+          "parentId"
+        ],
+        "request_schema_hash": "aca0fa31fc1eb9ac74f60612eeb179e0cd0ec1f92f05a59e158c71f353b24ffd",
+        "response_schema_hash": "c942cfcb321a3eb85060134e9f49aa0106bc9b158d565c47f99dc056b7fe753f",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "moveFolderEntry": {
+        "docs_ref": "datalens/api-ref/Folder/rpcmoveFolderEntry-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "moveFolderEntry",
+        "path": "/rpc/moveFolderEntry",
+        "request_required": [
+          "destination",
+          "entryId"
+        ],
+        "request_schema_hash": "fff2d5de074abc35ce10c70ac180d26dd3f5b83e7c57760742ef2d3c9cfe0d7a",
+        "response_schema_hash": "cbcf4f455facf5758298035aac10f3ff3a7445fbf9756759ad414b9c5271812d",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "moveWorkbook": {
+        "docs_ref": "datalens/api-ref/Workbook/rpcmoveWorkbook-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "moveWorkbook",
+        "path": "/rpc/moveWorkbook",
+        "request_required": [
+          "collectionId",
+          "workbookId"
+        ],
+        "request_schema_hash": "f364184dc3a48c9094545ee5822bb844dd3dfda9c1b089a6f2b490c97942d086",
+        "response_schema_hash": "8f099f5f037788f0a379a766cabdd92335054fbaa02bbd48ee9ace40dd7f8bbf",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "moveWorkbooks": {
+        "docs_ref": "datalens/api-ref/Workbook/rpcmoveWorkbooks-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "moveWorkbooks",
+        "path": "/rpc/moveWorkbooks",
+        "request_required": [
+          "collectionId",
+          "workbookIds"
+        ],
+        "request_schema_hash": "3fb3451ca78f5a194db3d36906a8bc948bc88743a931b9087c2972233cf661da",
+        "response_schema_hash": "35bbe555431abab36159997ebab5071e06e298164778da628e153f0a0f2ad182",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "renameEntry": {
+        "docs_ref": "datalens/api-ref/Entries/rpcrenameEntry-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "renameEntry",
+        "path": "/rpc/renameEntry",
+        "request_required": [
+          "entryId",
+          "name"
+        ],
+        "request_schema_hash": "7d60c83bfa0cc6af6931ddff244d6b755b19425d9a8d492dc2e949b2987f92fd",
+        "response_schema_hash": "4a629b213a09957a8118d84d78b45eafaa1a77fadd3684216c331aa623f04160",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "setLicenseLimit": {
+        "docs_ref": "datalens/api-ref/Licensing/rpcsetLicenseLimit-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "setLicenseLimit",
+        "path": "/rpc/setLicenseLimit",
+        "request_required": [
+          "value"
+        ],
+        "request_schema_hash": "73641d53baf76fcb9933d9e5a4626207fff88c215b2716f4dc65e776dc1b4cbf",
+        "response_schema_hash": "95d93e33ae90705704cc2bba5e658df3cc9e36f3d9dc58e464f634b38ca518b4",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "startWorkbookExport": {
+        "docs_ref": "datalens/api-ref/WorkbookExport/rpcstartWorkbookExport-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "startWorkbookExport",
+        "path": "/rpc/startWorkbookExport",
+        "request_required": [
+          "workbookId"
+        ],
+        "request_schema_hash": "4a7afee8824a65de21af31c907c14aafb8b6811954e55f8c2e5543311f9aad28",
+        "response_schema_hash": "adff3feb54b9f112ac5d4696334e9744ab858d1db00df77de12f17ab85379f68",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "startWorkbookImport": {
+        "docs_ref": "datalens/api-ref/WorkbookImport/rpcstartWorkbookImport-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "startWorkbookImport",
+        "path": "/rpc/startWorkbookImport",
+        "request_required": [
+          "collectionId",
+          "data",
+          "title"
+        ],
+        "request_schema_hash": "86ef576093066a9736e8066d7d5200da188d2eaf7636c94d0c7306b9dc9134ec",
+        "response_schema_hash": "52b90620fbd1596eb50da2ab03f3b4827cfe9d435b3a397d37dac9b244b3b0fb",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "updateCollection": {
+        "docs_ref": "datalens/api-ref/Collection/rpcupdateCollection-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "updateCollection",
+        "path": "/rpc/updateCollection",
+        "request_required": [
+          "collectionId"
+        ],
+        "request_schema_hash": "5c33e99101e730c8137167b0957a6a5030748ac821166446fcb354387f307633",
+        "response_schema_hash": "4dd9be8897df54651e001c349aa6a03ff71f4ab5772d390a3a46eadfe044d907",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "updateCollectionAccessBindings": {
+        "docs_ref": "datalens/api-ref/Collection/rpcupdateCollectionAccessBindings-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "updateCollectionAccessBindings",
+        "path": "/rpc/updateCollectionAccessBindings",
+        "request_required": [
+          "collectionId",
+          "deltas"
+        ],
+        "request_schema_hash": "baa011848ae2ecd108e032f5a8ac4190bf61ad0cf1679c40eaa12d12f181fc53",
+        "response_schema_hash": "3daf6da12304432cfa8d4fb6283dcae2a089f5b47706f4fc152b6f61cc801e93",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "updateConnection": {
+        "docs_ref": "datalens/api-ref/Connection/rpcupdateConnection-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "updateConnection",
+        "path": "/rpc/updateConnection",
+        "request_required": [
+          "connectionId"
+        ],
+        "request_schema_hash": "18405a212ef5e41a91de49cf91989c755cd78b9e074722c7081d5c903faf0ed9",
+        "response_schema_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "updateDashboard": {
+        "docs_ref": "datalens/api-ref/Dashboard/rpcupdateDashboard-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "updateDashboard",
+        "path": "/rpc/updateDashboard",
+        "request_required": [
+          "entry",
+          "mode"
+        ],
+        "request_schema_hash": "0ae373dd381f4491db694dffb92d3240a89b8bacef217f72ea0944eb22ef6d57",
+        "response_schema_hash": "9df7fd3022dca784ba9650ddd7334addcdbea63cf337a30ba9506d761254c242",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "updateDataset": {
+        "docs_ref": "datalens/api-ref/Dataset/rpcupdateDataset-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "updateDataset",
+        "path": "/rpc/updateDataset",
+        "request_required": [
+          "datasetId"
+        ],
+        "request_schema_hash": "ee3eddee939448e9630c8dad794ae95ea276a3d2d944c594545f0d2f3f4b8d75",
+        "response_schema_hash": "bf65eb5388bb659c37608d597692d5c0b31cd88a50bce894e9ba589c4b4c8328",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "updateEditorChart": {
+        "docs_ref": "https://yandex.cloud/ru/docs/datalens/api-ref/Editor/rpcupdateEditorChart-post",
+        "experimental": true,
+        "http_method": "POST",
+        "operation": "updateEditorChart",
+        "path": "/rpc/updateEditorChart",
+        "request_required": [
+          "entry",
+          "mode"
+        ],
+        "request_schema_hash": "848f1552d99b8f2462ac61fc55b95bab3584763666b0c4188159eb088fdaa6b6",
+        "response_schema_hash": "66bf7369e04819436cd30922f65b3f6f9a9fa3135da6a2789b6e4ddf89a769ad",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "updateEmbed": {
+        "docs_ref": "datalens/api-ref/Embeds/rpcupdateEmbed-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "updateEmbed",
+        "path": "/rpc/updateEmbed",
+        "request_required": [
+          "depsIds",
+          "embedId",
+          "embeddingSecretId",
+          "privateParams",
+          "publicParamsMode",
+          "settings",
+          "title",
+          "unsignedParams"
+        ],
+        "request_schema_hash": "7e535e51c4d50806701283493f4f22bd9261f1391a16e619b4491de854ba4332",
+        "response_schema_hash": "51aee40fc6f247d4b3793b6455cdcc4d0a37dd8f5f5532c1d29ab55a20acc272",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "updateHtmlPage": {
+        "docs_ref": "datalens/api-ref/HtmlPages/rpcupdateHtmlPage-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "updateHtmlPage",
+        "path": "/rpc/updateHtmlPage",
+        "request_required": [],
+        "request_schema_hash": "9314a6e2f2af31f26f31ea9bb1f9459557859196a8b2e21b74d6dbfe94c9e9f5",
+        "response_schema_hash": "afbf886360fb00c938409a0169e41fa8e3755d928f87579b1ed9d1e4f61feb5e",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "updateQLChart": {
+        "docs_ref": "https://yandex.cloud/ru/docs/datalens/api-ref/QL/rpcupdateQLChart-post",
+        "experimental": true,
+        "http_method": "POST",
+        "operation": "updateQLChart",
+        "path": "/rpc/updateQLChart",
+        "request_required": [
+          "data",
+          "entryId",
+          "mode",
+          "template"
+        ],
+        "request_schema_hash": "adfb537756115b3e75d0f4ada82dd12bc86e4eb25a486f282eb2f2880cebf223",
+        "response_schema_hash": "0f43c53ef801a2df2f7ed7e71164a100d780fe120c8f14846628153ceceb98e4",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "updateReport": {
+        "docs_ref": "datalens/api-ref/Reports/rpcupdateReport-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "updateReport",
+        "path": "/rpc/updateReport",
+        "request_required": [
+          "data",
+          "entryId",
+          "meta",
+          "mode"
+        ],
+        "request_schema_hash": "c787b9743c6b6bb62b7b66b1a92ea0245eb2898d286820783c3b84b940be352f",
+        "response_schema_hash": "c42fe0fc6759c3c02c48ac30722da13e8d4ed2be34f29b118ac12300fa33bee7",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "updateWizardChart": {
+        "docs_ref": "https://yandex.cloud/ru/docs/datalens/api-ref/Wizard/rpcupdateWizardChart-post",
+        "experimental": true,
+        "http_method": "POST",
+        "operation": "updateWizardChart",
+        "path": "/rpc/updateWizardChart",
+        "request_required": [
+          "data",
+          "entryId",
+          "mode",
+          "template"
+        ],
+        "request_schema_hash": "e910a3e802ed93d654fc1f58312eb95d67343d173fde8fea548f6bc3aee9afdc",
+        "response_schema_hash": "0f43c53ef801a2df2f7ed7e71164a100d780fe120c8f14846628153ceceb98e4",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "updateWorkbook": {
+        "docs_ref": "datalens/api-ref/Workbook/rpcupdateWorkbook-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "updateWorkbook",
+        "path": "/rpc/updateWorkbook",
+        "request_required": [
+          "workbookId"
+        ],
+        "request_schema_hash": "4a7afee8824a65de21af31c907c14aafb8b6811954e55f8c2e5543311f9aad28",
+        "response_schema_hash": "8f099f5f037788f0a379a766cabdd92335054fbaa02bbd48ee9ace40dd7f8bbf",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "updateWorkbookAccessBindings": {
+        "docs_ref": "datalens/api-ref/Workbook/rpcupdateWorkbookAccessBindings-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "updateWorkbookAccessBindings",
+        "path": "/rpc/updateWorkbookAccessBindings",
+        "request_required": [
+          "deltas",
+          "workbookId"
+        ],
+        "request_schema_hash": "98b81bbbaed8908d869554f7eae43c6e8e4b037a4a5869168235fc467ffefb29",
+        "response_schema_hash": "3daf6da12304432cfa8d4fb6283dcae2a089f5b47706f4fc152b6f61cc801e93",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      },
+      "validateDataset": {
+        "docs_ref": "datalens/api-ref/Dataset/rpcvalidateDataset-post.md",
+        "experimental": false,
+        "http_method": "POST",
+        "operation": "validateDataset",
+        "path": "/rpc/validateDataset",
+        "request_required": [
+          "datasetId"
+        ],
+        "request_schema_hash": "724c37ed37451527042cb9fe07d05f43754d2fa1a99aa2308b65108499cd91bb",
+        "response_schema_hash": "bf65eb5388bb659c37608d597692d5c0b31cd88a50bce894e9ba589c4b4c8328",
+        "security": [
+          [
+            "IAM token"
+          ],
+          [
+            "Organization ID"
+          ]
+        ]
+      }
+    },
+    "schemas": {
+      "APPMETRICA_API": "5a03a0d2dd8ea2b59e9b287f200445cc50492bacbb998defaed147fec510636e",
+      "APPMETRICA_API1": "5a03a0d2dd8ea2b59e9b287f200445cc50492bacbb998defaed147fec510636e",
+      "AccessExtBatchListMembersArgs": "2b5fba68b1a03615f048b2eff599e9aaeadd74e35da0ff57dfe7cc887437459c",
+      "AccessExtBatchListMembersResult": "d3b8c8073db47eb6b0409d80f1a5d0c3063456cdf2c7e68c09a3e751520ab0e4",
+      "AccessExtSubjectClaims": "072008fff1dda5f810795944fc085ed8f0baa823ec5a9534f7db5f7629d5f3c9",
+      "Action": "d1cd5c6d6942409e0bcce34f9844a328d9771582b6e518eba27f0d95018a0656",
+      "AddField": "56ac6c2dbd10b8c5d02f724acdeeac6bc49eb28088ef044d1eab6f25e70fe786",
+      "AssignLicensesArgs": "c7729d5c215e39d16711a3361299d36c9b49b7b01995c4030a1bc326f5c8e935",
+      "AssignLicensesResponse": "46185bdb0e22b11fb9000dc4524881901889fa16f1c8e1feb47331f968abef2d",
+      "AuditEntry": "02e58c29463621a1b3f476669b57e67224dfa7973b00b0c0fba3de25124df6d1",
+      "AvatarBase": "e36382ec6abef464816fd2d62cfb88a3995907a5e91763b95fe4cbed24380252",
+      "AvatarRelation": "5d595fc00e72b274262ff7a06eeea7fc024c139b814a6128f13d87d2e0740e9d",
+      "Avatars": "385d3edaf945d5329fe2f37d17e4ece8ee4a3646f8dc8d87416cf36fd0d11d8b",
+      "BIGQUERY_SUBSELECT": "62302705bf536e378e0acc6bb464c4f423da915f8772c354531ed7fe9f063759",
+      "BIGQUERY_SUBSELECT1": "62302705bf536e378e0acc6bb464c4f423da915f8772c354531ed7fe9f063759",
+      "BIGQUERY_TABLE": "684834827e09612332fa642497831eb3345dc6d54d624ef32674ff2fb33f16f4",
+      "BIGQUERY_TABLE1": "684834827e09612332fa642497831eb3345dc6d54d624ef32674ff2fb33f16f4",
+      "BITRIX_GDS": "5026a380348ea9c76121ae36a1a8a8e9bb135da65cd9ae7dbc31283cafd3807d",
+      "BITRIX_GDS1": "5026a380348ea9c76121ae36a1a8a8e9bb135da65cd9ae7dbc31283cafd3807d",
+      "BigQueryTableParameters": "715166951cff054f7291a17cbd3475c770eabb791a966b66dd3a9c85c1b8be6f",
+      "CHYTTableListParameters": "e5fbd97f831d55c2bf18176790e0e4b581d7d469ddf8f7b968f1bf8184456a2f",
+      "CHYTTableRangeParameters": "17666d77b301f00fcd3192c6aca187c8ec26280aa0f0a6b23692c81282453fe9",
+      "CHYT_YTSAURUS_SUBSELECT": "b515e43e97cd1210161a6d02d003da946e498ab06b665c6ef58c96a681f137dc",
+      "CHYT_YTSAURUS_SUBSELECT1": "b515e43e97cd1210161a6d02d003da946e498ab06b665c6ef58c96a681f137dc",
+      "CHYT_YTSAURUS_TABLE": "c1c4d626cb25452dbeb3cf2d1641c0e35cd45a55bc637d7926210fd872805e15",
+      "CHYT_YTSAURUS_TABLE1": "c1c4d626cb25452dbeb3cf2d1641c0e35cd45a55bc637d7926210fd872805e15",
+      "CHYT_YTSAURUS_TABLE_LIST": "ab1ff86f5f0a1edf60b6f51994ab7fb78a70423bd69b8e3a1a935e926f8e0d12",
+      "CHYT_YTSAURUS_TABLE_LIST1": "ab1ff86f5f0a1edf60b6f51994ab7fb78a70423bd69b8e3a1a935e926f8e0d12",
+      "CHYT_YTSAURUS_TABLE_RANGE": "19982fcea152e870de7d8f9b02bbc8ea93f9d15599f0fcffd5cd7d59448959e5",
+      "CHYT_YTSAURUS_TABLE_RANGE1": "19982fcea152e870de7d8f9b02bbc8ea93f9d15599f0fcffd5cd7d59448959e5",
+      "CH_BILLING_ANALYTICS_TABLE": "acedefb43c4046c86b471c3aa725c16fec037c1a4b991784fc3ee5bbc47de4f5",
+      "CH_BILLING_ANALYTICS_TABLE1": "acedefb43c4046c86b471c3aa725c16fec037c1a4b991784fc3ee5bbc47de4f5",
+      "CH_SMB_HEATMAPS_TABLE": "64f45dccefcb00446047f1b89186f64dda173b01de89a9428d6eae9c2aadf4db",
+      "CH_SMB_HEATMAPS_TABLE1": "64f45dccefcb00446047f1b89186f64dda173b01de89a9428d6eae9c2aadf4db",
+      "CH_SUBSELECT": "00095c57b1c881722fc5e1331dc6fa22152b3a407dec215f6adb2dfe96241305",
+      "CH_SUBSELECT1": "00095c57b1c881722fc5e1331dc6fa22152b3a407dec215f6adb2dfe96241305",
+      "CH_TABLE": "a10b1d73b139e324b5e3b8c0e9a0878960ea6a72e940433d13a646f20359ee05",
+      "CH_TABLE1": "a10b1d73b139e324b5e3b8c0e9a0878960ea6a72e940433d13a646f20359ee05",
+      "CH_USAGE_TRACKING_AGG_TABLE": "032e9dea7b894f9e09ce4d4e5be9a2de2f87886a307c117d2d79c4ae46aad39c",
+      "CH_USAGE_TRACKING_AGG_TABLE1": "032e9dea7b894f9e09ce4d4e5be9a2de2f87886a307c117d2d79c4ae46aad39c",
+      "CH_USAGE_TRACKING_TABLE": "c4690215ea6cf0bd1ff07f4a5cdf449e322426554b20ac2970cb18fc5d8d17ba",
+      "CH_USAGE_TRACKING_TABLE1": "c4690215ea6cf0bd1ff07f4a5cdf449e322426554b20ac2970cb18fc5d8d17ba",
+      "CH_YA_MUSIC_PODCAST_STATS_TABLE": "2439c0759cef65b7fb89f09e42c350b9986324e8f74c1639c77c07f17fd8bf65",
+      "CH_YA_MUSIC_PODCAST_STATS_TABLE1": "2439c0759cef65b7fb89f09e42c350b9986324e8f74c1639c77c07f17fd8bf65",
+      "CacheInvalidationError": "4a7b7e6616e32eee969a333ce6ab7cd760b4a9893e4ffad81adebbd1bf0ff9fc",
+      "CacheInvalidationField": "da6aee595e2cab578ecebda9eb624a8dba6233ba2977c4cbc2c24c111f0a5cd3",
+      "CacheInvalidationSource": "f284997470f7194a34049244915c657c3ec8cbe79c4fbcb5a369b702bacdc1a0",
+      "CalculationSpec": "2eaa1324234dcf2191a877e2716008332314a9bc1d0cd42f97dac52b940a6dfd",
+      "CancelWorkbookExportArgs": "adff3feb54b9f112ac5d4696334e9744ab858d1db00df77de12f17ab85379f68",
+      "CancelWorkbookExportResult": "adff3feb54b9f112ac5d4696334e9744ab858d1db00df77de12f17ab85379f68",
+      "CloneField": "453bcb0ddc015a2d2b51609f4ecad3cae9480183022b9b94fe1effa318398c1d",
+      "Collection": "4dd9be8897df54651e001c349aa6a03ff71f4ab5772d390a3a46eadfe044d907",
+      "CompatConnectionTypeListItem": "498abfa74ad740c2236d52d5148532dd444a8dd69b3781368901c7c952f955b2",
+      "CompatSourceTypeListItem": "48db0e6e25d701de2563aabd02c10c4c80295dc06ef3c10d769294381f47bfa0",
+      "ComponentError": "9eb51ef862868576619c21d66118726f643f955b49ed8e3cf4c7dfd48b51ff56",
+      "ComponentErrorList": "1d2bbbd06775c4514211e234217b47989c327457fc1a16a1d94c0222ecb2bc54",
+      "ComponentErrorPack": "9873b02b11b4a6d047be4d36b308d10a47a06f75f1d3181a3da1a27372c913ab",
+      "ConditionPartGeneric": "1ee0385b66f30d9e1e3701d455d4fd442f1ce6a88a46c7c0659b858b952a6517",
+      "ConnectionCreate": "0dac9912ce0cf502ac7d707e49ba83dd3acd7a689a2da1e7212baa5ef68f4849",
+      "ConnectionListItem": "8bd8913528606e27322c80d6ca3cc21827410e82b727dffe9413603e4ca694ce",
+      "ConnectionRead": "534a09814ae88a03afa63571147d2357c27cca5a74d0e89a29c2cb599b6f839d",
+      "ConnectionUpdate": "8e6ecc00266284850bad491541bd9bd42a9ec9e74f0a464329d6fff5967d96fd",
+      "Connections": "2fa80279f4315544a11654ce7459ca1936dddd7d1941cb127d2b745ea2af718f",
+      "CreateCollectionArgs": "8cde2b778dffa0dc44fdcfaec0ddf7339a6b0b28f45128e17ce67fd48626c4e6",
+      "CreateCollectionResult": "f15d2bbc9f5d8a447644650f732f483c46ea7d6e2683ee4ebf44a01c898e8664",
+      "CreateConnectionResult": "3797626bd17e346de1adbbe242cd2c4e41a5956ccf7424c65cf45e2bbef10c81",
+      "CreateDashboardResponse": "9df7fd3022dca784ba9650ddd7334addcdbea63cf337a30ba9506d761254c242",
+      "CreateDashboardV1Args": "024997c1cf26cc4bce728a5651f931c0305df6ae79793b4f1664f99df5ce5e5b",
+      "CreateEditorAdvancedChartNodeEntry": "817d4b9e5a0f848a4986a55ad30aeb8095cde17f0a1d80a94424cee56be2495c",
+      "CreateEditorChartArgs": "c519003ba6df09d2020e98547a13a2836fe3b010c515e54e5e48f0e48735550e",
+      "CreateEditorChartResult": "66bf7369e04819436cd30922f65b3f6f9a9fa3135da6a2789b6e4ddf89a769ad",
+      "CreateEditorGravityChartsNodeEntry": "3d6b8fb81fa8286d6392d941c366a86ada47282ffd640744f9c7fcf975474af1",
+      "CreateEditorMarkdownNodeEntry": "e7ab2b81419711e14531b742ff06b57f9550cfe2d2b10e02ba104c9d235cc472",
+      "CreateEditorSelectorNodeEntry": "20190d359ff99a6c50429a197eecb5a3be51596dfef9666bd38bfba03a85a08a",
+      "CreateEditorTableNodeEntry": "7bb1856fd2f71825dde81752dedfe271aa8d4d1bed0f913c9b14b1dd22a41278",
+      "CreateEmbedArgs": "81a005b49ded836d7ecd401bf2cdceb37b53b8c46aa3ac0b4152e7c918bb0838",
+      "CreateEmbeddingSecretArgs": "7fd5e62b89910c8bfcd1dc839cd20b16484f186e32856aedfde71af9656a68a0",
+      "CreateEmbeddingSecretResult": "13cd3849db39bed1604166e000c74618de9af022b3406d880aee17c51fc36022",
+      "CreateEntryLockArgs": "4932318428eeaef8eca4d8c6799a20e505d9a1edfbf086ab65982d97d75ad1b1",
+      "CreateEntryLockResult": "3256e30a8c99219c1faf5692824a73b4623a317e1ee3b255eec4baebdcc8e485",
+      "CreateFolderArgs": "bed78a31e8bf1c34c0e64b03b8d760a51c21794a7bbb61ee56052b42996ba064",
+      "CreateFolderResult": "d9e238cce5f7fab20c477ea8deecd9201b0b913aaadeb898641fbf223f74e19a",
+      "CreateHtmlPageArgs": "3810dedb4b408906bbe5bb781a0b79451d559454eaf82515005090add4222cff",
+      "CreateHtmlPageResult": "afbf886360fb00c938409a0169e41fa8e3755d928f87579b1ed9d1e4f61feb5e",
+      "CreateQLChartArgs": "ea26b2f69d93873ebc7db61c5474b77b73f72ee1cd618ab3c934e98003627de8",
+      "CreateQLChartResponse": "0f43c53ef801a2df2f7ed7e71164a100d780fe120c8f14846628153ceceb98e4",
+      "CreateReportV1Args": "202c16f33fbfe04bde92203e2e1f059e2733777f77f1893785861bc867cbe4d9",
+      "CreateReportV1Result": "0bcccf70e7e1bca9d7c7850b892a5aa76bb1a758a79a6abeaac0b13d1e811eda",
+      "CreateWizardChartArgs": "45fd46b183640a2f9e62c57f743e2146eb34d1d6d5c77cc32a167919c50fa1c2",
+      "CreateWizardChartResponse": "0f43c53ef801a2df2f7ed7e71164a100d780fe120c8f14846628153ceceb98e4",
+      "CreateWorkbookArgs": "e65bc1afce4f01900fc2931a84ec7038591463bc4aa3b50bdb9c76f92807f4d4",
+      "CreateWorkbookResult": "0a140119dfdc152a5ad45a24e4115ebadaf4b84a603a51a5cefa58e53e36690f",
+      "DashColorByTheme": "c35f9732298ffaeff1a567b1f30c1d2486794aaa303c52b2a81e09ec61fb5b06",
+      "DashConnection": "401f32c1a4655e37d50f5cb93d0e1bba65fcb2fe6631bfe3a5bbf22b0ab48f35",
+      "DashControl": "2f0259d83bced3ba960949635c06de879cde24504fa8d72f0742bdbcea07619d",
+      "DashControlElement": "cb0afc0fdad288f3042f5b5cc72dfda53d0d36ca50ece612d33e8a39e817579b",
+      "DashControlSourceDataset": "bd03480b07b2b4abef8b5ef50ad75c81a61d2bb99b30e856aba79df37dd0044d",
+      "DashControlSourceExternal": "74359b5a564eb5caf524d6ededc30bd070f9c6ae288f93c6c10509dd8c56ef6a",
+      "DashControlSourceManual": "c91cf9a2be680454aa1d8d0de1548f5d5d45f95ceffc16a578b08aafbd5d64bc",
+      "DashData": "e35ee9e9c267797f7c2d3a75a8af6d60b6aaa71d0fa760174ebd089a278375fb",
+      "DashGlobalItem": "988e473dcf6fff40896aede9af521abfe1e70845e4c1120af518b11237c5f437",
+      "DashGroupControl": "b61ac23f21fe26ce37061a6263d810be32e0f10aa5ac2202aaddcd1ee7eeb4e2",
+      "DashGroupControlItem": "14483b5c5a3d2a95acf052002311ee5a4d53cefd821b5f77053c23f17514b764",
+      "DashLayoutItem": "d5470c1c36634ac4b3aaf6ff081867c07cb4185ae184f6ab2cb176006959da84",
+      "DashMeta": "4cd302572e743494f00730c7c2454d234aea261c76bfdfed8419a827318b8d5a",
+      "DashStringDefaultValue": "49f240701831daf4a4a6dd6a5eaf7db35c283f9d694d8370f679fff79215a038",
+      "DashTab": "b43dea99c446c33c01aadd81020be6ca9bf99406b7e71710fcfe40c838786903",
+      "DashTabControlItem": "e70b1b0e92b6c119ed163b43e6b96f85824a28e06e7a0b5928aba19a0a5fe33e",
+      "DashTabGroupControlItem": "d92f7ed594c0081aaaa60c054aeb416dab3c89053c6514e5f6de5c84bc490091",
+      "DashTabItem": "dd1c4ac9a0c2d5b950ea827546166b0a5c295b3a6b8bbef42bc1ac1e9f6fc2b5",
+      "DashboardV1": "da25d2b353bbdeefe92754e99d4046e30995585f2eca43a1aadc904c51612016",
+      "DataSource": "1b1fe59d61ef5ea2a90af88d622a942ba8c55d999aa8e73289aaf0e6d267c9f0",
+      "DataSourceStrict": "dcb3365a97d5a7285bb7d729c25254cad2fb8b37458e6577ed924e9f8af0179c",
+      "DataTypeListItem": "25a5425b309ae103ad1aae7ad651cf3242ecbcefc51254729f278aff0db3e000",
+      "DataTypes": "fa0ecd0326bd235b542953c0117176c9661d6881bea1868f1ed9dfca9dad57cf",
+      "DatalensOperation": "3daf6da12304432cfa8d4fb6283dcae2a089f5b47706f4fc152b6f61cc801e93",
+      "DatasetContentInternal": "febc8f2363d4853f2fa75c7e30017a8269acd90793795d1f94a13faa28841f49",
+      "DatasetCreate": "d5803a4531475ac7ca10d73dfded82d9d6bfcd80376fd9ca223af41a65054a35",
+      "DatasetRead": "bf65eb5388bb659c37608d597692d5c0b31cd88a50bce894e9ba589c4b4c8328",
+      "DatasetUpdate": "0effeef62c78935b7d2cb072c70ea272ddcc6b1789c7d6a0a9c4ba5cd50c4e0c",
+      "DatasetValidate": "ace45b52db6a43cd2260ef5e616a9df904fcb86daa9afc88be36264af0a78a65",
+      "DeleteCollectionArgs": "5c33e99101e730c8137167b0957a6a5030748ac821166446fcb354387f307633",
+      "DeleteCollectionResult": "c942cfcb321a3eb85060134e9f49aa0106bc9b158d565c47f99dc056b7fe753f",
+      "DeleteCollectionsArgs": "f6266cba5e24ae77331c46a950a9b6d7632c6b7a8479e64f21ec2e7d772a88d4",
+      "DeleteCollectionsResult": "c942cfcb321a3eb85060134e9f49aa0106bc9b158d565c47f99dc056b7fe753f",
+      "DeleteConnectionRequest": "f1ceb72d00bf1e13a0ebbeb213a03d7c88e1cc75d6d4e4a3344b1926d36f47d2",
+      "DeleteDashboardArgs": "a4b81b6ad553f9522d0653a6e30876287f7bf40bc0c7f9852bf0b69eeb6d18e0",
+      "DeleteDashboardResponse": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+      "DeleteDatasetRequest": "7eff16d1a278552d6f08f58025843d9642212aa9e22fc295a0bb0a021db95d72",
+      "DeleteEditorChartArgs": "4b7e64e351c845786b371a31d3759bbfced7ded5414e957f9b810a3a38b9797c",
+      "DeleteEditorChartResponse": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+      "DeleteEmbedArgs": "b5c20bc16d1c5ee835f9b6f93bfd904767d8bc9a9e2100b159c1b002ed231ae0",
+      "DeleteEmbedResult": "b5c20bc16d1c5ee835f9b6f93bfd904767d8bc9a9e2100b159c1b002ed231ae0",
+      "DeleteEmbeddingSecretArgs": "f1a1acc4ef90be9d10a4a66f7628ccc69c9583813ca0e4d4933e1b1d25fa5502",
+      "DeleteEmbeddingSecretResult": "f1a1acc4ef90be9d10a4a66f7628ccc69c9583813ca0e4d4933e1b1d25fa5502",
+      "DeleteEntryLockArgs": "fbb23613bbbd3a660da805bef1f50068294559a5dcb704d14db1657e781d712c",
+      "DeleteField": "68ba264b33e9831962ef95ecbdfb91a68be35646bee08e066a80081a16792c64",
+      "DeleteFolderArgs": "ffb5a16d92b4992a8520eb9e6ac8b6f23d3eed925817a2afaf0f848286334ad1",
+      "DeleteFolderResponse": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+      "DeleteHtmlPageArgs": "c53dc26677e4726adfb638f67a3654f8d5086250f56de8b7499f4507e4c77ae3",
+      "DeleteHtmlPageResponse": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+      "DeleteObligatoryFilter": "3797626bd17e346de1adbbe242cd2c4e41a5956ccf7424c65cf45e2bbef10c81",
+      "DeleteQLChartArgs": "65082e1657c6fa18f579020a0ec34e4cab7d0e880dbff7530fd60126aa7e2b02",
+      "DeleteQLChartResponse": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+      "DeleteReportArgs": "994c7997130a7c5af7d589d6de4cbacc37d2aa8864c69080f33bd211c9f352e9",
+      "DeleteReportResponse": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+      "DeleteWizardChartArgs": "65082e1657c6fa18f579020a0ec34e4cab7d0e880dbff7530fd60126aa7e2b02",
+      "DeleteWizardChartResponse": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+      "DeleteWorkbookArgs": "4a7afee8824a65de21af31c907c14aafb8b6811954e55f8c2e5543311f9aad28",
+      "DeleteWorkbooksArgs": "27afcd9ee5a3ab73b94563a732156b87f7f8105dbbbb6a21327f2925c006e472",
+      "DeleteWorkbooksResponse": "35bbe555431abab36159997ebab5071e06e298164778da628e153f0a0f2ad182",
+      "DlsInitialPermissionItem": "ab2b7e0b6f91db60221f73c790fb901679a4749ee4ea61aa091dedad4f0707c8",
+      "DlsPermissionParticipant": "f66b28d5bc65ce8f0b3195a49622eabcc03a5cc63c23a7f88b8e6fcb3a35fd37",
+      "DlsPermissionPendingParticipant": "2f13f7af2c34139940a13ca0788dac63d96cf8b9256eb144940afbe93fdc94d9",
+      "DlsPermissionUnit": "0e44d3bea9f97aa38947f5aa2218436956bd50d12aac412f6b2676ef7cc1dbdd",
+      "DlsSuggestArgs": "90b3a65a23cd9739956d77b3a9a6c37b12f2d0fcde2e09418c8d5dfb6d4ae82e",
+      "DlsSuggestResult": "8ce06d12d28cbb6ec9b1a8eae5e09a96daba2e41a69d376e1f83840fcebf3cb7",
+      "EQUEO_CH_TABLE": "9a4183454ff8dbc316a045e4cd3cc40fbbbeefb5be8ff3636701c4cfdac21a73",
+      "EQUEO_CH_TABLE1": "9a4183454ff8dbc316a045e4cd3cc40fbbbeefb5be8ff3636701c4cfdac21a73",
+      "EXTRACTOR_1C_CH_TABLE": "b51db42d7291e1df6f75414c430e54e5cf2c9a1500654c4fb93be09da5ca52e4",
+      "EXTRACTOR_1C_CH_TABLE1": "b51db42d7291e1df6f75414c430e54e5cf2c9a1500654c4fb93be09da5ca52e4",
+      "EditorAdvancedChartNode": "324ff515c1e446036c5b3e20b48942a4c4f18f45ed74bf5c4b1d7679fb8e5c9c",
+      "EditorGravityChartsNode": "da359e9f2e70207d134e40d850b5482edc3c5d3f1af4b86a0576bf7e3c65e016",
+      "EditorMarkdownNode": "0f61b04fb875dc8fecf9f695c2dfe21a2c377c353c1df1bf4165bedfc48b3acd",
+      "EditorSelectorNode": "a9fe74173e9693623eb7214428d95572c37c04f1655684ee0fc83b75267776c7",
+      "EditorTableNode": "3e73a59ea75893b7fca6670710bcea4de14dff2fb00d2eee7af2f385e2cb9bbe",
+      "Embed": "51aee40fc6f247d4b3793b6455cdcc4d0a37dd8f5f5532c1d29ab55a20acc272",
+      "EmbedSettings": "5044936f8797250085fa7e058b411ea0163f0ee9de41711466a03aeb4908fa85",
+      "EmbeddingSecret": "b5cae66260fdef8134eadaeed0b05c840f2b36ca123736c05af3888b84631376",
+      "EntryAnnotation": "961d97e9919cfa2995c04439ba6cc9da36dc23628aa376c4601d21ef322ced85",
+      "EntryAnnotationArg": "bcd6959083f43ae9dc5f898df77bc69a17e78779151cd7dffea3b9936dbf1061",
+      "EntryBranch": "584ea6e2e8e453078ac4c729b938edc71ac7d4bdbeb1d120e6d3da3c8090dba0",
+      "EntryLocationIdentifiers": "b30bb3b8bfd8058214fd1611391128d4576302c4f884d03f562010f879762006",
+      "EntryLock": "20cd59c80bc5b04609425529746addbddb0b4f0063a33ac17f63090f571bc877",
+      "EntryPermissions": "f311155f8d9187034b48be0c442a9d4161894549990e53c48124b6ffb199bd33",
+      "EntryScope": "4cdf825302da4d372a6f012b1bab1d6c8cdad92c984b0968f6660e555e413b41",
+      "EntryUpdateMode": "c948a1a37961d9f0daebf4d6c9d5e92f3b822717c74da1cbe458f21ce6edb106",
+      "ExtendEntryLockArgs": "fe5425ea6679fc3679b8b63ab289bedb0af5e0968d740e4e391d7c9a3e1c6514",
+      "FieldInterDependencyInfo": "8b699616bf4e4135d238306e2542df3a212cec7e87a9d24e5d97fe4d3bc44d08",
+      "FieldInterDependencyItem": "33c523de5d3bcc81f043cf14183062f28e90309decb7cbe74a2f7195f95dfece",
+      "FieldListItem": "34339629420b0f34a4b8a5a79645315c64bc402e3951294d9c6b5ebd4a779d28",
+      "Fields": "5eb04e714680acbd96a0f18a17f3f8bb6b8c313f29b2fc834b8eaae9192203a8",
+      "GP_SUBSELECT": "7143689d3803f526dc70d5be81fe1f2a77561d3dbb9c5d991b13fbd347d5d10a",
+      "GP_SUBSELECT1": "7143689d3803f526dc70d5be81fe1f2a77561d3dbb9c5d991b13fbd347d5d10a",
+      "GP_TABLE": "0d5f1bafd52cb068160faa2714616cdaaa85e06f8e3b993364a59e62ef3ddc22",
+      "GP_TABLE1": "0d5f1bafd52cb068160faa2714616cdaaa85e06f8e3b993364a59e62ef3ddc22",
+      "GSHEETS": "f243520e1bf65dd84c93214f8d28be5152b576e7a07eece91343982f12e67b52",
+      "GSHEETS1": "f243520e1bf65dd84c93214f8d28be5152b576e7a07eece91343982f12e67b52",
+      "GetAuditEntriesUpdatesArgs": "77cb49dfda59a6e4007f4971a30127809e4fe64aa89495224c7fab7368259a27",
+      "GetAuditEntriesUpdatesResult": "8243ee821d10eeca7c30beb8505fab34a71c0ed294e17d4779298d6cc3343393",
+      "GetAuditEntryPermissionsForUserArgs": "5942b9d2fda786e7f5f17b729d6f4c186f394e3a7e1893ca9979bbfec69160f3",
+      "GetAuditEntryPermissionsForUserResult": "2c3185916f0165bf3148b406a772fc4b6fdaa273fa01d09f8ca008561061c264",
+      "GetCollectionArgs": "6c934933d3d8091308d0a400efb02f61f23d3bf0f173f99b929f8eb6e712c5cb",
+      "GetCollectionBreadcrumbsArgs": "6c934933d3d8091308d0a400efb02f61f23d3bf0f173f99b929f8eb6e712c5cb",
+      "GetCollectionBreadcrumbsResult": "79c8ee91cbedd98231c8beaa8d4792a41808c2325a14d3a92958577cc1a3d54b",
+      "GetCollectionResult": "612ba77e8ae182641bbafaf13a5c6e0a5312388314b82a18153ae3ca63cc3dbc",
+      "GetCollectionsByIdsArgs": "595cc683236d41888fb86adf5a21112e9d97232dcf4f7703757522cf94e88cc9",
+      "GetCollectionsByIdsResponse": "76c6a5da2699a50903d71273254c89a46ee14994170271e2ac5382519471e006",
+      "GetConnectionRequest": "9b868319364a3b26d92dd3ead13f97a1436eb899f8603d59219a19e920ba8614",
+      "GetDashboardV1Args": "3faff663bd9c0841f870008a0341470d3ae70a64c93031dd9cc237db7b2267e5",
+      "GetDashboardV1Result": "3fad6f481665b9c8c680c5ee9a22a64104d539a97304e996d79508643266b471",
+      "GetDatasetDataRequest": "4e7cc1eeee6be2ac71a758383767cf38a5d1d11e8fd333a155198f168b060d3e",
+      "GetDatasetDataResponse": "f1261027cbda5b3a415ca2a4123219f0495cde476072ba1db8e27f4d7d4d0a6b",
+      "GetDatasetRequest": "6fd761800166229b854f407fe945070ac844dbf22088a13e8afebcb8959f554f",
+      "GetEditorChartArgs": "c7e9b7aebe8e3e2c2d681ac16fb5f11657c1622c83f4393ef10efe0c39d600af",
+      "GetEditorChartResult": "2d98809a4cf9d4fc01cb57a5b2d024ca005326f236d0db1cd5347aa391becd7d",
+      "GetEmbeddingSecretArgs": "f1a1acc4ef90be9d10a4a66f7628ccc69c9583813ca0e4d4933e1b1d25fa5502",
+      "GetEntriesPermissionsArgs": "874bc47c174b035318c4141e3cc47842a79aee964b0a15d7ed0ec8fe8edf6701",
+      "GetEntriesPermissionsResult": "2c3185916f0165bf3148b406a772fc4b6fdaa273fa01d09f8ca008561061c264",
+      "GetEntriesRelationsArgs": "24ad47d7736e28ef85e27470f1ac7c081c48f6fe255bc881d480d1e603a8af86",
+      "GetEntriesRelationsEntry": "2a45d46b2d57b8e894831dc829ea95180d0a5989ffe659956a84328daf5891f8",
+      "GetEntriesRelationsResult": "d1a7d7196c41fc41464989b20eca58dff8b55fae6381d2b1768fd3cb4422a691",
+      "GetEntriesV2Args": "97c70c4fb2d29a5878417e389abe3b77022fee7dc803ecd9beda8f4c29bb7cab",
+      "GetEntriesV2Result": "ae357353b5de9919ea27f7c4b8f4d0e697b0b76c3e03567659b424a18d9eff3d",
+      "GetHtmlPageArgs": "6c273b9265507c5c4aa191762b346e9e3e56de0dbc55799d358bff7021c69801",
+      "GetHtmlPageResult": "62de35ab3da0933eb220399069a2949344b29848f8953454172e5bdd3f8a49d7",
+      "GetLicensesArgs": "7346d0509d45681ab02e6bd66688939d2732cebc4046ebde9720050e7449b4ad",
+      "GetLicensesResult": "c7f2d834593b40e932163c2a495910465f29b30fec1e98c10b328c4310f31e77",
+      "GetPermissionsArgs": "c53dc26677e4726adfb638f67a3654f8d5086250f56de8b7499f4507e4c77ae3",
+      "GetPermissionsBulkArgs": "6f7b52ee1aacbeba16f1f80b635698fb5035a697f2325099605c6f7670eb76da",
+      "GetPermissionsBulkResult": "086545bfa95835309c152e6c6389b8508e8e42668d32ef2f90c3d4dd3f4d1dc2",
+      "GetPermissionsResult": "2b6c7ff05b68ec7a96f6a113392992977bb1ba58a38676d15da4848aa20aaf08",
+      "GetQLChartArgs": "0b18f19e29663bb6aa3f3ee6fb8b722c6304d269e73de4f8ede2f082243baa1b",
+      "GetReportV1Args": "17fb71e89fa26df00e8c12fe692d380f47b40d48dc7c85864425ce11e9367dc7",
+      "GetReportV1Result": "a659dd5bc37a4160dd06a69b2f220d89e2e3bd7b0a72fc666761430b145845ed",
+      "GetRootCollectionPermissionsResult": "55e589ccce882e9968ddede35f90eae1bc2fd13a7523a1ad1b09b51d19330053",
+      "GetStructureItemsArgs": "1eed7f6b0b70e7b7aab10faf9eb180400e168bb4dbd3dd05ae5217779623e55f",
+      "GetStructureItemsResult": "ded14d45055c82ca144e8b7e645e87ab9ad2c09bfc01bd714bbde034d280a002",
+      "GetWizardChartArgs": "0b18f19e29663bb6aa3f3ee6fb8b722c6304d269e73de4f8ede2f082243baa1b",
+      "GetWorkbookArgs": "2a90bb5975c91b834c685b42126e53c1cfab82b754e8f14c39a5eed640d74290",
+      "GetWorkbookEntriesArgs": "a52fe0468822a451204bef84686088b206453d01f2c8eb5506c13a6eaa48c335",
+      "GetWorkbookEntriesEntry": "100f547ed639fe7e5f963d5de271d6b7875de170de40dba37d3e99ed9ff84be4",
+      "GetWorkbookEntriesResult": "b92649abb21d3cbee99bddf2639fe547c7325b46d9ffa3c40a3c01d9b9635a12",
+      "GetWorkbookExportResultArgs": "adff3feb54b9f112ac5d4696334e9744ab858d1db00df77de12f17ab85379f68",
+      "GetWorkbookExportResultResult": "61bf5d35b51cc1080ea0a82187bed73f5bb5bada65f1d65712d7dc9f57a5d3c1",
+      "GetWorkbookExportStatusArgs": "adff3feb54b9f112ac5d4696334e9744ab858d1db00df77de12f17ab85379f68",
+      "GetWorkbookExportStatusResult": "85c87641b56316bcd3a32ef4526ced565721ba28f85a67061065213c8e7851e0",
+      "GetWorkbookImportStatusArgs": "cebcb948b1c6d1043c080be85e5c4ad2430d8b2653681a8f6bacb8b995d714eb",
+      "GetWorkbookImportStatusResult": "aeb5b1c9ec3d35463997c5b00b5da10b1d791c966ec21e56a059d8e73a69a2fb",
+      "GetWorkbookResult": "d68ae3e6e6f157a263186067face6894660b5bae03b795f27e927cd3232ed2b5",
+      "GetWorkbooksByIdsArgs": "5c9359dcd63bbad39eeebc1a528e6b71dff4b385e17d708c75fc2b99114dc376",
+      "GetWorkbooksByIdsResponse": "f584766a5c6e8a9560a5868b5f2a615c0ba260c3f4b52e4ca8e105b25336195a",
+      "GetWorkbooksListArgs": "669a65724c03cf8f81c967663e3c96be3ed2982924362224c86e5c641c5798b6",
+      "GetWorkbooksListResult": "661643812fde2005a6068d25fbf2f64d46c69d461c3d165546c4845e67ad7440",
+      "IamAccessBinding": "e4c2211a61590672a8f8a7889185a3253d313b50e9da8c22bb29fcb9ba952a31",
+      "IamSubjectWithBindings": "13b3f9181216611e19e1339b491a45c63a6555b68619d4e5132bf152dfbc7a16",
+      "IndexInfo": "7b293951d3cf5a1fa2c42ba5c9e85b4329469eaafb8198f01febf1b82a53eee5",
+      "JSON_API": "d717ada2d7e549891a755afaaba0aa5817273cbb528405602f8eefad0a486c60",
+      "JSON_API1": "d717ada2d7e549891a755afaaba0aa5817273cbb528405602f8eefad0a486c60",
+      "Join": "8e854ad6458cbdc9d4929395a272ed47a16f57352dad398c2fe785e61e2719ec",
+      "JoinCondition": "749b442f4ab8c4e9eb342dec0d864b0d567e2144e852c3eba01e544db7923a8d",
+      "KONTUR_MARKET_CH_TABLE": "9e0bbd128d7a837b02d5dd20cb41316b5409229f91cb2a322371d7fd7bd87bbb",
+      "KONTUR_MARKET_CH_TABLE1": "9e0bbd128d7a837b02d5dd20cb41316b5409229f91cb2a322371d7fd7bd87bbb",
+      "License": "c3a3e8a658f59044fc7fd387389e0428e248fdd60be8a1f93ef198391b4d5064",
+      "LicenseLimits": "95d93e33ae90705704cc2bba5e658df3cc9e36f3d9dc58e464f634b38ca518b4",
+      "LicenseWithLastLogin": "e652bc9110824eccc799227578c62c1f2affa7654bda417fd6d11e0e9c4a017c",
+      "ListCollectionAccessBindingsArgs": "fbda8b93325d50a372c96ad1842bc014a18485f7cd190847d80cf991f75dc0af",
+      "ListDirectoryArgs": "f6d2a601231097f75387308b8d9f53a8be2a3f0386870f90f698fbea2935cd52",
+      "ListDirectoryBreadCrumb": "08cf637a5dc12b2aab41336ede664003d95c7a7f479bf51ba2fd6feafe75ea5f",
+      "ListDirectoryEntry": "e6afd88e38344a9f68893cddc4876fae38070a7a950bfab1d07e47a155a2312c",
+      "ListDirectoryResult": "01f29d8a46a1ac582b035f168ff021ec1c910487d8e54a570b14e1d940884575",
+      "ListEmbeddingSecretsArgs": "4a7afee8824a65de21af31c907c14aafb8b6811954e55f8c2e5543311f9aad28",
+      "ListEmbeddingSecretsResponse": "8218098107569a7fe704121417676c13e17dc53d9eebd11471dabaeef5f5df1a",
+      "ListEmbedsArgs": "c53dc26677e4726adfb638f67a3654f8d5086250f56de8b7499f4507e4c77ae3",
+      "ListEmbedsResponse": "cc3aab1e935576a81379932583d8d4ca1e0a4c95b667528b2ba05db4819ead89",
+      "ListIamAccessBindingsResult": "e2d96a42e8d60b4407e7a02076dc64551ec12249f74eadcc8d8e1c462b83df6d",
+      "ListSharedEntryAccessBindingsArgs": "5b88d1ba787745a864180f8929c29bbad9657aefc9f43d21a6e9b23b4ef4effb",
+      "ListWorkbookAccessBindingsArgs": "ab1c08f33d876eba1f46b1e3798eb6382a818c93eb7aa315577c186f01d77d79",
+      "METRIKA_API": "6b73730c07a1bc7fd6de4f04e2e73c387a15981b5f20a29c74dfa9fe7cbe490b",
+      "METRIKA_API1": "6b73730c07a1bc7fd6de4f04e2e73c387a15981b5f20a29c74dfa9fe7cbe490b",
+      "MONITORING": "e0660ccc1b1b7896ac107972447bd3b64dc6fc1a22406a2a7c155d664a1d2418",
+      "MONITORING1": "e0660ccc1b1b7896ac107972447bd3b64dc6fc1a22406a2a7c155d664a1d2418",
+      "MOYSKLAD_CH_TABLE": "f969afbda30c5b1dfb4a7e94931254bba697aaecd1d1888ff4197112fa177722",
+      "MOYSKLAD_CH_TABLE1": "f969afbda30c5b1dfb4a7e94931254bba697aaecd1d1888ff4197112fa177722",
+      "MSSQL_SUBSELECT": "867b7e986a0564ae661f39844db578b09ea59ead4e89ba511281185e181a85a8",
+      "MSSQL_SUBSELECT1": "867b7e986a0564ae661f39844db578b09ea59ead4e89ba511281185e181a85a8",
+      "MSSQL_TABLE": "34290fe7fca7982ced8d56e96e26a1cf56acf401db5ea75dfdec62e05a70a60f",
+      "MSSQL_TABLE1": "34290fe7fca7982ced8d56e96e26a1cf56acf401db5ea75dfdec62e05a70a60f",
+      "MYSQL_SUBSELECT": "8ecd05b63d037ceed72926e89b0eaa04a2b9816c6c40229727215c5f7b05a327",
+      "MYSQL_SUBSELECT1": "8ecd05b63d037ceed72926e89b0eaa04a2b9816c6c40229727215c5f7b05a327",
+      "MYSQL_TABLE": "a9637d872579e82d0a0d47471f7ac616f702536efcd9087e61cf68debf33fb47",
+      "MYSQL_TABLE1": "a9637d872579e82d0a0d47471f7ac616f702536efcd9087e61cf68debf33fb47",
+      "ModifyPermissionsArgs": "bba8a864c119487a1a7d07af407715c2c847fcfd1259d017969f4b20ecbcdd15",
+      "ModifyPermissionsResult": "98eab3ddf0b2a272ed9167fe9377fa548d35e2fb9e5b7f15059bf632cfebfdad",
+      "MoveCollectionArgs": "f74f922b59b9338c74b85dd1372467f79c04af98e12e998fcc18c8765595da2f",
+      "MoveCollectionsArgs": "aca0fa31fc1eb9ac74f60612eeb179e0cd0ec1f92f05a59e158c71f353b24ffd",
+      "MoveCollectionsResponse": "c942cfcb321a3eb85060134e9f49aa0106bc9b158d565c47f99dc056b7fe753f",
+      "MoveEntryArgs": "fff2d5de074abc35ce10c70ac180d26dd3f5b83e7c57760742ef2d3c9cfe0d7a",
+      "MoveEntryResult": "cbcf4f455facf5758298035aac10f3ff3a7445fbf9756759ad414b9c5271812d",
+      "MoveEntryResultEntry": "3c3f29ac3e025f4485b71b862ca5585cef3f899a44952c6b1ee40491a372c20c",
+      "MoveWorkbookArgs": "f364184dc3a48c9094545ee5822bb844dd3dfda9c1b089a6f2b490c97942d086",
+      "MoveWorkbooksArgs": "3fb3451ca78f5a194db3d36906a8bc948bc88743a931b9087c2972233cf661da",
+      "MoveWorkbooksResponse": "35bbe555431abab36159997ebab5071e06e298164778da628e153f0a0f2ad182",
+      "ORACLE_SUBSELECT": "0f242bb44a41494f992cefb40082e4c701680b6f47da7c7693869078afdffa91",
+      "ORACLE_SUBSELECT1": "0f242bb44a41494f992cefb40082e4c701680b6f47da7c7693869078afdffa91",
+      "ORACLE_TABLE": "86974082da7c985cc523bb637df29b903be1a9c92485734553ea87f719edaeda",
+      "ORACLE_TABLE1": "86974082da7c985cc523bb637df29b903be1a9c92485734553ea87f719edaeda",
+      "ObligatoryFilter": "b07e9ebe4950778f217564285d741cc33254e3f0ba1131f406f4c675c3c5a989",
+      "OneOfNativeType": "c67f29f3c83aaf8fe6d524769a804195cb770befe5a1b328512b03e54db26f51",
+      "Options": "8eb8e7e2bce48d40b97398f13f18d1a39a1df221c9dd81e9743f02d6302835f9",
+      "PG_SUBSELECT": "23a22853488a92b606fdfc0bb1cd5478b26feab697f450782522fb18eff68916",
+      "PG_SUBSELECT1": "23a22853488a92b606fdfc0bb1cd5478b26feab697f450782522fb18eff68916",
+      "PG_TABLE": "ebc26fe95b00c25da4cf46af052c87293133c49bebc7331972625048fceebff7",
+      "PG_TABLE1": "ebc26fe95b00c25da4cf46af052c87293133c49bebc7331972625048fceebff7",
+      "PROMQL": "3d6ddb1a83ed6e3b7d0d3997c420c6061932d05a73ad4b1a652b2e69967268b2",
+      "PROMQL1": "3d6ddb1a83ed6e3b7d0d3997c420c6061932d05a73ad4b1a652b2e69967268b2",
+      "ParameterValueConstraint": "f4d09c5106aa5fdca1df1d70d44b3b43d1a255fd316cdbe0ad80d6b83f11ec4e",
+      "Preview": "ba14a92bf541ddb48d56889d611ca3e6ad6e7ce31fa79f3bd869edf21e280dbc",
+      "RLS2ConfigEntry": "3e48eb645ef6db96601af935e28bfcbec25e55188b53dbc44a927ece0cd87fc0",
+      "RLSSubject": "5b1109c5abe092aaf15f0d34a8fc9f977feb0aeb4856dab739567b43bbd8343b",
+      "RawSchemaColumn": "6cf7b95ad2d8473c8808e1815e19954641ef18a15f902b20127faa3dc0f915fe",
+      "RefreshSource": "dc2b75ba3aca5e9fc5fb0d42345d7e351721898d51385f952290f0658b0b1994",
+      "RelationBase": "e36382ec6abef464816fd2d62cfb88a3995907a5e91763b95fe4cbed24380252",
+      "RenameEntryArgs": "7d60c83bfa0cc6af6931ddff244d6b755b19425d9a8d492dc2e949b2987f92fd",
+      "RenameEntryResult": "4a629b213a09957a8118d84d78b45eafaa1a77fadd3684216c331aa623f04160",
+      "RenameEntryResultEntry": "c5c4c571a849c53043b1196659cafb31c362ee3028186b1f3c4f6fc074c0c5d2",
+      "ReplaceConnection": "2f7245692b3d52d8a18be360657ab14da47e576f9ed23a0472483e10e79323eb",
+      "ReportData": "2d36a840add56ad0e5c451e3453a5be1d4fe87f95144f53b13aa0aa33aa58b7f",
+      "ReportMeta": "4cd302572e743494f00730c7c2454d234aea261c76bfdfed8419a827318b8d5a",
+      "ReportV1": "018ca22c6845e8c6c6e3664c718af374e47f7867f1564fdbebd232b3e2c5b6fe",
+      "ResultSchemaAux": "25f3ad84e08cd7a68dc0a32a62c34d48323f34aa4de87d81273eb451588c3191",
+      "ResultSchemaSchemaGeneric": "abe1a1b17f3d86769c3117070ca8783dc693cf43b35906813bce5fc6886feaee",
+      "SNOWFLAKE_TABLE": "bb5002c1a0a8580fc2413035c5cc7a51d2937d21ce19dfd7cc4452516626c4ef",
+      "SNOWFLAKE_TABLE1": "bb5002c1a0a8580fc2413035c5cc7a51d2937d21ce19dfd7cc4452516626c4ef",
+      "SPEECHSENSE_TABLE": "552a8ff23ed163d7f751f92f2d7851cde339b1a6d6e62ee25bfd1b7b83077a05",
+      "SPEECHSENSE_TABLE1": "552a8ff23ed163d7f751f92f2d7851cde339b1a6d6e62ee25bfd1b7b83077a05",
+      "SQLParameters": "6e9aa69ff093022bd8fa279c61fcec046a3a26526497a3859114de531de62f9c",
+      "SchematizedParameters": "b9219d298e29cf50d675687c5eb38feba72e2945c263caf1b33caa23b9babafe",
+      "SetLicenseLimitArgs": "73641d53baf76fcb9933d9e5a4626207fff88c215b2716f4dc65e776dc1b4cbf",
+      "Setting": "94234a5988d5f9263787815dfccd52d80e9f608b4943a5231983525b1ac288b8",
+      "SimpleParameters": "efddc7bd8bbcef73a14eb1ace1ffdaec81e518ef1e13c1e9271d0b8acb694a49",
+      "SnowFlakeTableParameters": "d2037b6f591736f2c350f3d76e58406f5bb4539804e30197f21c4839aea7ab55",
+      "SourceAvatar": "b6df09ff2983002adca71012690cba18659f163c57edc940b23f3be9929cca98",
+      "SourceAvatarStrict": "af89429d3c3e1fb48bf909bf85a44ca6b0ddd4381193105c1a8322683f7646e6",
+      "SourceBase": "e36382ec6abef464816fd2d62cfb88a3995907a5e91763b95fe4cbed24380252",
+      "SourceListItem": "925870188da23c4300e3a3a4d787fb877071e5a437d13754fd73a0e31ab257aa",
+      "SourceListItem1": "925870188da23c4300e3a3a4d787fb877071e5a437d13754fd73a0e31ab257aa",
+      "SourceListing": "7d917ed7aa030d3e9814f781f5bb6572686f515e2c847c95176983aa6910a9ef",
+      "Sources": "f3956c83cbaab956d74aa50e898248b0b6fc43992c186cc5bde93752d58371d1",
+      "StartWorkbookExportArgs": "4a7afee8824a65de21af31c907c14aafb8b6811954e55f8c2e5543311f9aad28",
+      "StartWorkbookExportResult": "adff3feb54b9f112ac5d4696334e9744ab858d1db00df77de12f17ab85379f68",
+      "StartWorkbookImportArgs": "86ef576093066a9736e8066d7d5200da188d2eaf7636c94d0c7306b9dc9134ec",
+      "StartWorkbookImportResult": "52b90620fbd1596eb50da2ab03f3b4827cfe9d435b3a397d37dac9b244b3b0fb",
+      "StructureItemEntry": "b34e8f0694b96c555426b13ddf94ea696968585f86df2b58e45ab4c8d2593894",
+      "SubselectParameters": "545a836f16b4fe06c2fc4f5e1083d7349218389d01d7f36490ddfefc3e0a82d7",
+      "TRINO_SUBSELECT": "9550d743a94e4a1eb90e3441fa37d86c1f4eb5e71d095a2885397d7a8bf9fefa",
+      "TRINO_SUBSELECT1": "9550d743a94e4a1eb90e3441fa37d86c1f4eb5e71d095a2885397d7a8bf9fefa",
+      "TRINO_TABLE": "41201d861928644a5d54d4c708d5c8de83ce84cb574003d6a41f2f9f79c782c2",
+      "TRINO_TABLE1": "41201d861928644a5d54d4c708d5c8de83ce84cb574003d6a41f2f9f79c782c2",
+      "USAccessBindingDelta": "e96c53ea5e7fe06d69b685d3a51fb0b2cf8fe59533fb6aac77df6aeb5a06322b",
+      "UpdateCollectionAccessBindingsArgs": "baa011848ae2ecd108e032f5a8ac4190bf61ad0cf1679c40eaa12d12f181fc53",
+      "UpdateCollectionArgs": "5c33e99101e730c8137167b0957a6a5030748ac821166446fcb354387f307633",
+      "UpdateConnectionRequest": "18405a212ef5e41a91de49cf91989c755cd78b9e074722c7081d5c903faf0ed9",
+      "UpdateDashboardResponse": "9df7fd3022dca784ba9650ddd7334addcdbea63cf337a30ba9506d761254c242",
+      "UpdateDashboardV1Args": "0ae373dd381f4491db694dffb92d3240a89b8bacef217f72ea0944eb22ef6d57",
+      "UpdateDatasetRequest": "ee3eddee939448e9630c8dad794ae95ea276a3d2d944c594545f0d2f3f4b8d75",
+      "UpdateEditorAdvancedChartNodeEntry": "9532bd07effc88b8db526a3fd4fc61f5e741bf48695797f2724b9f7346df76d7",
+      "UpdateEditorChartArgs": "848f1552d99b8f2462ac61fc55b95bab3584763666b0c4188159eb088fdaa6b6",
+      "UpdateEditorChartResult": "66bf7369e04819436cd30922f65b3f6f9a9fa3135da6a2789b6e4ddf89a769ad",
+      "UpdateEditorGravityChartsNodeEntry": "abeed021a6c2190cf6834078770e318dfe5387000edea2c091364b1f018c03aa",
+      "UpdateEditorMarkdownNodeEntry": "48b793e6bb8935925acec050472d85f7db6f616118f39e576f52d1438253c2da",
+      "UpdateEditorSelectorNodeEntry": "d86bcd337716c9114145e8787271031dbbb02a84f14258b78f5602777d5e120d",
+      "UpdateEditorTableNodeEntry": "c8c7ce4e89eb777a1fa00ad04984ef9e2708818eaa54d1fc49b4ed421f2abc77",
+      "UpdateEmbedArgs": "7e535e51c4d50806701283493f4f22bd9261f1391a16e619b4491de854ba4332",
+      "UpdateField": "0cad93b27bab943a68e52002f51cb742a89ab2770db4c1725b4d2ab3b75810b6",
+      "UpdateHtmlPageArgs": "9314a6e2f2af31f26f31ea9bb1f9459557859196a8b2e21b74d6dbfe94c9e9f5",
+      "UpdateHtmlPageResult": "afbf886360fb00c938409a0169e41fa8e3755d928f87579b1ed9d1e4f61feb5e",
+      "UpdateQLChartArgs": "adfb537756115b3e75d0f4ada82dd12bc86e4eb25a486f282eb2f2880cebf223",
+      "UpdateQLChartResponse": "0f43c53ef801a2df2f7ed7e71164a100d780fe120c8f14846628153ceceb98e4",
+      "UpdateReportV1Args": "c787b9743c6b6bb62b7b66b1a92ea0245eb2898d286820783c3b84b940be352f",
+      "UpdateReportV1Result": "c42fe0fc6759c3c02c48ac30722da13e8d4ed2be34f29b118ac12300fa33bee7",
+      "UpdateWizardChartArgs": "e910a3e802ed93d654fc1f58312eb95d67343d173fde8fea548f6bc3aee9afdc",
+      "UpdateWizardChartResponse": "0f43c53ef801a2df2f7ed7e71164a100d780fe120c8f14846628153ceceb98e4",
+      "UpdateWorkbookAccessBindingsArgs": "98b81bbbaed8908d869554f7eae43c6e8e4b037a4a5869168235fc467ffefb29",
+      "UpdateWorkbookArgs": "4a7afee8824a65de21af31c907c14aafb8b6811954e55f8c2e5543311f9aad28",
+      "ValidateDatasetRequest": "724c37ed37451527042cb9fe07d05f43754d2fa1a99aa2308b65108499cd91bb",
+      "Value": "d369f342f8aa2c2ecb316eb472b3add4db3f0945ee564236f90b52939e6376f2",
+      "Where": "af31d97f81a9e5ebc71ef701329391ac48a94fda4042562d0802aa9e31431976",
+      "Workbook": "8f099f5f037788f0a379a766cabdd92335054fbaa02bbd48ee9ace40dd7f8bbf",
+      "WorkbookTransferNotification": "0811325f00d8cab1a441fb925a8d1211dd2473653dcee5b6cad6c517b033015e",
+      "WorkbookTransferNotificationLevel": "6ef94b5d02916a0620d07a5dc232018e99e63ad38f9e3a49156a9b9413d234bc",
+      "WorkbookTransferProcessStatus": "e378adb867508f85f35c272f3000a734d4f7c2368ea2b9208dcf304ee09ef7f5",
+      "YDB_SUBSELECT": "549f0f36181a18e939eeaa301425164515340640d43187dea0b5338bfc5c8612",
+      "YDB_SUBSELECT1": "549f0f36181a18e939eeaa301425164515340640d43187dea0b5338bfc5c8612",
+      "YDB_TABLE": "5566fc8b117199da2884e7cb9aff05e88289120f5a72c99589c111e08e711157",
+      "YDB_TABLE1": "5566fc8b117199da2884e7cb9aff05e88289120f5a72c99589c111e08e711157",
+      "YQ_SUBSELECT": "9af7c7591229a08680be4017e5ecef3ace14560b4dbfdbefcdf5336a09224899",
+      "YQ_SUBSELECT1": "9af7c7591229a08680be4017e5ecef3ace14560b4dbfdbefcdf5336a09224899",
+      "YQ_TABLE": "290991592a4ed7853453436bae9722f7a8de28d2ebb26506fffdee3250ea092b",
+      "YQ_TABLE1": "290991592a4ed7853453436bae9722f7a8de28d2ebb26506fffdee3250ea092b",
+      "add_avatar_relation": "cce6c2a2fe111ee4d08d7be58ad04b901599c74929bdb9eda172c2fb222abe8c",
+      "add_field": "7f8988113c0536657be5c8dee0ea087664ecd53c1b9150bb29017e4282937e1e",
+      "add_obligatory_filter": "03a1a83ab6147802d28b14f35e20d4d4e40ec273d30895443471d8b4282a447a",
+      "add_source": "667f34f822f1366aa69c7631dc4136bb1ac53794aa6c42d5d38713e5660618fd",
+      "add_source_avatar": "448ec135713cb60e419fca66e6be3edfb1950d1765ff199a3e754aaa40f613ff",
+      "appmetrica_api": "5a566f95a2b4f5c36dc76ff8a1978720ab5c7a75cbf5585a6f52c8bbc09c1a24",
+      "appmetrica_api1": "cf0f25c66f7db21fe0bfeb10c875864e45015c4e79fff32a609c736413aa8c51",
+      "appmetrica_api2": "6ab675da830f16236623436a83295f937b35dba4ade4f1ef82a15735d945e87d",
+      "array_float": "49d2d5641a51441e4d2d65025b06c64f519c6eaa0fc30502ce71942cba7d5567",
+      "array_int": "47280769971debf0ac22c5f2c0975494cb5da6b2974096bb02ee39f579130f82",
+      "array_str": "35c6515caf27e997918d8917907d64c9fa058aca6f43311452ba985150774239",
+      "bigquery": "d81ad25ea40963301abbbbe8a09fdc86f4ba8e00295faaecd7ee9eb6ea3321c3",
+      "bigquery1": "9875646f9ac957ebae83d27b55a5416b38ff71c6eeb4dc6cce961671a2768f5f",
+      "bigquery2": "2fcb21ac0787f1c357f6481379a61187b81d053d6d0bf2e0796bf00898de0246",
+      "bitrix24": "7a4a0274c42bbc9d3e0bafcdcef9d2d931300355f4d865fb372847d50d6d66d2",
+      "bitrix241": "97225f954b139dee78e88be1f822f7974b9043e61f1b73a514caaade31670fdb",
+      "bitrix242": "d027333f58fa63f8a5c9639e0d8ad3b6b897f09db9b44d2253d94b330d514411",
+      "boolean": "c09bc1796d842a8d3e386574d16a1b563396b30e98f202901d4aec9db405c333",
+      "ch_billing_analytics": "05e863a0404c77e2d44165bdbdb9494dfe9beed69a0178c41f5d5230283e895f",
+      "ch_billing_analytics1": "d6a6e3b196fce1455110611bd645f301b299348a11741cd5e6eba1bea89a8fa4",
+      "ch_billing_analytics2": "2932ccbf01a5d7f9a61f01e2fc23a3e32a7072dd0806b8d359119f2047eeb84d",
+      "ch_ya_music_podcast_stats": "bfe1a2a19a787f951b7d5825d063a92cb1d4b13e59893086f8dc2f3eee36b365",
+      "ch_ya_music_podcast_stats1": "2fe98e5bf3ce89f809f904e43db88560cd9523847c3ba89778a42be6fa2ddaf5",
+      "ch_ya_music_podcast_stats2": "8f06ce1f4b6124a66097cf2c6305ceed037b04a2a362234beb2c05a77793ed05",
+      "chyt": "c084d71b3198bd2d6b2d521c305ad9323ab512d77df6e3bc92d51931f13f8edc",
+      "chyt1": "6e1d87d06eea3d17b564878db6abe95969719bee6bec0dd94c2d4ca10d2fe5fb",
+      "chyt2": "07ab3217919e758169b4dbc47c0997aaa57f63da98e53d52e907efca88d669a1",
+      "clickhouse": "8f2d4813ac4984a32bd53d3ea7867bcd894f75912df66f7eccc28319161949b0",
+      "clickhouse1": "aa8f45ff28d8604316feebd8241c3464f5ccfbc2eb58c06326378df73d837252",
+      "clickhouse2": "a3ba8251830445532d86673fc70cfc7c0dcf390b509dec72ed26ba5e56d47d53",
+      "clickhouse_datetime64_native_type": "35bb145427b36f5481c026ecc04673e7a30c2756701913eba2b8ac910ffbcf98",
+      "clickhouse_datetime64withtz_native_type": "0c86b418b5f73b894fdbeb5c5d0b3eec568b8b66cec5dde98691e86da0550da2",
+      "clickhouse_datetimewithtz_native_type": "68d163e93b4995aa3d84ca8d7c6b33edca3d055cff3e33bfcf981d3ba90e3a95",
+      "clickhouse_native_type": "39567b7a36ce371be877335737c08236a8493ffc8264477993e9dd9a7b17e176",
+      "clone_field": "b0b44ddaab9c990eab5ac2d8331206fe7801525483f5456927895a1a7207ced8",
+      "common_native_type": "680de8ea6e05346b37ac745385975037f39627944e413c9983d7d10256cf6eb1",
+      "date": "e9752123963b3cedf06d2a735d6c399e03f9e771df05ee623c5501cc98902d2c",
+      "datetime": "b91db02391180bc452b34963c94649e3529711dff95730b95ed62feeb06ab224",
+      "datetimetz": "b91db02391180bc452b34963c94649e3529711dff95730b95ed62feeb06ab224",
+      "default": "1c79b115fc4f791263e5b82bda95deb524da011d8a3e6066ab241a75dd1a0011",
+      "delete_avatar_relation": "5fadea1b3b63cc24ff03783659b89f6dd3aba380395a0750a8eddd11df1990eb",
+      "delete_field": "8d5882afb8e5676c20acaf22990ff6943a99800cb4a86475d25023d4562276d9",
+      "delete_obligatory_filter": "9f17f033bd3447b5ee1f876d9897d7b69df37b5fbd32a6cccc4c91917881828d",
+      "delete_source": "8a8a8c5921f40fab9468ca9497cf65a03720fde2acafde6f96847a158a87b15f",
+      "delete_source_avatar": "31e15702af3810a83577cf9ee0f9709eb1ad961ce0c34a8d330cea35b0b6a9b5",
+      "direct": "7b65b9ce11970fb5ec29131c8d5894a42335521faf4aeec63fb37c9c4020e9b0",
+      "direct1": "774e49708eb1091f5c82c207eebe2c42a68724643a9f8eecc4b502baf7a34256",
+      "equeo": "ee215f891d805b53989e94be05891960692b21e09cd66c7a741f4be0f6ec1163",
+      "equeo1": "765ec13011673ef18f6e42d5c8142fc54e616dfb1ddb551b36089d20c5b6eb4a",
+      "equeo2": "723084cf66272e9e300731796df2a7eb96218fef1472dd3c5e692b5ec5916a97",
+      "extractor1c": "bb4f1bb035d0f5116d8767c35d9f14e70d3ec1fbfefdd572ee28b7a82fa25489",
+      "extractor1c1": "a427bce9c24cb7009f6369924cdd7754739424ce21156be6397081d0a48a5c4d",
+      "extractor1c2": "723084cf66272e9e300731796df2a7eb96218fef1472dd3c5e692b5ec5916a97",
+      "float": "c35bf6e5f50812bedd53ac49615421008b03723e3b32de9a88cb8db765e95c83",
+      "formula": "26dcb92f7709c9990775cd9620fc4e743169e557e812d638ec71ea9c72bb7674",
+      "formula1": "fad945d8d85147e769267bae4c0bb993bc6f0e201de50fc304f7de5b8ea4f7d8",
+      "formula2": "c30476136e03db0cc04bce18ecc0f2ff1c4fa9870a202b00b4000186ed7b55b7",
+      "generic_native_type": "2b7196d853bac7cea83330be9c2073848dedc10746eaf403bb5f73687531baf2",
+      "genericdatetime": "b91db02391180bc452b34963c94649e3529711dff95730b95ed62feeb06ab224",
+      "geopoint": "49d2d5641a51441e4d2d65025b06c64f519c6eaa0fc30502ce71942cba7d5567",
+      "geopolygon": "9254e0baaf7637f95c95871002cfdde985b99266e8f277a511810b5f3fa6ec85",
+      "greenplum": "1e696cb3a7edd16e6c625d1abdb87ee5a4ae0752443f88248a23def60bd032ba",
+      "greenplum1": "5cf9fbce6cd5a26b9ce37b29ae3a118111b06740e6a717d7ee611fff73a6248f",
+      "greenplum2": "ccb51c8d0bbedef82fcf3ce70bf83e1df8fbb4e7d1402226c20a1255b08583eb",
+      "gsheets": "ea07e42710732e1798d12f6792d3c84dc808f97b37876f03c34ef6a284562649",
+      "gsheets1": "a9176b31cbadc308c0e3eeab64f4174d4a620d767a2a89b23a169228b120e35f",
+      "gsheets2": "2240be543e4a1c8b12f86443ca466fc23c8a4d553e5ece5c50951b03c63ca46d",
+      "integer": "54670a10a47b27595f3956878a3a866a9fd67d70ca07d9eec9556bf9744b1396",
+      "json_api": "622bfb3b75824be82ed5f66136f283b2408eb89ce47105d2d8c25af8bc8e9356",
+      "json_api1": "e21df2da4fe0db277366969e9d00ab159d552a11e0a27915dba28bed1d2a2992",
+      "json_api2": "7f4c9cd8853bd67760d219bbc82b5690c2d2b2ac5d312c0ec068754474f6fd5e",
+      "kontur_market": "755dc0ccc7e7a136111c7ca01623213adb04b495d7074ee9105c3e01e93ef060",
+      "kontur_market1": "7a98ca10a4d8a6f7d6ebd3b0455764bd7a1d5958735ac64624cdc700d9f699e1",
+      "kontur_market2": "723084cf66272e9e300731796df2a7eb96218fef1472dd3c5e692b5ec5916a97",
+      "lengthed_native_type": "afbbbf5c780a85a300b1e9993115b04a94f0edd4d76928313be306835686302b",
+      "markup": "c7d4fd9226cfb172a6fc7503172b42b3e83b64e0e57d83549ec22b361e0a1a57",
+      "metrika_api": "b4a016350229ac7188d65ddbb23139c571d05102aa89589ca9b63ad629c733c5",
+      "metrika_api1": "abdc0c9a85a6ecf0d347707e80acdfb6c85f94ce3a8ba44e67cd9d0afdd39a44",
+      "metrika_api2": "6ab675da830f16236623436a83295f937b35dba4ade4f1ef82a15735d945e87d",
+      "monitoring": "bfd55c5437d8a33480dab1bc98b98be72626974375ed55373bf29290743430e4",
+      "monitoring1": "bca3160268fdc087da3160ee4f7bc7b2626f21bacf2d99575ee694e4113b13a4",
+      "monitoring2": "10c31dc6a8ec2f8d3cf257d20a45c6e444ff4bdbdee778bdc6ef6ac793fa06ee",
+      "moysklad": "1acc4fea01b5dd6c4b7a9ddb977699fa5f6056182b4d66cfc130f2611de5af9e",
+      "moysklad1": "00ff22138ba1f3254d20d226548d75b11d3da6e3e36cf9ffdd9f795185c3ae5d",
+      "moysklad2": "723084cf66272e9e300731796df2a7eb96218fef1472dd3c5e692b5ec5916a97",
+      "mssql": "a6d7ba985a1c6afa7da1929b5a988f4c4d271560adc50897fedf12166c86028d",
+      "mssql1": "c1d659f9c497df757b40177c93d8375e63e6e8ca57e425b11035a3ef6f30cc8e",
+      "mssql2": "400b72bf993719d2e9b47776dbc936d9a773f37d14b5eb68b641741597122a97",
+      "mysql": "df88a32515a0a26787f7be431af557db9342b77dcc4bb269965a380d45e6f16e",
+      "mysql1": "60a6efe752badc8d9534f89a47f56f7d4eb1ac5d41baaf47187332166ce6fb25",
+      "mysql2": "ab33489688dfb52c567242d6776455d452041a69f15aef43774146936b0a1801",
+      "oracle": "7e4ba618ea465c6a965b1243b0dc61cf7c6c25bbd65956653994b41182f4b715",
+      "oracle1": "3376b10a68c702faa107b1efb056be9f2adce2ad0677efdb34d1e5ec62a31f4f",
+      "oracle2": "8945b4aaa9952890e7a87802680a596f310ffb581e3dfc8607f0d648e931d859",
+      "parameter": "0191d214927b90a41b193d551671b16becfbeecbf035a06227da9941037e7c55",
+      "parameter1": "e17671cd7a17bee1fe199ce068c9ceb8f452521d725304c34c0d31061ddc576c",
+      "postgres": "e3870ed7ced50d652a0d90a2d96cb5c9af4de1484dfaab6d86641985bf9f0beb",
+      "postgres1": "1aa03c6efb5caa1009bac0d2d589a0705aa48d874b8a0b12574db7cf5b2e2a1a",
+      "postgres2": "da20aa501e15f6d10197a7bdaae267a81beef261b0571bbad60073d883eb80a4",
+      "promql": "9c36b539c65224f2b598b7e0d5e5445b5a90a8322b64e28b660abc474f729bdd",
+      "promql1": "580f07bb36df731f924d4739612d0ee38354c76dcb488c3a71ab5323565834f0",
+      "promql2": "a28a2a95ac45149ecddd9cd0d8e41d0a06c13f66bfa84bc0ec56324eb67eb2a7",
+      "refresh_source": "ab319f7d6dc40a526c37b72c5b815679f156a3b20ffeb0fdedbeffb463b929bd",
+      "regex": "8222dea3253cb7b41f8df708bb8a708f51d621e4c289de9e22931c9204a5e457",
+      "replace_connection": "0e3b9d07b84f787a2a451655970e863f9111dca0ffbfe28cf142d0746daec488",
+      "result_field": "260e0f20cb96090a18b0bda48ae596799a665c1fde0cf51d406dd5ccfb4ec97e",
+      "smb_heatmaps": "8b07b81b3f641229cacb0bf0fcc542c9d05c7f9b4f2dee5d53610d8267bdf61c",
+      "smb_heatmaps1": "04abe028f19ff4ca575eee53e69cb2447cd2afa75f1fab602d200b1a4816b89c",
+      "smb_heatmaps2": "8f06ce1f4b6124a66097cf2c6305ceed037b04a2a362234beb2c05a77793ed05",
+      "snowflake": "806bdb6f14d45767f8e398b3dc00f868f5d9e9092928329fee40c5f77b1a13cf",
+      "snowflake1": "b74277e2cedc9a225ea12d7e8912aac296338216f40066012e28f5891f09872e",
+      "snowflake2": "40f43ada7d43df81eb03abe84e97580c6d669d646dce7a0b3373f70437b1ce15",
+      "speechsense": "d2ca69f1a2bdf456df056f1079c6b0cb3079a4ce04782b03f1298f9ea5c5fef7",
+      "speechsense1": "e73554997a155a0d060d53be1e78aa44c9bb923293338489648ce20e49316ee4",
+      "speechsense2": "c2790207d70970a8c301339fcf8637a00c0960d36d96a7dd49784017eeb86e02",
+      "string": "c7d4fd9226cfb172a6fc7503172b42b3e83b64e0e57d83549ec22b361e0a1a57",
+      "tree_str": "35c6515caf27e997918d8917907d64c9fa058aca6f43311452ba985150774239",
+      "trino": "3ea9c1d50e35c235f6f517e07125d28b6ab3aa4aaf7b078ff3e0701ad95304c5",
+      "trino1": "8dac298cbba8857d9b715243ccb13e2afcac790b991af065bb42e202c4303530",
+      "trino2": "cc29502bb2989b8be356295dde9e6bf987694d92504e08664d16b610b8e6c9b2",
+      "update_avatar_relation": "59bb6990c98b647daf1469b0e0707e9d7f4940386b885dcb5ad7a4c43acafda7",
+      "update_cache_invalidation_source": "135e93726854707797472bc05bcf095aecd9746bbcaf6b06075a8bacc358ad4c",
+      "update_description": "a2d2dfcf94ee132ca0bc83b169881c551864d3f16151d74850e55be26180dcf2",
+      "update_field": "0521231a538de46a85d88e0e9eb54643e6d1f1a968e2aa57786197493798c5fb",
+      "update_obligatory_filter": "4f8972ac6606d4494aacafe90e476db4842d9b832d1f0125f2e24f04234478df",
+      "update_setting": "2bd79dc6e8fdc3e5e6d0916837e0ec2826895d4f55b7abde30a52eacab0b6623",
+      "update_source": "646f482634bec2f6edf06215713df20200ec633d8b963672dfa9743afe4f1aec",
+      "update_source_avatar": "5287f44352b97f0ef7cc5e6daa0ec6f079d88f203b4dc4b59b2d15be5a66e735",
+      "usage_analytics_detailed": "e2fad030f2b7e5730c9dcb0ac7c3a88d94c2bd6572ed15701986bf0e989ebf0b",
+      "usage_analytics_detailed1": "be70342ece0e9a4def130317f17a6a67785a867f4eed19c70adc95094569a1af",
+      "usage_analytics_detailed2": "2932ccbf01a5d7f9a61f01e2fc23a3e32a7072dd0806b8d359119f2047eeb84d",
+      "usage_analytics_light": "db800e9662155f33d10e71980244acbe093952d5661aef3b9e822a9a8c2adaa2",
+      "usage_analytics_light1": "d8509bd95e971dccd22b28a1f420c7590eb42241bab90acf38e29e742f358399",
+      "usage_analytics_light2": "2932ccbf01a5d7f9a61f01e2fc23a3e32a7072dd0806b8d359119f2047eeb84d",
+      "uuid": "c7d4fd9226cfb172a6fc7503172b42b3e83b64e0e57d83549ec22b361e0a1a57",
+      "ydb": "1e9cc96dd2ac507fe2d122c4ddbcdc5621bd5c631c0c3cd81773e221761c0692",
+      "ydb1": "09b14eddd721919be86ccbf032a88c945152e3768a5324c9a83aa9866ab38d78",
+      "ydb2": "35a3fcf7074f9eaacb2d690e2326d1c954bca633ddd8660cc506f7695f9acd92",
+      "yq": "d771091d4ecc8fd3a6b7603fc6c776afbb6b0820947a59af78d8126d69e0726e",
+      "yq1": "50aa977581c13dd917015bfe5f9cf872d6963a54fafd0ae39fa1f4e4767ea340",
+      "yq2": "d622d6c0d5560c4b315cd2ea28d6857a9952010d2f0622df1ae57f2a0cad4410"
+    },
+    "snapshot_hash": "94e33af015d91457ee464af418f016409e5ceb67c2255bdf34e5f343d92c7f75"
+  },
   "source_path_category": "external_corpus",
   "source_url": "https://api.datalens.tech/json/"
 }

@@ -7,6 +7,7 @@ from datalens_dev_mcp.pipeline.data_evidence import (
     evaluate_data_evidence,
     record_data_evidence,
 )
+from datalens_dev_mcp.mcp.tools.rpc import dl_get_dataset_data
 
 
 def dl_build_data_evidence_probe_plan(
@@ -51,3 +52,37 @@ def dl_evaluate_data_evidence(
     targeted_evidence: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return evaluate_data_evidence(table_ref=table_ref, inventory=inventory, targeted_evidence=targeted_evidence)
+
+
+def dl_preview_dataset_data(
+    dataset_id: str,
+    columns: list[str],
+    workbook_id: str = "",
+    filters: list[dict[str, Any]] | None = None,
+    params: list[dict[str, Any]] | None = None,
+    sort: list[dict[str, Any]] | None = None,
+    limit: int = 100,
+    offset: int = 0,
+    max_pages: int = 1,
+    tie_breaker_fields: list[str] | None = None,
+    inline_row_limit: int = 20,
+    inline_byte_budget: int = 8_000,
+    project_root: str = ".",
+    artifact_name: str = "dataset-preview",
+) -> dict[str, Any]:
+    return dl_get_dataset_data(
+        dataset_id=dataset_id,
+        columns=columns,
+        workbook_id=workbook_id,
+        filters=filters,
+        params=params,
+        sort=sort,
+        limit=limit,
+        offset=offset,
+        max_pages=max_pages,
+        tie_breaker_fields=tie_breaker_fields,
+        inline_row_limit=inline_row_limit,
+        inline_byte_budget=inline_byte_budget,
+        project_root=project_root,
+        artifact_name=artifact_name,
+    )

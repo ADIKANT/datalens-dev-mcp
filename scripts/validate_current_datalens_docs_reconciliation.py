@@ -18,17 +18,19 @@ POLICY_PATH = ROOT / "config" / "datalens_docs_feature_policy.json"
 PACKAGE_POLICY_PATH = ROOT / "src" / "datalens_dev_mcp" / "assets" / "config" / "datalens_docs_feature_policy.json"
 DOC_PATH = ROOT / "docs" / "datalens" / "current_docs_reconciliation.md"
 SCHEMA_ID = "current_docs_feature_policy"
+OPENAPI_LOCK_PATH = ROOT / "schemas" / "datalens-api" / "openapi.lock.json"
 DELTA_REPORT_NAMES = (
     "update_check_delta_2026-08-03.md",
     "update_check_delta_2026-08-11.md",
+    "update_check_delta_2026-08-26.md",
 )
-EXPECTED_FINAL_COUNTS = {"pages": 655, "chunks": 5033, "assets": 910, "manifest": 1573}
+EXPECTED_FINAL_COUNTS = {"pages": 707, "chunks": 5932, "assets": 924, "manifest": 1639}
 EXPECTED_DELTA_COUNTS_BY_REPORT = {
     "update_check_delta_2026-08-03.md": {"changed": 65, "new": 1},
     "update_check_delta_2026-08-11.md": {"changed": 40, "new": 1},
+    "update_check_delta_2026-08-26.md": {"changed": 45, "new": 113},
 }
-EXPECTED_DELTA_COUNTS = {"changed": 105, "new": 2}
-EXPECTED_OPENAPI_SHA256 = "b623445b2c56108517b5e73515e25a3b979b4e9d0df966c53d38e2681cf5507f"
+EXPECTED_DELTA_COUNTS = {"changed": 150, "new": 115}
 
 VALID_STATUSES = {
     "supported",
@@ -67,6 +69,13 @@ REQUIRED_CLUSTER_IDS = [
     "editor_widgets_advanced",
     "editor_widgets_gravity_ui",
     "editor_cross_filtration",
+    "editor_identity_methods",
+    "editor_parameter_semantics",
+    "custom_theme_variables",
+    "selector_override_semantics",
+    "dashboard_runtime_settings",
+    "dataset_data_preview",
+    "api_reference_relocation",
     "editor_notifications",
     "visual_table",
     "visual_indicator",
@@ -397,6 +406,81 @@ def build_clusters() -> list[dict[str, Any]]:
             "Advanced Editor validator and bundle generator",
             "Supported methods feed the Editor runtime allowlist.",
             "Generated payloads are validated before safe apply.",
+        ),
+        _cluster(
+            "editor_identity_methods",
+            "Editor user identity methods",
+            "supported",
+            [f"{base}/charts/editor/methods.md"],
+            "Editor runtime allowlist and reference guidance",
+            "Allow getUserId and getUserLogin while keeping authorization server-side.",
+            (
+                "getUserId is the stable IAM subject identifier; getUserLogin may be "
+                "absent or change, and neither is a client-side authorization control."
+            ),
+        ),
+        _cluster(
+            "editor_parameter_semantics",
+            "Editor parameters and dynamic selector state",
+            "supported",
+            [f"{base}/charts/editor/methods.md"],
+            "Editor runtime contracts and selector validation",
+            "Treat initial params as static and selector-driven changes as dynamic runtime input.",
+            (
+                "Numeric and boolean parameter values are serialized consistently; "
+                "Editor.updateParams remains discouraged outside a documented necessity."
+            ),
+        ),
+        _cluster(
+            "custom_theme_variables",
+            "Light and dark custom theme variables",
+            "guarded_plan_only",
+            [f"{base}/settings/appearance.md"],
+            "Editor visual contracts and dashboard style preservation",
+            "Require light and dark values for custom variables and preserve contrast fallback behavior.",
+            "Custom variable names use the --ce-theme prefix; widget and dashboard backgrounds preserve separate light/dark values.",
+        ),
+        _cluster(
+            "selector_override_semantics",
+            "Selector override and empty selection semantics",
+            "guarded_plan_only",
+            [f"{base}/dashboard/selector.md", f"{base}/operations/dashboard/add-selector.md"],
+            "selector contract and data validation",
+            "Model same-field override, empty selection, and double-filter duplication explicitly.",
+            (
+                "A selector on the same field overrides the chart filter; empty selection "
+                "means no filter; double filtering uses a duplicate field."
+            ),
+        ),
+        _cluster(
+            "dashboard_runtime_settings",
+            "Dashboard refresh, priority, pinned selectors, and mobile order",
+            "guarded_plan_only",
+            [f"{base}/dashboard/settings.md"],
+            "dashboard composition and payload preservation",
+            "Preserve and validate auto-refresh, load priority, pinned selector area, and mobile ordering.",
+            "These settings change only inside an explicit dashboard scope and remain tied to fresh saved readback.",
+        ),
+        _cluster(
+            "dataset_data_preview",
+            "Experimental typed dataset data preview",
+            "supported",
+            [f"{base}/api-ref/Data/rpcgetDatasetData-post.md"],
+            "typed internal getDatasetData route",
+            "Validate dataset field GUIDs, filters, sorting, limits, and deterministic paging before the API call.",
+            (
+                "The operation is marked experimental; full samples are externalized and "
+                "offset paging requires a total order with a known tie-breaker."
+            ),
+        ),
+        _cluster(
+            "api_reference_relocation",
+            "Tag-scoped DataLens API reference paths",
+            "read_only",
+            [f"{base}/api-ref/index.md"],
+            "docs and OpenAPI semantic reconciliation",
+            "Resolve current api-ref tag paths without treating a URL relocation as a breaking API change.",
+            "Method, path, security, and required-request changes remain blockers; documentation relocation alone is advisory.",
         ),
         _cluster(
             "editor_tabs",
@@ -799,6 +883,8 @@ def validate(corpus_root: Path, *, strict: bool = False) -> dict[str, Any]:
     asset_count = read_jsonl_count(corpus_root / "assets.jsonl")
     manifest_count = read_jsonl_count(corpus_root / "manifest.jsonl")
     inventory = read_json(corpus_root / "api_inventory.json")
+    openapi_lock = read_json(OPENAPI_LOCK_PATH)
+    expected_openapi_sha256 = str(openapi_lock.get("openapi_sha256") or "")
 
     if policy.get("schema_id") != SCHEMA_ID:
         issues.append("policy schema_id mismatch")
@@ -836,11 +922,18 @@ def validate(corpus_root: Path, *, strict: bool = False) -> dict[str, Any]:
             issues.append(f"final snapshot {key} mismatch: {actual_final_counts[key]} != {expected}")
     if asset_count != assets["current_count"]:
         issues.append(f"assets.jsonl count mismatch: {asset_count} != {assets['current_count']}")
-    if snapshot["api"].get("new_operations") != 95 or inventory["stats"]["operations"] != 95:
-        issues.append("OpenAPI operation count must be 95 for this update report")
-    if inventory["stats"]["paths"] != 95:
-        issues.append("OpenAPI path count must be 95 for this update report")
-    if str(inventory.get("openapi_sha256") or "") != EXPECTED_OPENAPI_SHA256:
+    if snapshot["api"].get("new_operations") != inventory["stats"]["operations"]:
+        issues.append("update report OpenAPI operation count does not match current inventory")
+    inventory_path_count = len(
+        {
+            str(item.get("path") or "")
+            for item in inventory.get("operations") or []
+            if isinstance(item, dict) and item.get("path")
+        }
+    )
+    if inventory["stats"]["paths"] != inventory_path_count:
+        issues.append("OpenAPI path count does not match current inventory operations")
+    if str(inventory.get("openapi_sha256") or "") != expected_openapi_sha256:
         issues.append("OpenAPI SHA-256 does not match the current locked snapshot")
     if not validation_summary.get("required_checks_ok"):
         issues.append("update report required checks are not OK")
@@ -856,7 +949,7 @@ def validate(corpus_root: Path, *, strict: bool = False) -> dict[str, Any]:
         issues.append("applied_delta_reports mismatch")
     if policy.get("source", {}).get("applied_delta_report") != expected_delta_reports[-1]["path"]:
         issues.append("applied_delta_report compatibility pointer mismatch")
-    if policy.get("source", {}).get("openapi_sha256") != EXPECTED_OPENAPI_SHA256:
+    if policy.get("source", {}).get("openapi_sha256") != expected_openapi_sha256:
         issues.append("policy source OpenAPI SHA-256 mismatch")
     if delta_docs.get("changed_count") != EXPECTED_DELTA_COUNTS["changed"]:
         issues.append(f"applied deltas changed_count must remain {EXPECTED_DELTA_COUNTS['changed']}")

@@ -17,8 +17,6 @@ PACKAGE_POLICY_PATH = ROOT / "src" / "datalens_dev_mcp" / "assets" / "config" / 
 DOC_PATH = ROOT / "docs" / "datalens" / "api_contract_coverage.md"
 FIXTURE_DIR = ROOT / "tests" / "fixtures" / "api_contracts"
 SCHEMA_ID = "api_operation_policy"
-EXPECTED_OPERATIONS = 95
-EXPECTED_PATHS = 95
 
 VALID_STATUSES = {
     "supported_tool",
@@ -56,6 +54,11 @@ def fixture_name(method: str) -> str:
 
 
 def representative_response_payload(method: str) -> dict[str, Any]:
+    if method == "getDatasetData":
+        return {
+            "schema": [{"name": "ID", "guid": "guid-id", "type": "integer"}],
+            "rows": [[1]],
+        }
     if method == "getAuditEntriesUpdates":
         return {"entries": [{"entryId": "artifact_1", "scope": "artifact", "isDeleted": False}]}
     if method == "getEntriesRelations":
@@ -226,8 +229,8 @@ def build_policy() -> tuple[dict[str, Any], dict[Path, dict[str, Any]]]:
             "generated_at": catalog.get("generated_at") or lock.get("generated_at") or "",
         },
         "expected_counts": {
-            "operations": EXPECTED_OPERATIONS,
-            "paths": EXPECTED_PATHS,
+            "operations": lock.get("operation_count"),
+            "paths": lock.get("path_count"),
             "catalog_operations": catalog.get("operation_count"),
             "lock_operations": lock.get("operation_count"),
         },
@@ -323,11 +326,15 @@ def validate(*, strict: bool = False) -> dict[str, Any]:
         issues.append(f"missing {DOC_PATH.relative_to(ROOT)}")
     elif DOC_PATH.read_text(encoding="utf-8") != render_markdown(expected_policy):
         issues.append(f"changed {DOC_PATH.relative_to(ROOT)}")
-    if len(expected_policy["operations"]) != EXPECTED_OPERATIONS:
-        issues.append(f"operation count mismatch: {len(expected_policy['operations'])} != {EXPECTED_OPERATIONS}")
+    expected_operation_count = int(expected_policy["expected_counts"].get("operations") or 0)
+    expected_path_count = int(expected_policy["expected_counts"].get("paths") or 0)
+    if len(expected_policy["operations"]) != expected_operation_count:
+        issues.append(
+            f"operation count mismatch: catalog={len(expected_policy['operations'])} lock={expected_operation_count}"
+        )
     path_count = len({record["path"] for record in expected_policy["operations"]})
-    if path_count != EXPECTED_PATHS:
-        issues.append(f"path count mismatch: {path_count} != {EXPECTED_PATHS}")
+    if path_count != expected_path_count:
+        issues.append(f"path count mismatch: catalog={path_count} lock={expected_path_count}")
     for record in actual_policy.get("operations", []):
         status = record.get("status")
         if status not in VALID_STATUSES:

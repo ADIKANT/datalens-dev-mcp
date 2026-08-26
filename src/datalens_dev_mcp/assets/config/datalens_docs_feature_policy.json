@@ -240,6 +240,84 @@
     },
     {
       "classification": "supported",
+      "id": "editor_identity_methods",
+      "mcp_surface": "Editor runtime allowlist and reference guidance",
+      "runtime_contract": "getUserId is the stable IAM subject identifier; getUserLogin may be absent or change, and neither is a client-side authorization control.",
+      "server_decision": "Allow getUserId and getUserLogin while keeping authorization server-side.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/charts/editor/methods.md"
+      ],
+      "title": "Editor user identity methods"
+    },
+    {
+      "classification": "supported",
+      "id": "editor_parameter_semantics",
+      "mcp_surface": "Editor runtime contracts and selector validation",
+      "runtime_contract": "Numeric and boolean parameter values are serialized consistently; Editor.updateParams remains discouraged outside a documented necessity.",
+      "server_decision": "Treat initial params as static and selector-driven changes as dynamic runtime input.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/charts/editor/methods.md"
+      ],
+      "title": "Editor parameters and dynamic selector state"
+    },
+    {
+      "classification": "guarded_plan_only",
+      "id": "custom_theme_variables",
+      "mcp_surface": "Editor visual contracts and dashboard style preservation",
+      "runtime_contract": "Custom variable names use the --ce-theme prefix; widget and dashboard backgrounds preserve separate light/dark values.",
+      "server_decision": "Require light and dark values for custom variables and preserve contrast fallback behavior.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/settings/appearance.md"
+      ],
+      "title": "Light and dark custom theme variables"
+    },
+    {
+      "classification": "guarded_plan_only",
+      "id": "selector_override_semantics",
+      "mcp_surface": "selector contract and data validation",
+      "runtime_contract": "A selector on the same field overrides the chart filter; empty selection means no filter; double filtering uses a duplicate field.",
+      "server_decision": "Model same-field override, empty selection, and double-filter duplication explicitly.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/dashboard/selector.md",
+        "https://docs.yandex.cloud/ru/ru/datalens/operations/dashboard/add-selector.md"
+      ],
+      "title": "Selector override and empty selection semantics"
+    },
+    {
+      "classification": "guarded_plan_only",
+      "id": "dashboard_runtime_settings",
+      "mcp_surface": "dashboard composition and payload preservation",
+      "runtime_contract": "These settings change only inside an explicit dashboard scope and remain tied to fresh saved readback.",
+      "server_decision": "Preserve and validate auto-refresh, load priority, pinned selector area, and mobile ordering.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/dashboard/settings.md"
+      ],
+      "title": "Dashboard refresh, priority, pinned selectors, and mobile order"
+    },
+    {
+      "classification": "supported",
+      "id": "dataset_data_preview",
+      "mcp_surface": "typed internal getDatasetData route",
+      "runtime_contract": "The operation is marked experimental; full samples are externalized and offset paging requires a total order with a known tie-breaker.",
+      "server_decision": "Validate dataset field GUIDs, filters, sorting, limits, and deterministic paging before the API call.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Data/rpcgetDatasetData-post.md"
+      ],
+      "title": "Experimental typed dataset data preview"
+    },
+    {
+      "classification": "read_only",
+      "id": "api_reference_relocation",
+      "mcp_surface": "docs and OpenAPI semantic reconciliation",
+      "runtime_contract": "Method, path, security, and required-request changes remain blockers; documentation relocation alone is advisory.",
+      "server_decision": "Resolve current api-ref tag paths without treating a URL relocation as a breaking API change.",
+      "source_urls": [
+        "https://docs.yandex.cloud/ru/ru/datalens/api-ref/index.md"
+      ],
+      "title": "Tag-scoped DataLens API reference paths"
+    },
+    {
+      "classification": "supported",
       "id": "editor_tabs",
       "mcp_surface": "Advanced Editor bundle generator",
       "runtime_contract": "Tab names and required sections are validated.",
@@ -540,30 +618,110 @@
     }
   ],
   "covered_new_page_urls": [
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Access/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Access/rpcbatchListMembers-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Audit/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Audit/rpcgetAuditEntriesUpdates-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Audit/rpcgetAuditEntryPermissionsForUser-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpccreateCollection-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpcdeleteCollection-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpcdeleteCollections-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpcgetCollection-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpcgetCollectionBreadcrumbs-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpcgetRootCollectionPermissions-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpclistCollectionAccessBindings-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpcmoveCollections-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpcupdateCollection-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpcupdateCollectionAccessBindings-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Connection/rpcdeleteConnection-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Connection/rpcupdateConnection-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Dashboard/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Dashboard/rpccreateDashboard-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Dataset/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Dataset/rpccreateDataset-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Dataset/rpcdeleteDataset-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Dataset/rpcupdateDataset-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Dataset/rpcvalidateDataset-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Editor/rpcdeleteEditorChart-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/EmbeddingSecrets/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/EmbeddingSecrets/rpccreateEmbeddingSecret-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/EmbeddingSecrets/rpcdeleteEmbeddingSecret-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/EmbeddingSecrets/rpcgetEmbeddingSecret-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/EmbeddingSecrets/rpclistEmbeddingSecrets-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Embeds/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Embeds/rpccreateEmbed-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Embeds/rpcdeleteEmbed-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Embeds/rpclistEmbeds-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Embeds/rpcupdateEmbed-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Entries/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Entries/rpcgetEntriesPermissions-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Entries/rpcgetEntriesRelations-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Entries/rpcrenameEntry-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/EntryLock/rpccreateEntryLock-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/EntryLock/rpcdeleteEntryLock-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Folder/rpccreateFolder-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Folder/rpcdlsSuggest-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Folder/rpcgetPermissions-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Folder/rpcmodifyPermissions-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Folder/rpcmoveFolderEntry-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/HtmlPages/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Licensing/rpcassignLicenses-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Licensing/rpcgetLicenses-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Licensing/rpcgetLicensesLimit-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Navigation/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Navigation/rpcgetEntries-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Navigation/rpclistDirectory-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Permissions/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Permissions/rpcgetPermissionsBulk-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/QL/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/QL/rpcdeleteQLChart-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Reports/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Reports/rpccreateReport-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Reports/rpcupdateReport-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/SharedEntry/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/SharedEntry/rpclistSharedEntryAccessBindings-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Workbook/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Workbook/rpccreateWorkbook-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Workbook/rpcdeleteWorkbooks-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Workbook/rpcgetWorkbook-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Workbook/rpcgetWorkbookEntries-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Workbook/rpcgetWorkbooksByIds-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Workbook/rpclistWorkbookAccessBindings-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/Workbook/rpcupdateWorkbookAccessBindings-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/WorkbookExport/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/WorkbookExport/rpcgetWorkbookExportStatus-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/WorkbookExport/rpcstartWorkbookExport-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/WorkbookImport/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/WorkbookImport/rpcgetWorkbookImportStatus-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/WorkbookImport/rpcstartWorkbookImport-post.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/api-ref/index.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/concepts/maillists.md",
     "https://docs.yandex.cloud/ru/ru/datalens/release-notes/2606.md",
+    "https://docs.yandex.cloud/ru/ru/datalens/settings/deleted-objects.md",
     "https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/funnel.md"
   ],
   "expected_counts": {
-    "assets_current_records": 910,
-    "assets_new_references": 26,
+    "assets_current_records": 924,
+    "assets_new_references": 40,
     "assets_removed_references": 6,
-    "docs_changed_pages": 105,
-    "docs_checked_pages": 655,
-    "docs_current_chunks": 5033,
-    "docs_current_pages": 655,
+    "docs_changed_pages": 150,
+    "docs_checked_pages": 707,
+    "docs_current_chunks": 5932,
+    "docs_current_pages": 707,
     "docs_failed_pages": 0,
-    "docs_new_pages": 2,
-    "docs_removed_candidates": 0,
-    "manifest_current_records": 1573,
-    "openapi_operations": 95,
-    "openapi_paths": 95,
+    "docs_new_pages": 115,
+    "docs_removed_candidates": 61,
+    "manifest_current_records": 1639,
+    "openapi_operations": 96,
+    "openapi_paths": 96,
     "validation_failure_count": 0,
     "validation_required_checks_ok": true
   },
   "schema_id": "current_docs_feature_policy",
   "source": {
-    "applied_delta_generated_at": "2026-08-11T10:27:37.720053Z",
-    "applied_delta_report": "reports/update_check_delta_2026-08-11.md",
+    "applied_delta_generated_at": "2026-08-26T06:13:44.465470Z",
+    "applied_delta_report": "reports/update_check_delta_2026-08-26.md",
     "applied_delta_reports": [
       {
         "generated_at": "2026-08-03T04:22:02.049761Z",
@@ -572,13 +730,17 @@
       {
         "generated_at": "2026-08-11T10:27:37.720053Z",
         "path": "reports/update_check_delta_2026-08-11.md"
+      },
+      {
+        "generated_at": "2026-08-26T06:13:44.465470Z",
+        "path": "reports/update_check_delta_2026-08-26.md"
       }
     ],
     "corpus_root_hint": "<DATALENS_DOCS_CORPUS_ROOT>",
     "mode": "apply-updates",
-    "openapi_sha256": "b623445b2c56108517b5e73515e25a3b979b4e9d0df966c53d38e2681cf5507f",
+    "openapi_sha256": "12afd0555509ef02e8fbe2b0254deb5f58f35a6a08481e5d64ef83c77a6ffb92",
     "update_report": "reports/update_report.md",
-    "update_report_generated_at": "2026-08-11T11:02:01.906247Z"
+    "update_report_generated_at": "2026-08-26T06:47:15.895632Z"
   },
   "status_enum": [
     "guarded_plan_only",

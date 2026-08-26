@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/api-delta-report.schema.json",
+  "title": "DataLens semantic API delta report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "policy_version",
+    "baseline_hash",
+    "candidate_hash",
+    "added_operations",
+    "removed_operations",
+    "changed_operations",
+    "relocated_docs",
+    "schema_delta",
+    "support_classification",
+    "breaking"
+  ],
+  "properties": {
+    "schema_id": {"const": "datalens_api_delta_report"},
+    "policy_version": {"const": "api_delta_policy_v1"},
+    "baseline_hash": {"type": "string", "minLength": 1},
+    "candidate_hash": {"type": "string", "minLength": 1},
+    "added_operations": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "removed_operations": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "changed_operations": {"type": "array", "items": {"type": "object"}},
+    "relocated_docs": {"type": "array", "items": {"type": "object"}},
+    "schema_delta": {
+      "type": "object",
+      "required": ["added", "removed", "changed"],
+      "properties": {
+        "added": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "removed": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "changed": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
+    "support_classification": {"type": "object", "additionalProperties": {"type": "string"}},
+    "breaking_changes": {"type": "array", "items": {"type": "object"}},
+    "breaking": {"type": "boolean"}
+  },
+  "additionalProperties": false
+}

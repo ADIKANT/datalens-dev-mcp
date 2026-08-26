@@ -14,6 +14,8 @@ class DocsApiReconciliationStatus:
     openapi_sha256: str
     required_cluster_ids: list[str]
     missing_cluster_ids: list[str]
+    api_delta_breaking: bool
+    api_delta_added_operations: list[str]
     schema_id: str = "docs_api_reconciliation"
 
     def to_dict(self) -> dict[str, Any]:
@@ -36,15 +38,19 @@ class DocsApiReconciliation:
         *,
         docs_feature_policy: dict[str, Any] | None = None,
         api_operation_policy: dict[str, Any] | None = None,
+        api_delta_report: dict[str, Any] | None = None,
     ) -> None:
         self.docs_feature_policy = docs_feature_policy or _load_json("config/datalens_docs_feature_policy.json")
         self.api_operation_policy = api_operation_policy or _load_json("config/datalens_api_operation_policy.json")
+        self.api_delta_report = api_delta_report or _load_json("schemas/datalens-api/api-delta-report.json")
 
     def status(self) -> DocsApiReconciliationStatus:
         clusters = self.docs_feature_policy.get("clusters") or []
         cluster_ids = {str(item.get("id")) for item in clusters}
         missing = [item for item in self.REQUIRED_CLUSTER_IDS if item not in cluster_ids]
         operations = self.api_operation_policy.get("operations") or []
+        added_operations = [str(item) for item in self.api_delta_report.get("added_operations") or []]
+        delta_breaking = bool(self.api_delta_report.get("breaking"))
         openapi_hash = ""
         for operation in operations:
             source = operation.get("source") if isinstance(operation.get("source"), dict) else {}
@@ -52,12 +58,14 @@ class DocsApiReconciliation:
                 openapi_hash = str(source["openapi_sha256"])
                 break
         return DocsApiReconciliationStatus(
-            ok=not missing and len(operations) >= 80 and bool(openapi_hash),
+            ok=not missing and len(operations) >= 80 and bool(openapi_hash) and not delta_breaking,
             docs_cluster_count=len(clusters),
             api_operation_count=len(operations),
             openapi_sha256=openapi_hash,
             required_cluster_ids=self.REQUIRED_CLUSTER_IDS,
             missing_cluster_ids=missing,
+            api_delta_breaking=delta_breaking,
+            api_delta_added_operations=added_operations,
         )
 
     def method_status(self, method_name: str) -> dict[str, Any]:

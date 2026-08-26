@@ -22,6 +22,11 @@ from datalens_dev_mcp.knowledge.corpus import (  # noqa: E402
     normalize_corpus_root,
     resolve_corpus_root as resolve_shared_corpus_root,
 )
+from datalens_dev_mcp.pipeline.api_delta import (  # noqa: E402
+    classify_api_delta,
+    reclassify_delta_report,
+    semantic_compiled_snapshot,
+)
 
 CONFIG_PATH = ROOT / "config" / "datalens_api_methods.json"
 SCHEMA_DIR = ROOT / "schemas" / "datalens-api"
@@ -32,8 +37,6 @@ PACKAGE_SCHEMA_DIR = ROOT / "src" / "datalens_dev_mcp" / "assets" / "schemas" / 
 
 SOURCE = "https://api.datalens.tech/json/"
 SCHEMA_ID = "datalens_api_methods"
-EXPECTED_OPERATION_COUNT = 95
-EXPECTED_PATH_COUNT = 95
 
 GUARDED_WRITE_METHODS = {
     "createConnection",
@@ -104,6 +107,7 @@ ROUTE_BY_METHOD = {
     "startWorkbookImport": "guarded_write",
     "updateCollectionAccessBindings": "guarded_write",
     "updateWorkbookAccessBindings": "guarded_write",
+    "getDatasetData": "dataset_data_read",
 }
 
 DIRECT_TOOL_BY_METHOD = {
@@ -115,6 +119,7 @@ DIRECT_TOOL_BY_METHOD = {
     "getEntriesRelations": "dl_get_entries_relations / dl_list_related_objects",
     "getWorkbook": "dl_get_workbook_entries / dl_rpc_readonly",
     "getWorkbookEntries": "dl_get_workbook_entries",
+    "getDatasetData": "dl_preview_dataset_data",
     "getWorkbooksList": "dl_list_workbooks",
     "createConnection": "dl_create_connector_plan",
     "updateConnection": "dl_update_connector_plan",
@@ -284,9 +289,13 @@ def support_reason(method: str, tag: str, mode: str) -> str:
     return "No validated MCP workflow or payload contract is implemented."
 
 
-def doc_url(method: str, inventory_by_method: dict[str, dict[str, Any]]) -> str:
+def doc_url(method: str, tag: str, inventory_by_method: dict[str, dict[str, Any]]) -> str:
     inventory_item = inventory_by_method.get(method) or {}
-    return str(inventory_item.get("markdown_source_url") or f"https://yandex.cloud/ru/docs/datalens/openapi-ref/{method}")
+    normalized_tag = re.sub(r"[^A-Za-z0-9_-]+", "-", tag).strip("-") or "Data"
+    return str(
+        inventory_item.get("markdown_source_url")
+        or f"https://yandex.cloud/ru/docs/datalens/api-ref/{normalized_tag}/rpc{method}-post"
+    )
 
 
 def build_support_overlay() -> dict[str, Any]:
@@ -347,7 +356,7 @@ def build_catalog(
                     "request_schema_ref": schema_refs.get("request_schema_ref", ""),
                     "response_schema_ref": schema_refs.get("response_schema_ref", ""),
                     "source": inventory.get("source_url") or SOURCE,
-                    "doc_url": doc_url(method, inventory_by_method),
+                    "doc_url": doc_url(method, tag, inventory_by_method),
                     "markdown_ref": (inventory_by_method.get(method) or {}).get("markdown_ref", ""),
                     "auth": ["IAM token", "Organization ID", f"x-dl-api-version: {api_version}"],
                 }
@@ -432,18 +441,20 @@ def validate_operation_inventory(*, spec: dict[str, Any], inventory: dict[str, A
     }
     stats = inventory.get("stats") if isinstance(inventory.get("stats"), dict) else {}
     issues: list[str] = []
-    if spec_operation_count != EXPECTED_OPERATION_COUNT:
-        issues.append(f"OpenAPI operations={spec_operation_count} expected {EXPECTED_OPERATION_COUNT}")
-    if len(spec_paths) != EXPECTED_PATH_COUNT:
-        issues.append(f"OpenAPI paths={len(spec_paths)} expected {EXPECTED_PATH_COUNT}")
-    if len(inventory_operations) != EXPECTED_OPERATION_COUNT:
-        issues.append(f"inventory operations={len(inventory_operations)} expected {EXPECTED_OPERATION_COUNT}")
-    if len(inventory_paths) != EXPECTED_PATH_COUNT:
-        issues.append(f"inventory paths={len(inventory_paths)} expected {EXPECTED_PATH_COUNT}")
-    if stats.get("operations") != EXPECTED_OPERATION_COUNT:
-        issues.append(f"inventory stats.operations={stats.get('operations')!r} expected {EXPECTED_OPERATION_COUNT}")
-    if stats.get("paths") != EXPECTED_PATH_COUNT:
-        issues.append(f"inventory stats.paths={stats.get('paths')!r} expected {EXPECTED_PATH_COUNT}")
+    if spec_operation_count != len(inventory_operations):
+        issues.append(
+            f"OpenAPI operations={spec_operation_count} do not match inventory operations={len(inventory_operations)}"
+        )
+    if len(spec_paths) != len(inventory_paths):
+        issues.append(f"OpenAPI paths={len(spec_paths)} do not match inventory paths={len(inventory_paths)}")
+    if stats.get("operations") != len(inventory_operations):
+        issues.append(
+            f"inventory stats.operations={stats.get('operations')!r} does not match inventory operations={len(inventory_operations)}"
+        )
+    if stats.get("paths") != len(inventory_paths):
+        issues.append(
+            f"inventory stats.paths={stats.get('paths')!r} does not match inventory paths={len(inventory_paths)}"
+        )
     if inventory.get("openapi_sha256") and inventory.get("openapi_sha256") != openapi_sha256:
         issues.append("inventory openapi_sha256 does not match raw/api/openapi.json")
     if spec_paths != inventory_paths:
@@ -768,6 +779,7 @@ def build_source_trace(corpus_root: Path, lock: dict[str, Any]) -> dict[str, Any
         "openapi_sha256": lock["openapi_sha256"],
         "generated_artifacts": [
             "schemas/datalens-api/openapi.lock.json",
+            "schemas/datalens-api/api-delta-report.json",
             "config/datalens_api_methods.json",
             "schemas/datalens-api/operation-schema-index.json",
             "schemas/datalens-api/selected-openapi-schema-refs.json",
@@ -806,6 +818,39 @@ def render_outputs(corpus_root: Path) -> dict[Path, str]:
         catalog=catalog,
         generated_at=generated_at,
     )
+    candidate_snapshot = semantic_compiled_snapshot(catalog, schema_bundle)
+    previous_lock = read_json(SCHEMA_DIR / "openapi.lock.json") if (SCHEMA_DIR / "openapi.lock.json").is_file() else {}
+    previous_hash = str(previous_lock.get("openapi_sha256") or "")
+    if previous_hash == openapi_sha:
+        delta_report = previous_lock.get("semantic_delta")
+        if not isinstance(delta_report, dict):
+            delta_report = classify_api_delta(candidate_snapshot, candidate_snapshot)
+        else:
+            delta_report = reclassify_delta_report(delta_report)
+        delta_from_hash = str(previous_lock.get("delta_from_openapi_sha256") or previous_hash)
+    else:
+        baseline_snapshot = previous_lock.get("semantic_snapshot")
+        if not isinstance(baseline_snapshot, dict):
+            try:
+                baseline_catalog = read_json(CONFIG_PATH)
+                baseline_schemas = read_json(SCHEMA_DIR / "selected-openapi-schema-refs.json")
+                baseline_snapshot = semantic_compiled_snapshot(baseline_catalog, baseline_schemas)
+            except (FileNotFoundError, json.JSONDecodeError):
+                baseline_snapshot = candidate_snapshot
+        provisional_delta = classify_api_delta(baseline_snapshot, candidate_snapshot)
+        support = {
+            method: "typed_supported" if method == "getDatasetData" else "catalog_supported"
+            for method in provisional_delta["added_operations"]
+        }
+        delta_report = classify_api_delta(
+            baseline_snapshot,
+            candidate_snapshot,
+            support_classification=support,
+        )
+        delta_from_hash = previous_hash
+    lock["delta_from_openapi_sha256"] = delta_from_hash
+    lock["semantic_snapshot"] = candidate_snapshot
+    lock["semantic_delta"] = delta_report
     overlay = build_support_overlay()
     editor_allowlist = build_editor_allowlist(corpus_root)
     source_trace = build_source_trace(corpus_root, lock)
@@ -827,6 +872,7 @@ def render_outputs(corpus_root: Path) -> dict[Path, str]:
     }
     json_outputs: dict[Path, Any] = {
         SCHEMA_DIR / "openapi.lock.json": lock,
+        SCHEMA_DIR / "api-delta-report.json": delta_report,
         CONFIG_PATH: catalog,
         SCHEMA_DIR / "operation-schema-index.json": operation_index,
         SCHEMA_DIR / "selected-openapi-schema-refs.json": schema_bundle,
@@ -898,7 +944,7 @@ def check_outputs(outputs: dict[Path, str]) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Compile DataLens API contracts from the external docs corpus.")
-    parser.add_argument("--corpus-root", default="", help="Path to datalens-docs-corpus.")
+    parser.add_argument("--corpus-root", "--corpus", dest="corpus_root", default="", help="Path to datalens-docs-corpus.")
     parser.add_argument("--check", action="store_true", help="Fail if generated artifacts differ from committed outputs.")
     args = parser.parse_args(argv)
 

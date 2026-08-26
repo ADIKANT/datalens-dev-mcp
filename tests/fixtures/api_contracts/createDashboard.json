@@ -4,7 +4,7 @@
   "operation_id": "createDashboard",
   "path": "/rpc/createDashboard",
   "request_payload": {},
-  "request_schema_closure_hash": "e79d761f9aff1d51103937eabcc2363d0e0f3e08cdd049d002cbb48a78354a7a",
+  "request_schema_closure_hash": "6e347caf511d7eee2817e8b47261ef5945857aa37f3e287f3f3eb4bcdc31de86",
   "request_schema_closure_refs": [
     "CreateDashboardV1Args",
     "DashColorByTheme",
@@ -31,7 +31,7 @@
   "request_schema_hash": "024997c1cf26cc4bce728a5651f931c0305df6ae79793b4f1664f99df5ce5e5b",
   "request_schema_ref": "CreateDashboardV1Args",
   "response_payload": {},
-  "response_schema_closure_hash": "eae432c28250de3282efbba8f267e9e46d9990b75ef161b5e1c04619f5f39448",
+  "response_schema_closure_hash": "c680ae900efefb671e7514009ffb6a92df221f994bb46681d16843a6044f7b12",
   "response_schema_closure_refs": [
     "CreateDashboardResponse",
     "DashColorByTheme",
@@ -41,19 +41,16 @@
     "DashControlSourceDataset",
     "DashControlSourceExternal",
     "DashControlSourceManual",
-    "DashData",
     "DashGlobalItem",
     "DashGroupControl",
     "DashGroupControlItem",
     "DashLayoutItem",
-    "DashMeta",
     "DashStringDefaultValue",
     "DashTab",
     "DashTabControlItem",
     "DashTabGroupControlItem",
     "DashTabItem",
-    "DashboardV1",
-    "EntryAnnotation"
+    "DashboardV1"
   ],
   "response_schema_hash": "9df7fd3022dca784ba9650ddd7334addcdbea63cf337a30ba9506d761254c242",
   "response_schema_ref": "CreateDashboardResponse",

@@ -11,7 +11,7 @@
   "request_schema_hash": "1eed7f6b0b70e7b7aab10faf9eb180400e168bb4dbd3dd05ae5217779623e55f",
   "request_schema_ref": "GetStructureItemsArgs",
   "response_payload": {},
-  "response_schema_closure_hash": "9994512d49f4c461ecb8802760b40161a034c5042ded99c4c4188d53689147c5",
+  "response_schema_closure_hash": "19ff0ef492cb76c56239f22815c37bb908a424c93ee65db5fd81f76ef0683f3e",
   "response_schema_closure_refs": [
     "EntryScope",
     "GetStructureItemsResult",

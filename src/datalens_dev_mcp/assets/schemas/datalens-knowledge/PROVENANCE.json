@@ -20,8 +20,8 @@
     "compiled"
   ],
   "snapshot": {
-    "generated_at": "2026-08-11T10:45:59.595971Z",
-    "pages_content_sha256": "e17c75e496c34a0faecbe314cbb809ba674a9b60aaf93821ff49e56531c8c144"
+    "generated_at": "2026-08-26T06:53:47.702546Z",
+    "pages_content_sha256": "8697d7d3e9958ee9f2ea76f49b161e1c684ab5be3570aa99d4b87a8d9f860dc8"
   },
   "covered_files": [
     "capability-matrix.json",

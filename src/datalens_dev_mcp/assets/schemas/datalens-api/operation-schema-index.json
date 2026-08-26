@@ -263,6 +263,12 @@
     "response_schema_kind": "ref",
     "response_schema_ref": "DatasetRead"
   },
+  "getDatasetData": {
+    "request_schema_kind": "inline",
+    "request_schema_ref": "GetDatasetDataRequest",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "GetDatasetDataResponse"
+  },
   "getEditorChart": {
     "request_schema_kind": "ref",
     "request_schema_ref": "GetEditorChartArgs",

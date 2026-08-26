@@ -1,0 +1,6 @@
+{
+  "operation_count": 95,
+  "operation_prefix": "existingOperation",
+  "docs_ref_template": "datalens/openapi-ref/{operation}.md",
+  "schema_count": 500
+}

@@ -11,7 +11,7 @@
   "request_schema_hash": "17fb71e89fa26df00e8c12fe692d380f47b40d48dc7c85864425ce11e9367dc7",
   "request_schema_ref": "GetReportV1Args",
   "response_payload": {},
-  "response_schema_closure_hash": "c89521d0bb9f9c96304fa467520d5481fbcc843d6ec73a619e7af99c7f97e993",
+  "response_schema_closure_hash": "487067da40b6e4adf1edb9c16e6394d49d9a1946539fc62c57fd98c9505e352d",
   "response_schema_closure_refs": [
     "DashColorByTheme",
     "DashConnection",
@@ -20,12 +20,12 @@
     "DashControlSourceExternal",
     "DashControlSourceManual",
     "DashLayoutItem",
-    "DashMeta",
     "DashStringDefaultValue",
     "EntryAnnotation",
     "EntryPermissions",
     "GetReportV1Result",
     "ReportData",
+    "ReportMeta",
     "ReportV1"
   ],
   "response_schema_hash": "a659dd5bc37a4160dd06a69b2f220d89e2e3bd7b0a72fc666761430b145845ed",

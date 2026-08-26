@@ -307,6 +307,13 @@
     "response_schema_ref": "DatasetRead",
     "support_status": "EXECUTABLE_TOOL_SUPPORTED"
   },
+  "getDatasetData": {
+    "request_schema_kind": "inline",
+    "request_schema_ref": "GetDatasetDataRequest",
+    "response_schema_kind": "inline",
+    "response_schema_ref": "GetDatasetDataResponse",
+    "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+  },
   "getEditorChart": {
     "request_schema_kind": "ref",
     "request_schema_ref": "GetEditorChartArgs",
