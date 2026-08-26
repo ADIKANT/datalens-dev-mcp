@@ -1,0 +1,45 @@
+{
+  "case_id": "browser-required-explicit-001",
+  "category": "intent_autonomy",
+  "context": {
+    "constraints": [
+      "browser_required_explicit",
+      "preserve_unmentioned_content"
+    ],
+    "saved_revision": "synthetic_revision_1",
+    "target": {
+      "dashboard_id": "synthetic_dashboard",
+      "workbook_id": "synthetic_workbook"
+    }
+  },
+  "contract_sha256": "33b242206ddd4a9eb263463eee0f19034cc87acf0ae4698836adafa88bd6dbce",
+  "expected_calls": {
+    "browser": 1,
+    "high_level_budget": 12,
+    "questions": 0,
+    "writes": "save_then_publish"
+  },
+  "expected_failure_family": "",
+  "expected_invariants": [
+    "save_readback_before_publish",
+    "target_identity_preserved",
+    "unknown_fields_preserved"
+  ],
+  "expected_recovery": "continue_deterministic_workflow",
+  "expected_route": "wizard_native",
+  "expected_task_contract": {
+    "browser_policy": "required",
+    "delivery": {
+      "publish": true,
+      "save": true
+    },
+    "intent": "update_existing_dashboard",
+    "route_policy": {
+      "ql_allowed": false,
+      "selected": "wizard_native"
+    }
+  },
+  "request": "Apply the synthetic browser required explicit correction and complete the authorized delivery flow.",
+  "scenario": "browser_required_explicit",
+  "visual_checks": []
+}

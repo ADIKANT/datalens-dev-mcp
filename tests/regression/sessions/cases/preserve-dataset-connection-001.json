@@ -1,0 +1,45 @@
+{
+  "case_id": "preserve-dataset-connection-001",
+  "category": "scope_reference",
+  "context": {
+    "constraints": [
+      "preserve_dataset_connection",
+      "preserve_unmentioned_content"
+    ],
+    "saved_revision": "synthetic_revision_1",
+    "target": {
+      "dashboard_id": "synthetic_dashboard",
+      "workbook_id": "synthetic_workbook"
+    }
+  },
+  "contract_sha256": "6c8d91a7064f50aba6a9f2307532888884399c8e4a19b35d8ef54d3420826009",
+  "expected_calls": {
+    "browser": 0,
+    "high_level_budget": 12,
+    "questions": 0,
+    "writes": "save_then_publish"
+  },
+  "expected_failure_family": "",
+  "expected_invariants": [
+    "save_readback_before_publish",
+    "target_identity_preserved",
+    "unknown_fields_preserved"
+  ],
+  "expected_recovery": "continue_deterministic_workflow",
+  "expected_route": "wizard_native",
+  "expected_task_contract": {
+    "browser_policy": "optional",
+    "delivery": {
+      "publish": true,
+      "save": true
+    },
+    "intent": "update_existing_dashboard",
+    "route_policy": {
+      "ql_allowed": false,
+      "selected": "wizard_native"
+    }
+  },
+  "request": "Apply the synthetic preserve dataset connection correction and complete the authorized delivery flow.",
+  "scenario": "preserve_dataset_connection",
+  "visual_checks": []
+}

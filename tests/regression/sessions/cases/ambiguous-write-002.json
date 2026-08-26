@@ -1,0 +1,45 @@
+{
+  "case_id": "ambiguous-write-002",
+  "category": "provider_failure",
+  "context": {
+    "constraints": [
+      "ambiguous_write",
+      "preserve_unmentioned_content"
+    ],
+    "saved_revision": "synthetic_revision_2",
+    "target": {
+      "dashboard_id": "synthetic_dashboard",
+      "workbook_id": "synthetic_workbook"
+    }
+  },
+  "contract_sha256": "98708517571ca7eee12c91a9bb5ecb85eff492f1c9be7933d0f2cf2839a57f3b",
+  "expected_calls": {
+    "browser": 0,
+    "high_level_budget": 16,
+    "questions": 0,
+    "writes": "conditional_after_recovery"
+  },
+  "expected_failure_family": "AMBIGUOUS_WRITE",
+  "expected_invariants": [
+    "save_readback_before_publish",
+    "target_identity_preserved",
+    "unknown_fields_preserved"
+  ],
+  "expected_recovery": "readback_reconciliation_no_replay",
+  "expected_route": "wizard_native",
+  "expected_task_contract": {
+    "browser_policy": "optional",
+    "delivery": {
+      "publish": false,
+      "save": true
+    },
+    "intent": "update_existing_dashboard",
+    "route_policy": {
+      "ql_allowed": false,
+      "selected": "wizard_native"
+    }
+  },
+  "request": "Apply the synthetic ambiguous write correction and complete the authorized delivery flow.",
+  "scenario": "ambiguous_write",
+  "visual_checks": []
+}

@@ -1,0 +1,47 @@
+{
+  "case_id": "extend-current-js-format-001",
+  "category": "scope_reference",
+  "context": {
+    "constraints": [
+      "extend_current_js_format",
+      "preserve_unmentioned_content"
+    ],
+    "saved_revision": "synthetic_revision_1",
+    "target": {
+      "dashboard_id": "synthetic_dashboard",
+      "workbook_id": "synthetic_workbook"
+    }
+  },
+  "contract_sha256": "5cc89eda9330a91e4e83de321eeb532735960f6dae6c55654e728a00e84a3a30",
+  "expected_calls": {
+    "browser": 0,
+    "high_level_budget": 12,
+    "questions": 0,
+    "writes": "save_then_publish"
+  },
+  "expected_failure_family": "",
+  "expected_invariants": [
+    "protected_runtime_hash_unchanged",
+    "save_readback_before_publish",
+    "target_identity_preserved",
+    "technology_unchanged",
+    "unknown_fields_preserved"
+  ],
+  "expected_recovery": "continue_deterministic_workflow",
+  "expected_route": "editor_advanced",
+  "expected_task_contract": {
+    "browser_policy": "optional",
+    "delivery": {
+      "publish": true,
+      "save": true
+    },
+    "intent": "update_existing_dashboard",
+    "route_policy": {
+      "ql_allowed": false,
+      "selected": "editor_advanced"
+    }
+  },
+  "request": "Apply the synthetic extend current js format correction and complete the authorized delivery flow.",
+  "scenario": "extend_current_js_format",
+  "visual_checks": []
+}

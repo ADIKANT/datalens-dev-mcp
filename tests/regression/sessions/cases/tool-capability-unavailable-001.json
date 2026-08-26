@@ -1,0 +1,45 @@
+{
+  "case_id": "tool-capability-unavailable-001",
+  "category": "provider_failure",
+  "context": {
+    "constraints": [
+      "tool_capability_unavailable",
+      "preserve_unmentioned_content"
+    ],
+    "saved_revision": "synthetic_revision_1",
+    "target": {
+      "dashboard_id": "synthetic_dashboard",
+      "workbook_id": "synthetic_workbook"
+    }
+  },
+  "contract_sha256": "9319f405404727f5d6881decebf916bbf69afcd7700c0da45d549784d8ab9645",
+  "expected_calls": {
+    "browser": 0,
+    "high_level_budget": 12,
+    "questions": 0,
+    "writes": "conditional_after_recovery"
+  },
+  "expected_failure_family": "TOOL_OR_CAPABILITY_UNAVAILABLE",
+  "expected_invariants": [
+    "save_readback_before_publish",
+    "target_identity_preserved",
+    "unknown_fields_preserved"
+  ],
+  "expected_recovery": "report_capability_gap",
+  "expected_route": "wizard_native",
+  "expected_task_contract": {
+    "browser_policy": "optional",
+    "delivery": {
+      "publish": false,
+      "save": true
+    },
+    "intent": "update_existing_dashboard",
+    "route_policy": {
+      "ql_allowed": false,
+      "selected": "wizard_native"
+    }
+  },
+  "request": "Apply the synthetic tool capability unavailable correction and complete the authorized delivery flow.",
+  "scenario": "tool_capability_unavailable",
+  "visual_checks": []
+}

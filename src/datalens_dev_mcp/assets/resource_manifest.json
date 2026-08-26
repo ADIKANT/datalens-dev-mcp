@@ -1,5 +1,5 @@
 {
-  "resource_count": 294,
+  "resource_count": 295,
   "resources": [
     {
       "bytes": 15842,
@@ -525,6 +525,11 @@
       "bytes": 594,
       "path": "schemas/semantic-slot.schema.json",
       "sha256": "4831814d8923d6deb176e88df44a0289de6614ebf7c8074775bde73858a16348"
+    },
+    {
+      "bytes": 1878,
+      "path": "schemas/session-regression-case.schema.json",
+      "sha256": "4b888e40744d8ec6fc30ca6d8bf055aad890b2f9ad5e37f06ab264e8ab715548"
     },
     {
       "bytes": 1715,

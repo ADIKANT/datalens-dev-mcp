@@ -1,0 +1,45 @@
+{
+  "case_id": "revision-conflict-001",
+  "category": "provider_failure",
+  "context": {
+    "constraints": [
+      "revision_conflict",
+      "preserve_unmentioned_content"
+    ],
+    "saved_revision": "synthetic_revision_1",
+    "target": {
+      "dashboard_id": "synthetic_dashboard",
+      "workbook_id": "synthetic_workbook"
+    }
+  },
+  "contract_sha256": "ad9e66d291ef3ebadb4ce0546df7a05357e0969ffb44fc65edc7096ffd5e5f41",
+  "expected_calls": {
+    "browser": 0,
+    "high_level_budget": 12,
+    "questions": 0,
+    "writes": "conditional_after_recovery"
+  },
+  "expected_failure_family": "REVISION_CONFLICT",
+  "expected_invariants": [
+    "save_readback_before_publish",
+    "target_identity_preserved",
+    "unknown_fields_preserved"
+  ],
+  "expected_recovery": "fresh_read_and_replan",
+  "expected_route": "wizard_native",
+  "expected_task_contract": {
+    "browser_policy": "optional",
+    "delivery": {
+      "publish": false,
+      "save": true
+    },
+    "intent": "update_existing_dashboard",
+    "route_policy": {
+      "ql_allowed": false,
+      "selected": "wizard_native"
+    }
+  },
+  "request": "Apply the synthetic revision conflict correction and complete the authorized delivery flow.",
+  "scenario": "revision_conflict",
+  "visual_checks": []
+}

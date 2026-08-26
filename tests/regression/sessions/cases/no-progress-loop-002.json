@@ -1,0 +1,45 @@
+{
+  "case_id": "no-progress-loop-002",
+  "category": "provider_failure",
+  "context": {
+    "constraints": [
+      "no_progress_loop",
+      "preserve_unmentioned_content"
+    ],
+    "saved_revision": "synthetic_revision_2",
+    "target": {
+      "dashboard_id": "synthetic_dashboard",
+      "workbook_id": "synthetic_workbook"
+    }
+  },
+  "contract_sha256": "8730ef88d8bcb5790c0d7efb54642e9ead396753891127bbe29a131f853c600b",
+  "expected_calls": {
+    "browser": 0,
+    "high_level_budget": 16,
+    "questions": 0,
+    "writes": "conditional_after_recovery"
+  },
+  "expected_failure_family": "NO_PROGRESS",
+  "expected_invariants": [
+    "save_readback_before_publish",
+    "target_identity_preserved",
+    "unknown_fields_preserved"
+  ],
+  "expected_recovery": "architecture_review_after_three_attempts",
+  "expected_route": "wizard_native",
+  "expected_task_contract": {
+    "browser_policy": "optional",
+    "delivery": {
+      "publish": false,
+      "save": true
+    },
+    "intent": "update_existing_dashboard",
+    "route_policy": {
+      "ql_allowed": false,
+      "selected": "wizard_native"
+    }
+  },
+  "request": "Apply the synthetic no progress loop correction and complete the authorized delivery flow.",
+  "scenario": "no_progress_loop",
+  "visual_checks": []
+}

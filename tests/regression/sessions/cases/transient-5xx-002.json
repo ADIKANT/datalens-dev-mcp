@@ -1,0 +1,45 @@
+{
+  "case_id": "transient-5xx-002",
+  "category": "provider_failure",
+  "context": {
+    "constraints": [
+      "transient_5xx",
+      "preserve_unmentioned_content"
+    ],
+    "saved_revision": "synthetic_revision_2",
+    "target": {
+      "dashboard_id": "synthetic_dashboard",
+      "workbook_id": "synthetic_workbook"
+    }
+  },
+  "contract_sha256": "d39604c3b29bd825e1eece321f1e0e601148de9382f820ea4beab74ea93b338d",
+  "expected_calls": {
+    "browser": 0,
+    "high_level_budget": 16,
+    "questions": 0,
+    "writes": "conditional_after_recovery"
+  },
+  "expected_failure_family": "TRANSIENT_5XX",
+  "expected_invariants": [
+    "save_readback_before_publish",
+    "target_identity_preserved",
+    "unknown_fields_preserved"
+  ],
+  "expected_recovery": "bounded_safe_read_retry",
+  "expected_route": "wizard_native",
+  "expected_task_contract": {
+    "browser_policy": "optional",
+    "delivery": {
+      "publish": false,
+      "save": true
+    },
+    "intent": "update_existing_dashboard",
+    "route_policy": {
+      "ql_allowed": false,
+      "selected": "wizard_native"
+    }
+  },
+  "request": "Apply the synthetic transient 5xx correction and complete the authorized delivery flow.",
+  "scenario": "transient_5xx",
+  "visual_checks": []
+}

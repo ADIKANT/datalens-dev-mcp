@@ -1,0 +1,45 @@
+{
+  "case_id": "no-browser-explicit-001",
+  "category": "intent_autonomy",
+  "context": {
+    "constraints": [
+      "no_browser_explicit",
+      "preserve_unmentioned_content"
+    ],
+    "saved_revision": "synthetic_revision_1",
+    "target": {
+      "dashboard_id": "synthetic_dashboard",
+      "workbook_id": "synthetic_workbook"
+    }
+  },
+  "contract_sha256": "2cab2e8437a47448c764e672d1398631aa754a858b86b7ab8be1a5990c3ca950",
+  "expected_calls": {
+    "browser": 0,
+    "high_level_budget": 12,
+    "questions": 0,
+    "writes": "save_then_publish"
+  },
+  "expected_failure_family": "",
+  "expected_invariants": [
+    "save_readback_before_publish",
+    "target_identity_preserved",
+    "unknown_fields_preserved"
+  ],
+  "expected_recovery": "continue_deterministic_workflow",
+  "expected_route": "wizard_native",
+  "expected_task_contract": {
+    "browser_policy": "forbidden",
+    "delivery": {
+      "publish": true,
+      "save": true
+    },
+    "intent": "update_existing_dashboard",
+    "route_policy": {
+      "ql_allowed": false,
+      "selected": "wizard_native"
+    }
+  },
+  "request": "Apply the synthetic no browser explicit correction and complete the authorized delivery flow.",
+  "scenario": "no_browser_explicit",
+  "visual_checks": []
+}
