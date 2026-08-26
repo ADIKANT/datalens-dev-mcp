@@ -72,6 +72,26 @@ def route_for_chart_family(family: str) -> str:
     return get_chart_param_spec(family).route
 
 
+def data_proof_requirements_for_chart(family: str) -> dict[str, Any]:
+    """Return conservative typed assertions implied by a chart family without executing arbitrary code."""
+    spec = get_chart_param_spec(family)
+    assertions: list[str] = ["schema_matches", "pagination_complete"]
+    if "kpi" in family:
+        assertions.extend(["not_empty", "numeric_range"])
+    elif any(token in family for token in ("line", "area", "column", "bar", "scatter", "bubble")):
+        assertions.extend(["not_empty", "no_nulls", "sort_total_order"])
+    elif "table" in family or "pivot" in family:
+        assertions.extend(["sort_total_order"])
+    if "selector" in family:
+        assertions.extend(["selector_value_available", "selector_empty_means_no_filter"])
+    return {
+        "family": family,
+        "route": spec.route,
+        "assertion_kinds": list(dict.fromkeys(assertions)),
+        "policy": "caller supplies field GUIDs and business bounds; this helper never invents thresholds",
+    }
+
+
 def _to_spec(family: str, data: dict[str, Any]) -> ChartParamSpec:
     return ChartParamSpec(
         family=family,

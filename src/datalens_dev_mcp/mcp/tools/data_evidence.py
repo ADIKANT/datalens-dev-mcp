@@ -4,9 +4,11 @@ from typing import Any
 
 from datalens_dev_mcp.pipeline.data_evidence import (
     build_data_evidence_probe_plan,
+    diagnose_empty_dataset_result,
     evaluate_data_evidence,
     record_data_evidence,
 )
+from datalens_dev_mcp.pipeline.data_proof_planner import prove_dataset_data
 from datalens_dev_mcp.mcp.tools.rpc import dl_get_dataset_data
 
 
@@ -86,3 +88,16 @@ def dl_preview_dataset_data(
         project_root=project_root,
         artifact_name=artifact_name,
     )
+
+
+def dl_prove_dataset_data(
+    spec: dict[str, Any],
+    project_root: str = ".",
+    artifact_name: str = "data-proof",
+) -> dict[str, Any]:
+    """Evaluate a declarative, bounded set of typed assertions over getDatasetData rows."""
+    return prove_dataset_data(spec, project_root=project_root, artifact_name=artifact_name)
+
+
+def dl_diagnose_empty_dataset_result(spec: dict[str, Any] | None = None) -> dict[str, Any]:
+    return diagnose_empty_dataset_result(spec)

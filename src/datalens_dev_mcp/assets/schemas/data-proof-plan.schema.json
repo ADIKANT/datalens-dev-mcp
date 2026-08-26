@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/data-proof-plan.schema.json",
+  "title": "Bounded Data Proof Plan",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema_id", "ok", "status", "issues"],
+  "properties": {
+    "schema_id": {"const": "data_proof_plan"},
+    "ok": {"type": "boolean"},
+    "status": {"enum": ["ready", "blocked"]},
+    "issues": {"type": "array", "items": {"type": "string"}},
+    "dataset_id": {"type": "string"},
+    "request": {"type": "object"},
+    "paging": {"type": "object"},
+    "assertions": {"type": "array", "items": {"type": "object"}},
+    "privacy_policy": {"type": "string"}
+  }
+}

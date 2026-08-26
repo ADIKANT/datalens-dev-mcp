@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from datalens_dev_mcp.pipeline.artifacts import write_json
+from datalens_dev_mcp.pipeline.data_assertions import unexpected_empty_diagnostics
 
 EVIDENCE_STATUSES = {
     "AVAILABLE",
@@ -184,6 +185,21 @@ def record_data_evidence(
         "artifact_path": str(root / rel),
         "requirements_summary_path": str(root / "requirements" / "data_evidence.md"),
         "provider_label": artifact["provider_label"],
+    }
+
+
+def diagnose_empty_dataset_result(spec: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Return bounded business diagnostics without guessing why a dataset result is empty."""
+    value = spec if isinstance(spec, dict) else {}
+    return {
+        "ok": False,
+        "status": "unexpected_empty",
+        "row_count": 0,
+        "diagnostics": unexpected_empty_diagnostics(value),
+        "explanation": (
+            "The result is empty, but absence is not yet explained. Check filters, parameters, date coverage, "
+            "field GUIDs, selector domain, source availability, and saved/published branch alignment."
+        ),
     }
 
 
