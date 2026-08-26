@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/task-start-request.schema.json",
+  "title": "Autonomous DataLens task start request",
+  "type": "object",
+  "required": ["request"],
+  "properties": {
+    "request": {"type": "string", "minLength": 1},
+    "project_root": {"type": "string", "default": "."},
+    "context": {
+      "type": "object",
+      "properties": {
+        "target_url": {"type": "string"},
+        "reference_locator": {"type": "string"},
+        "workbook_id": {"type": "string"},
+        "dashboard_id": {"type": "string"},
+        "chart_id": {"type": "string"},
+        "object_ids": {"type": "array", "items": {"type": "string"}},
+        "object_types": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "run_until": {"enum": ["blocked", "plan_ready", "completed"], "default": "plan_ready"}
+  },
+  "additionalProperties": false
+}

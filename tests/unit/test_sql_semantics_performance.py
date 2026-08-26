@@ -20,7 +20,7 @@ from datalens_dev_mcp.pipeline.sql_performance import (
     validate_payload_sql_performance,
     write_required_reports,
 )
-from datalens_dev_mcp.server import STANDARD_TOOL_NAMES, list_tools
+from datalens_dev_mcp.server import LEGACY_TOOL_NAMES, list_tools
 
 
 class SqlSemanticsPerformanceTests(unittest.TestCase):
@@ -229,10 +229,10 @@ class SqlSemanticsPerformanceTests(unittest.TestCase):
         self.assertEqual(first["parse_status_counts"], {"ok": first["sql_case_count"]})
 
     def test_standard_tool_surface_budget_contains_single_diagnostic_tool(self):
-        tools = list_tools()
+        tools = list_tools("legacy-v1")
         names = {tool["name"] for tool in tools}
 
-        self.assertEqual(names, STANDARD_TOOL_NAMES)
+        self.assertEqual(names, LEGACY_TOOL_NAMES)
         self.assertEqual(len(tools), 39)
         compact_payload = json.dumps({"tools": tools}, ensure_ascii=False, separators=(",", ":"))
         self.assertLessEqual(len(compact_payload), 34_000)

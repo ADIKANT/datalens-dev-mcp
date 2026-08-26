@@ -15,7 +15,14 @@ from datalens_dev_mcp.mcp.tool_registry_policy import (
 )
 from datalens_dev_mcp.mcp.tools.runtime import dl_runtime_status
 from datalens_dev_mcp.pipeline.context_contracts import PROJECT_CONTEXT_AWARE_TOOLS
-from datalens_dev_mcp.server import DEFAULT_TOOL_SURFACE, STANDARD_TOOL_NAMES, TOOLS, JsonRpcServer, list_tools
+from datalens_dev_mcp.server import (
+    AUTONOMOUS_TOOL_NAMES,
+    DEFAULT_TOOL_SURFACE,
+    LEGACY_TOOL_NAMES,
+    TOOLS,
+    JsonRpcServer,
+    list_tools,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -57,17 +64,17 @@ class ToolSchemaTests(unittest.TestCase):
                 self.assertIn(required, schema["properties"], name)
 
     def test_list_tools_returns_mutation_safe_schema_copies(self):
-        first = list_tools()
+        first = list_tools("autonomous-v2")
         original_name = first[0]["name"]
         first[0]["name"] = "poisoned_tool"
         first[0]["inputSchema"]["properties"]["poisoned"] = {"type": "string"}
 
-        second = list_tools()
+        second = list_tools("autonomous-v2")
         restored = next(tool for tool in second if tool["name"] == original_name)
 
         self.assertNotIn("poisoned_tool", {tool["name"] for tool in second})
         self.assertNotIn("poisoned", restored["inputSchema"]["properties"])
-        self.assertEqual({tool["name"] for tool in second}, STANDARD_TOOL_NAMES)
+        self.assertEqual({tool["name"] for tool in second}, AUTONOMOUS_TOOL_NAMES)
 
     def test_required_fields_and_enums_are_visible(self):
         listed = {tool["name"]: tool for tool in list_tools("all")}
@@ -110,7 +117,7 @@ class ToolSchemaTests(unittest.TestCase):
         self.assertEqual(dataset_readbacks_schema["items"]["type"], "object")
 
     def test_structured_list_annotations_are_not_advertised_as_string_arrays(self):
-        listed = {tool["name"]: tool for tool in list_tools()}
+        listed = {tool["name"]: tool for tool in list_tools("legacy-v1")}
         expected_object_arrays = {
             ("dl_validate_source_availability_consumers", "consumers"),
             ("dl_create_safe_apply_plan", "existing_update_actions"),
@@ -185,14 +192,15 @@ class ToolSchemaTests(unittest.TestCase):
         for forbidden in ("corpus", "sync_private", "parity", "codex-plugins", "plugin cache"):
             self.assertNotIn(forbidden, payload)
 
-    def test_default_tools_list_uses_standard_surface_without_profile_selection(self):
-        server = JsonRpcServer(project_root=".")
-        response = server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
+    def test_default_tools_list_uses_autonomous_surface_without_profile_selection(self):
+        with patch.dict(os.environ, {}, clear=True):
+            server = JsonRpcServer(project_root=".")
+            response = server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
         result = response["result"]
         names = {tool["name"] for tool in result["tools"]}
 
         self.assertEqual(result["tool_surface"], DEFAULT_TOOL_SURFACE)
-        self.assertEqual(names, STANDARD_TOOL_NAMES)
+        self.assertEqual(names, AUTONOMOUS_TOOL_NAMES)
         self.assertNotIn("profile", result)
         self.assertNotIn("dl_rpc_readonly", names)
         self.assertNotIn("dl_rpc_expert", names)
@@ -200,45 +208,21 @@ class ToolSchemaTests(unittest.TestCase):
         self.assertNotIn("dl_update_project_memory", names)
         self.assertNotIn("dl_create_dataset_field_plan", names)
         self.assertNotIn("dl_create_calculated_field_plan", names)
-        self.assertLessEqual(len(names), 40)
-        for required in (
-            "dl_runtime_status",
-            "dl_auth_probe",
-            "dl_get_workbook_entries",
-            "dl_get_entries_relations",
-            "dl_read_object",
-            "dl_snapshot_dashboard",
-            "dl_list_api_methods",
-            "dl_get_api_method_schema",
-            "dl_plan_object_create",
-            "dl_plan_object_update",
-            "dl_validate_object",
-            "dl_validate_project",
-            "dl_plan_guarded_dataset_update",
-            "dl_plan_dashboard_tab_update",
-            "dl_create_safe_apply_plan",
-            "dl_execute_safe_apply",
-            "dl_create_publish_from_saved_plan",
-            "dl_readback_and_report",
-            "dl_build_validation_evidence_report",
-            "dl_detect_project_live_workflows",
-            "dl_run_project_live_dry_run",
-            "dl_run_project_live_apply",
-        ):
+        self.assertLessEqual(len(names), 9)
+        for required in AUTONOMOUS_TOOL_NAMES:
             self.assertIn(required, names)
 
         core_bytes = len(json.dumps(result, separators=(",", ":")).encode("utf-8"))
         all_bytes = len(json.dumps({"tools": list_tools("all")}, separators=(",", ":")).encode("utf-8"))
-        self.assertLessEqual(core_bytes, 25_000)
+        self.assertLessEqual(core_bytes, 9_000)
         self.assertLess(core_bytes, all_bytes)
 
         listed = {tool["name"]: tool for tool in result["tools"]}
-        project_schema = listed["dl_build_payload_plan"]["inputSchema"]["properties"]
-        self.assertEqual(project_schema["context_ref"]["type"], "object")
-        self.assertEqual(project_schema["evidence_refs"]["items"]["type"], "object")
+        self.assertEqual(listed["dl_task_start"]["inputSchema"]["properties"]["context"]["type"], "object")
+        self.assertEqual(listed["dl_execute"]["inputSchema"]["required"], ["task_id", "plan_hash"])
 
     def test_standard_write_plan_schemas_do_not_advertise_forbidden_routes(self):
-        listed = {tool["name"]: tool for tool in list_tools()}
+        listed = {tool["name"]: tool for tool in list_tools("legacy-v1")}
         payload = json.dumps({"tools": list(listed.values())}, ensure_ascii=False)
 
         for forbidden in ("d3_node", "d3_gravity_node", "graph_ql_node", '"move"'):
@@ -269,55 +253,25 @@ class ToolSchemaTests(unittest.TestCase):
 
         self.assertIn("unknown MCP tool profile", str(raised.exception))
 
-    def test_fresh_default_server_exposes_quality_roadmap_and_order_sequences(self):
-        server = JsonRpcServer(project_root=".")
-        response = server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
-        names = {tool["name"] for tool in response["result"]["tools"]}
+    def test_legacy_surface_preserves_quality_roadmap_and_order_sequences(self):
+        names = {tool["name"] for tool in list_tools("legacy-v1")}
 
-        quality_sequence = [
+        for required in (
             "dl_runtime_status",
             "dl_auth_probe",
-            "dl_get_workbook_entries",
             "dl_snapshot_dashboard",
-            "dl_read_object",
-            "dl_validate_editor_runtime_contract",
-            "dl_validate_project",
-            "dl_build_payload_plan",
             "dl_plan_object_update",
             "dl_create_safe_apply_plan",
             "dl_execute_safe_apply",
-            "dl_readback_and_report",
-            "dl_build_validation_evidence_report",
-        ]
-        roadmap_sequence = [
-            "dl_get_entries_relations",
-            "dl_read_object",
-            "dl_diagnose",
-            "dl_plan_dashboard_tab_update",
-            "dl_plan_object_update",
-            "dl_create_publish_from_saved_plan",
-            "dl_classify_source_error",
-        ]
-        order_sequence = [
-            "dl_validate_object",
-            "dl_plan_guarded_dataset_update",
-            "dl_detect_project_live_workflows",
-            "dl_plan_project_manifest",
-            "dl_plan_project_live_workflow",
-            "dl_run_project_live_dry_run",
             "dl_run_project_live_apply",
-            "dl_read_project_live_summary",
-        ]
-        for sequence in (quality_sequence, roadmap_sequence, order_sequence):
-            with self.subTest(sequence=sequence[0]):
-                self.assertLessEqual(set(sequence), names)
-
-        self.assertIn("dl_generate_editor_bundle", names)
-        self.assertNotIn("dl_compile_guarded_rpc_request", names)
+        ):
+            self.assertIn(required, names)
+        self.assertEqual(names, LEGACY_TOOL_NAMES)
 
     def test_missing_required_runtime_input_is_structured_tool_error(self):
-        server = JsonRpcServer(project_root=".")
-        result = server._call_tool({"name": "dl_get_workbook_entries", "arguments": {}})
+        with patch.dict(os.environ, {"DATALENS_MCP_TOOL_SURFACE": "legacy-v1"}, clear=False):
+            server = JsonRpcServer(project_root=".")
+            result = server._call_tool({"name": "dl_get_workbook_entries", "arguments": {}})
         body = json.loads(result["content"][0]["text"])
 
         self.assertTrue(result["isError"])
@@ -383,7 +337,7 @@ class ToolSchemaTests(unittest.TestCase):
         )
 
         self.assertIn("error", response)
-        self.assertIn("not exposed on the standard MCP tool surface", response["error"]["message"])
+        self.assertIn("not exposed on the", response["error"]["message"])
 
     def test_hidden_tool_env_alone_is_ignored_without_test_only_marker(self):
         with patch.dict(os.environ, {HIDDEN_TOOL_CALLS_ENV: "1", TEST_ONLY_REGISTRY_ENV: ""}, clear=False):
@@ -401,7 +355,7 @@ class ToolSchemaTests(unittest.TestCase):
             )
 
         self.assertIn("error", response)
-        self.assertIn("not exposed on the standard MCP tool surface", response["error"]["message"])
+        self.assertIn("not exposed on the", response["error"]["message"])
 
     def test_hidden_tool_calls_require_explicit_test_only_marker(self):
         with patch.dict(os.environ, {HIDDEN_TOOL_CALLS_ENV: "1", TEST_ONLY_REGISTRY_ENV: "1"}, clear=False):

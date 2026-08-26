@@ -7,13 +7,14 @@ from typing import Any
 from datalens_dev_mcp.api.methods import get_method_schema, list_methods
 from datalens_dev_mcp.pipeline.artifacts import read_text
 from datalens_dev_mcp.pipeline.route_contract import route_contract_document
+from datalens_dev_mcp.mcp.task_resources import list_task_resources, read_task_resource
 
 STATIC_RESOURCES = {
     "datalens://project/requirements": "requirements/implementation_plan.md",
 }
 
 
-def list_resources() -> list[dict[str, str]]:
+def list_resources(*, project_root: str | Path = ".") -> list[dict[str, str]]:
     resources = [
         {
             "uri": uri,
@@ -57,11 +58,14 @@ def list_resources() -> list[dict[str, str]]:
             },
         ]
     )
+    resources.extend(list_task_resources(project_root))
     return resources
 
 
 def read_resource(uri: str, *, project_root: str | Path = ".") -> dict[str, Any]:
     root = Path(project_root)
+    if uri.startswith("datalens://tasks/"):
+        return read_task_resource(uri, project_root=root)
     if uri in STATIC_RESOURCES:
         relative = Path(STATIC_RESOURCES[uri])
         text = read_text(_path_within(root, relative.parent, relative.name), default="")

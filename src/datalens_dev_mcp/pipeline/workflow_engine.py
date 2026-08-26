@@ -60,12 +60,19 @@ class WorkflowEngine:
             source_tree=source_tree,
         )
 
-    def resume(self, *, max_transitions: int | None = None) -> WorkflowState:
+    def resume(
+        self,
+        *,
+        max_transitions: int | None = None,
+        stop_states: set[str] | frozenset[str] | None = None,
+    ) -> WorkflowState:
         with self.journal.locked(owner="workflow-engine"):
             self.journal.initialize(self.contract, identity=self.identity)
             state, _ = self.journal.replay()
             count = 0
             while not is_terminal(state):
+                if stop_states and state.current_state in stop_states:
+                    break
                 if max_transitions is not None and count >= max_transitions:
                     break
                 spec = self._next_spec(state)
@@ -171,6 +178,10 @@ class WorkflowEngine:
             idempotency_key=idempotency_key,
             next_state=spec.target,
             next_transition=next_transition,
+            event_details={
+                "observed_facts": list(result.get("observed_facts") or [])[:20],
+                "handler": spec.handler,
+            },
         )
 
     def _record_reconciliation(

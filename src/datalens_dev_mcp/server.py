@@ -21,6 +21,7 @@ from datalens_dev_mcp.mcp.heavy_response import (
     HEAVY_TOOL_NAMES,
     PROJECTED_HEAVY_TOOL_NAMES,
     project_heavy_tool_response,
+    project_task_tool_response,
 )
 from datalens_dev_mcp.mcp.prompts import get_prompt, list_prompts
 from datalens_dev_mcp.mcp.response_projection import (
@@ -29,7 +30,7 @@ from datalens_dev_mcp.mcp.response_projection import (
     sanitize_response,
 )
 from datalens_dev_mcp.mcp.resources import list_resources, read_resource
-from datalens_dev_mcp.mcp.tool_registry_policy import hidden_tool_calls_enabled
+from datalens_dev_mcp.mcp.tool_registry_policy import hidden_tool_calls_enabled, resolve_tool_surface
 from datalens_dev_mcp.pipeline.context_contracts import (
     PROJECT_CONTEXT_AWARE_TOOLS,
     finalize_project_contract_result,
@@ -51,11 +52,12 @@ from datalens_dev_mcp.mcp.tools import (
     rpc,
     runtime,
     snapshot,
+    tasks,
 )
 
 
 MCP_PROTOCOL_VERSION = "2025-06-18"
-DEFAULT_TOOL_SURFACE = "standard"
+DEFAULT_TOOL_SURFACE = "autonomous-v2"
 
 
 class ToolArgumentsError(ValueError):
@@ -91,6 +93,14 @@ def _tool_schema(
 
 
 TOOLS: dict[str, Callable[..., Any]] = {
+    "dl_task_start": tasks.dl_task_start,
+    "dl_task_resume": tasks.dl_task_resume,
+    "dl_task_status": tasks.dl_task_status,
+    "dl_inspect": tasks.dl_inspect,
+    "dl_plan": tasks.dl_plan,
+    "dl_execute": tasks.dl_execute,
+    "dl_verify": tasks.dl_verify,
+    "dl_evidence": tasks.dl_evidence,
     "dl_get_local_config": config_tools.dl_get_local_config,
     "dl_runtime_status": runtime.dl_runtime_status,
     "dl_auth_probe": runtime.dl_auth_probe,
@@ -187,7 +197,7 @@ TOOLS: dict[str, Callable[..., Any]] = {
     "dl_run_wizard_to_js_plan": local_planning.dl_run_wizard_to_js_plan,
 }
 
-STANDARD_TOOL_NAMES = {
+LEGACY_TOOL_NAMES = {
     "dl_get_local_config",
     "dl_runtime_status",
     "dl_auth_probe",
@@ -229,6 +239,18 @@ STANDARD_TOOL_NAMES = {
     "dl_plan_source_availability_patch",
 }
 
+AUTONOMOUS_TOOL_NAMES = {
+    "dl_task_start",
+    "dl_task_resume",
+    "dl_task_status",
+    "dl_inspect",
+    "dl_plan",
+    "dl_execute",
+    "dl_verify",
+    "dl_evidence",
+}
+STANDARD_TOOL_NAMES = AUTONOMOUS_TOOL_NAMES
+
 CORE_PROFILE_TOOLS = {
     "dl_get_local_config",
     "dl_runtime_status",
@@ -258,7 +280,8 @@ CORE_PROFILE_TOOLS = {
 }
 
 TEST_ONLY_TOOL_PROFILE_MEMBERS: dict[str, set[str]] = {
-    DEFAULT_TOOL_SURFACE: STANDARD_TOOL_NAMES,
+    DEFAULT_TOOL_SURFACE: AUTONOMOUS_TOOL_NAMES,
+    "legacy-v1": LEGACY_TOOL_NAMES,
     "core": CORE_PROFILE_TOOLS,
     "dashboard": CORE_PROFILE_TOOLS
     | {
@@ -309,29 +332,12 @@ TEST_ONLY_TOOL_PROFILE_MEMBERS: dict[str, set[str]] = {
         "dl_create_calculated_field_plan",
         "dl_update_calculated_field_plan",
     },
-    "expert": CORE_PROFILE_TOOLS
-    | {
-        "dl_start_pipeline",
-        "dl_detect_project_adapter",
-        "dl_detect_project_live_workflows",
-        "dl_list_project_live_workflows",
-        "dl_plan_project_live_workflow",
-        "dl_run_project_live_dry_run",
-        "dl_run_project_live_apply",
-        "dl_read_project_live_summary",
-        "dl_list_api_methods",
-        "dl_get_api_method_schema",
-        "dl_rpc_readonly",
-        "dl_rpc_expert",
-        "dl_build_workbook_source_resolution",
-        "dl_build_runtime_verification_plan",
-        "dl_run_wizard_to_js_plan",
-    },
+    "expert": set(TOOLS),
     "all": set(TOOLS),
 }
 
-# Compatibility surfaces are test-only. Normal MCP runtime ignores profile
-# selection and returns only STANDARD_TOOL_NAMES from tools/list.
+# Compatibility profiles remain available for deterministic regression tests.
+# Runtime profile selection is process-owned and resolved by JsonRpcServer.
 TOOL_PROFILE_MEMBERS = TEST_ONLY_TOOL_PROFILE_MEMBERS
 
 PARAM_DESCRIPTIONS: dict[str, str] = {
@@ -811,6 +817,33 @@ MAINTENANCE_EVIDENCE_SCHEMA = {
 }
 
 TOOL_PARAM_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
+    ("dl_task_start", "request"): {"type": "string", "minLength": 1},
+    ("dl_task_start", "context"): {
+        "type": "object",
+        "properties": {
+            "target_url": {"type": "string"},
+            "reference_locator": {"type": "string"},
+            "workbook_id": {"type": "string"},
+            "dashboard_id": {"type": "string"},
+            "chart_id": {"type": "string"},
+            "object_ids": {"type": "array", "items": {"type": "string"}},
+            "object_types": {"type": "array", "items": {"type": "string"}},
+        },
+        "additionalProperties": False,
+    },
+    ("dl_task_start", "run_until"): {
+        "type": "string",
+        "enum": ["blocked", "plan_ready", "completed"],
+        "default": "plan_ready",
+    },
+    ("dl_task_resume", "run_until"): {
+        "type": "string",
+        "enum": ["blocked", "plan_ready", "completed"],
+        "default": "completed",
+    },
+    ("dl_task_resume", "transition_budget"): {"type": "integer", "minimum": 1, "maximum": 100, "default": 20},
+    ("dl_inspect", "max_nodes"): {"type": "integer", "minimum": 1, "maximum": 200, "default": 50},
+    ("dl_evidence", "limit"): {"type": "integer", "minimum": 1, "maximum": 20_000, "default": 4_000},
     ("dl_generate_editor_bundle", "selector_contract"): SELECTOR_CONTRACT_SCHEMA,
     ("dl_create_safe_apply_plan", "maintenance_contract"): DATE_RANGE_MAINTENANCE_CONTRACT_SCHEMA,
     ("dl_create_safe_apply_plan", "existing_update_actions"): EXISTING_UPDATE_ACTIONS_SCHEMA,
@@ -921,6 +954,13 @@ TOOL_PARAM_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
 }
 
 TOOL_REQUIRED_FIELDS: dict[str, list[str]] = {
+    "dl_task_start": ["request"],
+    "dl_task_resume": ["task_id"],
+    "dl_task_status": ["task_id"],
+    "dl_plan": ["task_id"],
+    "dl_execute": ["task_id", "plan_hash"],
+    "dl_verify": ["task_id"],
+    "dl_evidence": ["task_id"],
     "dl_get_dashboard": ["dashboard_id"],
     "dl_get_editor_chart": ["chart_id"],
     "dl_get_wizard_chart": ["chart_id"],
@@ -983,6 +1023,14 @@ TOOL_REQUIRED_FIELDS: dict[str, list[str]] = {
 @lru_cache(maxsize=1)
 def _all_tool_schemas() -> tuple[dict[str, Any], ...]:
     return (
+        _tool_schema("dl_task_start", "Start one persisted DataLens task from the current request."),
+        _tool_schema("dl_task_resume", "Resume a persisted task without resending its context."),
+        _tool_schema("dl_task_status", "Return compact persisted task status."),
+        _tool_schema("dl_inspect", "Inspect a bounded read-only local project graph."),
+        _tool_schema("dl_plan", "Build or return the immutable validated plan for a task."),
+        _tool_schema("dl_execute", "Execute an exact validated task plan through guarded delivery."),
+        _tool_schema("dl_verify", "Verify task proof using its persisted policy and evidence."),
+        _tool_schema("dl_evidence", "Read one bounded task artifact or receipt section."),
         _tool_schema("dl_get_local_config", "Return resolved local MCP config and source metadata."),
         _tool_schema("dl_runtime_status", "Return secret-safe runtime flags, auth, config, and route status."),
         _tool_schema("dl_auth_probe", "Probe live auth with minimal getWorkbooksList read without secrets."),
@@ -1093,7 +1141,7 @@ def _all_tool_schemas() -> tuple[dict[str, Any], ...]:
 
 
 def list_tools(profile: str | None = None) -> list[dict[str, Any]]:
-    names = STANDARD_TOOL_NAMES if profile is None else tool_names_for_profile(profile)
+    names = tool_names_for_profile(profile or resolve_tool_surface())
     return [deepcopy(tool) for tool in _all_tool_schemas() if tool["name"] in names]
 
 
@@ -1126,7 +1174,7 @@ def _input_schema_for_tool(
         for param_name, param in inspect.signature(fn).parameters.items():
             if param_name == "client" or param.kind in {inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD}:
                 continue
-            if name in STANDARD_TOOL_NAMES and param_name in {
+            if name in LEGACY_TOOL_NAMES and param_name in {
                 "approved",
                 "approval_source",
                 "approved_plan_path",
@@ -1266,6 +1314,8 @@ class JsonRpcServer:
         )
         self.project_root = str(Path(project_root).expanduser().resolve())
         self.local_config = load_local_config(local_config_path, project_root=self.project_root)
+        self.tool_surface = resolve_tool_surface()
+        self.allowed_tool_names = frozenset(tool_names_for_profile(self.tool_surface))
 
     def handle(self, message: dict[str, Any]) -> dict[str, Any] | None:
         if "id" not in message:
@@ -1274,56 +1324,49 @@ class JsonRpcServer:
         params = message.get("params") or {}
         try:
             if method == "initialize":
-                tool_count = len(list_tools())
+                tool_count = len(list_tools(self.tool_surface))
                 result = {
                     "protocolVersion": MCP_PROTOCOL_VERSION,
                     "capabilities": {"tools": {}, "resources": {}, "prompts": {}},
                     "serverInfo": {"name": "datalens-dev-mcp", "version": __version__},
                     "instructions": (
-                        f"DataLens MCP standard tool surface: {tool_count} tools. "
-                        "Normal sequence: resolve target; snapshot/read; reference/diagnose; "
-                        "generate/validate locally; plan; safe apply; saved readback; "
-                        "publish from saved readback; published readback and runtime check. "
-                        "An explicit create/fix/update/redesign request authorizes guarded save and publish without another question. "
-                        "Review, audit, diagnose, plan-only, save-only, and no-publish wording limits execution accordingly. "
-                        "Arbitrary whole-object deletion is unsupported; "
-                        "retire_legacy_objects alone requires a second call with "
-                        "confirm_delete=true for the unchanged plan. "
-                        "Writes remain guarded by runtime enablement, target lock, fresh reads, "
-                        "revision preservation, save semantics, and readback."
+                        f"DataLens MCP {self.tool_surface} surface: {tool_count} tools. "
+                        "Use task tools for normal DataLens work. Start or resume one persisted task. "
+                        "The server resolves targets, plans, validates, saves, reads back, publishes from saved state, "
+                        "and verifies according to the task browser policy. Do not use expert tools unless explicitly enabled."
                     ),
                 }
             elif method == "tools/list":
-                tools = list_tools()
-                result = {"tools": tools, "tool_surface": DEFAULT_TOOL_SURFACE, "tool_count": len(tools)}
+                tools = list_tools(self.tool_surface)
+                result = {"tools": tools, "tool_surface": self.tool_surface, "tool_count": len(tools)}
             elif method == "tools/call":
-                result = self._call_tool(params)
+                result = self._call_tool(params, enforce_surface=True)
             elif method == "resources/list":
-                result = {"resources": list_resources()}
+                result = {"resources": list_resources(project_root=self.project_root)}
             elif method == "resources/read":
                 uri = params["uri"]
                 resource = read_resource(uri, project_root=self.project_root)
                 public_text = project_public_resource_text(
                     resource["text"],
-                    allowed_tool_names=STANDARD_TOOL_NAMES,
+                    allowed_tool_names=self.allowed_tool_names,
                 )
                 result = {"contents": [{"uri": uri, "mimeType": resource["mimeType"], "text": public_text}]}
             elif method == "prompts/list":
-                result = {"prompts": list_prompts()}
+                result = {"prompts": list_prompts(self.tool_surface)}
             elif method == "prompts/get":
-                result = get_prompt(params["name"])
+                result = get_prompt(params["name"], self.tool_surface)
             else:
                 return self._error(message["id"], -32601, f"Method not found: {method}")
             return {"jsonrpc": "2.0", "id": message["id"], "result": result}
         except Exception as exc:  # noqa: BLE001
             return self._error(message["id"], -32000, _safe_error(exc))
 
-    def _call_tool(self, params: dict[str, Any]) -> dict[str, Any]:
+    def _call_tool(self, params: dict[str, Any], *, enforce_surface: bool = False) -> dict[str, Any]:
         name = params["name"]
         if name not in TOOLS:
             raise KeyError(f"Unknown tool {name}")
-        if name not in STANDARD_TOOL_NAMES and not hidden_tool_calls_enabled():
-            raise DataLensSafetyError(f"{name} is not exposed on the standard MCP tool surface")
+        if enforce_surface and name not in self.allowed_tool_names and not hidden_tool_calls_enabled():
+            raise DataLensSafetyError(f"{name} is not exposed on the {self.tool_surface} MCP tool surface")
         fn = TOOLS[name]
         signature = _cached_tool_signature(fn)
         raw_arguments = _translate_legacy_standard_tool_arguments(name, params.get("arguments") or {})
@@ -1338,7 +1381,7 @@ class JsonRpcServer:
         )
         argument_error = _tool_argument_contract_error(name, raw_arguments, arguments)
         if argument_error is not None:
-            return _tool_error_content(name, argument_error)
+            return _tool_error_content(name, argument_error, allowed_tool_names=self.allowed_tool_names)
         heavy_response_mode = "summary"
         heavy_inline_char_budget = DEFAULT_HEAVY_INLINE_CHAR_BUDGET
         if name in PROJECTED_HEAVY_TOOL_NAMES:
@@ -1379,12 +1422,13 @@ class JsonRpcServer:
                     project_root=arguments.get("project_root", self.project_root),
                     run_id="",
                 )
+            output = project_task_tool_response(name, output)
         except Exception as exc:  # noqa: BLE001
-            return _tool_error_content(name, exc)
+            return _tool_error_content(name, exc, allowed_tool_names=self.allowed_tool_names)
         public_output = sanitize_response(
             project_public_response(
                 output,
-                allowed_tool_names=STANDARD_TOOL_NAMES,
+                allowed_tool_names=self.allowed_tool_names,
             )
         )
         return {
@@ -1456,11 +1500,16 @@ def _missing_tool_argument(value: Any) -> bool:
     return value is None or value == "" or value == []
 
 
-def _tool_error_content(name: str, exc: Exception) -> dict[str, Any]:
+def _tool_error_content(
+    name: str,
+    exc: Exception,
+    *,
+    allowed_tool_names: set[str] | frozenset[str] = STANDARD_TOOL_NAMES,
+) -> dict[str, Any]:
     public_error = sanitize_response(
         project_public_response(
             _structured_tool_error(name, exc),
-            allowed_tool_names=STANDARD_TOOL_NAMES,
+            allowed_tool_names=allowed_tool_names,
         )
     )
     return {

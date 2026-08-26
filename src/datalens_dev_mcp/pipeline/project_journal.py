@@ -169,6 +169,7 @@ class ProjectJournal:
         next_transition: str,
         blocker: dict[str, Any] | None = None,
         reconciliation: dict[str, Any] | None = None,
+        event_details: dict[str, Any] | None = None,
     ) -> WorkflowState:
         if status == "success" and idempotency_key in state.successful_idempotency_keys:
             return state
@@ -183,6 +184,7 @@ class ProjectJournal:
             timestamp=utc_now(),
             idempotency_key=idempotency_key,
             details={
+                **(event_details or {}),
                 "next_state": next_state,
                 "next_transition": next_transition,
                 "blocker": blocker or {},

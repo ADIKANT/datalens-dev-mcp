@@ -3378,6 +3378,7 @@ def dl_create_safe_apply_plan(
     target_dashboard_id: str = "",
     target_chart_id: str = "",
     target_url: str = "",
+    task_contract_hash: str = "",
 ) -> dict[str, Any]:
     effective_authorized = _request_authorizes_standard_write(
         delivery_intent_text,
@@ -3746,6 +3747,7 @@ def dl_create_safe_apply_plan(
         actions=actions,
         approved=effective_authorized,
         user_request_text=delivery_intent_text,
+        task_contract_hash=task_contract_hash,
     )
     plan["adapter"] = adapter
     plan["target_lock"] = target_lock.to_dict()

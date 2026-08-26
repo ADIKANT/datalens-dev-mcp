@@ -81,7 +81,7 @@ class McpStdioSmokeTests(unittest.TestCase):
 
         self.assertEqual(responses[0]["result"]["serverInfo"]["name"], "datalens-dev-mcp")
         self.assertEqual(responses[0]["result"]["protocolVersion"], "2025-06-18")
-        self.assertIn("standard tool surface", responses[0]["result"]["instructions"])
+        self.assertIn("legacy-v1 surface", responses[0]["result"]["instructions"])
         tools = {tool["name"] for tool in responses[1]["result"]["tools"]}
         resources = {item["uri"] for item in responses[2]["result"]["resources"]}
         prompts = {item["name"] for item in responses[3]["result"]["prompts"]}

@@ -82,20 +82,40 @@ PROMPTS: dict[str, dict[str, str]] = {
     },
 }
 
+AUTONOMOUS_PROMPTS: dict[str, dict[str, str]] = {
+    "datalens.task": {
+        "description": "Start or resume one persisted DataLens development task.",
+        "text": (
+            "Use dl_task_start for a new request or dl_task_resume for an existing task. "
+            "Use dl_plan, dl_execute, dl_verify, and bounded dl_evidence as directed by task state. "
+            "Do not call legacy or expert tools from the autonomous surface."
+        ),
+    },
+    "datalens.task_review": {
+        "description": "Review one persisted task using compact status and bounded evidence.",
+        "text": (
+            "Read dl_task_status, then use dl_evidence for only the required checkpoint, plan, receipt, or proof section. "
+            "Report observed facts, route, performed transitions, result, omissions, risk, and the next action if nonterminal."
+        ),
+    },
+}
 
-def list_prompts() -> list[dict[str, str]]:
+
+def list_prompts(surface: str = "autonomous-v2") -> list[dict[str, str]]:
+    prompts = PROMPTS if surface in {"legacy-v1", "expert"} else AUTONOMOUS_PROMPTS
     return [
         {
             "name": name,
             "title": " ".join(part.capitalize() for part in name.removeprefix("datalens.").replace("_", " ").split()),
             "description": item["description"],
         }
-        for name, item in PROMPTS.items()
+        for name, item in prompts.items()
     ]
 
 
-def get_prompt(name: str) -> dict[str, object]:
-    item = PROMPTS[name]
+def get_prompt(name: str, surface: str = "autonomous-v2") -> dict[str, object]:
+    prompts = PROMPTS if surface in {"legacy-v1", "expert"} else AUTONOMOUS_PROMPTS
+    item = prompts[name]
     return {
         "description": item["description"],
         "messages": [

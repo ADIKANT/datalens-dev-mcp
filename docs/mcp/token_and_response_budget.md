@@ -1,21 +1,22 @@
 # MCP Token And Response Budget
 
-Startup and default read responses stay bounded. The standard `tools/list`
-surface is the single normal client surface, and default reads return summaries,
+Startup and default read responses stay bounded. The autonomous `tools/list`
+surface is the normal client surface, and default reads return summaries,
 short previews, hashes, counts, and artifact metadata instead of hydrated
 payloads.
 
 Budget rules:
 
-- `tools/list` standard surface: exactly 39 tools and at most 25,000 UTF-8
-  JSON bytes. Tool schemas omit descriptions only for self-evident identifiers
+- `tools/list` autonomous surface: 8 tools (hard ceiling 9) and at most 9,000
+  UTF-8 JSON bytes. Initialization instructions are at most 1,500 UTF-8 bytes. Tool schemas omit descriptions only for self-evident identifiers
   and bounded knobs; safety-critical payload, configuration, write/delete,
   readback, and current/proposed-state guidance remains inline. Schemas are
   generated through the cached runtime registry so repeated startup/list calls
   do not rebuild previous-version schemas.
 - Project context is supplied as `project_context_ref` by Project Memory
   Bank; DataLens does not duplicate startup-file reads in its responses.
-- `dl_reference`: bounded inline response with `summary`, at most five `rules`,
+- `dl_evidence`: one task-owned resource with an inline ceiling of 20,000 characters and explicit offset/truncation metadata.
+- Legacy `dl_reference`: bounded inline response with `summary`, at most five `rules`,
   exact next standard tools, artifact paths for longer details, version, and
   date.
 - `dl_read_object` and discovery helpers: summary by default; full or artifact

@@ -199,10 +199,10 @@
   ],
   "schema_id": "semantic_authoring",
   "tool_budget": {
-    "all_tool_count": 94,
-    "all_tools_list_bytes": 50461,
-    "default_tool_count": 39,
-    "default_tools_list_bytes": 24487,
-    "default_tools_list_chars": 24487
+    "all_tool_count": 102,
+    "all_tools_list_bytes": 53724,
+    "default_tool_count": 8,
+    "default_tools_list_bytes": 3235,
+    "default_tools_list_chars": 3235
   }
 }

@@ -4,7 +4,23 @@
 
 [Quick start](../README_en.md#quick-start) · [DataLens access](access_en.md) · [Connect](codex_setup_en.md) · [Tools](tools_en.md) · **Workflows** · [Sources](sources_en.md) · [Safety](local-only-safety-model_en.md) · [Русский](usage-flow.md)
 
-Codex, Claude, and other stdio clients use the same lifecycle. Only server registration differs.
+Codex, Claude, and other stdio clients use the same lifecycle. Only server registration differs. By default the client sees eight `autonomous-v2` task-level tools; the server performs the low-level steps listed below inside the workflow.
+
+## Autonomous task workflow
+
+```text
+dl_task_start(request, run_until="plan_ready")
+  -> dl_task_status / dl_inspect when needed
+  -> dl_plan to reread the hash-bound plan explicitly
+  -> dl_execute(task_id, plan_hash) for write tasks
+     or dl_task_resume to continue the server-owned workflow
+  -> dl_verify
+  -> dl_evidence for one bounded artifact
+```
+
+`dl_task_start` compiles immutable target, delivery, evidence, and browser policy fields, writes the event chain, and normally stops at `PLAN_VALIDATED`. `dl_task_resume` continues the same task after a process restart; `expected_state` and `expected_hash` prevent execution from stale state. Review, audit, diagnose, and plan-only tasks finish without writes. A write task uses the persisted Safe Apply plan and does not accept arbitrary model-supplied payloads at `dl_execute` time.
+
+Full plans, receipts, and evidence are read through `datalens://tasks/<TASK_ID>/...`; the inline response remains compact. Existing clients can enable `DATALENS_MCP_TOOL_SURFACE=legacy-v1` locally, but the new autonomous flow does not require direct internal tool calls.
 
 ## Complete flow
 

@@ -12,18 +12,18 @@ from datalens_dev_mcp.server import JsonRpcServer, list_tools
 
 
 class FullCorpusRuntimeIntegrationTests(unittest.TestCase):
-    def test_default_surface_includes_one_reference_tool_with_budget(self):
-        server = JsonRpcServer(project_root=".")
-        result = server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})["result"]
+    def test_default_surface_includes_task_orchestration_with_budget(self):
+        result = {"tools": list_tools("autonomous-v2")}
         names = {tool["name"] for tool in result["tools"]}
         schemas = {tool["name"]: tool["inputSchema"] for tool in result["tools"]}
         all_schemas = {tool["name"]: tool["inputSchema"] for tool in list_tools("all")}
         payload_chars = len(json.dumps(result, ensure_ascii=False, separators=(",", ":")))
 
-        self.assertIn("dl_reference", names)
-        self.assertLessEqual(len(names), 40)
-        self.assertLessEqual(payload_chars, 25000)
-        self.assertIn("recipe", schemas["dl_reference"]["properties"]["mode"]["enum"])
+        self.assertIn("dl_task_start", names)
+        self.assertIn("dl_evidence", names)
+        self.assertLessEqual(len(names), 9)
+        self.assertLessEqual(payload_chars, 9000)
+        self.assertEqual(schemas["dl_task_start"]["properties"]["run_until"]["enum"], ["blocked", "plan_ready", "completed"])
         self.assertEqual(all_schemas["dl_update_dashboard_plan"]["properties"]["mode"]["enum"], ["save", "publish"])
 
     def test_compiled_capability_matrices_embed_the_current_tool_budget(self):

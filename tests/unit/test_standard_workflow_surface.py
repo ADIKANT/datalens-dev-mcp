@@ -9,9 +9,9 @@ class StandardWorkflowSurfaceTests(unittest.TestCase):
             dl_plan_object_update,
             dl_validate_object,
         )
-        from datalens_dev_mcp.server import STANDARD_TOOL_NAMES
+        from datalens_dev_mcp.server import LEGACY_TOOL_NAMES
 
-        default_tools = set(STANDARD_TOOL_NAMES)
+        default_tools = set(LEGACY_TOOL_NAMES)
         workflows = {
             "event_source_repair": {
                 "dl_read_object",

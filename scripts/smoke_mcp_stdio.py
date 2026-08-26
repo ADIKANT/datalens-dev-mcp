@@ -42,15 +42,20 @@ def main() -> int:
         _rpc(1, "initialize", {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "smoke", "version": "1"}}),
         json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"}, separators=(",", ":")) + "\n",
         _rpc(2, "tools/list"),
-        _rpc(3, "tools/call", {"name": "dl_get_local_config", "arguments": {}}),
+        _rpc(3, "tools/call", {"name": "dl_inspect", "arguments": {"project_root": str(ROOT), "max_nodes": 5}}),
         _rpc(4, "prompts/list"),
-        _rpc(5, "prompts/get", {"name": "datalens.develop_dashboard"}),
+        _rpc(5, "prompts/get", {"name": "datalens.task"}),
         _rpc(6, "resources/list"),
         _rpc(7, "resources/read", {"uri": "datalens://routes/contract"}),
         _rpc(8, "unknown/method"),
         "{malformed json}\n",
     ]
-    env = {**os.environ, "PYTHONPATH": str(ROOT / "src"), "PYTHONDONTWRITEBYTECODE": "1"}
+    env = {
+        **os.environ,
+        "PYTHONPATH": str(ROOT / "src"),
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "DATALENS_MCP_TOOL_SURFACE": "autonomous-v2",
+    }
     subprocess_started = time.perf_counter()
     proc = subprocess.run(
         [sys.executable, "-m", "datalens_dev_mcp.server", "--project-root", str(ROOT)],
@@ -82,17 +87,17 @@ def main() -> int:
         return 1
     tools = {tool["name"] for tool in responses[1]["result"]["tools"]}
     tool_payload_bytes = len(json.dumps({"tools": responses[1]["result"]["tools"]}, separators=(",", ":")).encode("utf-8"))
-    if responses[1]["result"].get("tool_surface") != "standard":
-        print("tools/list did not report the standard surface", file=sys.stderr)
+    if responses[1]["result"].get("tool_surface") != "autonomous-v2":
+        print("tools/list did not report the autonomous-v2 surface", file=sys.stderr)
         return 1
-    if len(tools) != 39:
-        print(f"tools/list returned {len(tools)} tools instead of 39", file=sys.stderr)
+    if len(tools) > 9:
+        print(f"tools/list returned {len(tools)} tools instead of at most 9", file=sys.stderr)
         return 1
-    if tool_payload_bytes > 25_000:
+    if tool_payload_bytes > 9_000:
         print(f"tools/list payload exceeds budget: {tool_payload_bytes} bytes", file=sys.stderr)
         return 1
-    if "dl_get_local_config" not in tools:
-        print("tools/list did not expose dl_get_local_config", file=sys.stderr)
+    if "dl_task_start" not in tools or "dl_inspect" not in tools:
+        print("tools/list did not expose the autonomous task surface", file=sys.stderr)
         return 1
     if not all("name" in tool and "description" in tool and "inputSchema" in tool for tool in responses[1]["result"]["tools"]):
         print("tools/list returned a tool without name, description, or inputSchema", file=sys.stderr)
@@ -107,8 +112,8 @@ def main() -> int:
         print("tools/call did not return content", file=sys.stderr)
         return 1
     prompts = {prompt["name"] for prompt in responses[3]["result"]["prompts"]}
-    if "datalens.develop_dashboard" not in prompts:
-        print("prompts/list did not expose datalens.develop_dashboard", file=sys.stderr)
+    if "datalens.task" not in prompts:
+        print("prompts/list did not expose datalens.task", file=sys.stderr)
         return 1
     if not responses[4]["result"].get("messages"):
         print("prompts/get did not return messages", file=sys.stderr)
