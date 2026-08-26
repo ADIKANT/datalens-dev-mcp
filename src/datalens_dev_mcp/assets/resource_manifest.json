@@ -1,5 +1,5 @@
 {
-  "resource_count": 288,
+  "resource_count": 291,
   "resources": [
     {
       "bytes": 15842,
@@ -254,7 +254,7 @@
     {
       "bytes": 12873,
       "path": "schemas/datalens-knowledge/capability-matrix.json",
-      "sha256": "4bfd669e6b45894258bc624508b079965b79e4bf14ce85ca88f41560fdbdc99a"
+      "sha256": "fa3d7b521880e42dcad1643f13fcd4d8b8d0f9e1c62ad61cf23ef0f195ed2bf8"
     },
     {
       "bytes": 3130533,
@@ -289,7 +289,7 @@
     {
       "bytes": 6830,
       "path": "schemas/datalens-knowledge/route-capability-matrix.json",
-      "sha256": "9494bdc50965a7a1624e3bab955e1f660794a0bb67417235f7cd479b5de44646"
+      "sha256": "b234b1bf21f8e760c138bf54bb0af07928655bdde3e694ceb57bd2ef1e69449b"
     },
     {
       "bytes": 318084,
@@ -352,6 +352,11 @@
       "sha256": "bd02600921cec3606c54a7e3958cd152bf882da47596c76ea1b16e7c320623bb"
     },
     {
+      "bytes": 1067,
+      "path": "schemas/evidence-matrix.schema.json",
+      "sha256": "67a188747cc10095055eb0b489e052aa79470a081d526a56fd4cc1ac97cccf5c"
+    },
+    {
       "bytes": 844,
       "path": "schemas/evidence_mode_decision.schema.json",
       "sha256": "7e2356e88420e7f4bfc655a03d6cd7dbcb746c9f264ad2f3ea4199f624d51111"
@@ -367,9 +372,9 @@
       "sha256": "346bf2b7e9faf96d79f21ffe0a347b44eaf5368cd4b697235e97a21d064ff13a"
     },
     {
-      "bytes": 1858,
+      "bytes": 2155,
       "path": "schemas/final-payload-attestation.schema.json",
-      "sha256": "ce64cf6d659de95c98bcc6402b10e404bd8b06771e0afaae57952887f0b6b351"
+      "sha256": "c7624c19846f5e9480466ded1f5168383011759e87b9fd11c7d6b341c19e273f"
     },
     {
       "bytes": 1291,
@@ -442,14 +447,24 @@
       "sha256": "dc2ff5f1f21586a2202fc8700776b1e3d1311e5a07fd8922b243a5f5fa491c98"
     },
     {
+      "bytes": 968,
+      "path": "schemas/proof-claim.schema.json",
+      "sha256": "e70c29f47586177806a60353a6f0db588b8d81bac55ecb076487b980cf8274f0"
+    },
+    {
       "bytes": 647,
       "path": "schemas/protected-region.schema.json",
       "sha256": "ce6463cbd9d90d4ba9e06fde66c89352f8db0f829963d76223bf544636dc540e"
     },
     {
-      "bytes": 1920,
+      "bytes": 2030,
       "path": "schemas/qa-attestation.schema.json",
-      "sha256": "845d554db58eccd49cc1fcc229c2753cd8e837892c2510fdc4826f7d020c4dcc"
+      "sha256": "7de6dcfc0a8cd21170264b4c97927ac34c3cba0045cb46ee4389904f53379072"
+    },
+    {
+      "bytes": 1080,
+      "path": "schemas/render-contract-fixture.schema.json",
+      "sha256": "53d38dbab90c374734434f358a4d2b129d1e0f739035984dd281a089059bd821"
     },
     {
       "bytes": 893,

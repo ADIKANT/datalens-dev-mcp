@@ -336,7 +336,10 @@ def final_status_from_runtime_gate(
     *,
     browser_runtime_required: bool = True,
     non_rendering_exemption: str = "",
+    evidence_matrix: dict[str, Any] | None = None,
 ) -> str:
+    if not browser_runtime_required and (evidence_matrix or {}).get("can_publish") is True:
+        return "done"
     if not browser_runtime_required and non_rendering_exemption:
         return "done"
     status = str((runtime_gate or {}).get("status") or "").strip().lower()
@@ -852,7 +855,10 @@ def runtime_first_status_from_runtime_gate(
     *,
     browser_runtime_required: bool = True,
     non_rendering_exemption: str = "",
+    evidence_matrix: dict[str, Any] | None = None,
 ) -> str:
+    if not browser_runtime_required and (evidence_matrix or {}).get("can_publish") is True:
+        return "structural_ok_runtime_not_checked"
     if not browser_runtime_required and non_rendering_exemption:
         return "structural_ok_runtime_not_checked"
     if runtime_gate_has_blocking_markers(runtime_gate):

@@ -15,6 +15,7 @@ from datalens_dev_mcp.editor.title_contract import validate_title_contract
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.pipeline.dashboard_composition import validate_dashboard_composition
 from datalens_dev_mcp.pipeline.semantic_patch import validate_semantic_patch_plan
+from datalens_dev_mcp.pipeline.evidence_matrix import CHANGE_CLASS_REQUIREMENTS
 
 
 FINAL_PAYLOAD_ATTESTATION_SCHEMA_ID = "final_payload_attestation"
@@ -134,6 +135,7 @@ def build_final_payload_attestation(root: str | Path) -> dict[str, Any]:
                 "tabs_sha256": canonical_sha256(persisted_tabs),
                 "render_validation_ok": bool(render_validation.get("ok", True)),
                 "semantic_patch_plan_hash": str((semantic_patch_plan or {}).get("plan_hash") or ""),
+                "recommended_change_class": _component_change_class(route, str(bundle.get("family") or "")),
             }
         )
 
@@ -188,6 +190,10 @@ def build_final_payload_attestation(root: str | Path) -> dict[str, Any]:
                 "binding_neutral_payload_sha256": canonical_sha256(_without_destination_binding(compiled_payload)),
                 "tabs_sha256": "",
                 "render_validation_ok": True,
+                "recommended_change_class": _component_change_class(
+                    route,
+                    str(plan.get("semantic_family") or plan.get("visualization_id") or ""),
+                ),
             }
         )
 
@@ -230,6 +236,15 @@ def build_final_payload_attestation(root: str | Path) -> dict[str, Any]:
             for item in ordered_components
         ],
         "components": ordered_components,
+        "intent_aware_qa": {
+            "change_classes": sorted(
+                {str(item.get("recommended_change_class") or "") for item in ordered_components if item}
+            ),
+            "requirements": {
+                key: list(value)
+                for key, value in CHANGE_CLASS_REQUIREMENTS.items()
+            },
+        },
         "dashboard_composition": {
             "path": composition_path.relative_to(project_root).as_posix(),
             "sha256": str(composition.get("sha256") or ""),
@@ -282,6 +297,15 @@ def build_final_payload_attestation(root: str | Path) -> dict[str, Any]:
         {key: value for key, value in attestation.items() if key != "attestation_sha256"}
     )
     return attestation
+
+
+def _component_change_class(route: str, family: str) -> str:
+    lowered = f"{route} {family}".lower()
+    if "selector" in lowered or "control" in lowered:
+        return "selector_behavior"
+    if route == "editor_advanced":
+        return "renderer_logic"
+    return "source_labels_only"
 
 
 def write_final_payload_attestation(root: str | Path) -> dict[str, Any]:

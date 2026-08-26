@@ -3194,6 +3194,9 @@ def dl_run_live_maintenance_update(
         approved=effective_authorized,
         publish=publish,
         browser_runtime_required=evidence["browser_runtime_required"],
+        browser_policy=evidence["browser_policy"],
+        evidence_matrix=evidence["evidence_matrix"],
+        change_class=evidence["change_class"],
         non_rendering_exemption=evidence["non_rendering_exemption"],
         baseline_snapshot_path=evidence["baseline_snapshot_path"],
         metadata_evidence_paths=evidence["metadata_evidence_paths"],
@@ -3219,7 +3222,10 @@ def dl_run_live_maintenance_update(
 
 
 _LIVE_MAINTENANCE_EVIDENCE_DEFAULTS: dict[str, Any] = {
-    "browser_runtime_required": True,
+    "browser_runtime_required": None,
+    "browser_policy": None,
+    "evidence_matrix": None,
+    "change_class": "",
     "non_rendering_exemption": "",
     "baseline_snapshot_path": "",
     "metadata_evidence_paths": None,
@@ -3252,6 +3258,8 @@ _LIVE_MAINTENANCE_OBJECT_FIELDS = {
     "published_readback_evidence",
     "baseline_dashboard",
     "proposed_dashboard",
+    "browser_policy",
+    "evidence_matrix",
 }
 _LIVE_MAINTENANCE_OBJECT_LIST_FIELDS = {
     "changed_objects",
@@ -3263,6 +3271,7 @@ _LIVE_MAINTENANCE_STRING_FIELDS = {
     "baseline_snapshot_path",
     "source_availability_artifact",
     "cleanup_mode",
+    "change_class",
 }
 _LIVE_MAINTENANCE_BOOL_FIELDS = {"browser_runtime_required", "allow_create"}
 
@@ -3296,6 +3305,8 @@ def _normalize_live_maintenance_evidence(
     normalized.update(supplied)
     normalized.update(deepcopy(legacy_evidence))
     for name in sorted(_LIVE_MAINTENANCE_BOOL_FIELDS):
+        if name == "browser_runtime_required" and normalized[name] is None:
+            continue
         if type(normalized[name]) is not bool:
             issues.append(f"{name} must be boolean")
     for name in sorted(_LIVE_MAINTENANCE_STRING_FIELDS):

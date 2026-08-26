@@ -9,6 +9,8 @@
     "schema_id": {"const": "qa_attestation"},
     "ok": {"type": "boolean"},
     "status": {"enum": ["passed", "failed"]},
+    "proof_level": {"const": "browser_rendered"},
+    "browser_route": {"const": "internal_browser_adapter"},
     "dashboard_id": {"type": "string", "minLength": 1},
     "saved_revision": {"type": "string", "minLength": 1},
     "published_revision": {"type": "string", "minLength": 1},

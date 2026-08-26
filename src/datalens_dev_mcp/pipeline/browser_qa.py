@@ -250,6 +250,7 @@ def build_browser_qa_plan(
         "title_contracts": normalized_title_contracts,
         "dashboard_composition": normalized_composition,
         "execution": {
+            "browser_route": "internal_browser_adapter",
             "max_browser_calls": BROWSER_QA_MAX_CALLS,
             "navigation_count": 1,
             "evaluation_count_per_viewport": 1,
@@ -313,6 +314,42 @@ def build_browser_qa_plan(
     }
     plan["canonical_sha256"] = browser_qa_plan_sha256(plan)
     return plan
+
+
+def execute_browser_qa_by_policy(
+    *,
+    browser_policy: dict[str, Any],
+    adapter: Any,
+    plan: dict[str, Any],
+    execute_optional: bool = False,
+) -> dict[str, Any]:
+    """Call the internal adapter only when policy permits it; forbidden means zero calls."""
+    mode = str(browser_policy.get("mode") or "optional").strip().lower()
+    if mode == "forbidden":
+        return {
+            "ok": True,
+            "status": "browser_forbidden_skipped",
+            "adapter_calls": 0,
+            "proof_level": "contract_runtime",
+            "browser_rendered": False,
+        }
+    if mode == "optional" and not execute_optional:
+        return {
+            "ok": True,
+            "status": "browser_optional_skipped",
+            "adapter_calls": 0,
+            "proof_level": "contract_runtime",
+            "browser_rendered": False,
+        }
+    result = adapter(plan)
+    return {
+        "ok": bool(isinstance(result, dict) and result.get("ok")),
+        "status": str((result or {}).get("status") or "browser_adapter_completed"),
+        "adapter_calls": 1,
+        "proof_level": "browser_rendered",
+        "browser_rendered": True,
+        "result": result,
+    }
 
 
 def browser_qa_plan_sha256(plan: dict[str, Any]) -> str:
@@ -1674,6 +1711,8 @@ def build_qa_attestation(
         "schema_id": "qa_attestation",
         "ok": not issues,
         "status": "passed" if not issues else "failed",
+        "proof_level": "browser_rendered",
+        "browser_route": "internal_browser_adapter",
         "dashboard_id": normalized_dashboard_id,
         "saved_revision": normalized_saved_revision,
         "published_revision": normalized_published_revision,

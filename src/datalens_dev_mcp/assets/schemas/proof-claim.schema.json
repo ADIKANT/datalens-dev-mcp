@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/proof-claim.schema.json",
+  "title": "Honest QA proof claim",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "claim", "proof_level", "revision", "evidence_schema_id", "evidence_sha256", "ok", "issues", "sha256"],
+  "properties": {
+    "schema_id": {"const": "proof_claim"},
+    "claim": {"type": "string", "minLength": 1},
+    "proof_level": {"enum": ["source_static", "installed_static", "live_read_only_api", "save_readback", "publish_readback", "contract_runtime", "browser_rendered", "controlled_live_write"]},
+    "revision": {"type": "string"},
+    "evidence_schema_id": {"type": "string"},
+    "evidence_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "ok": {"type": "boolean"},
+    "issues": {"type": "array", "items": {"type": "string"}},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/render-contract-fixture.schema.json",
+  "title": "Editor non-browser render contract fixture",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "fixture_id", "prepare_source", "viewports", "data_states", "themes", "params", "expectations"],
+  "properties": {
+    "schema_id": {"const": "render_contract_fixture"},
+    "fixture_id": {"type": "string", "minLength": 1},
+    "prepare_source": {"type": "string", "minLength": 1},
+    "viewports": {
+      "const": [
+        {"id": "compact", "width": 320, "height": 220},
+        {"id": "dashboard", "width": 640, "height": 340},
+        {"id": "wide", "width": 960, "height": 460}
+      ]
+    },
+    "data_states": {"const": ["full", "partial-null", "empty-expected", "empty-unexpected", "single-row", "long-labels", "high-cardinality", "pagination-boundary"]},
+    "themes": {"const": ["light", "dark", "contrast"]},
+    "params": {"type": "object"},
+    "expectations": {"type": "object"}
+  }
+}
