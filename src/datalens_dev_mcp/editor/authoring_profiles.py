@@ -18,6 +18,7 @@ from datalens_dev_mcp.runtime_resources import (
     resource_json,
     resource_text,
 )
+from datalens_dev_mcp.editor.style_binding import bind_style_profile
 
 
 AUTHORING_PROFILE_RESOURCE = "config/editor_authoring_profiles.json"
@@ -30,6 +31,27 @@ SHARED_TEMPLATE_ASSETS = (
 )
 PROJECT_PROFILE_SCHEMA_ID = "project_authoring_profile"
 PROJECT_PROFILE_MAX_BYTES = 1_048_576
+
+
+def resolve_portfolio_style_binding(
+    *,
+    registry: dict[str, Any],
+    existing_object_path: str = "",
+    explicit_reference_path: str = "",
+    technology: str = "",
+    visualization_kind: str = "",
+) -> dict[str, Any]:
+    """Resolve an immutable portfolio style before considering generic templates."""
+
+    return bind_style_profile(
+        registry,
+        {
+            "existing_object_path": existing_object_path,
+            "explicit_reference_path": explicit_reference_path,
+            "technology": technology,
+            "visualization_kind": visualization_kind,
+        },
+    )
 
 
 def resolve_authoring_profile(

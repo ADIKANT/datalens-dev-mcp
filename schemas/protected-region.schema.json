@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Protected Region",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "tab", "kind", "start", "end", "hash", "policy", "signature"],
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "tab": {"type": "string", "minLength": 1},
+    "kind": {"enum": ["explicit_block", "function"]},
+    "start": {"type": "integer", "minimum": 0},
+    "end": {"type": "integer", "minimum": 0},
+    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "policy": {"const": "immutable"},
+    "signature": {"type": "string", "minLength": 1}
+  }
+}

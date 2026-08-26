@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Semantic Slot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "tab", "kind", "start", "end", "sha256", "discovery"],
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "tab": {"type": "string", "minLength": 1},
+    "kind": {"type": "string", "minLength": 1},
+    "start": {"type": "integer", "minimum": 0},
+    "end": {"type": "integer", "minimum": 0},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "discovery": {"type": "string", "minLength": 1}
+  }
+}

@@ -8,6 +8,7 @@ from datalens_dev_mcp.pipeline.route_contract import ROUTE_CONTRACT
 from datalens_dev_mcp.validators.datalens_names import sanitize_datalens_internal_name
 from datalens_dev_mcp.validators.advanced_editor_validator import validate_editor_runtime_contract
 from datalens_dev_mcp.validators.route_validator import validate_route_payload
+from datalens_dev_mcp.editor.style_binding import validate_bound_bundle
 
 
 def compile_editor_payload(
@@ -18,6 +19,9 @@ def compile_editor_payload(
     existing_entry: dict[str, Any] | None = None,
     allow_fixture_source: bool = False,
 ) -> dict[str, Any]:
+    style_validation = validate_bound_bundle(bundle)
+    if not style_validation["ok"]:
+        raise ValueError("invalid style-bound bundle: " + "; ".join(style_validation["issues"]))
     validation = validate_route_payload(bundle)
     if not validation.ok:
         raise ValueError("; ".join(validation.issues))

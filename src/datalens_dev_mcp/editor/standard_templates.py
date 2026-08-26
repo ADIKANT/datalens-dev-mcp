@@ -693,6 +693,28 @@ def _canonical_name(*, route: str, title: str, technical_key: str = "") -> str:
     return "js - " + kind + " " + (" ".join(words) or "standard")
 
 
+def load_portfolio_style_template(
+    *,
+    registry: dict[str, Any],
+    context: dict[str, Any],
+    updates: dict[str, Any] | None = None,
+    template_migration: bool = False,
+) -> dict[str, Any] | None:
+    """Load a protected local style; return None only for an intentional generic fallback."""
+
+    from datalens_dev_mcp.editor.style_binding import bind_style_profile, materialize_style_bundle
+
+    binding = bind_style_profile(registry, context)
+    if not binding["immutable"]:
+        return None
+    return materialize_style_bundle(
+        registry,
+        binding,
+        updates=updates,
+        template_migration=template_migration,
+    )
+
+
 def _inline_shared_helpers(text: str) -> str:
     bundled = text
     legacy_require_map = {

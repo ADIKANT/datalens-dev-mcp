@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Portfolio Style Profile",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema_id", "id", "technology", "tab_order", "tab_hashes", "source"],
+  "properties": {
+    "schema_id": {"const": "portfolio_style_profile"},
+    "id": {"type": "string", "minLength": 1},
+    "technology": {"enum": ["editor_advanced", "editor_js_control", "editor_table", "editor_markdown"]},
+    "visualization_kind": {"type": "string"},
+    "tab_order": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "tab_hashes": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+    "protected_regions": {"type": "array", "items": {"$ref": "protected-region.schema.json"}},
+    "semantic_slots": {"type": "array", "items": {"$ref": "semantic-slot.schema.json"}},
+    "source": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["source_hash"],
+      "properties": {"source_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+    }
+  }
+}

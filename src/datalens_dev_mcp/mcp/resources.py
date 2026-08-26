@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -8,6 +9,8 @@ from datalens_dev_mcp.api.methods import get_method_schema, list_methods
 from datalens_dev_mcp.pipeline.artifacts import read_text
 from datalens_dev_mcp.pipeline.route_contract import route_contract_document
 from datalens_dev_mcp.mcp.task_resources import list_task_resources, read_task_resource
+from datalens_dev_mcp.editor.style_registry import load_style_registry
+from datalens_dev_mcp.editor.style_scanner import TAB_ORDER
 
 STATIC_RESOURCES = {
     "datalens://project/requirements": "requirements/implementation_plan.md",
@@ -56,6 +59,12 @@ def list_resources(*, project_root: str | Path = ".") -> list[dict[str, str]]:
                 "title": "Latest Saved Dashboard Readback",
                 "mimeType": "application/json",
             },
+            {
+                "uri": "datalens://style-registry/profiles/{profile_id}/tabs/{tab_name}",
+                "name": "Protected portfolio style tab",
+                "title": "Protected Portfolio Style Tab",
+                "mimeType": "text/plain",
+            },
         ]
     )
     resources.extend(list_task_resources(project_root))
@@ -66,6 +75,8 @@ def read_resource(uri: str, *, project_root: str | Path = ".") -> dict[str, Any]
     root = Path(project_root)
     if uri.startswith("datalens://tasks/"):
         return read_task_resource(uri, project_root=root)
+    if uri.startswith("datalens://style-registry/profiles/"):
+        return _read_style_profile_tab(uri, project_root=root)
     if uri in STATIC_RESOURCES:
         relative = Path(STATIC_RESOURCES[uri])
         text = read_text(_path_within(root, relative.parent, relative.name), default="")
@@ -91,6 +102,37 @@ def read_resource(uri: str, *, project_root: str | Path = ".") -> dict[str, Any]
         name = uri.rsplit("/", 1)[-1]
         return {"uri": uri, "mimeType": "application/json", "text": json.dumps(get_method_schema(name), indent=2)}
     raise KeyError(f"Unknown resource {uri}")
+
+
+def _read_style_profile_tab(uri: str, *, project_root: Path) -> dict[str, Any]:
+    remainder = uri.removeprefix("datalens://style-registry/profiles/")
+    profile_id, separator, tab_name = remainder.partition("/tabs/")
+    if not separator or tab_name not in TAB_ORDER or not profile_id:
+        raise KeyError("Invalid portfolio style resource URI")
+    registry_path = _path_within(project_root, Path(".datalens-mcp"), "style-registry.json")
+    registry = load_style_registry(registry_path)
+    registry_root = Path(str((registry.get("source") or {}).get("root") or "")).resolve()
+    project_resolved = project_root.expanduser().resolve()
+    try:
+        registry_root.relative_to(project_resolved)
+    except ValueError as exc:
+        raise KeyError("Portfolio style registry root must remain inside the project root") from exc
+    for profile in registry.get("profiles") or []:
+        if str(profile.get("id") or "") != profile_id:
+            continue
+        source = Path(str((profile.get("source") or {}).get("absolute_path") or "")).resolve()
+        try:
+            source.relative_to(registry_root)
+        except ValueError as exc:
+            raise KeyError("Portfolio style source must remain inside the registry root") from exc
+        path = source / tab_name
+        text = path.read_text(encoding="utf-8")
+        expected = str((profile.get("tab_hashes") or {}).get(tab_name) or "")
+        if hashlib.sha256(text.encode("utf-8")).hexdigest() != expected:
+            raise KeyError("Portfolio style tab changed; rebuild the style registry")
+        mime = "application/json" if tab_name.endswith(".json") else "text/javascript"
+        return {"uri": uri, "mimeType": mime, "text": text}
+    raise KeyError("Unknown portfolio style profile")
 
 
 def _path_within(project_root: Path, declared_directory: Path, relative_path: str) -> Path:
