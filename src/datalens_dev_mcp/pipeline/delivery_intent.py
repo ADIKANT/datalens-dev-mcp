@@ -65,6 +65,7 @@ class DeliveryContext:
     target_workbook_id: str = ""
     target_dashboard_id: str = ""
     target_chart_id: str = ""
+    task_contract_hash: str = ""
 
 
 @dataclass(frozen=True)
@@ -90,6 +91,7 @@ class DeliveryIntentInputs:
     saved_readback_fresh: bool = False
     destructive_operation: bool = False
     proof_path: str = ""
+    task_contract_hash: str = ""
 
     @property
     def has_approval(self) -> bool:
@@ -136,6 +138,7 @@ class DeliveryIntentDecision:
     blocked_reasons: list[str] = field(default_factory=list)
     default_delivery: list[str] = field(default_factory=list)
     literal_chat_phrase_required: bool = False
+    task_contract_hash: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -408,6 +411,7 @@ def delivery_context_from_env(
     target_workbook_id: str = "",
     target_dashboard_id: str = "",
     target_chart_id: str = "",
+    task_contract_hash: str = "",
 ) -> DeliveryContext:
     config = DataLensConfig.from_env()
     return DeliveryContext(
@@ -430,6 +434,7 @@ def delivery_context_from_env(
         target_workbook_id=target_workbook_id or _target_lock_value(target_lock, "target_workbook_id"),
         target_dashboard_id=target_dashboard_id or _target_lock_value(target_lock, "target_dashboard_id"),
         target_chart_id=target_chart_id or _target_lock_value(target_lock, "target_chart_id"),
+        task_contract_hash=task_contract_hash,
     )
 
 
@@ -451,6 +456,7 @@ def resolve_delivery_intent_from_env(
     target_workbook_id: str = "",
     target_dashboard_id: str = "",
     target_chart_id: str = "",
+    task_contract_hash: str = "",
 ) -> dict[str, Any]:
     context = delivery_context_from_env(
         target_known=target_known,
@@ -467,6 +473,7 @@ def resolve_delivery_intent_from_env(
         target_workbook_id=target_workbook_id,
         target_dashboard_id=target_dashboard_id,
         target_chart_id=target_chart_id,
+        task_contract_hash=task_contract_hash,
     )
     return resolve_delivery_intent(user_text or default_text, context).to_dict()
 
@@ -532,6 +539,7 @@ def _inputs_from_request(
         saved_readback_fresh=saved_readback_fresh,
         destructive_operation=bool(ctx.get("destructive_operation", False) or normalized.destructive_actions),
         proof_path=str(ctx.get("proof_path") or ""),
+        task_contract_hash=str(ctx.get("task_contract_hash") or ""),
     )
 
 
@@ -571,6 +579,7 @@ def _decision(
         chart_id=inputs.chart_id,
         user_opt_out_phrases=inputs.user_opt_out_phrases,
         saved_readback_fresh=inputs.saved_readback_fresh,
+        task_contract_hash=inputs.task_contract_hash,
     )
 
 

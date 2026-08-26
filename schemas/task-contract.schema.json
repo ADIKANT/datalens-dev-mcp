@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/task-contract.schema.json",
+  "title": "Immutable DataLens task contract",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "contract_version",
+    "task_id",
+    "raw_request_hash",
+    "mode",
+    "route",
+    "workspace",
+    "target",
+    "scope",
+    "reference",
+    "browser_policy",
+    "delivery",
+    "evidence",
+    "acceptance",
+    "question_policy",
+    "stop_conditions",
+    "corrections",
+    "source_precedence",
+    "contract_hash"
+  ],
+  "properties": {
+    "schema_id": {"const": "datalens_task_contract"},
+    "contract_version": {"const": 2},
+    "task_id": {"type": "string", "format": "uuid"},
+    "raw_request_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "mode": {
+      "enum": ["review", "diagnose", "plan", "create", "update", "redesign", "publish_only"]
+    },
+    "route": {"type": "string", "minLength": 1},
+    "workspace": {
+      "type": "object",
+      "required": ["project_root", "portfolio_subproject", "config_path"],
+      "properties": {
+        "project_root": {"type": "string", "minLength": 1},
+        "portfolio_subproject": {"type": "string"},
+        "config_path": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "target": {
+      "type": "object",
+      "required": [
+        "workbook_id",
+        "dashboard_id",
+        "object_ids",
+        "object_types",
+        "saved_revision",
+        "published_revision",
+        "technology"
+      ],
+      "properties": {
+        "workbook_id": {"type": "string"},
+        "dashboard_id": {"type": "string"},
+        "object_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "object_types": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "saved_revision": {"type": "string"},
+        "published_revision": {"type": "string"},
+        "technology": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "scope": {
+      "type": "object",
+      "required": ["allowed_objects", "allowed_tabs", "allowed_semantic_slots", "forbidden_changes"],
+      "properties": {
+        "allowed_objects": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "allowed_tabs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "allowed_semantic_slots": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "forbidden_changes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
+    "reference": {
+      "type": "object",
+      "required": ["kind", "locator", "required_exact_style", "source_hash"],
+      "properties": {
+        "kind": {
+          "enum": ["portfolio_object", "live_object", "cookbook_recipe", "none"]
+        },
+        "locator": {"type": "string"},
+        "required_exact_style": {"type": "boolean"},
+        "source_hash": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "browser_policy": {"$ref": "browser-policy.schema.json"},
+    "delivery": {
+      "type": "object",
+      "required": ["save", "publish", "destructive"],
+      "properties": {
+        "save": {"type": "boolean"},
+        "publish": {"type": "boolean"},
+        "destructive": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["required_facts", "available_facts", "unavailable_facts"],
+      "properties": {
+        "required_facts": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "available_facts": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "unavailable_facts": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
+    "acceptance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "statement", "source", "hard"],
+        "properties": {
+          "kind": {"type": "string"},
+          "statement": {"type": "string", "minLength": 1},
+          "source": {"type": "string", "minLength": 1},
+          "hard": {"type": "boolean"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "question_policy": {
+      "type": "object",
+      "required": ["max_questions", "discoverable_facts_must_be_read"],
+      "properties": {
+        "max_questions": {"const": 1},
+        "discoverable_facts_must_be_read": {"const": true}
+      },
+      "additionalProperties": false
+    },
+    "stop_conditions": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "corrections": {"type": "array", "items": {"type": "string"}},
+    "source_precedence": {"type": "array", "items": {"type": "string"}, "minItems": 8},
+    "contract_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  },
+  "additionalProperties": false
+}

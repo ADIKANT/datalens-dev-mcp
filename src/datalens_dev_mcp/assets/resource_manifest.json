@@ -1,5 +1,5 @@
 {
-  "resource_count": 268,
+  "resource_count": 271,
   "resources": [
     {
       "bytes": 15842,
@@ -115,6 +115,11 @@
       "bytes": 1309,
       "path": "schemas/baseline_diff_contract.schema.json",
       "sha256": "e5816a2ee65ad7efb86e859a2e456719a717d0236e76b123887c2ab64bc87ab6"
+    },
+    {
+      "bytes": 425,
+      "path": "schemas/browser-policy.schema.json",
+      "sha256": "9e54e5d2e8665cac17aee03a3174fe8d8e97f3f23399dcf9e164b939a711a733"
     },
     {
       "bytes": 8932,
@@ -475,6 +480,16 @@
       "bytes": 1051,
       "path": "schemas/target_lock.schema.json",
       "sha256": "29768ced594b58e682086cbf40c5a8b0e9a454dd6f44a94a79264ad53b3f24d2"
+    },
+    {
+      "bytes": 4985,
+      "path": "schemas/task-contract.schema.json",
+      "sha256": "922a570fac769551f22c4d71f555e68b6e93c1fa65cca4e3e3e76375b88d9854"
+    },
+    {
+      "bytes": 765,
+      "path": "schemas/task-question.schema.json",
+      "sha256": "9a839ca7207bcced6bf25d1ec1c9476d6538c5dab83fb864481cd1bffb681d77"
     },
     {
       "bytes": 2323,

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/browser-policy.schema.json",
+  "title": "DataLens browser policy",
+  "type": "object",
+  "required": ["mode", "source"],
+  "properties": {
+    "mode": {"enum": ["forbidden", "optional", "required"]},
+    "source": {"enum": ["explicit_user", "compiled_default", "workspace_policy"]}
+  },
+  "additionalProperties": false
+}

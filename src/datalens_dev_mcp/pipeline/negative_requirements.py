@@ -232,6 +232,30 @@ def active_forbidden_chart_families(requirements: list[dict[str, Any]]) -> list[
     return sorted(set(families))
 
 
+def compile_correction_constraints(corrections: list[str] | tuple[str, ...]) -> dict[str, list[str]]:
+    """Turn current-task corrections into stable scope and regression constraints."""
+    forbidden_changes: set[str] = set()
+    acceptance_statements: list[str] = []
+    for correction in corrections:
+        text = str(correction).strip()
+        if not text:
+            continue
+        lowered = text.lower()
+        if _preserve_signal(lowered, ("layout", "расклад", "компонов")):
+            forbidden_changes.add("layout_change")
+        if _preserve_signal(lowered, ("dataset", "датасет")):
+            forbidden_changes.add("dataset_change")
+        if _preserve_signal(lowered, ("connection", "подключен", "коннект")):
+            forbidden_changes.add("connection_change")
+        if _preserve_signal(lowered, ("technology", "технолог", "тип чарта", "chart type")):
+            forbidden_changes.add("technology_change")
+        acceptance_statements.append(text)
+    return {
+        "forbidden_changes": sorted(forbidden_changes),
+        "acceptance_statements": list(dict.fromkeys(acceptance_statements)),
+    }
+
+
 def validate_no_negative_requirement_drift(
     project_root: str | Path,
     *,
@@ -368,6 +392,23 @@ def _allowed_context(text: str, offset: int) -> bool:
     if any(marker in line for marker in allowed_markers):
         return True
     return "legend" in context and '"show": false' in context
+
+
+def _preserve_signal(lowered: str, subjects: tuple[str, ...]) -> bool:
+    if not any(subject in lowered for subject in subjects):
+        return False
+    return any(
+        marker in lowered
+        for marker in (
+            "do not change",
+            "don't change",
+            "preserve",
+            "keep",
+            "не меня",
+            "сохрани",
+            "оставь",
+        )
+    )
 
 
 def _has_negative_action(lowered: str) -> bool:

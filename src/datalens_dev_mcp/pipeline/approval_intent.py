@@ -76,6 +76,7 @@ class ApprovalIntentDecision:
     delivery_state: str = ""
     delivery_reason: str = ""
     policy: str = "delivery_approval_policy"
+    task_contract_hash: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -98,6 +99,25 @@ class ApprovalIntentResolver:
         target_lock: TargetLock | dict[str, Any] | None = None,
         safe_gates: SafeGates | dict[str, Any] | None = None,
         approval_sources: list[str] | None = None,
+        task_contract_hash: str = "",
+    ) -> ApprovalIntentDecision:
+        decision = self._resolve_impl(
+            request,
+            target_lock=target_lock,
+            safe_gates=safe_gates,
+            approval_sources=approval_sources,
+            task_contract_hash=task_contract_hash,
+        )
+        return replace(decision, task_contract_hash=task_contract_hash)
+
+    def _resolve_impl(
+        self,
+        request: str | NormalizedUserRequest,
+        *,
+        target_lock: TargetLock | dict[str, Any] | None = None,
+        safe_gates: SafeGates | dict[str, Any] | None = None,
+        approval_sources: list[str] | None = None,
+        task_contract_hash: str = "",
     ) -> ApprovalIntentDecision:
         normalized = request if isinstance(request, NormalizedUserRequest) else normalize_user_request(str(request))
         sources = list(dict.fromkeys([*(normalized.approval_sources or []), *(approval_sources or [])]))
@@ -132,6 +152,7 @@ class ApprovalIntentResolver:
                 target_workbook_id=lock.target_workbook_id,
                 target_dashboard_id=lock.target_dashboard_id,
                 target_chart_id=lock.target_chart_id,
+                task_contract_hash=task_contract_hash,
             ),
         )
 
@@ -275,10 +296,12 @@ def resolve_approval_intent(
     target_lock: TargetLock | dict[str, Any] | None = None,
     safe_gates: SafeGates | dict[str, Any] | None = None,
     approval_sources: list[str] | None = None,
+    task_contract_hash: str = "",
 ) -> ApprovalIntentDecision:
     return ApprovalIntentResolver().resolve(
         request,
         target_lock=target_lock,
         safe_gates=safe_gates,
         approval_sources=approval_sources,
+        task_contract_hash=task_contract_hash,
     )

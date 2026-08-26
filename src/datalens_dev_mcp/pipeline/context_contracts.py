@@ -10,6 +10,7 @@ from typing import Any
 
 PROJECT_CONTEXT_SCHEMA = "project_context_ref"
 EVIDENCE_SCHEMA = "evidence_ref"
+TASK_CONTRACT_SCHEMA = "datalens_task_contract"
 _SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 
 _CANONICAL_ARTIFACTS: dict[str, tuple[str, ...]] = {
@@ -24,6 +25,24 @@ _CANONICAL_ARTIFACTS: dict[str, tuple[str, ...]] = {
     "dl_readback_and_report": ("artifacts/deployment_report.json",),
 }
 PROJECT_CONTEXT_AWARE_TOOLS = frozenset(_CANONICAL_ARTIFACTS)
+
+
+def validate_task_contract_reference(task_contract: dict[str, Any] | None, task_contract_hash: str = "") -> str:
+    if task_contract is None:
+        if task_contract_hash and not _SHA256_RE.fullmatch(task_contract_hash):
+            raise ValueError("task_contract_hash must be a lowercase SHA-256")
+        return task_contract_hash
+    if not isinstance(task_contract, dict) or task_contract.get("schema_id") != TASK_CONTRACT_SCHEMA:
+        raise ValueError("task_contract must use datalens_task_contract")
+    from datalens_dev_mcp.pipeline.task_contract import task_contract_hash as compute_hash
+
+    actual = compute_hash(task_contract)
+    declared = str(task_contract.get("contract_hash") or "")
+    if declared != actual:
+        raise ValueError("task_contract.contract_hash does not match canonical content")
+    if task_contract_hash and task_contract_hash != declared:
+        raise ValueError("task_contract_hash does not match task_contract")
+    return declared
 
 
 def validate_project_contract_inputs(
