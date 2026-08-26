@@ -1,0 +1,35 @@
+{
+  "fixture_mode": "offline_schema_contract",
+  "method_name": "getDatasetData",
+  "operation_id": "getDatasetData",
+  "path": "/rpc/getDatasetData",
+  "request_payload": {},
+  "request_schema_closure_hash": "0cb69039696212c194bdd3fe3cee357a576277a9521b33a263e4e863c6cc1443",
+  "request_schema_closure_refs": [
+    "GetDatasetDataRequest"
+  ],
+  "request_schema_hash": "4e7cc1eeee6be2ac71a758383767cf38a5d1d11e8fd333a155198f168b060d3e",
+  "request_schema_ref": "GetDatasetDataRequest",
+  "response_payload": {
+    "rows": [
+      [
+        1
+      ]
+    ],
+    "schema": [
+      {
+        "guid": "guid-id",
+        "name": "ID",
+        "type": "integer"
+      }
+    ]
+  },
+  "response_schema_closure_hash": "8f911a95a3aef410bde98a7ac7838e6271927a5f1686585f13521bc899523437",
+  "response_schema_closure_refs": [
+    "GetDatasetDataResponse"
+  ],
+  "response_schema_hash": "f1261027cbda5b3a415ca2a4123219f0495cde476072ba1db8e27f4d7d4d0a6b",
+  "response_schema_ref": "GetDatasetDataResponse",
+  "schema_id": "api_contract_fixture",
+  "status": "supported_tool"
+}

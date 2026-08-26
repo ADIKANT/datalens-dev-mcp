@@ -1,0 +1,7 @@
+{
+  "operation_count": 96,
+  "operation_prefix": "existingOperation",
+  "added_operation": "getDatasetData",
+  "docs_ref_template": "datalens/api-ref/Data/rpc{operation}-post.md",
+  "schema_count": 501
+}

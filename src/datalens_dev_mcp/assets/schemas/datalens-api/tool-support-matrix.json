@@ -353,6 +353,14 @@
       "support_status": "EXECUTABLE_TOOL_SUPPORTED"
     },
     {
+      "mcp_route": "dataset_data_read",
+      "mcp_tool": "dl_preview_dataset_data",
+      "method": "getDatasetData",
+      "mode": "readonly",
+      "support_reason": "Curated read-only RPC can be called without enabling writes.",
+      "support_status": "EXECUTABLE_TOOL_SUPPORTED"
+    },
+    {
       "mcp_route": "read_only",
       "mcp_tool": "dl_get_editor_chart / dl_read_object",
       "method": "getEditorChart",

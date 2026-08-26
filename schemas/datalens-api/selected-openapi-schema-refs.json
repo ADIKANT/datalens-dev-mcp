@@ -4457,7 +4457,7 @@
             "type": "boolean"
           },
           "meta": {
-            "$ref": "#/components/schemas/DashMeta"
+            "$ref": "#/components/schemas/ReportMeta"
           }
         },
         "required": [
@@ -5913,18 +5913,22 @@
                 "type": "boolean"
               },
               "background": {
-                "properties": {
-                  "color": {
+                "anyOf": [
+                  {
                     "type": "string"
                   },
-                  "enabled": {
-                    "type": "boolean"
+                  {
+                    "properties": {
+                      "color": {
+                        "type": "string"
+                      },
+                      "enabled": {
+                        "type": "boolean"
+                      }
+                    },
+                    "type": "object"
                   }
-                },
-                "required": [
-                  "color"
-                ],
-                "type": "object"
+                ]
               },
               "backgroundSettings": {
                 "properties": {
@@ -5992,18 +5996,22 @@
                 "type": "boolean"
               },
               "background": {
-                "properties": {
-                  "color": {
+                "anyOf": [
+                  {
                     "type": "string"
                   },
-                  "enabled": {
-                    "type": "boolean"
+                  {
+                    "properties": {
+                      "color": {
+                        "type": "string"
+                      },
+                      "enabled": {
+                        "type": "boolean"
+                      }
+                    },
+                    "type": "object"
                   }
-                },
-                "required": [
-                  "color"
-                ],
-                "type": "object"
+                ]
               },
               "backgroundSettings": {
                 "properties": {
@@ -6033,6 +6041,9 @@
                   }
                 },
                 "type": "object"
+              },
+              "internalMarginsEnabled": {
+                "type": "boolean"
               },
               "showInTOC": {
                 "type": "boolean"
@@ -6156,18 +6167,22 @@
                       "type": "boolean"
                     },
                     "background": {
-                      "properties": {
-                        "color": {
+                      "anyOf": [
+                        {
                           "type": "string"
                         },
-                        "enabled": {
-                          "type": "boolean"
+                        {
+                          "properties": {
+                            "color": {
+                              "type": "string"
+                            },
+                            "enabled": {
+                              "type": "boolean"
+                            }
+                          },
+                          "type": "object"
                         }
-                      },
-                      "required": [
-                        "color"
-                      ],
-                      "type": "object"
+                      ]
                     },
                     "chartId": {
                       "minLength": 1,
@@ -6255,18 +6270,22 @@
                 "type": "string"
               },
               "background": {
-                "properties": {
-                  "color": {
+                "anyOf": [
+                  {
                     "type": "string"
                   },
-                  "enabled": {
-                    "type": "boolean"
+                  {
+                    "properties": {
+                      "color": {
+                        "type": "string"
+                      },
+                      "enabled": {
+                        "type": "boolean"
+                      }
+                    },
+                    "type": "object"
                   }
-                },
-                "required": [
-                  "color"
-                ],
-                "type": "object"
+                ]
               },
               "backgroundSettings": {
                 "properties": {
@@ -6415,7 +6434,11 @@
   "DashboardV1": {
     "properties": {
       "annotation": {
-        "$ref": "#/components/schemas/EntryAnnotation"
+        "properties": {},
+        "type": [
+          "object",
+          "null"
+        ]
       },
       "createdAt": {
         "type": "string"
@@ -6424,7 +6447,194 @@
         "type": "string"
       },
       "data": {
-        "$ref": "#/components/schemas/DashData"
+        "properties": {
+          "accessDescription": {
+            "type": "string"
+          },
+          "counter": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "salt": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "schemeVersion": {
+            "enum": [
+              8
+            ],
+            "type": "number"
+          },
+          "settings": {
+            "properties": {
+              "aiChatHistoryEnabled": {
+                "type": "boolean"
+              },
+              "autoupdateInterval": {
+                "anyOf": [
+                  {
+                    "minimum": 30,
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "backgroundSettings": {
+                "properties": {
+                  "color": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/DashColorByTheme"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              },
+              "dependentSelectors": {
+                "type": "boolean"
+              },
+              "enableAssistant": {
+                "type": "boolean"
+              },
+              "expandTOC": {
+                "type": "boolean"
+              },
+              "globalParams": {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              "hideDashTitle": {
+                "type": "boolean"
+              },
+              "hideTabs": {
+                "type": "boolean"
+              },
+              "loadOnlyVisibleCharts": {
+                "type": "boolean"
+              },
+              "loadPriority": {
+                "enum": [
+                  "charts",
+                  "selectors"
+                ],
+                "type": "string"
+              },
+              "margins": {
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              "maxConcurrentRequests": {
+                "anyOf": [
+                  {
+                    "minimum": 1,
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "signedGlobalParams": {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              "silentLoading": {
+                "type": "boolean"
+              },
+              "widgetsSettings": {
+                "properties": {
+                  "backgroundSettings": {
+                    "properties": {
+                      "color": {
+                        "anyOf": [
+                          {
+                            "$ref": "#/components/schemas/DashColorByTheme"
+                          },
+                          {
+                            "type": "string"
+                          }
+                        ]
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "borderRadius": {
+                    "type": "number"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "autoupdateInterval",
+              "maxConcurrentRequests",
+              "silentLoading",
+              "dependentSelectors",
+              "expandTOC"
+            ],
+            "type": "object"
+          },
+          "supportDescription": {
+            "type": "string"
+          },
+          "tabs": {
+            "items": {
+              "$ref": "#/components/schemas/DashTab"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "counter",
+          "salt",
+          "schemeVersion",
+          "tabs",
+          "settings"
+        ],
+        "type": "object"
       },
       "entryId": {
         "type": "string"
@@ -6448,7 +6658,20 @@
         ]
       },
       "meta": {
-        "$ref": "#/components/schemas/DashMeta"
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        },
+        "type": [
+          "object",
+          "null"
+        ]
       },
       "public": {
         "type": "boolean"
@@ -9271,7 +9494,8 @@
       "folder",
       "connection",
       "compute",
-      "artifact"
+      "artifact",
+      "sql_query"
     ],
     "type": "string"
   },
@@ -10233,6 +10457,224 @@
     ],
     "type": "object"
   },
+  "GetDatasetDataRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "columns": {
+        "items": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "minItems": 1,
+        "type": "array"
+      },
+      "datasetId": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "filters": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "guid": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "operation": {
+              "enum": [
+                "in",
+                "nin",
+                "isnull",
+                "isnotnull",
+                "between",
+                "eq",
+                "ne",
+                "gt",
+                "lt",
+                "gte",
+                "lte",
+                "istartswith",
+                "startswith",
+                "iendswith",
+                "endswith",
+                "icontains",
+                "contains",
+                "noticontains",
+                "notcontains",
+                "leneq",
+                "lenne",
+                "lengt",
+                "lengte",
+                "lenlt",
+                "lenlte"
+              ],
+              "type": "string"
+            },
+            "values": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  }
+                ]
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "guid",
+            "operation"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 100000,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "params": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "guid": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "value": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            }
+          },
+          "required": [
+            "guid",
+            "value"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "sort": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "direction": {
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            },
+            "guid": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "guid",
+            "direction"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "workbookId": {
+        "minLength": 1,
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
+    "required": [
+      "datasetId",
+      "columns"
+    ],
+    "type": "object"
+  },
+  "GetDatasetDataResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "rows": {
+        "items": {
+          "items": {},
+          "type": "array"
+        },
+        "type": "array"
+      },
+      "schema": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "guid": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "date",
+                "genericdatetime",
+                "datetimetz",
+                "integer",
+                "uinteger",
+                "string",
+                "float",
+                "boolean",
+                "geopoint",
+                "geopolygon",
+                "markup",
+                "heatmap",
+                "array_int",
+                "array_float",
+                "array_str",
+                "unsupported",
+                "hierarchy",
+                "tree_str",
+                "tree_int",
+                "tree_float"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "guid",
+            "type"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "schema",
+      "rows"
+    ],
+    "type": "object"
+  },
   "GetDatasetRequest": {
     "additionalProperties": false,
     "properties": {
@@ -10688,7 +11130,8 @@
           "folder",
           "connection",
           "compute",
-          "artifact"
+          "artifact",
+          "sql_query"
         ],
         "type": "string"
       },
@@ -11952,6 +12395,9 @@
         "type": "object"
       },
       "includePermissionsInfo": {
+        "type": "boolean"
+      },
+      "onlyMy": {
         "type": "boolean"
       },
       "orderBy": {
@@ -16169,18 +16615,22 @@
                             "type": "boolean"
                           },
                           "background": {
-                            "properties": {
-                              "color": {
+                            "anyOf": [
+                              {
                                 "type": "string"
                               },
-                              "enabled": {
-                                "type": "boolean"
+                              {
+                                "properties": {
+                                  "color": {
+                                    "type": "string"
+                                  },
+                                  "enabled": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "type": "object"
                               }
-                            },
-                            "required": [
-                              "color"
-                            ],
-                            "type": "object"
+                            ]
                           },
                           "backgroundSettings": {
                             "properties": {
@@ -16245,18 +16695,22 @@
                       "data": {
                         "properties": {
                           "background": {
-                            "properties": {
-                              "color": {
+                            "anyOf": [
+                              {
                                 "type": "string"
                               },
-                              "enabled": {
-                                "type": "boolean"
+                              {
+                                "properties": {
+                                  "color": {
+                                    "type": "string"
+                                  },
+                                  "enabled": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "type": "object"
                               }
-                            },
-                            "required": [
-                              "color"
-                            ],
-                            "type": "object"
+                            ]
                           },
                           "backgroundSettings": {
                             "properties": {
@@ -16286,6 +16740,9 @@
                               }
                             },
                             "type": "object"
+                          },
+                          "internalMarginsEnabled": {
+                            "type": "boolean"
                           },
                           "size": {
                             "anyOf": [
@@ -16403,18 +16860,22 @@
                             "items": {
                               "properties": {
                                 "background": {
-                                  "properties": {
-                                    "color": {
+                                  "anyOf": [
+                                    {
                                       "type": "string"
                                     },
-                                    "enabled": {
-                                      "type": "boolean"
+                                    {
+                                      "properties": {
+                                        "color": {
+                                          "type": "string"
+                                        },
+                                        "enabled": {
+                                          "type": "boolean"
+                                        }
+                                      },
+                                      "type": "object"
                                     }
-                                  },
-                                  "required": [
-                                    "color"
-                                  ],
-                                  "type": "object"
+                                  ]
                                 },
                                 "chartId": {
                                   "minLength": 1,
@@ -16500,6 +16961,24 @@
                         "properties": {
                           "alt": {
                             "type": "string"
+                          },
+                          "background": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "properties": {
+                                  "color": {
+                                    "type": "string"
+                                  },
+                                  "enabled": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "type": "object"
+                              }
+                            ]
                           },
                           "backgroundSettings": {
                             "properties": {
@@ -16791,6 +17270,24 @@
                     "properties": {
                       "data": {
                         "properties": {
+                          "background": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "properties": {
+                                  "color": {
+                                    "type": "string"
+                                  },
+                                  "enabled": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "type": "object"
+                              }
+                            ]
+                          },
                           "backgroundSettings": {
                             "properties": {
                               "color": {
@@ -17071,6 +17568,22 @@
     ],
     "type": "object"
   },
+  "ReportMeta": {
+    "additionalProperties": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "type": [
+      "object",
+      "null"
+    ]
+  },
   "ReportV1": {
     "properties": {
       "annotation": {
@@ -17110,7 +17623,7 @@
         ]
       },
       "meta": {
-        "$ref": "#/components/schemas/DashMeta"
+        "$ref": "#/components/schemas/ReportMeta"
       },
       "public": {
         "enum": [
@@ -19231,7 +19744,7 @@
         "type": "string"
       },
       "meta": {
-        "$ref": "#/components/schemas/DashMeta"
+        "$ref": "#/components/schemas/ReportMeta"
       },
       "mode": {
         "enum": [

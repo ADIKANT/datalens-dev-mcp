@@ -101,6 +101,28 @@ class PublicReleaseGateTests(unittest.TestCase):
             report["issues"],
         )
 
+    def test_official_documentation_registries_allow_source_anchors(self):
+        official_anchor = "entity-speech" + "sense21"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._init_repo(
+                root,
+                {
+                    (
+                        "src/datalens_dev_mcp/assets/schemas/"
+                        "datalens-knowledge/chunk-registry.jsonl"
+                    ): f'{{"anchor":"{official_anchor}"}}\n',
+                    (
+                        "src/datalens_dev_mcp/assets/schemas/"
+                        "datalens-knowledge/page-registry.json"
+                    ): f'{{"anchors":["{official_anchor}"]}}\n',
+                },
+            )
+
+            report = run_check(root)
+
+        self.assertTrue(report["ok"], report["issues"])
+
     def test_worktree_inventory_handles_deletions_edits_and_untracked_files(self):
         local_path = "/" + "Users/alice/private/config.json"
         synthetic_token = "abcdefghijklmnop" + "qrstuvwxyz123456"

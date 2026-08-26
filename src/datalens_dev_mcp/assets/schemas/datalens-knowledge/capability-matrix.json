@@ -218,25 +218,25 @@
       "route": "dl_plan_guarded_dataset_update",
       "source_traces": [
         {
-          "anchor": "datalens-api-get-dataset",
-          "chunk_id": "datalens/openapi-ref/getDataset.md#datalens-api-get-dataset#1",
-          "mirror_path": "datalens/openapi-ref/getDataset.md",
-          "sha256": "7cfe5721cd5839c90bbe3ed4b0a5af0e2e4eb48901610d53742475c3428de2f1",
-          "source_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getDataset"
+          "anchor": "get-dataset",
+          "chunk_id": "datalens/api-ref/Dataset/rpcgetDataset-post.md#get-dataset#1",
+          "mirror_path": "datalens/api-ref/Dataset/rpcgetDataset-post.md",
+          "sha256": "b2ab5e2c03e285883a8e4bb0a071e0ce896b734f30c5a7cb369af7b9641b8fdc",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/api-ref/Dataset/rpcgetDataset-post"
         },
         {
-          "anchor": "datalens-api-validate-dataset",
-          "chunk_id": "datalens/openapi-ref/validateDataset.md#datalens-api-validate-dataset#1",
-          "mirror_path": "datalens/openapi-ref/validateDataset.md",
-          "sha256": "90fcd711fe75d593e3f82b8fad91c4ed4cbffc0e090a7332067f5f3f2bde987c",
-          "source_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/validateDataset"
+          "anchor": "validate-dataset",
+          "chunk_id": "datalens/api-ref/Dataset/rpcvalidateDataset-post.md#validate-dataset#1",
+          "mirror_path": "datalens/api-ref/Dataset/rpcvalidateDataset-post.md",
+          "sha256": "f1450302d7d58222f2e0f958f6c9a7cefd879dcc874f57b08d5f1706fe473168",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/api-ref/Dataset/rpcvalidateDataset-post"
         },
         {
-          "anchor": "datalens-api-update-dataset",
-          "chunk_id": "datalens/openapi-ref/updateDataset.md#datalens-api-update-dataset#1",
-          "mirror_path": "datalens/openapi-ref/updateDataset.md",
-          "sha256": "40da9b23677a558c2bc0f9d6f4fb31e12b21037f5f84e9580885a0adc9345c5c",
-          "source_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateDataset"
+          "anchor": "update-dataset",
+          "chunk_id": "datalens/api-ref/Dataset/rpcupdateDataset-post.md#update-dataset#1",
+          "mirror_path": "datalens/api-ref/Dataset/rpcupdateDataset-post.md",
+          "sha256": "ee431f324629711119bd5a001e47e272d62a46f909dff56330ecdeaa114728f7",
+          "source_url": "https://yandex.cloud/ru/docs/datalens/api-ref/Dataset/rpcupdateDataset-post"
         }
       ],
       "title": "Guarded dataset update envelope"
@@ -251,10 +251,10 @@
       "route": "dl_runtime_status",
       "source_traces": [
         {
-          "anchor": "index",
-          "chunk_id": "datalens/openapi-ref/index.md#index#1",
-          "mirror_path": "datalens/openapi-ref/index.md",
-          "sha256": "050b96a5b2f73f2a55949a4ff94aeb044fed3425fce5601a46cf6ef34896b38f",
+          "anchor": "openapi",
+          "chunk_id": "raw/api/openapi.json#openapi",
+          "mirror_path": "raw/api/openapi.json",
+          "sha256": "12afd0555509ef02e8fbe2b0254deb5f58f35a6a08481e5d64ef83c77a6ffb92",
           "source_url": "https://yandex.cloud/ru/docs/datalens/openapi-ref/"
         }
       ],
@@ -263,8 +263,8 @@
   ],
   "schema_id": "semantic_authoring",
   "tool_budget": {
-    "all_tool_count": 93,
-    "all_tools_list_bytes": 49500,
+    "all_tool_count": 94,
+    "all_tools_list_bytes": 50461,
     "default_tool_count": 39,
     "default_tools_list_bytes": 24487,
     "default_tools_list_chars": 24487

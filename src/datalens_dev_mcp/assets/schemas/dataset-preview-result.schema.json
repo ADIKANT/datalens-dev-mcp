@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/dataset-preview-result.schema.json",
+  "title": "Typed dataset preview result",
+  "type": "object",
+  "required": ["ok", "status", "schema_id", "experimental"],
+  "properties": {
+    "ok": {"type": "boolean"},
+    "status": {"type": "string"},
+    "schema_id": {"const": "dataset_preview_result"},
+    "experimental": {"const": true},
+    "schema": {"type": "array", "items": {"type": "object"}},
+    "row_count": {"type": "integer", "minimum": 0},
+    "rows": {"type": "array", "items": {"type": "object"}},
+    "truncated": {"type": "boolean"},
+    "artifact_path": {"type": "string"},
+    "paging": {"type": "object"},
+    "page_receipts": {"type": "array", "items": {"type": "object"}},
+    "issues": {"type": "array", "items": {"type": "string"}},
+    "question": {"type": ["string", "null"]},
+    "error": {"type": "object"}
+  },
+  "additionalProperties": true
+}

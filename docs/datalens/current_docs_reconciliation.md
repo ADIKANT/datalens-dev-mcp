@@ -1,26 +1,107 @@
 # Current DataLens Docs Reconciliation
 
-Source update report: `reports/update_report.md` generated at `2026-08-11T11:02:01.906247Z`.
+Source update report: `reports/update_report.md` generated at `2026-08-26T06:47:15.895632Z`.
 Applied delta reports:
 - `reports/update_check_delta_2026-08-03.md` generated at `2026-08-03T04:22:02.049761Z`.
 - `reports/update_check_delta_2026-08-11.md` generated at `2026-08-11T10:27:37.720053Z`.
+- `reports/update_check_delta_2026-08-26.md` generated at `2026-08-26T06:13:44.465470Z`.
 
 This file is a distilled policy matrix. It does not copy raw documentation pages into the repository.
 
 ## Corpus Counts
 
-- Current pages: `655`.
-- Current chunks: `5033`.
-- Changed-page observations across applied deltas: `105`.
-- New pages across applied deltas: `2`.
-- Removed candidates: `0`.
+- Current pages: `707`.
+- Current chunks: `5932`.
+- Changed-page observations across applied deltas: `150`.
+- New pages across applied deltas: `115`.
+- Removed candidates: `61`.
 - Failed page checks: `0`.
-- OpenAPI operations/paths: `95` / `95`.
+- OpenAPI operations/paths: `96` / `96`.
 - Required validation checks OK: `True`.
 
 ## New Pages Covered
 
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Access/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Access/rpcbatchListMembers-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Audit/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Audit/rpcgetAuditEntriesUpdates-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Audit/rpcgetAuditEntryPermissionsForUser-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpccreateCollection-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpcdeleteCollection-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpcdeleteCollections-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpcgetCollection-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpcgetCollectionBreadcrumbs-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpcgetRootCollectionPermissions-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpclistCollectionAccessBindings-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpcmoveCollections-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpcupdateCollection-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Collection/rpcupdateCollectionAccessBindings-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Connection/rpcdeleteConnection-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Connection/rpcupdateConnection-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Dashboard/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Dashboard/rpccreateDashboard-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Dataset/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Dataset/rpccreateDataset-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Dataset/rpcdeleteDataset-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Dataset/rpcupdateDataset-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Dataset/rpcvalidateDataset-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Editor/rpcdeleteEditorChart-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/EmbeddingSecrets/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/EmbeddingSecrets/rpccreateEmbeddingSecret-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/EmbeddingSecrets/rpcdeleteEmbeddingSecret-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/EmbeddingSecrets/rpcgetEmbeddingSecret-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/EmbeddingSecrets/rpclistEmbeddingSecrets-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Embeds/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Embeds/rpccreateEmbed-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Embeds/rpcdeleteEmbed-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Embeds/rpclistEmbeds-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Embeds/rpcupdateEmbed-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Entries/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Entries/rpcgetEntriesPermissions-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Entries/rpcgetEntriesRelations-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Entries/rpcrenameEntry-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/EntryLock/rpccreateEntryLock-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/EntryLock/rpcdeleteEntryLock-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Folder/rpccreateFolder-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Folder/rpcdlsSuggest-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Folder/rpcgetPermissions-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Folder/rpcmodifyPermissions-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Folder/rpcmoveFolderEntry-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/HtmlPages/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Licensing/rpcassignLicenses-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Licensing/rpcgetLicenses-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Licensing/rpcgetLicensesLimit-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Navigation/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Navigation/rpcgetEntries-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Navigation/rpclistDirectory-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Permissions/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Permissions/rpcgetPermissionsBulk-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/QL/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/QL/rpcdeleteQLChart-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Reports/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Reports/rpccreateReport-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Reports/rpcupdateReport-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/SharedEntry/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/SharedEntry/rpclistSharedEntryAccessBindings-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Workbook/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Workbook/rpccreateWorkbook-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Workbook/rpcdeleteWorkbooks-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Workbook/rpcgetWorkbook-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Workbook/rpcgetWorkbookEntries-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Workbook/rpcgetWorkbooksByIds-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Workbook/rpclistWorkbookAccessBindings-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/Workbook/rpcupdateWorkbookAccessBindings-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/WorkbookExport/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/WorkbookExport/rpcgetWorkbookExportStatus-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/WorkbookExport/rpcstartWorkbookExport-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/WorkbookImport/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/WorkbookImport/rpcgetWorkbookImportStatus-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/WorkbookImport/rpcstartWorkbookImport-post.md
+- https://docs.yandex.cloud/ru/ru/datalens/api-ref/index.md
+- https://docs.yandex.cloud/ru/ru/datalens/concepts/maillists.md
 - https://docs.yandex.cloud/ru/ru/datalens/release-notes/2606.md
+- https://docs.yandex.cloud/ru/ru/datalens/settings/deleted-objects.md
 - https://docs.yandex.cloud/ru/ru/datalens/visualization-ref/funnel.md
 
 ## Feature Policy Matrix
@@ -48,6 +129,13 @@ This file is a distilled policy matrix. It does not copy raw documentation pages
 | `embedded_objects` | `read_only` | dl_reference and object reads | Embedding docs are retained as reference; create/update embed routes are unsupported unless separately implemented. |
 | `roles` | `read_only` | dl_reference | Roles are used for operator guidance and sanitized diagnostics. |
 | `editor_methods` | `supported` | Advanced Editor validator and bundle generator | Supported methods feed the Editor runtime allowlist. |
+| `editor_identity_methods` | `supported` | Editor runtime allowlist and reference guidance | Allow getUserId and getUserLogin while keeping authorization server-side. |
+| `editor_parameter_semantics` | `supported` | Editor runtime contracts and selector validation | Treat initial params as static and selector-driven changes as dynamic runtime input. |
+| `custom_theme_variables` | `guarded_plan_only` | Editor visual contracts and dashboard style preservation | Require light and dark values for custom variables and preserve contrast fallback behavior. |
+| `selector_override_semantics` | `guarded_plan_only` | selector contract and data validation | Model same-field override, empty selection, and double-filter duplication explicitly. |
+| `dashboard_runtime_settings` | `guarded_plan_only` | dashboard composition and payload preservation | Preserve and validate auto-refresh, load priority, pinned selector area, and mobile ordering. |
+| `dataset_data_preview` | `supported` | typed internal getDatasetData route | Validate dataset field GUIDs, filters, sorting, limits, and deterministic paging before the API call. |
+| `api_reference_relocation` | `read_only` | docs and OpenAPI semantic reconciliation | Resolve current api-ref tag paths without treating a URL relocation as a breaking API change. |
 | `editor_tabs` | `supported` | Advanced Editor bundle generator | Generated payloads use current tab contracts for sources, params, prepare, and config. |
 | `editor_sources` | `supported` | Editor source validators and SQL diagnostics | Generated source SQL is statically linted and tied to source artifacts. |
 | `editor_code_helper` | `read_only` | dl_reference | AI helper docs are reference-only for authoring guidance. |
@@ -86,6 +174,7 @@ This file is a distilled policy matrix. It does not copy raw documentation pages
 - `workbook_access_advanced`: Permission mutation is outside the MCP route contract.
 - `embedded_objects`: No embedding secret or embed write route is exposed by default.
 - `roles`: Role docs do not enable permission mutation.
+- `api_reference_relocation`: Method, path, security, and required-request changes remain blockers; documentation relocation alone is advisory.
 - `editor_code_helper`: MCP does not depend on DataLens UI AI behavior.
 - `editor_widgets_gravity_ui`: No Gravity UI chart creation route is added.
 - `dataset_cache_invalidation`: No cache mutation route is guessed.

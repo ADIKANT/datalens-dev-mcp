@@ -4,14 +4,14 @@
   "operation_id": "getEntries",
   "path": "/rpc/getEntries",
   "request_payload": {},
-  "request_schema_closure_hash": "79bb41f825aa3f9ba7d4682cb6c921f35e355795c1bb34980dbf99a3cb1d0294",
+  "request_schema_closure_hash": "f4487c93d3f94167a70ceb0476acdbf69098cb6a92cad195e846a32a0990042e",
   "request_schema_closure_refs": [
     "GetEntriesV2Args"
   ],
-  "request_schema_hash": "228ca310b488986ea7c43e85ff0702c959327a3eb5736cba6c4dae0075ce4ea3",
+  "request_schema_hash": "97c70c4fb2d29a5878417e389abe3b77022fee7dc803ecd9beda8f4c29bb7cab",
   "request_schema_ref": "GetEntriesV2Args",
   "response_payload": {},
-  "response_schema_closure_hash": "3e769b996ee7ed866c1b53039ffee4720b97d7d5efd77e6760a46d2a3f2f9a0b",
+  "response_schema_closure_hash": "bcc9215c67e8a22f590a88905197f3aa95c923afce7bab6e61e346f56855b14c",
   "response_schema_closure_refs": [
     "EntryScope",
     "GetEntriesV2Result"

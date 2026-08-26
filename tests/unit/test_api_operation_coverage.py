@@ -29,16 +29,16 @@ class ApiOperationCoverageTests(unittest.TestCase):
         report = self.validator.validate(strict=True)
 
         self.assertTrue(report["ok"], report["issues"])
-        self.assertEqual(report["checked"]["operation_count"], 95)
-        self.assertEqual(report["checked"]["path_count"], 95)
-        self.assertEqual(report["checked"]["fixture_count"], 95)
+        self.assertEqual(report["checked"]["operation_count"], 96)
+        self.assertEqual(report["checked"]["path_count"], 96)
+        self.assertEqual(report["checked"]["fixture_count"], 96)
 
     def test_every_operation_has_stable_status_owner_and_fixture(self):
         records = self.policy["operations"]
 
-        self.assertEqual(len(records), 95)
-        self.assertEqual(len({record["operation_id"] for record in records}), 95)
-        self.assertEqual(len({record["path"] for record in records}), 95)
+        self.assertEqual(len(records), 96)
+        self.assertEqual(len({record["operation_id"] for record in records}), 96)
+        self.assertEqual(len({record["path"] for record in records}), 96)
         for record in records:
             self.assertIn(record["status"], self.policy["status_enum"])
             self.assertTrue(record["owning_mcp_tool"])
@@ -54,7 +54,13 @@ class ApiOperationCoverageTests(unittest.TestCase):
 
         self.assertTrue(listed["ok"])
         self.assertEqual(runtime_names, policy_names)
-        self.assertEqual(listed["method_count"], 95)
+        self.assertEqual(listed["method_count"], 96)
+
+    def test_dataset_data_is_typed_supported_read(self):
+        by_method = {record["method_name"]: record for record in self.policy["operations"]}
+
+        self.assertEqual(by_method["getDatasetData"]["status"], "supported_tool")
+        self.assertEqual(by_method["getDatasetData"]["owning_mcp_tool"], "dl_preview_dataset_data")
 
     def test_html_page_lifecycle_is_guarded_and_delete_stays_closed(self):
         by_method = {record["method_name"]: record for record in self.policy["operations"]}

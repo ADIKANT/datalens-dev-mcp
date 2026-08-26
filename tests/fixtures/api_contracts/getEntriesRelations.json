@@ -4,7 +4,7 @@
   "operation_id": "getEntriesRelations",
   "path": "/rpc/getEntriesRelations",
   "request_payload": {},
-  "request_schema_closure_hash": "61b9bc7b8381f6c0eae624f63cca151efebd34af50caf88361ca99f028580288",
+  "request_schema_closure_hash": "94f06dae3d985f2d8037e9de16bdc720995ad7787e54f8ba215554feb956e745",
   "request_schema_closure_refs": [
     "EntryScope",
     "GetEntriesRelationsArgs"
@@ -20,7 +20,7 @@
       }
     ]
   },
-  "response_schema_closure_hash": "dfb2f0ba860d1800495c097f747fa25f18f42cdd74610be32b3561e885cfb09f",
+  "response_schema_closure_hash": "636e1c0351822f1ad4910554e314a9ed948d5e9eafe2a33835426e8901f7e4ac",
   "response_schema_closure_refs": [
     "EntryScope",
     "GetEntriesRelationsEntry",

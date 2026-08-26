@@ -30,18 +30,18 @@ class CurrentDataLensDocsReconciliationTests(unittest.TestCase):
         report = self.validator.validate(self.corpus_root, strict=True)
 
         self.assertTrue(report["ok"], report["issues"])
-        self.assertEqual(report["checked"]["pages"], 655)
-        self.assertEqual(report["checked"]["chunks"], 5033)
-        self.assertEqual(report["checked"]["assets"], 910)
-        self.assertEqual(report["checked"]["new_pages"], 2)
-        self.assertEqual(report["checked"]["openapi_operations"], 95)
-        self.assertEqual(report["checked"]["openapi_paths"], 95)
+        self.assertEqual(report["checked"]["pages"], 707)
+        self.assertEqual(report["checked"]["chunks"], 5932)
+        self.assertEqual(report["checked"]["assets"], 924)
+        self.assertEqual(report["checked"]["new_pages"], 82)
+        self.assertEqual(report["checked"]["openapi_operations"], 96)
+        self.assertEqual(report["checked"]["openapi_paths"], 96)
 
     def test_required_clusters_and_new_pages_are_explicit(self):
         cluster_ids = {item["id"] for item in self.policy["clusters"]}
 
         self.assertEqual(set(self.validator.REQUIRED_CLUSTER_IDS) - cluster_ids, set())
-        self.assertEqual(len(self.policy["covered_new_page_urls"]), 2)
+        self.assertEqual(len(self.policy["covered_new_page_urls"]), 82)
         for url in self.policy["covered_new_page_urls"]:
             self.assertIn("/datalens/", url)
 
@@ -60,15 +60,16 @@ class CurrentDataLensDocsReconciliationTests(unittest.TestCase):
 
         self.assertEqual(reports["snapshot_summary"]["docs"]["changed_count"], 0)
         self.assertEqual(reports["snapshot_summary"]["docs"]["new_count"], 0)
-        self.assertEqual(reports["delta_summary"]["docs"]["changed_count"], 105)
-        self.assertEqual(reports["delta_summary"]["docs"]["new_count"], 2)
-        self.assertEqual(policy["expected_counts"]["docs_changed_pages"], 105)
-        self.assertEqual(policy["expected_counts"]["docs_new_pages"], 2)
+        self.assertEqual(reports["delta_summary"]["docs"]["changed_count"], 150)
+        self.assertEqual(reports["delta_summary"]["docs"]["new_count"], 115)
+        self.assertEqual(policy["expected_counts"]["docs_changed_pages"], 150)
+        self.assertEqual(policy["expected_counts"]["docs_new_pages"], 115)
         self.assertEqual(
             policy["source"]["applied_delta_report"],
-            "reports/update_check_delta_2026-08-11.md",
+            "reports/update_check_delta_2026-08-26.md",
         )
-        self.assertEqual(policy["source"]["openapi_sha256"], self.validator.EXPECTED_OPENAPI_SHA256)
+        lock = json.loads((ROOT / "schemas" / "datalens-api" / "openapi.lock.json").read_text(encoding="utf-8"))
+        self.assertEqual(policy["source"]["openapi_sha256"], lock["openapi_sha256"])
 
 
 if __name__ == "__main__":

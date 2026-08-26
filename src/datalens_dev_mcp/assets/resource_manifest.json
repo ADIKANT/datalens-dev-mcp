@@ -1,5 +1,5 @@
 {
-  "resource_count": 264,
+  "resource_count": 268,
   "resources": [
     {
       "bytes": 15842,
@@ -7,14 +7,14 @@
       "sha256": "59dd8a1c1c5ac9d70dcbf61e40ddf930a7a560957d63b92c4ba1add1d02167a7"
     },
     {
-      "bytes": 87897,
+      "bytes": 92314,
       "path": "config/datalens_api_methods.json",
-      "sha256": "2c75cead5919e9e7480636b11b699f4479bf8448b3b51ffbe923b46c94a34a8a"
+      "sha256": "a91df75eaefcdb2bf7db1300a901802ad1bab7a44dc7e62db233db1cce2ec5e1"
     },
     {
-      "bytes": 166858,
+      "bytes": 169332,
       "path": "config/datalens_api_operation_policy.json",
-      "sha256": "5a56d80e85847319411ada567d44f5e0ffa8a161180a637509807c3014aa17d4"
+      "sha256": "09ca6466a06022972d7245ff14e006db28cc65118d597027515f0dbacc7acd23"
     },
     {
       "bytes": 3873,
@@ -47,9 +47,9 @@
       "sha256": "4b44c5f2c7bdfab07bbca7f62437120d546a5487cd44d43ba47ae3ad1772525c"
     },
     {
-      "bytes": 27291,
+      "bytes": 38914,
       "path": "config/datalens_docs_feature_policy.json",
-      "sha256": "adc0f489df0216ea1a475359e407f930d7979e91c0e7bc68020ab9a4bff16129"
+      "sha256": "ad9e57e312ad147234e72053b48b5e464a48fa8fb6073377636d1999e47d8737"
     },
     {
       "bytes": 3200,
@@ -105,6 +105,11 @@
       "bytes": 694,
       "path": "schemas/aggregation-config.schema.json",
       "sha256": "ea52e255938d88c0804acac99d86ac210b795a1ee6da5587846719368ae3fbbf"
+    },
+    {
+      "bytes": 1721,
+      "path": "schemas/api-delta-report.schema.json",
+      "sha256": "79a5dfd1777aa9398c5ecdd49fef7329f9fafb05e1bb9f73376d68cd32b2635c"
     },
     {
       "bytes": 1309,
@@ -172,29 +177,34 @@
       "sha256": "841ccdaa64860031a810cdc916df114f0f954ab72c025582c677498d1d2b98cf"
     },
     {
-      "bytes": 665849,
+      "bytes": 19413,
+      "path": "schemas/datalens-api/api-delta-report.json",
+      "sha256": "736bacb8829e8694e48d4f6750fa742cd60d52437bf9ebda3c3ee9138ce65551"
+    },
+    {
+      "bytes": 680087,
       "path": "schemas/datalens-api/closed-schema-bundle.json",
-      "sha256": "30bad47eec233bef857f1c4b727d58b95632273f4b85f8a051b7af941ec22b89"
+      "sha256": "4149dc4339919cabe09d19395d606067da93cddac569a4146ae3a3fefc3aa92a"
     },
     {
-      "bytes": 3743,
+      "bytes": 3780,
       "path": "schemas/datalens-api/editor-runtime-allowlist.json",
-      "sha256": "13e44d46f2ad11fe088320596310a717163efe86a1df0f778bde7522504c3b7d"
+      "sha256": "09ad5be503c01118feaa35ea164a75f6ae30e538909bc9bfd27f85c503ce0dfa"
     },
     {
-      "bytes": 23507,
+      "bytes": 23763,
       "path": "schemas/datalens-api/method-schema-refs.json",
-      "sha256": "736d71d2b32d4f0ec42a92274d50a2b3796e4011d570e258930ca765833a9db3"
+      "sha256": "60e08a8f1e19c944e808cd486de530bd6577bf6a841f00dc5083effa33998386"
     },
     {
-      "bytes": 1198,
+      "bytes": 136027,
       "path": "schemas/datalens-api/openapi.lock.json",
-      "sha256": "c98abd705e9e6447c35d4483ed362faf4520e0ee0bcb148ad48f9d1b91636536"
+      "sha256": "77eb5cb9dafa715bb4f869bda00c9678c4949b250c953775fcf93f8c27919c3c"
     },
     {
-      "bytes": 18842,
+      "bytes": 19047,
       "path": "schemas/datalens-api/operation-schema-index.json",
-      "sha256": "583d2450dcccc017115f2af3b5cc4db9d7bf46a26613db34c3f3eebc3175b47e"
+      "sha256": "bb1779d9ecd433854fbc76e39cab8c92316ddc1625033d31b1d23535721f6ee4"
     },
     {
       "bytes": 768,
@@ -202,39 +212,39 @@
       "sha256": "33f10dfbbc36bccebff873a6baf8b33c7f2251f33de7b7371a1565a5d24ae1ab"
     },
     {
-      "bytes": 1456,
+      "bytes": 1506,
       "path": "schemas/datalens-api/source-trace.json",
-      "sha256": "a551d69ae6f072b5968cb6fae88e36c069e74edd5798b2037a98b9fa85955a6b"
+      "sha256": "9024d229d014989c84d3c4ed46df851f290a8941740466ec7fdd6ee7cc6cc568"
     },
     {
-      "bytes": 3643,
+      "bytes": 3735,
       "path": "schemas/datalens-api/support-policy-overlay.json",
-      "sha256": "0ad037c0f149e32e45f2088a29fafa1617b48be9e0ccca86cad88f4e32748630"
+      "sha256": "7e3895ae6a0d833f9012fa05bf743ebe4a73f3eeabc1ac07a9722ca4abcdd6a3"
     },
     {
-      "bytes": 28025,
+      "bytes": 28323,
       "path": "schemas/datalens-api/tool-support-matrix.json",
-      "sha256": "56a6174f2944f393dcf42784c33ff017196cab0f884e55f47cc19efef1707e06"
+      "sha256": "a95d010b08e0a03fae5b4663f06a932b8d8a7b77954d810e94d2d4c8aa9633e1"
     },
     {
       "bytes": 1436,
       "path": "schemas/datalens-knowledge/PROVENANCE.json",
-      "sha256": "e2d5ab2a670570f098f951ba396cf44497072c69b98e6f05d03aae3313d0fde2"
+      "sha256": "d92522329483619e3d9cae083b17abb40e0276c42a44afeabc045c99763483e3"
     },
     {
-      "bytes": 12861,
+      "bytes": 12875,
       "path": "schemas/datalens-knowledge/capability-matrix.json",
-      "sha256": "a6115af79c54e2029dd229a59fd319b3ce6536b9015de0ba3f25503ee1c31c19"
+      "sha256": "0597067f6f228e838687df06ddc2719fd4d230876ce27e6e2f216f0d93447539"
     },
     {
-      "bytes": 2662667,
+      "bytes": 3130533,
       "path": "schemas/datalens-knowledge/chunk-registry.jsonl",
-      "sha256": "d5d37d01d2bd88dd3cb2876a870675ba519ff5487c3ff4ea4651f9883c01c9f9"
+      "sha256": "59629ca9ebe5e77902d4af4ecd7e7e913dee2afa179fbbdab0830588a1091999"
     },
     {
-      "bytes": 119829,
+      "bytes": 120396,
       "path": "schemas/datalens-knowledge/editor-visualization-contracts.json",
-      "sha256": "9c4369dfd0b5fa7e14b3d826de07649be07685adc23161b0b5a6fe61ae6d7ca6"
+      "sha256": "96e0124183a2c8afeb9061a1ae16bbe2eafb4cbf16e6e265f272f43e02670343"
     },
     {
       "bytes": 129995,
@@ -249,22 +259,22 @@
     {
       "bytes": 1682,
       "path": "schemas/datalens-knowledge/knowledge.lock.json",
-      "sha256": "579bf871563fb0eaec4a1e724f66acce394537bfacf804a0847841c4ee7f773a"
+      "sha256": "e9654db06b654a95f07ab6f59d7c883b17e5870df6f3464ba462818ffcbf192e"
     },
     {
-      "bytes": 907726,
+      "bytes": 995168,
       "path": "schemas/datalens-knowledge/page-registry.json",
-      "sha256": "504765dd8b77af1a4dcd3b3009597658af47485f4d8a5459e12248e2b992a247"
+      "sha256": "c2b6e0192449c66408e3926d595b1ac48a838e78598732e9ada4e3027b028d28"
     },
     {
       "bytes": 6832,
       "path": "schemas/datalens-knowledge/route-capability-matrix.json",
-      "sha256": "3072ef6614ff5cd7fc36aaab67a14e912c9bb24539be79ccb274ac1d1f9d34f2"
+      "sha256": "2d95ff8c4a1039cd5287f91564872ad5458d8efa0254b26b35072bb48b73d73b"
     },
     {
-      "bytes": 306992,
+      "bytes": 318084,
       "path": "schemas/datalens-knowledge/rule-cards.jsonl",
-      "sha256": "71038e80a01902e6895e48048756b759f9f0ca856bd062bebce4fee142275dab"
+      "sha256": "9a753462884d7555072f3848a93cf6e336d4fde2a1cd55f8453775d941fc3b73"
     },
     {
       "bytes": 35100,
@@ -280,6 +290,16 @@
       "bytes": 947,
       "path": "schemas/dataset-config.schema.json",
       "sha256": "858783665222270b553abdf50c00f01a0cbd134ac0c788cea238355f4859a6dd"
+    },
+    {
+      "bytes": 1035,
+      "path": "schemas/dataset-preview-request.schema.json",
+      "sha256": "a516cd330a378da54653b5b287e66c1536ec196fa329e97c81ebad863e2403cc"
+    },
+    {
+      "bytes": 973,
+      "path": "schemas/dataset-preview-result.schema.json",
+      "sha256": "c34ddf1732bcfe3c6fdfb77b4cc0178388dc1af37b190c05f822aabf5e33d221"
     },
     {
       "bytes": 4545,

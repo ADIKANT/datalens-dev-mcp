@@ -185,6 +185,8 @@ OBJECT_URL_RE = re.compile(r"(?i)/(?:charts?|dashboards?|datasets?|workbooks?)/(
 DATALENS_SHAPED_ID_RE = re.compile(r"\b(?=[a-z0-9]{0,12}\d)[a-z0-9]{13}\b")
 SYNTHETIC_ID_PREFIXES = ("demo", "synthetic")
 OFFICIAL_DOC_ID_PATH_SUFFIXES = (
+    "assets/schemas/datalens-knowledge/chunk-registry.jsonl",
+    "assets/schemas/datalens-knowledge/page-registry.json",
     "assets/schemas/datalens-knowledge/rule-cards.jsonl",
 )
 

@@ -4,7 +4,7 @@
   "operation_id": "createReport",
   "path": "/rpc/createReport",
   "request_payload": {},
-  "request_schema_closure_hash": "9f70f0266ba3d41f3aee4b9e58b100390a9f3e30652947d0bfd747d4abb1f5ed",
+  "request_schema_closure_hash": "1d7c5f5a524cee65a6350d8f2055a3896e07f4399859ab5836376e6a74a50a96",
   "request_schema_closure_refs": [
     "CreateReportV1Args",
     "DashColorByTheme",
@@ -14,16 +14,16 @@
     "DashControlSourceExternal",
     "DashControlSourceManual",
     "DashLayoutItem",
-    "DashMeta",
     "DashStringDefaultValue",
     "EntryAnnotationArg",
     "EntryLocationIdentifiers",
-    "ReportData"
+    "ReportData",
+    "ReportMeta"
   ],
-  "request_schema_hash": "29dbacd1a94dac22a0c25755a22f6f171959331b6a9264fd29a8f431d910c25d",
+  "request_schema_hash": "202c16f33fbfe04bde92203e2e1f059e2733777f77f1893785861bc867cbe4d9",
   "request_schema_ref": "CreateReportV1Args",
   "response_payload": {},
-  "response_schema_closure_hash": "7c8cb15699dbe6925a9f5ec78e665add4f2676228b26dfe3584ae1e874b2f268",
+  "response_schema_closure_hash": "697601a032c985de2d1bb25925c7d88009e3225d15b0c43884fb52937e0b0169",
   "response_schema_closure_refs": [
     "CreateReportV1Result",
     "DashColorByTheme",
@@ -33,11 +33,11 @@
     "DashControlSourceExternal",
     "DashControlSourceManual",
     "DashLayoutItem",
-    "DashMeta",
     "DashStringDefaultValue",
     "EntryAnnotation",
     "EntryPermissions",
     "ReportData",
+    "ReportMeta",
     "ReportV1"
   ],
   "response_schema_hash": "0bcccf70e7e1bca9d7c7850b892a5aa76bb1a758a79a6abeaac0b13d1e811eda",

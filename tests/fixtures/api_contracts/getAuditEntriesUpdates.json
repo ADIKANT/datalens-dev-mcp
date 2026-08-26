@@ -19,7 +19,7 @@
       }
     ]
   },
-  "response_schema_closure_hash": "21af26fde251819f7fa174e7250275063517aeb66f87e2daaeff83159aa97253",
+  "response_schema_closure_hash": "47f1c5b035abe448b15d8364cc1ee822e54eaebf264cf04be77108fd47f7436b",
   "response_schema_closure_refs": [
     "AuditEntry",
     "EntryScope",

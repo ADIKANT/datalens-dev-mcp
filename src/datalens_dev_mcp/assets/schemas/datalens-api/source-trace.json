@@ -2,6 +2,7 @@
   "corpus_root_hint": "<DATALENS_DOCS_CORPUS_ROOT>",
   "generated_artifacts": [
     "schemas/datalens-api/openapi.lock.json",
+    "schemas/datalens-api/api-delta-report.json",
     "config/datalens_api_methods.json",
     "schemas/datalens-api/operation-schema-index.json",
     "schemas/datalens-api/selected-openapi-schema-refs.json",
@@ -21,7 +22,7 @@
   "license": "CC-BY-4.0",
   "license_url": "https://creativecommons.org/licenses/by/4.0/",
   "modified": true,
-  "openapi_sha256": "b623445b2c56108517b5e73515e25a3b979b4e9d0df966c53d38e2681cf5507f",
+  "openapi_sha256": "12afd0555509ef02e8fbe2b0254deb5f58f35a6a08481e5d64ef83c77a6ffb92",
   "schema_id": "datalens_source_trace",
   "source_class": "official_documentation",
   "source_path_category": "external_compiler_input",

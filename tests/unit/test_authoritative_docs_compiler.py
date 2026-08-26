@@ -55,17 +55,18 @@ class AuthoritativeDocsCompilerTests(unittest.TestCase):
         bundle = json.loads((ROOT / "schemas" / "datalens-api" / "closed-schema-bundle.json").read_text(encoding="utf-8"))
         index = json.loads((ROOT / "schemas" / "datalens-api" / "operation-schema-index.json").read_text(encoding="utf-8"))
 
-        self.assertEqual(lock["operation_count"], 95)
-        self.assertEqual(lock["component_schema_count"], 500)
-        self.assertEqual(lock["closed_schema_count"], 528)
+        self.assertEqual(lock["operation_count"], 96)
+        self.assertEqual(lock["component_schema_count"], 501)
+        self.assertEqual(lock["closed_schema_count"], 531)
         self.assertEqual(lock["required_api_header_version"], "2")
-        self.assertEqual(lock["path_count"], 95)
-        self.assertEqual(lock["inventory_path_count"], 95)
-        self.assertEqual(bundle["schema_count"], 528)
+        self.assertEqual(lock["path_count"], 96)
+        self.assertEqual(lock["inventory_path_count"], 96)
+        self.assertEqual(bundle["schema_count"], 531)
         self.assertEqual(bundle["missing_refs"], [])
         self.assertEqual(index["updateDataset"]["request_schema_ref"], "UpdateDatasetRequest")
         self.assertEqual(index["validateDataset"]["request_schema_ref"], "ValidateDatasetRequest")
         self.assertEqual(index["updateConnection"]["request_schema_ref"], "UpdateConnectionRequest")
+        self.assertEqual(index["getDatasetData"]["request_schema_ref"], "GetDatasetDataRequest")
         for schema_name in ("DatasetUpdate", "DatasetValidate", "ConnectionUpdate", "EntryLocationIdentifiers"):
             self.assertIn(schema_name, bundle["schemas"])
 
@@ -121,7 +122,7 @@ class AuthoritativeDocsCompilerTests(unittest.TestCase):
             inventory_path = changed / "api_inventory.json"
             inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
             inventory["operations"] = inventory["operations"][:-1]
-            inventory["stats"]["operations"] = 94
+            inventory["stats"]["operations"] = len(inventory["operations"])
             inventory_path.write_text(json.dumps(inventory, ensure_ascii=False), encoding="utf-8")
 
             result = subprocess.run(
@@ -134,7 +135,7 @@ class AuthoritativeDocsCompilerTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 2)
         self.assertIn("OpenAPI operation inventory blocker", result.stderr)
-        self.assertIn("inventory operations=94 expected 95", result.stderr)
+        self.assertIn("do not match inventory operations=95", result.stderr)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,537 @@
+{
+  "added_operations": [
+    "getDatasetData"
+  ],
+  "baseline_hash": "501fc618843caa1d3c89024a6242c8a54c235f454fe81ee6e71a4baa19da4196",
+  "breaking": false,
+  "breaking_changes": [],
+  "candidate_hash": "0c8b533f6444d95378ebab76c1433434e569f1ed2bf64b0d35936552649933fd",
+  "changed_operations": [
+    {
+      "changed_fields": [
+        "request_schema_hash"
+      ],
+      "operation": "createReport"
+    },
+    {
+      "changed_fields": [
+        "request_schema_hash"
+      ],
+      "operation": "getEntries"
+    },
+    {
+      "changed_fields": [
+        "request_schema_hash"
+      ],
+      "operation": "getWorkbookEntries"
+    },
+    {
+      "changed_fields": [
+        "request_schema_hash"
+      ],
+      "operation": "updateReport"
+    }
+  ],
+  "policy_version": "api_delta_policy_v1",
+  "relocated_docs": [
+    {
+      "new": "datalens/api-ref/Licensing/rpcassignLicenses-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/assignLicenses",
+      "operation": "assignLicenses"
+    },
+    {
+      "new": "datalens/api-ref/Access/rpcbatchListMembers-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/batchListMembers",
+      "operation": "batchListMembers"
+    },
+    {
+      "new": "datalens/api-ref/WorkbookExport/rpccancelWorkbookExport-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/cancelWorkbookExport",
+      "operation": "cancelWorkbookExport"
+    },
+    {
+      "new": "datalens/api-ref/Collection/rpccreateCollection-post.md",
+      "old": "datalens/openapi-ref/createCollection.md",
+      "operation": "createCollection"
+    },
+    {
+      "new": "datalens/api-ref/Connection/rpccreateConnection-post.md",
+      "old": "datalens/openapi-ref/createConnection.md",
+      "operation": "createConnection"
+    },
+    {
+      "new": "datalens/api-ref/Dashboard/rpccreateDashboard-post.md",
+      "old": "datalens/openapi-ref/createDashboard.md",
+      "operation": "createDashboard"
+    },
+    {
+      "new": "datalens/api-ref/Dataset/rpccreateDataset-post.md",
+      "old": "datalens/openapi-ref/createDataset.md",
+      "operation": "createDataset"
+    },
+    {
+      "new": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createEditorChart",
+      "old": "datalens/openapi-ref/createEditorChart.md",
+      "operation": "createEditorChart"
+    },
+    {
+      "new": "datalens/api-ref/Embeds/rpccreateEmbed-post.md",
+      "old": "datalens/openapi-ref/createEmbed.md",
+      "operation": "createEmbed"
+    },
+    {
+      "new": "datalens/api-ref/EmbeddingSecrets/rpccreateEmbeddingSecret-post.md",
+      "old": "datalens/openapi-ref/createEmbeddingSecret.md",
+      "operation": "createEmbeddingSecret"
+    },
+    {
+      "new": "datalens/api-ref/EntryLock/rpccreateEntryLock-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createEntryLock",
+      "operation": "createEntryLock"
+    },
+    {
+      "new": "datalens/api-ref/Folder/rpccreateFolder-post.md",
+      "old": "datalens/openapi-ref/createFolder.md",
+      "operation": "createFolder"
+    },
+    {
+      "new": "datalens/api-ref/HtmlPages/rpccreateHtmlPage-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createHtmlPage",
+      "operation": "createHtmlPage"
+    },
+    {
+      "new": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createQLChart",
+      "old": "datalens/openapi-ref/createQlChart.md",
+      "operation": "createQLChart"
+    },
+    {
+      "new": "datalens/api-ref/Reports/rpccreateReport-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createReport",
+      "operation": "createReport"
+    },
+    {
+      "new": "https://yandex.cloud/ru/docs/datalens/openapi-ref/createWizardChart",
+      "old": "datalens/openapi-ref/createWizardChart.md",
+      "operation": "createWizardChart"
+    },
+    {
+      "new": "datalens/api-ref/Workbook/rpccreateWorkbook-post.md",
+      "old": "datalens/openapi-ref/createWorkbook.md",
+      "operation": "createWorkbook"
+    },
+    {
+      "new": "datalens/api-ref/Collection/rpcdeleteCollection-post.md",
+      "old": "datalens/openapi-ref/deleteCollection.md",
+      "operation": "deleteCollection"
+    },
+    {
+      "new": "datalens/api-ref/Collection/rpcdeleteCollections-post.md",
+      "old": "datalens/openapi-ref/deleteCollections.md",
+      "operation": "deleteCollections"
+    },
+    {
+      "new": "datalens/api-ref/Connection/rpcdeleteConnection-post.md",
+      "old": "datalens/openapi-ref/deleteConnection.md",
+      "operation": "deleteConnection"
+    },
+    {
+      "new": "datalens/api-ref/Dashboard/rpcdeleteDashboard-post.md",
+      "old": "datalens/openapi-ref/deleteDashboard.md",
+      "operation": "deleteDashboard"
+    },
+    {
+      "new": "datalens/api-ref/Dataset/rpcdeleteDataset-post.md",
+      "old": "datalens/openapi-ref/deleteDataset.md",
+      "operation": "deleteDataset"
+    },
+    {
+      "new": "datalens/api-ref/Editor/rpcdeleteEditorChart-post.md",
+      "old": "datalens/openapi-ref/deleteEditorChart.md",
+      "operation": "deleteEditorChart"
+    },
+    {
+      "new": "datalens/api-ref/Embeds/rpcdeleteEmbed-post.md",
+      "old": "datalens/openapi-ref/deleteEmbed.md",
+      "operation": "deleteEmbed"
+    },
+    {
+      "new": "datalens/api-ref/EmbeddingSecrets/rpcdeleteEmbeddingSecret-post.md",
+      "old": "datalens/openapi-ref/deleteEmbeddingSecret.md",
+      "operation": "deleteEmbeddingSecret"
+    },
+    {
+      "new": "datalens/api-ref/EntryLock/rpcdeleteEntryLock-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteEntryLock",
+      "operation": "deleteEntryLock"
+    },
+    {
+      "new": "datalens/api-ref/Folder/rpcdeleteFolder-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteFolder",
+      "operation": "deleteFolder"
+    },
+    {
+      "new": "datalens/api-ref/HtmlPages/rpcdeleteHtmlPage-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteHtmlPage",
+      "operation": "deleteHtmlPage"
+    },
+    {
+      "new": "datalens/api-ref/QL/rpcdeleteQLChart-post.md",
+      "old": "datalens/openapi-ref/deleteQlChart.md",
+      "operation": "deleteQLChart"
+    },
+    {
+      "new": "datalens/api-ref/Reports/rpcdeleteReport-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/deleteReport",
+      "operation": "deleteReport"
+    },
+    {
+      "new": "datalens/api-ref/Wizard/rpcdeleteWizardChart-post.md",
+      "old": "datalens/openapi-ref/deleteWizardChart.md",
+      "operation": "deleteWizardChart"
+    },
+    {
+      "new": "datalens/api-ref/Workbook/rpcdeleteWorkbook-post.md",
+      "old": "datalens/openapi-ref/deleteWorkbook.md",
+      "operation": "deleteWorkbook"
+    },
+    {
+      "new": "datalens/api-ref/Workbook/rpcdeleteWorkbooks-post.md",
+      "old": "datalens/openapi-ref/deleteWorkbooks.md",
+      "operation": "deleteWorkbooks"
+    },
+    {
+      "new": "datalens/api-ref/Folder/rpcdlsSuggest-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/dlsSuggest",
+      "operation": "dlsSuggest"
+    },
+    {
+      "new": "datalens/api-ref/EntryLock/rpcextendEntryLock-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/extendEntryLock",
+      "operation": "extendEntryLock"
+    },
+    {
+      "new": "datalens/api-ref/Audit/rpcgetAuditEntriesUpdates-post.md",
+      "old": "datalens/openapi-ref/getAuditEntriesUpdates.md",
+      "operation": "getAuditEntriesUpdates"
+    },
+    {
+      "new": "datalens/api-ref/Audit/rpcgetAuditEntryPermissionsForUser-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getAuditEntryPermissionsForUser",
+      "operation": "getAuditEntryPermissionsForUser"
+    },
+    {
+      "new": "datalens/api-ref/Collection/rpcgetCollection-post.md",
+      "old": "datalens/openapi-ref/getCollection.md",
+      "operation": "getCollection"
+    },
+    {
+      "new": "datalens/api-ref/Collection/rpcgetCollectionBreadcrumbs-post.md",
+      "old": "datalens/openapi-ref/getCollectionBreadcrumbs.md",
+      "operation": "getCollectionBreadcrumbs"
+    },
+    {
+      "new": "datalens/api-ref/Collection/rpcgetCollectionContent-post.md",
+      "old": "datalens/openapi-ref/getCollectionContent.md",
+      "operation": "getCollectionContent"
+    },
+    {
+      "new": "datalens/api-ref/Collection/rpcgetCollectionsByIds-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getCollectionsByIds",
+      "operation": "getCollectionsByIds"
+    },
+    {
+      "new": "datalens/api-ref/Connection/rpcgetConnection-post.md",
+      "old": "datalens/openapi-ref/getConnection.md",
+      "operation": "getConnection"
+    },
+    {
+      "new": "datalens/api-ref/Dashboard/rpcgetDashboard-post.md",
+      "old": "datalens/openapi-ref/getDashboard.md",
+      "operation": "getDashboard"
+    },
+    {
+      "new": "datalens/api-ref/Dataset/rpcgetDataset-post.md",
+      "old": "datalens/openapi-ref/getDataset.md",
+      "operation": "getDataset"
+    },
+    {
+      "new": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getEditorChart",
+      "old": "datalens/openapi-ref/getEditorChart.md",
+      "operation": "getEditorChart"
+    },
+    {
+      "new": "datalens/api-ref/EmbeddingSecrets/rpcgetEmbeddingSecret-post.md",
+      "old": "datalens/openapi-ref/getEmbeddingSecret.md",
+      "operation": "getEmbeddingSecret"
+    },
+    {
+      "new": "datalens/api-ref/Navigation/rpcgetEntries-post.md",
+      "old": "datalens/openapi-ref/getEntries.md",
+      "operation": "getEntries"
+    },
+    {
+      "new": "datalens/api-ref/Entries/rpcgetEntriesPermissions-post.md",
+      "old": "datalens/openapi-ref/getEntriesPermissions.md",
+      "operation": "getEntriesPermissions"
+    },
+    {
+      "new": "datalens/api-ref/Entries/rpcgetEntriesRelations-post.md",
+      "old": "datalens/openapi-ref/getEntriesRelations.md",
+      "operation": "getEntriesRelations"
+    },
+    {
+      "new": "datalens/api-ref/HtmlPages/rpcgetHtmlPage-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getHtmlPage",
+      "operation": "getHtmlPage"
+    },
+    {
+      "new": "datalens/api-ref/Licensing/rpcgetLicenses-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getLicenses",
+      "operation": "getLicenses"
+    },
+    {
+      "new": "datalens/api-ref/Licensing/rpcgetLicensesLimit-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getLicensesLimit",
+      "operation": "getLicensesLimit"
+    },
+    {
+      "new": "datalens/api-ref/Folder/rpcgetPermissions-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getPermissions",
+      "operation": "getPermissions"
+    },
+    {
+      "new": "datalens/api-ref/Permissions/rpcgetPermissionsBulk-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getPermissionsBulk",
+      "operation": "getPermissionsBulk"
+    },
+    {
+      "new": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getQLChart",
+      "old": "datalens/openapi-ref/getQlChart.md",
+      "operation": "getQLChart"
+    },
+    {
+      "new": "datalens/api-ref/Reports/rpcgetReport-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getReport",
+      "operation": "getReport"
+    },
+    {
+      "new": "datalens/api-ref/Collection/rpcgetRootCollectionPermissions-post.md",
+      "old": "datalens/openapi-ref/getRootCollectionPermissions.md",
+      "operation": "getRootCollectionPermissions"
+    },
+    {
+      "new": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getWizardChart",
+      "old": "datalens/openapi-ref/getWizardChart.md",
+      "operation": "getWizardChart"
+    },
+    {
+      "new": "datalens/api-ref/Workbook/rpcgetWorkbook-post.md",
+      "old": "datalens/openapi-ref/getWorkbook.md",
+      "operation": "getWorkbook"
+    },
+    {
+      "new": "datalens/api-ref/Workbook/rpcgetWorkbookEntries-post.md",
+      "old": "datalens/openapi-ref/getWorkbookEntries.md",
+      "operation": "getWorkbookEntries"
+    },
+    {
+      "new": "datalens/api-ref/WorkbookExport/rpcgetWorkbookExportResult-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookExportResult",
+      "operation": "getWorkbookExportResult"
+    },
+    {
+      "new": "datalens/api-ref/WorkbookExport/rpcgetWorkbookExportStatus-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookExportStatus",
+      "operation": "getWorkbookExportStatus"
+    },
+    {
+      "new": "datalens/api-ref/WorkbookImport/rpcgetWorkbookImportStatus-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbookImportStatus",
+      "operation": "getWorkbookImportStatus"
+    },
+    {
+      "new": "datalens/api-ref/Workbook/rpcgetWorkbooksByIds-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/getWorkbooksByIds",
+      "operation": "getWorkbooksByIds"
+    },
+    {
+      "new": "datalens/api-ref/Workbook/rpcgetWorkbooksList-post.md",
+      "old": "datalens/openapi-ref/getWorkbooksList.md",
+      "operation": "getWorkbooksList"
+    },
+    {
+      "new": "datalens/api-ref/Collection/rpclistCollectionAccessBindings-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/listCollectionAccessBindings",
+      "operation": "listCollectionAccessBindings"
+    },
+    {
+      "new": "datalens/api-ref/Navigation/rpclistDirectory-post.md",
+      "old": "datalens/openapi-ref/listDirectory.md",
+      "operation": "listDirectory"
+    },
+    {
+      "new": "datalens/api-ref/EmbeddingSecrets/rpclistEmbeddingSecrets-post.md",
+      "old": "datalens/openapi-ref/listEmbeddingSecrets.md",
+      "operation": "listEmbeddingSecrets"
+    },
+    {
+      "new": "datalens/api-ref/Embeds/rpclistEmbeds-post.md",
+      "old": "datalens/openapi-ref/listEmbeds.md",
+      "operation": "listEmbeds"
+    },
+    {
+      "new": "datalens/api-ref/SharedEntry/rpclistSharedEntryAccessBindings-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/listSharedEntryAccessBindings",
+      "operation": "listSharedEntryAccessBindings"
+    },
+    {
+      "new": "datalens/api-ref/Workbook/rpclistWorkbookAccessBindings-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/listWorkbookAccessBindings",
+      "operation": "listWorkbookAccessBindings"
+    },
+    {
+      "new": "datalens/api-ref/Folder/rpcmodifyPermissions-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/modifyPermissions",
+      "operation": "modifyPermissions"
+    },
+    {
+      "new": "datalens/api-ref/Collection/rpcmoveCollection-post.md",
+      "old": "datalens/openapi-ref/moveCollection.md",
+      "operation": "moveCollection"
+    },
+    {
+      "new": "datalens/api-ref/Collection/rpcmoveCollections-post.md",
+      "old": "datalens/openapi-ref/moveCollections.md",
+      "operation": "moveCollections"
+    },
+    {
+      "new": "datalens/api-ref/Folder/rpcmoveFolderEntry-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/moveFolderEntry",
+      "operation": "moveFolderEntry"
+    },
+    {
+      "new": "datalens/api-ref/Workbook/rpcmoveWorkbook-post.md",
+      "old": "datalens/openapi-ref/moveWorkbook.md",
+      "operation": "moveWorkbook"
+    },
+    {
+      "new": "datalens/api-ref/Workbook/rpcmoveWorkbooks-post.md",
+      "old": "datalens/openapi-ref/moveWorkbooks.md",
+      "operation": "moveWorkbooks"
+    },
+    {
+      "new": "datalens/api-ref/Entries/rpcrenameEntry-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/renameEntry",
+      "operation": "renameEntry"
+    },
+    {
+      "new": "datalens/api-ref/Licensing/rpcsetLicenseLimit-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/setLicenseLimit",
+      "operation": "setLicenseLimit"
+    },
+    {
+      "new": "datalens/api-ref/WorkbookExport/rpcstartWorkbookExport-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/startWorkbookExport",
+      "operation": "startWorkbookExport"
+    },
+    {
+      "new": "datalens/api-ref/WorkbookImport/rpcstartWorkbookImport-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/startWorkbookImport",
+      "operation": "startWorkbookImport"
+    },
+    {
+      "new": "datalens/api-ref/Collection/rpcupdateCollection-post.md",
+      "old": "datalens/openapi-ref/updateCollection.md",
+      "operation": "updateCollection"
+    },
+    {
+      "new": "datalens/api-ref/Collection/rpcupdateCollectionAccessBindings-post.md",
+      "old": "datalens/openapi-ref/updateCollectionAccessBindings.md",
+      "operation": "updateCollectionAccessBindings"
+    },
+    {
+      "new": "datalens/api-ref/Connection/rpcupdateConnection-post.md",
+      "old": "datalens/openapi-ref/updateConnection.md",
+      "operation": "updateConnection"
+    },
+    {
+      "new": "datalens/api-ref/Dashboard/rpcupdateDashboard-post.md",
+      "old": "datalens/openapi-ref/updateDashboard.md",
+      "operation": "updateDashboard"
+    },
+    {
+      "new": "datalens/api-ref/Dataset/rpcupdateDataset-post.md",
+      "old": "datalens/openapi-ref/updateDataset.md",
+      "operation": "updateDataset"
+    },
+    {
+      "new": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateEditorChart",
+      "old": "datalens/openapi-ref/updateEditorChart.md",
+      "operation": "updateEditorChart"
+    },
+    {
+      "new": "datalens/api-ref/Embeds/rpcupdateEmbed-post.md",
+      "old": "datalens/openapi-ref/updateEmbed.md",
+      "operation": "updateEmbed"
+    },
+    {
+      "new": "datalens/api-ref/HtmlPages/rpcupdateHtmlPage-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateHtmlPage",
+      "operation": "updateHtmlPage"
+    },
+    {
+      "new": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateQLChart",
+      "old": "datalens/openapi-ref/updateQlChart.md",
+      "operation": "updateQLChart"
+    },
+    {
+      "new": "datalens/api-ref/Reports/rpcupdateReport-post.md",
+      "old": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateReport",
+      "operation": "updateReport"
+    },
+    {
+      "new": "https://yandex.cloud/ru/docs/datalens/openapi-ref/updateWizardChart",
+      "old": "datalens/openapi-ref/updateWizardChart.md",
+      "operation": "updateWizardChart"
+    },
+    {
+      "new": "datalens/api-ref/Workbook/rpcupdateWorkbook-post.md",
+      "old": "datalens/openapi-ref/updateWorkbook.md",
+      "operation": "updateWorkbook"
+    },
+    {
+      "new": "datalens/api-ref/Workbook/rpcupdateWorkbookAccessBindings-post.md",
+      "old": "datalens/openapi-ref/updateWorkbookAccessBindings.md",
+      "operation": "updateWorkbookAccessBindings"
+    },
+    {
+      "new": "datalens/api-ref/Dataset/rpcvalidateDataset-post.md",
+      "old": "datalens/openapi-ref/validateDataset.md",
+      "operation": "validateDataset"
+    }
+  ],
+  "removed_operations": [],
+  "schema_delta": {
+    "added": [
+      "GetDatasetDataRequest",
+      "GetDatasetDataResponse",
+      "ReportMeta"
+    ],
+    "changed": [
+      "CreateReportV1Args",
+      "DashTabItem",
+      "DashboardV1",
+      "EntryScope",
+      "GetEntriesV2Args",
+      "GetWorkbookEntriesArgs",
+      "ReportData",
+      "ReportV1",
+      "UpdateReportV1Args"
+    ],
+    "removed": []
+  },
+  "schema_id": "datalens_api_delta_report",
+  "support_classification": {
+    "getDatasetData": "typed_supported"
+  }
+}
