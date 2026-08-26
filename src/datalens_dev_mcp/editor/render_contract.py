@@ -75,6 +75,28 @@ def render_contract_to_dict(value: Mapping[str, Any]) -> dict[str, Any]:
     return _jsonable(value)
 
 
+def attach_style_binding_to_render_contract(
+    render_contract: Mapping[str, Any],
+    style_binding: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Attach only an immutable style identity; never inline full Editor source."""
+
+    result = render_contract_to_dict(render_contract)
+    if style_binding:
+        result["style_binding"] = {
+            key: style_binding.get(key)
+            for key in (
+                "selection_origin",
+                "profile_id",
+                "profile_sha256",
+                "source_hash",
+                "technology",
+                "binding_sha256",
+            )
+        }
+    return result
+
+
 @lru_cache(maxsize=1)
 def load_dashboard_render_profiles() -> Mapping[str, Any]:
     """Load and fingerprint-check the packaged render-profile registry."""

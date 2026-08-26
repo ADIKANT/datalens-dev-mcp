@@ -24,6 +24,20 @@ DEFAULT_BROWSER_UNAVAILABLE_REASON = (
 )
 
 
+def style_binding_contract(bundle: dict[str, Any]) -> dict[str, Any]:
+    """Return a bounded optional style identity without changing existing golden fixtures."""
+
+    binding = bundle.get("style_binding")
+    if not isinstance(binding, dict):
+        return {}
+    return {
+        "selection_origin": binding.get("selection_origin"),
+        "profile_sha256": binding.get("profile_sha256"),
+        "technology": binding.get("technology"),
+        "binding_sha256": binding.get("binding_sha256"),
+    }
+
+
 def load_golden_inventory() -> dict[str, Any]:
     return resource_json(INVENTORY_RESOURCE)
 

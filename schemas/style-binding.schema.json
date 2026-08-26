@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Style Binding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "selection_origin", "selection_priority", "profile_id", "profile_sha256", "immutable", "binding_sha256"],
+  "properties": {
+    "schema_id": {"const": "style_binding"},
+    "selection_origin": {"enum": ["exact_object", "explicit_reference", "local_style_family", "generic_cookbook", "new_design"]},
+    "selection_priority": {"type": "integer", "minimum": 1, "maximum": 5},
+    "reason": {"type": "string"},
+    "profile_id": {"type": "string"},
+    "profile_sha256": {"type": "string"},
+    "registry_identity_sha256": {"type": "string"},
+    "source_hash": {"type": "string"},
+    "technology": {"type": "string"},
+    "immutable": {"type": "boolean"},
+    "binding_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

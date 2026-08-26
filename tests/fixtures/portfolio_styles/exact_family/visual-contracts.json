@@ -1,0 +1,16 @@
+{
+  "selector_order": "stable",
+  "selector_row_count": "bounded",
+  "minimal_selector_height": true,
+  "period_selector_first": true,
+  "themes": ["light", "dark"],
+  "sticky_header": "opaque",
+  "legend": "actual_series_only",
+  "empty_state": true,
+  "partial_data_indicators_visible": true,
+  "business_readable_table_labels": true,
+  "redundant_technical_columns": false,
+  "hints_lineage_and_na_reasons": true,
+  "formatting": "display_only",
+  "pagination": "bounded"
+}

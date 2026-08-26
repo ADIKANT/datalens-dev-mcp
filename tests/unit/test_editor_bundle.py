@@ -142,6 +142,27 @@ class EditorBundleTests(unittest.TestCase):
         self.assertEqual(payload["entry"]["data"]["prepare"], "module.exports = {render: () => ''};")
         self.assertEqual(payload["mode"], "save")
 
+    def test_exact_portfolio_style_precedes_standard_template(self):
+        from datalens_dev_mcp.editor.bundle import generate_editor_bundle
+        from datalens_dev_mcp.editor.style_scanner import scan_portfolio_style_registry
+
+        fixture_root = Path(__file__).resolve().parents[1] / "fixtures" / "portfolio_styles"
+        registry = scan_portfolio_style_registry(fixture_root)
+        bundle = generate_editor_bundle(
+            widget_id="synthetic_styled",
+            route="editor_advanced",
+            title="Synthetic Styled",
+            family="line_chart",
+            style_registry=registry,
+            style_context={"existing_object_path": "exact_family"},
+            style_updates={"pagination": 80},
+        )
+
+        self.assertEqual(bundle["source_contract"]["binding"], "immutable_portfolio_style")
+        self.assertEqual(bundle["style_binding"]["selection_origin"], "exact_object")
+        self.assertIn("80", bundle["tabs"]["prepare.js"])
+        self.assertNotIn("source_gallery", bundle)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -154,6 +154,18 @@ def decide_chart(**kwargs: Any) -> ChartDecisionRecord:
     return VisualDecisionEngine().decide(**kwargs)
 
 
+def attach_style_binding_to_decision(record: dict[str, Any], binding: dict[str, Any] | None) -> dict[str, Any]:
+    result = dict(record)
+    if binding:
+        result["style_binding"] = {
+            "selection_origin": binding.get("selection_origin"),
+            "profile_sha256": binding.get("profile_sha256"),
+            "technology": binding.get("technology"),
+            "binding_sha256": binding.get("binding_sha256"),
+        }
+    return result
+
+
 def validate_chart_decision_record(record: dict[str, Any]) -> dict[str, Any]:
     required = [
         "schema_id",

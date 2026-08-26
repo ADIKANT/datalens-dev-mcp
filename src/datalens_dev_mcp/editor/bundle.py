@@ -14,6 +14,11 @@ from datalens_dev_mcp.editor.standard_templates import (
     load_standard_template_bundle,
 )
 from datalens_dev_mcp.editor.visual_spec import build_renderer_visual_spec, normalize_renderer_visual_spec
+from datalens_dev_mcp.editor.style_binding import (
+    assert_technology_preserved,
+    bind_style_profile,
+    materialize_style_bundle,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -160,6 +165,10 @@ def generate_editor_bundle(
     visual_spec: dict[str, Any] | None = None,
     chart_decision_record: dict[str, Any] | None = None,
     source_mode: str = PRODUCTION_SOURCE_MODE,
+    style_registry: dict[str, Any] | None = None,
+    style_context: dict[str, Any] | None = None,
+    style_updates: dict[str, Any] | None = None,
+    template_migration: bool = False,
 ) -> dict[str, Any]:
     if source_mode not in {PRODUCTION_SOURCE_MODE, GOLDEN_FIXTURE_SOURCE_MODE}:
         raise ValueError(f"unsupported Editor bundle source_mode: {source_mode}")
@@ -180,6 +189,39 @@ def generate_editor_bundle(
             analytical_task="unknown",
             chart_purpose=title,
         ).to_dict()
+    if style_registry is not None:
+        context = dict(style_context or {})
+        context.setdefault("technology", normalized)
+        binding = bind_style_profile(style_registry, context)
+        if binding["immutable"]:
+            assert_technology_preserved(binding, normalized)
+            styled = materialize_style_bundle(
+                style_registry,
+                binding,
+                updates=style_updates,
+                template_migration=template_migration,
+            )
+            spec = ROUTE_CONTRACT.spec(normalized)
+            return {
+                "schema_id": "editor_tab_bundle",
+                "widget_id": widget_id,
+                "name": _canonical_name(route=normalized, title=title, widget_id=widget_id),
+                "display_title": title,
+                "route": normalized,
+                "entry_type": spec.entry_type,
+                "renderer_visual_spec": requested_visual_spec,
+                "chart_decision_record": chart_decision_record or {},
+                "generation_status": "ready",
+                "source_contract": {
+                    "status": "ready",
+                    "production_ready": True,
+                    "binding": "immutable_portfolio_style",
+                    "required_output_columns": list(columns or []),
+                    "issues": [],
+                },
+                "blocking_issues": [],
+                **styled,
+            }
     standard_bundle = load_standard_template_bundle(
         widget_id=widget_id,
         route=normalized,

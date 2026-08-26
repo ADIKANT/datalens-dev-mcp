@@ -13,9 +13,17 @@ from datalens_dev_mcp.pipeline.route_registry import (
 )
 from datalens_dev_mcp.pipeline.user_request import NormalizedUserRequest, normalize_user_request
 from datalens_dev_mcp.runtime_resources import RuntimeResourceError, resource_json
+from datalens_dev_mcp.editor.style_binding import assert_technology_preserved
 
 
 RouteDecisionStatus = Literal["approved", "approved_with_requirements", "blocked_unsupported_route", "blocked_question"]
+
+
+def preserve_style_bound_route(binding: dict[str, Any], selected_route: str) -> str:
+    """Fail closed when route selection would change the bound Editor technology."""
+
+    assert_technology_preserved(binding, selected_route)
+    return selected_route
 
 
 @dataclass(frozen=True)
