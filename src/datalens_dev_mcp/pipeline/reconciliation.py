@@ -147,6 +147,62 @@ def reconcile_partial_creates(
     }
 
 
+def reconcile_workflow_objects(
+    *,
+    expected: list[dict[str, Any]],
+    observed: list[dict[str, Any]],
+    phase: str,
+) -> dict[str, Any]:
+    """Classify multi-object save/publish evidence without replaying writes."""
+
+    observed_by_id = {
+        str(item.get("object_id") or item.get("id") or ""): item
+        for item in observed
+        if isinstance(item, dict) and str(item.get("object_id") or item.get("id") or "")
+    }
+    statuses: list[dict[str, Any]] = []
+    conflicts: list[dict[str, Any]] = []
+    for item in expected:
+        object_id = str(item.get("object_id") or item.get("id") or "")
+        actual = observed_by_id.get(object_id)
+        expected_revision = str(item.get("expected_revision") or item.get("revision") or "")
+        actual_revision = str((actual or {}).get("revision") or "")
+        if actual is None:
+            status = "missing"
+        elif expected_revision and actual_revision and expected_revision != actual_revision:
+            status = "conflict"
+            conflicts.append(
+                {
+                    "object_id": object_id,
+                    "expected_revision": expected_revision,
+                    "actual_revision": actual_revision,
+                }
+            )
+        else:
+            status = "matched"
+        statuses.append(
+            {
+                "object_id": object_id,
+                "status": status,
+                "expected_revision": expected_revision,
+                "actual_revision": actual_revision,
+            }
+        )
+    if conflicts:
+        status = "conflict"
+    elif statuses and all(item["status"] == "matched" for item in statuses):
+        status = "matched"
+    else:
+        status = "partial"
+    return {
+        "status": status,
+        "phase": phase,
+        "object_statuses": statuses,
+        "semantic_diff": {"revision_conflicts": conflicts} if conflicts else {},
+        "write_replay_allowed": False,
+    }
+
+
 def _extract_entries(payload: dict[str, Any]) -> list[dict[str, Any]]:
     if isinstance(payload.get("entries"), list):
         return payload["entries"]

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/workflow-checkpoint.schema.json",
+  "title": "Bounded DataLens workflow checkpoint metadata",
+  "type": "object",
+  "required": ["task_id", "contract_hash", "current_state", "completed_transitions", "next_transition", "plan_uris", "receipt_uris", "completion_criteria"],
+  "properties": {
+    "task_id": {"type": "string", "minLength": 1},
+    "contract_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "current_state": {"type": "string"},
+    "completed_transitions": {"type": "array", "items": {"type": "string"}},
+    "next_transition": {"type": "string"},
+    "plan_uris": {"type": "array", "items": {"type": "string"}},
+    "receipt_uris": {"type": "array", "items": {"type": "string"}},
+    "completion_criteria": {"type": "array", "items": {"type": "string"}},
+    "blocker": {"type": "object"}
+  },
+  "additionalProperties": false
+}

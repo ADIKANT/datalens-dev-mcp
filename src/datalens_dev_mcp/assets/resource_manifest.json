@@ -1,5 +1,5 @@
 {
-  "resource_count": 271,
+  "resource_count": 275,
   "resources": [
     {
       "bytes": 15842,
@@ -407,6 +407,11 @@
       "sha256": "f0b11eab493d806c848bf0f16b4c457a3c5199141a5652577804c2dfe1ba38f4"
     },
     {
+      "bytes": 629,
+      "path": "schemas/project-journal.schema.json",
+      "sha256": "e8cfcecd4699063098ab112dbcb9f859a82891b139faf25167b3770fa163b1e6"
+    },
+    {
       "bytes": 10554,
       "path": "schemas/project-live-workflow-manifest.schema.json",
       "sha256": "dc2ff5f1f21586a2202fc8700776b1e3d1311e5a07fd8922b243a5f5fa491c98"
@@ -437,9 +442,9 @@
       "sha256": "a2d547723af75c581440be62f621dc91d3f965c7d8b0de1ee1b465dc599bde82"
     },
     {
-      "bytes": 14294,
+      "bytes": 14412,
       "path": "schemas/safe-apply-plan.schema.json",
-      "sha256": "fd368802b2cf9b8a1c66c1fc90384df0e13f2b28ee8be9d961c3cc2c96a066c4"
+      "sha256": "08e23e40552cd89e364d2725a48bd41c4bd6951fc3912965f397314354cd7bac"
     },
     {
       "bytes": 6202,
@@ -510,6 +515,21 @@
       "bytes": 1050,
       "path": "schemas/wizard_field_binding_report.schema.json",
       "sha256": "acf8c7c31aa2b6a9347f97deb85dac567277a2b6d65027d200c6c03ab551d7d2"
+    },
+    {
+      "bytes": 956,
+      "path": "schemas/workflow-checkpoint.schema.json",
+      "sha256": "6bd5cf85ec123a4a96a4a4d551020d0734d2ca771236335de96d1a0d5d0e4717"
+    },
+    {
+      "bytes": 1145,
+      "path": "schemas/workflow-event.schema.json",
+      "sha256": "b45ddb7069006fddb8bc2f5aca768d9e76a1bc311f9fcd2205b30a19496ae88f"
+    },
+    {
+      "bytes": 1315,
+      "path": "schemas/workflow-state.schema.json",
+      "sha256": "da030a724e6cced87863234f2ebb3a8d14c5931fe8a0c35e6310b2f55fefed09"
     },
     {
       "bytes": 4010,

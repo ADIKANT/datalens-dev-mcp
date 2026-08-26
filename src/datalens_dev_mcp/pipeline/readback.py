@@ -3,6 +3,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+import hashlib
+import json
+
 from datalens_dev_mcp.pipeline.proof_levels import PROOF_LEVELS
 
 READBACK_MODES = ("none", "minimal", "full", "debug")
@@ -34,4 +37,32 @@ def build_readback_summary(
         "status": "skipped" if normalized_mode == "none" else ("read" if response is not None else "not_executed"),
         "skipped_reason": skipped_reason if normalized_mode == "none" else "",
         "response_keys": sorted(response.keys()) if isinstance(response, dict) else [],
+    }
+
+
+def workflow_readback_result(
+    response: dict[str, Any],
+    *,
+    expected_revision: str = "",
+    expected_hash: str = "",
+) -> dict[str, Any]:
+    """Return a deterministic reconciliation result for saved/published readback."""
+
+    revision = str(response.get("revision") or response.get("revId") or response.get("updatedAt") or "")
+    payload = response.get("data") if isinstance(response.get("data"), dict) else response
+    actual_hash = hashlib.sha256(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    revision_conflict = bool(expected_revision and revision and revision != expected_revision)
+    hash_conflict = bool(expected_hash and actual_hash != expected_hash)
+    return {
+        "status": "conflict" if revision_conflict or hash_conflict else "matched",
+        "expected_revision": expected_revision,
+        "actual_revision": revision,
+        "expected_hash": expected_hash,
+        "actual_hash": actual_hash,
+        "semantic_diff": {
+            "revision_changed": revision_conflict,
+            "content_hash_changed": hash_conflict,
+        } if revision_conflict or hash_conflict else {},
     }

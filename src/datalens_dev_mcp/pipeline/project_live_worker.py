@@ -44,8 +44,11 @@ def _heartbeat(
     target_pid: int,
     started_epoch: float,
     deadline_epoch: float,
+    lease_path: Path | None = None,
+    task_id: str = "",
 ) -> None:
     while not stop.wait(2):
+        heartbeat_epoch = time.time()
         _atomic_json(
             status_path,
             {
@@ -53,11 +56,23 @@ def _heartbeat(
                 "execution_id": execution_id,
                 "status": "running",
                 "target_pid": target_pid,
-                "heartbeat_epoch": time.time(),
+                "heartbeat_epoch": heartbeat_epoch,
                 "started_epoch": started_epoch,
                 "deadline_epoch": deadline_epoch,
             },
         )
+        if lease_path is not None:
+            _atomic_json(
+                lease_path,
+                {
+                    "schema_id": "datalens_workflow_lease",
+                    "task_id": task_id,
+                    "owner": f"project-live-worker:{execution_id}",
+                    "pid": os.getpid(),
+                    "heartbeat_epoch": heartbeat_epoch,
+                    "expires_epoch": heartbeat_epoch + 10,
+                },
+            )
 
 
 def run_worker(spec_path: Path) -> int:
@@ -71,6 +86,8 @@ def run_worker(spec_path: Path) -> int:
     timeout_sec = max(1, int(spec.get("timeout_sec") or 1))
     started_epoch = float(spec.get("started_epoch") or time.time())
     deadline_epoch = started_epoch + timeout_sec
+    lease_path = Path(str(spec["workflow_lease_path"])) if spec.get("workflow_lease_path") else None
+    task_id = str(spec.get("task_id") or "")
     secrets = secret_values_from_mapping(dict(os.environ))
     mutation_before = (
         _tracked_source_snapshot(root)
@@ -111,6 +128,8 @@ def run_worker(spec_path: Path) -> int:
                 "target_pid": target.pid,
                 "started_epoch": started_epoch,
                 "deadline_epoch": deadline_epoch,
+                "lease_path": lease_path,
+                "task_id": task_id,
             },
             daemon=True,
         )

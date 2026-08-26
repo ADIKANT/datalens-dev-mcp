@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/workflow-event.schema.json",
+  "title": "Append-only DataLens workflow event",
+  "type": "object",
+  "required": ["schema_id", "event_id", "previous_hash", "event_hash", "task_id", "transition", "input_hash", "result_receipt", "status", "timestamp", "idempotency_key", "details"],
+  "properties": {
+    "schema_id": {"const": "datalens_workflow_event"},
+    "event_id": {"type": "integer", "minimum": 1},
+    "previous_hash": {"type": "string", "pattern": "^$|^[a-f0-9]{64}$"},
+    "event_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "task_id": {"type": "string", "minLength": 1},
+    "transition": {"type": "string", "pattern": "^[A-Z_]+ -> [A-Z_]+$"},
+    "input_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "result_receipt": {"type": "string"},
+    "status": {"enum": ["success", "blocked", "retryable", "failed"]},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "idempotency_key": {"type": "string", "minLength": 1},
+    "details": {"type": "object"}
+  },
+  "additionalProperties": false
+}

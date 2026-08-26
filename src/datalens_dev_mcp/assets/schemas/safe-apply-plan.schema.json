@@ -33,6 +33,12 @@
         {"const": ""}
       ]
     },
+    "task_contract_hash": {
+      "oneOf": [
+        {"$ref": "#/$defs/sha256"},
+        {"const": ""}
+      ]
+    },
     "target_lock": {"$ref": "#/$defs/targetLock"},
     "branch_semantics": {"$ref": "#/$defs/planBranchSemantics"},
     "transaction_policy": {
