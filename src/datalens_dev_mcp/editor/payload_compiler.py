@@ -9,6 +9,7 @@ from datalens_dev_mcp.validators.datalens_names import sanitize_datalens_interna
 from datalens_dev_mcp.validators.advanced_editor_validator import validate_editor_runtime_contract
 from datalens_dev_mcp.validators.route_validator import validate_route_payload
 from datalens_dev_mcp.editor.style_binding import validate_bound_bundle
+from datalens_dev_mcp.pipeline.semantic_patch import build_semantic_patch_plan
 
 
 def compile_editor_payload(
@@ -63,6 +64,30 @@ def compile_editor_payload(
         detail = "; ".join(messages) or generation_status
         raise ValueError(f"Editor bundle generation is blocked ({generation_status}): {detail}")
     return compiled
+
+
+def compile_editor_semantic_patch_plan(
+    *,
+    task_id: str,
+    object_id: str,
+    saved_revision: Any,
+    saved_payload: dict[str, Any],
+    sections: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Compile narrow Editor tab changes without regenerating untouched tabs."""
+
+    return build_semantic_patch_plan(
+        task_id=task_id,
+        targets=[
+            {
+                "object_id": object_id,
+                "object_type": "editor_chart",
+                "saved_revision": saved_revision,
+                "payload": saved_payload,
+                "sections": sections,
+            }
+        ],
+    )
 
 
 def _editor_tab_key(tab_name: str) -> str:

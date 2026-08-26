@@ -40,6 +40,7 @@ from datalens_dev_mcp.pipeline.route_registry import (
     is_supported_wizard_visualization,
     normalize_creation_route,
 )
+from datalens_dev_mcp.pipeline.semantic_patch import build_semantic_patch_plan
 
 
 SENSITIVE_KEYWORDS = ("token", "authorization", "password", "secret", "iam", "subjecttoken")
@@ -122,6 +123,35 @@ PLACEHOLDER_TARGETS = {
     "<dataset_id>",
     "<connection_id>",
 }
+
+
+def build_object_semantic_patch_plan(
+    *,
+    task_id: str,
+    object_id: str,
+    object_type: str,
+    saved_revision: Any,
+    saved_payload: dict[str, Any],
+    sections: list[dict[str, Any]],
+    dependencies: list[str] | None = None,
+    protected_regions: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Build a hash-bound lifecycle plan; execution remains owned by Safe Apply."""
+
+    return build_semantic_patch_plan(
+        task_id=task_id,
+        targets=[
+            {
+                "object_id": object_id,
+                "object_type": object_type,
+                "saved_revision": saved_revision,
+                "payload": saved_payload,
+                "sections": sections,
+                "dependencies": dependencies or [],
+                "protected_regions": protected_regions or [],
+            }
+        ],
+    )
 
 
 def dl_probe_auth(client: Any | None = None) -> dict[str, Any]:

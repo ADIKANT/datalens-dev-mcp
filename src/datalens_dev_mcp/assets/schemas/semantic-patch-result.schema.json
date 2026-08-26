@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Semantic Patch Result",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["ok", "status", "issues", "targets", "write_count"],
+  "properties": {
+    "ok": {"type": "boolean"},
+    "status": {"enum": ["ready", "blocked", "completed", "NO_PROGRESS"]},
+    "issues": {"type": "array", "items": {"type": "string"}},
+    "targets": {"type": "array", "items": {"type": "object"}},
+    "write_count": {"type": "integer", "minimum": 0}
+  }
+}

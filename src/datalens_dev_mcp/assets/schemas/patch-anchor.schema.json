@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Patch Anchor",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["kind", "anchor_hash"],
+  "properties": {
+    "kind": {"enum": ["semantic_slot", "json_pointer", "semantic_widget"]},
+    "slot_id": {"type": "string"},
+    "pointer": {"type": "string"},
+    "object_id": {"type": "string"},
+    "widget_id": {"type": "string"},
+    "anchor_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}
