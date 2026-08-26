@@ -23,6 +23,7 @@ from datalens_dev_mcp.mcp.response_projection import (
     stable_json_text,
 )
 from datalens_dev_mcp.pipeline.safe_apply import create_safe_apply_plan, execute_safe_apply
+from datalens_dev_mcp.pipeline.baseline_preservation import build_baseline_diff_contract
 
 ARTIFACT_DIR = REPO_ROOT / "artifacts" / "controlled_live"
 CONTROLLED_TRANSIENT_FLAGS = {
@@ -743,27 +744,35 @@ def run_stale_negative(
         stale_payload["revId"] = "stale_revision_fixture"
     else:
         return {"executed": False, "status": "not_applicable", "reason": "no revision field"}
+    action = {
+        "action": "controlled_live_stale_revision_negative",
+        "method": route["update_method"],
+        "payload": stale_payload,
+        "object_id": object_id,
+        "expected_rev_id": "stale_revision_fixture",
+        "requires_fresh_read": True,
+        "fresh_read_method": route["read_method"],
+        "fresh_read_payload": read_payload_for(route, object_id),
+        "readback_method": route["read_method"],
+        "readback_payload": read_payload_for(route, object_id),
+        "readback_mode": "minimal",
+        "readback_required": True,
+        "changed": True,
+    }
+    if route.get("route") == "dashboard":
+        baseline = client.rpc(route["read_method"], read_payload_for(route, object_id))
+        action["current_dashboard"] = baseline
+        action["baseline_dashboard"] = baseline
+        action["baseline_diff_contract"] = build_baseline_diff_contract(
+            dashboard_id=object_id,
+            baseline_dashboard=baseline,
+            proposed_dashboard=stale_payload,
+        )
     plan = create_safe_apply_plan(
         project_root=str(root),
         approved=True,
         approval_note="controlled live stale revision guard negative",
-        actions=[
-            {
-                "action": "controlled_live_stale_revision_negative",
-                "method": route["update_method"],
-                "payload": stale_payload,
-                "object_id": object_id,
-                "expected_rev_id": "stale_revision_fixture",
-                "requires_fresh_read": True,
-                "fresh_read_method": route["read_method"],
-                "fresh_read_payload": read_payload_for(route, object_id),
-                "readback_method": route["read_method"],
-                "readback_payload": read_payload_for(route, object_id),
-                "readback_mode": "minimal",
-                "readback_required": True,
-                "changed": True,
-            }
-        ],
+        actions=[action],
     )
     result = execute_safe_apply(plan, config=config, client=client)
     artifact = write_envelope(root, run_id, route["route"], "stale_safe_apply_result", result)

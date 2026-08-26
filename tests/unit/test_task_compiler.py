@@ -45,6 +45,29 @@ class TaskCompilerTests(unittest.TestCase):
         self.assertEqual(first["contract"], second["contract"])
         self.assertEqual(first["task_contract_hash"], task_contract_hash(first["contract"]))
 
+    def test_update_with_save_and_publish_compiles_as_existing_object_update(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        result = compile_task_contract(
+            "Update the existing controlled dashboard description, save and publish it without browser.",
+            current_live={
+                "workbook_id": "synthetic_workbook",
+                "dashboard_id": "synthetic_dashboard",
+                "object_ids": ["synthetic_dashboard"],
+                "object_types": ["dashboard"],
+                "technology": "dashboard",
+                "saved_revision": "synthetic_saved_revision",
+                "layout": {"tabs": ["synthetic_tab"]},
+                "tabs": ["synthetic_tab"],
+            },
+        )
+
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(result["contract"]["mode"], "update")
+        self.assertTrue(result["contract"]["delivery"]["save"])
+        self.assertTrue(result["contract"]["delivery"]["publish"])
+        self.assertEqual(result["contract"]["browser_policy"]["mode"], "forbidden")
+
     def test_compiled_contract_validates_against_public_schema(self):
         from jsonschema import Draft202012Validator
         from referencing import Registry, Resource

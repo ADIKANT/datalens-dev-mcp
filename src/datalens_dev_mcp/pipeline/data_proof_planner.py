@@ -93,7 +93,7 @@ def prove_dataset_data(
         client = DataLensApiClient(DataLensConfig.from_env())
     try:
         readback = dataset_readback or client.rpc_readonly(
-            "getDataset", {"datasetId": str(spec.get("dataset_id") or ""), "branch": "saved"}
+            "getDataset", {"datasetId": str(spec.get("dataset_id") or "")}
         )
     except Exception as exc:  # provider boundary: report evidence gap without claiming success
         return _fallback_result(spec, [], f"saved dataset readback failed: {type(exc).__name__}")

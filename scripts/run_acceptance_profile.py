@@ -119,6 +119,11 @@ def quick_profile_steps() -> list[dict[str, Any]]:
     return [
         *static_policy_steps(),
         command_step(
+            "session_regression_contracts",
+            py("scripts/validate_session_regression_corpus.py", "tests/regression/sessions"),
+            120,
+        ),
+        command_step(
             "focused_unit_subset",
             py("-m", "unittest", *FOCUSED_UNIT_MODULES, "-v"),
             300,

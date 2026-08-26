@@ -62,8 +62,9 @@ def spec(*, expected_empty=False):
 
 class DatasetDataValidationIntegrationTests(unittest.TestCase):
     def test_deterministic_pages_are_verified_and_full_sample_externalized(self):
+        client = PagingClient()
         with tempfile.TemporaryDirectory() as tmp:
-            result = prove_dataset_data(spec(), project_root=tmp, client=PagingClient())
+            result = prove_dataset_data(spec(), project_root=tmp, client=client)
             artifact = json.loads(Path(result["artifact_path"]).read_text(encoding="utf-8"))
             summary = json.loads((Path(tmp) / "artifacts" / "data_assertion_result.json").read_text(encoding="utf-8"))
         self.assertTrue(result["ok"], result)
@@ -74,6 +75,7 @@ class DatasetDataValidationIntegrationTests(unittest.TestCase):
         self.assertEqual(len(artifact["rows"]), 3)
         self.assertNotIn("rows", summary)
         self.assertEqual(summary["sample_evidence"]["redacted_examples"][0]["email"], "[REDACTED]")
+        self.assertEqual(client.calls[0], ("getDataset", {"datasetId": "dataset"}))
 
     def test_expected_empty_is_a_meaningful_success(self):
         with tempfile.TemporaryDirectory() as tmp:

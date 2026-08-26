@@ -6,8 +6,11 @@ import sys
 
 
 def main() -> int:
-    result = subprocess.run([sys.executable, "scripts/run_acceptance_profile.py", "--profile", "standard"], check=False)
-    return result.returncode
+    autonomy = subprocess.run([sys.executable, "scripts/run_autonomy_acceptance.py"], check=False)
+    if autonomy.returncode != 0:
+        return autonomy.returncode
+    standard = subprocess.run([sys.executable, "scripts/run_acceptance_profile.py", "--profile", "standard"], check=False)
+    return standard.returncode
 
 
 if __name__ == "__main__":
