@@ -2,6 +2,11 @@
 
 [Русский](README.md) · **English**
 
+Autonomous workflow documentation: [task execution](docs/autonomous-workflow.md),
+[Project Journal](docs/project-journal.md), [portfolio style registry](docs/portfolio-style-registry.md),
+[typed data validation](docs/data-validation.md), [evidence levels](docs/evidence-levels.md), and
+[legacy-surface migration](docs/migration-v1-to-v2.md).
+
 [Quick start](#quick-start) · [DataLens access](docs/access_en.md) · [Connect](#connect-an-mcp-client) · [Tools](docs/tools_en.md) · [Interactive JS Cookbook](https://adikant.github.io/datalens-dev-mcp/?lang=en) · [Workflows](#example-tasks) · [Sources](docs/sources_en.md) · [Safety](#change-safety) · [Русский](README.md)
 
 `datalens-dev-mcp` is a local [MCP server](https://modelcontextprotocol.io/) that connects Codex, Claude, and other MCP clients to Yandex DataLens. The user describes a task in plain language, the client calls the server's typed tools, and the server reads current objects through the DataLens Public API, checks dependencies and request schemas, prepares changes, saves them, and publishes when requested with result readback.

@@ -181,7 +181,7 @@ def preview_dataset_data(
         client = DataLensApiClient(DataLensConfig.from_env())
     readback = dataset_readback or client.rpc_readonly(
         "getDataset",
-        {"datasetId": dataset_id, "branch": "saved"},
+        {"datasetId": dataset_id},
     )
     fields = extract_dataset_fields(readback)
     compiled = compile_dataset_preview_request(

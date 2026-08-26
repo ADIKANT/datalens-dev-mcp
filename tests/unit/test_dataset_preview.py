@@ -112,6 +112,7 @@ class DatasetPreviewTests(unittest.TestCase):
         self.assertTrue(result["truncated"])
         self.assertEqual(artifact["rows"][0]["guid-id"], 1)
         self.assertEqual([call[0] for call in client.calls], ["getDataset", "getDatasetData"])
+        self.assertEqual(client.calls[0][1], {"datasetId": "dataset"})
 
     def test_unknown_tie_breaker_returns_one_specific_question(self):
         client = FakeClient()

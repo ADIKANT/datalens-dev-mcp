@@ -32,6 +32,15 @@ class UserRequestContractTests(unittest.TestCase):
         self.assertEqual(request.task_intent, "update")
         self.assertEqual(request.destructive_actions, [])
 
+    def test_update_intent_outranks_save_and_publish_delivery_verbs(self):
+        from datalens_dev_mcp.pipeline.user_request import normalize_user_request
+
+        request = normalize_user_request(
+            "Update the existing controlled dashboard description, save and publish it."
+        )
+
+        self.assertEqual(request.task_intent, "update")
+
 
 if __name__ == "__main__":
     unittest.main()

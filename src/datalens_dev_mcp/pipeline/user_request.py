@@ -360,7 +360,11 @@ class UserRequestNormalizer:
 
     def _task_intent(self, lowered: str) -> TaskIntent:
         positive_text = self._positive_mutation_text(lowered)
-        for intent, terms in self.IMPLEMENT_TERMS.items():
+        # Specific change intent must outrank delivery verbs such as save or
+        # publish. Otherwise "update ... save and publish" is misclassified
+        # as a create task merely because the sentence also contains save.
+        for intent in ("redesign", "fix", "enhance", "update", "implement"):
+            terms = self.IMPLEMENT_TERMS[intent]
             if any(self._matches_intent_term(positive_text, term) for term in terms):
                 return intent  # type: ignore[return-value]
         if any(term in lowered for term in self.REVIEW_TERMS):

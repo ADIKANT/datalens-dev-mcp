@@ -24,6 +24,12 @@ The server is a client-independent MCP interface for DataLens dashboard developm
 14. `docs/mcp/response_contracts.md`
 15. `docs/sources.md`
 16. `docs/source_provenance.md`
+17. `docs/autonomous-workflow.md`
+18. `docs/project-journal.md`
+19. `docs/portfolio-style-registry.md`
+20. `docs/data-validation.md`
+21. `docs/evidence-levels.md`
+22. `docs/migration-v1-to-v2.md`
 
 ## Local Material Policy
 
@@ -60,3 +66,7 @@ Run the offline gate:
 ```bash
 python3 scripts/run_offline_acceptance.py
 ```
+
+Final autonomy work also runs affected, autonomy, and sharded full acceptance.
+Receipts bind the exact head and unchanged publication-tree hash. A live claim
+additionally requires a completed controlled canary artifact.

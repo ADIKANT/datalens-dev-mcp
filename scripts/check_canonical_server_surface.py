@@ -59,6 +59,9 @@ EXTERNAL_VERSION_FIELD_PATHS = {
     "src/datalens_dev_mcp/assets/templates/datalens/wizard/canonical_templates.json",
 }
 POLICY_LITERAL_PATHS = {"scripts/check_canonical_server_surface.py"}
+VERSIONED_PATH_ALLOWLIST = {
+    "docs/migration-v1-to-v2.md",  # bounded compatibility migration guide
+}
 
 
 def publication_paths() -> list[Path]:
@@ -99,7 +102,7 @@ def check_surface() -> dict[str, object]:
     paths = publication_paths()
     for relative_path in paths:
         relative = relative_path.as_posix()
-        if not _is_external_contract(relative) and any(
+        if relative not in VERSIONED_PATH_ALLOWLIST and not _is_external_contract(relative) and any(
             VERSIONED_PATH_RE.search(part) for part in relative_path.parts
         ):
             issues.append({"rule": "versioned_internal_path", "path": relative})

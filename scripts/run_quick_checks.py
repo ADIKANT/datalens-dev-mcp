@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+"""Run the quick profile, including the synthetic session-regression contracts."""
+
 from __future__ import annotations
 
 import subprocess

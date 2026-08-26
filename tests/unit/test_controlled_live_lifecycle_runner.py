@@ -219,6 +219,53 @@ class ControlledLiveLifecycleRunnerTests(unittest.TestCase):
         self.assertFalse(result["write_attempted"])
         self.assertEqual([call[0] for call in client.calls], ["getEditorChart"])
 
+    def test_dashboard_stale_negative_includes_required_baseline_without_write_rpc(self):
+        runner = load_runner()
+
+        class FakeClient:
+            def __init__(self):
+                self.calls = []
+
+            def rpc(self, method, payload):
+                self.calls.append((method, payload))
+                if method == "updateDashboard":
+                    raise AssertionError("stale negative must not attempt write")
+                return {
+                    "entry": {
+                        "entryId": payload["dashboardId"],
+                        "revId": "actual_live_revision",
+                        "meta": {},
+                        "data": {"tabs": []},
+                    }
+                }
+
+        client = FakeClient()
+        route = {
+            "route": "dashboard",
+            "read_method": "getDashboard",
+            "update_method": "updateDashboard",
+            "id_key": "dashboardId",
+        }
+        payload = {
+            "mode": "save",
+            "entry": {"entryId": "dash_1", "revId": "rev_live", "meta": {}, "data": {"tabs": []}},
+        }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            result = runner.run_stale_negative(
+                client=client,
+                root=Path(tmp),
+                run_id="unit",
+                route=route,
+                payload=payload,
+                object_id="dash_1",
+                config=DataLensConfig(write_enabled=True),
+            )
+
+        self.assertEqual(result["status"], "blocked_expected")
+        self.assertFalse(result["write_attempted"])
+        self.assertEqual([call[0] for call in client.calls], ["getDashboard", "getDashboard"])
+
     def _verified_route(self, route: str, *, publishable: bool) -> dict:
         artifacts = {
             "create": {"path": f"{route}/create.json"},
