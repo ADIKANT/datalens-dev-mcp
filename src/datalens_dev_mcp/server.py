@@ -786,7 +786,12 @@ MAINTENANCE_EVIDENCE_SCHEMA = {
     "properties": {
         "browser_runtime_required": {
             "type": "boolean",
-            "default": True,
+        },
+        "browser_policy": {"type": "object"},
+        "evidence_matrix": {"type": "object"},
+        "change_class": {
+            "type": "string",
+            "enum": ["source_labels_only", "selector_behavior", "renderer_logic", "dashboard_layout", "publish_only"],
         },
         "non_rendering_exemption": {"type": "string"},
         "baseline_snapshot_path": {"type": "string"},

@@ -8,6 +8,7 @@ PROOF_LEVELS = (
     "live_read_only_api",
     "save_readback",
     "publish_readback",
+    "contract_runtime",
     "browser_rendered",
     "controlled_live_write",
 )
@@ -28,4 +29,3 @@ def with_proof_level(payload: dict[str, Any], proof_level: str) -> dict[str, Any
     result = dict(payload)
     result["proof_level"] = proof_level if proof_level in PROOF_LEVELS else "source_static"
     return result
-

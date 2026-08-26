@@ -21,6 +21,7 @@ from datalens_dev_mcp.pipeline.proof_levels import proof_level_for_readback_bran
 from datalens_dev_mcp.pipeline.readback import normalize_readback_mode
 from datalens_dev_mcp.pipeline.baseline_preservation import build_baseline_diff_contract, create_necessity_proof
 from datalens_dev_mcp.pipeline.browser_qa import validate_qa_attestation_binding
+from datalens_dev_mcp.pipeline.evidence_matrix import build_evidence_matrix
 from datalens_dev_mcp.pipeline.decision_patches import decision_ledger_sha256
 from datalens_dev_mcp.pipeline.final_payload_attestation import (
     ATTESTATION_ARTIFACT,
@@ -3492,6 +3493,18 @@ def _qa_attestation_issues(
     attestation: dict[str, Any],
     project_root: Path,
 ) -> list[str]:
+    intent_aware = any(key in action for key in ("browser_policy", "change_class", "proof_evidence"))
+    if intent_aware:
+        matrix = build_evidence_matrix(
+            change_class=str(action.get("change_class") or "renderer_logic"),
+            browser_policy=action.get("browser_policy") if isinstance(action.get("browser_policy"), dict) else None,
+            evidence=action.get("proof_evidence") if isinstance(action.get("proof_evidence"), dict) else {},
+        )
+        if matrix["browser_policy"]["mode"] != "required":
+            return [
+                f"action {index} missing required proof: {item}"
+                for item in matrix["missing_evidence"]
+            ]
     inline = action.get("qa_attestation")
     if isinstance(inline, dict):
         qa = inline

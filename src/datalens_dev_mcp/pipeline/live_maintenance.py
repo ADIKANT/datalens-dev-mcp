@@ -26,6 +26,7 @@ from datalens_dev_mcp.pipeline.safe_apply import (
     validate_safe_apply_plan_exhaustive,
 )
 from datalens_dev_mcp.pipeline.source_availability import validate_source_availability_consumers
+from datalens_dev_mcp.pipeline.evidence_matrix import browser_policy_from_legacy_flag, build_evidence_matrix
 
 
 LIVE_MAINTENANCE_SCHEMA_ID = "datalens.live_maintenance_run"
@@ -51,7 +52,10 @@ def run_live_maintenance_update(
     maintenance_mode: str = "quick_visible_patch",
     approved: bool = False,
     publish: bool = True,
-    browser_runtime_required: bool = True,
+    browser_runtime_required: bool | None = None,
+    browser_policy: dict[str, Any] | None = None,
+    evidence_matrix: dict[str, Any] | None = None,
+    change_class: str = "",
     non_rendering_exemption: str = "",
     baseline_snapshot_path: str = "",
     metadata_evidence_paths: list[str] | None = None,
@@ -85,6 +89,20 @@ def run_live_maintenance_update(
             "runtime_gate_evidence is deprecated; interpreted as published_runtime_gate_evidence"
         )
     mode = _normalize_maintenance_mode(maintenance_mode, intent=intent)
+    compiled_browser_policy = browser_policy_from_legacy_flag(
+        browser_runtime_required,
+        maintenance_mode=mode,
+        supplied_policy=browser_policy,
+    )
+    browser_runtime_required = compiled_browser_policy["mode"] == "required"
+    resolved_change_class = str(change_class or compiled_browser_policy.get("change_class") or "renderer_logic")
+    compiled_evidence_matrix = build_evidence_matrix(
+        change_class=resolved_change_class,
+        browser_policy=compiled_browser_policy,
+        evidence=evidence_matrix or {},
+    )
+    if not browser_runtime_required and compiled_evidence_matrix["can_publish"] and not non_rendering_exemption:
+        non_rendering_exemption = "intent-aware evidence matrix satisfies the declared change class"
     rendering_scope = _resolve_rendering_scope(
         root,
         runtime_gate_evidence=(
@@ -388,6 +406,8 @@ def run_live_maintenance_update(
         "phases": phases,
         "blocked_reasons": blockers,
         "runtime_gate": runtime_gate["evidence"],
+        "browser_policy": compiled_browser_policy,
+        "evidence_matrix": compiled_evidence_matrix,
         "runtime_gates": runtime_gates,
         "runtime_smoke": runtime_gate["runtime_smoke"],
         "completion_evidence": completion_evidence,

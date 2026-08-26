@@ -4,7 +4,7 @@
   "title": "Final payload attestation",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_id", "ok", "status", "applicability", "issues", "authoring_profiles", "routes", "components", "dashboard_composition", "dashboard_payload", "payload_set_sha256", "qa_requirement", "attestation_sha256"],
+  "required": ["schema_id", "ok", "status", "applicability", "issues", "authoring_profiles", "routes", "components", "intent_aware_qa", "dashboard_composition", "dashboard_payload", "payload_set_sha256", "qa_requirement", "attestation_sha256"],
   "properties": {
     "schema_id": {"const": "final_payload_attestation"},
     "ok": {"type": "boolean"},
@@ -18,6 +18,14 @@
       "items": {
         "type": "object",
         "required": ["widget_id", "artifact_path", "route", "planned_route", "family", "authoring_profile", "runtime", "title_mode", "display_title", "compiled_payload_sha256", "binding_neutral_payload_sha256", "tabs_sha256"]
+      }
+    },
+    "intent_aware_qa": {
+      "type": "object",
+      "required": ["change_classes", "requirements"],
+      "properties": {
+        "change_classes": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "requirements": {"type": "object"}
       }
     },
     "dashboard_composition": {"type": "object", "required": ["path", "sha256", "layout_hash", "selector_hash", "tab_hashes"]},

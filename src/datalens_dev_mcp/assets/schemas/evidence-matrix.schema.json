@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/evidence-matrix.schema.json",
+  "title": "Intent-aware QA evidence matrix",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema_id", "change_class", "stage", "browser_policy", "required_evidence", "observed_evidence", "missing_evidence", "should_call_browser", "can_publish"],
+  "properties": {
+    "schema_id": {"const": "evidence_matrix"},
+    "change_class": {"enum": ["source_labels_only", "selector_behavior", "renderer_logic", "dashboard_layout", "publish_only"]},
+    "stage": {"enum": ["before_publish", "completion"]},
+    "browser_policy": {"type": "object"},
+    "required_evidence": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "observed_evidence": {"type": "object", "additionalProperties": {"type": "boolean"}},
+    "missing_evidence": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "should_call_browser": {"type": "boolean"},
+    "can_publish": {"type": "boolean"}
+  }
+}
