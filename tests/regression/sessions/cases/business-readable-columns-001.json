@@ -1,0 +1,47 @@
+{
+  "case_id": "business-readable-columns-001",
+  "category": "visual",
+  "context": {
+    "constraints": [
+      "business_readable_columns",
+      "preserve_unmentioned_content"
+    ],
+    "saved_revision": "synthetic_revision_1",
+    "target": {
+      "dashboard_id": "synthetic_dashboard",
+      "workbook_id": "synthetic_workbook"
+    }
+  },
+  "contract_sha256": "8c51883e3f5b4b1c2438f0d689eb175c5fcfd3a3c597fbcc2b4ae3dcb3f95ccf",
+  "expected_calls": {
+    "browser": 0,
+    "high_level_budget": 12,
+    "questions": 0,
+    "writes": "save_then_publish"
+  },
+  "expected_failure_family": "",
+  "expected_invariants": [
+    "save_readback_before_publish",
+    "target_identity_preserved",
+    "unknown_fields_preserved"
+  ],
+  "expected_recovery": "continue_deterministic_workflow",
+  "expected_route": "wizard_native",
+  "expected_task_contract": {
+    "browser_policy": "optional",
+    "delivery": {
+      "publish": true,
+      "save": true
+    },
+    "intent": "update_existing_dashboard",
+    "route_policy": {
+      "ql_allowed": false,
+      "selected": "wizard_native"
+    }
+  },
+  "request": "Apply the synthetic business readable columns correction and complete the authorized delivery flow.",
+  "scenario": "business_readable_columns",
+  "visual_checks": [
+    "business_readable_columns"
+  ]
+}

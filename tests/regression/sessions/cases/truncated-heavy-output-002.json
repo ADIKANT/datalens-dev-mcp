@@ -1,0 +1,45 @@
+{
+  "case_id": "truncated-heavy-output-002",
+  "category": "provider_failure",
+  "context": {
+    "constraints": [
+      "truncated_heavy_output",
+      "preserve_unmentioned_content"
+    ],
+    "saved_revision": "synthetic_revision_2",
+    "target": {
+      "dashboard_id": "synthetic_dashboard",
+      "workbook_id": "synthetic_workbook"
+    }
+  },
+  "contract_sha256": "d98f0f3507d48ac12ac4c5b9cb52208914e10d5409ebc9235e97d9c1419dd53c",
+  "expected_calls": {
+    "browser": 0,
+    "high_level_budget": 16,
+    "questions": 0,
+    "writes": "conditional_after_recovery"
+  },
+  "expected_failure_family": "",
+  "expected_invariants": [
+    "save_readback_before_publish",
+    "target_identity_preserved",
+    "unknown_fields_preserved"
+  ],
+  "expected_recovery": "read_hash_bound_artifact",
+  "expected_route": "wizard_native",
+  "expected_task_contract": {
+    "browser_policy": "optional",
+    "delivery": {
+      "publish": false,
+      "save": true
+    },
+    "intent": "update_existing_dashboard",
+    "route_policy": {
+      "ql_allowed": false,
+      "selected": "wizard_native"
+    }
+  },
+  "request": "Apply the synthetic truncated heavy output correction and complete the authorized delivery flow.",
+  "scenario": "truncated_heavy_output",
+  "visual_checks": []
+}

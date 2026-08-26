@@ -1,0 +1,45 @@
+{
+  "case_id": "permission-403-002",
+  "category": "provider_failure",
+  "context": {
+    "constraints": [
+      "permission_403",
+      "preserve_unmentioned_content"
+    ],
+    "saved_revision": "synthetic_revision_2",
+    "target": {
+      "dashboard_id": "synthetic_dashboard",
+      "workbook_id": "synthetic_workbook"
+    }
+  },
+  "contract_sha256": "c702aa9d03a04a869bb9b4d98503e5a9b2e6d71b5798b91fa89109bdc1909c0c",
+  "expected_calls": {
+    "browser": 0,
+    "high_level_budget": 16,
+    "questions": 0,
+    "writes": "conditional_after_recovery"
+  },
+  "expected_failure_family": "AUTH_403_PERMISSION_DENIED",
+  "expected_invariants": [
+    "save_readback_before_publish",
+    "target_identity_preserved",
+    "unknown_fields_preserved"
+  ],
+  "expected_recovery": "fail_without_refresh",
+  "expected_route": "wizard_native",
+  "expected_task_contract": {
+    "browser_policy": "optional",
+    "delivery": {
+      "publish": false,
+      "save": true
+    },
+    "intent": "update_existing_dashboard",
+    "route_policy": {
+      "ql_allowed": false,
+      "selected": "wizard_native"
+    }
+  },
+  "request": "Apply the synthetic permission 403 correction and complete the authorized delivery flow.",
+  "scenario": "permission_403",
+  "visual_checks": []
+}

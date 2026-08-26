@@ -1,0 +1,45 @@
+{
+  "case_id": "rate-limit-429-cooldown-001",
+  "category": "provider_failure",
+  "context": {
+    "constraints": [
+      "rate_limit_429_cooldown",
+      "preserve_unmentioned_content"
+    ],
+    "saved_revision": "synthetic_revision_1",
+    "target": {
+      "dashboard_id": "synthetic_dashboard",
+      "workbook_id": "synthetic_workbook"
+    }
+  },
+  "contract_sha256": "e8b942ef7f0a589c2438a121498574e8ec78ed2402c44009d9a7fafdbeed2299",
+  "expected_calls": {
+    "browser": 0,
+    "high_level_budget": 12,
+    "questions": 0,
+    "writes": "conditional_after_recovery"
+  },
+  "expected_failure_family": "RATE_LIMIT_429",
+  "expected_invariants": [
+    "save_readback_before_publish",
+    "target_identity_preserved",
+    "unknown_fields_preserved"
+  ],
+  "expected_recovery": "shared_cooldown_then_bounded_read_retry",
+  "expected_route": "wizard_native",
+  "expected_task_contract": {
+    "browser_policy": "optional",
+    "delivery": {
+      "publish": false,
+      "save": true
+    },
+    "intent": "update_existing_dashboard",
+    "route_policy": {
+      "ql_allowed": false,
+      "selected": "wizard_native"
+    }
+  },
+  "request": "Apply the synthetic rate limit 429 cooldown correction and complete the authorized delivery flow.",
+  "scenario": "rate_limit_429_cooldown",
+  "visual_checks": []
+}

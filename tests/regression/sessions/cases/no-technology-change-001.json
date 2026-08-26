@@ -1,0 +1,47 @@
+{
+  "case_id": "no-technology-change-001",
+  "category": "scope_reference",
+  "context": {
+    "constraints": [
+      "no_technology_change",
+      "preserve_unmentioned_content"
+    ],
+    "saved_revision": "synthetic_revision_1",
+    "target": {
+      "dashboard_id": "synthetic_dashboard",
+      "workbook_id": "synthetic_workbook"
+    }
+  },
+  "contract_sha256": "a9cdefb95c194596e82e383c142f1ac07e3b58805bbf05b5369a76fd707e872d",
+  "expected_calls": {
+    "browser": 0,
+    "high_level_budget": 12,
+    "questions": 0,
+    "writes": "save_then_publish"
+  },
+  "expected_failure_family": "",
+  "expected_invariants": [
+    "protected_runtime_hash_unchanged",
+    "save_readback_before_publish",
+    "target_identity_preserved",
+    "technology_unchanged",
+    "unknown_fields_preserved"
+  ],
+  "expected_recovery": "continue_deterministic_workflow",
+  "expected_route": "editor_advanced",
+  "expected_task_contract": {
+    "browser_policy": "optional",
+    "delivery": {
+      "publish": true,
+      "save": true
+    },
+    "intent": "update_existing_dashboard",
+    "route_policy": {
+      "ql_allowed": false,
+      "selected": "editor_advanced"
+    }
+  },
+  "request": "Apply the synthetic no technology change correction and complete the authorized delivery flow.",
+  "scenario": "no_technology_change",
+  "visual_checks": []
+}

@@ -1,0 +1,25 @@
+{
+  "case_set_sha256": "4700b2cd000aa449c9f54bfcf41e8ceaf53aa92f53fd0c2a2a989feb81c1f3fa",
+  "category_coverage": {
+    "intent_autonomy": 16,
+    "provider_failure": 20,
+    "resume": 12,
+    "scope_reference": 16,
+    "visual": 32
+  },
+  "expected_browser_call_count": 2,
+  "expected_high_level_call_budget": 1344,
+  "expected_question_count": 0,
+  "invariant_count": 306,
+  "observed_source_category_counts": {
+    "intent_autonomy": 195,
+    "provider_failure": 195,
+    "resume": 186,
+    "scope_reference": 194,
+    "visual": 194
+  },
+  "private_literal_leakage": 0,
+  "scenario_count": 96,
+  "schema_id": "session_regression_corpus_report",
+  "source_session_count": 195
+}

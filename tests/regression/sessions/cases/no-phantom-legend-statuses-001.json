@@ -1,0 +1,47 @@
+{
+  "case_id": "no-phantom-legend-statuses-001",
+  "category": "visual",
+  "context": {
+    "constraints": [
+      "no_phantom_legend_statuses",
+      "preserve_unmentioned_content"
+    ],
+    "saved_revision": "synthetic_revision_1",
+    "target": {
+      "dashboard_id": "synthetic_dashboard",
+      "workbook_id": "synthetic_workbook"
+    }
+  },
+  "contract_sha256": "2339331f6dfd40bf321cee75774af09775af63529e36e507686da393a7ddf316",
+  "expected_calls": {
+    "browser": 0,
+    "high_level_budget": 12,
+    "questions": 0,
+    "writes": "save_then_publish"
+  },
+  "expected_failure_family": "",
+  "expected_invariants": [
+    "save_readback_before_publish",
+    "target_identity_preserved",
+    "unknown_fields_preserved"
+  ],
+  "expected_recovery": "continue_deterministic_workflow",
+  "expected_route": "wizard_native",
+  "expected_task_contract": {
+    "browser_policy": "optional",
+    "delivery": {
+      "publish": true,
+      "save": true
+    },
+    "intent": "update_existing_dashboard",
+    "route_policy": {
+      "ql_allowed": false,
+      "selected": "wizard_native"
+    }
+  },
+  "request": "Apply the synthetic no phantom legend statuses correction and complete the authorized delivery flow.",
+  "scenario": "no_phantom_legend_statuses",
+  "visual_checks": [
+    "no_phantom_legend_statuses"
+  ]
+}

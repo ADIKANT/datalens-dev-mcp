@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/session-regression-case.schema.json",
+  "title": "Sanitized DataLens session regression case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["case_id", "category", "scenario", "request", "context", "expected_task_contract", "expected_route", "expected_calls", "expected_invariants", "visual_checks", "expected_failure_family", "expected_recovery", "contract_sha256"],
+  "properties": {
+    "case_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,95}$"},
+    "category": {"enum": ["intent_autonomy", "scope_reference", "visual", "provider_failure", "resume"]},
+    "scenario": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+    "request": {"type": "string", "minLength": 20, "maxLength": 300},
+    "context": {"type": "object"},
+    "expected_task_contract": {"type": "object"},
+    "expected_route": {"enum": ["wizard_native", "editor_advanced"]},
+    "expected_calls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["questions", "browser", "writes", "high_level_budget"],
+      "properties": {
+        "questions": {"type": "integer", "minimum": 0, "maximum": 1},
+        "browser": {"type": "integer", "minimum": 0, "maximum": 1},
+        "writes": {"enum": ["save_only", "save_then_publish", "conditional_after_recovery"]},
+        "high_level_budget": {"type": "integer", "minimum": 1, "maximum": 20}
+      }
+    },
+    "expected_invariants": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+    "visual_checks": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "expected_failure_family": {"type": "string"},
+    "expected_recovery": {"type": "string", "minLength": 1},
+    "contract_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

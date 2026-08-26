@@ -1,0 +1,47 @@
+{
+  "case_id": "exact-reference-style-001",
+  "category": "scope_reference",
+  "context": {
+    "constraints": [
+      "exact_reference_style",
+      "preserve_unmentioned_content"
+    ],
+    "saved_revision": "synthetic_revision_1",
+    "target": {
+      "dashboard_id": "synthetic_dashboard",
+      "workbook_id": "synthetic_workbook"
+    }
+  },
+  "contract_sha256": "6ebe5158ac5a0d6756d85c956eab41e02a1bfff2d01fbf1d82604fb3ce9ac256",
+  "expected_calls": {
+    "browser": 0,
+    "high_level_budget": 12,
+    "questions": 0,
+    "writes": "save_then_publish"
+  },
+  "expected_failure_family": "",
+  "expected_invariants": [
+    "protected_runtime_hash_unchanged",
+    "save_readback_before_publish",
+    "target_identity_preserved",
+    "technology_unchanged",
+    "unknown_fields_preserved"
+  ],
+  "expected_recovery": "continue_deterministic_workflow",
+  "expected_route": "editor_advanced",
+  "expected_task_contract": {
+    "browser_policy": "optional",
+    "delivery": {
+      "publish": true,
+      "save": true
+    },
+    "intent": "update_existing_dashboard",
+    "route_policy": {
+      "ql_allowed": false,
+      "selected": "editor_advanced"
+    }
+  },
+  "request": "Apply the synthetic exact reference style correction and complete the authorized delivery flow.",
+  "scenario": "exact_reference_style",
+  "visual_checks": []
+}

@@ -1,0 +1,47 @@
+{
+  "case_id": "expected-empty-state-002",
+  "category": "visual",
+  "context": {
+    "constraints": [
+      "expected_empty_state",
+      "preserve_unmentioned_content"
+    ],
+    "saved_revision": "synthetic_revision_2",
+    "target": {
+      "dashboard_id": "synthetic_dashboard",
+      "workbook_id": "synthetic_workbook"
+    }
+  },
+  "contract_sha256": "15e3a58fc8bcefee02b5140f60a87e7d817051301d3eaffa4aca6358f680b30f",
+  "expected_calls": {
+    "browser": 0,
+    "high_level_budget": 16,
+    "questions": 0,
+    "writes": "save_then_publish"
+  },
+  "expected_failure_family": "",
+  "expected_invariants": [
+    "save_readback_before_publish",
+    "target_identity_preserved",
+    "unknown_fields_preserved"
+  ],
+  "expected_recovery": "continue_deterministic_workflow",
+  "expected_route": "wizard_native",
+  "expected_task_contract": {
+    "browser_policy": "optional",
+    "delivery": {
+      "publish": true,
+      "save": true
+    },
+    "intent": "update_existing_dashboard",
+    "route_policy": {
+      "ql_allowed": false,
+      "selected": "wizard_native"
+    }
+  },
+  "request": "Apply the synthetic expected empty state correction and complete the authorized delivery flow.",
+  "scenario": "expected_empty_state",
+  "visual_checks": [
+    "expected_empty_state"
+  ]
+}

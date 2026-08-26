@@ -1,0 +1,45 @@
+{
+  "case_id": "stale-patch-anchor-002",
+  "category": "resume",
+  "context": {
+    "constraints": [
+      "stale_patch_anchor",
+      "preserve_unmentioned_content"
+    ],
+    "saved_revision": "synthetic_revision_2",
+    "target": {
+      "dashboard_id": "synthetic_dashboard",
+      "workbook_id": "synthetic_workbook"
+    }
+  },
+  "contract_sha256": "cac22a9951974b36e99363f4800f12e8df69e6c4a4547e720cbc468693b96d75",
+  "expected_calls": {
+    "browser": 0,
+    "high_level_budget": 16,
+    "questions": 0,
+    "writes": "save_then_publish"
+  },
+  "expected_failure_family": "PATCH_ANCHOR_STALE",
+  "expected_invariants": [
+    "save_readback_before_publish",
+    "target_identity_preserved",
+    "unknown_fields_preserved"
+  ],
+  "expected_recovery": "fresh_read_and_reanchor",
+  "expected_route": "wizard_native",
+  "expected_task_contract": {
+    "browser_policy": "optional",
+    "delivery": {
+      "publish": true,
+      "save": true
+    },
+    "intent": "update_existing_dashboard",
+    "route_policy": {
+      "ql_allowed": false,
+      "selected": "wizard_native"
+    }
+  },
+  "request": "Apply the synthetic stale patch anchor correction and complete the authorized delivery flow.",
+  "scenario": "stale_patch_anchor",
+  "visual_checks": []
+}
