@@ -12,14 +12,21 @@ class TaskCompletionEvaluator:
         state, _ = journal.replay()
         evidence = CompletionEvidenceService(journal, contract).read_verified()
         if not evidence:
+            missing = ["valid completion evidence receipt"]
+            limitations = ["completion evidence is missing, stale, or hash-invalid"]
+            blocker = state.blocker if isinstance(state.blocker, dict) else {}
+            if state.current_state == "BLOCKED" and blocker.get("code") == "BLOCKED_DISCOVERY":
+                missing.append("live target binding")
+                if blocker.get("reason"):
+                    limitations.append(str(blocker["reason"]))
             return {
                 "ok": False,
                 "state": state.current_state,
                 "highest_proof_level": "source_static",
                 "required_evidence": [],
                 "satisfied_evidence": [],
-                "missing_evidence": ["valid completion evidence receipt"],
-                "limitations": ["completion evidence is missing, stale, or hash-invalid"],
+                "missing_evidence": missing,
+                "limitations": limitations,
                 "completion_receipt_uri": "",
             }
         result = dict(evidence)
