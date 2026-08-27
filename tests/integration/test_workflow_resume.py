@@ -70,7 +70,7 @@ def test_new_process_replays_event_written_before_state_checkpoint() -> None:
         restarted = ProjectJournal(root, contract["task_id"], storage_root=root / "journal")
         replayed, _ = restarted.replay()
         assert replayed.current_state == "BASELINE_READ"
-        assert replayed.last_event_id == 1
+        assert replayed.last_event_id == 2
 
 
 def test_partial_publish_is_reconciled_and_never_replayed() -> None:

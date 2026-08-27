@@ -9,16 +9,21 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import socket
+import tempfile
 import time
 from typing import Any, Iterator
 
 from datalens_dev_mcp import __version__
 from datalens_dev_mcp.pipeline.artifacts import append_jsonl, read_json, write_json, write_text
+from datalens_dev_mcp.pipeline.build_identity import BuildIdentityResolver, build_identity_hash, validate_build_identity
 from datalens_dev_mcp.pipeline.task_contract import task_contract_hash
 from datalens_dev_mcp.pipeline.evidence_compaction import compact_task_evidence
+from datalens_dev_mcp.pipeline.target_binding import resolve_contract_target_binding, validate_target_binding
+from datalens_dev_mcp.pipeline.task_identity import build_task_identity, validate_task_identity
 from datalens_dev_mcp.pipeline.workflow_checkpoint import render_checkpoint
-from datalens_dev_mcp.pipeline.workflow_events import create_workflow_event
+from datalens_dev_mcp.pipeline.workflow_events import canonical_hash, create_workflow_event
 from datalens_dev_mcp.pipeline.workflow_replay import repair_corrupt_event_tail, replay_workflow
 from datalens_dev_mcp.pipeline.workflow_state import WorkflowState, initial_workflow_state
 from datalens_dev_mcp.validators.redaction import sanitize_value
@@ -50,20 +55,25 @@ def build_journal_identity(
     source_branch: str = "",
     source_tree: str = "",
 ) -> dict[str, Any]:
-    workspace = contract.get("workspace") or {}
-    target = contract.get("target") or {}
+    target_binding = resolve_contract_target_binding(contract)
+    marker = str(server_build or __version__)
+    tree = str(source_tree or canonical_hash({"server_build": marker}))
+    build_identity = {
+        "schema_id": "datalens_build_identity",
+        "kind": "resource_manifest",
+        "commit": "",
+        "branch": str(source_branch or ""),
+        "tree_hash": tree,
+        "package_content_hash": tree,
+        "package_release": __version__,
+        "provenance": {"compatibility_server_build": marker},
+    }
+    build_identity["identity_hash"] = build_identity_hash(build_identity)
     return {
-        "project_root": str(Path(str(workspace.get("project_root") or ".")).resolve()),
-        "portfolio_subproject": str(workspace.get("portfolio_subproject") or ""),
-        "target": {
-            "workbook_id": str(target.get("workbook_id") or ""),
-            "dashboard_id": str(target.get("dashboard_id") or ""),
-            "object_ids": sorted(str(item) for item in target.get("object_ids") or []),
-        },
-        "contract_hash": str(contract.get("contract_hash") or task_contract_hash(contract)),
-        "server_package": "datalens-dev-mcp",
-        "server_version": __version__,
-        "server_build": str(server_build or __version__),
+        **build_task_identity(contract, build_identity=build_identity, target_binding=target_binding),
+        "build_identity": build_identity,
+        "target_binding": target_binding,
+        "server_build": marker,
         "source_branch": str(source_branch or ""),
         "source_tree": str(source_tree or ""),
     }
@@ -94,14 +104,16 @@ class ProjectJournal:
         self.checkpoint_path = self.root / "checkpoint.md"
         self.compact_context_path = self.root / "compact-context.json"
         self.identity_path = self.root / "identity.json"
-        self.lock_path = self.root / "locks" / "task.lock"
-        self.lease_path = self.root / "locks" / "lease.json"
+        self.build_identity_path = self.root / "build-identity.json"
+        self.target_binding_path = self.root / "target-binding.json"
+        self.execution_authorization_path = self.root / "execution-authorization.json"
+        self.lock_path = self.storage_root / ".locks" / f"{self.task_id}.lock"
+        self.lease_path = self.storage_root / ".locks" / f"{self.task_id}.lease.json"
         self.lease_seconds = max(1.0, float(lease_seconds))
         self._lock_handle: Any = None
         self._lock_depth = 0
 
     def initialize(self, contract: dict[str, Any], *, identity: dict[str, Any] | None = None) -> WorkflowState:
-        self._ensure_layout()
         safe_contract = sanitize_value(contract)
         if str(safe_contract.get("task_id") or "") != self.task_id:
             raise JournalIdentityError("contract task_id does not match journal task_id")
@@ -109,25 +121,136 @@ class ProjectJournal:
         if digest != task_contract_hash(safe_contract):
             raise JournalIdentityError("contract hash is invalid")
         expected = identity or build_journal_identity(safe_contract)
-        if self.contract_path.exists():
-            self.assert_resume_identity(safe_contract, identity=expected)
-            state, _ = self.replay()
+        build_identity = dict(expected.get("build_identity") or BuildIdentityResolver().resolve())
+        target_binding = dict(expected.get("target_binding") or resolve_contract_target_binding(safe_contract))
+        with self.locked(owner="journal-initialize"):
+            if self.contract_path.exists():
+                self.assert_resume_identity(safe_contract, identity=expected)
+                state, _ = self.replay()
+                return state
+            state, _, _ = self.initialize_task(
+                safe_contract,
+                build_identity=build_identity,
+                target_binding=target_binding,
+                compile_receipt={"status": "compiled", "source": "workflow_engine"},
+                execution_grant={},
+            )
             return state
-        write_json(self.contract_path, safe_contract)
-        write_json(self.identity_path, sanitize_value(expected))
-        state = initial_workflow_state(self.task_id, digest)
-        self.save_state(state)
-        self.write_checkpoint(state)
-        return state
 
-    def assert_resume_identity(self, contract: dict[str, Any], *, identity: dict[str, Any] | None = None) -> None:
+    def initialize_task(
+        self,
+        contract: dict[str, Any],
+        *,
+        build_identity: dict[str, Any],
+        target_binding: dict[str, Any],
+        compile_receipt: dict[str, Any],
+        execution_grant: dict[str, Any],
+    ) -> tuple[WorkflowState, str, bool]:
+        """Create the complete initial journal snapshot as one atomic directory install."""
+
+        safe_contract = sanitize_value(contract)
+        if str(safe_contract.get("task_id") or "") != self.task_id:
+            raise JournalIdentityError("contract task_id does not match journal task_id")
+        digest = str(safe_contract.get("contract_hash") or "")
+        if digest != task_contract_hash(safe_contract):
+            raise JournalIdentityError("contract hash is invalid")
+        build_issues = validate_build_identity(build_identity)
+        if build_issues:
+            raise JournalIdentityError("invalid build identity: " + "; ".join(build_issues))
+        target_issues = validate_target_binding(target_binding)
+        if target_issues:
+            raise JournalIdentityError("invalid target binding: " + "; ".join(target_issues))
+        identity = build_task_identity(
+            safe_contract,
+            build_identity=build_identity,
+            target_binding=target_binding,
+        )
+        with self.locked(owner="task-start"):
+            if self.contract_path.exists():
+                self.assert_resume_identity(
+                    safe_contract,
+                    identity=identity,
+                    build_identity=build_identity,
+                    target_binding=target_binding,
+                )
+                state, _ = self.replay()
+                return state, self._compile_receipt_uri(), False
+            if self.root.exists():
+                raise JournalIdentityError("JOURNAL_PARTIAL_INITIALIZATION: task root exists without a contract")
+            staging = Path(tempfile.mkdtemp(prefix=f".{self.task_id}.init-", dir=self.storage_root))
+            try:
+                state, compile_uri = self._write_initial_snapshot(
+                    staging,
+                    contract=safe_contract,
+                    identity=identity,
+                    build_identity=build_identity,
+                    target_binding=target_binding,
+                    compile_receipt=compile_receipt,
+                    execution_grant=execution_grant,
+                )
+                os.replace(staging, self.root)
+            except BaseException:
+                shutil.rmtree(staging, ignore_errors=True)
+                raise
+            return state, compile_uri, True
+
+    def assert_resume_identity(
+        self,
+        contract: dict[str, Any],
+        *,
+        identity: dict[str, Any] | None = None,
+        build_identity: dict[str, Any] | None = None,
+        target_binding: dict[str, Any] | None = None,
+    ) -> None:
         existing_contract = read_json(self.contract_path, {}) or {}
         existing_identity = read_json(self.identity_path, {}) or {}
-        requested = identity or build_journal_identity(contract)
         if existing_contract.get("contract_hash") != contract.get("contract_hash"):
             raise JournalIdentityError("task scope or contract changed; create a new task revision")
-        if existing_identity != sanitize_value(requested):
-            raise JournalIdentityError("project, target, server build, or source tree changed; create a new task revision")
+        persisted_build = read_json(self.build_identity_path, {}) or {}
+        persisted_target = read_json(self.target_binding_path, {}) or {}
+        if not persisted_build or not existing_identity.get("build_identity_hash"):
+            raise JournalIdentityError(
+                "JOURNAL_IDENTITY_UPGRADE_REQUIRED: write resume requires a persisted build identity"
+            )
+        requested_build = build_identity or dict((identity or {}).get("build_identity") or persisted_build)
+        requested_target = target_binding or dict((identity or {}).get("target_binding") or persisted_target)
+        requested = identity or build_task_identity(
+            contract,
+            build_identity=requested_build,
+            target_binding=requested_target,
+        )
+        issues = validate_task_identity(
+            existing_identity,
+            build_identity=persisted_build,
+            target_binding=persisted_target,
+        )
+        if issues:
+            raise JournalIdentityError("JOURNAL_IDENTITY_INVALID: " + "; ".join(issues))
+        if existing_identity.get("build_identity_hash") != requested.get("build_identity_hash"):
+            raise JournalIdentityError(
+                "SOURCE_IDENTITY_CONFLICT: server build/source tree changed; create a new task revision"
+            )
+        if existing_identity.get("target_binding_hash") != requested.get("target_binding_hash"):
+            raise JournalIdentityError(
+                "TARGET_BINDING_CONFLICT: target revision or binding changed; replan from a fresh target read"
+            )
+        if existing_identity.get("style_binding_hash") != requested.get("style_binding_hash"):
+            raise JournalIdentityError(
+                "STYLE_BINDING_CONFLICT: style binding changed; replan from a fresh reference read"
+            )
+
+    def assert_write_resume_ready(
+        self,
+        contract: dict[str, Any],
+        *,
+        build_identity: dict[str, Any],
+        target_binding: dict[str, Any] | None = None,
+    ) -> None:
+        self.assert_resume_identity(
+            contract,
+            build_identity=build_identity,
+            target_binding=target_binding or (read_json(self.target_binding_path, {}) or {}),
+        )
 
     def load_contract(self) -> dict[str, Any]:
         value = read_json(self.contract_path, {}) or {}
@@ -225,6 +348,92 @@ class ProjectJournal:
         write_json(self.root / relative, sanitize_value(payload))
         return self.receipt_uri(relative.as_posix())
 
+    def _compile_receipt_uri(self) -> str:
+        candidates = sorted((self.root / "receipts").glob("task-compile-*.json"))
+        if not candidates:
+            raise JournalIdentityError("journal compile receipt is missing")
+        return self.receipt_uri(candidates[0].relative_to(self.root).as_posix())
+
+    def _write_initial_snapshot(
+        self,
+        base: Path,
+        *,
+        contract: dict[str, Any],
+        identity: dict[str, Any],
+        build_identity: dict[str, Any],
+        target_binding: dict[str, Any],
+        compile_receipt: dict[str, Any],
+        execution_grant: dict[str, Any],
+    ) -> tuple[WorkflowState, str]:
+        for relative in ("plans", "receipts", "snapshots", "evidence", "locks"):
+            (base / relative).mkdir(parents=True, exist_ok=True)
+        safe_receipt = sanitize_value(compile_receipt)
+        receipt_digest = canonical_hash(safe_receipt)
+        receipt_name = f"task-compile-{receipt_digest[:16]}.json"
+        receipt_relative = Path("receipts") / receipt_name
+        compile_uri = self.receipt_uri(receipt_relative.as_posix())
+        write_json(base / "contract.json", contract)
+        write_json(base / "identity.json", sanitize_value(identity))
+        write_json(base / "build-identity.json", sanitize_value(build_identity))
+        write_json(base / "target-binding.json", sanitize_value(target_binding))
+        write_json(base / "execution-authorization.json", execution_grant)
+        write_json(base / receipt_relative, safe_receipt)
+        event = create_workflow_event(
+            event_id=1,
+            previous_hash="",
+            task_id=self.task_id,
+            transition="TASK_COMPILED -> RESOLVED",
+            input_value={
+                "contract_hash": contract.get("contract_hash"),
+                "build_identity_hash": build_identity.get("identity_hash"),
+                "target_binding_hash": target_binding.get("binding_hash"),
+            },
+            result_receipt=compile_uri,
+            status="success",
+            timestamp=utc_now(),
+            idempotency_key=canonical_hash(
+                {"task_id": self.task_id, "transition": "TASK_COMPILED -> RESOLVED"}
+            ),
+            details={
+                "next_state": "RESOLVED",
+                "next_transition": "RESOLVED -> BASELINE_READ",
+                "blocker": {},
+                "reconciliation": {},
+            },
+        )
+        append_jsonl(base / "events.jsonl", event)
+        state = replace(
+            initial_workflow_state(self.task_id, str(contract.get("contract_hash") or "")),
+            completed_transitions=("TASK_COMPILED -> RESOLVED",),
+            successful_idempotency_keys=(str(event["idempotency_key"]),),
+            receipt_uris=(compile_uri,),
+            last_event_id=1,
+            last_event_hash=str(event["event_hash"]),
+            revision=2,
+        )
+        write_json(base / "state.json", state.to_dict())
+        criteria = [str(item.get("statement") or "") for item in contract.get("acceptance") or []]
+        write_text(
+            base / "checkpoint.md",
+            render_checkpoint(contract=contract, state=state.to_dict(), completion_criteria=criteria),
+        )
+        write_json(
+            base / "compact-context.json",
+            compact_task_evidence(
+                policy_version=__version__,
+                task_contract=contract,
+                build_identity=build_identity,
+                task_identity=identity,
+                target_binding=target_binding,
+                style_binding={},
+                checkpoint=state.to_dict(),
+                active_blocker={},
+                next_transition=state.next_transition,
+                artifact_root=base,
+            ),
+        )
+        return state, compile_uri
+
     def write_checkpoint(self, state: WorkflowState) -> None:
         if not self.contract_path.exists():
             return
@@ -239,7 +448,9 @@ class ProjectJournal:
             compact_task_evidence(
                 policy_version=__version__,
                 task_contract=contract,
-                target_binding=contract.get("target") or {},
+                build_identity=read_json(self.build_identity_path, {}) or {},
+                task_identity=read_json(self.identity_path, {}) or {},
+                target_binding=read_json(self.target_binding_path, {}) or contract.get("target") or {},
                 style_binding=contract.get("style_binding") or {},
                 checkpoint=state.to_dict(),
                 active_blocker=state.blocker,
@@ -257,7 +468,7 @@ class ProjectJournal:
             finally:
                 self._lock_depth -= 1
             return
-        self._ensure_layout()
+        self._ensure_storage_layout()
         handle = self.lock_path.open("a+", encoding="utf-8")
         try:
             fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -300,3 +511,7 @@ class ProjectJournal:
     def _ensure_layout(self) -> None:
         for relative in ("plans", "receipts", "snapshots", "evidence", "locks"):
             (self.root / relative).mkdir(parents=True, exist_ok=True)
+
+    def _ensure_storage_layout(self) -> None:
+        self.storage_root.mkdir(parents=True, exist_ok=True)
+        (self.storage_root / ".locks").mkdir(parents=True, exist_ok=True)

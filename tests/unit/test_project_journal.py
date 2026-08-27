@@ -84,17 +84,17 @@ class ProjectJournalTests(unittest.TestCase):
                 next_state="BASELINE_READ",
                 next_transition="BASELINE_READ -> REFERENCE_BOUND",
             )
-            self.assertEqual(duplicate.last_event_id, 1)
+            self.assertEqual(duplicate.last_event_id, 2)
             self.assertNotIn("very-secret-token-value", journal.events_path.read_text(encoding="utf-8"))
 
             with journal.events_path.open("a", encoding="utf-8") as handle:
                 handle.write('{"broken":')
             replayed, corrupt = journal.replay()
             self.assertTrue(corrupt)
-            self.assertEqual(replayed.last_event_id, 1)
+            self.assertEqual(replayed.last_event_id, 2)
             content = journal.events_path.read_text(encoding="utf-8")
             self.assertTrue(content.endswith("\n"))
-            self.assertEqual(len(content.splitlines()), 1)
+            self.assertEqual(len(content.splitlines()), 2)
 
     def test_competing_lock_and_heartbeat_staleness(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

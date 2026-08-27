@@ -11,5 +11,13 @@ def create_autonomous_task_service(
     contract: dict[str, Any],
     *,
     execution_grant: dict[str, Any],
+    build_identity_hash: str,
+    target_binding_hash: str,
 ) -> AutonomousTaskService:
-    return AutonomousTaskService(journal, contract, execution_grant=execution_grant)
+    return AutonomousTaskService(
+        journal,
+        contract,
+        execution_grant=execution_grant,
+        build_identity_hash=build_identity_hash,
+        target_binding_hash=target_binding_hash,
+    )

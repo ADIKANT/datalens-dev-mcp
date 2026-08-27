@@ -9,7 +9,8 @@ class TaskStageReceiptTests(unittest.TestCase):
     def test_typed_receipt_is_bound_to_task_contract_and_transition(self) -> None:
         digest = "a" * 64
         receipt = build_stage_receipt(
-            task_id="task-1", contract_hash=digest, transition="RESOLVED -> BASELINE_READ", status="success"
+            task_id="task-1", contract_hash=digest, transition="RESOLVED -> BASELINE_READ", status="success",
+            build_identity_hash="c" * 64,
         )
         self.assertFalse(validate_stage_receipt(
             receipt, task_id="task-1", contract_hash=digest, transition="RESOLVED -> BASELINE_READ"

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/target-binding.schema.json",
+  "title": "Resolved DataLens task target binding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "source", "workbook_id", "dashboard_id", "object_ids", "object_types", "saved_revision", "published_revision", "payload_hash", "layout_hash", "binding_hash"],
+  "properties": {
+    "schema_id": {"const": "datalens_target_binding"},
+    "source": {"enum": ["task_contract", "live_discovery"]},
+    "workbook_id": {"type": "string"},
+    "dashboard_id": {"type": "string"},
+    "object_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "object_types": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "saved_revision": {"type": "string"},
+    "published_revision": {"type": "string"},
+    "payload_hash": {"type": "string"},
+    "layout_hash": {"type": "string"},
+    "binding_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

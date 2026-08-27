@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/build-identity.schema.json",
+  "title": "Stable DataLens MCP server build identity",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "kind", "commit", "branch", "tree_hash", "package_content_hash", "package_release", "provenance", "identity_hash"],
+  "properties": {
+    "schema_id": {"const": "datalens_build_identity"},
+    "kind": {"enum": ["git", "archive_manifest", "installed_wheel", "resource_manifest"]},
+    "commit": {"type": "string"},
+    "branch": {"type": "string"},
+    "tree_hash": {"type": "string", "minLength": 32},
+    "package_content_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "package_release": {"type": "string", "minLength": 1},
+    "provenance": {"type": "object"},
+    "identity_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}
