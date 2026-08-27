@@ -99,7 +99,7 @@ class RequirementsWorkflowTests(unittest.TestCase):
         from datalens_dev_mcp.server import list_tools
 
         tools = {tool["name"] for tool in list_tools("all")}
-        default_tools = {tool["name"] for tool in list_tools()}
+        default_tools = {tool["name"] for tool in list_tools("autonomous-v2")}
         for required in {
             "dl_init_requirements_workspace",
             "dl_ingest_requirements_markdown",

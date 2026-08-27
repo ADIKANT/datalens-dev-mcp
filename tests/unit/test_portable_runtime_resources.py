@@ -96,6 +96,7 @@ class PortableRuntimeResourceTests(unittest.TestCase):
     def test_source_runtime_smoke_passes_from_arbitrary_cwd(self):
         env = os.environ.copy()
         env["PYTHONPATH"] = str(REPO_ROOT / "src")
+        env["DATALENS_MCP_TOOL_SURFACE"] = "autonomous-v2"
         result = subprocess.run(
             [sys.executable, str(REPO_ROOT / "scripts" / "smoke_portable_runtime.py")],
             cwd=tempfile.gettempdir(),
