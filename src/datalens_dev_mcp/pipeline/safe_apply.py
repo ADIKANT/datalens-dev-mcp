@@ -2891,13 +2891,13 @@ def _semantic_object_payload(value: dict[str, Any], *, method: str) -> Any:
                 "content": data["content"],
                 **({"annotation": current["annotation"]} if current.get("annotation") is not None else {}),
             }
-    elif method == "updateDataset":
+    elif method in {"createDataset", "updateDataset"}:
         data = current.get("data")
         if isinstance(data, dict) and isinstance(data.get("dataset"), dict):
             current = data["dataset"]
         elif isinstance(current.get("dataset"), dict):
             current = current["dataset"]
-    elif method == "updateConnection":
+    elif method in {"createConnection", "updateConnection"}:
         data = current.get("data")
         if isinstance(data, dict) and isinstance(data.get("connection"), dict):
             current = data["connection"]

@@ -64,6 +64,40 @@ class IncidentLogHardeningTests(unittest.TestCase):
         self.assertIn("$.data.prepare", comparison["diff_paths"])
         self.assertLessEqual(len(comparison["diff_paths"]), 20)
 
+    def test_create_dataset_readback_compares_dataset_content_not_envelopes(self):
+        from datalens_dev_mcp.pipeline.safe_apply import (
+            _write_payload_readback_comparison,
+        )
+
+        comparison = _write_payload_readback_comparison(
+            method="createDataset",
+            write_payload={
+                "workbook_id": "workbook_1",
+                "name": "Synthetic dataset",
+                "preview": False,
+                "dataset": {
+                    "sources": [],
+                    "result_schema": [
+                        {"calc_mode": "formula", "title": "Synthetic field", "formula": "1"}
+                    ],
+                },
+            },
+            readback={
+                "datasetId": "dataset_1",
+                "options": {"preview": {"enabled": True}},
+                "dataset": {
+                    "revision_id": "revision_1",
+                    "sources": [],
+                    "result_schema": [
+                        {"calc_mode": "formula", "title": "Synthetic field", "formula": "1"}
+                    ],
+                },
+            },
+        )
+
+        self.assertTrue(comparison["equivalent"], comparison)
+        self.assertEqual(comparison["diff_paths"], [])
+
     def test_schema_projection_removes_readback_only_dashboard_fields(self):
         from datalens_dev_mcp.api.request_compiler import project_method_request
 
