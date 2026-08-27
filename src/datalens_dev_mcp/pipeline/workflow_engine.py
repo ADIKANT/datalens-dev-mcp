@@ -8,6 +8,7 @@ from datalens_dev_mcp.pipeline.failure_classifier import classify_failure
 from datalens_dev_mcp.pipeline.investigation import ARCHITECTURE_REVIEW_STATE
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
 from datalens_dev_mcp.pipeline.workflow_state import WorkflowState, is_terminal, transition_name
+from datalens_dev_mcp.pipeline.task_stage_receipts import validate_stage_receipt
 from datalens_dev_mcp.validators.redaction import sanitize_value
 
 
@@ -51,10 +52,12 @@ class WorkflowEngine:
         server_build: str = "",
         source_branch: str = "",
         source_tree: str = "",
+        require_typed_receipts: bool = False,
     ) -> None:
         self.journal = journal
         self.contract = sanitize_value(contract)
         self.handlers = dict(handlers)
+        self.require_typed_receipts = bool(require_typed_receipts)
         self.identity = build_journal_identity(
             self.contract,
             server_build=server_build,
@@ -146,6 +149,21 @@ class WorkflowEngine:
             )
 
         result_status = str(result.get("status") or "success")
+        if self.require_typed_receipts:
+            receipt_issues = validate_stage_receipt(
+                result,
+                task_id=self.journal.task_id,
+                contract_hash=str(self.contract.get("contract_hash") or ""),
+                transition=spec.name,
+            )
+            if receipt_issues:
+                return self._record_blocked(
+                    state,
+                    spec,
+                    idempotency_key,
+                    reason="workflow stage did not return a valid typed receipt",
+                    details={"receipt_issues": list(receipt_issues)},
+                )
         if result_status in {"ambiguous", "partial"} and spec.write:
             return self._record_reconciliation(
                 state,

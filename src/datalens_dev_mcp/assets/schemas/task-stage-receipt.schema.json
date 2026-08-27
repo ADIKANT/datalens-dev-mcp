@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/task-stage-receipt.schema.json",
+  "type": "object",
+  "required": ["schema_id", "receipt_version", "task_id", "contract_hash", "transition", "status", "build_identity_hash", "target_binding_hash", "proof_level", "missing_requirements", "ok"],
+  "properties": {
+    "schema_id": {"const": "datalens_task_stage_receipt"}, "receipt_version": {"const": 1},
+    "task_id": {"type": "string", "minLength": 1}, "contract_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "transition": {"type": "string", "minLength": 1}, "status": {"enum": ["success", "blocked", "conflict", "ambiguous", "failed"]},
+    "build_identity_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "target_binding_hash": {"type": "string"},
+    "proof_level": {"type": "string", "minLength": 1}, "missing_requirements": {"type": "array", "items": {"type": "string"}},
+    "ok": {"type": "boolean"}
+  },
+  "additionalProperties": true
+}
