@@ -80,6 +80,14 @@ class IncidentLogHardeningTests(unittest.TestCase):
                     "result_schema": [
                         {"calc_mode": "formula", "title": "Synthetic field", "formula": "1"}
                     ],
+                    "result_schema_aux": {
+                        "inter_dependencies": {
+                            "deps": [
+                                {"dep_field_id": "field_b", "ref_field_ids": ["field_y", "field_x"]},
+                                {"dep_field_id": "field_a", "ref_field_ids": ["field_z"]},
+                            ]
+                        }
+                    },
                 },
             },
             readback={
@@ -91,6 +99,14 @@ class IncidentLogHardeningTests(unittest.TestCase):
                     "result_schema": [
                         {"calc_mode": "formula", "title": "Synthetic field", "formula": "1"}
                     ],
+                    "result_schema_aux": {
+                        "inter_dependencies": {
+                            "deps": [
+                                {"dep_field_id": "field_a", "ref_field_ids": ["field_z"]},
+                                {"dep_field_id": "field_b", "ref_field_ids": ["field_x", "field_y"]},
+                            ]
+                        }
+                    },
                 },
             },
         )

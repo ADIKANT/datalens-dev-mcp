@@ -2897,6 +2897,7 @@ def _semantic_object_payload(value: dict[str, Any], *, method: str) -> Any:
             current = data["dataset"]
         elif isinstance(current.get("dataset"), dict):
             current = current["dataset"]
+        _normalize_dataset_inter_dependencies(current)
     elif method in {"createConnection", "updateConnection"}:
         data = current.get("data")
         if isinstance(data, dict) and isinstance(data.get("connection"), dict):
@@ -2942,6 +2943,27 @@ def _semantic_object_payload(value: dict[str, Any], *, method: str) -> Any:
 def _is_empty_editor_controls(value: Any) -> bool:
     return isinstance(value, str) and bool(
         re.fullmatch(r"\s*module\.exports\s*=\s*\{\s*\}\s*;?\s*", value)
+    )
+
+
+def _normalize_dataset_inter_dependencies(value: Any) -> None:
+    if not isinstance(value, dict):
+        return
+    auxiliary = value.get("result_schema_aux")
+    if not isinstance(auxiliary, dict):
+        return
+    inter_dependencies = auxiliary.get("inter_dependencies")
+    if not isinstance(inter_dependencies, dict):
+        return
+    dependencies = inter_dependencies.get("deps")
+    if not isinstance(dependencies, list):
+        return
+    for item in dependencies:
+        if not isinstance(item, dict) or not isinstance(item.get("ref_field_ids"), list):
+            continue
+        item["ref_field_ids"] = sorted(str(field_id) for field_id in item["ref_field_ids"])
+    dependencies.sort(
+        key=lambda item: str(item.get("dep_field_id") or "") if isinstance(item, dict) else ""
     )
 
 
