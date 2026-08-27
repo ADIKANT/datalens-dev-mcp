@@ -4,11 +4,18 @@
   "type": "object",
   "required": ["schema_id", "authorization_version", "mode", "source", "authorized_delivery", "request_hash", "contract_hash", "authorization_hash"],
   "properties": {
-    "schema_id": {"const": "datalens_execution_authorization"}, "authorization_version": {"const": 1},
+    "schema_id": {"const": "datalens_execution_authorization"},
+    "authorization_version": {"const": 1},
     "mode": {"enum": ["read_only", "automatic_from_explicit_request", "manual_plan_ack", "destructive_exact_token"]},
     "source": {"const": "current_user_request"},
-    "authorized_delivery": {"type": "object", "required": ["save", "publish", "destructive"], "properties": {"save": {"type": "boolean"}, "publish": {"type": "boolean"}, "destructive": {"type": "boolean"}}, "additionalProperties": false},
-    "request_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "contract_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "authorized_delivery": {
+      "type": "object",
+      "required": ["save", "publish", "destructive"],
+      "properties": {"save": {"type": "boolean"}, "publish": {"type": "boolean"}, "destructive": {"type": "boolean"}},
+      "additionalProperties": false
+    },
+    "request_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "contract_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "authorization_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
   },
   "additionalProperties": false

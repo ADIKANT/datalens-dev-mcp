@@ -4,7 +4,9 @@
   "type": "object",
   "required": ["ok", "state", "highest_proof_level", "required_evidence", "satisfied_evidence", "missing_evidence", "limitations"],
   "properties": {
-    "ok": {"type": "boolean"}, "state": {"type": "string"}, "highest_proof_level": {"type": "string"},
+    "ok": {"type": "boolean"},
+    "state": {"type": "string"},
+    "highest_proof_level": {"type": "string"},
     "required_evidence": {"type": "array", "items": {"type": "string"}},
     "satisfied_evidence": {"type": "array", "items": {"type": "string"}},
     "missing_evidence": {"type": "array", "items": {"type": "string"}},
