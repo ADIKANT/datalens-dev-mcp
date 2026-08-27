@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/reference-binding.schema.json",
+  "title": "Exact task reference binding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "source_kind", "locator_hash", "object_id", "revision", "source_hash", "technology", "exact_required", "binding_hash"],
+  "properties": {
+    "schema_id": {"const": "datalens_reference_binding"},
+    "source_kind": {"enum": ["live_object", "live_target", "portfolio_path", "registry_family", "reviewed_template", "generic_cookbook"]},
+    "locator_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "object_id": {"type": "string"},
+    "revision": {"type": "string"},
+    "source_hash": {"type": "string"},
+    "technology": {"type": "string"},
+    "exact_required": {"type": "boolean"},
+    "binding_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

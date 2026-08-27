@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/style-binding-receipt.schema.json",
+  "title": "Exact style binding receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "source_kind", "reference_binding_hash", "technology", "tab_order", "tab_hashes", "protected_runtime_hash", "protected_region_count", "semantic_slot_hash", "semantic_slot_count", "source_hash", "binding_hash"],
+  "properties": {
+    "schema_id": {"const": "datalens_style_binding_receipt"},
+    "source_kind": {"type": "string"},
+    "reference_binding_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "technology": {"type": "string"},
+    "tab_order": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "tab_hashes": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+    "protected_runtime_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "protected_region_count": {"type": "integer", "minimum": 0},
+    "semantic_slot_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "semantic_slot_count": {"type": "integer", "minimum": 0},
+    "source_hash": {"type": "string"},
+    "binding_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

@@ -57,6 +57,7 @@ class WorkflowEngine:
         source_tree: str = "",
         build_identity: dict[str, Any] | None = None,
         target_binding: dict[str, Any] | None = None,
+        style_binding_hash: str = "",
         require_typed_receipts: bool = False,
     ) -> None:
         self.journal = journal
@@ -73,11 +74,13 @@ class WorkflowEngine:
             build_identity = dict(compatibility["build_identity"])
         self.build_identity = dict(build_identity or BuildIdentityResolver().resolve())
         self.target_binding = dict(target_binding or resolve_contract_target_binding(self.contract))
+        self.style_binding_hash = str(style_binding_hash or "")
         self.identity = {
             **build_task_identity(
                 self.contract,
                 build_identity=self.build_identity,
                 target_binding=self.target_binding,
+                style_binding_hash=self.style_binding_hash,
             ),
             "build_identity": self.build_identity,
             "target_binding": self.target_binding,

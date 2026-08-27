@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/target-graph.schema.json",
+  "title": "Bounded live DataLens target graph",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "root_ids", "nodes", "edges", "provider_calls", "limitations", "bounded", "graph_hash"],
+  "properties": {
+    "schema_id": {"const": "datalens_target_graph"},
+    "root_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "nodes": {"type": "array", "items": {"type": "object"}},
+    "edges": {"type": "array", "items": {"type": "object"}},
+    "provider_calls": {"type": "array", "items": {"type": "object"}},
+    "limitations": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "bounded": {"const": true},
+    "graph_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}
