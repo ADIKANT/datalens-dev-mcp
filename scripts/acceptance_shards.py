@@ -128,6 +128,8 @@ def run_acceptance(
             )
             if returncode != 0:
                 status = "failed"
+                diagnostic = (stderr or stdout or "acceptance command failed without output")[-12_000:]
+                print(diagnostic, file=sys.stderr, flush=True)
                 break
         results.append(
             {
