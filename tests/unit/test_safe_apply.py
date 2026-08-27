@@ -535,6 +535,54 @@ class SafeApplyTests(unittest.TestCase):
         self.assertEqual(action["fresh_read_payload"]["branch"], "saved")
         self.assertEqual(action["readback_payload"]["branch"], "published")
 
+    def test_wizard_publish_projects_saved_entry_to_update_contract(self):
+        from datalens_dev_mcp.pipeline.safe_apply import (
+            create_publish_safe_apply_plan,
+            validate_safe_apply_plan,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "wizard.saved.latest.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "branch": "saved",
+                        "entries": [
+                            {
+                                "entryId": "chart_1",
+                                "revId": "rev_saved",
+                                "savedId": "saved_1",
+                                "key": "folder/Synthetic chart",
+                                "data": {
+                                    "datasetsIds": ["dataset_1"],
+                                    "datasetsPartialFields": [[]],
+                                    "visualization": {"id": "column", "placeholders": []},
+                                },
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            plan = create_publish_safe_apply_plan(
+                project_root=tmp,
+                target="wizard_chart",
+                object_type="wizard_chart",
+                object_id="chart_1",
+                saved_readback_path=str(path),
+                approved=True,
+            )
+            validation = validate_safe_apply_plan(plan)
+
+        self.assertTrue(plan["ok"], plan)
+        self.assertTrue(validation.ok, validation.issues)
+        payload = plan["actions"][0]["payload"]
+        self.assertEqual(set(payload), {"entryId", "template", "mode", "data"})
+        self.assertEqual(payload["entryId"], "chart_1")
+        self.assertEqual(payload["template"], "datalens")
+        self.assertEqual(payload["mode"], "publish")
+
     def test_html_page_publish_uses_only_verified_saved_revision(self):
         from datalens_dev_mcp.pipeline.safe_apply import (
             create_publish_safe_apply_plan,

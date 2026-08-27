@@ -4411,6 +4411,19 @@ def _publish_action_from_saved_readback(
             "entry": publish_entry,
         }
     )
+    projected_publish = project_method_request(
+        method_spec["write"],
+        publish_payload,
+        operation="publish",
+        object_id=saved_identity["object_id"],
+        mode="publish",
+    )
+    if not projected_publish.get("ok"):
+        return _error(
+            "invalid_publish_payload",
+            "; ".join(projected_publish.get("issues") or ["publish payload projection failed"]),
+        )
+    publish_payload = dict(projected_publish["payload"])
     action = {
         "action": "publish_object",
         "method": method_spec["write"],
