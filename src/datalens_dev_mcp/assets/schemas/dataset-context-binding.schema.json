@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/dataset-context-binding.schema.json",
+  "title": "Immutable task binding to bounded dataset context",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "dataset_context_profile_hash", "query_set_hash", "dataset_schema_hash", "context_observed_at", "context_limitations", "binding_hash"],
+  "properties": {
+    "schema_id": {"const": "dataset_context_binding"},
+    "dataset_context_profile_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "query_set_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "dataset_schema_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "context_observed_at": {"type": "string", "minLength": 1},
+    "context_limitations": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "binding_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

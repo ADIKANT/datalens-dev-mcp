@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/public-task-plan.schema.json",
+  "title": "Immutable public autonomous task plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "plan_version", "task_id", "contract_hash", "route", "delivery", "scope", "acceptance", "dataset_context_profile_hash", "query_set_hash", "dataset_schema_hash", "context_observed_at", "context_limitations", "data_context_decisions", "plan_binding_hash", "semantic_patch_plan_hash", "style_binding_hash", "safe_apply_action_count", "artifacts", "destructive_token_required", "plan_hash"],
+  "properties": {
+    "schema_id": {"const": "datalens_public_task_plan"},
+    "plan_version": {"const": 1},
+    "task_id": {"type": "string", "minLength": 1},
+    "contract_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "route": {"type": "string", "minLength": 1},
+    "delivery": {"type": "object"},
+    "scope": {"type": "object"},
+    "acceptance": {"type": "array"},
+    "dataset_context_profile_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "query_set_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "dataset_schema_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "context_observed_at": {"type": "string", "minLength": 1},
+    "context_limitations": {"type": "array", "items": {"type": "string"}},
+    "data_context_decisions": {"type": "object"},
+    "plan_binding_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "semantic_patch_plan_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "style_binding_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "safe_apply_action_count": {"type": "integer", "minimum": 1},
+    "artifacts": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "artifact_uri", "sha256"],
+        "properties": {
+          "kind": {"type": "string"},
+          "artifact_uri": {"type": "string", "pattern": "^(plans/|data/context-profile\\.json$)"},
+          "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        }
+      }
+    },
+    "destructive_token_required": {"type": "boolean"},
+    "plan_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

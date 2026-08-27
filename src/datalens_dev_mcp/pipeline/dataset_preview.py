@@ -313,22 +313,12 @@ def rows_to_typed_dicts(schema: list[dict[str, Any]], rows: list[Any]) -> list[d
 
 
 def _typed_value(value: Any, field_type: str) -> Any:
-    if value is None:
-        return None
-    try:
-        if field_type in {"integer", "uinteger"} and not isinstance(value, bool):
-            return int(value)
-        if field_type == "float" and not isinstance(value, bool):
-            return float(value)
-        if field_type == "boolean" and isinstance(value, str):
-            normalized = value.strip().lower()
-            if normalized in {"true", "1"}:
-                return True
-            if normalized in {"false", "0"}:
-                return False
-    except (TypeError, ValueError):
-        return value
-    return value
+    from datalens_dev_mcp.pipeline.dataset_data_normalizer import normalize_dataset_value
+
+    representation = normalize_dataset_value(value, field_type)
+    if representation["parse_status"] == "parsed":
+        return representation["normalized"]
+    return representation["raw"]
 
 
 def _bounded_inline_rows(rows: list[dict[str, Any]], row_limit: int, byte_budget: int) -> list[dict[str, Any]]:

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/dataset-data-query.schema.json",
+  "title": "Bounded getDatasetData query contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "mode", "payload", "paging", "dataset_data_semantics", "api_contract_hash", "query_hash"],
+  "properties": {
+    "schema_id": {"const": "dataset_data_query"},
+    "mode": {"enum": ["context_probe", "assertion_probe", "diagnostic_probe"]},
+    "payload": {"type": "object"},
+    "paging": {"type": "object"},
+    "dataset_data_semantics": {"enum": ["unknown_experimental", "current_default", "published_only", "saved_current"]},
+    "api_contract_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "query_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import re
+from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urlparse
 
@@ -13,11 +13,11 @@ from datalens_dev_mcp.pipeline.target_graph import build_target_graph
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
 from datalens_dev_mcp.validators.redaction import sanitize_value
 
-
 URL_ID_RE = re.compile(r"^[A-Za-z0-9_]{8,64}")
 CHART_ID_KEYS = frozenset({"chartId", "chart_id", "entryId", "entry_id", "targetEntryId", "target_entry_id"})
 DATASET_ID_KEYS = frozenset({"datasetId", "dataset_id"})
 CONNECTION_ID_KEYS = frozenset({"connectionId", "connection_id"})
+FIELD_GUID_KEYS = frozenset({"guid", "fieldGuid", "field_guid"})
 REVISION_KEYS = ("revId", "rev_id", "savedId", "saved_id", "revision", "revisionId")
 
 
@@ -168,7 +168,9 @@ class TargetDiscoveryService:
             technologies.add(technology)
             revision = str(_first_deep(chart, REVISION_KEYS) or "")
             baselines[f"chart-{chart_id}-saved"] = sanitize_value(chart)
-            nodes.append(_node(object_type, chart_id, technology, revision, chart))
+            chart_node = _node(object_type, chart_id, technology, revision, chart)
+            chart_node["field_guids"] = sorted(_collect_ids(chart, FIELD_GUID_KEYS))
+            nodes.append(chart_node)
             edges.append({"source": dashboard_id, "target": chart_id, "relation": "contains"})
             for dataset_id in _collect_ids(chart, DATASET_ID_KEYS):
                 dataset_ids.add(dataset_id)
@@ -377,4 +379,4 @@ def _field_projection(value: dict[str, Any]) -> dict[str, Any]:
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")

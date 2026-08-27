@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService, parse_target_url
 from datalens_dev_mcp.pipeline.task_contract import TargetContract, WorkspaceContract, create_task_contract
@@ -55,6 +55,7 @@ class DiscoveryClient:
                         "entry": {"entryId": "chart_demo", "revId": "chart-r3"},
                         "data": {
                             "datasetId": "dataset_demo",
+                            "visualization": {"measures": [{"guid": "guid_value"}]},
                             "meta": "{}",
                             "sources": "module.exports = {main: {data: []}};",
                             "prepare": "module.exports = function(data) { return data; };",
@@ -105,7 +106,9 @@ def test_dashboard_discovery_builds_bounded_graph_and_dataset_field_catalog() ->
     assert result["target_binding"]["saved_revision"] == "dash-r7"
     assert result["target_binding"]["technology"] == "editor_advanced"
     dataset = next(item for item in result["target_graph"]["nodes"] if item["object_type"] == "dataset")
+    chart = next(item for item in result["target_graph"]["nodes"] if item["object_type"] == "editor_chart")
     assert [item["guid"] for item in dataset["field_catalog"]] == ["guid_date", "guid_value"]
+    assert chart["field_guids"] == ["guid_value"]
     assert [method for method, _ in client.calls] == [
         "getDashboard", "getWorkbookEntries", "getEditorChart", "getDataset", "getConnection"
     ]

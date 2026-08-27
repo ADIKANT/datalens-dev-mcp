@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
 import tempfile
+from pathlib import Path
 from unittest.mock import patch
 
 from datalens_dev_mcp.mcp.tools import tasks
-from tests.unit.test_target_discovery import DiscoveryClient
 from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService
+from tests.unit.test_target_discovery import DiscoveryClient
 
 
 def test_public_task_closes_discovery_with_real_mocked_read_receipts() -> None:
@@ -26,7 +26,8 @@ def test_public_task_closes_discovery_with_real_mocked_read_receipts() -> None:
     assert "RESOLVED -> BASELINE_READ" in result["performed"]
     assert "BASELINE_READ -> REFERENCE_BOUND" in result["performed"]
     assert "REFERENCE_BOUND -> ROUTE_BOUND" in result["performed"]
-    assert result["blocked_by"]["details"]["missing_capability"] == "plan_data_proof"
+    assert "ROUTE_BOUND -> DATA_PROOF_PLANNED" in result["performed"]
+    assert result["blocked_by"]["details"]["missing_requirements"] == ["non_empty_semantic_change"]
     assert binding["source"] == "live_discovery"
     assert graph["graph_hash"]
     assert style["binding_hash"]
