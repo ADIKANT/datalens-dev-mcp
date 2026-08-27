@@ -21,6 +21,9 @@ from datalens_dev_mcp.pipeline.build_identity import BuildIdentityResolver, buil
 from datalens_dev_mcp.pipeline.task_contract import task_contract_hash
 from datalens_dev_mcp.pipeline.evidence_compaction import compact_task_evidence
 from datalens_dev_mcp.pipeline.target_binding import resolve_contract_target_binding, validate_target_binding
+from datalens_dev_mcp.pipeline.target_graph import validate_target_graph
+from datalens_dev_mcp.pipeline.reference_binding import validate_reference_binding
+from datalens_dev_mcp.pipeline.style_binding_receipt import validate_style_binding_receipt
 from datalens_dev_mcp.pipeline.task_identity import build_task_identity, validate_task_identity
 from datalens_dev_mcp.pipeline.workflow_checkpoint import render_checkpoint
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash, create_workflow_event
@@ -106,6 +109,10 @@ class ProjectJournal:
         self.identity_path = self.root / "identity.json"
         self.build_identity_path = self.root / "build-identity.json"
         self.target_binding_path = self.root / "target-binding.json"
+        self.target_graph_path = self.root / "target-graph.json"
+        self.reference_binding_path = self.root / "reference-binding.json"
+        self.style_binding_path = self.root / "style-binding.json"
+        self.discovery_path = self.root / "discovery.json"
         self.execution_authorization_path = self.root / "execution-authorization.json"
         self.lock_path = self.storage_root / ".locks" / f"{self.task_id}.lock"
         self.lease_path = self.storage_root / ".locks" / f"{self.task_id}.lease.json"
@@ -218,6 +225,7 @@ class ProjectJournal:
             contract,
             build_identity=requested_build,
             target_binding=requested_target,
+            style_binding_hash=str(existing_identity.get("style_binding_hash") or ""),
         )
         issues = validate_task_identity(
             existing_identity,
@@ -251,6 +259,71 @@ class ProjectJournal:
             build_identity=build_identity,
             target_binding=target_binding or (read_json(self.target_binding_path, {}) or {}),
         )
+
+    def bind_discovery(
+        self,
+        contract: dict[str, Any],
+        *,
+        target_binding: dict[str, Any],
+        target_graph: dict[str, Any],
+        reference_binding: dict[str, Any],
+        style_binding: dict[str, Any],
+        baselines: dict[str, dict[str, Any]],
+        discovery_receipt: dict[str, Any],
+    ) -> dict[str, Any]:
+        issues = [
+            *validate_target_binding(target_binding),
+            *validate_target_graph(target_graph),
+            *validate_reference_binding(reference_binding),
+            *validate_style_binding_receipt(style_binding),
+        ]
+        if issues:
+            raise JournalIdentityError("invalid discovery binding: " + "; ".join(issues))
+        with self.locked(owner="target-discovery-binding"):
+            state, _ = self.replay()
+            existing = read_json(self.target_binding_path, {}) or {}
+            if state.current_state != "RESOLVED" or state.last_event_id > 1:
+                if existing.get("binding_hash") != target_binding.get("binding_hash"):
+                    raise JournalIdentityError(
+                        "TARGET_BINDING_CONFLICT: discovery changed after workflow progress; start a new task revision"
+                    )
+                return read_json(self.discovery_path, {}) or discovery_receipt
+            build_identity = read_json(self.build_identity_path, {}) or {}
+            identity = build_task_identity(
+                contract,
+                build_identity=build_identity,
+                target_binding=target_binding,
+                style_binding_hash=str(style_binding.get("binding_hash") or ""),
+            )
+            write_json(self.target_binding_path, sanitize_value(target_binding))
+            write_json(self.target_graph_path, sanitize_value(target_graph))
+            write_json(self.reference_binding_path, sanitize_value(reference_binding))
+            write_json(self.style_binding_path, sanitize_value(style_binding))
+            write_json(self.identity_path, sanitize_value(identity))
+            baseline_refs: list[dict[str, str]] = []
+            for name, payload in sorted(baselines.items()):
+                digest = canonical_hash(sanitize_value(payload))
+                relative = Path("snapshots") / f"baseline-{digest[:20]}.json"
+                write_json(self.root / relative, sanitize_value(payload))
+                baseline_refs.append(
+                    {
+                        "name_hash": canonical_hash(name),
+                        "artifact_uri": self.receipt_uri(relative.as_posix()),
+                        "sha256": digest,
+                    }
+                )
+            receipt = {
+                **sanitize_value(discovery_receipt),
+                "target_binding_hash": target_binding.get("binding_hash"),
+                "target_graph_hash": target_graph.get("graph_hash"),
+                "reference_binding_hash": reference_binding.get("binding_hash"),
+                "style_binding_hash": style_binding.get("binding_hash"),
+                "baseline_refs": baseline_refs,
+            }
+            receipt["discovery_hash"] = canonical_hash(receipt)
+            write_json(self.discovery_path, receipt)
+            self.write_checkpoint(state)
+            return receipt
 
     def load_contract(self) -> dict[str, Any]:
         value = read_json(self.contract_path, {}) or {}

@@ -19,6 +19,8 @@ from datalens_dev_mcp.pipeline.execution_authorization import (
 from datalens_dev_mcp.pipeline.task_completion import TaskCompletionEvaluator
 from datalens_dev_mcp.pipeline.task_service_factory import create_autonomous_task_service
 from datalens_dev_mcp.pipeline.target_binding import resolve_contract_target_binding
+from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService
+from datalens_dev_mcp.pipeline.reference_style_service import ReferenceStyleService
 
 
 RUN_UNTIL_VALUES = frozenset({"blocked", "plan_ready", "completed"})
@@ -35,11 +37,12 @@ def dl_task_start(
     target_url = str(task_context.get("target_url") or "")
     compile_request = request + (f"\nTarget: {target_url}" if target_url and target_url not in request else "")
     reference_locator = str(task_context.get("reference_locator") or "")
+    reference_kind = "portfolio_object" if reference_locator and task_context.get("portfolio_root") else "live_object"
     compiled = compile_task_contract(
         compile_request,
         project_root=str(Path(project_root).resolve()),
         reference={
-            "kind": "live_object" if reference_locator else "none",
+            "kind": reference_kind if reference_locator else "none",
             "locator": reference_locator,
         },
         current_live={
@@ -70,37 +73,91 @@ def dl_task_start(
         execution_grant=grant,
     )
     before = state.last_event_id
-    if compiled.get("status") in {"invalid", "needs_input", "needs_discovery"}:
-        discovery = compiled.get("status") == "needs_discovery"
-        blocker = {
-            "reason": "server-owned target discovery is required" if discovery else "task contract requires user input",
-            "code": "BLOCKED_DISCOVERY" if discovery else "BLOCKED_INPUT",
-            "question": None if discovery else compiled.get("question"),
-            "missing_facts": compiled.get("discovery_required") or [],
-            "compile_receipt": compile_receipt,
-        }
-        with journal.locked(owner="task-compile-blocker"):
-            state, _ = journal.replay()
-            state = journal.append_transition(
-                state,
-                transition="TASK_DISCOVERY_REQUIRED" if discovery else "TASK_INPUT_REQUIRED",
-                input_value={"issues": compiled.get("issues") or []},
-                receipt_uri=compile_receipt,
-                status="blocked",
-                idempotency_key=canonical_hash({
-                    "task_id": journal.task_id,
-                    "transition": "TASK_DISCOVERY_REQUIRED" if discovery else "TASK_INPUT_REQUIRED",
-                }),
-                next_state="BLOCKED",
-                next_transition="",
-                blocker=blocker,
+    if compiled.get("status") in {"invalid", "needs_input"}:
+        return _block_task(
+            journal,
+            contract,
+            before=before,
+            code="BLOCKED_INPUT",
+            reason="task contract requires user input",
+            question=compiled.get("question"),
+            missing_facts=compiled.get("discovery_required") or [],
+            receipt_uri=compile_receipt,
+            transition="TASK_INPUT_REQUIRED",
+            issues=compiled.get("issues") or [],
+        )
+    if compiled.get("status") == "needs_discovery":
+        try:
+            discovery = TargetDiscoveryService(
+                max_objects=int(task_context.get("max_discovery_objects") or 50)
+            ).discover(
+                contract,
+                request_text=compile_request,
+                target_url=target_url,
             )
-        return project_task_summary(
-            contract=contract,
-            state=state,
-            events_path=journal.events_path,
-            resource_uri=task_resource_uri(journal.task_id),
-            performed_after=before,
+        except Exception as exc:  # noqa: BLE001 - provider boundary becomes typed blocked evidence.
+            discovery = {
+                "status": "blocked",
+                "reason": f"live target discovery failed: {exc.__class__.__name__}",
+                "missing_facts": compiled.get("discovery_required") or [],
+                "question": None,
+            }
+        if discovery.get("status") != "success":
+            receipt = journal.write_receipt(
+                f"target-discovery-blocked-{canonical_hash(discovery)[:16]}",
+                discovery,
+            )
+            return _block_task(
+                journal,
+                contract,
+                before=before,
+                code="BLOCKED_DISCOVERY",
+                reason=str(discovery.get("reason") or "server-owned target discovery is incomplete"),
+                question=discovery.get("question"),
+                missing_facts=discovery.get("missing_facts") or compiled.get("discovery_required") or [],
+                receipt_uri=receipt,
+                transition="TASK_DISCOVERY_REQUIRED",
+                issues=compiled.get("issues") or [],
+            )
+        style = ReferenceStyleService().bind(
+            contract,
+            target_graph=dict(discovery["target_graph"]),
+            baselines=dict(discovery.get("baselines") or {}),
+            portfolio_root=str(task_context.get("portfolio_root") or ""),
+        )
+        if style.get("status") != "success":
+            receipt = journal.write_receipt(
+                f"style-binding-blocked-{canonical_hash(style)[:16]}", style,
+            )
+            return _block_task(
+                journal,
+                contract,
+                before=before,
+                code="BLOCKED_STYLE_BINDING",
+                reason=str(style.get("reason") or "exact style binding is unavailable"),
+                question=None,
+                missing_facts=["reference_binding", "style_binding"],
+                receipt_uri=receipt,
+                transition="TASK_STYLE_BINDING_REQUIRED",
+                issues=[],
+            )
+        journal.bind_discovery(
+            contract,
+            target_binding=dict(discovery["target_binding"]),
+            target_graph=dict(discovery["target_graph"]),
+            reference_binding=dict(style["reference_binding"]),
+            style_binding=dict(style["style_binding"]),
+            baselines=dict(discovery.get("baselines") or {}),
+            discovery_receipt={
+                "schema_id": "datalens_target_discovery_receipt",
+                "status": "success",
+                "observed_at": discovery.get("observed_at"),
+                "provider_calls": discovery.get("provider_calls") or [],
+                "technology": discovery.get("technology"),
+                "tab_count": discovery.get("tab_count", 0),
+                "dataset_count": discovery.get("dataset_count", 0),
+                "field_count": discovery.get("field_count", 0),
+            },
         )
     state = _advance(journal, contract, boundary=boundary, execution_grant=grant)
     plan = _ensure_task_plan(journal, contract, state) if state.current_state == "VALIDATED" else {}
@@ -112,6 +169,7 @@ def dl_task_start(
         events_path=journal.events_path,
         resource_uri=task_resource_uri(journal.task_id),
         performed_after=before,
+        **_projection_bindings(journal),
     )
     if plan:
         result.update({"plan_hash": plan["plan_hash"], "plan_resource_uri": task_resource_uri(journal.task_id, "plans/plan.json")})
@@ -145,6 +203,7 @@ def dl_task_resume(
         events_path=journal.events_path,
         resource_uri=task_resource_uri(task_id),
         performed_after=before,
+        **_projection_bindings(journal),
     )
     plan = _load_task_plan(journal)
     if plan and state.current_state == "VALIDATED":
@@ -156,7 +215,9 @@ def dl_task_status(task_id: str, project_root: str = ".") -> dict[str, Any]:
     journal = ProjectJournal(project_root, task_id)
     contract = journal.load_contract()
     state, corrupt_tail = journal.replay()
-    result = compact_task_status(contract, state, resource_uri=task_resource_uri(task_id))
+    result = compact_task_status(
+        contract, state, resource_uri=task_resource_uri(task_id), **_projection_bindings(journal)
+    )
     result["journal_recovered"] = corrupt_tail
     return result
 
@@ -169,6 +230,32 @@ def dl_inspect(
 ) -> dict[str, Any]:
     root = Path(project_root).resolve()
     limit = min(200, max(1, int(max_nodes or 50)))
+    if task_id:
+        journal = ProjectJournal(root, task_id)
+        graph = read_json(journal.target_graph_path, {}) or {}
+        if graph:
+            return _live_graph_projection(graph, task_id=task_id)
+    if target_url:
+        inspect_request = f"Inspect DataLens target {target_url}"
+        compiled = compile_task_contract(inspect_request, project_root=str(root))
+        discovered = TargetDiscoveryService(max_objects=limit).discover(
+            dict(compiled["contract"]),
+            request_text=inspect_request,
+            target_url=target_url,
+        )
+        if discovered.get("status") != "success":
+            return {
+                "ok": False,
+                "graph_kind": "live_target_graph",
+                "reason": discovered.get("reason"),
+                "question": discovered.get("question"),
+            }
+        graph = dict(discovered["target_graph"])
+        path = root / "artifacts" / "inspections" / f"target-graph-{graph['graph_hash'][:20]}.json"
+        write_json(path, graph)
+        result = _live_graph_projection(graph, task_id="")
+        result["artifact_path"] = str(path)
+        return result
     validation = pipeline.dl_validate_project(str(root))
     artifacts = sorted(
         path.relative_to(root).as_posix()
@@ -178,6 +265,7 @@ def dl_inspect(
     return {
         "ok": bool(validation.get("ok", True)),
         "task_id": task_id,
+        "graph_kind": "local_project_graph",
         "target_url_present": bool(target_url),
         "project_validation": {
             "status": validation.get("status"),
@@ -204,7 +292,9 @@ def dl_plan(task_id: str, project_root: str = ".") -> dict[str, Any]:
         )
     if state.current_state != "VALIDATED":
         return {
-            **compact_task_status(contract, state, resource_uri=task_resource_uri(task_id)),
+            **compact_task_status(
+                contract, state, resource_uri=task_resource_uri(task_id), **_projection_bindings(journal)
+            ),
             "ok": False,
             "reason": "task did not reach PLAN_VALIDATED",
         }
@@ -251,6 +341,7 @@ def dl_execute(
         events_path=journal.events_path,
         resource_uri=task_resource_uri(task_id),
         performed_after=before,
+        **_projection_bindings(journal),
     )
 
 
@@ -311,6 +402,7 @@ def _advance(
         handlers=service.handlers(),
         build_identity=build_identity,
         target_binding=target_binding,
+        style_binding_hash=str((read_json(journal.style_binding_path, {}) or {}).get("binding_hash") or ""),
         require_typed_receipts=True,
     )
     stop_states = {"VALIDATED"} if boundary == "plan_ready" else None
@@ -329,6 +421,81 @@ def _assert_current_identity(
         target_binding=target_binding,
     )
     return build_identity, target_binding
+
+
+def _block_task(
+    journal: ProjectJournal,
+    contract: dict[str, Any],
+    *,
+    before: int,
+    code: str,
+    reason: str,
+    question: Any,
+    missing_facts: list[str],
+    receipt_uri: str,
+    transition: str,
+    issues: list[Any],
+) -> dict[str, Any]:
+    blocker = {
+        "reason": reason,
+        "code": code,
+        "question": question,
+        "missing_facts": list(missing_facts),
+        "receipt": receipt_uri,
+    }
+    with journal.locked(owner="task-blocker"):
+        state, _ = journal.replay()
+        state = journal.append_transition(
+            state,
+            transition=transition,
+            input_value={"issues": issues},
+            receipt_uri=receipt_uri,
+            status="blocked",
+            idempotency_key=canonical_hash({"task_id": journal.task_id, "transition": transition}),
+            next_state="BLOCKED",
+            next_transition="",
+            blocker=blocker,
+        )
+    return project_task_summary(
+        contract=contract,
+        state=state,
+        events_path=journal.events_path,
+        resource_uri=task_resource_uri(journal.task_id),
+        performed_after=before,
+        **_projection_bindings(journal),
+    )
+
+
+def _live_graph_projection(graph: dict[str, Any], *, task_id: str) -> dict[str, Any]:
+    nodes = list(graph.get("nodes") or [])
+    return {
+        "ok": True,
+        "task_id": task_id,
+        "graph_kind": "live_target_graph",
+        "graph_hash": graph.get("graph_hash"),
+        "node_count": len(nodes),
+        "edge_count": len(graph.get("edges") or []),
+        "nodes": [
+            {
+                "object_type": item.get("object_type"),
+                "object_id": item.get("object_id"),
+                "technology": item.get("technology"),
+                "saved_revision": item.get("saved_revision"),
+                "field_count": len(item.get("field_catalog") or []),
+            }
+            for item in nodes[:50]
+        ],
+        "limitations": graph.get("limitations") or [],
+        "bounded": True,
+        "resource_uri": task_resource_uri(task_id, "target-graph") if task_id else "datalens://inspect/target-graph",
+    }
+
+
+def _projection_bindings(journal: ProjectJournal) -> dict[str, dict[str, Any]]:
+    return {
+        "target_binding": read_json(journal.target_binding_path, {}) or {},
+        "style_binding": read_json(journal.style_binding_path, {}) or {},
+    }
 
 
 def _authorization_path(journal: ProjectJournal) -> Path:

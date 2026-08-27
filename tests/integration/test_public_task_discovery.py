@@ -1,0 +1,51 @@
+from __future__ import annotations
+
+from pathlib import Path
+import tempfile
+from unittest.mock import patch
+
+from datalens_dev_mcp.mcp.tools import tasks
+from tests.unit.test_target_discovery import DiscoveryClient
+from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService
+
+
+def test_public_task_closes_discovery_with_real_mocked_read_receipts() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        service = TargetDiscoveryService(DiscoveryClient())
+        with patch.object(tasks, "TargetDiscoveryService", return_value=service):
+            result = tasks.dl_task_start(
+                "Update dashboard https://datalens.example/dash_demo and save it",
+                project_root=tmp,
+                run_until="plan_ready",
+            )
+        journal = tasks.ProjectJournal(tmp, result["task_id"])
+        graph = tasks.read_json(journal.target_graph_path, {})
+        binding = tasks.read_json(journal.target_binding_path, {})
+        style = tasks.read_json(journal.style_binding_path, {})
+    assert result["state"] == "BLOCKED"
+    assert "RESOLVED -> BASELINE_READ" in result["performed"]
+    assert "BASELINE_READ -> REFERENCE_BOUND" in result["performed"]
+    assert "REFERENCE_BOUND -> ROUTE_BOUND" in result["performed"]
+    assert result["blocked_by"]["details"]["missing_capability"] == "plan_data_proof"
+    assert binding["source"] == "live_discovery"
+    assert graph["graph_hash"]
+    assert style["binding_hash"]
+    assert result["target_binding_hash"] == binding["binding_hash"]
+    assert result["style_binding_hash"] == style["binding_hash"]
+    assert result["route"] == "editor_advanced"
+    dataset = next(item for item in graph["nodes"] if item["object_type"] == "dataset")
+    assert len(dataset["field_catalog"]) == 2
+
+
+def test_public_inspect_returns_live_graph_not_local_artifact_listing() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        service = TargetDiscoveryService(DiscoveryClient())
+        with patch.object(tasks, "TargetDiscoveryService", return_value=service):
+            result = tasks.dl_inspect(
+                project_root=tmp,
+                target_url="https://datalens.example/dash_demo",
+            )
+        assert Path(result["artifact_path"]).is_file()
+    assert result["ok"] is True
+    assert result["graph_kind"] == "live_target_graph"
+    assert result["node_count"] >= 4

@@ -1,5 +1,5 @@
 {
-  "resource_count": 301,
+  "resource_count": 304,
   "resources": [
     {
       "bytes": 15842,
@@ -492,6 +492,11 @@
       "sha256": "7de6dcfc0a8cd21170264b4c97927ac34c3cba0045cb46ee4389904f53379072"
     },
     {
+      "bytes": 931,
+      "path": "schemas/reference-binding.schema.json",
+      "sha256": "e08a28e48e28ba8a0676591a4782c294642d7dcb3a7e844b4051cb745cc7eca2"
+    },
+    {
       "bytes": 1080,
       "path": "schemas/render-contract-fixture.schema.json",
       "sha256": "53d38dbab90c374734434f358a4d2b129d1e0f739035984dd281a089059bd821"
@@ -577,14 +582,24 @@
       "sha256": "753b802d55926acf1a208b42c8d503eef14e491e96b49a8db4e66925ccf8772d"
     },
     {
+      "bytes": 1301,
+      "path": "schemas/style-binding-receipt.schema.json",
+      "sha256": "76b49cffe43ee44a7f53b340049e9cfbcda018d3f2edc58d1b2a43a8488cad96"
+    },
+    {
       "bytes": 903,
       "path": "schemas/style-binding.schema.json",
       "sha256": "3ae9c6202a5a8823749e797f06ccd17261f512c08f94d85f54d347159b7d82be"
     },
     {
-      "bytes": 1055,
+      "bytes": 1223,
       "path": "schemas/target-binding.schema.json",
-      "sha256": "d43ea099c7301794c1d08f1c60d16fe4f783250f652070d476dd513c24d8a58b"
+      "sha256": "e6455673f57ef94f2a53fdaff2932f0506c004a607aace5da668523ac46d8735"
+    },
+    {
+      "bytes": 890,
+      "path": "schemas/target-graph.schema.json",
+      "sha256": "bf20cd567b1a4f5b1b668e282e98d8bfcb18d9ab05321b6682d90ed00d173bfd"
     },
     {
       "bytes": 1051,

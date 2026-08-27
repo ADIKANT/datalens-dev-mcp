@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from datalens_dev_mcp.mcp.task_projection import compact_task_status
+from datalens_dev_mcp.pipeline.artifacts import read_json
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
 
 
@@ -41,12 +42,22 @@ def read_task_resource(uri: str, *, project_root: str | Path = ".") -> dict[str,
     contract = journal.load_contract()
     state, _ = journal.replay()
     if not suffix:
-        payload = compact_task_status(contract, state, resource_uri=task_resource_uri(task_id))
+        payload = compact_task_status(
+            contract,
+            state,
+            resource_uri=task_resource_uri(task_id),
+            target_binding=read_json(journal.target_binding_path, {}) or {},
+            style_binding=read_json(journal.style_binding_path, {}) or {},
+        )
         return {"uri": uri, "mimeType": "application/json", "text": json.dumps(payload, indent=2, sort_keys=True)}
     fixed = {
         "contract": journal.contract_path,
         "state": journal.state_path,
         "checkpoint": journal.checkpoint_path,
+        "target-binding": journal.target_binding_path,
+        "target-graph": journal.target_graph_path,
+        "reference-binding": journal.reference_binding_path,
+        "style-binding": journal.style_binding_path,
     }
     if suffix in fixed:
         path = fixed[suffix]
