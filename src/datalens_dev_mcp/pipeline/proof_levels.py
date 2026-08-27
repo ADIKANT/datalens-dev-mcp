@@ -6,9 +6,9 @@ PROOF_LEVELS = (
     "source_static",
     "installed_static",
     "live_read_only_api",
+    "contract_runtime",
     "save_readback",
     "publish_readback",
-    "contract_runtime",
     "browser_rendered",
     "controlled_live_write",
 )

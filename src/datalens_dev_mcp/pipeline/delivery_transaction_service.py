@@ -110,7 +110,7 @@ class DeliveryTransactionService:
                 return self._blocked(context, "saved readback receipt is stale", "saved_readback_binding")
             if not self._saved_source_matches(existing):
                 return self._blocked(context, "saved readback source artifact is missing or stale", "saved_readback_source")
-            return self._stage_receipt(context, existing, proof_level="saved_readback")
+            return self._stage_receipt(context, existing, proof_level="save_readback")
         safe_plan = read_json(self.journal.root / "plans" / "safe-apply-plan.json", {}) or {}
         receipt = self._readback_receipt(
             schema_id="datalens_saved_readback_receipt",
@@ -121,7 +121,7 @@ class DeliveryTransactionService:
             require_publish_source=bool((self.contract.get("delivery") or {}).get("publish")),
         )
         write_json(self.journal.saved_readback_receipt_path, receipt)
-        return self._stage_receipt(context, receipt, proof_level="saved_readback")
+        return self._stage_receipt(context, receipt, proof_level="save_readback")
 
     def execute_publish_from_saved_stage(self, context: dict[str, Any]) -> dict[str, Any]:
         saved_receipt = self._existing_delivery_receipt(
@@ -221,7 +221,7 @@ class DeliveryTransactionService:
         if existing:
             if existing.get("publish_receipt_hash") != publish_receipt.get("receipt_hash"):
                 return self._blocked(context, "published readback receipt is stale", "published_readback_binding")
-            return self._stage_receipt(context, existing, proof_level="published_readback")
+            return self._stage_receipt(context, existing, proof_level="publish_readback")
         publish_plan = read_json(self.journal.publish_execution_plan_path, {}) or {}
         receipt = self._readback_receipt(
             schema_id="datalens_published_readback_receipt",
@@ -232,7 +232,7 @@ class DeliveryTransactionService:
             require_publish_source=False,
         )
         write_json(self.journal.published_readback_receipt_path, receipt)
-        return self._stage_receipt(context, receipt, proof_level="published_readback")
+        return self._stage_receipt(context, receipt, proof_level="publish_readback")
 
     def reconcile_ambiguous_write(self, context: dict[str, Any]) -> dict[str, Any]:
         phase = str(((context.get("state") or {}).get("reconciliation") or {}).get("phase") or "save")
@@ -279,7 +279,8 @@ class DeliveryTransactionService:
             reconciliation=True,
         )
         write_json(output_path, receipt)
-        stage = self._stage_receipt(context, receipt, proof_level=f"{branch}_readback")
+        proof_level = "publish_readback" if branch == "published" else "save_readback"
+        stage = self._stage_receipt(context, receipt, proof_level=proof_level)
         stage["reconciliation_status"] = reconciled["status"]
         stage["write_replayed"] = False
         return stage

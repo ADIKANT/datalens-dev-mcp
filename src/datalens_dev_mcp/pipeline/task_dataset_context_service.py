@@ -49,7 +49,12 @@ class TaskDatasetContextService:
         if not planned.get("ok"):
             return {"ok": False, "status": "blocked", "issues": planned.get("issues") or []}
         plan = dict(planned["plan"])
-        write_json(self.proof_plan_path, sanitize_value(plan))
+        plan_path = (
+            self.proof_plan_path
+            if mode == "context_probe"
+            else self.journal.root / "plans" / f"{mode.replace('_', '-')}-plan.json"
+        )
+        write_json(plan_path, sanitize_value(plan))
         query = dict(plan["queries"][0])
         cache_key = canonical_hash(
             {
@@ -162,7 +167,12 @@ class TaskDatasetContextService:
             proof_level="source_static" if fallback_kind else "live_read_only_api",
             fallback_kind=fallback_kind,
         )
-        write_json(self.profile_path, sanitize_value(profile))
+        profile_path = (
+            self.profile_path
+            if mode == "context_probe"
+            else self.journal.root / "evidence" / f"{mode.replace('_', '-')}-context-profile.json"
+        )
+        write_json(profile_path, sanitize_value(profile))
         return {
             "ok": not exhausted,
             "status": "blocked_budget" if exhausted else "completed",
@@ -172,6 +182,9 @@ class TaskDatasetContextService:
             "cache_hit": cache_hit,
             "raw_rows_inline": False,
             "budget_observed": {"rows": row_count, "cells": cell_count, "bytes": byte_count},
+            "normalized_page": normalized,
+            "profile_path": profile_path.relative_to(self.journal.root).as_posix(),
+            "plan_path": plan_path.relative_to(self.journal.root).as_posix(),
         }
 
     def stage_handler(self, context: dict[str, Any]) -> dict[str, Any]:

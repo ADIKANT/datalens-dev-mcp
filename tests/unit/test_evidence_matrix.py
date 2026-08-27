@@ -1,10 +1,13 @@
+import json
 import unittest
+from pathlib import Path
 
 from datalens_dev_mcp.pipeline.evidence_matrix import (
     browser_policy_from_legacy_flag,
     build_evidence_matrix,
 )
 from datalens_dev_mcp.pipeline.proof_claims import build_proof_claim, highest_honest_proof_level
+from datalens_dev_mcp.pipeline.proof_levels import PROOF_LEVELS
 
 
 class EvidenceMatrixTests(unittest.TestCase):
@@ -51,6 +54,15 @@ class EvidenceMatrixTests(unittest.TestCase):
         self.assertTrue(honest["ok"])
         self.assertFalse(false_visual["ok"])
         self.assertEqual(highest_honest_proof_level([honest, false_visual]), "contract_runtime")
+
+    def test_proof_vocabulary_is_unified_in_code_schema_and_docs(self):
+        root = Path(__file__).resolve().parents[2]
+        schema = json.loads((root / "schemas" / "proof-claim.schema.json").read_text(encoding="utf-8"))
+        documented = (root / "docs" / "evidence-levels.md").read_text(encoding="utf-8")
+        self.assertEqual(tuple(schema["properties"]["proof_level"]["enum"]), PROOF_LEVELS)
+        for level in PROOF_LEVELS:
+            self.assertIn(f"`{level}`", documented)
+        self.assertIn("are not proof levels", documented)
 
 
 if __name__ == "__main__":

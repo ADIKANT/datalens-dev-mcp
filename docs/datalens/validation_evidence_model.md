@@ -19,6 +19,7 @@
 - `source_static`;
 - `installed_static`;
 - `live_read_only_api`;
+- `contract_runtime`;
 - `save_readback`;
 - `publish_readback`;
 - `browser_rendered`;
