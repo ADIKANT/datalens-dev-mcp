@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datalens_dev_mcp.pipeline.object_action_mapper import map_materialized_action, semantic_fresh_read_spec
-from datalens_dev_mcp.pipeline.safe_apply import create_safe_apply_plan
+from datalens_dev_mcp.pipeline.safe_apply import create_safe_apply_plan, validate_safe_apply_plan_exhaustive
 
 
 def _patch_plan(object_id: str, object_type: str) -> dict:
@@ -44,12 +44,26 @@ def test_dashboard_action_never_uses_dashboard_id_as_target_chart_id() -> None:
             "meta": {},
             "data": {"tabs": []},
         },
+        baseline_payload={
+            "entryId": "dash_demo",
+            "revId": "r7",
+            "meta": {},
+            "data": {"tabs": []},
+        },
         semantic_patch_plan=_patch_plan("dash_demo", "dashboard"),
     )
     plan = create_safe_apply_plan(project_root="/tmp/synthetic", actions=[action], approved=True)
     assert action["method"] == "updateDashboard"
     assert plan["target_lock"]["target_dashboard_id"] == "dash_demo"
     assert plan["target_lock"]["target_chart_id"] == ""
+    assert action["current_dashboard"]["revId"] == "r7"
+    assert action["baseline_diff_contract"]["schema_id"] == "datalens.baseline-diff-contract"
+    validation = validate_safe_apply_plan_exhaustive(plan)
+    assert not [
+        issue
+        for issue in validation["issues"]
+        if "current_dashboard" in issue or "baseline_diff_contract" in issue
+    ]
 
 
 def test_semantic_dependency_reads_preserve_real_branch_contracts() -> None:

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.example/schemas/public-autonomy-canary-receipt.schema.json",
+  "title": "Installed public autonomy controlled canary receipt",
+  "type": "object",
+  "required": [
+    "schema_id", "status", "surface", "public_tools_only", "public_tool_count", "installed_package",
+    "package_version", "build_identity_hash", "exact_head", "source_tree_sha256", "source_unchanged",
+    "task_id", "contract_hash", "target_binding_hash", "style_binding_hash", "plan_hash",
+    "save_write_count", "publish_write_count", "process_restart_after_save", "saved_readback_verified",
+    "published_readback_verified", "typed_data_verified", "dataset_data_semantics", "raw_rows_inline",
+    "browser_policy", "browser_call_count", "stale_revision_write_count", "completion_verified",
+    "cleanup", "artifact_hashes", "live_verified", "ok"
+  ],
+  "properties": {
+    "schema_id": {"const": "datalens_public_autonomy_canary"},
+    "status": {"const": "completed"},
+    "surface": {"const": "autonomous-v2"},
+    "public_tools_only": {"const": true},
+    "public_tool_count": {"const": 8},
+    "installed_package": {"const": true},
+    "package_version": {"const": "0.5.0"},
+    "build_identity_hash": {"$ref": "#/$defs/sha256"},
+    "exact_head": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "source_tree_sha256": {"$ref": "#/$defs/sha256"},
+    "source_unchanged": {"const": true},
+    "task_id": {"type": "string", "minLength": 1},
+    "contract_hash": {"$ref": "#/$defs/sha256"},
+    "target_binding_hash": {"$ref": "#/$defs/sha256"},
+    "style_binding_hash": {"$ref": "#/$defs/sha256"},
+    "plan_hash": {"$ref": "#/$defs/sha256"},
+    "save_write_count": {"const": 1},
+    "publish_write_count": {"const": 1},
+    "process_restart_after_save": {"const": true},
+    "saved_readback_verified": {"const": true},
+    "published_readback_verified": {"const": true},
+    "typed_data_verified": {"const": true},
+    "dataset_data_semantics": {"const": "unknown_experimental"},
+    "raw_rows_inline": {"const": false},
+    "browser_policy": {"const": "forbidden"},
+    "browser_call_count": {"const": 0},
+    "stale_revision_write_count": {"const": 0},
+    "completion_verified": {"const": true},
+    "cleanup": {
+      "type": "object",
+      "required": ["executed", "policy"],
+      "properties": {"executed": {"type": "boolean"}, "policy": {"type": "string", "minLength": 1}},
+      "additionalProperties": false
+    },
+    "artifact_hashes": {
+      "type": "object",
+      "minProperties": 5,
+      "additionalProperties": {"$ref": "#/$defs/sha256"}
+    },
+    "live_verified": {"const": true},
+    "ok": {"const": true}
+  },
+  "additionalProperties": false,
+  "$defs": {"sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

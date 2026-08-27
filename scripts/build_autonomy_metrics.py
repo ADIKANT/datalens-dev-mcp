@@ -9,7 +9,6 @@ from typing import Any
 from check_autonomous_tool_surface import build_report as build_tool_surface_report
 from run_server_efficiency_suite import run_suite as run_efficiency_suite
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -36,6 +35,9 @@ def build_metrics(live_canary: Path | None = None) -> dict[str, Any]:
     corpus = json.loads(
         (ROOT / "tests/regression/policy_matrix/corpus/corpus-report.json").read_text(encoding="utf-8")
     )
+    behavior_corpus = json.loads(
+        (ROOT / "tests/regression/behavior_traces/corpus-report.json").read_text(encoding="utf-8")
+    )
     acceptance = {
         name: latest_acceptance(name)
         for name in ("affected", "autonomy", "full-sharded")
@@ -45,7 +47,7 @@ def build_metrics(live_canary: Path | None = None) -> dict[str, Any]:
     source_hashes = {value.get("source_tree_sha256") for value in acceptance.values() if value}
     canary = load_live_canary(live_canary)
     gates = {
-        "public_tools_at_most_9": int(tools["autonomous_tool_count"]) <= 9,
+        "public_tools_exactly_8": int(tools["autonomous_tool_count"]) == 8,
         "compact_tool_list_at_most_9kb": int(tools["tools_list_utf8_bytes"]) <= 9000,
         "initialization_at_most_1_5kb": int(tools["initialization_utf8_bytes"]) <= 1500,
         "discoverable_fact_questions_zero": int(corpus["expected_question_count"]) == 0,
@@ -55,7 +57,8 @@ def build_metrics(live_canary: Path | None = None) -> dict[str, Any]:
         "protected_runtime_drift_zero": True,
         "duplicate_poll_messages_zero": True,
         "auth_refresh_without_probe_zero": True,
-        "session_regression_at_least_80": int(corpus["scenario_count"]) >= 80,
+        "policy_matrix_at_least_80": int(corpus["scenario_count"]) >= 80,
+        "executable_behavior_traces_at_least_80": int(behavior_corpus["case_count"]) >= 80,
         "affected_autonomy_full_pass": accepted,
         "frozen_exact_head": len(exact_heads) == 1,
         "frozen_source_hash": len(source_hashes) == 1,
@@ -69,6 +72,7 @@ def build_metrics(live_canary: Path | None = None) -> dict[str, Any]:
         "tool_surface": tools,
         "efficiency": efficiency,
         "session_regression": corpus,
+        "behavior_traces": behavior_corpus,
         "acceptance": {
             name: {
                 "ok": bool(value.get("ok")),

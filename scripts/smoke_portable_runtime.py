@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import argparse
 import json
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 
 def _run_check(name: str, fn: Callable[[], Any]) -> dict[str, Any]:
@@ -45,6 +46,14 @@ def run_smoke() -> dict[str, Any]:
     from datalens_dev_mcp.validators.advanced_editor_validator import validate_editor_runtime_contract
 
     server = JsonRpcServer(project_root=".")
+    def public_tools() -> dict[str, Any]:
+        response = server.handle({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}) or {}
+        result = response.get("result") if isinstance(response.get("result"), dict) else {}
+        names = [str(item.get("name") or "") for item in result.get("tools") or [] if isinstance(item, dict)]
+        if result.get("tool_surface") != "autonomous-v2" or len(names) != 8 or len(set(names)) != 8:
+            raise ValueError("installed runtime must expose exactly 8 autonomous-v2 tools")
+        return {"tool_count": len(names), "tool_surface": result.get("tool_surface")}
+
     checks: list[tuple[str, Callable[[], Any]]] = [
         (
             "initialize",
@@ -52,10 +61,7 @@ def run_smoke() -> dict[str, Any]:
         ),
         (
             "tools_list",
-            lambda: (server.handle({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}) or {}).get(
-                "result",
-                {},
-            ),
+            public_tools,
         ),
         ("api_contract_lookup", lambda: get_method_schema("getDashboard")),
         (

@@ -232,6 +232,46 @@ class SemanticPatchTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertIn("raw array positions", " ".join(result["issues"]))
 
+    def test_dashboard_tab_id_guards_global_identity_pointer(self) -> None:
+        dashboard = {
+            "entryId": "dashboard_synthetic",
+            "data": {"tabs": [{"id": "W7", "title": "Main"}], "supportDescription": "Old"},
+            "unknownTop": {"preserve": True},
+        }
+        plan = build_semantic_patch_plan(
+            task_id="task_dashboard",
+            targets=[
+                {
+                    "object_id": "dashboard_synthetic",
+                    "object_type": "dashboard",
+                    "saved_revision": 3,
+                    "payload": dashboard,
+                    "sections": [
+                        {
+                            "tab": "W7",
+                            "anchor": {"kind": "json_pointer", "pointer": "/data/supportDescription"},
+                            "operation": "replace",
+                            "value": "Controlled marker",
+                        }
+                    ],
+                }
+            ],
+        )
+        result = preflight_semantic_patch_batch(
+            plan,
+            fresh_targets={
+                "dashboard_synthetic": {
+                    "object_type": "dashboard",
+                    "saved_revision": 3,
+                    "payload": dashboard,
+                }
+            },
+        )
+        self.assertTrue(result["ok"])
+        patched = result["materialized_payloads"]["dashboard_synthetic"]
+        self.assertEqual(patched["data"]["supportDescription"], "Controlled marker")
+        self.assertEqual(patched["unknownTop"], {"preserve": True})
+
     def test_noop_loop_guard_stops_identical_attempt(self) -> None:
         signature = attempt_signature(
             target_revision=17,

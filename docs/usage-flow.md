@@ -26,6 +26,12 @@ dl_task_start(request, run_until="plan_ready")
 
 Регрессионная проверка разделена точно по назначению. `tests/regression/policy_matrix/` — статическая synthetic matrix для schemas, invariants и privacy. `tests/regression/behavior_traces/` — 40 sanitized behavior families / 80 исполняемых variants, которые проходят только через публичный JSON-RPC `tools/call` в профиле `autonomous-v2`. Raw session archive используется только offline builder-ом и не входит в package. Проверки запускаются `scripts/validate_behavior_trace_corpus.py` и `scripts/run_public_autonomy_acceptance.py`.
 
+Финальный live-proof не смешивается с offline regression. После фиксации
+исходников установленный wheel проходит один dedicated-target canary через
+публичный stdio: save один раз, restart, resume, publish один раз, typed data
+proof и stale-plan negative без записи. Точный контракт и команда приведены в
+[`public-autonomy-canary.md`](public-autonomy-canary.md).
+
 ## Полный цикл
 
 ```text

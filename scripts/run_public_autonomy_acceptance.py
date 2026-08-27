@@ -5,12 +5,11 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 from jsonschema import Draft202012Validator
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -39,10 +38,11 @@ def main() -> int:
             "tests/integration/test_public_autonomy_failures.py",
             "tests/integration/test_public_autonomy_call_budgets.py",
         ],
+        [sys.executable, "-m", "pytest", "-q", "tests/unit/test_public_canary_contract.py"],
     ]
     ok = True
     for command in commands:
-        completed = subprocess.run(command, cwd=ROOT, env=env, check=False)  # noqa: S603
+        completed = subprocess.run(command, cwd=ROOT, env=env, check=False)
         if completed.returncode:
             ok = False
             break

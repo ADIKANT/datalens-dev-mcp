@@ -157,6 +157,8 @@ def section_value(payload: Any, tab: str) -> Any:
     tabs = payload.get("tabs")
     if isinstance(tabs, dict) and tab in tabs:
         return tabs[tab]
+    if _dashboard_tab_exists(payload, tab):
+        return payload
     data = payload.get("data")
     normalized = tab.removesuffix(".js").removesuffix(".json")
     if isinstance(data, dict) and normalized in data:
@@ -174,6 +176,8 @@ def set_section_value(payload: Any, tab: str, value: Any) -> Any:
     if isinstance(result.get("tabs"), dict) and tab in result["tabs"]:
         result["tabs"][tab] = value
         return result
+    if _dashboard_tab_exists(result, tab):
+        return _clone(value)
     normalized = tab.removesuffix(".js").removesuffix(".json")
     if isinstance(result.get("data"), dict) and normalized in result["data"]:
         result["data"][normalized] = value
@@ -198,3 +202,9 @@ def _target_payload(value: dict[str, Any]) -> Any:
 
 def _clone(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False))
+
+
+def _dashboard_tab_exists(payload: dict[str, Any], tab: str) -> bool:
+    data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+    tabs = data.get("tabs") if isinstance(data.get("tabs"), list) else []
+    return any(isinstance(item, dict) and str(item.get("id") or "") == tab for item in tabs)

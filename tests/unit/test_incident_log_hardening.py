@@ -87,6 +87,7 @@ class IncidentLogHardeningTests(unittest.TestCase):
                         "tabs": [],
                     },
                     "meta": {},
+                    "annotation": None,
                     "version": 7,
                     "scope": "dashboard",
                     "key": "folder/dashboard",
@@ -107,8 +108,43 @@ class IncidentLogHardeningTests(unittest.TestCase):
             {"entryId", "revId", "data", "meta"},
         )
         self.assertNotIn("tenantId", result["payload"])
+        self.assertNotIn("annotation", result["payload"]["entry"])
         self.assertIn("/entry/version", result["dropped_paths"])
         self.assertRegex(result["final_request_sha256"], r"^[0-9a-f]{64}$")
+
+    def test_schema_projection_preserves_required_dashboard_tab_title(self):
+        from datalens_dev_mcp.api.request_compiler import project_method_request
+
+        result = project_method_request(
+            "updateDashboard",
+            {
+                "entry": {
+                    "entryId": "dashboard_1",
+                    "revId": "revision_2",
+                    "data": {
+                        "tabs": [
+                            {
+                                "id": "tab_1",
+                                "title": "Synthetic tab",
+                                "items": [],
+                                "layout": [],
+                                "connections": [],
+                                "aliases": {},
+                                "unsupportedReadbackField": "drop me",
+                            }
+                        ]
+                    },
+                    "meta": {},
+                }
+            },
+        )
+
+        self.assertTrue(result["ok"], result)
+        tab = result["payload"]["entry"]["data"]["tabs"][0]
+        self.assertEqual(tab["title"], "Synthetic tab")
+        self.assertNotIn("unsupportedReadbackField", tab)
+        self.assertNotIn("/entry/data/tabs/0/title", result["dropped_paths"])
+        self.assertIn("/entry/data/tabs/0/unsupportedReadbackField", result["dropped_paths"])
 
     def test_layout_list_replacement_does_not_keep_old_items(self):
         from datalens_dev_mcp.pipeline.safe_apply import (

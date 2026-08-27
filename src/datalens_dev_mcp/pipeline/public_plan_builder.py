@@ -93,6 +93,7 @@ class PublicPlanBuilder:
                 workbook_id=str(target.get("workbook_id") or ""),
                 saved_revision=str(planned_target.get("saved_revision") or ""),
                 materialized_payload=materialized[object_id],
+                baseline_payload=dict((semantic_fresh_targets.get(object_id) or {}).get("payload") or {}),
                 semantic_patch_plan=patch_plan,
             )
             action["semantic_fresh_reads"] = semantic_fresh_reads

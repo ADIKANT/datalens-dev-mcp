@@ -464,6 +464,10 @@ class DeliveryTransactionService:
         }
         if phase == "publish":
             values["publish_plan_hash"] = publish_plan_hash
+        if status != "success":
+            reason = _execution_reason(result_actions)
+            if reason:
+                values["reason"] = reason
         return build_delivery_receipt(schema_id, **values)
 
     def _uncertain_write_receipt(
@@ -649,6 +653,16 @@ def _object_statuses(actions: list[dict[str, Any]], results: list[dict[str, Any]
         }
         for index, action in enumerate(actions)
     ]
+
+
+def _execution_reason(actions: list[dict[str, Any]]) -> str:
+    for action in actions:
+        error = action.get("error") if isinstance(action.get("error"), dict) else {}
+        category = str(error.get("category") or "").strip()
+        message = str(error.get("message") or "").strip()
+        if category or message:
+            return ": ".join(item for item in (category, message[:300]) if item)
+    return ""
 
 
 def _action_object_id(action: dict[str, Any]) -> str:

@@ -43,6 +43,11 @@ Acceptance receipts фиксируют `declared_surface`, `effective_surface` �
 - Тяжёлые планы и доказательства возвращаются как `datalens://tasks/<TASK_ID>/...`; `dl_evidence` читает только один разрешённый artifact с ограничением размера.
 - Отдельный destructive token нужен только для явно скомпилированного destructive scope. Произвольное удаление целого объекта не поддерживается.
 
+Установленная поверхность подтверждается отдельным public stdio canary. Его
+receipt фиксирует ровно 8 инструментов, установленный build, frozen source,
+save/restart/publish/readback, typed dataset evidence, ноль browser-вызовов и
+ноль stale-plan записей. См. [`public-autonomy-canary.md`](public-autonomy-canary.md).
+
 ## Совместимость
 
 Внутренние lifecycle-инструменты не удалены: `legacy-v1` сохраняет точный прежний набор из 39 имён и схем. Новые клиенты должны использовать `autonomous-v2`; прямой вызов скрытого low-level инструмента в этом профиле отклоняется до исполнения.

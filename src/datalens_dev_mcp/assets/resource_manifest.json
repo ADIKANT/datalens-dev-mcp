@@ -1,5 +1,5 @@
 {
-  "resource_count": 319,
+  "resource_count": 320,
   "resources": [
     {
       "bytes": 15842,
@@ -515,6 +515,11 @@
       "bytes": 647,
       "path": "schemas/protected-region.schema.json",
       "sha256": "ce6463cbd9d90d4ba9e06fde66c89352f8db0f829963d76223bf544636dc540e"
+    },
+    {
+      "bytes": 2817,
+      "path": "schemas/public-autonomy-canary-receipt.schema.json",
+      "sha256": "916a02c49c9a3802134708dce528e668df3402a3ea80b6c4fa4e71502bb5f23b"
     },
     {
       "bytes": 956,

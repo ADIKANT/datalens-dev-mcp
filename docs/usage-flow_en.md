@@ -6,6 +6,12 @@
 
 Codex, Claude, and other stdio clients use the same lifecycle. Only server registration differs. By default the client sees eight `autonomous-v2` task-level tools; the server performs the low-level steps listed below inside the workflow.
 
+The final live proof is separate from offline regression. Once the source tree
+is frozen, one dedicated-target canary drives the installed wheel through
+public stdio: one save, restart, resume, one publish, typed dataset proof, and a
+stale-plan negative with zero writes. See
+[`public-autonomy-canary.md`](public-autonomy-canary.md) for the exact contract.
+
 ## Autonomous task workflow
 
 ```text

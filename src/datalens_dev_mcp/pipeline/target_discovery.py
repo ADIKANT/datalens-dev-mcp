@@ -6,6 +6,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from datalens_dev_mcp.api.client import DataLensApiClient
+from datalens_dev_mcp.api.errors import DataLensApiError
 from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.pipeline.dataset_preview import extract_dataset_fields
 from datalens_dev_mcp.pipeline.target_binding import create_live_target_binding
@@ -164,7 +165,13 @@ class TargetDiscoveryService:
                     )
                 limitations.append(f"no curated read route for chart type {object_type}")
                 continue
-            chart = self._read(method, {"chartId": chart_id, "branch": "saved"}, calls)
+            try:
+                chart = self._read(method, {"chartId": chart_id, "branch": "saved"}, calls)
+            except DataLensApiError as exc:
+                if exc.http_status == 404 and chart_id not in requested_ids:
+                    limitations.append("dashboard references an unavailable chart")
+                    continue
+                raise
             technologies.add(technology)
             revision = str(_first_deep(chart, REVISION_KEYS) or "")
             baselines[f"chart-{chart_id}-saved"] = sanitize_value(chart)
@@ -296,6 +303,21 @@ def _entries(response: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _entry_type(entry: dict[str, Any]) -> str:
+    raw = " ".join(
+        str(entry.get(key) or "") for key in ("scope", "type", "entryType", "objectType", "kind")
+    ).strip().lower()
+    if "dashboard" in raw or raw == "dash":
+        return "dashboard"
+    if "dataset" in raw:
+        return "dataset"
+    if "connection" in raw or "connector" in raw:
+        return "connection"
+    if "wizard" in raw:
+        return "wizard_chart"
+    if "ql" in raw:
+        return "ql_chart"
+    if "editor" in raw or "advanced" in raw:
+        return "editor_chart"
     value = str(entry.get("scope") or entry.get("type") or "").strip().lower()
     aliases = {"dash": "dashboard", "widget": "chart", "editor_advanced": "editor_chart"}
     return aliases.get(value, value)

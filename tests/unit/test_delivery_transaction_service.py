@@ -207,6 +207,7 @@ def test_stale_revision_is_conflict_with_zero_confirmed_writes() -> None:
         receipt = read_json(journal.save_stage_receipt_path, {})
     assert result["status"] == "conflict"
     assert receipt["write_count"] == 0
+    assert receipt["reason"] == "stale_revision"
 
 
 def test_saved_and_published_receipt_schemas_are_not_interchangeable() -> None:

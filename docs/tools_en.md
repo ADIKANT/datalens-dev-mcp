@@ -43,6 +43,12 @@ Restart the MCP process after changing `DATALENS_MCP_TOOL_SURFACE`. Do not pass 
 - Heavy plans and evidence are returned as `datalens://tasks/<TASK_ID>/...`; `dl_evidence` reads only one allowed size-bounded artifact.
 - A separate destructive token is required only for explicitly compiled destructive scope. Arbitrary whole-object deletion remains unsupported.
 
+An installed-public stdio canary verifies the surface independently. Its
+receipt records exactly eight tools, the installed build and frozen source,
+save/restart/publish/readback, typed dataset evidence, zero browser calls, and
+zero stale-plan writes. See
+[`public-autonomy-canary.md`](public-autonomy-canary.md).
+
 ## Compatibility
 
 The internal lifecycle tools were not removed: `legacy-v1` preserves the exact previous set of 39 names and schemas. New clients should use `autonomous-v2`; a direct call to a hidden low-level tool in this profile is rejected before execution.

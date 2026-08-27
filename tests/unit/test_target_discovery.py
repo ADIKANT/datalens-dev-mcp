@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
+from datalens_dev_mcp.api.errors import DataLensApiError
 from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService, parse_target_url
 from datalens_dev_mcp.pipeline.task_contract import TargetContract, WorkspaceContract, create_task_contract
 
@@ -14,11 +15,15 @@ class DiscoveryClient:
         ambiguous: bool = False,
         missing_dashboard: bool = False,
         chart_scope: str = "editor_chart",
+        chart_type: str = "",
+        unavailable_chart: bool = False,
     ) -> None:
         self.calls: list[tuple[str, dict]] = []
         self.ambiguous = ambiguous
         self.missing_dashboard = missing_dashboard
         self.chart_scope = chart_scope
+        self.chart_type = chart_type
+        self.unavailable_chart = unavailable_chart
 
     def rpc_readonly(self, method: str, payload: dict) -> dict:
         self.calls.append((method, payload))
@@ -43,12 +48,19 @@ class DiscoveryClient:
                 "total": len(dashboards) + 3,
                 "entries": [
                     *dashboards,
-                    {"entryId": "chart_demo", "scope": self.chart_scope, "displayKey": "Trend"},
+                    {
+                        "entryId": "chart_demo",
+                        "scope": self.chart_scope,
+                        "type": self.chart_type,
+                        "displayKey": "Trend",
+                    },
                     {"entryId": "dataset_demo", "scope": "dataset", "displayKey": "Dataset"},
                     {"entryId": "connection_demo", "scope": "connection", "displayKey": "Connection"},
                 ],
             }
         if method in {"getEditorChart", "getWizardChart"}:
+            if self.unavailable_chart:
+                raise DataLensApiError("chart was not found", http_status=404)
             return {
                 "result": {
                     "chart": {
@@ -167,9 +179,26 @@ def test_wizard_target_preserves_wizard_technology() -> None:
     assert any(method == "getWizardChart" for method, _ in client.calls)
 
 
+def test_widget_scope_uses_concrete_wizard_node_type_for_read_route() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        client = DiscoveryClient(chart_scope="widget", chart_type="graph_wizard_node")
+        result = TargetDiscoveryService(client).discover(_contract(Path(tmp)))
+    assert result["status"] == "success"
+    assert result["target_binding"]["technology"] == "wizard_native"
+    assert any(method == "getWizardChart" for method, _ in client.calls)
+
+
 def test_graph_object_budget_is_global_and_records_truncation() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         result = TargetDiscoveryService(DiscoveryClient(), max_objects=2).discover(_contract(Path(tmp)))
     assert result["status"] == "success"
     assert len(result["target_graph"]["nodes"]) == 2
     assert result["target_graph"]["limitations"] == ["target graph reached the configured object limit"]
+
+
+def test_unrequested_unavailable_chart_is_recorded_as_bounded_limitation() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        result = TargetDiscoveryService(DiscoveryClient(unavailable_chart=True)).discover(_contract(Path(tmp)))
+    assert result["status"] == "success"
+    assert result["target_binding"]["technology"] == "dashboard"
+    assert result["target_graph"]["limitations"] == ["dashboard references an unavailable chart"]
