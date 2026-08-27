@@ -106,6 +106,7 @@ def load_create_bundle(
             issues.append(
                 f"object {item.get('key')} placeholder dependencies do not match declared dependencies"
             )
+        writable_payload = payload
         if route:
             projected = project_method_request(
                 str(route["create"]),
@@ -120,6 +121,14 @@ def load_create_bundle(
                     f"object {item.get('key')} payload is invalid: "
                     + "; ".join(projected.get("issues") or [])
                 )
+            elif isinstance(projected.get("payload"), dict):
+                # Create manifests commonly originate from a fresh saved
+                # readback.  Persist the schema-projected writable request in
+                # the immutable bundle, not the read model: otherwise fields
+                # marked readOnly are validated away here but reintroduced
+                # later when the create action is compiled.
+                writable_payload = projected["payload"]
+        sanitized_payload = sanitize_value(writable_payload)
         objects.append(
             {
                 "key": str(item.get("key") or ""),
@@ -127,8 +136,8 @@ def load_create_bundle(
                 "route": requested_route,
                 "name": str(item.get("name") or ""),
                 "dependencies": declared_dependencies,
-                "payload": sanitize_value(payload),
-                "payload_hash": canonical_hash(sanitize_value(payload)),
+                "payload": sanitized_payload,
+                "payload_hash": canonical_hash(sanitized_payload),
             }
         )
     issues.extend(_dependency_issues(objects))

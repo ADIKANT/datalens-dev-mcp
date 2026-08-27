@@ -83,6 +83,37 @@ def test_bundle_is_hash_bound_and_dependency_order_is_deterministic() -> None:
     assert "${object:" not in json.dumps(resolved)
 
 
+def test_bundle_persists_writable_projection_instead_of_read_model() -> None:
+    from datalens_dev_mcp.pipeline.create_manifest import load_create_bundle
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        _write_manifest(root)
+        payload_path = root / "payloads" / "dataset.json"
+        payload = json.loads(payload_path.read_text(encoding="utf-8"))
+        payload["dataset"]["source_avatars"] = [
+            {
+                "id": "avatar_1",
+                "managed_by": "user",
+                "source_id": "source_1",
+                "is_root": True,
+                "valid": True,
+                "virtual": False,
+            }
+        ]
+        payload_path.write_text(json.dumps(payload), encoding="utf-8")
+
+        bundle = load_create_bundle(root, "create-manifest.json", workbook_id="workbook_1")
+
+    avatar = bundle["objects"][0]["payload"]["dataset"]["source_avatars"][0]
+    assert avatar == {
+        "id": "avatar_1",
+        "managed_by": "user",
+        "source_id": "source_1",
+        "is_root": True,
+    }
+
+
 def test_manifest_path_escape_and_forward_dependency_fail_closed() -> None:
     from datalens_dev_mcp.pipeline.create_manifest import CreateManifestError, load_create_bundle
 
