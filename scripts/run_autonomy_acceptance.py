@@ -12,6 +12,7 @@ def main() -> int:
             "name": "task-contract-and-resume",
             "command": py(
                 "-m", "pytest", "-q", "tests/unit/test_task_compiler.py",
+                "tests/unit/test_acceptance_surface_policy.py",
                 "tests/unit/test_project_journal.py", "tests/unit/test_workflow_engine.py",
                 "tests/integration/test_workflow_resume.py", "tests/integration/test_task_tools_stdio.py",
             ),
@@ -42,10 +43,18 @@ def main() -> int:
         {"name": "session-regression", "command": py("-m", "pytest", "-q", "tests/regression")},
         {
             "name": "stdio-task-flow",
-            "commands": [py("scripts/smoke_mcp_stdio.py"), py("-m", "pytest", "-q", "tests/integration_offline/test_mcp_stdio.py")],
+            "commands": [
+                py("scripts/smoke_mcp_stdio.py"),
+                py(
+                    "-m", "pytest", "-q",
+                    "tests/integration_offline/test_mcp_stdio.py",
+                    "tests/integration_offline/test_mcp_stdio_autonomous.py",
+                    "tests/integration_offline/test_mcp_stdio_legacy.py",
+                ),
+            ],
         },
     ]
-    report = run_acceptance("autonomy", shards)
+    report = run_acceptance("autonomy", shards, surface="autonomous-v2")
     print(json.dumps(compact_report(report), indent=2, sort_keys=True))
     return 0 if report["ok"] else 1
 

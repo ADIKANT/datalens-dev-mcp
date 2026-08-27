@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/datalens-dev-mcp/acceptance-surface-receipt.schema.json",
+  "title": "DataLens acceptance surface receipt",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["profile", "declared_surface", "effective_surface", "surface_consistent", "ok"],
+  "properties": {
+    "profile": {"type": "string", "minLength": 1},
+    "declared_surface": {"enum": ["autonomous-v2", "legacy-v1"]},
+    "effective_surface": {"enum": ["autonomous-v2", "legacy-v1"]},
+    "surface_consistent": {"const": true},
+    "ok": {"type": "boolean"}
+  }
+}

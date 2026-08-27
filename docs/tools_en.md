@@ -27,6 +27,11 @@ The exact JSON schema is always available through MCP `tools/list`. Technical co
 - `legacy-v1` preserves the previous 39 lifecycle tools for existing integrations.
 - `expert` exposes the complete internal registry for operator-controlled diagnostics. Only the local process setting `DATALENS_MCP_TOOL_SURFACE=expert` can enable it; a request or prompt cannot change the profile of a running server.
 
+Acceptance receipts record `declared_surface`, `effective_surface`, and
+`surface_consistent`. The autonomy, affected, and full-sharded profiles always
+run as `autonomous-v2`; `legacy-v1` compatibility is exercised only by
+explicitly isolated tests.
+
 Restart the MCP process after changing `DATALENS_MCP_TOOL_SURFACE`. Do not pass a profile to `tools/list`; the process fixes its active surface at startup.
 
 ## Execution safety
