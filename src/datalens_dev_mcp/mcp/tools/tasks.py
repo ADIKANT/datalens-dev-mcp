@@ -1,27 +1,33 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
-from datalens_dev_mcp.mcp.task_projection import compact_task_status, project_task_summary, public_task_state, task_state_etag
+from datalens_dev_mcp.mcp.task_projection import (
+    compact_task_status,
+    project_task_summary,
+    public_task_state,
+    task_state_etag,
+)
 from datalens_dev_mcp.mcp.task_resources import read_task_evidence, task_resource_uri
 from datalens_dev_mcp.mcp.tools import pipeline
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.pipeline.build_identity import BuildIdentityResolver
-from datalens_dev_mcp.pipeline.project_journal import JournalIdentityError, ProjectJournal
-from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
-from datalens_dev_mcp.pipeline.workflow_engine import WorkflowEngine
-from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
 from datalens_dev_mcp.pipeline.execution_authorization import (
     resolve_execution_authorization,
     validate_execution_authorization,
 )
-from datalens_dev_mcp.pipeline.task_completion import TaskCompletionEvaluator
-from datalens_dev_mcp.pipeline.task_service_factory import create_autonomous_task_service
+from datalens_dev_mcp.pipeline.project_journal import JournalIdentityError, ProjectJournal
+from datalens_dev_mcp.pipeline.public_plan_builder import PublicPlanBuilder
+from datalens_dev_mcp.pipeline.reference_style_service import ReferenceStyleService
 from datalens_dev_mcp.pipeline.target_binding import resolve_contract_target_binding
 from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService
-from datalens_dev_mcp.pipeline.reference_style_service import ReferenceStyleService
-
+from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+from datalens_dev_mcp.pipeline.task_completion import TaskCompletionEvaluator
+from datalens_dev_mcp.pipeline.task_service_factory import create_autonomous_task_service
+from datalens_dev_mcp.pipeline.workflow_engine import WorkflowEngine
+from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
 
 RUN_UNTIL_VALUES = frozenset({"blocked", "plan_ready", "completed"})
 
@@ -38,6 +44,31 @@ def dl_task_start(
     compile_request = request + (f"\nTarget: {target_url}" if target_url and target_url not in request else "")
     reference_locator = str(task_context.get("reference_locator") or "")
     reference_kind = "portfolio_object" if reference_locator and task_context.get("portfolio_root") else "live_object"
+    semantic_changes = [item for item in task_context.get("semantic_changes") or [] if isinstance(item, dict)]
+    acceptance = list(task_context.get("acceptance") or [])
+    acceptance.extend(
+        {
+            "kind": "semantic_change",
+            "statement": json.dumps(item, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+            "source": "current_user_request",
+            "hard": True,
+        }
+        for item in semantic_changes
+    )
+    scope_overrides = dict(task_context.get("scope") or {})
+    if semantic_changes:
+        scope_overrides["allowed_objects"] = list(dict.fromkeys([
+            *list(scope_overrides.get("allowed_objects") or []),
+            *[str(item.get("target_id") or item.get("object_id") or "") for item in semantic_changes],
+        ]))
+        scope_overrides["allowed_tabs"] = list(dict.fromkeys([
+            *list(scope_overrides.get("allowed_tabs") or []),
+            *[str(item.get("tab") or "") for item in semantic_changes],
+        ]))
+        scope_overrides["allowed_semantic_slots"] = list(dict.fromkeys([
+            *list(scope_overrides.get("allowed_semantic_slots") or []),
+            *[str(item.get("slot_id") or "") for item in semantic_changes],
+        ]))
     compiled = compile_task_contract(
         compile_request,
         project_root=str(Path(project_root).resolve()),
@@ -50,6 +81,8 @@ def dl_task_start(
             for key in ("workbook_id", "dashboard_id", "chart_id", "object_ids", "object_types")
             if key in task_context
         },
+        scope_overrides=scope_overrides,
+        acceptance=acceptance,
     )
     contract = dict(compiled["contract"])
     journal = ProjectJournal(project_root, str(contract["task_id"]))
@@ -234,7 +267,11 @@ def dl_inspect(
         journal = ProjectJournal(root, task_id)
         graph = read_json(journal.target_graph_path, {}) or {}
         if graph:
-            return _live_graph_projection(graph, task_id=task_id)
+            result = _live_graph_projection(graph, task_id=task_id)
+            profile = read_json(journal.root / "data" / "context-profile.json", {}) or {}
+            if profile:
+                result["data_context"] = _context_profile_projection(profile, task_id=task_id)
+            return result
     if target_url:
         inspect_request = f"Inspect DataLens target {target_url}"
         compiled = compile_task_contract(inspect_request, project_root=str(root))
@@ -307,6 +344,10 @@ def dl_plan(task_id: str, project_root: str = ".") -> dict[str, Any]:
         "plan_resource_uri": task_resource_uri(task_id, "plans/plan.json"),
         "safe_apply_ready": bool(plan.get("safe_apply_action_count")),
         "safe_apply_action_count": plan.get("safe_apply_action_count", 0),
+        "dataset_context_profile_hash": plan.get("dataset_context_profile_hash"),
+        "query_set_hash": plan.get("query_set_hash"),
+        "dataset_schema_hash": plan.get("dataset_schema_hash"),
+        "context_limitations": plan.get("context_limitations") or [],
         "next_action": "dl_execute" if (contract.get("delivery") or {}).get("save") else "dl_verify",
     }
 
@@ -323,8 +364,8 @@ def dl_execute(
     state, _ = journal.replay()
     if state.current_state != "VALIDATED":
         raise ValueError(f"dl_execute requires PLAN_VALIDATED, current state is {public_task_state(state.current_state)}")
-    plan = _load_task_plan(journal)
-    if not plan or plan.get("plan_hash") != plan_hash:
+    plan = _ensure_task_plan(journal, contract, state)
+    if plan.get("plan_hash") != plan_hash:
         raise ValueError("plan_hash does not match the immutable task plan")
     if (contract.get("delivery") or {}).get("destructive"):
         expected = _destructive_token(task_id, plan_hash)
@@ -498,6 +539,21 @@ def _projection_bindings(journal: ProjectJournal) -> dict[str, dict[str, Any]]:
     }
 
 
+def _context_profile_projection(profile: dict[str, Any], *, task_id: str) -> dict[str, Any]:
+    return {
+        "dataset_context_profile_hash": profile.get("profile_hash"),
+        "query_set_hash": profile.get("query_set_hash"),
+        "dataset_schema_hash": profile.get("schema_hash"),
+        "proof_level": profile.get("proof_level"),
+        "dataset_data_semantics": profile.get("dataset_data_semantics"),
+        "field_count": len(profile.get("fields") or []),
+        "sample_scope": profile.get("sample_scope") or {},
+        "selector_candidate_count": len(profile.get("selector_candidates") or []),
+        "raw_rows_inline": False,
+        "resource_uri": task_resource_uri(task_id, "data/context-profile.json"),
+    }
+
+
 def _authorization_path(journal: ProjectJournal) -> Path:
     return journal.execution_authorization_path
 
@@ -512,35 +568,12 @@ def _load_authorization(journal: ProjectJournal, contract: dict[str, Any]) -> di
 
 def _ensure_task_plan(journal: ProjectJournal, contract: dict[str, Any], state) -> dict[str, Any]:
     existing = _load_task_plan(journal)
-    if existing and existing.get("contract_hash") == contract.get("contract_hash"):
-        return existing
-    safe_apply = pipeline.dl_create_safe_apply_plan(
-        project_root=str(journal.project_root),
-        delivery_intent_text=_delivery_intent_text(contract),
-        target_known=bool((contract.get("target") or {}).get("object_ids")),
-        target_workbook_id=str((contract.get("target") or {}).get("workbook_id") or ""),
-        target_dashboard_id=str((contract.get("target") or {}).get("dashboard_id") or ""),
-        target_chart_id=str(((contract.get("target") or {}).get("object_ids") or [""])[0]),
-        task_contract_hash=str(contract.get("contract_hash") or ""),
-    )
-    safe_path = journal.root / "plans" / "safe-apply-plan.json"
-    write_json(safe_path, safe_apply)
-    payload = {
-        "schema_id": "datalens_task_plan",
-        "task_id": journal.task_id,
-        "contract_hash": contract.get("contract_hash"),
-        "state_etag": task_state_etag(state),
-        "route": contract.get("route"),
-        "delivery": contract.get("delivery") or {},
-        "scope": contract.get("scope") or {},
-        "safe_apply_plan_path": str(safe_path),
-        "safe_apply_plan_sha256": canonical_hash(safe_apply),
-        "safe_apply_action_count": len(safe_apply.get("actions") or []),
-        "destructive_token_required": bool((contract.get("delivery") or {}).get("destructive")),
-    }
-    payload["plan_hash"] = canonical_hash(payload)
-    write_json(journal.root / "plans" / "plan.json", payload)
-    return payload
+    if not existing or existing.get("contract_hash") != contract.get("contract_hash"):
+        raise JournalIdentityError("validated workflow is missing its immutable public plan")
+    issues = PublicPlanBuilder(journal, contract).validate_current()
+    if issues:
+        raise JournalIdentityError("PUBLIC_PLAN_INVALID: " + "; ".join(issues))
+    return existing
 
 
 def _load_task_plan(journal: ProjectJournal) -> dict[str, Any]:

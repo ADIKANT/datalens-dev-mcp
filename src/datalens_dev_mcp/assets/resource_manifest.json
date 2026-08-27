@@ -1,5 +1,5 @@
 {
-  "resource_count": 304,
+  "resource_count": 309,
   "resources": [
     {
       "bytes": 15842,
@@ -327,6 +327,21 @@
       "sha256": "858783665222270b553abdf50c00f01a0cbd134ac0c788cea238355f4859a6dd"
     },
     {
+      "bytes": 961,
+      "path": "schemas/dataset-context-binding.schema.json",
+      "sha256": "a9bf280532fec68c1a2c38cdf596c32021056b0bb17b06889e940601b751c3a2"
+    },
+    {
+      "bytes": 1838,
+      "path": "schemas/dataset-context-profile.schema.json",
+      "sha256": "8d4e465e47ed5625c919d1a0f8b186ea42a28ce95d2187cd911612aa38fbdce2"
+    },
+    {
+      "bytes": 844,
+      "path": "schemas/dataset-data-query.schema.json",
+      "sha256": "976564df0bd70032d51f7913f0d442bcda2e2478aefcb231fc4ac1a6ac5009fc"
+    },
+    {
       "bytes": 1035,
       "path": "schemas/dataset-preview-request.schema.json",
       "sha256": "a516cd330a378da54653b5b287e66c1536ec196fa329e97c81ebad863e2403cc"
@@ -457,6 +472,11 @@
       "sha256": "5c2ec53ed4752701abdb28fcd034fddae2c330540a2e7f8a3d02d7d2eee96927"
     },
     {
+      "bytes": 1365,
+      "path": "schemas/plan-binding.schema.json",
+      "sha256": "456f36a315234fd8b4b23228967293aa76069008fcf277a8a5c306be66091831"
+    },
+    {
       "bytes": 1098,
       "path": "schemas/portfolio-style-profile.schema.json",
       "sha256": "2a6bc772fb2aa6c128ba67c29f3ff4f2d84d3d17b870fdd86ae46aa637f8152d"
@@ -485,6 +505,11 @@
       "bytes": 647,
       "path": "schemas/protected-region.schema.json",
       "sha256": "ce6463cbd9d90d4ba9e06fde66c89352f8db0f829963d76223bf544636dc540e"
+    },
+    {
+      "bytes": 2338,
+      "path": "schemas/public-task-plan.schema.json",
+      "sha256": "3e3ecb5be86601866928eef578d895a2a25f2d58839bc5dcfd5dd94fcdcb8b1b"
     },
     {
       "bytes": 2030,

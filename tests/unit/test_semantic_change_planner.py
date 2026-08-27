@@ -1,0 +1,91 @@
+from __future__ import annotations
+
+from datalens_dev_mcp.pipeline.semantic_change_planner import SemanticChangePlanner
+
+
+def _chart_payload(value: str = "Old label") -> dict:
+    return {
+        "result": {
+            "chart": {
+                "entry": {"entryId": "chart_demo", "revId": "r3"},
+                "data": {
+                    "meta": "{}",
+                    "sources": "module.exports={main:{data:[]}};",
+                    "prepare": (
+                        "/* datalens-protected:runtime:start */function ratio(a,b){return b?a/b:null;}"
+                        "/* datalens-protected:runtime:end */\n"
+                        "const title='/* datalens-slot:series_label:text:start */"
+                        f"{value}"
+                        "/* datalens-slot:series_label:end */';"
+                    ),
+                },
+            }
+        }
+    }
+
+
+def _dataset_payload() -> dict:
+    return {"result": {"dataset": {"datasetId": "dataset_demo", "revId": "r2", "fields": []}}}
+
+
+def _graph() -> dict:
+    return {
+        "nodes": [
+            {"object_type": "editor_chart", "object_id": "chart_demo", "saved_revision": "r3"},
+            {"object_type": "dataset", "object_id": "dataset_demo", "saved_revision": "r2"},
+        ],
+        "edges": [{"source": "chart_demo", "target": "dataset_demo", "relation": "uses_dataset"}],
+    }
+
+
+def _contract() -> dict:
+    return {
+        "task_id": "task_demo",
+        "scope": {
+            "allowed_objects": ["chart_demo"],
+            "allowed_tabs": ["prepare.js"],
+            "allowed_semantic_slots": ["series_label"],
+        },
+        "acceptance": [],
+    }
+
+
+def test_semantic_planner_changes_only_allowed_slot_and_binds_style_hash() -> None:
+    result = SemanticChangePlanner().plan(
+        _contract(),
+        target_graph=_graph(),
+        baselines={"chart-chart_demo-saved": _chart_payload(), "dataset-dataset_demo-saved": _dataset_payload()},
+        changes=[{"target_id": "chart_demo", "slot_id": "series_label", "value": "Revenue"}],
+        binding_hashes={"style_binding_hash": "a" * 64},
+    )
+    assert result["ok"] is True
+    assert result["semantic_patch_plan"]["bindings"]["style_binding_hash"] == "a" * 64
+    payload = result["materialized_payloads"]["chart_demo"]
+    assert "Revenue" in payload["data"]["prepare"]
+    assert "function ratio" in payload["data"]["prepare"]
+    assert result["preflight"]["all_targets_preflighted"] is True
+
+
+def test_semantic_planner_blocks_noop_and_unallowed_tab() -> None:
+    noop = SemanticChangePlanner().plan(
+        _contract(),
+        target_graph=_graph(),
+        baselines={"chart-chart_demo-saved": _chart_payload(), "dataset-dataset_demo-saved": _dataset_payload()},
+        changes=[{"target_id": "chart_demo", "slot_id": "series_label", "value": "Old label"}],
+    )
+    outside = SemanticChangePlanner().plan(
+        _contract(),
+        target_graph=_graph(),
+        baselines={"chart-chart_demo-saved": _chart_payload(), "dataset-dataset_demo-saved": _dataset_payload()},
+        changes=[
+            {
+                "target_id": "chart_demo",
+                "tab": "sources.js",
+                "anchor": {"kind": "json_pointer", "pointer": "/x"},
+                "value": 1,
+            }
+        ],
+    )
+    assert noop["status"] == "NO_CHANGE_REQUIRED"
+    assert outside["ok"] is False
+    assert "outside allowed scope" in outside["issues"][0]

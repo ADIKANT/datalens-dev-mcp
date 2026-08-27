@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/dataset-context-profile.schema.json",
+  "title": "Bounded sample context for one dataset",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "dataset_id", "workbook_id", "dataset_revision", "query_set_hash", "schema_hash", "observed_at", "dataset_data_semantics", "proof_level", "fallback_kind", "fields", "sample_scope", "temporal", "numeric", "categorical", "selector_candidates", "quality_findings", "admissible_claims", "forbidden_claims", "raw_rows_inline", "profile_hash"],
+  "properties": {
+    "schema_id": {"const": "dataset_context_profile"},
+    "dataset_id": {"type": "string", "minLength": 1},
+    "workbook_id": {"type": "string"},
+    "dataset_revision": {"type": "string"},
+    "query_set_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "schema_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "observed_at": {"type": "string", "minLength": 1},
+    "dataset_data_semantics": {"enum": ["unknown_experimental", "current_default", "published_only", "saved_current"]},
+    "proof_level": {"type": "string"},
+    "fallback_kind": {"type": "string"},
+    "fields": {"type": "array", "items": {"type": "object"}},
+    "sample_scope": {"type": "object"},
+    "temporal": {"type": "object"},
+    "numeric": {"type": "object"},
+    "categorical": {"type": "object"},
+    "selector_candidates": {"type": "array", "items": {"type": "string"}},
+    "quality_findings": {"type": "array", "items": {"type": "object"}},
+    "admissible_claims": {"type": "array", "items": {"type": "string"}},
+    "forbidden_claims": {"type": "array", "items": {"type": "string"}},
+    "raw_rows_inline": {"const": false},
+    "profile_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

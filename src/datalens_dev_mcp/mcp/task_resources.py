@@ -8,7 +8,6 @@ from datalens_dev_mcp.mcp.task_projection import compact_task_status
 from datalens_dev_mcp.pipeline.artifacts import read_json
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
 
-
 TASK_URI_PREFIX = "datalens://tasks/"
 DEFAULT_EVIDENCE_LIMIT = 4_000
 MAX_EVIDENCE_LIMIT = 20_000
@@ -58,6 +57,7 @@ def read_task_resource(uri: str, *, project_root: str | Path = ".") -> dict[str,
         "target-graph": journal.target_graph_path,
         "reference-binding": journal.reference_binding_path,
         "style-binding": journal.style_binding_path,
+        "data/context-profile.json": journal.root / "data" / "context-profile.json",
     }
     if suffix in fixed:
         path = fixed[suffix]

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/plan-binding.schema.json",
+  "title": "Immutable public plan identity binding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "contract_hash", "execution_authorization_hash", "build_identity_hash", "target_binding_hash", "reference_binding_hash", "style_binding_hash", "dataset_context_binding_hash", "semantic_patch_plan_hash", "safe_apply_plan_hash", "binding_hash"],
+  "properties": {
+    "schema_id": {"const": "datalens_public_plan_binding"},
+    "contract_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "execution_authorization_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "build_identity_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "target_binding_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "reference_binding_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "style_binding_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "dataset_context_binding_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "semantic_patch_plan_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "safe_apply_plan_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "binding_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}
