@@ -325,6 +325,7 @@ API-readback подтверждает структуру и состояние �
 | Подключение Codex | [`docs/codex_setup.md`](docs/codex_setup.md) |
 | 8 автономных инструментов и совместимость | [`docs/tools.md`](docs/tools.md) |
 | Готовые сценарии | [`docs/usage-flow.md`](docs/usage-flow.md) |
+| Installed public canary | [`docs/public-autonomy-canary.md`](docs/public-autonomy-canary.md) |
 | Wizard, Editor и QL | [`docs/route-policy.md`](docs/route-policy.md) |
 | Safe Apply и readback | [`docs/safe-apply.md`](docs/safe-apply.md) |
 | Архитектура и API-покрытие | [`docs/architecture.md`](docs/architecture.md), [`docs/datalens/api_contract_coverage.md`](docs/datalens/api_contract_coverage.md) |
@@ -348,6 +349,10 @@ python3 scripts/check_docs_consistency.py
 python3 scripts/run_quick_checks.py
 python3 scripts/run_offline_acceptance.py
 ```
+
+Финальное доказательство установленного публичного workflow выполняется только
+на frozen release candidate и отдельном target по контракту
+[`docs/public-autonomy-canary.md`](docs/public-autonomy-canary.md).
 
 Offline acceptance не использует реальные учётные данные DataLens и не выполняет live-запись.
 

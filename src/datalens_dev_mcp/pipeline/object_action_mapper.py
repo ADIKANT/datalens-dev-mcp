@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from datalens_dev_mcp.api.request_compiler import project_method_request
+from datalens_dev_mcp.pipeline.baseline_preservation import build_baseline_diff_contract
 
 ACTION_ROUTES = {
     "dashboard": ("getDashboard", "updateDashboard", "dashboardId", "update_dashboard"),
@@ -54,6 +55,7 @@ def map_materialized_action(
     workbook_id: str,
     saved_revision: str,
     materialized_payload: dict[str, Any],
+    baseline_payload: dict[str, Any] | None = None,
     semantic_patch_plan: dict[str, Any],
 ) -> dict[str, Any]:
     route = ACTION_ROUTES.get(str(object_type or ""))
@@ -71,7 +73,7 @@ def map_materialized_action(
     )
     if not projected.get("ok"):
         raise ValueError("materialized payload does not match write API: " + "; ".join(projected.get("issues") or []))
-    return {
+    action = {
         "action": action_name,
         "action_type": "update",
         "object_id": object_id,
@@ -91,3 +93,17 @@ def map_materialized_action(
         "semantic_expected_payloads": {object_id: materialized_payload},
         "changed": True,
     }
+    if object_type == "dashboard":
+        if not isinstance(baseline_payload, dict) or not baseline_payload:
+            raise ValueError("dashboard semantic action requires a fresh saved baseline")
+        action["current_dashboard"] = baseline_payload
+        action["baseline_dashboard"] = baseline_payload
+        action["baseline_diff_contract"] = build_baseline_diff_contract(
+            dashboard_id=object_id,
+            workbook_id=workbook_id,
+            baseline_source={"kind": "live_saved_readback", "path": f"datalens://dashboard/{object_id}?branch=saved"},
+            baseline_dashboard=baseline_payload,
+            proposed_dashboard=projected["payload"],
+            changed_objects=[],
+        )
+    return action

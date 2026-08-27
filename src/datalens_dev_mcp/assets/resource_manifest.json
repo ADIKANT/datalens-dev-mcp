@@ -1,5 +1,5 @@
 {
-  "resource_count": 319,
+  "resource_count": 321,
   "resources": [
     {
       "bytes": 15842,
@@ -279,7 +279,7 @@
     {
       "bytes": 12873,
       "path": "schemas/datalens-knowledge/capability-matrix.json",
-      "sha256": "68cb64d209acd0c8c96a00f3ed93c74a69a388fabf1130449068c81b75099704"
+      "sha256": "7e3c630791ce38e32050ff4615749fc1827558f8ce1b5c42c8be6bc659d7e7c5"
     },
     {
       "bytes": 3130533,
@@ -314,7 +314,7 @@
     {
       "bytes": 6830,
       "path": "schemas/datalens-knowledge/route-capability-matrix.json",
-      "sha256": "8e2a4de38903fa0a47c3ea1aa4911f7008665c1c7c6c0c8d04d4824a8b38e8a1"
+      "sha256": "f4fb503abffabcc866d03908bd0bfb99e4b23a7de1177ca3a05ff8a2262f1d42"
     },
     {
       "bytes": 318084,
@@ -517,6 +517,16 @@
       "sha256": "ce6463cbd9d90d4ba9e06fde66c89352f8db0f829963d76223bf544636dc540e"
     },
     {
+      "bytes": 2817,
+      "path": "schemas/public-autonomy-canary-receipt.schema.json",
+      "sha256": "916a02c49c9a3802134708dce528e668df3402a3ea80b6c4fa4e71502bb5f23b"
+    },
+    {
+      "bytes": 1403,
+      "path": "schemas/public-create-manifest.schema.json",
+      "sha256": "3db7e956f42ede94621c69775ae7568b649dbaf428bcaee86ab1b0f409ce85f9"
+    },
+    {
       "bytes": 956,
       "path": "schemas/public-e2e-receipt.schema.json",
       "sha256": "8415205f39d5aa03b44d3e2e95640716f6c43e433b53e4d7b675a385e5a233c9"
@@ -532,9 +542,9 @@
       "sha256": "45a78e71c18f6c61d9e719748b58e16ab5fa4385b78156c464a1500a737f728c"
     },
     {
-      "bytes": 1931,
+      "bytes": 1975,
       "path": "schemas/published-readback-receipt.schema.json",
-      "sha256": "61dac6c43792fec6a60ad45092bbbb36b8577ee3950154afdf7b1a11913e7b39"
+      "sha256": "620e301d05b6b1c9fa2d511302d15d52471b83f2a33f5fb4ccb607d4494cf337"
     },
     {
       "bytes": 2030,
@@ -587,9 +597,9 @@
       "sha256": "adf12055e72ec4b7a4d622afb8639f6de08862e325a5fa3880d5890368e9b71f"
     },
     {
-      "bytes": 2113,
+      "bytes": 2157,
       "path": "schemas/saved-readback-receipt.schema.json",
-      "sha256": "eef59b7a085938fd2c5634c4320cc449951f10eb7a5e8620ed66a2c9b6f8d9c2"
+      "sha256": "f0bd053c95dd4bd59706102350b23bd7774e42af2868478d227a32a7c0f7bc81"
     },
     {
       "bytes": 1839,

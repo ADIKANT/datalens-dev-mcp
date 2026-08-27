@@ -64,6 +64,56 @@ class IncidentLogHardeningTests(unittest.TestCase):
         self.assertIn("$.data.prepare", comparison["diff_paths"])
         self.assertLessEqual(len(comparison["diff_paths"]), 20)
 
+    def test_create_dataset_readback_compares_dataset_content_not_envelopes(self):
+        from datalens_dev_mcp.pipeline.safe_apply import (
+            _write_payload_readback_comparison,
+        )
+
+        comparison = _write_payload_readback_comparison(
+            method="createDataset",
+            write_payload={
+                "workbook_id": "workbook_1",
+                "name": "Synthetic dataset",
+                "preview": False,
+                "dataset": {
+                    "sources": [],
+                    "result_schema": [
+                        {"calc_mode": "formula", "title": "Synthetic field", "formula": "1"}
+                    ],
+                    "result_schema_aux": {
+                        "inter_dependencies": {
+                            "deps": [
+                                {"dep_field_id": "field_b", "ref_field_ids": ["field_y", "field_x"]},
+                                {"dep_field_id": "field_a", "ref_field_ids": ["field_z"]},
+                            ]
+                        }
+                    },
+                },
+            },
+            readback={
+                "datasetId": "dataset_1",
+                "options": {"preview": {"enabled": True}},
+                "dataset": {
+                    "revision_id": "revision_1",
+                    "sources": [],
+                    "result_schema": [
+                        {"calc_mode": "formula", "title": "Synthetic field", "formula": "1"}
+                    ],
+                    "result_schema_aux": {
+                        "inter_dependencies": {
+                            "deps": [
+                                {"dep_field_id": "field_a", "ref_field_ids": ["field_z"]},
+                                {"dep_field_id": "field_b", "ref_field_ids": ["field_x", "field_y"]},
+                            ]
+                        }
+                    },
+                },
+            },
+        )
+
+        self.assertTrue(comparison["equivalent"], comparison)
+        self.assertEqual(comparison["diff_paths"], [])
+
     def test_schema_projection_removes_readback_only_dashboard_fields(self):
         from datalens_dev_mcp.api.request_compiler import project_method_request
 
@@ -87,6 +137,7 @@ class IncidentLogHardeningTests(unittest.TestCase):
                         "tabs": [],
                     },
                     "meta": {},
+                    "annotation": None,
                     "version": 7,
                     "scope": "dashboard",
                     "key": "folder/dashboard",
@@ -107,8 +158,76 @@ class IncidentLogHardeningTests(unittest.TestCase):
             {"entryId", "revId", "data", "meta"},
         )
         self.assertNotIn("tenantId", result["payload"])
+        self.assertNotIn("annotation", result["payload"]["entry"])
         self.assertIn("/entry/version", result["dropped_paths"])
         self.assertRegex(result["final_request_sha256"], r"^[0-9a-f]{64}$")
+
+    def test_schema_projection_preserves_required_dashboard_tab_title(self):
+        from datalens_dev_mcp.api.request_compiler import project_method_request
+
+        result = project_method_request(
+            "updateDashboard",
+            {
+                "entry": {
+                    "entryId": "dashboard_1",
+                    "revId": "revision_2",
+                    "data": {
+                        "tabs": [
+                            {
+                                "id": "tab_1",
+                                "title": "Synthetic tab",
+                                "items": [],
+                                "layout": [],
+                                "connections": [],
+                                "aliases": {},
+                                "unsupportedReadbackField": "drop me",
+                            }
+                        ]
+                    },
+                    "meta": {},
+                }
+            },
+        )
+
+        self.assertTrue(result["ok"], result)
+        tab = result["payload"]["entry"]["data"]["tabs"][0]
+        self.assertEqual(tab["title"], "Synthetic tab")
+        self.assertNotIn("unsupportedReadbackField", tab)
+        self.assertNotIn("/entry/data/tabs/0/title", result["dropped_paths"])
+        self.assertIn("/entry/data/tabs/0/unsupportedReadbackField", result["dropped_paths"])
+
+    def test_schema_projection_preserves_dataset_field_discriminator(self):
+        from datalens_dev_mcp.api.request_compiler import project_method_request
+
+        result = project_method_request(
+            "createDataset",
+            {
+                "workbook_id": "workbook_1",
+                "name": "Synthetic dataset",
+                "dataset": {
+                    "sources": [],
+                    "result_schema": [
+                        {
+                            "calc_mode": "formula",
+                            "title": "Synthetic field",
+                            "formula": "1",
+                            "guid": "synthetic_field",
+                            "virtual": False,
+                        }
+                    ],
+                },
+            },
+            object_type="dataset",
+            operation="create",
+            workbook_id="workbook_1",
+        )
+
+        self.assertTrue(result["ok"], result)
+        field = result["payload"]["dataset"]["result_schema"][0]
+        self.assertEqual(field["calc_mode"], "formula")
+        self.assertNotIn("virtual", field)
+        self.assertNotIn("/dataset/result_schema/0/calc_mode", result["dropped_paths"])
+        self.assertIn("/dataset/result_schema/0/virtual", result["dropped_paths"])
 
     def test_layout_list_replacement_does_not_keep_old_items(self):
         from datalens_dev_mcp.pipeline.safe_apply import (

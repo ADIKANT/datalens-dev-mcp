@@ -6,6 +6,90 @@ from unittest.mock import patch
 
 
 class WizardFieldBindingLiveReadbackTests(unittest.TestCase):
+    def test_nested_per_dataset_partial_fields_are_flattened(self):
+        from datalens_dev_mcp.pipeline.wizard_contracts import (
+            validate_wizard_field_binding_against_dataset_readback,
+            validate_wizard_visual_dataset_contract,
+        )
+
+        payload = {
+            "data": {
+                "datasetsIds": ["dataset_1"],
+                "datasetsPartialFields": [
+                    [
+                        {"guid": "category_guid", "title": "Category", "calc_mode": "direct"},
+                        {"guid": "value_guid", "title": "Value", "calc_mode": "formula"},
+                    ]
+                ],
+                "visualization": {
+                    "id": "column",
+                    "placeholders": [
+                        {"items": [{"guid": "category_guid"}]},
+                        {"items": [{"guid": "value_guid"}]},
+                    ],
+                },
+            }
+        }
+        readback = {
+            "datasetId": "dataset_1",
+            "dataset": {
+                "result_schema": [
+                    {"guid": "category_guid", "data_type": "string"},
+                    {"guid": "value_guid", "data_type": "integer"},
+                ]
+            },
+        }
+
+        contract = validate_wizard_visual_dataset_contract(payload)
+        live = validate_wizard_field_binding_against_dataset_readback(
+            payload,
+            [readback],
+            strict=True,
+            enforce_role_types=False,
+        )
+
+        self.assertTrue(contract.ok, contract.findings)
+        self.assertTrue(live["ok"], live["findings"])
+
+    def test_nested_partial_field_can_be_proven_chart_local_elsewhere_in_payload(self):
+        from datalens_dev_mcp.pipeline.wizard_contracts import (
+            validate_wizard_field_binding_against_dataset_readback,
+        )
+
+        payload = {
+            "data": {
+                "datasetsIds": ["dataset_1"],
+                "datasetsPartialFields": [
+                    [{"guid": "local_measure", "title": "Local measure", "calc_mode": "direct"}]
+                ],
+                "visualization": {
+                    "id": "column",
+                    "placeholders": [
+                        {
+                            "items": [
+                                {
+                                    "guid": "local_measure",
+                                    "calc_mode": "direct",
+                                    "local": True,
+                                    "quickFormula": True,
+                                }
+                            ]
+                        }
+                    ],
+                },
+            }
+        }
+        readback = {"datasetId": "dataset_1", "dataset": {"result_schema": []}}
+
+        result = validate_wizard_field_binding_against_dataset_readback(
+            payload,
+            [readback],
+            strict=True,
+            enforce_role_types=False,
+        )
+
+        self.assertTrue(result["ok"], result["findings"])
+
     def test_dataset_readback_must_match_chart_dataset_identity(self):
         from datalens_dev_mcp.pipeline.wizard_contracts import validate_wizard_field_binding_against_dataset_readback
 

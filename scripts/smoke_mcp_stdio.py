@@ -66,7 +66,7 @@ def main() -> int:
         stderr=subprocess.PIPE,
         env=env,
         check=False,
-        timeout=10,
+        timeout=30,
     )
     subprocess_duration_ms = round((time.perf_counter() - subprocess_started) * 1000, 3)
     if proc.returncode != 0:

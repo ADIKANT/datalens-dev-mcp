@@ -526,9 +526,30 @@ def _adapt_entry_envelope(method: str, value: dict[str, Any], *, mode: str) -> d
     payload = dict(value) if "entry" in value else {"entry": dict(value)}
     if isinstance(payload.get("entry"), dict):
         payload["entry"] = _strip_readback_only_entry_fields(payload["entry"])
+        if payload["entry"].get("annotation") is None:
+            payload["entry"].pop("annotation", None)
+        data = payload["entry"].get("data")
+        if isinstance(data, dict) and method in {"createEditorChart", "updateEditorChart"}:
+            # DataLens requires the Editor controls module even when the chart
+            # has no controls. This is a structural empty module, not invented
+            # chart or selector semantics.
+            data.setdefault("controls", "module.exports = {};\n")
+        if isinstance(data, dict) and method in {"createDashboard", "updateDashboard"}:
+            _add_dashboard_control_defaults(data)
     if method_schema_defines_mode(method) and "mode" not in payload:
         payload["mode"] = mode
     return payload
+
+
+def _add_dashboard_control_defaults(value: Any) -> None:
+    if isinstance(value, dict):
+        if str(value.get("type") or "").strip().lower() == "control":
+            value.setdefault("defaults", {})
+        for item in value.values():
+            _add_dashboard_control_defaults(item)
+    elif isinstance(value, list):
+        for item in value:
+            _add_dashboard_control_defaults(item)
 
 
 def _adapt_wizard_envelope(method: str, value: dict[str, Any], *, mode: str, chart_id: str) -> dict[str, Any]:
@@ -772,6 +793,9 @@ def _project_writable_value(
     if isinstance(value, dict):
         properties = schema.get("properties") if isinstance(schema.get("properties"), dict) else {}
         additional = schema.get("additionalProperties", True)
+        required = {str(item) for item in schema.get("required") or []}
+        discriminator = schema.get("discriminator") if isinstance(schema.get("discriminator"), dict) else {}
+        discriminator_property = str(discriminator.get("propertyName") or "")
         projected: dict[str, Any] = {}
         for key, item in value.items():
             child_path = f"{path}/{_json_pointer_token(str(key))}"
@@ -788,6 +812,17 @@ def _project_writable_value(
                     projected[key] = child
                 continue
             if additional is False:
+                # Some upstream OpenAPI components declare a field as required
+                # without repeating it under ``properties``.  Dropping such a
+                # field creates a locally valid-looking request that the live
+                # service rejects.  Required input values are always writable
+                # projection inputs, even when the generated schema is sparse.
+                # Discriminator properties can be omitted from the selected
+                # component's properties too; the provider still needs the
+                # token to deserialize the union member.
+                if key in required or key == discriminator_property:
+                    projected[key] = item
+                    continue
                 dropped_paths.append(child_path)
                 continue
             if isinstance(additional, dict):

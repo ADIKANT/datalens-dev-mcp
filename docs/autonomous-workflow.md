@@ -23,4 +23,13 @@ Two different regression assets are intentionally retained:
 - `tests/regression/policy_matrix/` is a static synthetic matrix for schemas, invariants, route policy, privacy, and failure vocabulary.
 - `tests/regression/behavior_traces/` contains 40 sanitized behavior families and 80 executable variants. Every variant enters through public `tools/call` on `JsonRpcServer` under `autonomous-v2`; only the external DataLens transport, browser, clock/wait, filesystem, and build-identity boundaries may be mocked.
 
+## Installed public proof
+
+The final controlled canary starts the installed package through stdio and uses
+only the eight public tools. It proves save, process restart, resume, publish,
+saved/published readback, typed dataset evidence, forbidden-browser zero calls,
+and stale-plan zero writes against one frozen source tree. The receipt contract
+and operator command are documented in
+[`public-autonomy-canary.md`](public-autonomy-canary.md).
+
 The external session archive is used only by the offline builder. Packaged traces contain stable placeholders and aggregate provenance hashes, never raw transcripts, private paths, object IDs, URLs, tokens, or business values. Run `scripts/validate_behavior_trace_corpus.py` for the privacy/schema gate and `scripts/run_public_autonomy_acceptance.py` for the public-only E2E receipt.

@@ -42,6 +42,11 @@ def main() -> int:
             ],
             "timeout_sec": 180,
         },
+        {
+            "name": "runtime-incidents",
+            "command": py("scripts/run_runtime_incident_acceptance.py"),
+            "timeout_sec": 300,
+        },
     ]
     report = run_acceptance("affected", shards, surface="autonomous-v2")
     print(json.dumps(compact_report(report), indent=2, sort_keys=True))

@@ -6,7 +6,6 @@ import json
 
 from acceptance_shards import ROOT, compact_report, py, run_acceptance
 
-
 EDITOR_MARKERS = ("editor", "chart", "wizard", "dashboard", "browser", "visual", "style", "renderer", "layout")
 PIPELINE_MARKERS = (
     "pipeline", "workflow", "task", "journal", "safe_apply", "semantic", "data_", "proof", "evidence",
@@ -53,8 +52,8 @@ def main() -> int:
         {
             "name": "regression-public-behaviors",
             "commands": [
-                py("scripts/validate_behavior_trace_corpus.py"),
-                py("-m", "pytest", "-q", "tests/regression"),
+                py("scripts/run_public_autonomy_acceptance.py"),
+                py("scripts/run_runtime_incident_acceptance.py"),
             ],
             "timeout_sec": 600,
         },

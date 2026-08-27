@@ -6,6 +6,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from datalens_dev_mcp.api.client import DataLensApiClient
+from datalens_dev_mcp.api.errors import DataLensApiError
 from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.pipeline.dataset_preview import extract_dataset_fields
 from datalens_dev_mcp.pipeline.target_binding import create_live_target_binding
@@ -19,6 +20,7 @@ DATASET_ID_KEYS = frozenset({"datasetId", "dataset_id"})
 CONNECTION_ID_KEYS = frozenset({"connectionId", "connection_id"})
 FIELD_GUID_KEYS = frozenset({"guid", "fieldGuid", "field_guid"})
 REVISION_KEYS = ("revId", "rev_id", "savedId", "saved_id", "revision", "revisionId")
+EMBEDDED_ID_TOKEN_RE = re.compile(r"[A-Za-z0-9_]{8,64}")
 
 
 class TargetDiscoveryError(RuntimeError):
@@ -46,6 +48,11 @@ class TargetDiscoveryService:
         )
         workbook_id = str(target.get("workbook_id") or "")
         requested_ids = [str(item) for item in target.get("object_ids") or [] if str(item)]
+        if str(contract.get("mode") or "") == "create" and workbook_id:
+            return self._discover_create_workbook(
+                workbook_id,
+                technology=str(contract.get("route") or ""),
+            )
         if not dashboard_id and workbook_id:
             selection = self._select_dashboard_from_workbook(workbook_id, request_text=request_text)
             if selection.get("status") != "success":
@@ -101,6 +108,50 @@ class TargetDiscoveryService:
                 }
                 for item in candidates[:10]
             ],
+        }
+
+    def _discover_create_workbook(self, workbook_id: str, *, technology: str) -> dict[str, Any]:
+        calls: list[dict[str, Any]] = []
+        inventory = self._read("getWorkbookEntries", {"workbookId": workbook_id}, calls)
+        entries = _entries(inventory)
+        total = int(inventory.get("total") or (inventory.get("result") or {}).get("total") or len(entries))
+        limitations = []
+        if total > len(entries):
+            limitations.append("workbook inventory was bounded to the returned page")
+        graph = build_target_graph(
+            root_ids=[workbook_id],
+            nodes=[_node("workbook", workbook_id, technology or "workbook", "", inventory)],
+            edges=[],
+            provider_calls=calls,
+            limitations=limitations,
+        )
+        inventory_hash = canonical_hash(sanitize_value(inventory))
+        binding = create_live_target_binding(
+            workbook_id=workbook_id,
+            dashboard_id="",
+            object_ids=[workbook_id],
+            object_types=["workbook"],
+            saved_revision="",
+            published_revision="",
+            payload_hash=inventory_hash,
+            layout_hash="",
+            tabs_hash="",
+            technology=technology or "workbook",
+            target_graph_hash=str(graph["graph_hash"]),
+        )
+        return {
+            "status": "success",
+            "observed_at": _utc_now(),
+            "target_binding": binding,
+            "target_graph": graph,
+            "baselines": {f"workbook-{workbook_id}-inventory": sanitize_value(inventory)},
+            "provider_calls": calls,
+            "technology": technology or "workbook",
+            "tab_count": 0,
+            "dataset_count": sum(_entry_type(item) == "dataset" for item in entries),
+            "connection_count": sum(_entry_type(item) == "connection" for item in entries),
+            "field_count": 0,
+            "inventory_count": len(entries),
         }
 
     def _discover_dashboard(
@@ -164,7 +215,13 @@ class TargetDiscoveryService:
                     )
                 limitations.append(f"no curated read route for chart type {object_type}")
                 continue
-            chart = self._read(method, {"chartId": chart_id, "branch": "saved"}, calls)
+            try:
+                chart = self._read(method, {"chartId": chart_id, "branch": "saved"}, calls)
+            except DataLensApiError as exc:
+                if exc.http_status == 404 and chart_id not in requested_ids:
+                    limitations.append("dashboard references an unavailable chart")
+                    continue
+                raise
             technologies.add(technology)
             revision = str(_first_deep(chart, REVISION_KEYS) or "")
             baselines[f"chart-{chart_id}-saved"] = sanitize_value(chart)
@@ -172,7 +229,9 @@ class TargetDiscoveryService:
             chart_node["field_guids"] = sorted(_collect_ids(chart, FIELD_GUID_KEYS))
             nodes.append(chart_node)
             edges.append({"source": dashboard_id, "target": chart_id, "relation": "contains"})
-            for dataset_id in _collect_ids(chart, DATASET_ID_KEYS):
+            chart_dataset_ids = _collect_ids(chart, DATASET_ID_KEYS)
+            chart_dataset_ids.update(_collect_inventory_references(chart, inventory_types, "dataset"))
+            for dataset_id in chart_dataset_ids:
                 dataset_ids.add(dataset_id)
                 edges.append({"source": chart_id, "target": dataset_id, "relation": "uses_dataset"})
 
@@ -296,6 +355,21 @@ def _entries(response: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _entry_type(entry: dict[str, Any]) -> str:
+    raw = " ".join(
+        str(entry.get(key) or "") for key in ("scope", "type", "entryType", "objectType", "kind")
+    ).strip().lower()
+    if "dashboard" in raw or raw == "dash":
+        return "dashboard"
+    if "dataset" in raw:
+        return "dataset"
+    if "connection" in raw or "connector" in raw:
+        return "connection"
+    if "wizard" in raw:
+        return "wizard_chart"
+    if "ql" in raw:
+        return "ql_chart"
+    if "editor" in raw or "advanced" in raw:
+        return "editor_chart"
     value = str(entry.get("scope") or entry.get("type") or "").strip().lower()
     aliases = {"dash": "dashboard", "widget": "chart", "editor_advanced": "editor_chart"}
     return aliases.get(value, value)
@@ -326,6 +400,31 @@ def _collect_ids(value: Any, keys: frozenset[str]) -> set[str]:
     elif isinstance(value, list):
         for item in value:
             found.update(_collect_ids(item, keys))
+    return found
+
+
+def _collect_inventory_references(
+    value: Any,
+    inventory_types: dict[str, str],
+    object_type: str,
+) -> set[str]:
+    """Resolve embedded IDs only when workbook inventory proves their object type."""
+    candidates = {object_id for object_id, kind in inventory_types.items() if kind == object_type}
+    if not candidates:
+        return set()
+    found: set[str] = set()
+
+    def visit(item: Any) -> None:
+        if isinstance(item, dict):
+            for nested in item.values():
+                visit(nested)
+        elif isinstance(item, list):
+            for nested in item:
+                visit(nested)
+        elif isinstance(item, str):
+            found.update(set(EMBEDDED_ID_TOKEN_RE.findall(item)) & candidates)
+
+    visit(value)
     return found
 
 
@@ -371,10 +470,13 @@ def _field_projection(value: dict[str, Any]) -> dict[str, Any]:
         "guid": str(value.get("guid") or ""),
         "name": str(value.get("name") or value.get("title") or ""),
         "type": str(value.get("type") or "unsupported"),
+        "semantic_role": str(value.get("semantic_role") or ""),
+        "aggregation": str(value.get("aggregation") or ""),
         "formula": str(value.get("formula") or ""),
         "source": str(value.get("source") or value.get("sourceColumn") or ""),
         "hidden": bool(value.get("hidden") or value.get("isHidden")),
         "unique": bool(value.get("unique") or value.get("isUnique")),
+        "sensitive": bool(value.get("sensitive") or value.get("pii")),
     }
 
 

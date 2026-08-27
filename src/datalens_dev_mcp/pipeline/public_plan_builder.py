@@ -8,6 +8,10 @@ from datalens_dev_mcp.pipeline.dataset_context_profile import (
     derive_dataset_plan_context,
     validate_dataset_context_profile,
 )
+from datalens_dev_mcp.pipeline.create_manifest import (
+    create_safe_apply_template,
+    validate_create_bundle,
+)
 from datalens_dev_mcp.pipeline.object_action_mapper import map_materialized_action, semantic_fresh_read_spec
 from datalens_dev_mcp.pipeline.plan_binding import (
     build_dataset_context_binding,
@@ -93,6 +97,7 @@ class PublicPlanBuilder:
                 workbook_id=str(target.get("workbook_id") or ""),
                 saved_revision=str(planned_target.get("saved_revision") or ""),
                 materialized_payload=materialized[object_id],
+                baseline_payload=dict((semantic_fresh_targets.get(object_id) or {}).get("payload") or {}),
                 semantic_patch_plan=patch_plan,
             )
             action["semantic_fresh_reads"] = semantic_fresh_reads
@@ -184,6 +189,75 @@ class PublicPlanBuilder:
         write_json(plan_root / "plan.json", payload)
         return payload
 
+    def build_create(self, *, create_bundle: dict[str, Any]) -> dict[str, Any]:
+        issues = validate_create_bundle(create_bundle)
+        if issues:
+            raise ValueError("create bundle is invalid: " + "; ".join(issues))
+        plan_root = self.journal.root / "plans"
+        baseline_uri = self.journal.discovery_path.relative_to(self.journal.root).as_posix()
+        safe_apply = create_safe_apply_template(
+            create_bundle,
+            project_root=str(self.journal.project_root),
+            task_contract_hash=str(self.contract.get("contract_hash") or ""),
+            baseline_artifact=baseline_uri,
+        )
+        write_json(plan_root / "safe-apply-plan.json", safe_apply)
+        execution_auth = read_json(self.journal.execution_authorization_path, {}) or {}
+        build_identity = read_json(self.journal.build_identity_path, {}) or {}
+        target_binding = read_json(self.journal.target_binding_path, {}) or {}
+        reference_binding = read_json(self.journal.reference_binding_path, {}) or {}
+        style_binding = read_json(self.journal.style_binding_path, {}) or {}
+        safe_apply_hash = portable_artifact_hash(safe_apply, project_root=self.journal.project_root)
+        binding = build_plan_binding(
+            contract_hash=str(self.contract.get("contract_hash") or ""),
+            execution_authorization_hash=str(execution_auth.get("authorization_hash") or ""),
+            build_identity_hash=str(build_identity.get("identity_hash") or ""),
+            target_binding_hash=str(target_binding.get("binding_hash") or ""),
+            reference_binding_hash=str(reference_binding.get("binding_hash") or ""),
+            style_binding_hash=str(style_binding.get("binding_hash") or ""),
+            create_bundle_hash=str(create_bundle.get("bundle_hash") or ""),
+            safe_apply_plan_hash=safe_apply_hash,
+        )
+        write_json(plan_root / "plan-binding.json", binding)
+        artifacts = {
+            "create_bundle": (
+                "inputs/create-bundle.json",
+                portable_artifact_hash(create_bundle, project_root=self.journal.project_root),
+            ),
+            "safe_apply_plan": ("plans/safe-apply-plan.json", safe_apply_hash),
+            "plan_binding": (
+                "plans/plan-binding.json",
+                portable_artifact_hash(binding, project_root=self.journal.project_root),
+            ),
+        }
+        payload = sanitize_value(
+            {
+                "schema_id": "datalens_public_task_plan",
+                "plan_version": 1,
+                "plan_kind": "create_manifest",
+                "task_id": self.journal.task_id,
+                "contract_hash": self.contract.get("contract_hash"),
+                "route": str(self.contract.get("route") or ""),
+                "delivery": self.contract.get("delivery") or {},
+                "scope": self.contract.get("scope") or {},
+                "acceptance": self.contract.get("acceptance") or [],
+                "create_bundle_hash": create_bundle.get("bundle_hash"),
+                "create_manifest_hash": create_bundle.get("manifest_hash"),
+                "plan_binding_hash": binding.get("binding_hash"),
+                "style_binding_hash": style_binding.get("binding_hash"),
+                "safe_apply_action_count": len(safe_apply.get("actions") or []),
+                "artifacts": [
+                    {"kind": kind, "artifact_uri": uri, "sha256": digest}
+                    for kind, (uri, digest) in sorted(artifacts.items())
+                ],
+                "destructive_token_required": False,
+            }
+        )
+        payload["destructive_token_required"] = False
+        payload["plan_hash"] = public_plan_hash(payload)
+        write_json(plan_root / "plan.json", payload)
+        return payload
+
     def validate_current(self) -> tuple[str, ...]:
         plan = read_json(self.journal.root / "plans" / "plan.json", {}) or {}
         issues: list[str] = []
@@ -215,6 +289,8 @@ class PublicPlanBuilder:
                     actual = portable_artifact_hash(read_json(path, {}) or {}, project_root=self.journal.project_root)
             if actual != item.get("sha256"):
                 issues.append(f"plan artifact hash mismatch: {item.get('kind')}")
+        if plan.get("plan_kind") == "create_manifest":
+            return tuple([*issues, *self._validate_create_current(plan)])
         binding = read_json(self.journal.root / "plans" / "plan-binding.json", {}) or {}
         issues.extend(validate_binding(binding, schema_id="datalens_public_plan_binding"))
         context_binding = read_json(self.journal.root / "plans" / "dataset-context-binding.json", {}) or {}
@@ -288,6 +364,46 @@ class PublicPlanBuilder:
         for key, expected in current.items():
             if binding.get(key) != expected:
                 issues.append(f"plan binding is stale: {key}")
+        return tuple(issues)
+
+    def _validate_create_current(self, plan: dict[str, Any]) -> tuple[str, ...]:
+        issues: list[str] = []
+        bundle = read_json(self.journal.root / "inputs" / "create-bundle.json", {}) or {}
+        safe_apply = read_json(self.journal.root / "plans" / "safe-apply-plan.json", {}) or {}
+        binding = read_json(self.journal.root / "plans" / "plan-binding.json", {}) or {}
+        issues.extend(validate_create_bundle(bundle))
+        issues.extend(validate_binding(binding, schema_id="datalens_public_plan_binding"))
+        if plan.get("contract_hash") != self.contract.get("contract_hash"):
+            issues.append("public create plan contract hash is stale")
+        if plan.get("create_bundle_hash") != bundle.get("bundle_hash"):
+            issues.append("public create plan bundle hash is stale")
+        if plan.get("create_manifest_hash") != bundle.get("manifest_hash"):
+            issues.append("public create plan manifest hash is stale")
+        if plan.get("plan_binding_hash") != binding.get("binding_hash"):
+            issues.append("public create plan binding is stale")
+        if int(plan.get("safe_apply_action_count") or 0) != len(safe_apply.get("actions") or []):
+            issues.append("public create plan safe apply action count mismatch")
+        build_identity = read_json(self.journal.build_identity_path, {}) or {}
+        target_binding = read_json(self.journal.target_binding_path, {}) or {}
+        reference_binding = read_json(self.journal.reference_binding_path, {}) or {}
+        style_binding = read_json(self.journal.style_binding_path, {}) or {}
+        execution_auth = read_json(self.journal.execution_authorization_path, {}) or {}
+        expected = {
+            "contract_hash": str(self.contract.get("contract_hash") or ""),
+            "execution_authorization_hash": str(execution_auth.get("authorization_hash") or ""),
+            "build_identity_hash": str(build_identity.get("identity_hash") or ""),
+            "target_binding_hash": str(target_binding.get("binding_hash") or ""),
+            "reference_binding_hash": str(reference_binding.get("binding_hash") or ""),
+            "style_binding_hash": str(style_binding.get("binding_hash") or ""),
+            "create_bundle_hash": str(bundle.get("bundle_hash") or ""),
+            "safe_apply_plan_hash": portable_artifact_hash(
+                safe_apply,
+                project_root=self.journal.project_root,
+            ),
+        }
+        for key, value in expected.items():
+            if binding.get(key) != value:
+                issues.append(f"public create plan binding is stale: {key}")
         return tuple(issues)
 
 

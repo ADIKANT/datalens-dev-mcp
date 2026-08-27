@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from datalens_dev_mcp.pipeline.dataset_preview import compile_dataset_preview_request
+from datalens_dev_mcp.pipeline.dataset_fields import physical_dataset_field_type, semantic_dataset_field_role
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
 
 DATASET_DATA_SEMANTICS = frozenset({"unknown_experimental", "current_default", "published_only", "saved_current"})
@@ -53,7 +54,9 @@ def build_field_catalog(fields: list[dict[str, Any]]) -> list[dict[str, Any]]:
             {
                 "guid": guid,
                 "name": str(item.get("name") or item.get("title") or guid),
-                "type": str(item.get("type") or item.get("dataType") or "unsupported"),
+                "type": physical_dataset_field_type(item),
+                "semantic_role": semantic_dataset_field_role(item),
+                "aggregation": str(item.get("aggregation") or ""),
                 "formula": str(item.get("formula") or ""),
                 "source": str(item.get("source") or item.get("sourceColumn") or ""),
                 "hidden": bool(item.get("hidden") or item.get("isHidden")),

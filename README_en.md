@@ -349,6 +349,10 @@ python3 scripts/run_quick_checks.py
 python3 scripts/run_offline_acceptance.py
 ```
 
+Final installed-public-workflow proof runs only against a frozen release
+candidate and a dedicated target under the
+[`public autonomy canary`](docs/public-autonomy-canary.md) contract.
+
 Offline acceptance uses no real DataLens credentials and performs no live writes.
 
 ## License and sources

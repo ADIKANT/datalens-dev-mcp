@@ -11,6 +11,7 @@ GENERIC_RUNNERS = (
     ROOT / "scripts" / "run_autonomy_acceptance.py",
     ROOT / "scripts" / "run_affected_acceptance.py",
     ROOT / "scripts" / "run_full_acceptance.py",
+    ROOT / "scripts" / "run_runtime_incident_acceptance.py",
 )
 
 

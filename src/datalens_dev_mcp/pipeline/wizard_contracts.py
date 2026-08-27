@@ -75,7 +75,9 @@ def validate_wizard_field_binding_against_dataset_readback(
 
     partial_fields = _partial_fields(chart_payload)
     partial_ids = {field_id for field_id, _path, _field in partial_fields}
-    chart_local_ids = {field_id for field_id, _path, field in partial_fields if _is_chart_local_formula(field)}
+    chart_local_ids = {
+        field_id for field_id, _path, field in partial_fields if _is_chart_local_formula(field)
+    } | _chart_local_field_ids(chart_payload)
     for field_id, path, field in partial_fields:
         if field_id in chart_local_ids:
             continue
@@ -352,6 +354,12 @@ def _fields_from_partial_container(value: Any, path: str) -> list[tuple[str, str
                 field_id = _field_id(item)
                 if field_id:
                     rows.append((field_id, f"{path}[{index}]", item))
+                else:
+                    rows.extend(_fields_from_partial_container(item, f"{path}[{index}]"))
+            elif isinstance(item, list):
+                # Saved Wizard payloads may group partial fields by dataset,
+                # producing an array-of-arrays aligned with datasetsIds.
+                rows.extend(_fields_from_partial_container(item, f"{path}[{index}]"))
             else:
                 text = str(item).strip()
                 if text:
@@ -417,7 +425,27 @@ def _field_id(field: dict[str, Any]) -> str:
 
 def _is_chart_local_formula(field: dict[str, Any]) -> bool:
     scope = str(field.get("formula_scope") or field.get("scope") or "").strip().lower()
-    return bool(field.get("local_formula") or field.get("chart_local_formula") or scope in {"chart", "local", "chart_local"})
+    return bool(
+        field.get("local")
+        or field.get("quickFormula")
+        or field.get("local_formula")
+        or field.get("chart_local_formula")
+        or scope in {"chart", "local", "chart_local"}
+    )
+
+
+def _chart_local_field_ids(value: Any) -> set[str]:
+    ids: set[str] = set()
+    if isinstance(value, dict):
+        field_id = _field_id(value)
+        if field_id and _is_chart_local_formula(value):
+            ids.add(field_id)
+        for item in value.values():
+            ids.update(_chart_local_field_ids(item))
+    elif isinstance(value, list):
+        for item in value:
+            ids.update(_chart_local_field_ids(item))
+    return ids
 
 
 def _uses_select_star(value: Any) -> bool:

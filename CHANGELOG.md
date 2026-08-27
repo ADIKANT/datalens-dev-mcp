@@ -8,6 +8,11 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- An installed-wheel public stdio canary with exact eight-tool surface proof,
+  save/restart/resume/publish readbacks, typed dataset evidence, and a
+  stale-revision zero-write negative receipt.
+- A standard-library public stdio client and schema-validated canary receipt
+  bound to the frozen source tree and installed build identity.
 - A generated JavaScript Visualization Cookbook with copy-ready Editor tabs,
   source contracts, linked application cases, and runtime validation.
 - Native Wizard funnel routing and templates compiled from the current public

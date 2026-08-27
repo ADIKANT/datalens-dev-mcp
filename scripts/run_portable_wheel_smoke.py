@@ -13,7 +13,6 @@ import venv
 import zipfile
 from pathlib import Path, PurePosixPath
 
-
 _ISOLATION_ENV_KEYS = (
     "PYTHONHOME",
     "PYTHONPATH",
@@ -191,7 +190,7 @@ def main() -> int:
                     "module_path": str(loaded.get("module_path") or ""),
                     "prefix": str(loaded.get("prefix") or ""),
                 }
-        except Exception:
+        except (json.JSONDecodeError, TypeError, ValueError):
             import_details = {}
         import_inside_venv = bool(
             import_details.get("module_path")
@@ -208,6 +207,22 @@ def main() -> int:
             timeout=30,
             check=False,
         )
+    runtime_payload: dict[str, object] = {}
+    try:
+        loaded_runtime_payload = json.loads(run.stdout)
+        if isinstance(loaded_runtime_payload, dict):
+            runtime_payload = loaded_runtime_payload
+    except (TypeError, ValueError):
+        runtime_payload = {}
+    public_tool_count = 0
+    public_surface_exact = False
+    for check in runtime_payload.get("checks") or []:
+        if not isinstance(check, dict) or check.get("name") != "tools_list":
+            continue
+        metadata = check.get("metadata") if isinstance(check.get("metadata"), dict) else {}
+        public_tool_count = int(metadata.get("tool_count") or 0)
+        public_surface_exact = bool(check.get("ok") and public_tool_count == 8)
+        break
     payload = {
         "wheel": str(wheel),
         "wheel_sha256": wheel_sha256,
@@ -236,20 +251,19 @@ def main() -> int:
             "returncode": run.returncode,
             "stdout": run.stdout,
             "stderr_tail": run.stderr[-1000:],
+            "public_tool_count": public_tool_count,
+            "public_surface_exact": public_surface_exact,
         },
     }
     out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    ok = False
-    try:
-        ok = (
-            install.returncode == 0
-            and verify_import.returncode == 0
-            and import_inside_venv
-            and run.returncode == 0
-            and json.loads(run.stdout).get("ok") is True
-        )
-    except Exception:
-        ok = False
+    ok = (
+        install.returncode == 0
+        and verify_import.returncode == 0
+        and import_inside_venv
+        and run.returncode == 0
+        and runtime_payload.get("ok") is True
+        and public_surface_exact
+    )
     print(
         json.dumps(
             {
@@ -258,6 +272,8 @@ def main() -> int:
                 "import": verify_import.returncode,
                 "import_inside_temporary_venv": import_inside_venv,
                 "run": run.returncode,
+                "public_tool_count": public_tool_count,
+                "public_surface_exact": public_surface_exact,
                 "wheel_sha256": wheel_sha256,
                 "artifact": str(out),
             },

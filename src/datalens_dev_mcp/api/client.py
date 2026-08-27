@@ -296,7 +296,7 @@ class DataLensApiClient:
                         continue
                 if (
                     readonly
-                    and exc.code in {502, 503, 504}
+                    and exc.code in {500, 502, 503, 504}
                     and transient_attempts < self.config.read_transient_retries
                 ):
                     transient_attempts += 1

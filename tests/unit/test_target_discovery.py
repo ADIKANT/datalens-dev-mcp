@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
+from datalens_dev_mcp.api.errors import DataLensApiError
 from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService, parse_target_url
 from datalens_dev_mcp.pipeline.task_contract import TargetContract, WorkspaceContract, create_task_contract
 
@@ -14,11 +15,17 @@ class DiscoveryClient:
         ambiguous: bool = False,
         missing_dashboard: bool = False,
         chart_scope: str = "editor_chart",
+        chart_type: str = "",
+        unavailable_chart: bool = False,
+        embedded_dataset_only: bool = False,
     ) -> None:
         self.calls: list[tuple[str, dict]] = []
         self.ambiguous = ambiguous
         self.missing_dashboard = missing_dashboard
         self.chart_scope = chart_scope
+        self.chart_type = chart_type
+        self.unavailable_chart = unavailable_chart
+        self.embedded_dataset_only = embedded_dataset_only
 
     def rpc_readonly(self, method: str, payload: dict) -> dict:
         self.calls.append((method, payload))
@@ -43,20 +50,31 @@ class DiscoveryClient:
                 "total": len(dashboards) + 3,
                 "entries": [
                     *dashboards,
-                    {"entryId": "chart_demo", "scope": self.chart_scope, "displayKey": "Trend"},
+                    {
+                        "entryId": "chart_demo",
+                        "scope": self.chart_scope,
+                        "type": self.chart_type,
+                        "displayKey": "Trend",
+                    },
                     {"entryId": "dataset_demo", "scope": "dataset", "displayKey": "Dataset"},
                     {"entryId": "connection_demo", "scope": "connection", "displayKey": "Connection"},
                 ],
             }
         if method in {"getEditorChart", "getWizardChart"}:
+            if self.unavailable_chart:
+                raise DataLensApiError("chart was not found", http_status=404)
             return {
                 "result": {
                     "chart": {
                         "entry": {"entryId": "chart_demo", "revId": "chart-r3"},
                         "data": {
-                            "datasetId": "dataset_demo",
+                            **({} if self.embedded_dataset_only else {"datasetId": "dataset_demo"}),
                             "visualization": {"measures": [{"guid": "guid_value"}]},
-                            "meta": "{}",
+                            "meta": (
+                                '{"links":{"main_dataset":"dataset_demo"}}'
+                                if self.embedded_dataset_only
+                                else "{}"
+                            ),
                             "sources": "module.exports = {main: {data: []}};",
                             "prepare": "module.exports = function(data) { return data; };",
                         },
@@ -69,9 +87,24 @@ class DiscoveryClient:
                     "dataset": {
                         "datasetId": "dataset_demo",
                         "revId": "dataset-r2",
+                        "result_schema": [
+                            {"guid": "guid_date", "name": "event_date"},
+                            {"guid": "guid_value", "name": "value"},
+                        ],
                         "fields": [
-                            {"guid": "guid_date", "name": "event_date", "type": "date"},
-                            {"guid": "guid_value", "name": "value", "type": "float"},
+                            {
+                                "guid": "guid_date",
+                                "name": "event_date",
+                                "type": "DIMENSION",
+                                "data_type": "date",
+                            },
+                            {
+                                "guid": "guid_value",
+                                "name": "value",
+                                "type": "MEASURE",
+                                "data_type": "float",
+                                "aggregation": "sum",
+                            },
                         ],
                         "sources": [{"connectionId": "connection_demo"}],
                     }
@@ -108,10 +141,24 @@ def test_dashboard_discovery_builds_bounded_graph_and_dataset_field_catalog() ->
     dataset = next(item for item in result["target_graph"]["nodes"] if item["object_type"] == "dataset")
     chart = next(item for item in result["target_graph"]["nodes"] if item["object_type"] == "editor_chart")
     assert [item["guid"] for item in dataset["field_catalog"]] == ["guid_date", "guid_value"]
+    assert [item["type"] for item in dataset["field_catalog"]] == ["date", "float"]
+    assert [item["semantic_role"] for item in dataset["field_catalog"]] == ["dimension", "measure"]
     assert chart["field_guids"] == ["guid_value"]
     assert [method for method, _ in client.calls] == [
         "getDashboard", "getWorkbookEntries", "getEditorChart", "getDataset", "getConnection"
     ]
+
+
+def test_editor_string_dependency_is_resolved_only_through_workbook_inventory() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        client = DiscoveryClient(embedded_dataset_only=True)
+        result = TargetDiscoveryService(client).discover(_contract(Path(tmp)))
+    assert result["status"] == "success"
+    assert result["dataset_count"] == 1
+    assert any(
+        edge["relation"] == "uses_dataset" and edge["target"] == "dataset_demo"
+        for edge in result["target_graph"]["edges"]
+    )
 
 
 def test_workbook_ambiguity_is_reported_only_after_inventory_read() -> None:
@@ -167,9 +214,26 @@ def test_wizard_target_preserves_wizard_technology() -> None:
     assert any(method == "getWizardChart" for method, _ in client.calls)
 
 
+def test_widget_scope_uses_concrete_wizard_node_type_for_read_route() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        client = DiscoveryClient(chart_scope="widget", chart_type="graph_wizard_node")
+        result = TargetDiscoveryService(client).discover(_contract(Path(tmp)))
+    assert result["status"] == "success"
+    assert result["target_binding"]["technology"] == "wizard_native"
+    assert any(method == "getWizardChart" for method, _ in client.calls)
+
+
 def test_graph_object_budget_is_global_and_records_truncation() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         result = TargetDiscoveryService(DiscoveryClient(), max_objects=2).discover(_contract(Path(tmp)))
     assert result["status"] == "success"
     assert len(result["target_graph"]["nodes"]) == 2
     assert result["target_graph"]["limitations"] == ["target graph reached the configured object limit"]
+
+
+def test_unrequested_unavailable_chart_is_recorded_as_bounded_limitation() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        result = TargetDiscoveryService(DiscoveryClient(unavailable_chart=True)).discover(_contract(Path(tmp)))
+    assert result["status"] == "success"
+    assert result["target_binding"]["technology"] == "dashboard"
+    assert result["target_graph"]["limitations"] == ["dashboard references an unavailable chart"]

@@ -21,6 +21,11 @@ The exact JSON schema is always available through MCP `tools/list`. Technical co
 | `dl_verify` | Check the requested proof target | After planning or execution | `task_id` and optional `proof_target` | Journal, readback, and browser-policy checks · `local` | [Task state](mcp/response_contracts.md#task-level-responses) |
 | `dl_evidence` | Read one bounded task artifact | Inspect a plan, receipt, or evidence fragment | `task_id`, resource URI/section/offset/limit | Bounded excerpt without a heavy inline response · `local` | [Evidence resources](mcp/response_contracts.md#task-level-responses) |
 
+For workbook-scoped creation, `dl_task_start.context` accepts `workbook_id`
+and a relative `create_manifest`. It also publicly describes
+`semantic_changes`, `acceptance`, `scope`, `portfolio_root`, and
+`max_discovery_objects`; the server validates them before plan materialization.
+
 ## Surface profiles
 
 - `autonomous-v2` is the default: eight tools, at most 9 KB in `tools/list`, and at most 1.5 KB of initialization instructions.
@@ -42,6 +47,12 @@ Restart the MCP process after changing `DATALENS_MCP_TOOL_SURFACE`. Do not pass 
 - Review, audit, diagnose, and plan-only requests do not write.
 - Heavy plans and evidence are returned as `datalens://tasks/<TASK_ID>/...`; `dl_evidence` reads only one allowed size-bounded artifact.
 - A separate destructive token is required only for explicitly compiled destructive scope. Arbitrary whole-object deletion remains unsupported.
+
+An installed-public stdio canary verifies the surface independently. Its
+receipt records exactly eight tools, the installed build and frozen source,
+save/restart/publish/readback, typed dataset evidence, zero browser calls, and
+zero stale-plan writes. See
+[`public-autonomy-canary.md`](public-autonomy-canary.md).
 
 ## Compatibility
 

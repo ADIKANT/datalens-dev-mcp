@@ -99,7 +99,7 @@ class RequirementsWorkflowTests(unittest.TestCase):
         from datalens_dev_mcp.server import list_tools
 
         tools = {tool["name"] for tool in list_tools("all")}
-        default_tools = {tool["name"] for tool in list_tools()}
+        default_tools = {tool["name"] for tool in list_tools("autonomous-v2")}
         for required in {
             "dl_init_requirements_workspace",
             "dl_ingest_requirements_markdown",
@@ -108,7 +108,8 @@ class RequirementsWorkflowTests(unittest.TestCase):
         }:
             self.assertIn(required, tools)
             self.assertNotIn(required, default_tools)
-        self.assertIn("dl_update_user_decision", default_tools)
+        self.assertIn("dl_update_user_decision", tools)
+        self.assertNotIn("dl_update_user_decision", default_tools)
         self.assertFalse(any("cache_sync" in name or name.startswith("dl_sync_") for name in default_tools))
 
     def test_governance_and_generation_use_persisted_requirements(self):

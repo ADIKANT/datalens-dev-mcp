@@ -268,23 +268,45 @@ def preview_dataset_data(
 
 
 def extract_dataset_fields(value: Any) -> list[dict[str, Any]]:
+    from datalens_dev_mcp.pipeline.dataset_fields import (
+        physical_dataset_field_type,
+        semantic_dataset_field_role,
+    )
+
     fields: dict[str, dict[str, Any]] = {}
 
     def visit(item: Any) -> None:
         if isinstance(item, dict):
             guid = str(item.get("guid") or "").strip()
             name = str(item.get("name") or item.get("title") or "").strip()
-            field_type = str(item.get("type") or item.get("dataType") or "").strip()
+            field_type = physical_dataset_field_type(item)
+            semantic_role = semantic_dataset_field_role(item)
             if guid and (name or field_type):
-                fields.setdefault(
-                    guid,
-                    {
-                        "guid": guid,
-                        "name": name or guid,
-                        "type": field_type or "unsupported",
-                        "unique": bool(item.get("unique") or item.get("isUnique")),
-                    },
-                )
+                candidate = {
+                    "guid": guid,
+                    "name": name or guid,
+                    "type": field_type,
+                    "semantic_role": semantic_role,
+                    "aggregation": str(item.get("aggregation") or ""),
+                    "formula": str(item.get("formula") or ""),
+                    "source": str(item.get("source") or item.get("sourceColumn") or ""),
+                    "hidden": bool(item.get("hidden") or item.get("isHidden")),
+                    "unique": bool(item.get("unique") or item.get("isUnique")),
+                    "sensitive": bool(item.get("sensitive") or item.get("pii")),
+                }
+                existing = fields.get(guid)
+                if existing is None:
+                    fields[guid] = candidate
+                else:
+                    for key in ("name", "type", "semantic_role", "aggregation", "formula", "source"):
+                        if existing.get(key) in (None, "", "unsupported") and candidate.get(key) not in (
+                            None,
+                            "",
+                            "unsupported",
+                        ):
+                            existing[key] = candidate[key]
+                    for key in ("hidden", "unique", "sensitive"):
+                        existing[key] = bool(existing.get(key) or candidate.get(key))
             for nested in item.values():
                 visit(nested)
         elif isinstance(item, list):
