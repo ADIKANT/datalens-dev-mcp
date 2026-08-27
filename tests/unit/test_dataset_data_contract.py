@@ -5,6 +5,7 @@ from datalens_dev_mcp.pipeline.dataset_data_contract import (
     resolve_field_guids,
     validate_dataset_data_query,
 )
+from datalens_dev_mcp.pipeline.dataset_preview import extract_dataset_fields
 
 
 def _catalog() -> list[dict]:
@@ -55,3 +56,66 @@ def test_query_contract_keeps_experimental_branch_semantics_explicit() -> None:
     assert result["ok"] is True
     assert result["contract"]["dataset_data_semantics"] == "unknown_experimental"
     assert result["contract"]["query_hash"]
+
+
+def test_provider_semantic_type_does_not_replace_physical_data_type() -> None:
+    catalog = build_field_catalog(
+        [
+            {
+                "guid": "metric_guid",
+                "name": "Metric",
+                "type": "MEASURE",
+                "data_type": "float",
+                "cast": "float",
+                "aggregation": "sum",
+            },
+            {
+                "guid": "date_guid",
+                "name": "Date",
+                "type": "DIMENSION",
+                "dataType": "date",
+            },
+        ]
+    )
+    assert catalog[0]["type"] == "date"
+    assert catalog[0]["semantic_role"] == "dimension"
+    assert catalog[1]["type"] == "float"
+    assert catalog[1]["semantic_role"] == "measure"
+
+
+def test_richer_duplicate_guid_enriches_early_reference_projection() -> None:
+    fields = extract_dataset_fields(
+        {
+            "result_schema": [{"guid": "metric_guid", "name": "Metric"}],
+            "fields": [
+                {
+                    "guid": "metric_guid",
+                    "name": "Metric",
+                    "type": "MEASURE",
+                    "data_type": "float",
+                    "aggregation": "sum",
+                }
+            ],
+        }
+    )
+    assert fields == [
+        {
+            "guid": "metric_guid",
+            "name": "Metric",
+            "type": "float",
+            "semantic_role": "measure",
+            "aggregation": "sum",
+            "formula": "",
+            "source": "",
+            "hidden": False,
+            "unique": False,
+            "sensitive": False,
+        }
+    ]
+
+
+def test_physical_array_type_keeps_its_declared_underscore() -> None:
+    catalog = build_field_catalog(
+        [{"guid": "items_guid", "name": "Items", "type": "DIMENSION", "data_type": "ARRAY_INT"}]
+    )
+    assert catalog[0]["type"] == "array_int"

@@ -528,9 +528,28 @@ def _adapt_entry_envelope(method: str, value: dict[str, Any], *, mode: str) -> d
         payload["entry"] = _strip_readback_only_entry_fields(payload["entry"])
         if payload["entry"].get("annotation") is None:
             payload["entry"].pop("annotation", None)
+        data = payload["entry"].get("data")
+        if isinstance(data, dict) and method in {"createEditorChart", "updateEditorChart"}:
+            # DataLens requires the Editor controls module even when the chart
+            # has no controls. This is a structural empty module, not invented
+            # chart or selector semantics.
+            data.setdefault("controls", "module.exports = {};\n")
+        if isinstance(data, dict) and method in {"createDashboard", "updateDashboard"}:
+            _add_dashboard_control_defaults(data)
     if method_schema_defines_mode(method) and "mode" not in payload:
         payload["mode"] = mode
     return payload
+
+
+def _add_dashboard_control_defaults(value: Any) -> None:
+    if isinstance(value, dict):
+        if str(value.get("type") or "").strip().lower() == "control":
+            value.setdefault("defaults", {})
+        for item in value.values():
+            _add_dashboard_control_defaults(item)
+    elif isinstance(value, list):
+        for item in value:
+            _add_dashboard_control_defaults(item)
 
 
 def _adapt_wizard_envelope(method: str, value: dict[str, Any], *, mode: str, chart_id: str) -> dict[str, Any]:

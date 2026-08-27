@@ -9,7 +9,9 @@ from typing import Any
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.pipeline.dataset_context_profile import build_dataset_context_profile
 from datalens_dev_mcp.pipeline.dataset_data_normalizer import normalize_dataset_data_response
+from datalens_dev_mcp.pipeline.dataset_data_failures import classify_dataset_data_failure
 from datalens_dev_mcp.pipeline.dataset_probe_planner import DatasetProbePlanner
+from datalens_dev_mcp.pipeline.dataset_parameters import extract_dashboard_parameter_defaults
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
 from datalens_dev_mcp.pipeline.task_stage_receipts import build_stage_receipt
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
@@ -45,7 +47,15 @@ class TaskDatasetContextService:
 
     def acquire(self, *, fresh: bool = False, mode: str = "context_probe") -> dict[str, Any]:
         graph = read_json(self.journal.target_graph_path, {}) or {}
-        planned = DatasetProbePlanner().plan(self.contract, graph, mode=mode)
+        parameter_defaults = extract_dashboard_parameter_defaults(
+            [read_json(path, {}) or {} for path in sorted((self.journal.root / "snapshots").glob("baseline-*.json"))]
+        )
+        planned = DatasetProbePlanner().plan(
+            self.contract,
+            graph,
+            mode=mode,
+            parameter_defaults=parameter_defaults,
+        )
         if not planned.get("ok"):
             return {"ok": False, "status": "blocked", "issues": planned.get("issues") or []}
         plan = dict(planned["plan"])
@@ -101,13 +111,14 @@ class TaskDatasetContextService:
                     "plain_rows": [],
                     "row_count": 0,
                 }
-                fallback_kind = f"dataset_schema_only:{exc.__class__.__name__}"
+                failure_family = classify_dataset_data_failure(exc)
+                fallback_kind = f"dataset_schema_only:{failure_family}"
                 provider_calls.append(
                     {
                         "method": "getDatasetData",
                         "request_hash": canonical_hash(payload),
                         "status": "unavailable",
-                        "error_family": exc.__class__.__name__,
+                        "error_family": failure_family,
                     }
                 )
             else:

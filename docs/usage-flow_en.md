@@ -12,6 +12,23 @@ public stdio: one save, restart, resume, one publish, typed dataset proof, and a
 stale-plan negative with zero writes. See
 [`public-autonomy-canary.md`](public-autonomy-canary.md) for the exact contract.
 
+### Creating an object set in a known workbook
+
+For a `create` request, pass `context.workbook_id` and a
+`context.create_manifest` path relative to `project_root`. The version 1
+manifest contains at most 25 objects with typed routes, relative JSON payload
+files, and explicit dependencies. A `${object:<key>}` reference is resolved only
+after the preceding object has a verified saved readback. The server hashes the
+manifest and payloads before the first write, reads fresh workbook inventory,
+and journals progress so resume cannot blindly repeat a create.
+
+Supported types are `dataset`, `wizard_chart`, `editor_chart`,
+`editor_markdown`, and `dashboard`; `ql_chart` requires a direct QL request.
+Absolute/path escapes, payload drift, invalid dependency order, and ambiguous
+resume fail before the next write. Datasets receive save/readback but no
+publish; publishable objects advance only after the related group completes its
+saved phase.
+
 ## Autonomous task workflow
 
 ```text

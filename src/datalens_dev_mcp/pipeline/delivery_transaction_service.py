@@ -6,6 +6,11 @@ from pathlib import Path
 from typing import Any
 
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
+from datalens_dev_mcp.pipeline.create_manifest import (
+    CreateManifestError,
+    ROUTES as CREATE_ROUTES,
+    resolve_object_placeholders,
+)
 from datalens_dev_mcp.pipeline.delivery_stage_receipts import (
     build_delivery_receipt,
     validate_delivery_receipt,
@@ -44,10 +49,16 @@ class DeliveryTransactionService:
 
     def execute_save_stage(self, context: dict[str, Any]) -> dict[str, Any]:
         public_plan = read_json(self.journal.root / "plans" / "plan.json", {}) or {}
-        safe_plan = read_json(self.journal.root / "plans" / "safe-apply-plan.json", {}) or {}
+        safe_plan = self._delivery_safe_plan()
         plan_hash = str(public_plan.get("plan_hash") or "")
         if not plan_hash or not safe_plan.get("actions"):
             return self._blocked(context, "immutable save plan is missing", "save_plan")
+        if public_plan.get("plan_kind") == "create_manifest":
+            return self._execute_create_save_stage(
+                context,
+                public_plan=public_plan,
+                safe_plan=safe_plan,
+            )
         existing = self._existing_delivery_receipt(
             self.journal.save_stage_receipt_path,
             "datalens_save_stage_receipt",
@@ -94,6 +105,176 @@ class DeliveryTransactionService:
         write_json(self.journal.save_stage_receipt_path, receipt)
         return self._stage_receipt(context, receipt, proof_level="controlled_live_write")
 
+    def _execute_create_save_stage(
+        self,
+        context: dict[str, Any],
+        *,
+        public_plan: dict[str, Any],
+        safe_plan: dict[str, Any],
+    ) -> dict[str, Any]:
+        plan_hash = str(public_plan.get("plan_hash") or "")
+        existing = self._existing_delivery_receipt(
+            self.journal.save_stage_receipt_path,
+            "datalens_save_stage_receipt",
+        )
+        if existing:
+            if existing.get("plan_hash") != plan_hash:
+                return self._blocked(context, "save receipt belongs to another create plan", "save_receipt_binding")
+            return self._stage_receipt(context, existing, proof_level="controlled_live_write")
+        progress_path = self.journal.delivery_root / "private" / "create-progress.json"
+        progress = read_json(progress_path, {}) or {
+            "schema_id": "datalens_create_progress",
+            "plan_hash": plan_hash,
+            "identities": {},
+            "resolved_actions": [],
+            "results": [],
+        }
+        if progress.get("plan_hash") != plan_hash:
+            return self._blocked(context, "create progress belongs to another plan", "create_progress_binding")
+        identities = {
+            str(key): str(value)
+            for key, value in dict(progress.get("identities") or {}).items()
+            if str(key) and str(value)
+        }
+        resolved_actions = [dict(item) for item in progress.get("resolved_actions") or [] if isinstance(item, dict)]
+        stage_results = [dict(item) for item in progress.get("results") or [] if isinstance(item, dict)]
+        templates = [dict(item) for item in safe_plan.get("actions") or [] if isinstance(item, dict)]
+        if len(resolved_actions) > len(templates):
+            return self._blocked(context, "create progress action count is invalid", "create_progress")
+        for index, template in enumerate(templates):
+            object_key = str(template.get("object_key") or "")
+            if index < len(resolved_actions) and identities.get(object_key):
+                continue
+            missing = [str(item) for item in template.get("dependencies") or [] if str(item) not in identities]
+            if missing:
+                return self._blocked(
+                    context,
+                    "create dependencies are unresolved: " + ", ".join(missing),
+                    "create_dependencies",
+                )
+            try:
+                resolved_payload = resolve_object_placeholders(template.get("payload"), identities)
+            except CreateManifestError as exc:
+                return self._blocked(context, str(exc), "create_dependencies")
+            action = _materialize_create_action(template, resolved_payload)
+            dataset_readbacks = self._dependency_dataset_readbacks(template, identities)
+            if dataset_readbacks:
+                action["dataset_readbacks"] = dataset_readbacks
+            stage_plan = create_safe_apply_plan(
+                project_root=str(self.journal.project_root),
+                actions=[action],
+                approved=True,
+                approval_note="authorized by immutable public create task contract",
+                user_request_text="create declared workbook object and save",
+                task_contract_hash=str(self.contract.get("contract_hash") or ""),
+            )
+            attempt_path = self.journal.delivery_root / "private" / f"create-{index:03d}-attempt.json"
+            if attempt_path.is_file():
+                reconciliation = self._reconcile_create_attempt(
+                    template=template,
+                    resolved_action=dict(stage_plan["actions"][0]),
+                )
+                if not reconciliation.get("ok"):
+                    receipt = self._uncertain_write_receipt(
+                        schema_id="datalens_save_stage_receipt",
+                        phase="save",
+                        plan_hash=plan_hash,
+                        actions=templates,
+                        reason=str(reconciliation.get("reason") or "create attempt requires reconciliation"),
+                    )
+                    write_json(self.journal.save_stage_receipt_path, receipt)
+                    return self._stage_receipt(context, receipt, proof_level="controlled_live_write")
+                stage_result = dict(reconciliation["result"])
+                created_id = str(reconciliation["object_id"])
+            else:
+                write_json(
+                    attempt_path,
+                    {
+                        "schema_id": "datalens_create_action_attempt",
+                        "plan_hash": plan_hash,
+                        "index": index,
+                        "object_key_hash": canonical_hash(object_key),
+                        "action_hash": canonical_hash(stage_plan),
+                        "status": "started",
+                    },
+                )
+                try:
+                    execution = self.executor(stage_plan)
+                except Exception as exc:  # noqa: BLE001
+                    receipt = self._uncertain_write_receipt(
+                        schema_id="datalens_save_stage_receipt",
+                        phase="save",
+                        plan_hash=plan_hash,
+                        actions=templates,
+                        reason=f"create executor raised {exc.__class__.__name__}",
+                    )
+                    write_json(self.journal.save_stage_receipt_path, receipt)
+                    return self._stage_receipt(context, receipt, proof_level="controlled_live_write")
+                results = list(execution.get("actions") or execution.get("results") or [])
+                stage_result = dict(results[0]) if results else {}
+                created_id = str(stage_result.get("created_object_identity") or "")
+                if not execution.get("ok") or not stage_result.get("executed") or not created_id:
+                    receipt = self._write_result_receipt(
+                        schema_id="datalens_save_stage_receipt",
+                        phase="save",
+                        binding_name="plan_hash",
+                        binding_hash=plan_hash,
+                        actions=templates,
+                        result=execution,
+                    )
+                    write_json(self.journal.save_stage_receipt_path, receipt)
+                    return self._stage_receipt(context, receipt, proof_level="controlled_live_write")
+            resolved_action = dict(stage_plan["actions"][0])
+            resolved_action["object_id"] = created_id
+            spec = CREATE_ROUTES[str(resolved_action.get("object_type") or "")]
+            resolved_action["readback_payload"] = {
+                str(spec["id_key"]): created_id,
+                **(
+                    {"workbookId": str((self.contract.get("target") or {}).get("workbook_id") or "")}
+                    if spec["id_key"] == "datasetId"
+                    else {}
+                ),
+            }
+            identities[object_key] = created_id
+            resolved_actions.append(resolved_action)
+            stage_results.append(stage_result)
+            progress = {
+                "schema_id": "datalens_create_progress",
+                "plan_hash": plan_hash,
+                "identities": identities,
+                "resolved_actions": resolved_actions,
+                "results": stage_results,
+            }
+            progress["progress_hash"] = canonical_hash(progress)
+            write_json(progress_path, progress)
+            self._persist_created_readback(object_key, resolved_action)
+        resolved_plan = create_safe_apply_plan(
+            project_root=str(self.journal.project_root),
+            actions=resolved_actions,
+            approved=True,
+            approval_note="authorized by immutable public create task contract",
+            user_request_text="create declared workbook objects and save",
+            task_contract_hash=str(self.contract.get("contract_hash") or ""),
+        )
+        write_json(self.journal.root / "plans" / "resolved-create-safe-apply-plan.json", resolved_plan)
+        aggregate = {
+            "ok": True,
+            "executed": True,
+            "status": "completed",
+            "actions": stage_results,
+            "confirmed_write_action_indices": list(range(len(stage_results))),
+        }
+        receipt = self._write_result_receipt(
+            schema_id="datalens_save_stage_receipt",
+            phase="save",
+            binding_name="plan_hash",
+            binding_hash=plan_hash,
+            actions=resolved_actions,
+            result=aggregate,
+        )
+        write_json(self.journal.save_stage_receipt_path, receipt)
+        return self._stage_receipt(context, receipt, proof_level="controlled_live_write")
+
     def read_saved_stage(self, context: dict[str, Any]) -> dict[str, Any]:
         save_receipt = self._existing_delivery_receipt(
             self.journal.save_stage_receipt_path,
@@ -111,7 +292,7 @@ class DeliveryTransactionService:
             if not self._saved_source_matches(existing):
                 return self._blocked(context, "saved readback source artifact is missing or stale", "saved_readback_source")
             return self._stage_receipt(context, existing, proof_level="save_readback")
-        safe_plan = read_json(self.journal.root / "plans" / "safe-apply-plan.json", {}) or {}
+        safe_plan = self._delivery_safe_plan()
         receipt = self._readback_receipt(
             schema_id="datalens_saved_readback_receipt",
             branch="saved",
@@ -234,6 +415,112 @@ class DeliveryTransactionService:
         write_json(self.journal.published_readback_receipt_path, receipt)
         return self._stage_receipt(context, receipt, proof_level="publish_readback")
 
+    def _delivery_safe_plan(self) -> dict[str, Any]:
+        resolved = read_json(self.journal.root / "plans" / "resolved-create-safe-apply-plan.json", {}) or {}
+        return resolved or (read_json(self.journal.root / "plans" / "safe-apply-plan.json", {}) or {})
+
+    def _dependency_dataset_readbacks(
+        self,
+        template: dict[str, Any],
+        identities: dict[str, str],
+    ) -> list[dict[str, Any]]:
+        bundle = read_json(self.journal.root / "inputs" / "create-bundle.json", {}) or {}
+        types = {
+            str(item.get("key") or ""): str(item.get("object_type") or "")
+            for item in bundle.get("objects") or []
+            if isinstance(item, dict)
+        }
+        readbacks: list[dict[str, Any]] = []
+        for dependency in template.get("dependencies") or []:
+            key = str(dependency)
+            if types.get(key) != "dataset" or key not in identities:
+                continue
+            readbacks.append(
+                self._exclusive_read(
+                    "getDataset",
+                    {
+                        "datasetId": identities[key],
+                        "workbookId": str((self.contract.get("target") or {}).get("workbook_id") or ""),
+                    },
+                )
+            )
+        return readbacks
+
+    def _persist_created_readback(self, object_key: str, action: dict[str, Any]) -> None:
+        response = self._exclusive_read(
+            str(action.get("readback_method") or ""),
+            dict(action.get("readback_payload") or {}),
+        )
+        write_json(
+            self.journal.delivery_root
+            / "private"
+            / "create-readbacks"
+            / f"{canonical_hash(object_key)[:20]}.json",
+            sanitize_value(response),
+        )
+
+    def _reconcile_create_attempt(
+        self,
+        *,
+        template: dict[str, Any],
+        resolved_action: dict[str, Any],
+    ) -> dict[str, Any]:
+        from datalens_dev_mcp.pipeline.reconciliation import reconcile_partial_creates
+
+        workbook_id = str((self.contract.get("target") or {}).get("workbook_id") or "")
+        inventory = self._exclusive_read("getWorkbookEntries", {"workbookId": workbook_id})
+        payload = resolved_action.get("payload") if isinstance(resolved_action.get("payload"), dict) else {}
+        entry = payload.get("entry") if isinstance(payload.get("entry"), dict) else {}
+        data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+        name = str(
+            entry.get("name")
+            or payload.get("name")
+            or data.get("title")
+            or template.get("object_key")
+            or ""
+        )
+        reconciliation = reconcile_partial_creates(
+            workbook_id=workbook_id,
+            planned_objects=[
+                {
+                    "display_title": name,
+                    "internal_name": name,
+                    "object_type": str(template.get("object_type") or "unknown"),
+                }
+            ],
+            entries_payload=sanitize_value(inventory),
+        )
+        decision = (reconciliation.get("objects") or [{}])[0]
+        if decision.get("recommended_action") != "reuse" or not decision.get("existing_object_id"):
+            return {"ok": False, "reason": "ambiguous create attempt did not reconcile to one exact object"}
+        object_id = str(decision["existing_object_id"])
+        spec = CREATE_ROUTES[str(template.get("object_type") or "")]
+        read_payload = {str(spec["id_key"]): object_id}
+        if spec["id_key"] == "datasetId":
+            read_payload["workbookId"] = workbook_id
+        readback = self._exclusive_read(str(spec["read"]), read_payload)
+        evidence = build_safe_apply_readback_evidence(
+            method=str(resolved_action.get("method") or ""),
+            object_id=object_id,
+            expected_payload=dict(resolved_action.get("payload") or {}),
+            readback=readback,
+        )
+        if not evidence.get("content_equivalent"):
+            return {"ok": False, "reason": "reconciled create object does not match the immutable payload"}
+        return {
+            "ok": True,
+            "object_id": object_id,
+            "result": {
+                "index": 0,
+                "executed": True,
+                "status": "reconciled",
+                "write_outcome": "confirmed_write",
+                "created_object_identity": object_id,
+                "revisions": {"write": str(evidence.get("revision") or "")},
+                "verification_outcome": "verified",
+            },
+        }
+
     def reconcile_ambiguous_write(self, context: dict[str, Any]) -> dict[str, Any]:
         phase = str(((context.get("state") or {}).get("reconciliation") or {}).get("phase") or "save")
         if phase == "publish":
@@ -327,13 +614,14 @@ class DeliveryTransactionService:
             object_id = _action_object_id(action)
             evidence = evidence_by_id.get(object_id) or {}
             entry = dict(evidence.get("entry") or {})
+            publish_source_required = bool(require_publish_source and action.get("publishable", True))
             complete = bool(
                 evidence.get("content_equivalent")
                 and evidence.get("revision")
-                and isinstance(entry.get("data"), dict)
-                and (not require_publish_source or evidence.get("saved_id"))
+                and entry
+                and (not publish_source_required or evidence.get("saved_id"))
             )
-            if complete:
+            if complete and action.get("publishable", True):
                 entries.append(entry)
             objects.append(
                 {
@@ -345,6 +633,7 @@ class DeliveryTransactionService:
                     "semantic_match": bool(evidence.get("content_equivalent")),
                     "complete": complete,
                     "diff_paths": list(evidence.get("diff_paths") or []),
+                    "publishable": bool(action.get("publishable", True)),
                 }
             )
         all_match = bool(objects) and all(item["complete"] for item in objects)
@@ -399,6 +688,8 @@ class DeliveryTransactionService:
         source_path = self.journal.root / str(saved_receipt.get("source_artifact_uri") or "")
         actions: list[dict[str, Any]] = []
         for item in saved_receipt.get("objects") or []:
+            if item.get("publishable") is False:
+                continue
             built = create_publish_safe_apply_plan(
                 project_root=str(self.journal.project_root),
                 target=str(item.get("object_type") or "object"),
@@ -600,6 +891,29 @@ def _without_readback(plan: dict[str, Any]) -> dict[str, Any]:
         action["readback_required"] = False
         action["readback_justification"] = "readback executes as the next separately journaled typed stage"
     return result
+
+
+def _materialize_create_action(template: dict[str, Any], payload: Any) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise CreateManifestError("resolved create payload must be an object")
+    generated = {
+        "approval_provenance",
+        "branch_semantics",
+        "desired_overlay",
+        "fresh_read_contract",
+        "overlay_merge_contract",
+        "payload_contract",
+        "readback_contract",
+        "revision_guard",
+        "revision_preservation",
+        "source_owner",
+        "stale_revision_retry_policy",
+        "target_lock_hash",
+    }
+    action = {key: deepcopy(value) for key, value in template.items() if key not in generated}
+    action["payload"] = deepcopy(payload)
+    action["desired_overlay"] = deepcopy(payload)
+    return action
 
 
 def _verified_publish_plan(

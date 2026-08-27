@@ -45,6 +45,22 @@ Canary не удаляет объект и оставляет ограничен
 Повторять завершённый прогон на том же target нельзя: один новый контролируемый
 прогон предназначен для одного frozen release candidate.
 
+Отдельный read-only context canary принимает несколько dashboard URL и для
+каждой доказанной dataset-зависимости выполняет bounded `getDatasetData` probe.
+Его redacted receipt содержит только hashes, counts, типы, candidate roles,
+limitations и `dataset_data_semantics=unknown_experimental`; raw rows и live ID
+в receipt не записываются. Editor-зависимость из строкового metadata/source
+учитывается только когда свежий workbook inventory подтверждает тип dataset.
+
+```bash
+python3 scripts/run_dataset_data_context_canary.py \
+  --env-file /absolute/path/to/env \
+  --dashboard https://datalens.example/DASHBOARD_ID_1 \
+  --dashboard https://datalens.example/DASHBOARD_ID_2 \
+  --output artifacts/autonomy/dataset-data-context-canary.json \
+  --limit 100
+```
+
 ## English
 
 This canary proves the autonomous workflow through an installed wheel and the
@@ -64,3 +80,19 @@ target/style bindings, and evidence artifacts by hash.
 saved/published revision semantics. The canary consumes its normalized typed
 profile and explicit sampling limitations; it never embeds raw sampled rows in
 the receipt.
+
+A separate read-only context canary accepts multiple dashboard URLs and runs a
+bounded `getDatasetData` probe for every inventory-proven dataset dependency.
+Its redacted receipt contains hashes, counts, types, candidate roles,
+limitations, and `dataset_data_semantics=unknown_experimental` only; it contains
+neither raw rows nor live IDs. Dataset IDs embedded in Editor strings are used
+only when fresh workbook inventory proves their object type.
+
+```bash
+python3 scripts/run_dataset_data_context_canary.py \
+  --env-file /absolute/path/to/env \
+  --dashboard https://datalens.example/DASHBOARD_ID_1 \
+  --dashboard https://datalens.example/DASHBOARD_ID_2 \
+  --output artifacts/autonomy/dataset-data-context-canary.json \
+  --limit 100
+```

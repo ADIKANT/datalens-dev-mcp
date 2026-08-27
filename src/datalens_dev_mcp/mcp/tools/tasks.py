@@ -14,6 +14,11 @@ from datalens_dev_mcp.mcp.task_resources import read_task_evidence, task_resourc
 from datalens_dev_mcp.mcp.tools import pipeline
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.pipeline.build_identity import BuildIdentityResolver
+from datalens_dev_mcp.pipeline.create_manifest import (
+    CreateManifestError,
+    load_create_bundle,
+    validate_create_bundle,
+)
 from datalens_dev_mcp.pipeline.execution_authorization import (
     resolve_execution_authorization,
     validate_execution_authorization,
@@ -69,7 +74,7 @@ def dl_task_start(
             *list(scope_overrides.get("allowed_semantic_slots") or []),
             *[str(item.get("slot_id") or "") for item in semantic_changes],
         ]))
-    compiled = compile_task_contract(
+    preliminary = compile_task_contract(
         compile_request,
         project_root=str(Path(project_root).resolve()),
         reference={
@@ -84,6 +89,51 @@ def dl_task_start(
         scope_overrides=scope_overrides,
         acceptance=acceptance,
     )
+    create_bundle: dict[str, Any] = {}
+    create_manifest = str(task_context.get("create_manifest") or "").strip()
+    if create_manifest:
+        if str((preliminary.get("contract") or {}).get("mode") or "") != "create":
+            raise CreateManifestError("create_manifest is valid only for a create request")
+        create_bundle = load_create_bundle(
+            project_root,
+            create_manifest,
+            workbook_id=str(task_context.get("workbook_id") or ""),
+            direct_ql_requested=str((preliminary.get("contract") or {}).get("route") or "") == "ql_explicit",
+        )
+        task_context["workbook_id"] = str(create_bundle["workbook_id"])
+        acceptance.append(
+            {
+                "kind": "create_manifest",
+                "statement": json.dumps(
+                    {
+                        "bundle_hash": create_bundle["bundle_hash"],
+                        "manifest_hash": create_bundle["manifest_hash"],
+                        "object_count": create_bundle["object_count"],
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ),
+                "source": "current_user_request",
+                "hard": True,
+            }
+        )
+        preliminary = compile_task_contract(
+            compile_request,
+            project_root=str(Path(project_root).resolve()),
+            reference={
+                "kind": reference_kind if reference_locator else "none",
+                "locator": reference_locator,
+            },
+            current_live={
+                key: task_context[key]
+                for key in ("workbook_id", "dashboard_id", "chart_id", "object_ids", "object_types")
+                if key in task_context
+            },
+            scope_overrides=scope_overrides,
+            acceptance=acceptance,
+        )
+    compiled = preliminary
     contract = dict(compiled["contract"])
     journal = ProjectJournal(project_root, str(contract["task_id"]))
     build_identity = BuildIdentityResolver().resolve()
@@ -105,6 +155,15 @@ def dl_task_start(
         },
         execution_grant=grant,
     )
+    if create_bundle:
+        create_bundle_path = journal.root / "inputs" / "create-bundle.json"
+        existing_bundle = read_json(create_bundle_path, {}) or {}
+        if existing_bundle and existing_bundle != create_bundle:
+            raise JournalIdentityError("CREATE_MANIFEST_CONFLICT: persisted create bundle changed")
+        if validate_create_bundle(create_bundle):
+            raise JournalIdentityError("CREATE_MANIFEST_INVALID: create bundle failed validation")
+        if not existing_bundle:
+            write_json(create_bundle_path, create_bundle)
     before = state.last_event_id
     if compiled.get("status") in {"invalid", "needs_input"}:
         return _block_task(
@@ -119,7 +178,7 @@ def dl_task_start(
             transition="TASK_INPUT_REQUIRED",
             issues=compiled.get("issues") or [],
         )
-    if compiled.get("status") == "needs_discovery":
+    if compiled.get("status") == "needs_discovery" or bool(create_bundle):
         try:
             discovery = TargetDiscoveryService(
                 max_objects=int(task_context.get("max_discovery_objects") or 50)

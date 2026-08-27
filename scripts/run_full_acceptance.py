@@ -51,7 +51,10 @@ def main() -> int:
         },
         {
             "name": "regression-public-behaviors",
-            "command": py("scripts/run_public_autonomy_acceptance.py"),
+            "commands": [
+                py("scripts/run_public_autonomy_acceptance.py"),
+                py("scripts/run_runtime_incident_acceptance.py"),
+            ],
             "timeout_sec": 600,
         },
         {

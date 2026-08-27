@@ -35,6 +35,7 @@
         "payload_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
         "semantic_match": {"type": "boolean"},
         "complete": {"type": "boolean"},
+        "publishable": {"type": "boolean"},
         "diff_paths": {"type": "array", "items": {"type": "string"}}
       }
     }

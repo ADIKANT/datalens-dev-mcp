@@ -9,7 +9,10 @@
 ### `dl_task_start`
 
 - Required: `request`
-- Optional: `project_root`, `context`, `run_until`
+- Optional: `project_root`, `context`, `run_until`. Structured `context` supports
+  target IDs/URL, `semantic_changes`, `acceptance`, `scope`, `portfolio_root`,
+  `max_discovery_objects`, and a project-relative `create_manifest` for a
+  workbook-scoped typed create workflow.
 - Компилирует неизменяемый task contract, создаёт restart-safe journal и выполняет переходы до `plan_ready`, `blocked` или `completed`. Значение по умолчанию — `plan_ready`; запись до явного исполнения hash-bound плана не выполняется.
 
 ### `dl_task_resume`

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datalens_dev_mcp.pipeline.dataset_probe_planner import DatasetProbePlanner
+from datalens_dev_mcp.pipeline.dataset_parameters import extract_dashboard_parameter_defaults
 
 
 def _graph(*, unique: bool = True) -> dict:
@@ -100,3 +101,50 @@ def test_planner_selects_dataset_linked_to_exact_chart_target() -> None:
     result = DatasetProbePlanner().plan(contract, graph)
     assert result["ok"] is True
     assert result["plan"]["dataset_id"] == "dataset_wanted"
+
+
+def test_planner_applies_only_inventory_bound_chart_parameter_defaults() -> None:
+    graph = _graph()
+    graph["nodes"].append(
+        {
+            "object_type": "wizard_chart",
+            "object_id": "chart_demo",
+            "field_guids": ["metric_guid", "scale"],
+        }
+    )
+    graph["edges"] = [
+        {"source": "chart_demo", "target": "dataset_demo", "relation": "uses_dataset"}
+    ]
+    defaults = extract_dashboard_parameter_defaults(
+        {
+            "group": [
+                {
+                    "source": {"fieldName": "scale", "defaultValue": ["week"]},
+                    "defaults": {"scale": ["week"]},
+                },
+                {
+                    "source": {"fieldName": "unrelated", "defaultValue": ["hidden"]},
+                    "defaults": {"unrelated": ["hidden"]},
+                },
+            ]
+        }
+    )
+    result = DatasetProbePlanner().plan(
+        {"target": {}, "scope": {"allowed_objects": ["chart_demo"]}},
+        graph,
+        parameter_defaults=defaults,
+    )
+    assert result["ok"] is True
+    assert result["plan"]["queries"][0]["payload"]["params"] == [
+        {"guid": "scale", "value": "week"}
+    ]
+
+
+def test_conflicting_or_multivalue_parameter_defaults_are_not_inferred() -> None:
+    assert extract_dashboard_parameter_defaults(
+        [
+            {"source": {"fieldName": "scale"}, "defaults": {"scale": ["week"]}},
+            {"source": {"fieldName": "scale"}, "defaults": {"scale": ["month"]}},
+            {"source": {"fieldName": "regions"}, "defaults": {"regions": ["a", "b"]}},
+        ]
+    ) == {}

@@ -21,6 +21,11 @@
 | `dl_verify` | Проверяет требуемую точку доказательства | После планирования или исполнения | `task_id`, при необходимости `proof_target` | Проверки журнала, readback и browser-policy · `локальная` | [Task state](mcp/response_contracts.md#task-level-ответы) |
 | `dl_evidence` | Читает один ограниченный artifact задачи | Когда нужен фрагмент плана, receipt или доказательства | `task_id`, resource URI/section/offset/limit | Bounded excerpt без тяжёлого inline-ответа · `локальная` | [Ресурсы доказательств](mcp/response_contracts.md#task-level-ответы) |
 
+Для workbook-scoped создания `dl_task_start.context` принимает
+`workbook_id` и относительный `create_manifest`. Он также публично описывает
+`semantic_changes`, `acceptance`, `scope`, `portfolio_root` и
+`max_discovery_objects`; server валидирует их до materialization плана.
+
 ## Профили поверхности
 
 - `autonomous-v2` — профиль по умолчанию: восемь инструментов, не более 9 КБ в `tools/list` и не более 1.5 КБ initialization instructions.

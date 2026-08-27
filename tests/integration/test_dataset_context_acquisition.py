@@ -3,7 +3,7 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from datalens_dev_mcp.pipeline.artifacts import write_json
+from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
 from datalens_dev_mcp.pipeline.task_contract import WorkspaceContract, create_task_contract
 from datalens_dev_mcp.pipeline.task_dataset_context_service import TaskDatasetContextService
@@ -86,3 +86,50 @@ def test_provider_failure_is_static_fallback_not_empty_dataset_claim() -> None:
     assert "sample_empty" not in result["profile"]["admissible_claims"]
     assert "provider_unavailable" in result["profile"]["admissible_claims"]
     assert "getDatasetData unavailable" in result["profile"]["sample_scope"]["limitations"]
+
+
+def test_context_acquisition_uses_chart_bound_dashboard_parameter_default() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        journal, contract = _journal(Path(tmp))
+        graph = read_json(journal.target_graph_path, {}) or {}
+        graph["nodes"].append(
+            {
+                "object_type": "wizard_chart",
+                "object_id": "chart_demo",
+                "field_guids": ["metric_guid", "scale"],
+            }
+        )
+        graph["edges"] = [
+            {"source": "chart_demo", "target": "dataset_demo", "relation": "uses_dataset"}
+        ]
+        write_json(journal.target_graph_path, graph)
+        write_json(
+            journal.root / "snapshots" / "baseline-dashboard.json",
+            {
+                "entry": {
+                    "data": {
+                        "tabs": [
+                            {
+                                "items": [
+                                    {
+                                        "type": "control",
+                                        "data": {
+                                            "group": [
+                                                {
+                                                    "source": {"fieldName": "scale"},
+                                                    "defaults": {"scale": ["week"]},
+                                                }
+                                            ]
+                                        },
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            },
+        )
+        client = DatasetClient()
+        result = TaskDatasetContextService(journal, contract, client=client).acquire()
+    assert result["ok"] is True
+    assert client.calls[0][1]["params"] == [{"guid": "scale", "value": "week"}]

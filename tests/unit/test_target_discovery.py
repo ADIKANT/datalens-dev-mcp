@@ -17,6 +17,7 @@ class DiscoveryClient:
         chart_scope: str = "editor_chart",
         chart_type: str = "",
         unavailable_chart: bool = False,
+        embedded_dataset_only: bool = False,
     ) -> None:
         self.calls: list[tuple[str, dict]] = []
         self.ambiguous = ambiguous
@@ -24,6 +25,7 @@ class DiscoveryClient:
         self.chart_scope = chart_scope
         self.chart_type = chart_type
         self.unavailable_chart = unavailable_chart
+        self.embedded_dataset_only = embedded_dataset_only
 
     def rpc_readonly(self, method: str, payload: dict) -> dict:
         self.calls.append((method, payload))
@@ -66,9 +68,13 @@ class DiscoveryClient:
                     "chart": {
                         "entry": {"entryId": "chart_demo", "revId": "chart-r3"},
                         "data": {
-                            "datasetId": "dataset_demo",
+                            **({} if self.embedded_dataset_only else {"datasetId": "dataset_demo"}),
                             "visualization": {"measures": [{"guid": "guid_value"}]},
-                            "meta": "{}",
+                            "meta": (
+                                '{"links":{"main_dataset":"dataset_demo"}}'
+                                if self.embedded_dataset_only
+                                else "{}"
+                            ),
                             "sources": "module.exports = {main: {data: []}};",
                             "prepare": "module.exports = function(data) { return data; };",
                         },
@@ -81,9 +87,24 @@ class DiscoveryClient:
                     "dataset": {
                         "datasetId": "dataset_demo",
                         "revId": "dataset-r2",
+                        "result_schema": [
+                            {"guid": "guid_date", "name": "event_date"},
+                            {"guid": "guid_value", "name": "value"},
+                        ],
                         "fields": [
-                            {"guid": "guid_date", "name": "event_date", "type": "date"},
-                            {"guid": "guid_value", "name": "value", "type": "float"},
+                            {
+                                "guid": "guid_date",
+                                "name": "event_date",
+                                "type": "DIMENSION",
+                                "data_type": "date",
+                            },
+                            {
+                                "guid": "guid_value",
+                                "name": "value",
+                                "type": "MEASURE",
+                                "data_type": "float",
+                                "aggregation": "sum",
+                            },
                         ],
                         "sources": [{"connectionId": "connection_demo"}],
                     }
@@ -120,10 +141,24 @@ def test_dashboard_discovery_builds_bounded_graph_and_dataset_field_catalog() ->
     dataset = next(item for item in result["target_graph"]["nodes"] if item["object_type"] == "dataset")
     chart = next(item for item in result["target_graph"]["nodes"] if item["object_type"] == "editor_chart")
     assert [item["guid"] for item in dataset["field_catalog"]] == ["guid_date", "guid_value"]
+    assert [item["type"] for item in dataset["field_catalog"]] == ["date", "float"]
+    assert [item["semantic_role"] for item in dataset["field_catalog"]] == ["dimension", "measure"]
     assert chart["field_guids"] == ["guid_value"]
     assert [method for method, _ in client.calls] == [
         "getDashboard", "getWorkbookEntries", "getEditorChart", "getDataset", "getConnection"
     ]
+
+
+def test_editor_string_dependency_is_resolved_only_through_workbook_inventory() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        client = DiscoveryClient(embedded_dataset_only=True)
+        result = TargetDiscoveryService(client).discover(_contract(Path(tmp)))
+    assert result["status"] == "success"
+    assert result["dataset_count"] == 1
+    assert any(
+        edge["relation"] == "uses_dataset" and edge["target"] == "dataset_demo"
+        for edge in result["target_graph"]["edges"]
+    )
 
 
 def test_workbook_ambiguity_is_reported_only_after_inventory_read() -> None:

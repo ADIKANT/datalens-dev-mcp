@@ -1275,7 +1275,10 @@ def execute_safe_apply(
                             semantic_object_id: {
                                 "object_type": str(action.get("object_type") or ""),
                                 "saved_revision": _revision_id(readback),
-                                "payload": _semantic_content_payload(readback),
+                                "payload": _semantic_content_payload(
+                                    readback,
+                                    method=str(action.get("method") or ""),
+                                ),
                             }
                         },
                     )
@@ -1392,7 +1395,15 @@ def preflight_safe_apply_semantic_patches(
             expected_payloads = {str(targets[0].get("object_id") or ""): _payload_for_action(action)}
         for object_id, expected in expected_payloads.items():
             actual = result.get("materialized_payloads", {}).get(object_id)
-            if result.get("ok") and canonical_hash(actual) != canonical_hash(expected):
+            actual_for_compare = _semantic_content_payload(
+                actual if isinstance(actual, dict) else {},
+                method=str(action.get("method") or ""),
+            )
+            expected_for_compare = _semantic_content_payload(
+                expected if isinstance(expected, dict) else {},
+                method=str(action.get("method") or ""),
+            )
+            if result.get("ok") and canonical_hash(actual_for_compare) != canonical_hash(expected_for_compare):
                 result["ok"] = False
                 result["status"] = "blocked"
                 result["issues"].append(
@@ -1466,7 +1477,10 @@ def preflight_semantic_patch_runtime(plan: dict[str, Any], *, client: Any) -> di
             fresh_targets[object_id] = {
                 "object_type": str(spec.get("object_type") or target.get("object_type") or ""),
                 "saved_revision": _revision_id(fresh),
-                "payload": _semantic_content_payload(fresh),
+                "payload": _semantic_content_payload(
+                    fresh,
+                    method=str(action.get("method") or "") if is_action_target else "",
+                ),
             }
             raw_fresh_targets[object_id] = fresh
         action_object_id = str(action.get("object_id") or "")
@@ -1487,8 +1501,13 @@ def preflight_semantic_patch_runtime(plan: dict[str, Any], *, client: Any) -> di
     return result
 
 
-def _semantic_content_payload(readback: dict[str, Any]) -> dict[str, Any]:
-    return semantic_object_payload(readback)
+def _semantic_content_payload(readback: dict[str, Any], *, method: str = "") -> dict[str, Any]:
+    payload = deepcopy(semantic_object_payload(readback))
+    if method in {"createEditorChart", "updateEditorChart"}:
+        data = payload.get("data") if isinstance(payload, dict) else None
+        if isinstance(data, dict) and _is_empty_editor_controls(data.get("controls")):
+            data.pop("controls", None)
+    return payload if isinstance(payload, dict) else {}
 
 
 def _exclusive_read(client: Any, method: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -2641,8 +2660,10 @@ def _post_write_readback_verification(
         "publish_source_revision_matched": bool(
             action_type == "publish"
             and fresh_revision
-            and readback_revision
-            and fresh_revision == readback_revision
+            and (
+                not _expected_revision(action, payload)
+                or fresh_revision == _expected_revision(action, payload)
+            )
         ),
         "api_noop_proven": api_noop_proven,
         "fresh_revision": fresh_revision,
@@ -2695,10 +2716,10 @@ def _post_write_readback_verification(
             "message": "created object readback is not content-equivalent to the create payload",
         }
         return verification
-    if action_type == "publish" and fresh_revision and readback_revision != fresh_revision:
+    if action_type == "publish" and _saved_published_identity_diverges({}, sanitized):
         verification["error"] = {
-            "category": "published_revision_source_mismatch",
-            "message": "published readback revision does not match the verified saved source revision",
+            "category": "published_identity_divergence",
+            "message": "published readback still exposes different saved and published identities",
         }
         return verification
     if (
@@ -2719,7 +2740,10 @@ def _post_write_readback_verification(
         action_type in {"create", "update", "publish"}
         and write_revision
         and readback_revision != write_revision
-        and (action_type == "create" or (fresh_revision and write_revision != fresh_revision))
+        and (
+            action_type in {"create", "publish"}
+            or (fresh_revision and write_revision != fresh_revision)
+        )
     ):
         verification["error"] = {
             "category": "readback_write_revision_mismatch",
@@ -2811,7 +2835,11 @@ def build_safe_apply_readback_evidence(
     if candidate is None:
         candidate = _first_identity_candidate(readback)
     actual_object_id = _candidate_object_id(candidate) if isinstance(candidate, dict) else ""
-    source_entry = semantic_object_payload(readback)
+    source_entry = (
+        _semantic_object_payload(readback, method=method)
+        if method in {"createDataset", "updateDataset", "createConnection", "updateConnection"}
+        else semantic_object_payload(readback)
+    )
     if not isinstance(source_entry, dict) or actual_object_id != object_id:
         source_entry = deepcopy(candidate) if isinstance(candidate, dict) else {}
     return {
@@ -2888,12 +2916,33 @@ def _semantic_object_payload(value: dict[str, Any], *, method: str) -> Any:
                 create_name = display_value.rsplit("/", 1)[-1]
         if create_name:
             current["name"] = create_name
+    if method in {"createWizardChart", "updateWizardChart"}:
+        current.pop("template", None)
+        data = current.get("data")
+        if isinstance(data, dict):
+            data.pop("version", None)
+            extra_settings = data.get("extraSettings")
+            if (
+                isinstance(extra_settings, dict)
+                and extra_settings.get("indicatorTitleMode") in (None, "")
+            ):
+                extra_settings.pop("indicatorTitleMode", None)
+    if method in {"createEditorChart", "updateEditorChart"}:
+        data = current.get("data")
+        if isinstance(data, dict) and _is_empty_editor_controls(data.get("controls")):
+            data.pop("controls", None)
     return {
         key: deepcopy(item)
         for key, item in sorted(current.items())
         if key not in _SEMANTIC_CONTROL_KEYS
         and key not in _SEMANTIC_VOLATILE_METADATA_KEYS
     }
+
+
+def _is_empty_editor_controls(value: Any) -> bool:
+    return isinstance(value, str) and bool(
+        re.fullmatch(r"\s*module\.exports\s*=\s*\{\s*\}\s*;?\s*", value)
+    )
 
 
 def _semantic_subset(*, actual: Any, expected: Any) -> bool:
@@ -3936,6 +3985,13 @@ def _status_value(value: dict[str, Any]) -> str:
 def _first_identity_candidate(value: dict[str, Any]) -> dict[str, Any]:
     while isinstance(value.get("result"), dict):
         value = value["result"]
+    # Some create methods return the stable identity at the response root and
+    # a nested semantic object without an id. Prefer the stronger root receipt.
+    if _candidate_object_id(value) and any(
+        str(value.get(key) or "").strip()
+        for key in ("revId", "rev_id", "savedId", "saved_id", "publishedId", "published_id")
+    ):
+        return value
     for key in ("entry", "dashboard", "chart", "dataset", "connection", "connector", "report", "object"):
         candidate = value.get(key)
         if isinstance(candidate, dict):

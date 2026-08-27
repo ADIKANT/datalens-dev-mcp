@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/schemas/public-create-manifest.schema.json",
+  "title": "DataLens public create manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "manifest_version", "objects"],
+  "properties": {
+    "schema_id": {"const": "datalens_public_create_manifest"},
+    "manifest_version": {"const": 1},
+    "workbook_id": {"type": "string", "minLength": 1},
+    "objects": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 25,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "object_type", "name", "payload_path"],
+        "properties": {
+          "key": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9._-]{0,63}$"},
+          "object_type": {"enum": ["dataset", "wizard_chart", "editor_chart", "editor_markdown", "dashboard", "ql_chart"]},
+          "route": {"enum": ["dataset", "wizard_native", "editor_advanced", "editor_markdown", "dashboard", "ql_explicit"]},
+          "name": {"type": "string", "minLength": 1},
+          "payload_path": {"type": "string", "minLength": 1},
+          "dependencies": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9._-]{0,63}$"}
+          }
+        }
+      }
+    }
+  }
+}

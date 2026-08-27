@@ -8,6 +8,7 @@ from datalens_dev_mcp.pipeline.dataset_data_contract import (
     resolve_field_guids,
     validate_dataset_data_query,
 )
+from datalens_dev_mcp.pipeline.dataset_parameters import parameter_payload
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
 
 DATE_TYPES = frozenset({"date", "genericdatetime", "datetimetz"})
@@ -25,6 +26,7 @@ class DatasetProbePlanner:
         requested_fields: list[str] | None = None,
         filters: list[dict[str, Any]] | None = None,
         params: list[dict[str, Any]] | None = None,
+        parameter_defaults: dict[str, str | int | float | bool] | None = None,
         limit: int = 100,
     ) -> dict[str, Any]:
         datasets = [
@@ -57,13 +59,18 @@ class DatasetProbePlanner:
                 sort.append({"guid": date, "direction": "desc"})
             sort.append({"guid": unique, "direction": "asc"})
         target = contract.get("target") or {}
+        resolved_params = (
+            list(params)
+            if params is not None
+            else parameter_payload(parameter_defaults or {}, allowed_guids=set(chart_bound_guids))
+        )
         query = {
             "mode": mode,
             "datasetId": str(dataset.get("object_id") or ""),
             "workbookId": str(target.get("workbook_id") or ""),
             "columns": columns,
             "filters": list(filters or []),
-            "params": list(params or []),
+            "params": resolved_params,
             "sort": sort,
             "limit": min(200, max(1, int(limit))),
             "offset": 0,

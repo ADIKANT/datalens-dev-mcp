@@ -32,6 +32,23 @@ dl_task_start(request, run_until="plan_ready")
 proof и stale-plan negative без записи. Точный контракт и команда приведены в
 [`public-autonomy-canary.md`](public-autonomy-canary.md).
 
+### Создание набора объектов в известном воркбуке
+
+Для `create` передайте `context.workbook_id` и относительный к `project_root`
+путь `context.create_manifest`. Manifest версии 1 содержит до 25 объектов с
+типизированными маршрутами, относительными JSON payload-файлами и явными
+зависимостями. Ссылка `${object:<key>}` разрешается только после подтверждённого
+saved readback предыдущего объекта. Server хеширует manifest и payload до первой
+записи, сверяет свежий inventory воркбука и сохраняет progress для безопасного
+resume без повторного create.
+
+Поддерживаются `dataset`, `wizard_chart`, `editor_chart`, `editor_markdown` и
+`dashboard`; `ql_chart` допустим только при прямом запросе QL. Absolute/path
+escape, дрейф payload, неверный порядок зависимостей и неоднозначный resume
+блокируются до следующей записи. Dataset проходит save/readback, но не publish;
+остальные publishable-объекты публикуются только после успешной saved-фазы всей
+связанной группы.
+
 ## Полный цикл
 
 ```text

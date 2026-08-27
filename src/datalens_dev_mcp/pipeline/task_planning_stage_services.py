@@ -19,18 +19,45 @@ def task_planning_stage_services(
     builder = PublicPlanBuilder(journal, contract)
 
     def plan_data_proof(context: dict[str, Any]) -> dict[str, Any]:
+        if str(contract.get("mode") or "") == "create":
+            bundle = read_json(journal.root / "inputs" / "create-bundle.json", {}) or {}
+            if not bundle.get("bundle_hash"):
+                return _receipt(
+                    context,
+                    status="blocked",
+                    missing=["typed_create_manifest"],
+                    reason="create task requires a persisted typed create manifest",
+                )
+            return _receipt(
+                context,
+                status="success",
+                output_hashes={"create_bundle": str(bundle.get("bundle_hash") or "")},
+                observed=[f"create object count={len(bundle.get('objects') or [])}"],
+                reason="create dependencies are declared and data probes are deferred to resolved stages",
+            )
         return context_service.stage_handler(context)
 
     def plan_semantic_change(context: dict[str, Any]) -> dict[str, Any]:
         if str(contract.get("mode") or "") == "create":
+            bundle = read_json(journal.root / "inputs" / "create-bundle.json", {}) or {}
+            try:
+                plan = builder.build_create(create_bundle=bundle)
+            except ValueError as exc:
+                return _receipt(
+                    context,
+                    status="blocked",
+                    missing=["create_object_materialization"],
+                    reason=str(exc),
+                )
             return _receipt(
                 context,
-                status="blocked",
-                missing=["create_object_materialization"],
-                reason=(
-                    "create task cannot be materialized as an existing-object semantic update; "
-                    "a typed create route is required"
-                ),
+                status="success",
+                output_hashes={
+                    "create_bundle": str(bundle.get("bundle_hash") or ""),
+                    "public_plan": str(plan.get("plan_hash") or ""),
+                },
+                observed=[f"safe apply action count={plan.get('safe_apply_action_count', 0)}"],
+                reason="typed create manifest is materialized as an immutable Safe Apply template",
             )
         graph = read_json(journal.target_graph_path, {}) or {}
         baselines = {

@@ -21,6 +21,11 @@ The exact JSON schema is always available through MCP `tools/list`. Technical co
 | `dl_verify` | Check the requested proof target | After planning or execution | `task_id` and optional `proof_target` | Journal, readback, and browser-policy checks · `local` | [Task state](mcp/response_contracts.md#task-level-responses) |
 | `dl_evidence` | Read one bounded task artifact | Inspect a plan, receipt, or evidence fragment | `task_id`, resource URI/section/offset/limit | Bounded excerpt without a heavy inline response · `local` | [Evidence resources](mcp/response_contracts.md#task-level-responses) |
 
+For workbook-scoped creation, `dl_task_start.context` accepts `workbook_id`
+and a relative `create_manifest`. It also publicly describes
+`semantic_changes`, `acceptance`, `scope`, `portfolio_root`, and
+`max_discovery_objects`; the server validates them before plan materialization.
+
 ## Surface profiles
 
 - `autonomous-v2` is the default: eight tools, at most 9 KB in `tools/list`, and at most 1.5 KB of initialization instructions.
