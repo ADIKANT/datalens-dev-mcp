@@ -66,7 +66,7 @@ def validate_corpus(root: Path) -> dict[str, Any]:
         category_coverage[category] = category_coverage.get(category, 0) + 1
     report = {
         "ok": not issues,
-        "schema_id": "session_regression_validation_report",
+        "schema_id": "autonomy_policy_matrix_validation_report",
         "scenario_count": len(cases),
         "category_coverage": dict(sorted(category_coverage.items())),
         "expected_question_count": sum(int(case.get("expected_calls", {}).get("questions", 0)) for case in cases),
@@ -81,7 +81,7 @@ def validate_corpus(root: Path) -> dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate a sanitized DataLens session regression corpus.")
+    parser = argparse.ArgumentParser(description="Validate the static sanitized autonomy policy matrix.")
     parser.add_argument("corpus", type=Path)
     args = parser.parse_args()
     report = validate_corpus(args.corpus.resolve())

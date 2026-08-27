@@ -6,6 +6,7 @@ from typing import Any
 from datalens_dev_mcp.editor.protected_regions import build_protected_regions
 from datalens_dev_mcp.editor.semantic_slots import discover_semantic_slots
 from datalens_dev_mcp.pipeline.patch_preflight import preflight_semantic_patch_batch
+from datalens_dev_mcp.pipeline.semantic_payload import semantic_object_payload
 from datalens_dev_mcp.pipeline.semantic_patch import build_semantic_patch_plan
 
 
@@ -56,7 +57,7 @@ class SemanticChangePlanner:
             if not baseline:
                 issues.append(f"fresh baseline is unavailable for semantic target: {target_id}")
                 continue
-            payload = _object_payload(baseline)
+            payload = semantic_object_payload(baseline)
             tabs = _tabs(payload)
             discovered_slots = {str(item.get("id") or ""): item for item in discover_semantic_slots(tabs)}
             sections: list[dict[str, Any]] = []
@@ -115,7 +116,7 @@ class SemanticChangePlanner:
                     fresh_targets[dependency_id] = {
                         "object_type": str(dependency_node.get("object_type") or ""),
                         "saved_revision": str(dependency_node.get("saved_revision") or ""),
-                        "payload": _object_payload(dependency_baseline),
+                        "payload": semantic_object_payload(dependency_baseline),
                     }
         if issues:
             return {"ok": False, "status": "blocked", "issues": issues}
@@ -174,25 +175,31 @@ def _baseline_for(object_id: str, baselines: dict[str, dict[str, Any]]) -> dict[
     named = next((value for name, value in baselines.items() if f"-{object_id}-" in name), None)
     if named is not None:
         return named
+    identified = next(
+        (value for value in baselines.values() if object_id in _baseline_identity_values(value)),
+        None,
+    )
+    if identified is not None:
+        return identified
     return next((value for value in baselines.values() if _contains_value(value, object_id)), {})
 
 
-def _object_payload(response: dict[str, Any]) -> dict[str, Any]:
+def _baseline_identity_values(response: dict[str, Any]) -> set[str]:
     value: Any = response.get("result") if isinstance(response.get("result"), dict) else response
+    candidates = [value] if isinstance(value, dict) else []
     if isinstance(value, dict):
-        for key in ("dashboard", "chart", "entry"):
-            if isinstance(value.get(key), dict):
-                value = value[key]
-                break
-    if not isinstance(value, dict):
-        return {}
-    entry = dict(value.get("entry") or {}) if isinstance(value.get("entry"), dict) else {}
-    data = value.get("data")
-    if entry:
-        if data is not None:
-            entry["data"] = data
-        return entry
-    return dict(value)
+        candidates.extend(
+            nested
+            for key in ("dashboard", "chart", "entry", "dataset", "connection")
+            if isinstance((nested := value.get(key)), dict)
+        )
+    rows: set[str] = set()
+    for candidate in candidates:
+        entry = candidate.get("entry") if isinstance(candidate.get("entry"), dict) else candidate
+        for key in ("entryId", "dashboardId", "chartId", "datasetId", "connectionId", "object_id"):
+            if entry.get(key):
+                rows.add(str(entry[key]))
+    return rows
 
 
 def _tabs(payload: dict[str, Any]) -> dict[str, str]:

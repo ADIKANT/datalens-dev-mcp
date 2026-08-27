@@ -629,7 +629,10 @@ class RuntimeFirstContractsTests(unittest.TestCase):
     def test_standard_wrapper_exposes_typed_maintenance_evidence_bundle(self):
         from datalens_dev_mcp.server import list_tools
 
-        tool = next(item for item in list_tools() if item["name"] == "dl_run_live_maintenance_update")
+        tool = next(
+            item for item in list_tools("legacy-v1")
+            if item["name"] == "dl_run_live_maintenance_update"
+        )
         properties = tool["inputSchema"]["properties"]
         evidence_schema = properties["maintenance_evidence"]
 

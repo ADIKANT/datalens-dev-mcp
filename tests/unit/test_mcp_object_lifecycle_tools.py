@@ -405,7 +405,7 @@ class McpObjectLifecycleToolTests(unittest.TestCase):
         self.assertEqual(result["contract"]["read_method"], "getDataset")
         self.assertIn("method_schema", result["contract"])
         self.assertNotIn("truncated", result["contract"])
-        schema = next(tool for tool in list_tools() if tool["name"] == "dl_read_object")["inputSchema"]
+        schema = next(tool for tool in list_tools("legacy-v1") if tool["name"] == "dl_read_object")["inputSchema"]
         self.assertEqual(schema["properties"]["inline_char_budget"]["minimum"], 800)
 
     def test_read_object_minimum_budget_covers_every_readable_registered_type(self):

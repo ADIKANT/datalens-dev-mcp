@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 
 from datalens_dev_mcp.pipeline.retry_controller import retry_decision
-from tests.regression._corpus import load_cases
+from tests.regression.policy_matrix._corpus import load_cases
 
 
 REQUIRED_FAILURES = {

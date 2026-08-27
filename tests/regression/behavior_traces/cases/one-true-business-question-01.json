@@ -1,0 +1,51 @@
+{
+  "call_budget": 7,
+  "case_id": "one-true-business-question-01",
+  "context": {
+    "driver": "direct",
+    "semantic_changes": [
+      {
+        "slot_id": "series_label",
+        "target_id": "chart_demo",
+        "value": "Revenue"
+      }
+    ],
+    "variant": 1
+  },
+  "expected_browser_calls": 0,
+  "expected_contract": {
+    "browser_policy": "optional",
+    "operation": "update",
+    "publish": true
+  },
+  "expected_discovery": {
+    "dataset_id": "dataset_demo",
+    "root_id": "dash_demo",
+    "status": "absent"
+  },
+  "expected_plan": {
+    "family": "one-true-business-question",
+    "ql_fallback": false,
+    "target_count": 1,
+    "technology": "editor_advanced"
+  },
+  "expected_proof": {
+    "highest": "source_static"
+  },
+  "expected_provider_calls": [],
+  "expected_questions": 1,
+  "expected_terminal_state": "BLOCKED",
+  "expected_transitions": [],
+  "forbidden_provider_calls": [
+    "deleteDashboard",
+    "updateDataset",
+    "updateConnection"
+  ],
+  "mock_provider_state": {
+    "dataset_behavior": "normal",
+    "variant": 1
+  },
+  "request": "Update the requested business dashboard while preserving all unmentioned content",
+  "source_family": "sanitized-session-derived",
+  "source_signal_hash": "e64cdc184048cd0767e254d09c7820dd0ae25c751e7fef2170ce25a1f8871715"
+}

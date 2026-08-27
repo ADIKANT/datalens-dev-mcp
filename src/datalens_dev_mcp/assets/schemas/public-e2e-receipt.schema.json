@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/public-e2e-receipt.schema.json",
+  "title": "Public autonomy E2E acceptance receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "status", "tool_surface", "case_count", "family_count", "public_call_count", "write_count", "proof_levels", "corpus_sha256"],
+  "properties": {
+    "schema_id": {"const": "datalens_public_e2e_receipt"},
+    "status": {"enum": ["passed", "failed"]},
+    "tool_surface": {"const": "autonomous-v2"},
+    "case_count": {"type": "integer", "minimum": 80},
+    "family_count": {"type": "integer", "minimum": 30},
+    "public_call_count": {"type": "integer", "minimum": 1},
+    "write_count": {"type": "integer", "minimum": 0},
+    "proof_levels": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "corpus_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

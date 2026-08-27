@@ -20,7 +20,11 @@ dl_task_start(request, run_until="plan_ready")
 
 `dl_task_start` компилирует неизменяемые target, delivery, evidence и browser-policy, записывает event chain и обычно останавливается в `PLAN_VALIDATED`. `dl_task_resume` продолжает тот же task после перезапуска процесса; `expected_state` и `expected_hash` предотвращают исполнение по устаревшему состоянию. Review, audit, diagnose и plan-only завершаются без записи. Write-task использует сохранённый Safe Apply plan и не принимает произвольные payload от модели на стадии `dl_execute`.
 
+До материализации плана server-owned workflow обнаруживает зависимости dataset и выполняет bounded `getDatasetData` `context_probe`. Он связывает с планом реальные GUID полей, наблюдаемые диапазоны дат, candidate roles для measure/dimension/selector, sampled domains и ограничения полноты. На стадии `dl_verify` выполняется отдельный fresh `assertion_probe`; unexpected empty переводит workflow в bounded diagnostics. Endpoint не имеет `rev_id` и branch semantics, поэтому server не приписывает ему saved/published доказательство. При недоступности endpoint остаются `source_static`, `fallback_kind` и schema-only limitations, а не ложный live success. Raw rows не возвращаются inline.
+
 Полные планы, receipts и доказательства читаются через `datalens://tasks/<TASK_ID>/...`; inline-ответ остаётся компактным. Для существующих клиентов можно локально включить `DATALENS_MCP_TOOL_SURFACE=legacy-v1`, но новый автономный цикл не требует прямого вызова внутренних инструментов.
+
+Регрессионная проверка разделена точно по назначению. `tests/regression/policy_matrix/` — статическая synthetic matrix для schemas, invariants и privacy. `tests/regression/behavior_traces/` — 40 sanitized behavior families / 80 исполняемых variants, которые проходят только через публичный JSON-RPC `tools/call` в профиле `autonomous-v2`. Raw session archive используется только offline builder-ом и не входит в package. Проверки запускаются `scripts/validate_behavior_trace_corpus.py` и `scripts/run_public_autonomy_acceptance.py`.
 
 ## Полный цикл
 

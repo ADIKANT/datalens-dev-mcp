@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datalens_dev_mcp.pipeline.object_action_mapper import map_materialized_action
+from datalens_dev_mcp.pipeline.object_action_mapper import map_materialized_action, semantic_fresh_read_spec
 from datalens_dev_mcp.pipeline.safe_apply import create_safe_apply_plan
 
 
@@ -50,3 +50,27 @@ def test_dashboard_action_never_uses_dashboard_id_as_target_chart_id() -> None:
     assert action["method"] == "updateDashboard"
     assert plan["target_lock"]["target_dashboard_id"] == "dash_demo"
     assert plan["target_lock"]["target_chart_id"] == ""
+
+
+def test_semantic_dependency_reads_preserve_real_branch_contracts() -> None:
+    chart = semantic_fresh_read_spec(
+        object_id="chart_demo",
+        object_type="editor_chart",
+        workbook_id="book_demo",
+    )
+    dataset = semantic_fresh_read_spec(
+        object_id="dataset_demo",
+        object_type="dataset",
+        workbook_id="book_demo",
+    )
+    assert chart == {
+        "method": "getEditorChart",
+        "payload": {"chartId": "chart_demo", "branch": "saved"},
+        "object_type": "editor_chart",
+    }
+    assert dataset == {
+        "method": "getDataset",
+        "payload": {"datasetId": "dataset_demo", "workbookId": "book_demo"},
+        "object_type": "dataset",
+    }
+    assert "branch" not in dataset["payload"]

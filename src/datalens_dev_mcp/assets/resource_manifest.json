@@ -1,5 +1,5 @@
 {
-  "resource_count": 317,
+  "resource_count": 319,
   "resources": [
     {
       "bytes": 15842,
@@ -120,6 +120,11 @@
       "bytes": 1309,
       "path": "schemas/baseline_diff_contract.schema.json",
       "sha256": "e5816a2ee65ad7efb86e859a2e456719a717d0236e76b123887c2ab64bc87ab6"
+    },
+    {
+      "bytes": 1786,
+      "path": "schemas/behavior-trace-case.schema.json",
+      "sha256": "71e380a31770b98d5752d703f391e0213f2c2bd3c6ea40d4a5dbea26fa357f2d"
     },
     {
       "bytes": 425,
@@ -510,6 +515,11 @@
       "bytes": 647,
       "path": "schemas/protected-region.schema.json",
       "sha256": "ce6463cbd9d90d4ba9e06fde66c89352f8db0f829963d76223bf544636dc540e"
+    },
+    {
+      "bytes": 956,
+      "path": "schemas/public-e2e-receipt.schema.json",
+      "sha256": "8415205f39d5aa03b44d3e2e95640716f6c43e433b53e4d7b675a385e5a233c9"
     },
     {
       "bytes": 2338,

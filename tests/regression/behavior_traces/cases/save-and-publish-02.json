@@ -1,0 +1,60 @@
+{
+  "call_budget": 7,
+  "case_id": "save-and-publish-02",
+  "context": {
+    "driver": "direct",
+    "semantic_changes": [
+      {
+        "slot_id": "series_label",
+        "target_id": "chart_demo",
+        "value": "Revenue"
+      }
+    ],
+    "variant": 2
+  },
+  "expected_browser_calls": 0,
+  "expected_contract": {
+    "browser_policy": "optional",
+    "operation": "update",
+    "publish": true
+  },
+  "expected_discovery": {
+    "dataset_id": "dataset_demo",
+    "root_id": "dash_demo",
+    "status": "bound"
+  },
+  "expected_plan": {
+    "family": "save-and-publish",
+    "ql_fallback": false,
+    "target_count": 1,
+    "technology": "editor_advanced"
+  },
+  "expected_proof": {
+    "highest": "publish_readback"
+  },
+  "expected_provider_calls": [
+    "getDashboard",
+    "getDataset",
+    "getDatasetData",
+    "getEditorChart",
+    "getWorkbookEntries",
+    "updateEditorChart"
+  ],
+  "expected_questions": 0,
+  "expected_terminal_state": "COMPLETED",
+  "expected_transitions": [
+    "RESOLVED -> BASELINE_READ"
+  ],
+  "forbidden_provider_calls": [
+    "deleteDashboard",
+    "updateDataset",
+    "updateConnection"
+  ],
+  "mock_provider_state": {
+    "dataset_behavior": "normal",
+    "variant": 2
+  },
+  "request": "Update dashboard https://datalens.example/dash_demo while preserving unmentioned content; replay the sanitized save and publish behavior, then save and publish",
+  "source_family": "sanitized-session-derived",
+  "source_signal_hash": "abb8acac8be4d858b66aa9150e5518ff81f53d93e7cdc11dacf4cf281c2c1fa0"
+}

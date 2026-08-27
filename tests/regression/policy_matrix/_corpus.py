@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 
-CORPUS_ROOT = Path(__file__).with_name("sessions")
+CORPUS_ROOT = Path(__file__).with_name("corpus")
 
 
 def load_cases() -> list[dict[str, Any]]:

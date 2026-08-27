@@ -1540,7 +1540,7 @@ class PostLiveToolSurfaceTests(unittest.TestCase):
     def test_new_hardening_tools_are_registered(self):
         from datalens_dev_mcp.server import list_tools
 
-        tools = {tool["name"] for tool in list_tools()}
+        tools = {tool["name"] for tool in list_tools("legacy-v1")}
 
         self.assertTrue(
             {

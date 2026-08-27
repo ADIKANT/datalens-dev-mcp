@@ -1,0 +1,60 @@
+{
+  "call_budget": 7,
+  "case_id": "update-existing-dashboard-01",
+  "context": {
+    "driver": "direct",
+    "semantic_changes": [
+      {
+        "slot_id": "series_label",
+        "target_id": "chart_demo",
+        "value": "Revenue"
+      }
+    ],
+    "variant": 1
+  },
+  "expected_browser_calls": 0,
+  "expected_contract": {
+    "browser_policy": "optional",
+    "operation": "update",
+    "publish": true
+  },
+  "expected_discovery": {
+    "dataset_id": "dataset_demo",
+    "root_id": "dash_demo",
+    "status": "bound"
+  },
+  "expected_plan": {
+    "family": "update-existing-dashboard",
+    "ql_fallback": false,
+    "target_count": 1,
+    "technology": "editor_advanced"
+  },
+  "expected_proof": {
+    "highest": "publish_readback"
+  },
+  "expected_provider_calls": [
+    "getDashboard",
+    "getDataset",
+    "getDatasetData",
+    "getEditorChart",
+    "getWorkbookEntries",
+    "updateEditorChart"
+  ],
+  "expected_questions": 0,
+  "expected_terminal_state": "COMPLETED",
+  "expected_transitions": [
+    "RESOLVED -> BASELINE_READ"
+  ],
+  "forbidden_provider_calls": [
+    "deleteDashboard",
+    "updateDataset",
+    "updateConnection"
+  ],
+  "mock_provider_state": {
+    "dataset_behavior": "normal",
+    "variant": 1
+  },
+  "request": "Update dashboard https://datalens.example/dash_demo while preserving unmentioned content; replay the sanitized update existing dashboard behavior, then save and publish",
+  "source_family": "sanitized-session-derived",
+  "source_signal_hash": "f71712614f29e280e0ce2e521ae31650d11e5d85719383ad8588703d7d651ac1"
+}

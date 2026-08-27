@@ -91,7 +91,7 @@ def source_documents(path: Path) -> tuple[list[tuple[str, str]], str]:
             digest.update(raw)
             documents.append((f"source-{len(documents) + 1:04d}", raw[:1_500_000].decode("utf-8", errors="ignore")))
         return documents, digest.hexdigest()
-    raise FileNotFoundError(f"session source is not a ZIP archive or directory: {path}")
+    raise FileNotFoundError(f"offline source is not a ZIP archive or directory: {path}")
 
 
 def observed_category_counts(documents: Iterable[tuple[str, str]]) -> dict[str, int]:
@@ -175,7 +175,7 @@ def recovery_for(scenario: str) -> str:
     }.get(scenario, "continue_deterministic_workflow")
 
 
-def build_corpus(source: Path, output: Path, receipt: Path) -> dict[str, Any]:
+def build_policy_matrix(source: Path, output: Path, receipt: Path) -> dict[str, Any]:
     documents, source_hash = source_documents(source)
     if not documents:
         raise ValueError("session source contains no readable session documents")
@@ -196,7 +196,7 @@ def build_corpus(source: Path, output: Path, receipt: Path) -> dict[str, Any]:
         )
     category_coverage = {category: sum(case["category"] == category for case in cases) for category in SCENARIOS}
     report = {
-        "schema_id": "session_regression_corpus_report",
+        "schema_id": "autonomy_policy_matrix_report",
         "source_session_count": len(documents),
         "scenario_count": len(cases),
         "category_coverage": category_coverage,
@@ -215,7 +215,7 @@ def build_corpus(source: Path, output: Path, receipt: Path) -> dict[str, Any]:
     receipt.write_text(
         json.dumps(
             {
-                "schema_id": "local_session_source_receipt",
+                "schema_id": "local_autonomy_policy_matrix_source_receipt",
                 "source_sha256": source_hash,
                 "session_count": len(documents),
                 "corpus_sha256": report["case_set_sha256"],
@@ -230,12 +230,16 @@ def build_corpus(source: Path, output: Path, receipt: Path) -> dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build a synthetic regression corpus from an external session archive.")
-    parser.add_argument("--sessions", required=True, type=Path)
+    parser = argparse.ArgumentParser(description="Build the static autonomy policy matrix from an offline source.")
+    parser.add_argument("--source", "--sessions", dest="source", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
-    parser.add_argument("--receipt", type=Path, default=Path("artifacts/session_regression/source-receipt.json"))
+    parser.add_argument(
+        "--receipt",
+        type=Path,
+        default=Path("artifacts/autonomy_policy_matrix/source-receipt.json"),
+    )
     args = parser.parse_args()
-    report = build_corpus(args.sessions.resolve(), args.output.resolve(), args.receipt.resolve())
+    report = build_policy_matrix(args.source.resolve(), args.output.resolve(), args.receipt.resolve())
     print(json.dumps({"ok": True, **report}, sort_keys=True))
     return 0
 

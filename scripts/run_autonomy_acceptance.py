@@ -40,7 +40,13 @@ def main() -> int:
                 "tests/integration/test_compact_task_context.py",
             ),
         },
-        {"name": "session-regression", "command": py("-m", "pytest", "-q", "tests/regression")},
+        {
+            "name": "public-behavior-regression",
+            "commands": [
+                py("scripts/validate_behavior_trace_corpus.py"),
+                py("scripts/run_public_autonomy_acceptance.py"),
+            ],
+        },
         {
             "name": "stdio-task-flow",
             "commands": [

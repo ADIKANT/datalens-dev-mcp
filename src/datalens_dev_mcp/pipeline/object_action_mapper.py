@@ -15,6 +15,37 @@ ACTION_ROUTES = {
     "ql_chart": ("getQLChart", "updateQLChart", "chartId", "update_ql_chart"),
 }
 
+SEMANTIC_READ_ROUTES = {
+    "dashboard": ("getDashboard", "dashboardId", True),
+    "chart": ("getEditorChart", "chartId", True),
+    "editor_chart": ("getEditorChart", "chartId", True),
+    "editor_table": ("getEditorChart", "chartId", True),
+    "control": ("getEditorChart", "chartId", True),
+    "markdown": ("getEditorChart", "chartId", True),
+    "wizard_chart": ("getWizardChart", "chartId", True),
+    "ql_chart": ("getQLChart", "chartId", True),
+    "dataset": ("getDataset", "datasetId", False),
+    "connection": ("getConnection", "connectionId", False),
+}
+
+
+def semantic_fresh_read_spec(
+    *,
+    object_id: str,
+    object_type: str,
+    workbook_id: str,
+) -> dict[str, Any]:
+    route = SEMANTIC_READ_ROUTES.get(str(object_type or ""))
+    if route is None:
+        raise ValueError(f"unsupported object type for semantic fresh read: {object_type}")
+    method, id_key, branch_aware = route
+    payload = {id_key: object_id}
+    if branch_aware:
+        payload["branch"] = "saved"
+    elif workbook_id:
+        payload["workbookId"] = workbook_id
+    return {"method": method, "payload": payload, "object_type": object_type}
+
 
 def map_materialized_action(
     *,

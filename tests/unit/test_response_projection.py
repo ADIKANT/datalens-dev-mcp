@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -139,7 +140,8 @@ class ResponseProjectionTests(unittest.TestCase):
             return full_response
 
         with tempfile.TemporaryDirectory() as tmp:
-            server = JsonRpcServer(project_root=tmp)
+            with patch.dict(os.environ, {"DATALENS_MCP_TOOL_SURFACE": "legacy-v1"}):
+                server = JsonRpcServer(project_root=tmp)
             with patch.dict(
                 server_module.TOOLS,
                 {"dl_generate_editor_bundle": fake_generate_editor_bundle},
@@ -209,7 +211,8 @@ class ResponseProjectionTests(unittest.TestCase):
             return full_response
 
         with tempfile.TemporaryDirectory() as tmp:
-            server = JsonRpcServer(project_root=tmp)
+            with patch.dict(os.environ, {"DATALENS_MCP_TOOL_SURFACE": "legacy-v1"}):
+                server = JsonRpcServer(project_root=tmp)
             with patch.dict(
                 server_module.TOOLS,
                 {"dl_execute_safe_apply": fake_execute_safe_apply},

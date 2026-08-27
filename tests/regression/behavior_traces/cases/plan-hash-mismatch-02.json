@@ -1,0 +1,56 @@
+{
+  "call_budget": 7,
+  "case_id": "plan-hash-mismatch-02",
+  "context": {
+    "driver": "tamper_plan_then_execute",
+    "semantic_changes": [
+      {
+        "slot_id": "series_label",
+        "target_id": "chart_demo",
+        "value": "Revenue"
+      }
+    ],
+    "variant": 2
+  },
+  "expected_browser_calls": 0,
+  "expected_contract": {
+    "browser_policy": "optional",
+    "operation": "update",
+    "publish": true
+  },
+  "expected_discovery": {
+    "dataset_id": "dataset_demo",
+    "root_id": "dash_demo",
+    "status": "bound"
+  },
+  "expected_plan": {
+    "family": "plan-hash-mismatch",
+    "ql_fallback": false,
+    "target_count": 1,
+    "technology": "editor_advanced"
+  },
+  "expected_proof": {
+    "highest": "source_static"
+  },
+  "expected_provider_calls": [
+    "getDashboard",
+    "getDataset",
+    "getEditorChart",
+    "getWorkbookEntries"
+  ],
+  "expected_questions": 0,
+  "expected_terminal_state": "BLOCKED",
+  "expected_transitions": [],
+  "forbidden_provider_calls": [
+    "deleteDashboard",
+    "updateDataset",
+    "updateConnection"
+  ],
+  "mock_provider_state": {
+    "dataset_behavior": "normal",
+    "variant": 2
+  },
+  "request": "Update dashboard https://datalens.example/dash_demo while preserving unmentioned content; replay the sanitized plan hash mismatch behavior, then save and publish",
+  "source_family": "sanitized-session-derived",
+  "source_signal_hash": "ec87a60df1c40d04cecaa8263649350362ef1fbbcf7abdb0e339c3dd2b226d80"
+}

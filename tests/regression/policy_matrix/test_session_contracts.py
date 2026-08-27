@@ -7,7 +7,7 @@ from jsonschema import Draft202012Validator
 
 from datalens_dev_mcp.runtime_resources import resource_json
 from datalens_dev_mcp.serialization import stable_sha256
-from tests.regression._corpus import CORPUS_ROOT, load_cases
+from tests.regression.policy_matrix._corpus import CORPUS_ROOT, load_cases
 
 
 class SessionContractRegressionTests(unittest.TestCase):

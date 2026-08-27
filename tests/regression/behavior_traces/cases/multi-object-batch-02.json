@@ -1,0 +1,66 @@
+{
+  "call_budget": 7,
+  "case_id": "multi-object-batch-02",
+  "context": {
+    "driver": "direct",
+    "semantic_changes": [
+      {
+        "slot_id": "series_label",
+        "target_id": "chart_demo",
+        "value": "Revenue"
+      },
+      {
+        "slot_id": "series_label",
+        "target_id": "chart_demo_2",
+        "value": "Margin"
+      }
+    ],
+    "variant": 2
+  },
+  "expected_browser_calls": 0,
+  "expected_contract": {
+    "browser_policy": "optional",
+    "operation": "update",
+    "publish": true
+  },
+  "expected_discovery": {
+    "dataset_id": "dataset_demo",
+    "root_id": "dash_demo",
+    "status": "bound"
+  },
+  "expected_plan": {
+    "family": "multi-object-batch",
+    "ql_fallback": false,
+    "target_count": 2,
+    "technology": "editor_advanced"
+  },
+  "expected_proof": {
+    "highest": "publish_readback"
+  },
+  "expected_provider_calls": [
+    "getDashboard",
+    "getDataset",
+    "getDatasetData",
+    "getEditorChart",
+    "getWorkbookEntries",
+    "updateEditorChart"
+  ],
+  "expected_questions": 0,
+  "expected_terminal_state": "COMPLETED",
+  "expected_transitions": [
+    "RESOLVED -> BASELINE_READ"
+  ],
+  "forbidden_provider_calls": [
+    "deleteDashboard",
+    "updateDataset",
+    "updateConnection"
+  ],
+  "mock_provider_state": {
+    "dataset_behavior": "normal",
+    "second_chart": true,
+    "variant": 2
+  },
+  "request": "Update dashboard https://datalens.example/dash_demo while preserving unmentioned content; replay the sanitized multi object batch behavior, then save and publish",
+  "source_family": "sanitized-session-derived",
+  "source_signal_hash": "9e3a76ec722da2940b2fd335e5ea09042550db04102fda2bbc012c5455ed08e8"
+}

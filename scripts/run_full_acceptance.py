@@ -50,7 +50,14 @@ def main() -> int:
             "command": py("-m", "pytest", "-q", "tests/integration"),
             "timeout_sec": 600,
         },
-        {"name": "regression-sessions", "command": py("-m", "pytest", "-q", "tests/regression"), "timeout_sec": 300},
+        {
+            "name": "regression-public-behaviors",
+            "commands": [
+                py("scripts/validate_behavior_trace_corpus.py"),
+                py("-m", "pytest", "-q", "tests/regression"),
+            ],
+            "timeout_sec": 600,
+        },
         {
             "name": "release-surface",
             "commands": [

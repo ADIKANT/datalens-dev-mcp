@@ -89,3 +89,40 @@ def test_semantic_planner_blocks_noop_and_unallowed_tab() -> None:
     assert noop["status"] == "NO_CHANGE_REQUIRED"
     assert outside["ok"] is False
     assert "outside allowed scope" in outside["issues"][0]
+
+
+def test_hashed_baseline_names_match_direct_object_identity_before_graph_references() -> None:
+    second = _chart_payload("Old secondary")
+    second["result"]["chart"]["entry"]["entryId"] = "chart_demo_2"
+    graph = _graph()
+    graph["nodes"].insert(
+        1,
+        {"object_type": "editor_chart", "object_id": "chart_demo_2", "saved_revision": "r3"},
+    )
+    graph["edges"].insert(0, {"source": "dash_demo", "target": "chart_demo_2", "relation": "contains"})
+    dashboard = {
+        "result": {
+            "dashboard": {
+                "entry": {"entryId": "dash_demo", "revId": "d1"},
+                "data": {"items": [{"chartId": "chart_demo_2"}]},
+            }
+        }
+    }
+    contract = _contract()
+    contract["scope"]["allowed_objects"].append("chart_demo_2")
+    result = SemanticChangePlanner().plan(
+        contract,
+        target_graph=graph,
+        baselines={
+            "baseline-111.json": _chart_payload(),
+            "baseline-222.json": dashboard,
+            "baseline-333.json": second,
+            "baseline-444.json": _dataset_payload(),
+        },
+        changes=[
+            {"target_id": "chart_demo", "slot_id": "series_label", "value": "Revenue"},
+            {"target_id": "chart_demo_2", "slot_id": "series_label", "value": "Margin"},
+        ],
+    )
+    assert result["ok"] is True
+    assert set(result["materialized_payloads"]) == {"chart_demo", "chart_demo_2"}

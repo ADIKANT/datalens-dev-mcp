@@ -38,6 +38,7 @@ from datalens_dev_mcp.pipeline.patch_preflight import (
     verify_semantic_patch_readback,
 )
 from datalens_dev_mcp.pipeline.semantic_patch import canonical_hash, validate_semantic_patch_plan
+from datalens_dev_mcp.pipeline.semantic_payload import semantic_object_payload
 from datalens_dev_mcp.pipeline.noop_guard import evaluate_noop_attempt
 from datalens_dev_mcp.pipeline.user_request import normalize_user_request
 from datalens_dev_mcp.pipeline.wizard_contracts import (
@@ -1418,6 +1419,7 @@ def preflight_semantic_patch_runtime(plan: dict[str, Any], *, client: Any) -> di
     """Read and preflight all semantic targets before Safe Apply can dispatch a write."""
 
     fresh_targets: dict[str, dict[str, Any]] = {}
+    raw_fresh_targets: dict[str, dict[str, Any]] = {}
     fresh_by_action: dict[int, dict[str, Any]] = {}
     read_issues: list[str] = []
     for index, action in enumerate(plan.get("actions") or []):
@@ -1427,13 +1429,32 @@ def preflight_semantic_patch_runtime(plan: dict[str, Any], *, client: Any) -> di
         targets = semantic_plan.get("targets") or []
         read_specs = action.get("semantic_fresh_reads")
         read_specs = read_specs if isinstance(read_specs, dict) else {}
-        for target in targets:
-            object_id = str(target.get("object_id") or "")
+        target_by_id = {str(target.get("object_id") or ""): target for target in targets}
+        required_ids = list(target_by_id)
+        required_ids.extend(
+            dependency_id
+            for target in targets
+            for dependency_id in (str(item) for item in target.get("dependencies") or [])
+            if dependency_id not in required_ids
+        )
+        for object_id in required_ids:
+            target = target_by_id.get(object_id) or {}
             spec = read_specs.get(object_id) if isinstance(read_specs.get(object_id), dict) else {}
-            method = str(spec.get("method") or action.get("read_method") or action.get("fresh_read_method") or "")
-            payload = spec.get("payload") or action.get("fresh_read_payload") or {}
+            is_action_target = (
+                object_id == str(action.get("object_id") or "")
+                or (not action.get("object_id") and len(targets) == 1)
+            )
+            method = str(
+                spec.get("method")
+                or (action.get("read_method") if is_action_target else "")
+                or (action.get("fresh_read_method") if is_action_target else "")
+                or ""
+            )
+            payload = spec.get("payload") or (action.get("fresh_read_payload") if is_action_target else {}) or {}
             if not method:
                 read_issues.append(f"action {index} target {object_id}: semantic fresh read method is required")
+                continue
+            if object_id in fresh_targets:
                 continue
             try:
                 fresh = _exclusive_read(client, method, payload)
@@ -1443,12 +1464,14 @@ def preflight_semantic_patch_runtime(plan: dict[str, Any], *, client: Any) -> di
                 )
                 continue
             fresh_targets[object_id] = {
-                "object_type": str(target.get("object_type") or ""),
+                "object_type": str(spec.get("object_type") or target.get("object_type") or ""),
                 "saved_revision": _revision_id(fresh),
                 "payload": _semantic_content_payload(fresh),
             }
-            if len(targets) == 1:
-                fresh_by_action[index] = fresh
+            raw_fresh_targets[object_id] = fresh
+        action_object_id = str(action.get("object_id") or "")
+        if action_object_id in raw_fresh_targets:
+            fresh_by_action[index] = raw_fresh_targets[action_object_id]
     if read_issues:
         return {
             "ok": False,
@@ -1465,10 +1488,7 @@ def preflight_semantic_patch_runtime(plan: dict[str, Any], *, client: Any) -> di
 
 
 def _semantic_content_payload(readback: dict[str, Any]) -> dict[str, Any]:
-    payload = deepcopy(readback)
-    for key in ("revId", "revision", "revisionId", "updatedAt", "createdAt"):
-        payload.pop(key, None)
-    return payload
+    return semantic_object_payload(readback)
 
 
 def _exclusive_read(client: Any, method: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -2791,6 +2811,9 @@ def build_safe_apply_readback_evidence(
     if candidate is None:
         candidate = _first_identity_candidate(readback)
     actual_object_id = _candidate_object_id(candidate) if isinstance(candidate, dict) else ""
+    source_entry = semantic_object_payload(readback)
+    if not isinstance(source_entry, dict) or actual_object_id != object_id:
+        source_entry = deepcopy(candidate) if isinstance(candidate, dict) else {}
     return {
         "object_id": object_id,
         "actual_object_id": actual_object_id,
@@ -2799,7 +2822,7 @@ def build_safe_apply_readback_evidence(
         "payload_hash": serialized_metadata(sanitize_response(readback))["sha256"],
         "content_equivalent": bool(comparison["equivalent"] and actual_object_id == object_id),
         "diff_paths": list(comparison["diff_paths"]),
-        "entry": deepcopy(candidate) if isinstance(candidate, dict) else {},
+        "entry": source_entry,
     }
 
 
@@ -2853,12 +2876,7 @@ def _semantic_object_payload(value: dict[str, Any], *, method: str) -> Any:
         elif isinstance(current.get("connection"), dict):
             current = current["connection"]
     else:
-        for key in ("entry", "dashboard", "chart", "object"):
-            nested = current.get(key)
-            if not isinstance(nested, dict):
-                continue
-            current = nested.get("entry") if isinstance(nested.get("entry"), dict) else nested
-            break
+        current = semantic_object_payload(current)
 
     if not isinstance(current, dict):
         return current
