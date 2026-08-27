@@ -1,0 +1,58 @@
+{
+  "call_budget": 7,
+  "case_id": "get-dataset-data-fallback-02",
+  "context": {
+    "driver": "direct",
+    "semantic_changes": [
+      {
+        "slot_id": "series_label",
+        "target_id": "chart_demo",
+        "value": "Revenue"
+      }
+    ],
+    "variant": 2
+  },
+  "expected_browser_calls": 0,
+  "expected_contract": {
+    "browser_policy": "optional",
+    "operation": "update",
+    "publish": true
+  },
+  "expected_discovery": {
+    "dataset_id": "dataset_demo",
+    "root_id": "dash_demo",
+    "status": "bound"
+  },
+  "expected_plan": {
+    "family": "get-dataset-data-fallback",
+    "ql_fallback": false,
+    "target_count": 1,
+    "technology": "editor_advanced"
+  },
+  "expected_proof": {
+    "highest": "source_static"
+  },
+  "expected_provider_calls": [
+    "getDashboard",
+    "getDataset",
+    "getDatasetData",
+    "getEditorChart",
+    "getWorkbookEntries",
+    "updateEditorChart"
+  ],
+  "expected_questions": 0,
+  "expected_terminal_state": "BLOCKED",
+  "expected_transitions": [],
+  "forbidden_provider_calls": [
+    "deleteDashboard",
+    "updateDataset",
+    "updateConnection"
+  ],
+  "mock_provider_state": {
+    "dataset_behavior": "unavailable",
+    "variant": 2
+  },
+  "request": "Update dashboard https://datalens.example/dash_demo while preserving unmentioned content; replay the sanitized get dataset data fallback behavior, then save and publish",
+  "source_family": "sanitized-session-derived",
+  "source_signal_hash": "e489075e4c0dff4a31bc93afb657f022907e41e05d755181150354f2636502ec"
+}

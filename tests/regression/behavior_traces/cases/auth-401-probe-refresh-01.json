@@ -1,0 +1,55 @@
+{
+  "call_budget": 7,
+  "case_id": "auth-401-probe-refresh-01",
+  "context": {
+    "driver": "direct",
+    "semantic_changes": [
+      {
+        "slot_id": "series_label",
+        "target_id": "chart_demo",
+        "value": "Revenue"
+      }
+    ],
+    "variant": 1
+  },
+  "expected_browser_calls": 0,
+  "expected_contract": {
+    "browser_policy": "optional",
+    "operation": "update",
+    "publish": true
+  },
+  "expected_discovery": {
+    "dataset_id": "dataset_demo",
+    "root_id": "dash_demo",
+    "status": "absent"
+  },
+  "expected_plan": {
+    "family": "auth-401-probe-refresh",
+    "ql_fallback": false,
+    "target_count": 1,
+    "technology": "editor_advanced"
+  },
+  "expected_proof": {
+    "highest": "source_static"
+  },
+  "expected_provider_calls": [
+    "getDashboard"
+  ],
+  "expected_questions": 0,
+  "expected_terminal_state": "BLOCKED",
+  "expected_transitions": [],
+  "forbidden_provider_calls": [
+    "deleteDashboard",
+    "updateDataset",
+    "updateConnection"
+  ],
+  "mock_provider_state": {
+    "dataset_behavior": "normal",
+    "fail_read_method": "getDashboard",
+    "failure_kind": "401",
+    "variant": 1
+  },
+  "request": "Update dashboard https://datalens.example/dash_demo while preserving unmentioned content; replay the sanitized auth 401 probe refresh behavior, then save and publish",
+  "source_family": "sanitized-session-derived",
+  "source_signal_hash": "438db0cf8130a0f1cfe364fa2c39702e7e1907b12db2b6f8e0049dc12f10f2eb"
+}

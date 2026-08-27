@@ -1,0 +1,51 @@
+{
+  "call_budget": 7,
+  "case_id": "review-current-dashboard-01",
+  "context": {
+    "driver": "direct",
+    "semantic_changes": [
+      {
+        "slot_id": "series_label",
+        "target_id": "chart_demo",
+        "value": "Revenue"
+      }
+    ],
+    "variant": 1
+  },
+  "expected_browser_calls": 0,
+  "expected_contract": {
+    "browser_policy": "forbidden",
+    "operation": "review",
+    "publish": false
+  },
+  "expected_discovery": {
+    "dataset_id": "dataset_demo",
+    "root_id": "dash_demo",
+    "status": "absent"
+  },
+  "expected_plan": {
+    "family": "review-current-dashboard",
+    "ql_fallback": false,
+    "target_count": 1,
+    "technology": "editor_advanced"
+  },
+  "expected_proof": {
+    "highest": "source_static"
+  },
+  "expected_provider_calls": [],
+  "expected_questions": 1,
+  "expected_terminal_state": "BLOCKED",
+  "expected_transitions": [],
+  "forbidden_provider_calls": [
+    "deleteDashboard",
+    "updateDataset",
+    "updateConnection"
+  ],
+  "mock_provider_state": {
+    "dataset_behavior": "normal",
+    "variant": 1
+  },
+  "request": "Review the current DataLens dashboard and verify it without browser",
+  "source_family": "sanitized-session-derived",
+  "source_signal_hash": "d7f8fd7f6a69a0d5b7d5ef856970efc25b86761a652ff775b25340f425e74ce7"
+}

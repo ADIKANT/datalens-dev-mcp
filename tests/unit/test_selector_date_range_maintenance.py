@@ -435,7 +435,7 @@ class SelectorDateRangeMaintenanceTests(unittest.TestCase):
 
         tool = next(
             item
-            for item in list_tools()
+            for item in list_tools("legacy-v1")
             if item["name"] == "dl_create_safe_apply_plan"
         )
         maintenance = tool["inputSchema"]["properties"]["maintenance_contract"]

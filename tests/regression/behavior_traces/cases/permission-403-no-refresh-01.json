@@ -1,0 +1,55 @@
+{
+  "call_budget": 7,
+  "case_id": "permission-403-no-refresh-01",
+  "context": {
+    "driver": "direct",
+    "semantic_changes": [
+      {
+        "slot_id": "series_label",
+        "target_id": "chart_demo",
+        "value": "Revenue"
+      }
+    ],
+    "variant": 1
+  },
+  "expected_browser_calls": 0,
+  "expected_contract": {
+    "browser_policy": "optional",
+    "operation": "update",
+    "publish": true
+  },
+  "expected_discovery": {
+    "dataset_id": "dataset_demo",
+    "root_id": "dash_demo",
+    "status": "absent"
+  },
+  "expected_plan": {
+    "family": "permission-403-no-refresh",
+    "ql_fallback": false,
+    "target_count": 1,
+    "technology": "editor_advanced"
+  },
+  "expected_proof": {
+    "highest": "source_static"
+  },
+  "expected_provider_calls": [
+    "getDashboard"
+  ],
+  "expected_questions": 0,
+  "expected_terminal_state": "BLOCKED",
+  "expected_transitions": [],
+  "forbidden_provider_calls": [
+    "deleteDashboard",
+    "updateDataset",
+    "updateConnection"
+  ],
+  "mock_provider_state": {
+    "dataset_behavior": "normal",
+    "fail_read_method": "getDashboard",
+    "failure_kind": "403",
+    "variant": 1
+  },
+  "request": "Update https://datalens.example/dash_demo, preserve unmentioned content, then save and publish",
+  "source_family": "sanitized-session-derived",
+  "source_signal_hash": "e97a089d10813072c85e6dca3892625aaf5df9f186aae0fdf568d121416ceb2f"
+}

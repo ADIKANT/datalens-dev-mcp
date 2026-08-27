@@ -98,7 +98,8 @@ class DatasetDataValidationIntegrationTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertFalse(result["live_data_verified"])
         self.assertEqual(result["status"], "insufficient_evidence")
-        self.assertEqual(result["proof_level"], "schema_static_fallback")
+        self.assertEqual(result["proof_level"], "source_static")
+        self.assertEqual(result["fallback_kind"], "dataset_schema_only")
         self.assertTrue(all(item["status"] == "insufficient_evidence" for item in result["results"]))
 
 

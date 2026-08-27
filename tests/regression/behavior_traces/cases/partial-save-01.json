@@ -1,0 +1,64 @@
+{
+  "call_budget": 7,
+  "case_id": "partial-save-01",
+  "context": {
+    "driver": "direct",
+    "semantic_changes": [
+      {
+        "slot_id": "series_label",
+        "target_id": "chart_demo",
+        "value": "Revenue"
+      },
+      {
+        "slot_id": "series_label",
+        "target_id": "chart_demo_2",
+        "value": "Margin"
+      }
+    ],
+    "variant": 1
+  },
+  "expected_browser_calls": 0,
+  "expected_contract": {
+    "browser_policy": "optional",
+    "operation": "update",
+    "publish": true
+  },
+  "expected_discovery": {
+    "dataset_id": "dataset_demo",
+    "root_id": "dash_demo",
+    "status": "bound"
+  },
+  "expected_plan": {
+    "family": "partial-save",
+    "ql_fallback": false,
+    "target_count": 2,
+    "technology": "editor_advanced"
+  },
+  "expected_proof": {
+    "highest": "source_static"
+  },
+  "expected_provider_calls": [
+    "getDashboard",
+    "getDataset",
+    "getEditorChart",
+    "getWorkbookEntries"
+  ],
+  "expected_questions": 0,
+  "expected_terminal_state": "BLOCKED",
+  "expected_transitions": [],
+  "forbidden_provider_calls": [
+    "deleteDashboard",
+    "updateDataset",
+    "updateConnection"
+  ],
+  "mock_provider_state": {
+    "dataset_behavior": "normal",
+    "fail_write_number": 2,
+    "second_chart": true,
+    "variant": 1,
+    "write_failure_kind": "timeout"
+  },
+  "request": "Update dashboard https://datalens.example/dash_demo while preserving unmentioned content; replay the sanitized partial save behavior, then save and publish",
+  "source_family": "sanitized-session-derived",
+  "source_signal_hash": "8ef9e63dab4f57c0793119688e0cb37f7218bedeecba71fb8844c1d29c24118f"
+}

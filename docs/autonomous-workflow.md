@@ -9,3 +9,18 @@ Browser and QL are explicit-intent capabilities. A browser-forbidden contract pe
 Failures follow one recovery transition. Safe reads may retry within a budget. An ambiguous write is reconciled by readback and is never replayed. Three failed corrective attempts in one family stop at architecture review.
 
 Completion requires evidence at the claimed level. A green local check is not a saved or published readback, and contract runtime proof is not browser-rendered proof.
+
+## Dataset context before planning
+
+When the target graph contains a dataset, the server uses the experimental read-only `getDatasetData` route in three bounded internal modes. `context_probe` runs before plan materialization and derives a field catalog, observed date bounds, candidate measure/dimension/selector roles, sampled domains, and explicit sample limitations. Its profile and query-set hashes are bound into the immutable public plan. `assertion_probe` performs a fresh typed read during verification. `diagnostic_probe` distinguishes an expected empty result from filters, parameters, date windows, field/schema mismatches, and provider unavailability.
+
+Rows are positional and are interpreted only with the exact response schema from the same call. Requests use field GUIDs, bounded row/cell/byte budgets, and deterministic paging only when a total order is proven. Raw rows stay in ignored local artifacts; primary MCP responses contain hashes, counts, limitations, and redacted summaries. Because the route has no revision or branch parameter, it proves only the rows observed through that route. If it is unavailable, claims degrade to `source_static` with an explicit fallback kind and never become a successful live-data claim.
+
+## Public behavior regression
+
+Two different regression assets are intentionally retained:
+
+- `tests/regression/policy_matrix/` is a static synthetic matrix for schemas, invariants, route policy, privacy, and failure vocabulary.
+- `tests/regression/behavior_traces/` contains 40 sanitized behavior families and 80 executable variants. Every variant enters through public `tools/call` on `JsonRpcServer` under `autonomous-v2`; only the external DataLens transport, browser, clock/wait, filesystem, and build-identity boundaries may be mocked.
+
+The external session archive is used only by the offline builder. Packaged traces contain stable placeholders and aggregate provenance hashes, never raw transcripts, private paths, object IDs, URLs, tokens, or business values. Run `scripts/validate_behavior_trace_corpus.py` for the privacy/schema gate and `scripts/run_public_autonomy_acceptance.py` for the public-only E2E receipt.

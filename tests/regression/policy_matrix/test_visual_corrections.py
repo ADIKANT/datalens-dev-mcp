@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from tests.regression._corpus import load_cases
+from tests.regression.policy_matrix._corpus import load_cases
 
 
 REQUIRED_VISUAL = {

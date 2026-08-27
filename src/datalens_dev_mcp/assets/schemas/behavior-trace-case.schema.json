@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/behavior-trace-case.schema.json",
+  "title": "Sanitized executable public autonomy behavior trace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "case_id", "source_family", "request", "context", "mock_provider_state",
+    "expected_contract", "expected_discovery", "expected_plan", "expected_transitions",
+    "expected_provider_calls", "forbidden_provider_calls", "expected_questions",
+    "expected_browser_calls", "expected_terminal_state", "expected_proof", "call_budget",
+    "source_signal_hash"
+  ],
+  "properties": {
+    "case_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,95}$"},
+    "source_family": {"const": "sanitized-session-derived"},
+    "request": {"type": "string", "minLength": 20, "maxLength": 400},
+    "context": {"type": "object"},
+    "mock_provider_state": {"type": "object"},
+    "expected_contract": {"type": "object"},
+    "expected_discovery": {"type": "object"},
+    "expected_plan": {"type": "object"},
+    "expected_transitions": {"type": "array", "items": {"type": "string"}},
+    "expected_provider_calls": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "forbidden_provider_calls": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "expected_questions": {"type": "integer", "minimum": 0, "maximum": 1},
+    "expected_browser_calls": {"type": "integer", "minimum": 0, "maximum": 1},
+    "expected_terminal_state": {"enum": ["COMPLETED", "BLOCKED", "BLOCKED_CONFLICT"]},
+    "expected_proof": {"type": "object"},
+    "call_budget": {"type": "integer", "minimum": 1, "maximum": 12},
+    "source_signal_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

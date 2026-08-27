@@ -22,6 +22,16 @@ def task_planning_stage_services(
         return context_service.stage_handler(context)
 
     def plan_semantic_change(context: dict[str, Any]) -> dict[str, Any]:
+        if str(contract.get("mode") or "") == "create":
+            return _receipt(
+                context,
+                status="blocked",
+                missing=["create_object_materialization"],
+                reason=(
+                    "create task cannot be materialized as an existing-object semantic update; "
+                    "a typed create route is required"
+                ),
+            )
         graph = read_json(journal.target_graph_path, {}) or {}
         baselines = {
             path.name: read_json(path, {}) or {}

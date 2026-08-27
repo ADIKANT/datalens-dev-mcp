@@ -1,0 +1,10 @@
+{
+  "case_count": 80,
+  "corpus_sha256": "166326ddd9c167bd60e585653d6dba8782b08fa9cd58c19e6efb26448efc7fa3",
+  "family_count": 40,
+  "human_review": "plan_author_reviewed_family_set",
+  "private_literal_leakage": 0,
+  "schema_id": "behavior_trace_corpus_report",
+  "source_family": "sanitized-session-derived",
+  "source_session_count": 195
+}

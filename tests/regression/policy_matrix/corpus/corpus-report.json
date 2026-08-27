@@ -20,6 +20,6 @@
   },
   "private_literal_leakage": 0,
   "scenario_count": 96,
-  "schema_id": "session_regression_corpus_report",
+  "schema_id": "autonomy_policy_matrix_report",
   "source_session_count": 195
 }

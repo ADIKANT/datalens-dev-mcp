@@ -155,6 +155,17 @@ class TaskCompilerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "contract_hash"):
             validate_task_contract_reference(mutated)
 
+    def test_negated_ql_does_not_become_direct_ql_request(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        for request in (
+            "Update dashboard synthetic_dashboard with no QL fallback",
+            "Update dashboard synthetic_dashboard without QL",
+            "Обнови дашборд synthetic_dashboard без QL",
+        ):
+            compiled = compile_task_contract(request)
+            self.assertNotEqual(compiled["contract"]["route"], "ql_explicit", request)
+
     @staticmethod
     def _assert_expected(result: dict, expected: dict) -> None:
         contract = result["contract"]

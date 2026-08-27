@@ -8,7 +8,7 @@ from datalens_dev_mcp.pipeline.dataset_context_profile import (
     derive_dataset_plan_context,
     validate_dataset_context_profile,
 )
-from datalens_dev_mcp.pipeline.object_action_mapper import map_materialized_action
+from datalens_dev_mcp.pipeline.object_action_mapper import map_materialized_action, semantic_fresh_read_spec
 from datalens_dev_mcp.pipeline.plan_binding import (
     build_dataset_context_binding,
     build_plan_binding,
@@ -60,19 +60,43 @@ class PublicPlanBuilder:
         }
         target = self.contract.get("target") or {}
         actions = []
+        semantic_fresh_targets = dict(semantic_result.get("fresh_targets") or {})
+        semantic_ids = sorted(
+            {
+                str(object_id)
+                for planned_target in patch_plan.get("targets") or []
+                for object_id in [
+                    planned_target.get("object_id"),
+                    *(planned_target.get("dependencies") or []),
+                ]
+                if str(object_id or "")
+            }
+        )
+        semantic_fresh_reads = {
+            semantic_id: semantic_fresh_read_spec(
+                object_id=semantic_id,
+                object_type=str(
+                    (semantic_fresh_targets.get(semantic_id) or {}).get("object_type")
+                    or (nodes.get(semantic_id) or {}).get("object_type")
+                    or ""
+                ),
+                workbook_id=str(target.get("workbook_id") or ""),
+            )
+            for semantic_id in semantic_ids
+        }
         for planned_target in patch_plan.get("targets") or []:
             object_id = str(planned_target.get("object_id") or "")
             node = nodes.get(object_id) or {}
-            actions.append(
-                map_materialized_action(
-                    object_id=object_id,
-                    object_type=str(planned_target.get("object_type") or node.get("object_type") or ""),
-                    workbook_id=str(target.get("workbook_id") or ""),
-                    saved_revision=str(planned_target.get("saved_revision") or ""),
-                    materialized_payload=materialized[object_id],
-                    semantic_patch_plan=patch_plan,
-                )
+            action = map_materialized_action(
+                object_id=object_id,
+                object_type=str(planned_target.get("object_type") or node.get("object_type") or ""),
+                workbook_id=str(target.get("workbook_id") or ""),
+                saved_revision=str(planned_target.get("saved_revision") or ""),
+                materialized_payload=materialized[object_id],
+                semantic_patch_plan=patch_plan,
             )
+            action["semantic_fresh_reads"] = semantic_fresh_reads
+            actions.append(action)
         execution_auth = read_json(self.journal.execution_authorization_path, {}) or {}
         safe_apply = sanitize_value(create_safe_apply_plan(
             project_root=str(self.journal.project_root),

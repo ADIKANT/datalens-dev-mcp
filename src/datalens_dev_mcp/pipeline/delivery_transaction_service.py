@@ -411,7 +411,14 @@ class DeliveryTransactionService:
             )
             if not built.get("ok"):
                 return built
-            actions.extend(list(built.get("actions") or []))
+            for action in built.get("actions") or []:
+                combined_action = dict(action)
+                # Each publish action is first derived from its own exact saved
+                # readback entry.  The final transaction, however, is locked to
+                # the complete action set.  Drop the singleton lock so
+                # create_safe_apply_plan binds every action to that common set.
+                combined_action.pop("target_lock_hash", None)
+                actions.append(combined_action)
         plan = create_safe_apply_plan(
             project_root=str(self.journal.project_root),
             actions=actions,
@@ -587,6 +594,7 @@ def _without_readback(plan: dict[str, Any]) -> dict[str, Any]:
     for action in result.get("actions") or []:
         action["readback_mode"] = "none"
         action["readback_required"] = False
+        action["readback_justification"] = "readback executes as the next separately journaled typed stage"
     return result
 
 

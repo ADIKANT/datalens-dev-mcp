@@ -392,8 +392,15 @@ class UserRequestNormalizer:
         return "none"
 
     def _route_intent(self, lowered: str) -> RouteIntent:
-        if re.search(r"(?<![a-z0-9_])ql(?![a-z0-9_])", lowered) or any(
-            term in lowered for term in self.ROUTE_TERMS["ql_explicit"]
+        ql_positive_text = re.sub(
+            r"(?i)(?:\b(?:no|without|never|forbid(?:den)?|do\s+not\s+use)\s+ql(?:\s+fallback)?\b|"
+            r"\bql\s+fallback\s+(?:is\s+)?forbidden\b|"
+            r"(?:не\s+использ\w*|без|запрещ\w*)\s+ql\b)",
+            " ",
+            lowered,
+        )
+        if re.search(r"(?<![a-z0-9_])ql(?![a-z0-9_])", ql_positive_text) or any(
+            term in ql_positive_text for term in self.ROUTE_TERMS["ql_explicit"]
         ):
             return "ql_explicit"
         map_terms = self.ROUTE_TERMS["wizard_map_native"]

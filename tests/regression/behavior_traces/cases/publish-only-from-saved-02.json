@@ -1,0 +1,56 @@
+{
+  "call_budget": 7,
+  "case_id": "publish-only-from-saved-02",
+  "context": {
+    "driver": "direct",
+    "semantic_changes": [
+      {
+        "slot_id": "series_label",
+        "target_id": "chart_demo",
+        "value": "Revenue"
+      }
+    ],
+    "variant": 2
+  },
+  "expected_browser_calls": 0,
+  "expected_contract": {
+    "browser_policy": "optional",
+    "operation": "publish_only",
+    "publish": true
+  },
+  "expected_discovery": {
+    "dataset_id": "dataset_demo",
+    "root_id": "dash_demo",
+    "status": "bound"
+  },
+  "expected_plan": {
+    "family": "publish-only-from-saved",
+    "ql_fallback": false,
+    "target_count": 1,
+    "technology": "editor_advanced"
+  },
+  "expected_proof": {
+    "highest": "source_static"
+  },
+  "expected_provider_calls": [
+    "getDashboard",
+    "getDataset",
+    "getEditorChart",
+    "getWorkbookEntries"
+  ],
+  "expected_questions": 0,
+  "expected_terminal_state": "BLOCKED",
+  "expected_transitions": [],
+  "forbidden_provider_calls": [
+    "deleteDashboard",
+    "updateDataset",
+    "updateConnection"
+  ],
+  "mock_provider_state": {
+    "dataset_behavior": "normal",
+    "variant": 2
+  },
+  "request": "Publish only from saved state for dashboard https://datalens.example/dash_demo",
+  "source_family": "sanitized-session-derived",
+  "source_signal_hash": "f021543107978be131e9ec5d940cbd16ddcdf99c4fb0b6618fb45b5d04b1c773"
+}

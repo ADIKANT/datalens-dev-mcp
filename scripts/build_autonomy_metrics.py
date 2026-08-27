@@ -33,7 +33,9 @@ def load_live_canary(path: Path | None) -> dict[str, Any]:
 def build_metrics(live_canary: Path | None = None) -> dict[str, Any]:
     tools = build_tool_surface_report()
     efficiency = run_efficiency_suite()
-    corpus = json.loads((ROOT / "tests/regression/sessions/corpus-report.json").read_text(encoding="utf-8"))
+    corpus = json.loads(
+        (ROOT / "tests/regression/policy_matrix/corpus/corpus-report.json").read_text(encoding="utf-8")
+    )
     acceptance = {
         name: latest_acceptance(name)
         for name in ("affected", "autonomy", "full-sharded")

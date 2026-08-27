@@ -230,7 +230,7 @@ class FollowUserRequestContractTests(unittest.TestCase):
     def test_public_write_schemas_use_plan_path_write_manifest_and_confirm_delete(self):
         from datalens_dev_mcp.server import list_tools
 
-        listed = {tool["name"]: tool for tool in list_tools()}
+        listed = {tool["name"]: tool for tool in list_tools("legacy-v1")}
         forbidden = {"approved", "approval_source", "approved_plan_path"}
         for tool_name, tool in listed.items():
             properties = set(tool["inputSchema"].get("properties") or {})

@@ -120,7 +120,12 @@ def quick_profile_steps() -> list[dict[str, Any]]:
         *static_policy_steps(),
         command_step(
             "session_regression_contracts",
-            py("scripts/validate_session_regression_corpus.py", "tests/regression/sessions"),
+            py("scripts/validate_session_regression_corpus.py", "tests/regression/policy_matrix/corpus"),
+            120,
+        ),
+        command_step(
+            "public_behavior_trace_contracts",
+            py("scripts/validate_behavior_trace_corpus.py"),
             120,
         ),
         command_step(
