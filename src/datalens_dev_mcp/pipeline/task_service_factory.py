@@ -7,6 +7,8 @@ from datalens_dev_mcp.pipeline.delivery_transaction_service import delivery_stag
 from datalens_dev_mcp.pipeline.discovery_stage_services import persisted_discovery_stage_services
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
 from datalens_dev_mcp.pipeline.task_planning_stage_services import task_planning_stage_services
+from datalens_dev_mcp.pipeline.task_qa_service import task_qa_stage_services
+from datalens_dev_mcp.pipeline.task_completion import completion_stage_service
 
 
 def create_autonomous_task_service(
@@ -21,6 +23,8 @@ def create_autonomous_task_service(
     resolved_services = persisted_discovery_stage_services(journal, contract)
     resolved_services.update(task_planning_stage_services(journal, contract))
     resolved_services.update(delivery_stage_services(journal, contract))
+    resolved_services.update(task_qa_stage_services(journal, contract))
+    resolved_services.update(completion_stage_service(journal, contract))
     resolved_services.update(stage_services or {})
     return AutonomousTaskService(
         journal,

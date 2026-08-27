@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/completion-evidence.schema.json",
+  "title": "Evidence-based public task completion receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "receipt_version", "task_id", "contract_hash", "target_binding_hash", "evaluated_from_state", "state", "observed_at", "ok", "highest_proof_level", "required_evidence", "satisfied_evidence", "missing_evidence", "evidence_hashes", "limitations", "receipt_hash"],
+  "properties": {
+    "schema_id": {"const": "completion_evidence"},
+    "receipt_version": {"const": 1},
+    "task_id": {"type": "string", "minLength": 1},
+    "contract_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "target_binding_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "evaluated_from_state": {"type": "string"},
+    "state": {"type": "string"},
+    "observed_at": {"type": "string", "minLength": 1},
+    "ok": {"type": "boolean"},
+    "highest_proof_level": {"enum": ["source_static", "installed_static", "live_read_only_api", "contract_runtime", "save_readback", "publish_readback", "browser_rendered", "controlled_live_write"]},
+    "required_evidence": {"type": "array", "items": {"type": "string"}},
+    "satisfied_evidence": {"type": "array", "items": {"type": "string"}},
+    "missing_evidence": {"type": "array", "items": {"type": "string"}},
+    "evidence_hashes": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+    "limitations": {"type": "array", "items": {"type": "string"}},
+    "receipt_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

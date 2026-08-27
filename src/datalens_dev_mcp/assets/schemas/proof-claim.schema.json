@@ -8,7 +8,7 @@
   "properties": {
     "schema_id": {"const": "proof_claim"},
     "claim": {"type": "string", "minLength": 1},
-    "proof_level": {"enum": ["source_static", "installed_static", "live_read_only_api", "save_readback", "publish_readback", "contract_runtime", "browser_rendered", "controlled_live_write"]},
+    "proof_level": {"enum": ["source_static", "installed_static", "live_read_only_api", "contract_runtime", "save_readback", "publish_readback", "browser_rendered", "controlled_live_write"]},
     "revision": {"type": "string"},
     "evidence_schema_id": {"type": "string"},
     "evidence_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},

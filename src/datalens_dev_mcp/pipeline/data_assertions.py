@@ -12,6 +12,7 @@ ASSERTION_KINDS = {
     "not_empty",
     "expected_empty",
     "row_count_between",
+    "row_count_range",
     "unique_key",
     "no_nulls",
     "null_ratio_between",
@@ -21,12 +22,33 @@ ASSERTION_KINDS = {
     "numeric_range",
     "non_negative",
     "ratio_consistency",
+    "aggregation_consistency",
     "comparison_period_alignment",
     "pagination_complete",
     "selector_value_available",
+    "selector_domain",
+    "filter_effect",
     "selector_empty_means_no_filter",
     "sort_total_order",
+    "sort_order",
+    "saved_vs_published_consistency",
 }
+
+POPULATION_ASSERTIONS = frozenset(
+    {
+        "row_count_between",
+        "row_count_range",
+        "unique_key",
+        "no_nulls",
+        "null_ratio_between",
+        "value_domain",
+        "selector_domain",
+        "min_max_date",
+        "date_coverage",
+        "numeric_range",
+        "non_negative",
+    }
+)
 
 
 def evaluate_data_assertions(
@@ -84,6 +106,17 @@ def _evaluate_one(
     if kind not in ASSERTION_KINDS:
         return _result(kind or "unknown", "failed", "Unsupported assertion kind")
     fields = _fields(assertion)
+    if (
+        kind in POPULATION_ASSERTIONS
+        and assertion.get("scope", "population") != "sample"
+        and paging.get("complete") is False
+    ):
+        return _result(
+            kind,
+            "insufficient_evidence",
+            "A bounded sample cannot prove a population-wide assertion",
+            {"sample_only": True, "paging_complete": False},
+        )
     missing = [field for field in fields if field not in {str(item.get("guid") or "") for item in schema}]
     if missing and kind not in {"schema_matches", "pagination_complete", "selector_empty_means_no_filter"}:
         return _result(kind, "failed", "Assertion references unknown field GUIDs", {"missing_fields": missing})
@@ -106,7 +139,7 @@ def _evaluate_one(
             {"row_count": len(rows)},
             success="Empty result matches the business expectation",
         )
-    if kind == "row_count_between":
+    if kind in {"row_count_between", "row_count_range"}:
         return _between(kind, len(rows), assertion)
     if kind == "unique_key":
         keys = [tuple(row.get(field) for field in fields) for row in rows]
@@ -122,7 +155,7 @@ def _evaluate_one(
         values = [row.get(field) for row in rows for field in fields]
         ratio = (sum(value is None for value in values) / len(values)) if values else None
         return _between(kind, ratio, assertion, extra={"fields": fields})
-    if kind == "value_domain":
+    if kind in {"value_domain", "selector_domain"}:
         allowed = {serialize_selector_value(item) for item in assertion.get("allowed") or []}
         outside = sorted({serialize_selector_value(row.get(fields[0])) for row in rows} - allowed) if fields else []
         return _bool_result(kind, bool(fields) and not outside, {"outside_domain": outside[:20], "outside_count": len(outside)})
@@ -145,7 +178,7 @@ def _evaluate_one(
         maximum = None if kind == "non_negative" else _decimal(assertion.get("max"))
         ok = all((minimum is None or item >= minimum) and (maximum is None or item <= maximum) for item in numeric)
         return _bool_result(kind, ok, {"observed_min": str(min(numeric)), "observed_max": str(max(numeric))})
-    if kind == "ratio_consistency":
+    if kind in {"ratio_consistency", "aggregation_consistency"}:
         numerator = str(assertion.get("numerator") or "")
         denominator = str(assertion.get("denominator") or "")
         ratio = str(assertion.get("ratio") or "")
@@ -177,7 +210,7 @@ def _evaluate_one(
         return _bool_result(kind, bool(domain) and not missing_values, {"missing_values": missing_values})
     if kind == "selector_empty_means_no_filter":
         return _bool_result(kind, assertion.get("empty_means_no_filter", True) is True, {})
-    if kind == "sort_total_order":
+    if kind in {"sort_total_order", "sort_order"}:
         sort = assertion.get("sort") or []
         unique_fields = set(assertion.get("tie_breaker_fields") or [])
         sort_fields = [str(item.get("guid") or "") for item in sort if isinstance(item, dict)]
@@ -191,6 +224,21 @@ def _evaluate_one(
             kind,
             total_order,
             {"sort_fields": sort_fields, "tie_breaker_fields": sorted(unique_fields)},
+        )
+    if kind == "filter_effect":
+        baseline = assertion.get("baseline_row_count")
+        applied = assertion.get("applied_row_count")
+        if not isinstance(baseline, int) or not isinstance(applied, int):
+            return _result(kind, "insufficient_evidence", "Baseline and filtered probe counts are required")
+        expectation = str(assertion.get("expectation") or "changed")
+        ok = applied < baseline if expectation == "reduced" else applied != baseline
+        return _bool_result(kind, ok, {"baseline_row_count": baseline, "applied_row_count": applied})
+    if kind == "saved_vs_published_consistency":
+        return _result(
+            kind,
+            "insufficient_evidence",
+            "getDatasetData has no revision parameter and cannot prove saved versus published consistency",
+            {"dataset_data_semantics": "unknown_experimental"},
         )
     return _result(kind, "failed", "Assertion implementation is unavailable")
 

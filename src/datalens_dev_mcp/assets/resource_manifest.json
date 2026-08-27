@@ -1,5 +1,5 @@
 {
-  "resource_count": 313,
+  "resource_count": 317,
   "resources": [
     {
       "bytes": 15842,
@@ -157,6 +157,11 @@
       "sha256": "ff98424136bf5aa5f1b6a2bb2652933feb9b1619aec103c736958a6f58985ef4"
     },
     {
+      "bytes": 1686,
+      "path": "schemas/completion-evidence.schema.json",
+      "sha256": "cdec95b1219a2dc68ab77a75c2eaac8c2adaf58b102271a403f170db722b7c1a"
+    },
+    {
       "bytes": 870,
       "path": "schemas/connector-config.schema.json",
       "sha256": "e7845d662f50799f36f21ca3a96cd0f24719b48cc175ad9bdcc227a265467616"
@@ -192,9 +197,9 @@
       "sha256": "911f12a5f00c9dd0a88efb9806ba552c82cf2a5ca7f0e997b1568607e99fa339"
     },
     {
-      "bytes": 1009,
+      "bytes": 983,
       "path": "schemas/data-assertion-result.schema.json",
-      "sha256": "258fb8f1e70621a14d863fa2923b73c6aa341a7fd72171dd585e72aa0caec110"
+      "sha256": "6dbb8bb9b108b476048eca6ce1ca5203c671326f58d991d5b76bcac2606df6cd"
     },
     {
       "bytes": 1631,
@@ -499,7 +504,7 @@
     {
       "bytes": 968,
       "path": "schemas/proof-claim.schema.json",
-      "sha256": "e70c29f47586177806a60353a6f0db588b8d81bac55ecb076487b980cf8274f0"
+      "sha256": "ec198ff671e0fa20727d151cddf3b627017b3fc2aa7472427b828fb75f6ffd5f"
     },
     {
       "bytes": 647,
@@ -660,6 +665,21 @@
       "bytes": 4985,
       "path": "schemas/task-contract.schema.json",
       "sha256": "922a570fac769551f22c4d71f555e68b6e93c1fa65cca4e3e3e76375b88d9854"
+    },
+    {
+      "bytes": 2027,
+      "path": "schemas/task-data-proof-plan.schema.json",
+      "sha256": "f18860ff8004f5957904ac7044c6d9f0a9a407361dc80d58ba6df7640586d026"
+    },
+    {
+      "bytes": 2167,
+      "path": "schemas/task-data-proof-receipt.schema.json",
+      "sha256": "617d5cf5701176e39a429756c3d703728f37cba338d34d0d10db277cc730fc30"
+    },
+    {
+      "bytes": 1845,
+      "path": "schemas/task-qa-receipt.schema.json",
+      "sha256": "8116ec1932d6dc0ab6881dcea5e5e9ed5982c6c9823110be701c334d77ed6873"
     },
     {
       "bytes": 765,

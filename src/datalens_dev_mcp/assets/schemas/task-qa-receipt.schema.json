@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/task-qa-receipt.schema.json",
+  "title": "Intent-aware task QA receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "receipt_version", "task_id", "contract_hash", "target_binding_hash", "observed_at", "status", "proof_level", "data_proof_receipt_hash", "runtime_evidence", "browser_policy", "browser_adapter_calls", "browser_attestation", "evidence_matrix", "acceptance_coverage", "limitations", "receipt_hash"],
+  "properties": {
+    "schema_id": {"const": "task_qa_receipt"},
+    "receipt_version": {"const": 1},
+    "task_id": {"type": "string", "minLength": 1},
+    "contract_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "target_binding_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "observed_at": {"type": "string", "minLength": 1},
+    "status": {"enum": ["passed", "blocked"]},
+    "proof_level": {"enum": ["source_static", "contract_runtime", "browser_rendered"]},
+    "data_proof_receipt_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "runtime_evidence": {"type": "object"},
+    "browser_policy": {"type": "object"},
+    "browser_adapter_calls": {"type": "integer", "minimum": 0, "maximum": 1},
+    "browser_attestation": {"type": "object"},
+    "evidence_matrix": {"type": "object"},
+    "acceptance_coverage": {
+      "type": "object",
+      "required": ["ok", "criteria", "missing_evidence"],
+      "properties": {
+        "ok": {"type": "boolean"},
+        "criteria": {"type": "array", "items": {"type": "object"}},
+        "missing_evidence": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "limitations": {"type": "array", "items": {"type": "string"}},
+    "receipt_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

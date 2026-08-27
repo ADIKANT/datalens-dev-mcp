@@ -10,7 +10,7 @@
     "ok": {"type": "boolean"},
     "status": {"enum": ["passed", "failed", "blocked", "blocked_budget", "insufficient_evidence"]},
     "live_data_verified": {"type": "boolean"},
-    "proof_level": {"enum": ["live_read_only_api", "schema_static_fallback", "source_static"]},
+    "proof_level": {"enum": ["source_static", "live_read_only_api"]},
     "row_count": {"type": "integer", "minimum": 0},
     "results": {
       "type": "array",
