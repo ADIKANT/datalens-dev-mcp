@@ -3,7 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping
 
+from datalens_dev_mcp.pipeline.build_identity import BuildIdentityResolver
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal, build_journal_identity
+from datalens_dev_mcp.pipeline.target_binding import resolve_contract_target_binding
+from datalens_dev_mcp.pipeline.task_identity import build_task_identity
 from datalens_dev_mcp.pipeline.failure_classifier import classify_failure
 from datalens_dev_mcp.pipeline.investigation import ARCHITECTURE_REVIEW_STATE
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
@@ -52,18 +55,35 @@ class WorkflowEngine:
         server_build: str = "",
         source_branch: str = "",
         source_tree: str = "",
+        build_identity: dict[str, Any] | None = None,
+        target_binding: dict[str, Any] | None = None,
         require_typed_receipts: bool = False,
     ) -> None:
         self.journal = journal
         self.contract = sanitize_value(contract)
         self.handlers = dict(handlers)
         self.require_typed_receipts = bool(require_typed_receipts)
-        self.identity = build_journal_identity(
-            self.contract,
-            server_build=server_build,
-            source_branch=source_branch,
-            source_tree=source_tree,
-        )
+        if build_identity is None and any((server_build, source_branch, source_tree)):
+            compatibility = build_journal_identity(
+                self.contract,
+                server_build=server_build,
+                source_branch=source_branch,
+                source_tree=source_tree,
+            )
+            build_identity = dict(compatibility["build_identity"])
+        self.build_identity = dict(build_identity or BuildIdentityResolver().resolve())
+        self.target_binding = dict(target_binding or resolve_contract_target_binding(self.contract))
+        self.identity = {
+            **build_task_identity(
+                self.contract,
+                build_identity=self.build_identity,
+                target_binding=self.target_binding,
+            ),
+            "build_identity": self.build_identity,
+            "target_binding": self.target_binding,
+        }
+        if not str(self.build_identity.get("identity_hash") or ""):
+            raise ValueError("WorkflowEngine requires a non-empty build identity hash")
 
     def resume(
         self,
@@ -132,6 +152,8 @@ class WorkflowEngine:
             "transition": spec.name,
             "idempotency_key": idempotency_key,
             "journal_root": str(self.journal.root),
+            "build_identity_hash": self.build_identity.get("identity_hash"),
+            "target_binding_hash": self.target_binding.get("binding_hash"),
         }
         try:
             result = sanitize_value(handler(context) or {})
@@ -155,6 +177,8 @@ class WorkflowEngine:
                 task_id=self.journal.task_id,
                 contract_hash=str(self.contract.get("contract_hash") or ""),
                 transition=spec.name,
+                build_identity_hash=str(self.build_identity.get("identity_hash") or ""),
+                target_binding_hash=str(self.target_binding.get("binding_hash") or ""),
             )
             if receipt_issues:
                 return self._record_blocked(

@@ -20,6 +20,8 @@ def compact_task_evidence(
     target_binding: dict[str, Any] | None,
     style_binding: dict[str, Any] | None,
     checkpoint: dict[str, Any],
+    build_identity: dict[str, Any] | None = None,
+    task_identity: dict[str, Any] | None = None,
     last_state_change: Any = None,
     active_blocker: Any = None,
     active_hypothesis: str = "",
@@ -32,6 +34,8 @@ def compact_task_evidence(
         {
             "server_policy_version": policy_version,
             "task_contract": task_contract,
+            "build_identity": build_identity or {},
+            "task_identity": task_identity or {},
             "target_binding": target_binding or {},
             "style_binding": style_binding or {},
             "current_checkpoint": _stable_value(checkpoint),

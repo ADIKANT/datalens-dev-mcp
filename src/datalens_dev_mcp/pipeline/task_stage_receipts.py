@@ -2,10 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from datalens_dev_mcp import __version__
-from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
-
-
 STAGE_RECEIPT_SCHEMA_ID = "datalens_task_stage_receipt"
 STAGE_STATUSES = frozenset({"success", "blocked", "conflict", "ambiguous", "failed"})
 
@@ -17,6 +13,7 @@ def build_stage_receipt(
     transition: str,
     status: str,
     proof_level: str = "source_static",
+    build_identity_hash: str,
     target_binding_hash: str = "",
     input_hashes: dict[str, str] | None = None,
     output_hashes: dict[str, str] | None = None,
@@ -35,7 +32,7 @@ def build_stage_receipt(
         "contract_hash": contract_hash,
         "transition": transition,
         "status": normalized,
-        "build_identity_hash": canonical_hash({"package": "datalens-dev-mcp", "package_release": __version__}),
+        "build_identity_hash": build_identity_hash,
         "target_binding_hash": target_binding_hash,
         "input_hashes": dict(input_hashes or {}),
         "output_hashes": dict(output_hashes or {}),
@@ -53,7 +50,15 @@ def build_stage_receipt(
     return payload
 
 
-def validate_stage_receipt(receipt: dict[str, Any], *, task_id: str, contract_hash: str, transition: str) -> tuple[str, ...]:
+def validate_stage_receipt(
+    receipt: dict[str, Any],
+    *,
+    task_id: str,
+    contract_hash: str,
+    transition: str,
+    build_identity_hash: str = "",
+    target_binding_hash: str = "",
+) -> tuple[str, ...]:
     issues: list[str] = []
     if receipt.get("schema_id") != STAGE_RECEIPT_SCHEMA_ID:
         issues.append("handler did not return a typed stage receipt")
@@ -65,6 +70,12 @@ def validate_stage_receipt(receipt: dict[str, Any], *, task_id: str, contract_ha
         issues.append("stage receipt contract_hash mismatch")
     if receipt.get("transition") != transition:
         issues.append("stage receipt transition mismatch")
+    if not str(receipt.get("build_identity_hash") or ""):
+        issues.append("stage receipt build_identity_hash is empty")
+    elif build_identity_hash and receipt.get("build_identity_hash") != build_identity_hash:
+        issues.append("stage receipt build_identity_hash mismatch")
+    if target_binding_hash and receipt.get("target_binding_hash") != target_binding_hash:
+        issues.append("stage receipt target_binding_hash mismatch")
     if receipt.get("status") == "success" and receipt.get("ok") is not True:
         issues.append("successful stage receipt must set ok=true")
     if receipt.get("status") == "success" and receipt.get("missing_requirements"):

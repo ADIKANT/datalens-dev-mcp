@@ -7,6 +7,7 @@ from datalens_dev_mcp.mcp.task_projection import compact_task_status, project_ta
 from datalens_dev_mcp.mcp.task_resources import read_task_evidence, task_resource_uri
 from datalens_dev_mcp.mcp.tools import pipeline
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
+from datalens_dev_mcp.pipeline.build_identity import BuildIdentityResolver
 from datalens_dev_mcp.pipeline.project_journal import JournalIdentityError, ProjectJournal
 from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
 from datalens_dev_mcp.pipeline.workflow_engine import WorkflowEngine
@@ -17,6 +18,7 @@ from datalens_dev_mcp.pipeline.execution_authorization import (
 )
 from datalens_dev_mcp.pipeline.task_completion import TaskCompletionEvaluator
 from datalens_dev_mcp.pipeline.task_service_factory import create_autonomous_task_service
+from datalens_dev_mcp.pipeline.target_binding import resolve_contract_target_binding
 
 
 RUN_UNTIL_VALUES = frozenset({"blocked", "plan_ready", "completed"})
@@ -48,20 +50,27 @@ def dl_task_start(
     )
     contract = dict(compiled["contract"])
     journal = ProjectJournal(project_root, str(contract["task_id"]))
-    journal.initialize(contract)
-    grant = _load_or_create_authorization(journal, contract)
-    compile_receipt = journal.write_receipt(
-        "task-compile",
-        {
+    build_identity = BuildIdentityResolver().resolve()
+    target_binding = resolve_contract_target_binding(contract)
+    grant = resolve_execution_authorization(contract)
+    state, compile_receipt, _ = journal.initialize_task(
+        contract,
+        build_identity=build_identity,
+        target_binding=target_binding,
+        compile_receipt={
+            "schema_id": "datalens_task_compile_receipt",
             "status": compiled.get("status"),
             "issues": compiled.get("issues") or [],
             "discovery_required": compiled.get("discovery_required") or [],
             "question": compiled.get("question"),
+            "contract_hash": contract.get("contract_hash"),
+            "build_identity_hash": build_identity.get("identity_hash"),
+            "target_binding_hash": target_binding.get("binding_hash"),
         },
+        execution_grant=grant,
     )
-    before = journal.load_state().last_event_id
+    before = state.last_event_id
     if compiled.get("status") in {"invalid", "needs_input", "needs_discovery"}:
-        state = journal.load_state()
         discovery = compiled.get("status") == "needs_discovery"
         blocker = {
             "reason": "server-owned target discovery is required" if discovery else "task contract requires user input",
@@ -70,20 +79,22 @@ def dl_task_start(
             "missing_facts": compiled.get("discovery_required") or [],
             "compile_receipt": compile_receipt,
         }
-        state = journal.append_transition(
-            state,
-            transition="TASK_DISCOVERY_REQUIRED" if discovery else "TASK_INPUT_REQUIRED",
-            input_value={"issues": compiled.get("issues") or []},
-            receipt_uri=compile_receipt,
-            status="blocked",
-            idempotency_key=canonical_hash({
-                "task_id": journal.task_id,
-                "transition": "TASK_DISCOVERY_REQUIRED" if discovery else "TASK_INPUT_REQUIRED",
-            }),
-            next_state="BLOCKED",
-            next_transition="",
-            blocker=blocker,
-        )
+        with journal.locked(owner="task-compile-blocker"):
+            state, _ = journal.replay()
+            state = journal.append_transition(
+                state,
+                transition="TASK_DISCOVERY_REQUIRED" if discovery else "TASK_INPUT_REQUIRED",
+                input_value={"issues": compiled.get("issues") or []},
+                receipt_uri=compile_receipt,
+                status="blocked",
+                idempotency_key=canonical_hash({
+                    "task_id": journal.task_id,
+                    "transition": "TASK_DISCOVERY_REQUIRED" if discovery else "TASK_INPUT_REQUIRED",
+                }),
+                next_state="BLOCKED",
+                next_transition="",
+                blocker=blocker,
+            )
         return project_task_summary(
             contract=contract,
             state=state,
@@ -184,6 +195,7 @@ def dl_inspect(
 def dl_plan(task_id: str, project_root: str = ".") -> dict[str, Any]:
     journal = ProjectJournal(project_root, task_id)
     contract = journal.load_contract()
+    _assert_current_identity(journal, contract)
     state, _ = journal.replay()
     if state.current_state not in {"VALIDATED", "COMPLETED"}:
         state = _advance(
@@ -217,6 +229,7 @@ def dl_execute(
 ) -> dict[str, Any]:
     journal = ProjectJournal(project_root, task_id)
     contract = journal.load_contract()
+    _assert_current_identity(journal, contract)
     state, _ = journal.replay()
     if state.current_state != "VALIDATED":
         raise ValueError(f"dl_execute requires PLAN_VALIDATED, current state is {public_task_state(state.current_state)}")
@@ -284,34 +297,42 @@ def _advance(
     execution_grant: dict[str, Any] | None = None,
 ):
     resolved_grant = execution_grant or _load_authorization(journal, contract)
+    build_identity, target_binding = _assert_current_identity(journal, contract)
     service = create_autonomous_task_service(
-        journal, contract, execution_grant=resolved_grant,
+        journal,
+        contract,
+        execution_grant=resolved_grant,
+        build_identity_hash=str(build_identity.get("identity_hash") or ""),
+        target_binding_hash=str(target_binding.get("binding_hash") or ""),
     )
     engine = WorkflowEngine(
         journal,
         contract,
         handlers=service.handlers(),
+        build_identity=build_identity,
+        target_binding=target_binding,
         require_typed_receipts=True,
     )
     stop_states = {"VALIDATED"} if boundary == "plan_ready" else None
     return engine.resume(max_transitions=max(1, min(100, int(transition_budget))), stop_states=stop_states)
 
 
+def _assert_current_identity(
+    journal: ProjectJournal,
+    contract: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    build_identity = BuildIdentityResolver().resolve()
+    target_binding = read_json(journal.target_binding_path, default={}) or {}
+    journal.assert_write_resume_ready(
+        contract,
+        build_identity=build_identity,
+        target_binding=target_binding,
+    )
+    return build_identity, target_binding
+
+
 def _authorization_path(journal: ProjectJournal) -> Path:
-    return journal.root / "execution-authorization.json"
-
-
-def _load_or_create_authorization(journal: ProjectJournal, contract: dict[str, Any]) -> dict[str, Any]:
-    path = _authorization_path(journal)
-    existing = read_json(path, default={}) or {}
-    if existing:
-        issues = validate_execution_authorization(existing, contract)
-        if issues:
-            raise JournalIdentityError("; ".join(issues))
-        return existing
-    grant = resolve_execution_authorization(contract)
-    write_json(path, grant)
-    return grant
+    return journal.execution_authorization_path
 
 
 def _load_authorization(journal: ProjectJournal, contract: dict[str, Any]) -> dict[str, Any]:

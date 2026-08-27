@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from datalens_dev_mcp.pipeline.artifacts import read_json
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
 
 
@@ -14,7 +15,8 @@ class TaskCompletionEvaluator:
             missing.append("terminal completion state")
         if proof_target == "live":
             required.append("live_target_binding")
-            if not (journal.root / "target-binding.json").is_file():
+            target_binding = read_json(journal.target_binding_path, {}) or {}
+            if target_binding.get("source") != "live_discovery":
                 missing.append("live target binding")
         if not state.receipt_uris:
             missing.append("stage receipts")

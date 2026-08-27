@@ -1,5 +1,5 @@
 {
-  "resource_count": 299,
+  "resource_count": 301,
   "resources": [
     {
       "bytes": 15842,
@@ -137,6 +137,11 @@
       "sha256": "e3ed357f286905033359ac83af0e9fc0215b5c6d8d62cc6327ce93b859a22bcb"
     },
     {
+      "bytes": 921,
+      "path": "schemas/build-identity.schema.json",
+      "sha256": "bce3fb7ca63268003a8031605abd3c7430e8804e3f852397ff61d4f3f3c141e5"
+    },
+    {
       "bytes": 673,
       "path": "schemas/calculated-field-config.schema.json",
       "sha256": "8e2d75fb7a74a78a63b0d186d8fa754ab7407b39c778d9781e63061953d21f4b"
@@ -147,9 +152,9 @@
       "sha256": "1b64aa380dd99290d72aebbf2cd40ec15c98c8433a1d3079e9de6fc039563cf6"
     },
     {
-      "bytes": 1022,
+      "bytes": 1585,
       "path": "schemas/compact-evidence.schema.json",
-      "sha256": "7fa832adacb1d3e7c366bd575e05020efc8938930835b0113ccdcd756f6c7222"
+      "sha256": "ff98424136bf5aa5f1b6a2bb2652933feb9b1619aec103c736958a6f58985ef4"
     },
     {
       "bytes": 870,
@@ -462,9 +467,9 @@
       "sha256": "f0b11eab493d806c848bf0f16b4c457a3c5199141a5652577804c2dfe1ba38f4"
     },
     {
-      "bytes": 629,
+      "bytes": 789,
       "path": "schemas/project-journal.schema.json",
-      "sha256": "e8cfcecd4699063098ab112dbcb9f859a82891b139faf25167b3770fa163b1e6"
+      "sha256": "20e8d001dab7c9bdd2012afae0c61c984614a9211d012de8e00ee6dc076cd89c"
     },
     {
       "bytes": 10554,
@@ -575,6 +580,11 @@
       "bytes": 903,
       "path": "schemas/style-binding.schema.json",
       "sha256": "3ae9c6202a5a8823749e797f06ccd17261f512c08f94d85f54d347159b7d82be"
+    },
+    {
+      "bytes": 1055,
+      "path": "schemas/target-binding.schema.json",
+      "sha256": "d43ea099c7301794c1d08f1c60d16fe4f783250f652070d476dd513c24d8a58b"
     },
     {
       "bytes": 1051,

@@ -7,7 +7,20 @@
   "required": ["schema_id", "stable_context_sha256", "volatile_tail", "full_evidence"],
   "properties": {
     "schema_id": {"const": "datalens_compact_evidence"},
-    "stable_context": {"type": "object"},
+    "stable_context": {
+      "type": "object",
+      "required": ["server_policy_version", "task_contract", "build_identity", "task_identity", "target_binding", "style_binding", "current_checkpoint"],
+      "properties": {
+        "server_policy_version": {"type": "string"},
+        "task_contract": {"type": "object"},
+        "build_identity": {"type": "object"},
+        "task_identity": {"type": "object"},
+        "target_binding": {"type": "object"},
+        "style_binding": {"type": "object"},
+        "current_checkpoint": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
     "stable_context_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "volatile_tail": {"type": "object"},
     "full_evidence": {

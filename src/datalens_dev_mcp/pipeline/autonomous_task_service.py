@@ -16,11 +16,15 @@ class AutonomousTaskService:
         contract: dict[str, Any],
         *,
         execution_grant: dict[str, Any],
+        build_identity_hash: str,
+        target_binding_hash: str,
         stage_services: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] | None = None,
     ) -> None:
         self.journal = journal
         self.contract = contract
         self.execution_grant = execution_grant
+        self.build_identity_hash = build_identity_hash
+        self.target_binding_hash = target_binding_hash
         self.stage_services = dict(stage_services or {})
 
     def handlers(self) -> dict[str, Callable[[dict[str, Any]], dict[str, Any]]]:
@@ -55,6 +59,8 @@ class AutonomousTaskService:
             contract_hash=str(self.contract.get("contract_hash") or ""),
             transition=str(context.get("transition") or ""),
             status="blocked",
+            build_identity_hash=self.build_identity_hash,
+            target_binding_hash=self.target_binding_hash,
             hard_requirements=[capability],
             missing_requirements=[capability],
             reason=reason,

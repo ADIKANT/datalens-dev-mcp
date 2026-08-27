@@ -18,7 +18,8 @@ class AutonomousTaskServiceTests(unittest.TestCase):
             ).to_dict()
             journal = ProjectJournal(tmp, contract["task_id"])
             service = AutonomousTaskService(
-                journal, contract, execution_grant=resolve_execution_authorization(contract)
+                journal, contract, execution_grant=resolve_execution_authorization(contract),
+                build_identity_hash="a" * 64, target_binding_hash="b" * 64,
             )
             receipt = service.handlers()["read_baseline"]({"transition": "RESOLVED -> BASELINE_READ"})
         self.assertEqual(receipt["schema_id"], "datalens_task_stage_receipt")
