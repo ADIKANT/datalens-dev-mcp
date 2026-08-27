@@ -279,7 +279,7 @@
     {
       "bytes": 12873,
       "path": "schemas/datalens-knowledge/capability-matrix.json",
-      "sha256": "68cb64d209acd0c8c96a00f3ed93c74a69a388fabf1130449068c81b75099704"
+      "sha256": "7e3c630791ce38e32050ff4615749fc1827558f8ce1b5c42c8be6bc659d7e7c5"
     },
     {
       "bytes": 3130533,
@@ -314,7 +314,7 @@
     {
       "bytes": 6830,
       "path": "schemas/datalens-knowledge/route-capability-matrix.json",
-      "sha256": "8e2a4de38903fa0a47c3ea1aa4911f7008665c1c7c6c0c8d04d4824a8b38e8a1"
+      "sha256": "f4fb503abffabcc866d03908bd0bfb99e4b23a7de1177ca3a05ff8a2262f1d42"
     },
     {
       "bytes": 318084,
