@@ -794,6 +794,8 @@ def _project_writable_value(
         properties = schema.get("properties") if isinstance(schema.get("properties"), dict) else {}
         additional = schema.get("additionalProperties", True)
         required = {str(item) for item in schema.get("required") or []}
+        discriminator = schema.get("discriminator") if isinstance(schema.get("discriminator"), dict) else {}
+        discriminator_property = str(discriminator.get("propertyName") or "")
         projected: dict[str, Any] = {}
         for key, item in value.items():
             child_path = f"{path}/{_json_pointer_token(str(key))}"
@@ -815,7 +817,10 @@ def _project_writable_value(
                 # field creates a locally valid-looking request that the live
                 # service rejects.  Required input values are always writable
                 # projection inputs, even when the generated schema is sparse.
-                if key in required:
+                # Discriminator properties can be omitted from the selected
+                # component's properties too; the provider still needs the
+                # token to deserialize the union member.
+                if key in required or key == discriminator_property:
                     projected[key] = item
                     continue
                 dropped_paths.append(child_path)

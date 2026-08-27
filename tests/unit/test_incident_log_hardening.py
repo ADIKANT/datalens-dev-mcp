@@ -146,6 +146,39 @@ class IncidentLogHardeningTests(unittest.TestCase):
         self.assertNotIn("/entry/data/tabs/0/title", result["dropped_paths"])
         self.assertIn("/entry/data/tabs/0/unsupportedReadbackField", result["dropped_paths"])
 
+    def test_schema_projection_preserves_dataset_field_discriminator(self):
+        from datalens_dev_mcp.api.request_compiler import project_method_request
+
+        result = project_method_request(
+            "createDataset",
+            {
+                "workbook_id": "workbook_1",
+                "name": "Synthetic dataset",
+                "dataset": {
+                    "sources": [],
+                    "result_schema": [
+                        {
+                            "calc_mode": "formula",
+                            "title": "Synthetic field",
+                            "formula": "1",
+                            "guid": "synthetic_field",
+                            "virtual": False,
+                        }
+                    ],
+                },
+            },
+            object_type="dataset",
+            operation="create",
+            workbook_id="workbook_1",
+        )
+
+        self.assertTrue(result["ok"], result)
+        field = result["payload"]["dataset"]["result_schema"][0]
+        self.assertEqual(field["calc_mode"], "formula")
+        self.assertNotIn("virtual", field)
+        self.assertNotIn("/dataset/result_schema/0/calc_mode", result["dropped_paths"])
+        self.assertIn("/dataset/result_schema/0/virtual", result["dropped_paths"])
+
     def test_layout_list_replacement_does_not_keep_old_items(self):
         from datalens_dev_mcp.pipeline.safe_apply import (
             apply_desired_overlay_to_fresh_readback,
