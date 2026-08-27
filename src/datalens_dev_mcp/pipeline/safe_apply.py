@@ -2773,6 +2773,36 @@ def _write_payload_matches_readback(
     )
 
 
+def build_safe_apply_readback_evidence(
+    *,
+    method: str,
+    object_id: str,
+    expected_payload: dict[str, Any],
+    readback: dict[str, Any],
+) -> dict[str, Any]:
+    """Return a stable semantic comparison for a separately executed readback stage."""
+
+    comparison = _write_payload_readback_comparison(
+        method=method,
+        write_payload=expected_payload,
+        readback=readback,
+    )
+    candidate = _find_readback_object_by_identity(readback, object_id=object_id)
+    if candidate is None:
+        candidate = _first_identity_candidate(readback)
+    actual_object_id = _candidate_object_id(candidate) if isinstance(candidate, dict) else ""
+    return {
+        "object_id": object_id,
+        "actual_object_id": actual_object_id,
+        "revision": _revision_id(readback),
+        "saved_id": _saved_id(readback),
+        "payload_hash": serialized_metadata(sanitize_response(readback))["sha256"],
+        "content_equivalent": bool(comparison["equivalent"] and actual_object_id == object_id),
+        "diff_paths": list(comparison["diff_paths"]),
+        "entry": deepcopy(candidate) if isinstance(candidate, dict) else {},
+    }
+
+
 def _write_payload_readback_comparison(
     *,
     method: str,

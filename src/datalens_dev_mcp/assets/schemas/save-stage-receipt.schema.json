@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/save-stage-receipt.schema.json",
+  "title": "Autonomous save stage receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "receipt_version", "observed_at", "task_id", "contract_hash", "plan_hash", "action_ids", "provider_request_hashes", "expected_pre_write_revisions", "returned_revisions", "object_statuses", "write_count", "ambiguity_state", "status", "receipt_hash"],
+  "properties": {
+    "schema_id": {"const": "datalens_save_stage_receipt"},
+    "receipt_version": {"const": 1},
+    "observed_at": {"type": "string", "minLength": 1},
+    "task_id": {"type": "string", "minLength": 1},
+    "contract_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "plan_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "action_ids": {"type": "array", "items": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "minItems": 1, "uniqueItems": true},
+    "provider_request_hashes": {"type": "array", "items": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+    "expected_pre_write_revisions": {"type": "array", "items": {"type": "string"}},
+    "returned_revisions": {"type": "array", "items": {"type": "string"}},
+    "object_statuses": {"type": "array", "items": {"type": "object"}},
+    "write_count": {"type": "integer", "minimum": 0},
+    "ambiguity_state": {"type": "string"},
+    "status": {"enum": ["success", "ambiguous", "conflict", "blocked", "failed"]},
+    "safe_apply_result_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "reason": {"type": "string"},
+    "receipt_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

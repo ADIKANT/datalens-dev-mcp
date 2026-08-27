@@ -357,13 +357,20 @@ def dl_execute(
     plan_hash: str,
     project_root: str = ".",
     destructive_token: str = "",
+    stop_after: str = "completed",
 ) -> dict[str, Any]:
     journal = ProjectJournal(project_root, task_id)
     contract = journal.load_contract()
     _assert_current_identity(journal, contract)
     state, _ = journal.replay()
-    if state.current_state != "VALIDATED":
-        raise ValueError(f"dl_execute requires PLAN_VALIDATED, current state is {public_task_state(state.current_state)}")
+    if stop_after not in {"saved", "completed"}:
+        raise ValueError("stop_after must be saved or completed")
+    delivery_states = {"VALIDATED", "SAVED", "SAVED_READBACK", "PUBLISHED", "PUBLISHED_READBACK", "RECONCILING"}
+    if state.current_state not in delivery_states:
+        raise ValueError(
+            "dl_execute requires a resumable delivery state, "
+            f"current state is {public_task_state(state.current_state)}"
+        )
     plan = _ensure_task_plan(journal, contract, state)
     if plan.get("plan_hash") != plan_hash:
         raise ValueError("plan_hash does not match the immutable task plan")
@@ -373,7 +380,7 @@ def dl_execute(
             raise ValueError("destructive task requires the exact task-bound destructive token")
     before = state.last_event_id
     state = _advance(
-        journal, contract, boundary="completed", destructive_token=destructive_token,
+        journal, contract, boundary=stop_after, destructive_token=destructive_token,
         execution_grant=_load_authorization(journal, contract),
     )
     return project_task_summary(
@@ -446,7 +453,13 @@ def _advance(
         style_binding_hash=str((read_json(journal.style_binding_path, {}) or {}).get("binding_hash") or ""),
         require_typed_receipts=True,
     )
-    stop_states = {"VALIDATED"} if boundary == "plan_ready" else None
+    stop_states = (
+        {"VALIDATED"}
+        if boundary == "plan_ready"
+        else {"SAVED"}
+        if boundary == "saved"
+        else None
+    )
     return engine.resume(max_transitions=max(1, min(100, int(transition_budget))), stop_states=stop_states)
 
 

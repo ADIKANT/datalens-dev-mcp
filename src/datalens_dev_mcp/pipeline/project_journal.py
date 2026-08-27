@@ -114,6 +114,12 @@ class ProjectJournal:
         self.style_binding_path = self.root / "style-binding.json"
         self.discovery_path = self.root / "discovery.json"
         self.execution_authorization_path = self.root / "execution-authorization.json"
+        self.delivery_root = self.root / "delivery"
+        self.save_stage_receipt_path = self.delivery_root / "save-stage-receipt.json"
+        self.saved_readback_receipt_path = self.delivery_root / "saved-readback-receipt.json"
+        self.publish_stage_receipt_path = self.delivery_root / "publish-stage-receipt.json"
+        self.published_readback_receipt_path = self.delivery_root / "published-readback-receipt.json"
+        self.publish_execution_plan_path = self.delivery_root / "private" / "publish-execution-plan.json"
         self.lock_path = self.storage_root / ".locks" / f"{self.task_id}.lock"
         self.lease_path = self.storage_root / ".locks" / f"{self.task_id}.lease.json"
         self.lease_seconds = max(1.0, float(lease_seconds))
@@ -438,7 +444,7 @@ class ProjectJournal:
         compile_receipt: dict[str, Any],
         execution_grant: dict[str, Any],
     ) -> tuple[WorkflowState, str]:
-        for relative in ("plans", "receipts", "snapshots", "evidence", "locks"):
+        for relative in ("plans", "receipts", "snapshots", "evidence", "delivery", "locks"):
             (base / relative).mkdir(parents=True, exist_ok=True)
         safe_receipt = sanitize_value(compile_receipt)
         receipt_digest = canonical_hash(safe_receipt)

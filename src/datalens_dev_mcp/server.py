@@ -853,6 +853,11 @@ TOOL_PARAM_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
         "default": "completed",
     },
     ("dl_task_resume", "transition_budget"): {"type": "integer", "minimum": 1, "maximum": 100, "default": 20},
+    ("dl_execute", "stop_after"): {
+        "type": "string",
+        "enum": ["saved", "completed"],
+        "default": "completed",
+    },
     ("dl_inspect", "max_nodes"): {"type": "integer", "minimum": 1, "maximum": 200, "default": 50},
     ("dl_evidence", "limit"): {"type": "integer", "minimum": 1, "maximum": 20_000, "default": 4_000},
     ("dl_generate_editor_bundle", "selector_contract"): SELECTOR_CONTRACT_SCHEMA,

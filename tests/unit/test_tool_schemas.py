@@ -220,6 +220,10 @@ class ToolSchemaTests(unittest.TestCase):
         listed = {tool["name"]: tool for tool in result["tools"]}
         self.assertEqual(listed["dl_task_start"]["inputSchema"]["properties"]["context"]["type"], "object")
         self.assertEqual(listed["dl_execute"]["inputSchema"]["required"], ["task_id", "plan_hash"])
+        self.assertEqual(
+            listed["dl_execute"]["inputSchema"]["properties"]["stop_after"]["enum"],
+            ["saved", "completed"],
+        )
 
     def test_standard_write_plan_schemas_do_not_advertise_forbidden_routes(self):
         listed = {tool["name"]: tool for tool in list_tools("legacy-v1")}
