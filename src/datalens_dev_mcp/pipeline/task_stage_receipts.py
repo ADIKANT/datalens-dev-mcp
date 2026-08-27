@@ -35,7 +35,7 @@ def build_stage_receipt(
         "contract_hash": contract_hash,
         "transition": transition,
         "status": normalized,
-        "build_identity_hash": canonical_hash({"package": "datalens-dev-mcp", "version": __version__}),
+        "build_identity_hash": canonical_hash({"package": "datalens-dev-mcp", "package_release": __version__}),
         "target_binding_hash": target_binding_hash,
         "input_hashes": dict(input_hashes or {}),
         "output_hashes": dict(output_hashes or {}),
