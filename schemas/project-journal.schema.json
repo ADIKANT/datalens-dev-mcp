@@ -11,7 +11,17 @@
     "target_binding": {"$ref": "target-binding.schema.json"},
     "contract": {"$ref": "task-contract.schema.json"},
     "state": {"$ref": "workflow-state.schema.json"},
-    "events": {"type": "array", "items": {"$ref": "workflow-event.schema.json"}}
+    "events": {"type": "array", "items": {"$ref": "workflow-event.schema.json"}},
+    "delivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "save": {"$ref": "save-stage-receipt.schema.json"},
+        "saved_readback": {"$ref": "saved-readback-receipt.schema.json"},
+        "publish": {"$ref": "publish-stage-receipt.schema.json"},
+        "published_readback": {"$ref": "published-readback-receipt.schema.json"}
+      }
+    }
   },
   "additionalProperties": false
 }

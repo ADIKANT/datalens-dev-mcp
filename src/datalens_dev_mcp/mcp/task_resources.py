@@ -58,6 +58,10 @@ def read_task_resource(uri: str, *, project_root: str | Path = ".") -> dict[str,
         "reference-binding": journal.reference_binding_path,
         "style-binding": journal.style_binding_path,
         "data/context-profile.json": journal.root / "data" / "context-profile.json",
+        "delivery/save-stage-receipt.json": journal.save_stage_receipt_path,
+        "delivery/saved-readback-receipt.json": journal.saved_readback_receipt_path,
+        "delivery/publish-stage-receipt.json": journal.publish_stage_receipt_path,
+        "delivery/published-readback-receipt.json": journal.published_readback_receipt_path,
     }
     if suffix in fixed:
         path = fixed[suffix]
