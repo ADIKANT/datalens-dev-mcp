@@ -9,7 +9,7 @@ from jsonschema import Draft202012Validator
 
 from datalens_dev_mcp.mcp.task_resources import read_task_resource, task_resource_uri
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
-from datalens_dev_mcp.pipeline.delivery_transaction_service import DeliveryTransactionService
+from datalens_dev_mcp.pipeline.delivery_transaction_service import DeliveryTransactionService, _read_payload
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
 from datalens_dev_mcp.pipeline.task_contract import (
     DeliveryContract,
@@ -179,6 +179,23 @@ def test_started_attempt_without_final_receipt_never_replays_write() -> None:
         ).execute_save_stage(_context(journal, "VALIDATED -> SAVED"))
     assert result["status"] == "ambiguous"
     assert executor.plans == []
+
+
+def test_readback_branch_is_only_sent_to_branch_aware_provider_methods() -> None:
+    dataset = {
+        "readback_method": "getDataset",
+        "readback_payload": {"datasetId": "dataset_a", "workbookId": "book_demo", "branch": "saved"},
+    }
+    wizard = {
+        "readback_method": "getWizardChart",
+        "readback_payload": {"chartId": "chart_a"},
+    }
+
+    assert _read_payload(dataset, "published") == {
+        "datasetId": "dataset_a",
+        "workbookId": "book_demo",
+    }
+    assert _read_payload(wizard, "published") == {"chartId": "chart_a", "branch": "published"}
 
 
 def test_stale_revision_is_conflict_with_zero_confirmed_writes() -> None:

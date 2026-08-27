@@ -28,6 +28,15 @@ from datalens_dev_mcp.pipeline.write_reconciliation import reconcile_objects
 from datalens_dev_mcp.validators.redaction import sanitize_value
 
 
+BRANCH_AWARE_READ_METHODS = {
+    "getDashboard",
+    "getEditorChart",
+    "getHtmlPage",
+    "getQLChart",
+    "getWizardChart",
+}
+
+
 class DeliveryTransactionService:
     def __init__(
         self,
@@ -120,7 +129,8 @@ class DeliveryTransactionService:
         if existing:
             if existing.get("plan_hash") != plan_hash:
                 return self._blocked(context, "save receipt belongs to another create plan", "save_receipt_binding")
-            return self._stage_receipt(context, existing, proof_level="controlled_live_write")
+            if existing.get("status") == "success":
+                return self._stage_receipt(context, existing, proof_level="controlled_live_write")
         progress_path = self.journal.delivery_root / "private" / "create-progress.json"
         progress = read_json(progress_path, {}) or {
             "schema_id": "datalens_create_progress",
@@ -523,6 +533,16 @@ class DeliveryTransactionService:
 
     def reconcile_ambiguous_write(self, context: dict[str, Any]) -> dict[str, Any]:
         phase = str(((context.get("state") or {}).get("reconciliation") or {}).get("phase") or "save")
+        public_plan = read_json(self.journal.root / "plans" / "plan.json", {}) or {}
+        if phase == "save" and public_plan.get("plan_kind") == "create_manifest":
+            save_stage = self._execute_create_save_stage(
+                context,
+                public_plan=public_plan,
+                safe_plan=read_json(self.journal.root / "plans" / "safe-apply-plan.json", {}) or {},
+            )
+            if save_stage.get("status") != "success":
+                return save_stage
+            return self.read_saved_stage(context)
         if phase == "publish":
             actions = list((read_json(self.journal.publish_execution_plan_path, {}) or {}).get("actions") or [])
             binding_receipt = self._existing_delivery_receipt(
@@ -996,7 +1016,11 @@ def _action_object_id(action: dict[str, Any]) -> str:
 
 def _read_payload(action: dict[str, Any], branch: str) -> dict[str, Any]:
     payload = deepcopy(action.get("readback_payload") or action.get("fresh_read_payload") or {})
-    payload["branch"] = branch
+    method = str(action.get("readback_method") or action.get("fresh_read_method") or "")
+    if method in BRANCH_AWARE_READ_METHODS:
+        payload["branch"] = branch
+    else:
+        payload.pop("branch", None)
     return payload
 
 

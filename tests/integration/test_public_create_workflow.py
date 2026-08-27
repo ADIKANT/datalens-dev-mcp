@@ -7,6 +7,9 @@ import tempfile
 from unittest.mock import patch
 
 from datalens_dev_mcp.mcp.tools import tasks
+from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
+from datalens_dev_mcp.pipeline.delivery_transaction_service import DeliveryTransactionService
+from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
 from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService
 
 
@@ -310,6 +313,18 @@ def test_public_create_resume_reconciles_attempt_without_duplicate_write() -> No
             attempt = task_root / "delivery" / "private" / "create-000-attempt.json"
             attempt.parent.mkdir(parents=True, exist_ok=True)
             attempt.write_text(json.dumps({"status": "started"}), encoding="utf-8")
+            journal = ProjectJournal(root, started["task_id"])
+            contract = read_json(task_root / "contract.json", {})
+            safe_plan = read_json(task_root / "plans" / "safe-apply-plan.json", {})
+            service = DeliveryTransactionService(journal, contract, client=client)
+            ambiguous = service._uncertain_write_receipt(
+                schema_id="datalens_save_stage_receipt",
+                phase="save",
+                plan_hash=started["plan_hash"],
+                actions=list(safe_plan.get("actions") or []),
+                reason="simulated create write outcome unknown",
+            )
+            write_json(journal.save_stage_receipt_path, ambiguous)
             executed = tasks.dl_execute(
                 started["task_id"],
                 started["plan_hash"],
