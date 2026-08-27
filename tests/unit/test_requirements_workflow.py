@@ -108,7 +108,8 @@ class RequirementsWorkflowTests(unittest.TestCase):
         }:
             self.assertIn(required, tools)
             self.assertNotIn(required, default_tools)
-        self.assertIn("dl_update_user_decision", default_tools)
+        self.assertIn("dl_update_user_decision", tools)
+        self.assertNotIn("dl_update_user_decision", default_tools)
         self.assertFalse(any("cache_sync" in name or name.startswith("dl_sync_") for name in default_tools))
 
     def test_governance_and_generation_use_persisted_requirements(self):
