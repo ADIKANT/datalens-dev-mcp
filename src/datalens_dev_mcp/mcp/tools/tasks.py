@@ -8,10 +8,15 @@ from datalens_dev_mcp.mcp.task_resources import read_task_evidence, task_resourc
 from datalens_dev_mcp.mcp.tools import pipeline
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.pipeline.project_journal import JournalIdentityError, ProjectJournal
-from datalens_dev_mcp.pipeline.safe_apply import workflow_safe_apply_result
 from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
 from datalens_dev_mcp.pipeline.workflow_engine import WorkflowEngine
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
+from datalens_dev_mcp.pipeline.execution_authorization import (
+    resolve_execution_authorization,
+    validate_execution_authorization,
+)
+from datalens_dev_mcp.pipeline.task_completion import TaskCompletionEvaluator
+from datalens_dev_mcp.pipeline.task_service_factory import create_autonomous_task_service
 
 
 RUN_UNTIL_VALUES = frozenset({"blocked", "plan_ready", "completed"})
@@ -44,6 +49,7 @@ def dl_task_start(
     contract = dict(compiled["contract"])
     journal = ProjectJournal(project_root, str(contract["task_id"]))
     journal.initialize(contract)
+    grant = _load_or_create_authorization(journal, contract)
     compile_receipt = journal.write_receipt(
         "task-compile",
         {
@@ -54,20 +60,26 @@ def dl_task_start(
         },
     )
     before = journal.load_state().last_event_id
-    if compiled.get("status") in {"invalid", "needs_input"}:
+    if compiled.get("status") in {"invalid", "needs_input", "needs_discovery"}:
         state = journal.load_state()
+        discovery = compiled.get("status") == "needs_discovery"
         blocker = {
-            "reason": "task contract requires user input",
-            "question": compiled.get("question"),
+            "reason": "server-owned target discovery is required" if discovery else "task contract requires user input",
+            "code": "BLOCKED_DISCOVERY" if discovery else "BLOCKED_INPUT",
+            "question": None if discovery else compiled.get("question"),
+            "missing_facts": compiled.get("discovery_required") or [],
             "compile_receipt": compile_receipt,
         }
         state = journal.append_transition(
             state,
-            transition="TASK_INPUT_REQUIRED",
+            transition="TASK_DISCOVERY_REQUIRED" if discovery else "TASK_INPUT_REQUIRED",
             input_value={"issues": compiled.get("issues") or []},
             receipt_uri=compile_receipt,
             status="blocked",
-            idempotency_key=canonical_hash({"task_id": journal.task_id, "transition": "TASK_INPUT_REQUIRED"}),
+            idempotency_key=canonical_hash({
+                "task_id": journal.task_id,
+                "transition": "TASK_DISCOVERY_REQUIRED" if discovery else "TASK_INPUT_REQUIRED",
+            }),
             next_state="BLOCKED",
             next_transition="",
             blocker=blocker,
@@ -79,10 +91,10 @@ def dl_task_start(
             resource_uri=task_resource_uri(journal.task_id),
             performed_after=before,
         )
-    state = _advance(journal, contract, boundary=boundary)
+    state = _advance(journal, contract, boundary=boundary, execution_grant=grant)
     plan = _ensure_task_plan(journal, contract, state) if state.current_state == "VALIDATED" else {}
     if boundary == "completed" and state.current_state == "VALIDATED":
-        state = _advance(journal, contract, boundary="completed")
+        state = _advance(journal, contract, boundary="completed", execution_grant=grant)
     result = project_task_summary(
         contract=contract,
         state=state,
@@ -106,12 +118,16 @@ def dl_task_resume(
     boundary = _run_until(run_until)
     journal = ProjectJournal(project_root, task_id)
     contract = journal.load_contract()
+    grant = _load_authorization(journal, contract)
     state, _ = journal.replay()
     _assert_expected_state(state, expected_state=expected_state, expected_hash=expected_hash)
     before = state.last_event_id
     if state.current_state == "VALIDATED":
         _ensure_task_plan(journal, contract, state)
-    state = _advance(journal, contract, boundary=boundary, transition_budget=transition_budget)
+    state = _advance(
+        journal, contract, boundary=boundary, transition_budget=transition_budget,
+        execution_grant=grant,
+    )
     result = project_task_summary(
         contract=contract,
         state=state,
@@ -170,7 +186,10 @@ def dl_plan(task_id: str, project_root: str = ".") -> dict[str, Any]:
     contract = journal.load_contract()
     state, _ = journal.replay()
     if state.current_state not in {"VALIDATED", "COMPLETED"}:
-        state = _advance(journal, contract, boundary="plan_ready")
+        state = _advance(
+            journal, contract, boundary="plan_ready",
+            execution_grant=_load_authorization(journal, contract),
+        )
     if state.current_state != "VALIDATED":
         return {
             **compact_task_status(contract, state, resource_uri=task_resource_uri(task_id)),
@@ -209,7 +228,10 @@ def dl_execute(
         if destructive_token != expected:
             raise ValueError("destructive task requires the exact task-bound destructive token")
     before = state.last_event_id
-    state = _advance(journal, contract, boundary="completed", destructive_token=destructive_token)
+    state = _advance(
+        journal, contract, boundary="completed", destructive_token=destructive_token,
+        execution_grant=_load_authorization(journal, contract),
+    )
     return project_task_summary(
         contract=contract,
         state=state,
@@ -223,21 +245,12 @@ def dl_verify(task_id: str, proof_target: str = "completion", project_root: str 
     journal = ProjectJournal(project_root, task_id)
     contract = journal.load_contract()
     state, _ = journal.replay()
-    validation = pipeline.dl_validate_project(project_root)
-    read_only = str(contract.get("mode") or "") in {"review", "diagnose", "plan"}
-    validation_ok = read_only or validation.get("status") == "pass"
-    browser_mode = str((contract.get("browser_policy") or {}).get("mode") or "optional")
+    evaluated = TaskCompletionEvaluator().evaluate(journal, contract, proof_target=proof_target)
     return {
-        "ok": validation_ok and not bool(state.blocker),
+        **evaluated,
         "task_id": task_id,
         "state": public_task_state(state.current_state),
         "proof_target": proof_target,
-        "checks": {
-            "project_validation": "not_applicable_read_only" if read_only else validation.get("status") or "failed",
-            "saved_readback_recorded": "SAVED -> SAVED_READBACK" in state.completed_transitions,
-            "published_readback_recorded": "PUBLISHED -> PUBLISHED_READBACK" in state.completed_transitions,
-            "browser_policy": browser_mode,
-        },
         "risk": state.blocker or None,
         "resource_uri": task_resource_uri(task_id, "checkpoint"),
     }
@@ -268,132 +281,45 @@ def _advance(
     boundary: str,
     transition_budget: int = 20,
     destructive_token: str = "",
+    execution_grant: dict[str, Any] | None = None,
 ):
+    resolved_grant = execution_grant or _load_authorization(journal, contract)
+    service = create_autonomous_task_service(
+        journal, contract, execution_grant=resolved_grant,
+    )
     engine = WorkflowEngine(
         journal,
         contract,
-        handlers=_workflow_handlers(journal, contract, destructive_token=destructive_token),
+        handlers=service.handlers(),
+        require_typed_receipts=True,
     )
     stop_states = {"VALIDATED"} if boundary == "plan_ready" else None
     return engine.resume(max_transitions=max(1, min(100, int(transition_budget))), stop_states=stop_states)
 
 
-def _workflow_handlers(
-    journal: ProjectJournal,
-    contract: dict[str, Any],
-    *,
-    destructive_token: str = "",
-) -> dict[str, Any]:
-    project_root = str(journal.project_root)
+def _authorization_path(journal: ProjectJournal) -> Path:
+    return journal.root / "execution-authorization.json"
 
-    def read_baseline(context: dict[str, Any]) -> dict[str, Any]:
-        target = contract.get("target") or {}
-        known = [str(item) for item in target.get("object_ids") or [] if str(item)]
-        return {
-            "status": "success",
-            "observed_facts": [
-                f"compiled target object count: {len(known)}",
-                "baseline source: immutable target contract and project artifacts",
-            ],
-        }
 
-    def bind_reference(context: dict[str, Any]) -> dict[str, Any]:
-        reference = contract.get("reference") or {}
-        return {
-            "status": "success",
-            "observed_facts": [f"reference kind: {reference.get('kind') or 'none'}"],
-            "reference": reference,
-        }
+def _load_or_create_authorization(journal: ProjectJournal, contract: dict[str, Any]) -> dict[str, Any]:
+    path = _authorization_path(journal)
+    existing = read_json(path, default={}) or {}
+    if existing:
+        issues = validate_execution_authorization(existing, contract)
+        if issues:
+            raise JournalIdentityError("; ".join(issues))
+        return existing
+    grant = resolve_execution_authorization(contract)
+    write_json(path, grant)
+    return grant
 
-    def bind_route(context: dict[str, Any]) -> dict[str, Any]:
-        return {"status": "success", "observed_facts": [f"route: {contract.get('route') or ''}"]}
 
-    def plan_data_proof(context: dict[str, Any]) -> dict[str, Any]:
-        evidence = contract.get("evidence") or {}
-        return {
-            "status": "success",
-            "required_facts": evidence.get("required_facts") or [],
-            "observed_facts": [f"required evidence fact count: {len(evidence.get('required_facts') or [])}"],
-        }
-
-    def plan_semantic_change(context: dict[str, Any]) -> dict[str, Any]:
-        return {
-            "status": "success",
-            "route": contract.get("route"),
-            "scope": contract.get("scope") or {},
-            "observed_facts": ["semantic scope bound to immutable task contract"],
-        }
-
-    def validate_plan(context: dict[str, Any]) -> dict[str, Any]:
-        if str(contract.get("mode") or "") in {"review", "diagnose", "plan"}:
-            return {"status": "success", "observed_facts": ["read-only task plan validation passed"]}
-        validation = pipeline.dl_validate_project(project_root)
-        if validation.get("status") != "pass":
-            return {"status": "blocked", "reason": "local project validation failed", "validation": validation}
-        return {"status": "success", "observed_facts": ["local project validation passed"]}
-
-    def safe_apply_save(context: dict[str, Any]) -> dict[str, Any]:
-        current_state = journal.load_state()
-        plan = _load_task_plan(journal) or _ensure_task_plan(journal, contract, current_state)
-        if (contract.get("delivery") or {}).get("destructive"):
-            expected = _destructive_token(journal.task_id, str(plan.get("plan_hash") or ""))
-            if destructive_token != expected:
-                return {
-                    "status": "blocked",
-                    "reason": "destructive task requires dl_execute with the exact task-bound destructive token",
-                }
-        safe_path = str(plan.get("safe_apply_plan_path") or "")
-        if not safe_path or not Path(safe_path).is_file() or not plan.get("safe_apply_action_count"):
-            return {"status": "blocked", "reason": "validated Safe Apply actions are unavailable"}
-        result = pipeline.dl_execute_safe_apply(
-            project_root=project_root,
-            plan_path=safe_path,
-            delivery_intent_text=_delivery_intent_text(contract),
-        )
-        projected = workflow_safe_apply_result(result)
-        if not result.get("executed") and projected["status"] == "failed":
-            return {"status": "blocked", "reason": "Safe Apply did not execute", "safe_apply": projected}
-        return {**projected, "observed_facts": ["Safe Apply result recorded"]}
-
-    def read_delivery(context: dict[str, Any]) -> dict[str, Any]:
-        result = read_json(Path(project_root) / "artifacts" / "safe_apply_result.json", default={})
-        return {
-            "status": "success" if result else "blocked",
-            "reason": "Safe Apply readback artifact is missing" if not result else "",
-            "observed_facts": ["delivery readback artifact is present"] if result else [],
-        }
-
-    def publish_from_saved(context: dict[str, Any]) -> dict[str, Any]:
-        result = read_json(Path(project_root) / "artifacts" / "safe_apply_result.json", default={})
-        return {
-            "status": "success" if result.get("executed") else "blocked",
-            "reason": "publish-from-saved evidence is unavailable" if not result.get("executed") else "",
-            "observed_facts": ["publish-from-saved result recorded"] if result.get("executed") else [],
-        }
-
-    def run_qa(context: dict[str, Any]) -> dict[str, Any]:
-        mode = str((contract.get("browser_policy") or {}).get("mode") or "optional")
-        return {"status": "success", "observed_facts": [f"QA policy: browser {mode}"]}
-
-    def complete(context: dict[str, Any]) -> dict[str, Any]:
-        return {"status": "success", "observed_facts": ["task completion criteria evaluated"]}
-
-    return {
-        "read_baseline": read_baseline,
-        "bind_reference": bind_reference,
-        "bind_route": bind_route,
-        "plan_data_proof": plan_data_proof,
-        "plan_semantic_change": plan_semantic_change,
-        "validate_plan": validate_plan,
-        "safe_apply_save": safe_apply_save,
-        "read_saved_state": read_delivery,
-        "publish_from_saved": publish_from_saved,
-        "read_published_state": read_delivery,
-        "run_qa": run_qa,
-        "verify_read_only_result": run_qa,
-        "verify_completion": complete,
-        "reconcile_ambiguous_write": read_delivery,
-    }
+def _load_authorization(journal: ProjectJournal, contract: dict[str, Any]) -> dict[str, Any]:
+    value = read_json(_authorization_path(journal), default={}) or {}
+    issues = validate_execution_authorization(value, contract)
+    if issues:
+        raise JournalIdentityError("; ".join(issues))
+    return value
 
 
 def _ensure_task_plan(journal: ProjectJournal, contract: dict[str, Any], state) -> dict[str, Any]:

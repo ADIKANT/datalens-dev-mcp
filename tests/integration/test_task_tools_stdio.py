@@ -25,7 +25,7 @@ def _call(server: JsonRpcServer, request_id: int, name: str, arguments: dict) ->
 
 
 class TaskToolsStdioTests(unittest.TestCase):
-    def test_single_task_flow_resumes_after_server_restart(self) -> None:
+    def test_discovery_blocker_survives_server_restart(self) -> None:
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {}, clear=True):
             first = JsonRpcServer(project_root=tmp)
             started = _call(
@@ -38,13 +38,13 @@ class TaskToolsStdioTests(unittest.TestCase):
                     "run_until": "plan_ready",
                 },
             )
-            self.assertEqual(started["state"], "PLAN_VALIDATED")
-            self.assertTrue(started["plan_hash"])
+            self.assertEqual(started["state"], "BLOCKED")
+            self.assertEqual(started["blocked_by"]["code"], "BLOCKED_DISCOVERY")
             task_id = started["task_id"]
 
             restarted = JsonRpcServer(project_root=tmp)
             status = _call(restarted, 2, "dl_task_status", {"task_id": task_id, "project_root": tmp})
-            self.assertEqual(status["state"], "PLAN_VALIDATED")
+            self.assertEqual(status["state"], "BLOCKED")
             resumed = _call(
                 restarted,
                 3,
@@ -57,8 +57,8 @@ class TaskToolsStdioTests(unittest.TestCase):
                     "run_until": "completed",
                 },
             )
-            self.assertEqual(resumed["state"], "COMPLETED")
-            self.assertNotIn("next_action", resumed)
+            self.assertEqual(resumed["state"], "BLOCKED")
+            self.assertEqual(resumed["task_revision"], started["task_revision"])
 
             task_resource = restarted.handle(
                 {
@@ -69,7 +69,7 @@ class TaskToolsStdioTests(unittest.TestCase):
                 }
             )
             resource_payload = json.loads(task_resource["result"]["contents"][0]["text"])
-            self.assertEqual(resource_payload["state"], "COMPLETED")
+            self.assertEqual(resource_payload["state"], "BLOCKED")
 
     def test_evidence_reads_only_one_bounded_task_artifact(self) -> None:
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {}, clear=True):

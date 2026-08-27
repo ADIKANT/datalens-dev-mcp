@@ -17,7 +17,7 @@ from datalens_dev_mcp.server import (
 from datalens_dev_mcp.mcp.heavy_response import project_task_tool_response
 from datalens_dev_mcp.mcp.tools import tasks
 from datalens_dev_mcp.pipeline.artifacts import write_json
-from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
+from datalens_dev_mcp.pipeline.project_journal import JournalIdentityError, ProjectJournal
 from datalens_dev_mcp.pipeline.task_contract import DeliveryContract, WorkspaceContract, create_task_contract
 
 
@@ -91,7 +91,7 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
         self.assertEqual(projected["resource_uri"], "datalens://tasks/task-1")
         self.assertNotIn("observed_facts", projected)
 
-    def test_completed_start_materializes_plan_before_server_owned_execution(self) -> None:
+    def test_completed_start_cannot_bypass_required_discovery(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             def execute(**kwargs):
                 result = {"ok": True, "status": "completed", "executed": True, "results": []}
@@ -110,9 +110,10 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
                     run_until="completed",
                 )
 
-            self.assertEqual(result["state"], "COMPLETED")
+            self.assertEqual(result["state"], "BLOCKED")
+            self.assertEqual(result["blocked_by"]["code"], "BLOCKED_DISCOVERY")
 
-    def test_destructive_resume_requires_exact_token_at_execution_boundary(self) -> None:
+    def test_destructive_resume_requires_persisted_execution_authorization(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             safe_plan = {"ok": True, "status": "planned", "actions": [{"method": "deleteDashboard"}]}
             contract = create_task_contract(
@@ -124,16 +125,8 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
             ).to_dict()
             journal = ProjectJournal(tmp, contract["task_id"])
             journal.initialize(contract)
-            with (
-                patch.object(tasks.pipeline, "dl_validate_project", return_value={"ok": True, "status": "pass"}),
-                patch.object(tasks.pipeline, "dl_create_safe_apply_plan", return_value=safe_plan),
-            ):
-                state = tasks._advance(journal, contract, boundary="plan_ready")
-                tasks._ensure_task_plan(journal, contract, state)
-                resumed = tasks.dl_task_resume(contract["task_id"], project_root=tmp, run_until="completed")
-
-            self.assertEqual(resumed["state"], "BLOCKED")
-            self.assertIn("exact task-bound destructive token", resumed["blocked_by"]["reason"])
+            with self.assertRaisesRegex(JournalIdentityError, "execution authorization is missing"):
+                tasks._advance(journal, contract, boundary="plan_ready")
 
     def test_compiler_question_is_persisted_as_terminal_blocker(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

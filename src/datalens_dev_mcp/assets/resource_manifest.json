@@ -1,5 +1,5 @@
 {
-  "resource_count": 296,
+  "resource_count": 299,
   "resources": [
     {
       "bytes": 15842,
@@ -372,6 +372,11 @@
       "sha256": "7e2356e88420e7f4bfc655a03d6cd7dbcb746c9f264ad2f3ea4199f624d51111"
     },
     {
+      "bytes": 1125,
+      "path": "schemas/execution-authorization.schema.json",
+      "sha256": "df11c276e0e8e49580fcdce204e2fbd2088b74035b46404081009df3d7ee12e5"
+    },
+    {
       "bytes": 1088,
       "path": "schemas/existing_object_update_plan.schema.json",
       "sha256": "7623774b5f1f5a08cdce47f41505f6514971d23801987e772834892b7ceb567b"
@@ -577,6 +582,11 @@
       "sha256": "29768ced594b58e682086cbf40c5a8b0e9a454dd6f44a94a79264ad53b3f24d2"
     },
     {
+      "bytes": 746,
+      "path": "schemas/task-completion-receipt.schema.json",
+      "sha256": "8ca65a56e531b0313fa0f4141fcd4ae93b3dc8d6c991b94ae6d224ec4c6318c4"
+    },
+    {
       "bytes": 4985,
       "path": "schemas/task-contract.schema.json",
       "sha256": "922a570fac769551f22c4d71f555e68b6e93c1fa65cca4e3e3e76375b88d9854"
@@ -590,6 +600,11 @@
       "bytes": 699,
       "path": "schemas/task-resume-request.schema.json",
       "sha256": "b5202a35c1c7e1b4a442fcb875ffb69fb7d26061edf788e25acd402366da8d19"
+    },
+    {
+      "bytes": 1042,
+      "path": "schemas/task-stage-receipt.schema.json",
+      "sha256": "9304da05bbacb1b50af8753e6f53dc66523eb44d92354d9caf6a830e8f824c6e"
     },
     {
       "bytes": 966,
