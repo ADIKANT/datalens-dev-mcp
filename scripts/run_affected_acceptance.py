@@ -43,7 +43,7 @@ def main() -> int:
             "timeout_sec": 180,
         },
     ]
-    report = run_acceptance("affected", shards)
+    report = run_acceptance("affected", shards, surface="autonomous-v2")
     print(json.dumps(compact_report(report), indent=2, sort_keys=True))
     return 0 if report["ok"] else 1
 

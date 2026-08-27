@@ -37,6 +37,7 @@ class McpStdioSmokeTests(unittest.TestCase):
                 **os.environ,
                 "PYTHONPATH": "src",
                 "PYTHONDONTWRITEBYTECODE": "1",
+                "DATALENS_MCP_TOOL_SURFACE": "legacy-v1",
             },
             text=True,
         )

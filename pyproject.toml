@@ -45,6 +45,7 @@ yaml = [
 ]
 test = [
   "jsonschema>=4.21,<5",
+  "pytest>=8,<9",
   "PyYAML>=6.0.2,<7",
 ]
 dev = [

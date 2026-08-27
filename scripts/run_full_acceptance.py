@@ -63,7 +63,7 @@ def main() -> int:
             "timeout_sec": 300,
         },
     ]
-    report = run_acceptance("full-sharded", shards)
+    report = run_acceptance("full-sharded", shards, surface="autonomous-v2")
     print(json.dumps(compact_report(report), indent=2, sort_keys=True))
     return 0 if report["ok"] else 1
 

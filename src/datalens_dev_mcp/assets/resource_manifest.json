@@ -1,5 +1,5 @@
 {
-  "resource_count": 295,
+  "resource_count": 296,
   "resources": [
     {
       "bytes": 15842,
@@ -95,6 +95,11 @@
       "bytes": 2755,
       "path": "config/runtime_quality_contracts.json",
       "sha256": "4721ee99c53eb4467163a202da961cb9b05a63f56c1c763ca96d6a08074b1164"
+    },
+    {
+      "bytes": 634,
+      "path": "schemas/acceptance-surface-receipt.schema.json",
+      "sha256": "702f8a63fac8c604f65ba438242765408c11a3d29f32b5cbc7b9452d7e34dd74"
     },
     {
       "bytes": 1235,

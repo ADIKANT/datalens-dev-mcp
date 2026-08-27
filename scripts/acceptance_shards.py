@@ -51,7 +51,29 @@ def py(*parts: str) -> list[str]:
     return [sys.executable, *parts]
 
 
-def run_acceptance(name: str, shards: list[dict[str, Any]], *, output: Path | None = None) -> dict[str, Any]:
+ACCEPTANCE_SURFACES = frozenset({"autonomous-v2", "legacy-v1"})
+AUTONOMOUS_PROFILES = frozenset({"autonomy", "affected", "full-sharded", "public-autonomy"})
+
+
+def run_acceptance(
+    name: str,
+    shards: list[dict[str, Any]],
+    *,
+    surface: str,
+    output: Path | None = None,
+) -> dict[str, Any]:
+    declared_surface = str(surface or "").strip()
+    if declared_surface not in ACCEPTANCE_SURFACES:
+        raise ValueError(f"acceptance surface must be one of: {', '.join(sorted(ACCEPTANCE_SURFACES))}")
+    if name in AUTONOMOUS_PROFILES and declared_surface != "autonomous-v2":
+        raise ValueError(f"{name} acceptance must declare autonomous-v2")
+    for shard in shards:
+        shard_surface = str(shard.get("surface") or declared_surface)
+        if shard_surface != declared_surface:
+            raise ValueError(f"shard {shard.get('name')!r} changes the declared acceptance surface")
+        leaked = str((shard.get("env") or {}).get("DATALENS_MCP_TOOL_SURFACE") or "")
+        if leaked and leaked != declared_surface:
+            raise ValueError(f"shard {shard.get('name')!r} overrides the declared acceptance surface")
     started = time.perf_counter()
     source_hash, file_count = publication_tree_hash()
     run_id = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()) + f"-{os.getpid()}"
@@ -62,7 +84,7 @@ def run_acceptance(name: str, shards: list[dict[str, Any]], *, output: Path | No
         "PYTHONPATH": str(ROOT / "src"),
         "PYTHONDONTWRITEBYTECODE": "1",
         "PYTHONFAULTHANDLER": "1",
-        "DATALENS_MCP_TOOL_SURFACE": "legacy-v1",
+        "DATALENS_MCP_TOOL_SURFACE": declared_surface,
         "DATALENS_MCP_RUN_ARTIFACT_DIR": str(run_dir / "mcp_runs"),
     }
     results: list[dict[str, Any]] = []
@@ -106,6 +128,8 @@ def run_acceptance(name: str, shards: list[dict[str, Any]], *, output: Path | No
             )
             if returncode != 0:
                 status = "failed"
+                diagnostic = (stderr or stdout or "acceptance command failed without output")[-12_000:]
+                print(diagnostic, file=sys.stderr, flush=True)
                 break
         results.append(
             {
@@ -121,6 +145,9 @@ def run_acceptance(name: str, shards: list[dict[str, Any]], *, output: Path | No
     report = {
         "schema_id": "datalens_autonomy_acceptance_receipt",
         "profile": name,
+        "declared_surface": declared_surface,
+        "effective_surface": declared_surface,
+        "surface_consistent": True,
         "ok": len(results) == len(shards) and all(item["status"] == "passed" for item in results),
         "exact_head": git_head(),
         "source_tree_sha256": source_hash,
@@ -146,6 +173,9 @@ def compact_report(report: dict[str, Any]) -> dict[str, Any]:
     return {
         "ok": report["ok"],
         "profile": report["profile"],
+        "declared_surface": report["declared_surface"],
+        "effective_surface": report["effective_surface"],
+        "surface_consistent": report["surface_consistent"],
         "exact_head": report["exact_head"],
         "source_tree_sha256": report["source_tree_sha256"],
         "source_unchanged": report["source_unchanged"],
