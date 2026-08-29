@@ -18,6 +18,7 @@ class DiscoveryClient:
         chart_type: str = "",
         unavailable_chart: bool = False,
         embedded_dataset_only: bool = False,
+        connection_error_status: int | None = None,
     ) -> None:
         self.calls: list[tuple[str, dict]] = []
         self.ambiguous = ambiguous
@@ -26,6 +27,7 @@ class DiscoveryClient:
         self.chart_type = chart_type
         self.unavailable_chart = unavailable_chart
         self.embedded_dataset_only = embedded_dataset_only
+        self.connection_error_status = connection_error_status
 
     def rpc_readonly(self, method: str, payload: dict) -> dict:
         self.calls.append((method, payload))
@@ -111,6 +113,11 @@ class DiscoveryClient:
                 }
             }
         if method == "getConnection":
+            if self.connection_error_status is not None:
+                raise DataLensApiError(
+                    "connection read failed",
+                    http_status=self.connection_error_status,
+                )
             return {"result": {"connection": {"connectionId": "connection_demo", "type": "clickhouse"}}}
         raise AssertionError(method)
 
@@ -250,3 +257,31 @@ def test_unrequested_unavailable_chart_is_recorded_as_bounded_limitation() -> No
     assert result["status"] == "success"
     assert result["target_binding"]["technology"] == "dashboard"
     assert result["target_graph"]["limitations"] == ["dashboard references an unavailable chart"]
+
+
+def test_inaccessible_unrequested_nested_connection_is_a_bounded_limitation() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        result = TargetDiscoveryService(
+            DiscoveryClient(connection_error_status=403)
+        ).discover(_contract(Path(tmp)))
+    assert result["status"] == "success"
+    assert result["connection_count"] == 0
+    assert result["target_graph"]["limitations"] == [
+        "dashboard dependency connection is inaccessible"
+    ]
+    assert any(
+        edge["relation"] == "uses_connection" and edge["target"] == "connection_demo"
+        for edge in result["target_graph"]["edges"]
+    )
+
+
+def test_nested_connection_provider_failure_still_blocks_discovery() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        try:
+            TargetDiscoveryService(
+                DiscoveryClient(connection_error_status=500)
+            ).discover(_contract(Path(tmp)))
+        except DataLensApiError as exc:
+            assert exc.http_status == 500
+        else:
+            raise AssertionError("unexpectedly suppressed nested connection provider failure")

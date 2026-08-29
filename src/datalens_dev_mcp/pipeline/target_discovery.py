@@ -311,7 +311,13 @@ class TargetDiscoveryService:
             payload = {"connectionId": connection_id}
             if workbook_id:
                 payload["workbookId"] = workbook_id
-            connection = self._read("getConnection", payload, calls)
+            try:
+                connection = self._read("getConnection", payload, calls)
+            except DataLensApiError as exc:
+                if exc.http_status in {403, 404} and connection_id not in requested_ids:
+                    limitations.append("dashboard dependency connection is inaccessible")
+                    continue
+                raise
             nodes.append(
                 _node(
                     "connection",
