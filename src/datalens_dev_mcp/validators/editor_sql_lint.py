@@ -46,6 +46,10 @@ ALIAS_RE = re.compile(
     r"(?:\s+(?:as\s+)?([A-Za-z_][A-Za-z0-9_]*))?",
     re.IGNORECASE,
 )
+TABLE_REFERENCE_RE = re.compile(
+    r"\b(?:from|join)\s+(?!select\b)([A-Za-z_][A-Za-z0-9_\".]*)",
+    re.IGNORECASE,
+)
 CTE_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\s+as\s*\(", re.IGNORECASE)
 SQL_QUERY_LITERAL_RE = re.compile(
     r"\bsql_query\s*:\s*`([\s\S]*?)`|\"sql_query\"\s*:\s*\"((?:\\.|[^\"])*)\"",
@@ -260,13 +264,12 @@ def _unknown_alias_issues(text: str, path: str) -> list[EditorSqlLintIssue]:
     ):
         return []
     aliases = {alias for alias in (match.group(1) for match in ALIAS_RE.finditer(scan_text)) if alias}
+    aliases.update(_derived_table_aliases(scan_text))
+    declared_tables = [match.group(1).strip('"') for match in TABLE_REFERENCE_RE.finditer(scan_text)]
     table_references = {
-        match.group(1).strip('"').split(".")[-1]
-        for match in re.finditer(
-            r"\b(?:from|join)\s+(?!select\b)([A-Za-z_][A-Za-z0-9_\".]*)",
-            scan_text,
-            flags=re.IGNORECASE,
-        )
+        part
+        for reference in declared_tables
+        for part in (reference.split(".")[0], reference.split(".")[-1])
     }
     ctes = {match.group(1) for match in CTE_RE.finditer(scan_text)}
     allowed = {
@@ -296,6 +299,47 @@ def _unknown_alias_issues(text: str, path: str) -> list[EditorSqlLintIssue]:
             )
         )
     return issues
+
+
+def _derived_table_aliases(text: str) -> set[str]:
+    aliases: set[str] = set()
+    for match in re.finditer(r"\(\s*select\b", text, flags=re.IGNORECASE):
+        close = _matching_sql_parenthesis(text, match.start())
+        if close is None:
+            continue
+        alias = re.match(
+            r"\s+(?:as\s+)?([A-Za-z_][A-Za-z0-9_]*)",
+            text[close + 1 :],
+            flags=re.IGNORECASE,
+        )
+        if alias and alias.group(1).lower() not in {item.lower() for item in SQL_KEYWORDS}:
+            aliases.add(alias.group(1))
+    return aliases
+
+
+def _matching_sql_parenthesis(text: str, open_index: int) -> int | None:
+    depth = 0
+    quote = ""
+    escaped = False
+    for index in range(open_index, len(text)):
+        char = text[index]
+        if quote:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = ""
+            continue
+        if char in {"'", '"', "`"}:
+            quote = char
+        elif char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+            if depth == 0:
+                return index
+    return None
 
 
 def _array_zip_issues(text: str, path: str) -> list[EditorSqlLintIssue]:

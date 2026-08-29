@@ -107,6 +107,42 @@ class SqlSemanticsPerformanceTests(unittest.TestCase):
         self.assertIn("tuple_indexing", result["editor_sql_lint"]["error_rules"])
         self.assertIn("arrayzip_independent_regex_lists", result["editor_sql_lint"]["error_rules"])
 
+    def test_payload_sql_preflight_accepts_derived_table_alias_in_comma_join(self):
+        sql = """
+        SELECT
+            t1.ClientID,
+            toDate(date_trunc('day', t2.FirstDate)) AS FirstOrderDate,
+            toDate(date_trunc('day', t1.OrderDatetime)) AS OrderDate
+        FROM
+            samples.MS_SalesFacts_up t1,
+            (
+                SELECT ClientID, MIN(OrderDatetime) AS FirstDate
+                FROM samples.MS_SalesFacts_up
+                GROUP BY ClientID
+            ) AS t2
+        WHERE t1.ClientID = t2.ClientID
+        """
+
+        result = validate_payload_sql_performance({"sql": sql}, source="safe_apply.action[0]")
+
+        error_rules = set(result["editor_sql_lint"]["error_rules"])
+        self.assertNotIn("unknown_alias_reference", error_rules)
+        self.assertTrue(result["ok"], result)
+
+    def test_payload_sql_preflight_still_blocks_truly_unknown_alias(self):
+        result = validate_payload_sql_performance(
+            {
+                "sql": (
+                    "SELECT orders.amount FROM analytics.orders_fact fact "
+                    "JOIN analytics.customers_dim customer ON customer.id = fact.customer_id"
+                )
+            },
+            source="adjacent_unknown_alias",
+        )
+
+        self.assertFalse(result["ok"])
+        self.assertIn("unknown_alias_reference", result["editor_sql_lint"]["error_rules"])
+
     def test_performance_profiler_separates_timing_sources_and_import_contract(self):
         payload = build_synthetic_fleet_fixture_payload()["performance_case"]
 
