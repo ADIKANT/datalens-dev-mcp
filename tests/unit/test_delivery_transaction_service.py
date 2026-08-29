@@ -320,6 +320,40 @@ def test_stale_revision_is_conflict_with_zero_confirmed_writes() -> None:
     assert receipt["reason"] == "stale_revision"
 
 
+def test_blocked_preflight_reason_is_preserved_when_no_action_result_exists() -> None:
+    def blocked_executor(plan: dict) -> dict:
+        exact_reason = (
+            "action 0 has unsafe DataLens internal names: "
+            "entry.name='DLM_CANARY_DLM_20260829T2111Z_10db3c5_dashboard' -> "
+            "'dlm_canary_dlm_20260829t2111z_10db3c5_dashboard'"
+        )
+        return {
+            "ok": False,
+            "executed": False,
+            "status": "blocked",
+            "blocked_reasons": [exact_reason],
+            "actions": [],
+        }
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        journal, contract = _fixture(root)
+        result = DeliveryTransactionService(
+            journal,
+            contract,
+            client=DeliveryClient(),
+            executor=blocked_executor,
+        ).execute_save_stage(_context(journal, "VALIDATED -> SAVED"))
+        receipt = read_json(journal.save_stage_receipt_path, {})
+    assert result["status"] == "blocked"
+    assert receipt["write_count"] == 0
+    assert receipt["reason"] == (
+        "action 0 has unsafe DataLens internal names: "
+        "entry.name='DLM_CANARY_DLM_20260829T2111Z_10db3c5_dashboard' -> "
+        "'dlm_canary_dlm_20260829t2111z_10db3c5_dashboard'"
+    )
+
+
 def test_saved_and_published_receipt_schemas_are_not_interchangeable() -> None:
     saved_schema = read_json(Path(__file__).resolve().parents[2] / "schemas" / "saved-readback-receipt.schema.json", {})
     published_schema = read_json(

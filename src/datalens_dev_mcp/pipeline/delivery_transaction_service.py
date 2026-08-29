@@ -905,7 +905,7 @@ class DeliveryTransactionService:
         if phase == "publish":
             values["publish_plan_hash"] = publish_plan_hash
         if status != "success":
-            reason = _execution_reason(result_actions)
+            reason = _execution_reason(result_actions) or _blocked_execution_reason(result)
             if reason:
                 values["reason"] = reason
         return build_delivery_receipt(schema_id, **values)
@@ -1139,6 +1139,19 @@ def _execution_reason(actions: list[dict[str, Any]]) -> str:
         message = str(error.get("message") or "").strip()
         if category or message:
             return ": ".join(item for item in (category, message[:300]) if item)
+    return ""
+
+
+def _blocked_execution_reason(result: dict[str, Any]) -> str:
+    reasons = result.get("blocked_reasons")
+    if isinstance(reasons, str):
+        reasons = [reasons]
+    if not isinstance(reasons, list):
+        return ""
+    for reason in reasons:
+        normalized = str(reason).strip()
+        if normalized:
+            return normalized[:300]
     return ""
 
 
