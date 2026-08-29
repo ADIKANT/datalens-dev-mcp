@@ -263,6 +263,7 @@ class DeliveryTransactionService:
                         result=execution,
                     )
                     write_json(self.journal.save_stage_receipt_path, receipt)
+                    write_json(attempt_path, _finalize_create_attempt_marker(attempt, receipt))
                     return self._stage_receipt(context, receipt, proof_level="controlled_live_write")
                 write_json(
                     attempt_path,
@@ -1313,7 +1314,12 @@ def _finalize_create_attempt_marker(
     finalized = deepcopy(attempt)
     finalized["resolved_at"] = str(finalized.get("resolved_at") or receipt.get("resolved_at") or _utc_now())
     finalized["final_receipt_hash"] = str(receipt.get("receipt_hash") or "")
-    finalized["status"] = "completed" if receipt.get("status") == "success" else "ambiguous"
+    if receipt.get("status") == "success":
+        finalized["status"] = "completed"
+    elif receipt.get("status") == "blocked" and int(receipt.get("write_count") or 0) == 0:
+        finalized["status"] = "blocked_no_write"
+    else:
+        finalized["status"] = "ambiguous"
     finalized.pop("attempt_hash", None)
     finalized["attempt_hash"] = canonical_hash(finalized)
     return finalized

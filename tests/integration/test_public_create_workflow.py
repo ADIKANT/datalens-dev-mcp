@@ -388,6 +388,108 @@ def test_public_create_executes_once_and_persists_resolved_identity() -> None:
         ]
 
 
+def test_public_create_preflight_block_finalizes_attempt_as_no_write() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        payloads = root / "payloads"
+        payloads.mkdir()
+        unsafe_name = "DLM_CANARY_DLM_RECEIPT_20260830T0100Z_9e35686_dashboard"
+        (payloads / "dashboard.json").write_text(
+            json.dumps(
+                {
+                    "entry": {
+                        "workbookId": "workbook_1",
+                        "name": unsafe_name,
+                        "scope": "dash",
+                        "type": "",
+                        "hidden": False,
+                        "public": False,
+                        "meta": {},
+                        "annotation": {"description": "controlled exact blocker"},
+                        "data": {
+                            "accessDescription": "",
+                            "counter": 1,
+                            "salt": "0.9e35686",
+                            "schemeVersion": 8,
+                            "supportDescription": "exact-build negative canary",
+                            "settings": {},
+                            "tabs": [
+                                {
+                                    "id": "main",
+                                    "title": "Main",
+                                    "aliases": {},
+                                    "connections": [],
+                                    "items": [],
+                                    "layout": [],
+                                }
+                            ],
+                        },
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        (root / "create-manifest.json").write_text(
+            json.dumps(
+                {
+                    "schema_id": "datalens_public_create_manifest",
+                    "manifest_version": 1,
+                    "run_id": "controlled_receipt_run",
+                    "workbook_id": "workbook_1",
+                    "workbook_lifecycle": "disposable_sibling",
+                    "objects": [
+                        {
+                            "key": "dashboard_main",
+                            "object_type": "dashboard",
+                            "route": "dashboard",
+                            "name": unsafe_name,
+                            "payload_path": "payloads/dashboard.json",
+                            "dependencies": [],
+                            "lifecycle": "temporary",
+                            "cleanup_route": "whole_disposable_workbook_delete",
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        client = _CreateDatasetClient()
+        discovery = TargetDiscoveryService(client)
+        enabled = {
+            "DATALENS_MCP_ENABLE_WRITES": "1",
+            "DATALENS_MCP_LIVE_ALLOW_SAVE": "1",
+            "DATALENS_MCP_LIVE_ALLOW_PUBLISH": "1",
+        }
+        with (
+            patch.object(tasks, "TargetDiscoveryService", return_value=discovery),
+            patch("datalens_dev_mcp.api.client.DataLensApiClient", return_value=client),
+            patch.dict(os.environ, enabled, clear=False),
+        ):
+            started = tasks.dl_task_start(
+                "Create the declared run-owned dashboard and save it without browser",
+                project_root=str(root),
+                context={"workbook_id": "workbook_1", "create_manifest": "create-manifest.json"},
+                run_until="plan_ready",
+            )
+            executed = tasks.dl_execute(
+                started["task_id"],
+                started["plan_hash"],
+                project_root=str(root),
+                stop_after="saved",
+            )
+        task_root = root / ".datalens-mcp" / "tasks" / started["task_id"]
+        receipt = read_json(task_root / "delivery" / "save-stage-receipt.json", {})
+        attempt = read_json(task_root / "delivery" / "private" / "create-000-attempt.json", {})
+
+    assert executed["state"] == "BLOCKED"
+    assert client.write_count == 0
+    assert receipt["write_count"] == 0
+    assert "unsafe DataLens internal names" in receipt["reason"]
+    assert attempt["status"] == "blocked_no_write"
+    assert attempt["resolved_at"]
+    assert attempt["final_receipt_hash"] == receipt["receipt_hash"]
+
+
 def test_public_create_resume_reconciles_attempt_without_duplicate_write() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
