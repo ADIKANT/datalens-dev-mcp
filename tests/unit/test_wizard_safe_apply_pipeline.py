@@ -368,8 +368,8 @@ class WizardSafeApplyPipelineTests(unittest.TestCase):
             def rpc(self, method, payload):
                 self.calls.append((method, deepcopy(payload)))
                 if method == "getWorkbookEntries":
-                    page = int(payload.get("page") or 1)
-                    if page == 1:
+                    page = int(payload.get("page") or 0)
+                    if page == 0:
                         return {
                             "entries": [
                                 {
@@ -378,9 +378,9 @@ class WizardSafeApplyPipelineTests(unittest.TestCase):
                                     "displayKey": "Z Dataset",
                                 }
                             ],
-                            "nextPageToken": "cursor_2",
+                            "nextPageToken": "1",
                         }
-                    if page == 2:
+                    if page == 1:
                         return {
                             "entries": [
                                 {
@@ -431,7 +431,7 @@ class WizardSafeApplyPipelineTests(unittest.TestCase):
                 "getWizardChart",
             ],
         )
-        self.assertEqual(client.calls[1][1]["page"], 2)
+        self.assertEqual(client.calls[1][1]["page"], 1)
         self.assertNotIn("pageToken", client.calls[1][1])
         pagination = result["actions"][0]["fresh_read_pagination"]
         self.assertTrue(pagination["complete"])
@@ -451,6 +451,50 @@ class WizardSafeApplyPipelineTests(unittest.TestCase):
         self.assertEqual(
             result["actions"][0]["readback_verification"]["actual_object_id"],
             "chart_created",
+        )
+
+    def test_create_inventory_continues_with_zero_based_second_page(self):
+        from datalens_dev_mcp.config import DataLensConfig
+        from datalens_dev_mcp.pipeline.safe_apply import execute_safe_apply
+
+        class ZeroBasedPaginationClient:
+            def __init__(self):
+                self.calls = []
+
+            def rpc(self, method, payload):
+                self.calls.append((method, deepcopy(payload)))
+                if method != "getWorkbookEntries":
+                    raise AssertionError("write must not run when page 1 contains the target")
+                page = int(payload.get("page") or 0)
+                if page == 0:
+                    return {"entries": [], "nextPageToken": "1"}
+                if page == 1:
+                    return {
+                        "entries": [
+                            {
+                                "entryId": "chart_existing",
+                                "scope": "widget",
+                                "type": "d3_wizard_node",
+                                "displayKey": "2248817075424333788/Sales Column",
+                            }
+                        ]
+                    }
+                raise AssertionError(f"official zero-based page 1 was skipped: got page {page}")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            plan = self._build_safe_create_plan(Path(tmp))
+            client = ZeroBasedPaginationClient()
+            result = execute_safe_apply(
+                plan,
+                config=DataLensConfig(write_enabled=True),
+                client=client,
+            )
+
+        self.assertFalse(result["executed"])
+        self.assertEqual(client.calls[1][1]["page"], 1)
+        self.assertEqual(
+            result["actions"][0]["error"]["category"],
+            "create_target_now_exists",
         )
 
     def test_create_inventory_pagination_blocks_cursor_cycle(self):
@@ -494,7 +538,7 @@ class WizardSafeApplyPipelineTests(unittest.TestCase):
 
             def rpc(self, method, payload):
                 self.calls.append((method, deepcopy(payload)))
-                page = int(payload.get("page") or 1)
+                page = int(payload.get("page") or 0)
                 return {
                     "entries": [
                         {
@@ -552,16 +596,16 @@ class WizardSafeApplyPipelineTests(unittest.TestCase):
 
         class ConflictingDuplicateClient:
             def rpc(self, method, payload):
-                page = int(payload.get("page") or 1)
+                page = int(payload.get("page") or 0)
                 return {
                     "entries": [
                         {
                             "entryId": "same_entry",
                             "scope": "dataset",
-                            "displayKey": "First" if page == 1 else "Changed",
+                            "displayKey": "First" if page == 0 else "Changed",
                         }
                     ],
-                    **({"nextPageToken": "cursor_2"} if page == 1 else {}),
+                    **({"nextPageToken": "1"} if page == 0 else {}),
                 }
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -590,9 +634,9 @@ class WizardSafeApplyPipelineTests(unittest.TestCase):
                 self.calls.append((method, deepcopy(payload)))
                 if method != "getWorkbookEntries":
                     raise AssertionError("create must not run when page two has the target")
-                page = int(payload.get("page") or 1)
-                if page == 1:
-                    return {"entries": [], "nextPageToken": "cursor_2"}
+                page = int(payload.get("page") or 0)
+                if page == 0:
+                    return {"entries": [], "nextPageToken": "1"}
                 return {
                     "entries": [
                         {

@@ -1965,7 +1965,7 @@ def _read_complete_workbook_entries_for_create(
         request_payload = deepcopy(base_payload)
         request_payload.pop("pageToken", None)
         request_payload.pop("page_token", None)
-        first_page = int(base_payload.get("page") or 1)
+        first_page = int(base_payload.get("page") or 0)
         request_payload["page"] = first_page + page_count
 
 
