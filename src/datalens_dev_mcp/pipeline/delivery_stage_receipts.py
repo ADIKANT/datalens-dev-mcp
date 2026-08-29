@@ -20,7 +20,7 @@ def build_delivery_receipt(schema_id: str, **values: Any) -> dict[str, Any]:
         raise ValueError(f"unsupported delivery receipt schema: {schema_id}")
     payload = {
         "schema_id": schema_id,
-        "receipt_version": 1,
+        "receipt_version": int(values.pop("receipt_version", 1)),
         "observed_at": str(values.pop("observed_at", "") or _utc_now()),
         **values,
     }
@@ -44,7 +44,7 @@ def validate_delivery_receipt(
     issues: list[str] = []
     if receipt.get("schema_id") != schema_id:
         issues.append("delivery receipt schema mismatch")
-    if receipt.get("receipt_version") != 1:
+    if receipt.get("receipt_version") not in {1, 2}:
         issues.append("delivery receipt version is unsupported")
     if receipt.get("task_id") != task_id:
         issues.append("delivery receipt task_id mismatch")
@@ -52,6 +52,28 @@ def validate_delivery_receipt(
         issues.append("delivery receipt contract_hash mismatch")
     if receipt.get("receipt_hash") != delivery_receipt_hash(receipt):
         issues.append("delivery receipt hash mismatch")
+    if receipt.get("receipt_version") == 2:
+        for field_name in (
+            "contract_revision",
+            "scope_revision",
+            "authorization_revision",
+        ):
+            if not isinstance(receipt.get(field_name), int) or int(receipt.get(field_name) or 0) < 1:
+                issues.append(f"delivery receipt {field_name} is invalid")
+        for field_name in (
+            "phase",
+            "plan_hash",
+            "object_id",
+            "expected_provider_revision",
+            "attempt_id",
+            "idempotency_key",
+            "dispatched_at",
+            "resolved_at",
+        ):
+            if not str(receipt.get(field_name) or ""):
+                issues.append(f"delivery receipt {field_name} is missing")
+        if not isinstance(receipt.get("attempts"), list) or not receipt.get("attempts"):
+            issues.append("delivery receipt attempts are missing")
     return tuple(issues)
 
 

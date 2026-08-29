@@ -3,20 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
+from datalens_dev_mcp.pipeline.task_state_projection import public_task_state, task_state_etag
 from datalens_dev_mcp.pipeline.workflow_replay import read_event_chain
 from datalens_dev_mcp.pipeline.workflow_state import WorkflowState
-
-
-PUBLIC_STATE_ALIASES = {"VALIDATED": "PLAN_VALIDATED"}
-
-
-def public_task_state(state: str) -> str:
-    return PUBLIC_STATE_ALIASES.get(state, state)
-
-
-def task_state_etag(state: WorkflowState) -> str:
-    return canonical_hash(state.to_dict())
 
 
 def project_task_summary(
@@ -39,9 +28,16 @@ def project_task_summary(
         "task_id": state.task_id,
         "state": public_task_state(state.current_state),
         "task_revision": state.revision,
+        "contract_revision": int(contract.get("contract_revision") or 1),
+        "scope_revision": int(contract.get("scope_revision") or 1),
+        "authorization_revision": int(contract.get("authorization_revision") or 1),
+        "contract_hash": str(contract.get("contract_hash") or ""),
         "state_etag": task_state_etag(state),
         "observed_facts": observed,
         "route": _resolved_route(contract, target_binding=target_binding, style_binding=style_binding),
+        "operation_kind": str(contract.get("operation_kind") or "inspect"),
+        "effect": contract.get("effect") or {},
+        "verification": _verification_projection(contract),
         "route_reason": (
             "bound to fresh target/style evidence"
             if target_binding or style_binding
@@ -49,6 +45,9 @@ def project_task_summary(
         ),
         "target_binding_hash": str((target_binding or {}).get("binding_hash") or ""),
         "style_binding_hash": str((style_binding or {}).get("binding_hash") or ""),
+        "decision_context_hash": str((style_binding or {}).get("decision_context_hash") or ""),
+        "project_profile_hash": str((style_binding or {}).get("project_profile_hash") or ""),
+        "accepted_exemplar_hash": str((style_binding or {}).get("accepted_exemplar_hash") or ""),
         "performed": performed,
         "result": _result_summary(state),
         "not_performed": _not_performed(contract, state),
@@ -72,10 +71,20 @@ def compact_task_status(
         "task_id": state.task_id,
         "state": public_task_state(state.current_state),
         "task_revision": state.revision,
+        "contract_revision": int(contract.get("contract_revision") or 1),
+        "scope_revision": int(contract.get("scope_revision") or 1),
+        "authorization_revision": int(contract.get("authorization_revision") or 1),
+        "contract_hash": str(contract.get("contract_hash") or ""),
         "state_etag": task_state_etag(state),
         "route": _resolved_route(contract, target_binding=target_binding, style_binding=style_binding),
+        "operation_kind": str(contract.get("operation_kind") or "inspect"),
+        "effect": contract.get("effect") or {},
+        "verification": _verification_projection(contract),
         "target_binding_hash": str((target_binding or {}).get("binding_hash") or ""),
         "style_binding_hash": str((style_binding or {}).get("binding_hash") or ""),
+        "decision_context_hash": str((style_binding or {}).get("decision_context_hash") or ""),
+        "project_profile_hash": str((style_binding or {}).get("project_profile_hash") or ""),
+        "accepted_exemplar_hash": str((style_binding or {}).get("accepted_exemplar_hash") or ""),
         "blocked_by": state.blocker or None,
         "next_action": "" if terminal else _next_action(state, contract),
         "resource_uri": resource_uri,
@@ -141,3 +150,15 @@ def _resolved_route(
         or contract.get("route")
         or ""
     )
+
+
+def _verification_projection(contract: dict[str, Any]) -> dict[str, Any]:
+    verification = contract.get("verification") or {}
+    return {
+        "required_live_reads": list(verification.get("required_live_reads") or []),
+        "acceptance_count": len(contract.get("acceptance") or []),
+        "remediation_enabled": bool(verification.get("remediation_enabled", False)),
+        "remediation_requires_new_user_scope": bool(
+            verification.get("remediation_requires_new_user_scope", True)
+        ),
+    }

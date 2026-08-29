@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timezone
 import fcntl
@@ -29,7 +30,6 @@ from datalens_dev_mcp.pipeline.workflow_checkpoint import render_checkpoint
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash, create_workflow_event
 from datalens_dev_mcp.pipeline.workflow_replay import repair_corrupt_event_tail, replay_workflow
 from datalens_dev_mcp.pipeline.workflow_state import WorkflowState, initial_workflow_state
-from datalens_dev_mcp.validators.redaction import sanitize_value
 
 
 TASK_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
@@ -102,6 +102,9 @@ class ProjectJournal:
         self.task_id = task_id
         self.root = self.storage_root / task_id
         self.contract_path = self.root / "contract.json"
+        self.contract_revisions_path = self.root / "contract-revisions.json"
+        self.contracts_root = self.root / "contracts"
+        self.amendment_pending_path = self.root / "amendment-pending.json"
         self.state_path = self.root / "state.json"
         self.events_path = self.root / "events.jsonl"
         self.checkpoint_path = self.root / "checkpoint.md"
@@ -127,7 +130,11 @@ class ProjectJournal:
         self._lock_depth = 0
 
     def initialize(self, contract: dict[str, Any], *, identity: dict[str, Any] | None = None) -> WorkflowState:
-        safe_contract = sanitize_value(contract)
+        # The validated contract contains typed identifiers, booleans, and
+        # hashes but no raw request or credential fields. Generic value
+        # redaction here can corrupt a legitimate project path when it happens
+        # to contain a host session id, which also invalidates contract_hash.
+        safe_contract = deepcopy(contract)
         if str(safe_contract.get("task_id") or "") != self.task_id:
             raise JournalIdentityError("contract task_id does not match journal task_id")
         digest = str(safe_contract.get("contract_hash") or "")
@@ -161,7 +168,7 @@ class ProjectJournal:
     ) -> tuple[WorkflowState, str, bool]:
         """Create the complete initial journal snapshot as one atomic directory install."""
 
-        safe_contract = sanitize_value(contract)
+        safe_contract = deepcopy(contract)
         if str(safe_contract.get("task_id") or "") != self.task_id:
             raise JournalIdentityError("contract task_id does not match journal task_id")
         digest = str(safe_contract.get("contract_hash") or "")
@@ -301,16 +308,16 @@ class ProjectJournal:
                 target_binding=target_binding,
                 style_binding_hash=str(style_binding.get("binding_hash") or ""),
             )
-            write_json(self.target_binding_path, sanitize_value(target_binding))
-            write_json(self.target_graph_path, sanitize_value(target_graph))
-            write_json(self.reference_binding_path, sanitize_value(reference_binding))
-            write_json(self.style_binding_path, sanitize_value(style_binding))
-            write_json(self.identity_path, sanitize_value(identity))
+            write_json(self.target_binding_path, deepcopy(target_binding))
+            write_json(self.target_graph_path, deepcopy(target_graph))
+            write_json(self.reference_binding_path, deepcopy(reference_binding))
+            write_json(self.style_binding_path, deepcopy(style_binding))
+            write_json(self.identity_path, deepcopy(identity))
             baseline_refs: list[dict[str, str]] = []
             for name, payload in sorted(baselines.items()):
-                digest = canonical_hash(sanitize_value(payload))
+                digest = canonical_hash(payload)
                 relative = Path("snapshots") / f"baseline-{digest[:20]}.json"
-                write_json(self.root / relative, sanitize_value(payload))
+                write_json(self.root / relative, deepcopy(payload))
                 baseline_refs.append(
                     {
                         "name_hash": canonical_hash(name),
@@ -319,7 +326,7 @@ class ProjectJournal:
                     }
                 )
             receipt = {
-                **sanitize_value(discovery_receipt),
+                **deepcopy(discovery_receipt),
                 "target_binding_hash": target_binding.get("binding_hash"),
                 "target_graph_hash": target_graph.get("graph_hash"),
                 "reference_binding_hash": reference_binding.get("binding_hash"),
@@ -332,10 +339,227 @@ class ProjectJournal:
             return receipt
 
     def load_contract(self) -> dict[str, Any]:
+        if self.amendment_pending_path.is_file() and not self._lock_depth:
+            raise JournalIdentityError(
+                "CONTRACT_AMENDMENT_RECOVERY_REQUIRED: an interrupted amendment must be reconciled before resume"
+            )
         value = read_json(self.contract_path, {}) or {}
         if not value:
             raise JournalError("journal contract is missing")
         return value
+
+    def install_contract_amendment(
+        self,
+        *,
+        expected_contract_revision: int,
+        expected_state: str,
+        expected_hash: str,
+        amendment_key: str,
+        amendment: dict[str, Any],
+        new_contract: dict[str, Any],
+        execution_grant: dict[str, Any],
+        next_state: str,
+        next_transition: str,
+        invalidated_artifacts: list[str],
+        preserved_artifacts: list[str],
+        build_identity: dict[str, Any],
+        target_binding: dict[str, Any] | None = None,
+        target_graph: dict[str, Any] | None = None,
+        reference_binding: dict[str, Any] | None = None,
+        style_binding: dict[str, Any] | None = None,
+        discovery: dict[str, Any] | None = None,
+        baselines: dict[str, dict[str, Any]] | None = None,
+    ) -> tuple[WorkflowState, dict[str, Any], bool]:
+        """Install one immutable contract amendment under the task lock.
+
+        A durable pending marker makes crash recovery fail closed instead of
+        exposing a mixed contract/plan projection.
+        """
+
+        with self.locked(owner="task-amendment"):
+            current = self.load_contract()
+            state, _ = self.replay()
+            current_revision = int(current.get("contract_revision") or 1)
+            index = read_json(self.contract_revisions_path, {}) or {}
+            existing_amendments = list(index.get("amendments") or [])
+            duplicate = next(
+                (item for item in existing_amendments if item.get("amendment_key") == amendment_key),
+                None,
+            )
+            if duplicate:
+                return state, duplicate, False
+            if current_revision != int(expected_contract_revision):
+                raise JournalIdentityError(
+                    f"CONTRACT_REVISION_CONFLICT: expected {expected_contract_revision}, current {current_revision}"
+                )
+            from datalens_dev_mcp.pipeline.task_state_projection import public_task_state, task_state_etag
+
+            if expected_state and public_task_state(state.current_state) != expected_state:
+                raise JournalIdentityError("expected task state does not match persisted state")
+            if expected_hash and task_state_etag(state) != expected_hash:
+                raise JournalIdentityError("expected task hash does not match persisted state")
+            if state.current_state in {
+                "COMPLETED", "BLOCKED_CONFLICT", "FAILED", "FAILED_ARCHITECTURE_REVIEW_REQUIRED"
+            }:
+                raise JournalIdentityError(
+                    "TERMINAL_TASK_AMENDMENT_FORBIDDEN: start a new task for a terminal workflow"
+                )
+            if str(new_contract.get("task_id") or "") != self.task_id:
+                raise JournalIdentityError("amended contract changed stable task_id")
+            if int(new_contract.get("contract_revision") or 0) != current_revision + 1:
+                raise JournalIdentityError("amended contract revision is not the next revision")
+            if new_contract.get("parent_contract_hash") != current.get("contract_hash"):
+                raise JournalIdentityError("amended contract parent hash mismatch")
+            if task_contract_hash(new_contract) != new_contract.get("contract_hash"):
+                raise JournalIdentityError("amended contract hash is invalid")
+
+            resolved_target = dict(target_binding or (read_json(self.target_binding_path, {}) or {}))
+            resolved_style = dict(style_binding or (read_json(self.style_binding_path, {}) or {}))
+            identity = build_task_identity(
+                new_contract,
+                build_identity=build_identity,
+                target_binding=resolved_target,
+                style_binding_hash=str(resolved_style.get("binding_hash") or ""),
+            )
+            pending = {
+                "schema_id": "datalens_contract_amendment_transaction",
+                "amendment_key": amendment_key,
+                "parent_contract_hash": current.get("contract_hash"),
+                "contract_hash": new_contract.get("contract_hash"),
+                "contract_revision": new_contract.get("contract_revision"),
+            }
+            write_json(self.amendment_pending_path, pending)
+            try:
+                self.contracts_root.mkdir(parents=True, exist_ok=True)
+                current_name = f"contract-r{current_revision:04d}-{str(current.get('contract_hash') or '')[:16]}.json"
+                new_name = (
+                    f"contract-r{int(new_contract['contract_revision']):04d}-"
+                    f"{str(new_contract.get('contract_hash') or '')[:16]}.json"
+                )
+                write_json(self.contracts_root / current_name, current)
+                write_json(self.contracts_root / new_name, new_contract)
+
+                plan_root = self.root / "plans"
+                if plan_root.is_dir() and any(plan_root.iterdir()):
+                    archive = self.root / "contract-artifacts" / f"r{current_revision:04d}" / "plans"
+                    if not archive.exists():
+                        archive.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copytree(plan_root, archive)
+                    shutil.rmtree(plan_root)
+                plan_root.mkdir(parents=True, exist_ok=True)
+
+                write_json(self.execution_authorization_path, execution_grant)
+                if target_binding is not None:
+                    write_json(self.target_binding_path, deepcopy(target_binding))
+                if target_graph is not None:
+                    write_json(self.target_graph_path, deepcopy(target_graph))
+                if reference_binding is not None:
+                    write_json(self.reference_binding_path, deepcopy(reference_binding))
+                if style_binding is not None:
+                    write_json(self.style_binding_path, deepcopy(style_binding))
+                if discovery is not None:
+                    discovery_payload = deepcopy(discovery)
+                    baseline_refs: list[dict[str, str]] = []
+                    for name, payload in sorted((baselines or {}).items()):
+                        digest = canonical_hash(payload)
+                        relative = Path("snapshots") / f"baseline-{digest[:20]}.json"
+                        write_json(self.root / relative, deepcopy(payload))
+                        baseline_refs.append(
+                            {
+                                "name_hash": canonical_hash(name),
+                                "artifact_uri": self.receipt_uri(relative.as_posix()),
+                                "sha256": digest,
+                            }
+                        )
+                    discovery_payload["baseline_refs"] = baseline_refs
+                    discovery_payload["discovery_hash"] = canonical_hash(discovery_payload)
+                    write_json(self.discovery_path, discovery_payload)
+                write_json(self.identity_path, deepcopy(identity))
+                write_json(self.contract_path, new_contract)
+
+                receipt_payload = {
+                    **deepcopy(amendment),
+                    "schema_id": "datalens_contract_amendment_receipt",
+                    "task_id": self.task_id,
+                    "amendment_key": amendment_key,
+                    "contract_revision": new_contract.get("contract_revision"),
+                    "parent_contract_hash": current.get("contract_hash"),
+                    "contract_hash": new_contract.get("contract_hash"),
+                    "source_turn_hash": new_contract.get("source_turn_hash"),
+                    "semantic_delta_hash": new_contract.get("semantic_delta_hash"),
+                    "scope_revision": new_contract.get("scope_revision"),
+                    "authorization_revision": new_contract.get("authorization_revision"),
+                    "invalidated_artifacts": invalidated_artifacts,
+                    "preserved_artifacts": preserved_artifacts,
+                }
+                receipt_uri = self.write_receipt(
+                    f"contract-amendment-r{int(new_contract['contract_revision']):04d}",
+                    receipt_payload,
+                )
+                state = self.append_transition(
+                    state,
+                    transition=f"CONTRACT_AMENDED_R{current_revision}_TO_R{int(new_contract['contract_revision'])}",
+                    input_value={
+                        "parent_contract_hash": current.get("contract_hash"),
+                        "contract_hash": new_contract.get("contract_hash"),
+                        "source_turn_hash": new_contract.get("source_turn_hash"),
+                        "semantic_delta_hash": new_contract.get("semantic_delta_hash"),
+                    },
+                    receipt_uri=receipt_uri,
+                    status="success",
+                    idempotency_key=amendment_key,
+                    next_state=next_state,
+                    next_transition=next_transition,
+                    event_details={
+                        "contract_revision": new_contract.get("contract_revision"),
+                        "scope_revision": new_contract.get("scope_revision"),
+                        "authorization_revision": new_contract.get("authorization_revision"),
+                        "invalidated_artifacts": invalidated_artifacts,
+                        "preserved_artifacts": preserved_artifacts,
+                    },
+                )
+                record = {
+                    "amendment_key": amendment_key,
+                    "source_event_id": str(amendment.get("source_event_id") or ""),
+                    "source_turn_hash": new_contract.get("source_turn_hash"),
+                    "parent_contract_hash": current.get("contract_hash"),
+                    "revision": new_contract.get("contract_revision"),
+                    "contract_hash": new_contract.get("contract_hash"),
+                    "receipt_uri": receipt_uri,
+                }
+                revisions = list(index.get("revisions") or [])
+                if not revisions:
+                    revisions.append(
+                        {
+                            "revision": current_revision,
+                            "contract_hash": current.get("contract_hash"),
+                            "artifact": f"contracts/{current_name}",
+                        }
+                    )
+                revisions.append(
+                    {
+                        "revision": new_contract.get("contract_revision"),
+                        "contract_hash": new_contract.get("contract_hash"),
+                        "parent_contract_hash": current.get("contract_hash"),
+                        "artifact": f"contracts/{new_name}",
+                    }
+                )
+                write_json(
+                    self.contract_revisions_path,
+                    {
+                        "schema_id": "datalens_contract_revision_chain",
+                        "task_id": self.task_id,
+                        "current_revision": new_contract.get("contract_revision"),
+                        "revisions": revisions,
+                        "amendments": [*existing_amendments, record],
+                    },
+                )
+                self.amendment_pending_path.unlink(missing_ok=True)
+                return state, record, True
+            except BaseException:
+                # Keep the durable marker so the next public operation fails
+                # closed instead of accepting a mixed projection.
+                raise
 
     def load_state(self) -> WorkflowState:
         value = read_json(self.state_path, {}) or {}
@@ -345,7 +569,7 @@ class ProjectJournal:
         return WorkflowState.from_dict(value)
 
     def save_state(self, state: WorkflowState) -> None:
-        write_json(self.state_path, sanitize_value(state.to_dict()))
+        write_json(self.state_path, deepcopy(state.to_dict()))
 
     def replay(self) -> tuple[WorkflowState, bool]:
         contract = self.load_contract()
@@ -406,8 +630,8 @@ class ProjectJournal:
             completed_transitions=completed,
             successful_idempotency_keys=keys,
             receipt_uris=receipts,
-            blocker=sanitize_value(blocker or {}),
-            reconciliation=sanitize_value(reconciliation or {}),
+            blocker=deepcopy(blocker or {}),
+            reconciliation=deepcopy(reconciliation or {}),
             last_event_id=int(event["event_id"]),
             last_event_hash=str(event["event_hash"]),
             revision=state.revision + 1,
@@ -424,7 +648,7 @@ class ProjectJournal:
 
     def write_receipt(self, name: str, payload: dict[str, Any]) -> str:
         relative = Path("receipts") / f"{name}.json"
-        write_json(self.root / relative, sanitize_value(payload))
+        write_json(self.root / relative, deepcopy(payload))
         return self.receipt_uri(relative.as_posix())
 
     def _compile_receipt_uri(self) -> str:
@@ -444,19 +668,37 @@ class ProjectJournal:
         compile_receipt: dict[str, Any],
         execution_grant: dict[str, Any],
     ) -> tuple[WorkflowState, str]:
-        for relative in ("plans", "receipts", "snapshots", "evidence", "delivery", "locks"):
+        for relative in ("plans", "receipts", "snapshots", "evidence", "delivery", "locks", "contracts"):
             (base / relative).mkdir(parents=True, exist_ok=True)
-        safe_receipt = sanitize_value(compile_receipt)
-        receipt_digest = canonical_hash(safe_receipt)
+        canonical_receipt = deepcopy(compile_receipt)
+        receipt_digest = canonical_hash(canonical_receipt)
         receipt_name = f"task-compile-{receipt_digest[:16]}.json"
         receipt_relative = Path("receipts") / receipt_name
         compile_uri = self.receipt_uri(receipt_relative.as_posix())
         write_json(base / "contract.json", contract)
-        write_json(base / "identity.json", sanitize_value(identity))
-        write_json(base / "build-identity.json", sanitize_value(build_identity))
-        write_json(base / "target-binding.json", sanitize_value(target_binding))
+        contract_name = f"contract-r0001-{str(contract.get('contract_hash') or '')[:16]}.json"
+        write_json(base / "contracts" / contract_name, contract)
+        write_json(
+            base / "contract-revisions.json",
+            {
+                "schema_id": "datalens_contract_revision_chain",
+                "task_id": self.task_id,
+                "current_revision": int(contract.get("contract_revision") or 1),
+                "revisions": [
+                    {
+                        "revision": int(contract.get("contract_revision") or 1),
+                        "contract_hash": contract.get("contract_hash"),
+                        "artifact": f"contracts/{contract_name}",
+                    }
+                ],
+                "amendments": [],
+            },
+        )
+        write_json(base / "identity.json", deepcopy(identity))
+        write_json(base / "build-identity.json", deepcopy(build_identity))
+        write_json(base / "target-binding.json", deepcopy(target_binding))
         write_json(base / "execution-authorization.json", execution_grant)
-        write_json(base / receipt_relative, safe_receipt)
+        write_json(base / receipt_relative, canonical_receipt)
         event = create_workflow_event(
             event_id=1,
             previous_hash="",

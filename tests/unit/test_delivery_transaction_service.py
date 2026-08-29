@@ -9,7 +9,11 @@ from jsonschema import Draft202012Validator
 
 from datalens_dev_mcp.mcp.task_resources import read_task_resource, task_resource_uri
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
-from datalens_dev_mcp.pipeline.delivery_transaction_service import DeliveryTransactionService, _read_payload
+from datalens_dev_mcp.pipeline.delivery_transaction_service import (
+    DeliveryTransactionService,
+    _attempt_marker,
+    _read_payload,
+)
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
 from datalens_dev_mcp.pipeline.task_contract import (
     DeliveryContract,
@@ -17,6 +21,7 @@ from datalens_dev_mcp.pipeline.task_contract import (
     WorkspaceContract,
     create_task_contract,
 )
+from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
 
 
 class DeliveryClient:
@@ -139,6 +144,8 @@ def test_save_readback_publish_readback_are_four_separate_idempotent_stages() ->
             read_json(journal.publish_stage_receipt_path, {}),
             read_json(journal.published_readback_receipt_path, {}),
         ]
+        save_attempt = read_json(journal.delivery_root / "save-stage-attempt.json", {})
+        publish_attempt = read_json(journal.delivery_root / "publish-stage-attempt.json", {})
     assert [save["status"], save_replay["status"], saved["status"], publish["status"], published["status"]] == [
         "success", "success", "success", "success", "success"
     ]
@@ -147,6 +154,40 @@ def test_save_readback_publish_readback_are_four_separate_idempotent_stages() ->
     assert executor.plans[1]["actions"][0]["payload"]["entry"]["data"]["providerExtension"] == {
         "businessLabel": "Preserve exactly"
     }
+    for marker, phase, expected_revision in (
+        (save_attempt, "save", "r1"),
+        (publish_attempt, "publish", "r2"),
+    ):
+        assert marker["task_id"] == journal.task_id
+        assert marker["contract_revision"] == 1
+        assert marker["scope_revision"] == 1
+        assert marker["authorization_revision"] == 1
+        assert marker["phase"] == phase
+        assert marker["object_id"] == "chart_a"
+        assert marker["expected_provider_revision"] == expected_revision
+        assert marker["attempt_id"]
+        assert marker["idempotency_key"]
+        assert marker["dispatched_at"]
+        assert marker["resolved_at"]
+        assert marker["final_receipt_hash"]
+        assert marker["status"] == "completed"
+        assert len(marker["attempts"]) == 1
+    for receipt, phase, expected_revision in (
+        (receipts[0], "save", "r1"),
+        (receipts[2], "publish", "r2"),
+    ):
+        assert receipt["receipt_version"] == 2
+        assert receipt["contract_revision"] == 1
+        assert receipt["scope_revision"] == 1
+        assert receipt["authorization_revision"] == 1
+        assert receipt["phase"] == phase
+        assert receipt["plan_hash"]
+        assert receipt["object_id"] == "chart_a"
+        assert receipt["expected_provider_revision"] == expected_revision
+        assert receipt["attempt_id"]
+        assert receipt["idempotency_key"]
+        assert receipt["dispatched_at"]
+        assert receipt["resolved_at"]
     assert [payload["branch"] for _method, payload in client.calls] == ["saved", "published"]
     for receipt, schema_name in zip(
         receipts,
@@ -166,10 +207,16 @@ def test_started_attempt_without_final_receipt_never_replays_write() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         journal, contract = _fixture(root)
-        write_json(
-            journal.delivery_root / "save-stage-attempt.json",
-            {"schema_id": "datalens_delivery_write_attempt", "status": "started"},
+        safe_plan = read_json(journal.root / "plans" / "safe-apply-plan.json", {})
+        attempt = _attempt_marker(
+            "save",
+            task_id=journal.task_id,
+            contract=contract,
+            plan_hash="a" * 64,
+            execution_plan_hash=canonical_hash(safe_plan),
+            actions=list(safe_plan.get("actions") or []),
         )
+        write_json(journal.delivery_root / "save-stage-attempt.json", attempt)
         executor = DeliveryExecutor()
         result = DeliveryTransactionService(
             journal,
@@ -177,8 +224,54 @@ def test_started_attempt_without_final_receipt_never_replays_write() -> None:
             client=DeliveryClient(),
             executor=executor,
         ).execute_save_stage(_context(journal, "VALIDATED -> SAVED"))
+        final_attempt = read_json(journal.delivery_root / "save-stage-attempt.json", {})
+        ambiguous_receipt = read_json(journal.save_stage_receipt_path, {})
     assert result["status"] == "ambiguous"
     assert executor.plans == []
+    assert ambiguous_receipt["attempt_id"] == attempt["attempt_id"]
+    assert final_attempt["status"] == "ambiguous"
+    assert final_attempt["final_receipt_hash"] == ambiguous_receipt["receipt_hash"]
+
+
+def test_resolved_prior_revision_attempt_does_not_block_amended_save() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        journal, contract = _fixture(root)
+        executor = DeliveryExecutor()
+        first = DeliveryTransactionService(
+            journal,
+            contract,
+            client=DeliveryClient(),
+            executor=executor,
+        ).execute_save_stage(_context(journal, "VALIDATED -> SAVED"))
+        prior_receipt = read_json(journal.save_stage_receipt_path, {})
+        prior_attempt = read_json(journal.delivery_root / "save-stage-attempt.json", {})
+
+        amended = deepcopy(contract)
+        amended["contract_revision"] = 2
+        amended["parent_contract_hash"] = contract["contract_hash"]
+        amended["contract_hash"] = "b" * 64
+        amended_plan_hash = "c" * 64
+        write_json(journal.root / "plans" / "plan.json", {"plan_hash": amended_plan_hash})
+        second = DeliveryTransactionService(
+            journal,
+            amended,
+            client=DeliveryClient(),
+            executor=executor,
+        ).execute_save_stage(_context(journal, "VALIDATED -> SAVED"))
+        current_attempt = read_json(journal.delivery_root / "save-stage-attempt.json", {})
+
+    assert first["status"] == "success"
+    assert prior_receipt["status"] == "success"
+    assert prior_attempt["plan_hash"] != amended_plan_hash
+    assert prior_attempt["contract_revision"] == 1
+    assert prior_attempt["status"] == "completed"
+    assert prior_attempt["final_receipt_hash"] == prior_receipt["receipt_hash"]
+    assert second["status"] == "success"
+    assert len(executor.plans) == 2
+    assert current_attempt["plan_hash"] == amended_plan_hash
+    assert current_attempt["contract_revision"] == 2
+    assert current_attempt["attempt_id"] != prior_attempt["attempt_id"]
 
 
 def test_readback_branch_is_only_sent_to_branch_aware_provider_methods() -> None:

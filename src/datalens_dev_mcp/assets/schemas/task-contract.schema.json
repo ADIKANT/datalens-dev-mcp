@@ -10,6 +10,9 @@
     "raw_request_hash",
     "mode",
     "route",
+    "operation_kind",
+    "effect",
+    "verification",
     "workspace",
     "target",
     "scope",
@@ -22,6 +25,12 @@
     "stop_conditions",
     "corrections",
     "source_precedence",
+    "contract_revision",
+    "parent_contract_hash",
+    "source_turn_hash",
+    "semantic_delta_hash",
+    "scope_revision",
+    "authorization_revision",
     "contract_hash"
   ],
   "properties": {
@@ -33,6 +42,27 @@
       "enum": ["review", "diagnose", "plan", "create", "update", "redesign", "publish_only"]
     },
     "route": {"type": "string", "minLength": 1},
+    "operation_kind": {"enum": ["inspect", "mutate", "verify_existing_effect"]},
+    "effect": {
+      "type": "object",
+      "required": ["kind", "expected_state"],
+      "properties": {
+        "kind": {"enum": ["none", "saved", "published", "changed", "deleted", "moved", "data_appeared", "restored"]},
+        "expected_state": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "verification": {
+      "type": "object",
+      "required": ["required_live_reads", "acceptance_required", "remediation_enabled", "remediation_requires_new_user_scope"],
+      "properties": {
+        "required_live_reads": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "acceptance_required": {"type": "boolean"},
+        "remediation_enabled": {"type": "boolean"},
+        "remediation_requires_new_user_scope": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
     "workspace": {
       "type": "object",
       "required": ["project_root", "portfolio_subproject", "config_path"],
@@ -136,6 +166,12 @@
     "stop_conditions": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
     "corrections": {"type": "array", "items": {"type": "string"}},
     "source_precedence": {"type": "array", "items": {"type": "string"}, "minItems": 8},
+    "contract_revision": {"type": "integer", "minimum": 1},
+    "parent_contract_hash": {"type": "string", "pattern": "^$|^[a-f0-9]{64}$"},
+    "source_turn_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "semantic_delta_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "scope_revision": {"type": "integer", "minimum": 1},
+    "authorization_revision": {"type": "integer", "minimum": 1},
     "contract_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
   },
   "additionalProperties": false

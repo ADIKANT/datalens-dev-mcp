@@ -177,6 +177,19 @@ def test_target_url_parses_the_stable_id_before_a_slug() -> None:
     assert parse_target_url("https://datalens.example/abc123456789-demo-dashboard") == "abc123456789"
 
 
+def test_target_url_skips_external_evidence_urls_before_dashboard_target() -> None:
+    request = (
+        "Issue https://example.test/issues/SYNTHETIC-1 and docs https://example.test/docs/page. "
+        "Target https://datalens.ru/?dashboardId=synthetic_target_123"
+    )
+
+    assert parse_target_url(request) == "synthetic_target_123"
+
+
+def test_target_url_does_not_invent_an_id_from_plain_request_text() -> None:
+    assert parse_target_url("Исправь таблицу и сохрани названия строк") == ""
+
+
 def test_dashboard_not_found_returns_typed_discovery_blocker() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         result = TargetDiscoveryService(DiscoveryClient(missing_dashboard=True)).discover(_contract(Path(tmp)))

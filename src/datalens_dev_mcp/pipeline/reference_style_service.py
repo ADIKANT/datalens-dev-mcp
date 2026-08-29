@@ -7,8 +7,9 @@ from datalens_dev_mcp.editor.protected_regions import build_protected_regions
 from datalens_dev_mcp.editor.semantic_slots import discover_semantic_slots
 from datalens_dev_mcp.editor.style_registry import select_style_profile
 from datalens_dev_mcp.editor.style_scanner import TAB_ORDER, scan_portfolio_style_registry
+from datalens_dev_mcp.pipeline.project_decision_context import resolve_project_decision_context
 from datalens_dev_mcp.pipeline.reference_binding import build_reference_binding
-from datalens_dev_mcp.pipeline.style_binding_receipt import build_style_binding_receipt
+from datalens_dev_mcp.pipeline.style_binding_receipt import build_style_binding_receipt, style_binding_hash
 from datalens_dev_mcp.pipeline.target_discovery import parse_target_url
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
 
@@ -39,11 +40,40 @@ class ReferenceStyleService:
                 target_graph=target_graph,
                 baselines=baselines,
             )
-        return _assert_technology_compatibility(
+        compatible = _assert_technology_compatibility(
             result,
             target_graph=target_graph,
             exact_required=exact_required,
         )
+        if compatible.get("status") != "success":
+            return compatible
+        decision_context = resolve_project_decision_context(contract, target_graph=target_graph)
+        if decision_context.get("status") == "blocked":
+            return {
+                "status": "blocked",
+                "reason": str(decision_context.get("reason") or "project decision context is invalid"),
+            }
+        if decision_context.get("status") == "success":
+            style_binding = dict(compatible["style_binding"])
+            style_binding.update(
+                {
+                    "decision_context_hash": str(decision_context.get("context_hash") or ""),
+                    "project_profile_hash": str(decision_context.get("project_profile_hash") or ""),
+                    "accepted_exemplar_hash": str(decision_context.get("accepted_exemplar_hash") or ""),
+                    "decision_context": {
+                        key: value
+                        for key, value in decision_context.items()
+                        if key != "status"
+                    },
+                }
+            )
+            style_binding.pop("binding_hash", None)
+            style_binding["binding_hash"] = style_binding_hash(style_binding)
+            compatible["style_binding"] = style_binding
+            compatible["decision_context"] = {
+                key: value for key, value in decision_context.items() if key != "status"
+            }
+        return compatible
 
     def _bind_portfolio(
         self,

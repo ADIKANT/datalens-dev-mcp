@@ -177,6 +177,22 @@ class ControlledLiveLifecycleRunnerTests(unittest.TestCase):
         self.assertFalse(summary["ok"])
         self.assertEqual(summary["missing_required_routes"], ["dashboard"])
 
+    def test_release_decision_rejects_unrelated_preflight_block_as_stale_evidence(self):
+        runner = load_runner()
+        routes = [self._verified_route(route, publishable=route != "dataset") for route in runner.CONTROLLED_LIVE_REQUIRED_ROUTES]
+        editor = next(route for route in routes if route["route"] == "editor_chart")
+        editor["stale_revision_negative"] = {
+            "executed": True,
+            "status": "blocked_before_revision_guard",
+            "write_attempted": False,
+        }
+
+        summary = runner.summarize_route_evidence(routes)
+
+        self.assertFalse(summary["ok"])
+        malformed = next(item for item in summary["malformed_verified_routes"] if item["route"] == "editor_chart")
+        self.assertIn("stale_revision_negative.reached_and_rejected", malformed["missing"])
+
     def test_stale_revision_negative_uses_safe_apply_without_write_rpc(self):
         runner = load_runner()
 
@@ -216,7 +232,13 @@ class ControlledLiveLifecycleRunnerTests(unittest.TestCase):
             )
 
         self.assertEqual(result["status"], "blocked_expected")
+        self.assertEqual(result["intended_guard"], "stale_plan_revision")
+        self.assertEqual(result["actual_stop_guard"], "stale_plan_revision")
+        self.assertEqual(result["classification"], "reached_and_rejected")
         self.assertFalse(result["write_attempted"])
+        self.assertFalse(result["provider_write_attempted"])
+        self.assertFalse(result["provider_write_executed"])
+        self.assertTrue(result["required_preconditions"])
         self.assertEqual([call[0] for call in client.calls], ["getEditorChart"])
 
     def test_dashboard_stale_negative_includes_required_baseline_without_write_rpc(self):
@@ -263,8 +285,57 @@ class ControlledLiveLifecycleRunnerTests(unittest.TestCase):
             )
 
         self.assertEqual(result["status"], "blocked_expected")
+        self.assertEqual(result["classification"], "reached_and_rejected")
+        self.assertEqual(result["actual_stop_guard"], "stale_plan_revision")
         self.assertFalse(result["write_attempted"])
+        self.assertFalse(result["provider_write_executed"])
         self.assertEqual([call[0] for call in client.calls], ["getDashboard", "getDashboard"])
+
+    def test_stale_negative_preflight_block_is_not_reported_as_success(self):
+        runner = load_runner()
+
+        class FakeClient:
+            def rpc(self, method, payload):
+                return {
+                    "entry": {
+                        "entryId": payload["chartId"],
+                        "revId": "actual_live_revision",
+                        "name": "fixture",
+                    }
+                }
+
+        blocked = {
+            "ok": False,
+            "status": "blocked",
+            "actions": [],
+            "blocked_reasons": ["unrelated payload preflight policy"],
+        }
+        route = {
+            "route": "editor_chart",
+            "read_method": "getEditorChart",
+            "update_method": "updateEditorChart",
+            "id_key": "chartId",
+        }
+
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(runner, "execute_safe_apply", return_value=blocked):
+            result = runner.run_stale_negative(
+                client=FakeClient(),
+                root=Path(tmp),
+                run_id="unit",
+                route=route,
+                payload={"mode": "save", "entry": {"entryId": "chart_1", "revId": "rev_live"}},
+                object_id="chart_1",
+                config=DataLensConfig(write_enabled=True),
+            )
+
+        self.assertEqual(result["status"], "blocked_before_revision_guard")
+        self.assertEqual(result["intended_guard"], "stale_plan_revision")
+        self.assertEqual(result["actual_stop_guard"], "payload_preflight")
+        self.assertEqual(result["classification"], "blocked_before_guard")
+        self.assertFalse(result["write_attempted"])
+        self.assertFalse(result["provider_write_attempted"])
+        self.assertFalse(result["provider_write_executed"])
+        self.assertEqual(result["blocked_reasons"], ["unrelated payload preflight policy"])
 
     def _verified_route(self, route: str, *, publishable: bool) -> dict:
         artifacts = {
@@ -283,6 +354,20 @@ class ControlledLiveLifecycleRunnerTests(unittest.TestCase):
             "publishable": publishable,
             "object_id": f"{route}_id",
             "artifacts": artifacts,
+            "stale_revision_negative": (
+                {
+                    "executed": True,
+                    "status": "blocked_expected",
+                    "write_attempted": False,
+                    "intended_guard": "stale_plan_revision",
+                    "actual_stop_guard": "stale_plan_revision",
+                    "provider_write_attempted": False,
+                    "provider_write_executed": False,
+                    "classification": "reached_and_rejected",
+                }
+                if route in {"editor_chart", "table_node", "control_node", "markdown_node", "dashboard"}
+                else {"executed": False, "status": "not_applicable", "reason": "no revision field"}
+            ),
         }
 
 

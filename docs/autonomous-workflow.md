@@ -6,6 +6,10 @@ The public surface stays at nine tools or fewer. Start work with `dl_task_start`
 
 Browser and QL are explicit-intent capabilities. A browser-forbidden contract performs zero browser calls. QL is never selected as a fallback. Existing-object updates preserve technology, unknown fields, identity, and protected runtime unless the task explicitly requests a migration.
 
+Every accepted user turn is classified as a new task, continuation, correction, scope restriction, or operation authorization. A material follow-up on the same task is installed as an immutable contract amendment with optimistic revision checks and an idempotent source-event key. Semantic-only changes preserve target and readback evidence; target/reference changes require fresh discovery; a post-save amendment preserves the saved receipts but invalidates any stale publish plan. A replacement goal never silently reopens a terminal task.
+
+All URLs in the user-authored request are inventoried by role. External issue or documentation URLs are evidence, an explicitly labelled DataLens URL is the target, and a DataLens example/reference URL binds style separately. Ambient browser state is not promoted into the task contract. Scoped removal of a legend, field, header, prefix, row, or similar in-object content is an update; permission mutation requires an actual permission term plus an action, so ordinary words such as Russian `справа` or `доступно` do not trigger destructive handling.
+
 Failures follow one recovery transition. Safe reads may retry within a budget. An ambiguous write is reconciled by readback and is never replayed. Three failed corrective attempts in one family stop at architecture review.
 
 Completion requires evidence at the claimed level. A green local check is not a saved or published readback, and contract runtime proof is not browser-rendered proof.

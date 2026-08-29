@@ -26,6 +26,14 @@ def patched_env(values, *, clear=False):
 
 
 class LauncherHardeningTests(unittest.TestCase):
+    def _isolated_launcher(self, root: Path) -> Path:
+        scripts = root / "scripts"
+        scripts.mkdir(parents=True)
+        launcher = scripts / LAUNCHER.name
+        launcher.write_text(LAUNCHER.read_text(encoding="utf-8"), encoding="utf-8")
+        launcher.chmod(0o755)
+        return launcher
+
     def test_launcher_has_no_homebrew_yc_path_and_resolves_yc_only_for_refresh(self):
         text = LAUNCHER.read_text(encoding="utf-8")
 
@@ -38,7 +46,9 @@ class LauncherHardeningTests(unittest.TestCase):
     def test_launcher_uses_env_file_and_does_not_mint_token_at_startup(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
-            fake_python = tmp_path / "python3"
+            launcher = self._isolated_launcher(tmp_path)
+            fake_python = tmp_path / ".venv" / "bin" / "python"
+            fake_python.parent.mkdir(parents=True)
             fake_python.write_text(
                 "#!/bin/sh\n"
                 "printf 'ARGS=%s\\n' \"$*\"\n"
@@ -63,8 +73,8 @@ class LauncherHardeningTests(unittest.TestCase):
             for key in ("DATALENS_IAM_TOKEN", "YC_IAM_TOKEN", "DATALENS_YC_BINARY"):
                 env.pop(key, None)
             result = subprocess.run(
-                [str(LAUNCHER)],
-                cwd=REPO_ROOT,
+                [str(launcher)],
+                cwd=tmp_path,
                 env=env,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -81,14 +91,16 @@ class LauncherHardeningTests(unittest.TestCase):
         self.assertIn("SAVE=1", result.stdout)
         self.assertIn("PUBLISH=1", result.stdout)
         self.assertIn("REFRESH=1", result.stdout)
-        self.assertIn(f"--project-root {REPO_ROOT}", result.stdout)
+        self.assertIn(f"--project-root {tmp_path.resolve()}", result.stdout)
         self.assertIn("BASE=https://api.datalens.tech", result.stdout)
 
     def test_launcher_honors_explicit_yc_binary_only_when_refresh_is_enabled(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
-            fake_python = tmp_path / "python3"
+            launcher = self._isolated_launcher(tmp_path)
+            fake_python = tmp_path / ".venv" / "bin" / "python"
             fake_yc = tmp_path / "custom-yc"
+            fake_python.parent.mkdir(parents=True)
             fake_python.write_text("#!/bin/sh\nprintf 'YC_BINARY=%s\\n' \"$DATALENS_YC_BINARY\"\n", encoding="utf-8")
             fake_yc.write_text("#!/bin/sh\nexit 42\n", encoding="utf-8")
             fake_python.chmod(0o755)
@@ -103,8 +115,8 @@ class LauncherHardeningTests(unittest.TestCase):
             env.pop("DATALENS_IAM_TOKEN", None)
             env.pop("YC_IAM_TOKEN", None)
             result = subprocess.run(
-                [str(LAUNCHER)],
-                cwd=REPO_ROOT,
+                [str(launcher)],
+                cwd=tmp_path,
                 env=env,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,

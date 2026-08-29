@@ -6,6 +6,7 @@ The autonomous surface is the default. Existing integrations can temporarily sel
 |---|---|
 | discover, inspect, plan, call save tools manually | `dl_task_start` |
 | repeat work after restart | `dl_task_resume` with the same task ID |
+| apply a follow-up correction | `dl_task_resume` with `user_turn` and exact `expected_contract_revision` |
 | poll raw objects | `dl_task_status` bounded checkpoint |
 | request full payloads for proof | `dl_evidence` resource-backed evidence |
 | retry failed writes | automatic readback reconciliation |

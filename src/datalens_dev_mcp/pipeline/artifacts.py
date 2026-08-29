@@ -7,6 +7,12 @@ import tempfile
 from typing import Any
 
 
+class EvidenceArtifactInvalidError(ValueError):
+    """A generated JSON artifact is structurally ambiguous and cannot be evidence."""
+
+    code = "EVIDENCE_ARTIFACT_INVALID"
+
+
 def ensure_project_dirs(project_root: str | Path) -> Path:
     root = Path(project_root)
     for rel in (
@@ -32,7 +38,30 @@ def read_json(path: str | Path, default: Any = None) -> Any:
     target = Path(path)
     if not target.is_file():
         return default
-    return json.loads(target.read_text(encoding="utf-8"))
+    return loads_strict_json(target.read_text(encoding="utf-8"), source=str(target))
+
+
+def loads_strict_json(text: str, *, source: str = "<json>") -> Any:
+    """Parse JSON while rejecting duplicate keys at every object depth."""
+
+    def reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise EvidenceArtifactInvalidError(
+                    f"EVIDENCE_ARTIFACT_INVALID: duplicate JSON key {key!r} in {source}"
+                )
+            result[key] = value
+        return result
+
+    try:
+        return json.loads(text, object_pairs_hook=reject_duplicates)
+    except EvidenceArtifactInvalidError:
+        raise
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise EvidenceArtifactInvalidError(
+            f"EVIDENCE_ARTIFACT_INVALID: malformed JSON in {source}: {exc}"
+        ) from exc
 
 
 def write_text(path: str | Path, content: str) -> None:

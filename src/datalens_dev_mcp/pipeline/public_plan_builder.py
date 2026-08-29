@@ -1,16 +1,17 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
-from datalens_dev_mcp.pipeline.dataset_context_profile import (
-    derive_dataset_plan_context,
-    validate_dataset_context_profile,
-)
 from datalens_dev_mcp.pipeline.create_manifest import (
     create_safe_apply_template,
     validate_create_bundle,
+)
+from datalens_dev_mcp.pipeline.dataset_context_profile import (
+    derive_dataset_plan_context,
+    validate_dataset_context_profile,
 )
 from datalens_dev_mcp.pipeline.object_action_mapper import map_materialized_action, semantic_fresh_read_spec
 from datalens_dev_mcp.pipeline.plan_binding import (
@@ -36,14 +37,14 @@ class PublicPlanBuilder:
         context_profile: dict[str, Any],
     ) -> dict[str, Any]:
         plan_root = self.journal.root / "plans"
-        context_profile = sanitize_value(context_profile)
+        context_profile = deepcopy(context_profile)
         write_json(self.journal.root / "data" / "context-profile.json", context_profile)
         context_decisions = derive_dataset_plan_context(context_profile, self.contract)
         if not context_decisions["ok"]:
             raise ValueError("dataset context cannot satisfy semantic plan: " + "; ".join(context_decisions["issues"]))
-        patch_plan = sanitize_value(dict(semantic_result["semantic_patch_plan"]))
+        patch_plan = deepcopy(dict(semantic_result["semantic_patch_plan"]))
         materialized = {
-            object_id: sanitize_value(payload)
+            object_id: deepcopy(payload)
             for object_id, payload in dict(semantic_result["materialized_payloads"]).items()
         }
         write_json(plan_root / "semantic-patch-plan.json", patch_plan)
@@ -103,14 +104,14 @@ class PublicPlanBuilder:
             action["semantic_fresh_reads"] = semantic_fresh_reads
             actions.append(action)
         execution_auth = read_json(self.journal.execution_authorization_path, {}) or {}
-        safe_apply = sanitize_value(create_safe_apply_plan(
+        safe_apply = create_safe_apply_plan(
             project_root=str(self.journal.project_root),
             actions=actions,
             approved=True,
             approval_note="authorized by immutable public task contract",
             user_request_text=_delivery_intent_text(self.contract),
             task_contract_hash=str(self.contract.get("contract_hash") or ""),
-        ))
+        )
         write_json(plan_root / "safe-apply-plan.json", safe_apply)
         context_binding = build_dataset_context_binding(context_profile)
         write_json(plan_root / "dataset-context-binding.json", context_binding)
@@ -146,6 +147,7 @@ class PublicPlanBuilder:
             target_binding_hash=str(target_binding.get("binding_hash") or ""),
             reference_binding_hash=str(reference_binding.get("binding_hash") or ""),
             style_binding_hash=str(style_binding.get("binding_hash") or ""),
+            decision_context_hash=_decision_context_binding_hash(style_binding),
             dataset_context_binding_hash=str(context_binding.get("binding_hash") or ""),
             semantic_patch_plan_hash=str(patch_plan.get("plan_hash") or ""),
             safe_apply_plan_hash=artifacts["safe_apply_plan"][1],
@@ -173,6 +175,7 @@ class PublicPlanBuilder:
             "plan_binding_hash": binding["binding_hash"],
             "semantic_patch_plan_hash": patch_plan["plan_hash"],
             "style_binding_hash": style_binding.get("binding_hash"),
+            **_decision_context_projection(style_binding),
             "safe_apply_action_count": len(actions),
             "artifacts": [
                 {"kind": kind, "artifact_uri": uri, "sha256": digest}
@@ -215,6 +218,7 @@ class PublicPlanBuilder:
             target_binding_hash=str(target_binding.get("binding_hash") or ""),
             reference_binding_hash=str(reference_binding.get("binding_hash") or ""),
             style_binding_hash=str(style_binding.get("binding_hash") or ""),
+            decision_context_hash=_decision_context_binding_hash(style_binding),
             create_bundle_hash=str(create_bundle.get("bundle_hash") or ""),
             safe_apply_plan_hash=safe_apply_hash,
         )
@@ -245,7 +249,87 @@ class PublicPlanBuilder:
                 "create_manifest_hash": create_bundle.get("manifest_hash"),
                 "plan_binding_hash": binding.get("binding_hash"),
                 "style_binding_hash": style_binding.get("binding_hash"),
+                **_decision_context_projection(style_binding),
                 "safe_apply_action_count": len(safe_apply.get("actions") or []),
+                "artifacts": [
+                    {"kind": kind, "artifact_uri": uri, "sha256": digest}
+                    for kind, (uri, digest) in sorted(artifacts.items())
+                ],
+                "destructive_token_required": False,
+            }
+        )
+        payload["destructive_token_required"] = False
+        payload["plan_hash"] = public_plan_hash(payload)
+        write_json(plan_root / "plan.json", payload)
+        return payload
+
+    def build_verification(self) -> dict[str, Any]:
+        """Build a zero-mutation plan for verifying an already-existing effect."""
+
+        plan_root = self.journal.root / "plans"
+        execution_auth = read_json(self.journal.execution_authorization_path, {}) or {}
+        build_identity = read_json(self.journal.build_identity_path, {}) or {}
+        target_binding = read_json(self.journal.target_binding_path, {}) or {}
+        target_graph = read_json(self.journal.target_graph_path, {}) or {}
+        reference_binding = read_json(self.journal.reference_binding_path, {}) or {}
+        style_binding = read_json(self.journal.style_binding_path, {}) or {}
+        verification_plan = deepcopy(
+            {
+                "schema_id": "datalens_existing_effect_verification_plan",
+                "task_id": self.journal.task_id,
+                "contract_hash": str(self.contract.get("contract_hash") or ""),
+                "operation_kind": str(self.contract.get("operation_kind") or ""),
+                "effect": self.contract.get("effect") or {},
+                "verification": self.contract.get("verification") or {},
+                "acceptance": self.contract.get("acceptance") or [],
+                "target_binding_hash": str(target_binding.get("binding_hash") or ""),
+                "target_graph_hash": str(target_graph.get("graph_hash") or ""),
+                "default_side_effect": "none",
+                "safe_apply_action_count": 0,
+            }
+        )
+        verification_plan["plan_hash"] = canonical_hash(verification_plan)
+        write_json(plan_root / "verification-plan.json", verification_plan)
+        binding = build_plan_binding(
+            contract_hash=str(self.contract.get("contract_hash") or ""),
+            execution_authorization_hash=str(execution_auth.get("authorization_hash") or ""),
+            build_identity_hash=str(build_identity.get("identity_hash") or ""),
+            target_binding_hash=str(target_binding.get("binding_hash") or ""),
+            reference_binding_hash=str(reference_binding.get("binding_hash") or ""),
+            style_binding_hash=str(style_binding.get("binding_hash") or ""),
+            decision_context_hash=_decision_context_binding_hash(style_binding),
+            verification_plan_hash=str(verification_plan.get("plan_hash") or ""),
+        )
+        write_json(plan_root / "plan-binding.json", binding)
+        artifacts = {
+            "verification_plan": (
+                "plans/verification-plan.json",
+                portable_artifact_hash(verification_plan, project_root=self.journal.project_root),
+            ),
+            "plan_binding": (
+                "plans/plan-binding.json",
+                portable_artifact_hash(binding, project_root=self.journal.project_root),
+            ),
+        }
+        payload = sanitize_value(
+            {
+                "schema_id": "datalens_public_task_plan",
+                "plan_version": 1,
+                "plan_kind": "verify_existing_effect",
+                "task_id": self.journal.task_id,
+                "contract_hash": self.contract.get("contract_hash"),
+                "operation_kind": self.contract.get("operation_kind"),
+                "effect": self.contract.get("effect") or {},
+                "verification": self.contract.get("verification") or {},
+                "route": str(style_binding.get("technology") or target_binding.get("technology") or self.contract.get("route") or ""),
+                "delivery": self.contract.get("delivery") or {},
+                "scope": self.contract.get("scope") or {},
+                "acceptance": self.contract.get("acceptance") or [],
+                "plan_binding_hash": binding.get("binding_hash"),
+                "style_binding_hash": style_binding.get("binding_hash"),
+                **_decision_context_projection(style_binding),
+                "verification_plan_hash": verification_plan.get("plan_hash"),
+                "safe_apply_action_count": 0,
                 "artifacts": [
                     {"kind": kind, "artifact_uri": uri, "sha256": digest}
                     for kind, (uri, digest) in sorted(artifacts.items())
@@ -290,7 +374,9 @@ class PublicPlanBuilder:
             if actual != item.get("sha256"):
                 issues.append(f"plan artifact hash mismatch: {item.get('kind')}")
         if plan.get("plan_kind") == "create_manifest":
-            return tuple([*issues, *self._validate_create_current(plan)])
+            return (*issues, *self._validate_create_current(plan))
+        if plan.get("plan_kind") == "verify_existing_effect":
+            return (*issues, *self._validate_verification_current(plan))
         binding = read_json(self.journal.root / "plans" / "plan-binding.json", {}) or {}
         issues.extend(validate_binding(binding, schema_id="datalens_public_plan_binding"))
         context_binding = read_json(self.journal.root / "plans" / "dataset-context-binding.json", {}) or {}
@@ -325,6 +411,7 @@ class PublicPlanBuilder:
             issues.append("public plan safe apply action count mismatch")
         target_binding = read_json(self.journal.target_binding_path, {}) or {}
         style_binding = read_json(self.journal.style_binding_path, {}) or {}
+        issues.extend(_decision_context_projection_issues(plan, style_binding))
         expected_route = str(
             style_binding.get("technology")
             or target_binding.get("technology")
@@ -351,6 +438,7 @@ class PublicPlanBuilder:
             "target_binding_hash": str(target_binding.get("binding_hash") or ""),
             "reference_binding_hash": str((read_json(self.journal.reference_binding_path, {}) or {}).get("binding_hash") or ""),
             "style_binding_hash": str(style_binding.get("binding_hash") or ""),
+            "decision_context_hash": _decision_context_binding_hash(style_binding),
             "dataset_context_binding_hash": str(context_binding.get("binding_hash") or ""),
             "semantic_patch_plan_hash": str(
                 (read_json(self.journal.root / "plans" / "semantic-patch-plan.json", {}) or {}).get("plan_hash")
@@ -364,6 +452,50 @@ class PublicPlanBuilder:
         for key, expected in current.items():
             if binding.get(key) != expected:
                 issues.append(f"plan binding is stale: {key}")
+        return tuple(issues)
+
+    def _validate_verification_current(self, plan: dict[str, Any]) -> tuple[str, ...]:
+        issues: list[str] = []
+        verification_plan = read_json(self.journal.root / "plans" / "verification-plan.json", {}) or {}
+        binding = read_json(self.journal.root / "plans" / "plan-binding.json", {}) or {}
+        issues.extend(validate_binding(binding, schema_id="datalens_public_plan_binding"))
+        if plan.get("contract_hash") != self.contract.get("contract_hash"):
+            issues.append("public verification plan contract hash is stale")
+        if plan.get("operation_kind") != "verify_existing_effect":
+            issues.append("public verification plan operation kind is invalid")
+        if plan.get("delivery") != {"save": False, "publish": False, "destructive": False}:
+            issues.append("public verification plan must have zero delivery side effects")
+        if not plan.get("acceptance"):
+            issues.append("public verification plan acceptance is empty")
+        if int(plan.get("safe_apply_action_count") or 0) != 0:
+            issues.append("public verification plan must not contain Safe Apply actions")
+        if plan.get("plan_binding_hash") != binding.get("binding_hash"):
+            issues.append("public verification plan binding is stale")
+        if plan.get("verification_plan_hash") != verification_plan.get("plan_hash"):
+            issues.append("public verification plan artifact is stale")
+        expected = {
+            "contract_hash": str(self.contract.get("contract_hash") or ""),
+            "execution_authorization_hash": str(
+                (read_json(self.journal.execution_authorization_path, {}) or {}).get("authorization_hash") or ""
+            ),
+            "build_identity_hash": str((read_json(self.journal.build_identity_path, {}) or {}).get("identity_hash") or ""),
+            "target_binding_hash": str((read_json(self.journal.target_binding_path, {}) or {}).get("binding_hash") or ""),
+            "reference_binding_hash": str((read_json(self.journal.reference_binding_path, {}) or {}).get("binding_hash") or ""),
+            "style_binding_hash": str((read_json(self.journal.style_binding_path, {}) or {}).get("binding_hash") or ""),
+            "decision_context_hash": _decision_context_binding_hash(
+                read_json(self.journal.style_binding_path, {}) or {}
+            ),
+            "verification_plan_hash": str(verification_plan.get("plan_hash") or ""),
+        }
+        for key, value in expected.items():
+            if binding.get(key) != value:
+                issues.append(f"public verification plan binding is stale: {key}")
+        issues.extend(
+            _decision_context_projection_issues(
+                plan,
+                read_json(self.journal.style_binding_path, {}) or {},
+            )
+        )
         return tuple(issues)
 
     def _validate_create_current(self, plan: dict[str, Any]) -> tuple[str, ...]:
@@ -395,6 +527,7 @@ class PublicPlanBuilder:
             "target_binding_hash": str(target_binding.get("binding_hash") or ""),
             "reference_binding_hash": str(reference_binding.get("binding_hash") or ""),
             "style_binding_hash": str(style_binding.get("binding_hash") or ""),
+            "decision_context_hash": _decision_context_binding_hash(style_binding),
             "create_bundle_hash": str(bundle.get("bundle_hash") or ""),
             "safe_apply_plan_hash": portable_artifact_hash(
                 safe_apply,
@@ -404,6 +537,7 @@ class PublicPlanBuilder:
         for key, value in expected.items():
             if binding.get(key) != value:
                 issues.append(f"public create plan binding is stale: {key}")
+        issues.extend(_decision_context_projection_issues(plan, style_binding))
         return tuple(issues)
 
 
@@ -411,6 +545,43 @@ def public_plan_hash(plan: dict[str, Any]) -> str:
     material = dict(plan)
     material.pop("plan_hash", None)
     return canonical_hash(material)
+
+
+def _decision_context_projection(style_binding: dict[str, Any]) -> dict[str, Any]:
+    context = style_binding.get("decision_context")
+    if not isinstance(context, dict) or not context.get("active"):
+        return {
+            "decision_context_hash": _decision_context_binding_hash(style_binding),
+            "project_profile_hash": "",
+            "accepted_exemplar_selection": "none",
+            "accepted_exemplar_hash": "",
+            "bounded_project_decisions": {},
+            "project_source_hashes": [],
+        }
+    return {
+        "decision_context_hash": str(context.get("context_hash") or ""),
+        "project_profile_hash": str(context.get("project_profile_hash") or ""),
+        "accepted_exemplar_selection": str(context.get("accepted_exemplar_selection") or "none"),
+        "accepted_exemplar_hash": str(context.get("accepted_exemplar_hash") or ""),
+        "bounded_project_decisions": deepcopy(context.get("bounded_decisions") or {}),
+        "project_source_hashes": list(context.get("source_hashes") or []),
+    }
+
+
+def _decision_context_projection_issues(
+    plan: dict[str, Any],
+    style_binding: dict[str, Any],
+) -> list[str]:
+    expected = _decision_context_projection(style_binding)
+    return [
+        f"public plan project decision context is stale: {key}"
+        for key, value in expected.items()
+        if plan.get(key) != value
+    ]
+
+
+def _decision_context_binding_hash(style_binding: dict[str, Any]) -> str:
+    return str(style_binding.get("decision_context_hash") or canonical_hash({"selection": "none"}))
 
 
 def portable_artifact_hash(value: Any, *, project_root: Path) -> str:

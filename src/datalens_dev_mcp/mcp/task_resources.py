@@ -7,6 +7,8 @@ from typing import Any
 from datalens_dev_mcp.mcp.task_projection import compact_task_status
 from datalens_dev_mcp.pipeline.artifacts import read_json
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
+from datalens_dev_mcp.serialization import sanitize_response
+from datalens_dev_mcp.validators.redaction import redact_text
 
 TASK_URI_PREFIX = "datalens://tasks/"
 DEFAULT_EVIDENCE_LIMIT = 4_000
@@ -48,7 +50,11 @@ def read_task_resource(uri: str, *, project_root: str | Path = ".") -> dict[str,
             target_binding=read_json(journal.target_binding_path, {}) or {},
             style_binding=read_json(journal.style_binding_path, {}) or {},
         )
-        return {"uri": uri, "mimeType": "application/json", "text": json.dumps(payload, indent=2, sort_keys=True)}
+        return {
+            "uri": uri,
+            "mimeType": "application/json",
+            "text": json.dumps(sanitize_response(payload), indent=2, sort_keys=True),
+        }
     fixed = {
         "contract": journal.contract_path,
         "state": journal.state_path,
@@ -67,7 +73,7 @@ def read_task_resource(uri: str, *, project_root: str | Path = ".") -> dict[str,
         path = fixed[suffix]
     else:
         path = _bounded_artifact_path(journal.root, suffix)
-    text = path.read_text(encoding="utf-8") if path.is_file() else ""
+    text = redact_text(path.read_text(encoding="utf-8")) if path.is_file() else ""
     mime = "application/json" if path.suffix in {".json", ".jsonl"} else "text/markdown" if path.suffix == ".md" else "text/plain"
     return {"uri": uri, "mimeType": mime, "text": text}
 

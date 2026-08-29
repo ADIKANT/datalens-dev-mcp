@@ -1,16 +1,49 @@
 from __future__ import annotations
 
-from dataclasses import FrozenInstanceError
 import json
-from pathlib import Path
 import unittest
-
+from dataclasses import FrozenInstanceError
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURE_PATH = ROOT / "tests" / "fixtures" / "task_contracts" / "cases.json"
 
 
 class TaskCompilerTests(unittest.TestCase):
+    def test_request_reference_url_is_separate_from_target_url(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        result = compile_task_contract(
+            "Update target dashboard: https://datalens.ru/?dashboardId=synthetic_target_123\n"
+            "Use reference style: https://datalens.ru/?dashboardId=synthetic_reference_456"
+        )
+
+        self.assertEqual(result["contract"]["target"]["dashboard_id"], "synthetic_target_123")
+        self.assertEqual(
+            result["contract"]["reference"]["locator"],
+            "https://datalens.ru/?dashboardId=synthetic_reference_456",
+        )
+        self.assertEqual(result["contract"]["reference"]["kind"], "live_object")
+
+    def test_compiled_source_trace_carries_target_url_to_typed_discovery(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        result = compile_task_contract("Update https://datalens.example/dash_demo and save it")
+
+        self.assertEqual(result["status"], "needs_discovery")
+        self.assertEqual(result["source_trace"]["target_url"], "https://datalens.example/dash_demo")
+
+    def test_generic_followup_content_noun_preserves_existing_route(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        result = compile_task_contract(
+            "update chart:synthetic_chart_route",
+            current_live={"chart_id": "synthetic_chart_route", "technology": "editor_advanced"},
+            corrections=["Уточни только строки таблицы и подпись"],
+        )
+
+        self.assertEqual(result["contract"]["route"], "editor_advanced")
+
     def test_fixture_matrix_has_at_least_forty_cases(self):
         payload = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
 
@@ -67,6 +100,130 @@ class TaskCompilerTests(unittest.TestCase):
         self.assertTrue(result["contract"]["delivery"]["save"])
         self.assertTrue(result["contract"]["delivery"]["publish"])
         self.assertEqual(result["contract"]["browser_policy"]["mode"], "forbidden")
+
+    def test_verify_existing_effect_is_read_only_and_has_nonempty_acceptance(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        cases = (
+            (
+                "Я уже опубликовал dashboard: synthetic_dashboard_verify — проверь.",
+                "published",
+                {"current_object", "saved_or_published_revision", "relations"},
+            ),
+            (
+                "Посмотри, применились ли правки в dashboard: synthetic_dashboard_verify.",
+                "changed",
+                {"current_object", "saved_or_published_revision", "relations", "runtime_assertions_if_applicable"},
+            ),
+            (
+                "Проверь, что данные появились в chart: synthetic_chart_verify.",
+                "data_appeared",
+                {"current_object", "saved_or_published_revision", "relations", "data_assertions"},
+            ),
+        )
+        for prompt, effect, required_reads in cases:
+            with self.subTest(prompt=prompt):
+                result = compile_task_contract(prompt)
+                contract = result["contract"]
+                self.assertEqual(contract["mode"], "review")
+                self.assertEqual(contract["operation_kind"], "verify_existing_effect")
+                self.assertEqual(contract["effect"]["kind"], effect)
+                self.assertEqual(contract["delivery"], {"save": False, "publish": False, "destructive": False})
+                self.assertTrue(contract["acceptance"])
+                self.assertEqual(set(contract["verification"]["required_live_reads"]), required_reads)
+                self.assertFalse(contract["verification"]["remediation_enabled"])
+                self.assertEqual(set(result["discovery_required"]), required_reads)
+
+    def test_plain_review_and_direct_publish_remain_adjacent_non_verification_cases(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        review = compile_task_contract("Проверь текущий dashboard: synthetic_dashboard_review")
+        publish = compile_task_contract("Опубликуй dashboard: synthetic_dashboard_publish")
+
+        self.assertEqual(review["contract"]["operation_kind"], "inspect")
+        self.assertEqual(publish["contract"]["operation_kind"], "mutate")
+        self.assertTrue(publish["contract"]["delivery"]["publish"])
+
+    def test_generic_followup_preserves_typed_mutation_mode_and_delivery(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        base = compile_task_contract(
+            "Update dashboard:synthetic_dashboard_followup and publish it",
+            current_live={
+                "dashboard_id": "synthetic_dashboard_followup",
+                "technology": "wizard_native",
+            },
+        )["contract"]
+        amended = compile_task_contract(
+            "Continue the current typed task contract.",
+            current_live=base["target"],
+            current_task_journal=base,
+            corrections=["Продолжай."],
+        )["contract"]
+
+        self.assertEqual(amended["operation_kind"], "mutate")
+        self.assertEqual(amended["mode"], "update")
+        self.assertEqual(amended["delivery"], base["delivery"])
+
+        save_only = compile_task_contract(
+            "Update dashboard:synthetic_dashboard_followup, save only and do not publish.",
+            current_live={
+                "dashboard_id": "synthetic_dashboard_followup",
+                "technology": "wizard_native",
+            },
+        )["contract"]
+        save_only_amended = compile_task_contract(
+            "Continue the current typed task contract.",
+            current_live=save_only["target"],
+            current_task_journal=save_only,
+            corrections=["Продолжай."],
+        )["contract"]
+        self.assertEqual(save_only_amended["delivery"], save_only["delivery"])
+
+    def test_explicit_followup_can_transition_typed_operation_without_inheriting_delivery(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        base = compile_task_contract(
+            "Update dashboard:synthetic_dashboard_followup and publish it",
+            current_live={
+                "dashboard_id": "synthetic_dashboard_followup",
+                "technology": "wizard_native",
+            },
+        )["contract"]
+        review = compile_task_contract(
+            "Continue the current typed task contract.",
+            current_live=base["target"],
+            current_task_journal=base,
+            corrections=["Теперь только проверь текущий dashboard."],
+        )["contract"]
+
+        self.assertEqual(review["operation_kind"], "inspect")
+        self.assertEqual(review["mode"], "review")
+        self.assertEqual(
+            review["delivery"],
+            {"save": False, "publish": False, "destructive": False},
+        )
+
+    def test_generic_followup_preserves_typed_verification_effect(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        base = compile_task_contract(
+            "Я уже опубликовал dashboard: synthetic_dashboard_followup — проверь."
+        )["contract"]
+        amended = compile_task_contract(
+            "Continue the current typed task contract.",
+            current_live=base["target"],
+            current_task_journal=base,
+            corrections=["Продолжай проверку."],
+        )["contract"]
+
+        self.assertEqual(amended["operation_kind"], "verify_existing_effect")
+        self.assertEqual(amended["mode"], "review")
+        self.assertEqual(amended["effect"]["kind"], "published")
+        self.assertEqual(
+            amended["delivery"],
+            {"save": False, "publish": False, "destructive": False},
+        )
 
     def test_compiled_contract_validates_against_public_schema(self):
         from jsonschema import Draft202012Validator

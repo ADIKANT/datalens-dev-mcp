@@ -35,6 +35,20 @@ def task_planning_stage_services(
                 observed=[f"create object count={len(bundle.get('objects') or [])}"],
                 reason="create dependencies are declared and data probes are deferred to resolved stages",
             )
+        if str(contract.get("operation_kind") or "") == "verify_existing_effect":
+            required_reads = set((contract.get("verification") or {}).get("required_live_reads") or [])
+            if "data_assertions" in required_reads:
+                return context_service.stage_handler(context)
+            return _receipt(
+                context,
+                status="success",
+                output_hashes={
+                    "target_binding": str((read_json(journal.target_binding_path, {}) or {}).get("binding_hash") or ""),
+                    "target_graph": str((read_json(journal.target_graph_path, {}) or {}).get("graph_hash") or ""),
+                },
+                observed=["verification data probe not applicable"],
+                reason="existing-effect verification uses fresh object/revision/relation reads",
+            )
         return context_service.stage_handler(context)
 
     def plan_semantic_change(context: dict[str, Any]) -> dict[str, Any]:
@@ -58,6 +72,15 @@ def task_planning_stage_services(
                 },
                 observed=[f"safe apply action count={plan.get('safe_apply_action_count', 0)}"],
                 reason="typed create manifest is materialized as an immutable Safe Apply template",
+            )
+        if str(contract.get("operation_kind") or "") == "verify_existing_effect":
+            plan = builder.build_verification()
+            return _receipt(
+                context,
+                status="success",
+                output_hashes={"public_plan": str(plan.get("plan_hash") or "")},
+                observed=["safe apply action count=0", "operation kind=verify_existing_effect"],
+                reason="zero-mutation existing-effect verification plan is materialized",
             )
         graph = read_json(journal.target_graph_path, {}) or {}
         baselines = {
@@ -101,7 +124,10 @@ def task_planning_stage_services(
     def validate_plan(context: dict[str, Any]) -> dict[str, Any]:
         issues = list(builder.validate_current())
         plan = read_json(journal.root / "plans" / "plan.json", {}) or {}
-        if int(plan.get("safe_apply_action_count") or 0) < 1:
+        verification = str(contract.get("operation_kind") or "") == "verify_existing_effect"
+        if verification and int(plan.get("safe_apply_action_count") or 0) != 0:
+            issues.append("verification public plan must have zero actions")
+        elif not verification and int(plan.get("safe_apply_action_count") or 0) < 1:
             issues.append("public plan action set is empty")
         return _receipt(
             context,

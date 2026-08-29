@@ -2,19 +2,23 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from copy import deepcopy
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.pipeline.create_manifest import (
-    CreateManifestError,
     ROUTES as CREATE_ROUTES,
+)
+from datalens_dev_mcp.pipeline.create_manifest import (
+    CreateManifestError,
     resolve_object_placeholders,
 )
 from datalens_dev_mcp.pipeline.delivery_stage_receipts import (
     build_delivery_receipt,
     validate_delivery_receipt,
 )
+from datalens_dev_mcp.pipeline.object_locator import normalize_object_locator
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
 from datalens_dev_mcp.pipeline.safe_apply import (
     build_safe_apply_readback_evidence,
@@ -26,7 +30,6 @@ from datalens_dev_mcp.pipeline.task_stage_receipts import build_stage_receipt
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
 from datalens_dev_mcp.pipeline.write_reconciliation import reconcile_objects
 from datalens_dev_mcp.validators.redaction import sanitize_value
-
 
 BRANCH_AWARE_READ_METHODS = {
     "getDashboard",
@@ -68,6 +71,7 @@ class DeliveryTransactionService:
                 public_plan=public_plan,
                 safe_plan=safe_plan,
             )
+        prior_receipt = read_json(self.journal.save_stage_receipt_path, {}) or {}
         existing = self._existing_delivery_receipt(
             self.journal.save_stage_receipt_path,
             "datalens_save_stage_receipt",
@@ -77,21 +81,46 @@ class DeliveryTransactionService:
                 return self._blocked(context, "save receipt belongs to another plan", "save_receipt_binding")
             return self._stage_receipt(context, existing, proof_level="controlled_live_write")
         attempt_path = self.journal.delivery_root / "save-stage-attempt.json"
-        if attempt_path.is_file():
+        prior_attempt = read_json(attempt_path, {}) or {}
+        if attempt_path.is_file() and not _resolved_prior_save_attempt(
+            prior_attempt,
+            prior_receipt,
+            task_id=self.journal.task_id,
+            current_plan_hash=plan_hash,
+            current_contract_revision=int(self.contract.get("contract_revision") or 0),
+        ):
+            bound_attempt = (
+                prior_attempt
+                if _attempt_marker_valid(
+                    prior_attempt,
+                    task_id=self.journal.task_id,
+                    phase="save",
+                    plan_hash=plan_hash,
+                )
+                else None
+            )
             receipt = self._uncertain_write_receipt(
                 schema_id="datalens_save_stage_receipt",
                 phase="save",
                 plan_hash=plan_hash,
                 actions=list(safe_plan.get("actions") or []),
                 reason="save attempt exists without a final receipt",
+                attempt=bound_attempt,
             )
             write_json(self.journal.save_stage_receipt_path, receipt)
+            if bound_attempt:
+                write_json(attempt_path, _finalize_attempt_marker(bound_attempt, receipt))
             return self._stage_receipt(context, receipt, proof_level="controlled_live_write")
         execution_plan = _without_readback(safe_plan)
-        write_json(
-            attempt_path,
-            _attempt_marker("save", plan_hash=plan_hash, execution_plan_hash=canonical_hash(execution_plan)),
+        attempt = _attempt_marker(
+            "save",
+            task_id=self.journal.task_id,
+            contract=self.contract,
+            plan_hash=plan_hash,
+            execution_plan_hash=canonical_hash(execution_plan),
+            actions=list(safe_plan.get("actions") or []),
         )
+        write_json(attempt_path, attempt)
         try:
             result = self.executor(execution_plan)
         except Exception as exc:  # noqa: BLE001 - a dispatched write is conservatively uncertain.
@@ -101,6 +130,7 @@ class DeliveryTransactionService:
                 plan_hash=plan_hash,
                 actions=list(safe_plan.get("actions") or []),
                 reason=f"save executor raised {exc.__class__.__name__}",
+                attempt=attempt,
             )
         else:
             receipt = self._write_result_receipt(
@@ -110,8 +140,10 @@ class DeliveryTransactionService:
                 binding_hash=plan_hash,
                 actions=list(safe_plan.get("actions") or []),
                 result=result,
+                attempt=attempt,
             )
         write_json(self.journal.save_stage_receipt_path, receipt)
+        write_json(attempt_path, _finalize_attempt_marker(attempt, receipt))
         return self._stage_receipt(context, receipt, proof_level="controlled_live_write")
 
     def _execute_create_save_stage(
@@ -197,17 +229,15 @@ class DeliveryTransactionService:
                 stage_result = dict(reconciliation["result"])
                 created_id = str(reconciliation["object_id"])
             else:
-                write_json(
-                    attempt_path,
-                    {
-                        "schema_id": "datalens_create_action_attempt",
-                        "plan_hash": plan_hash,
-                        "index": index,
-                        "object_key_hash": canonical_hash(object_key),
-                        "action_hash": canonical_hash(stage_plan),
-                        "status": "started",
-                    },
+                attempt = _create_attempt_marker(
+                    task_id=self.journal.task_id,
+                    contract=self.contract,
+                    plan_hash=plan_hash,
+                    index=index,
+                    object_key=object_key,
+                    action=dict(stage_plan["actions"][0]),
                 )
+                write_json(attempt_path, attempt)
                 try:
                     execution = self.executor(stage_plan)
                 except Exception as exc:  # noqa: BLE001
@@ -234,6 +264,14 @@ class DeliveryTransactionService:
                     )
                     write_json(self.journal.save_stage_receipt_path, receipt)
                     return self._stage_receipt(context, receipt, proof_level="controlled_live_write")
+                write_json(
+                    attempt_path,
+                    _resolve_create_attempt_marker(
+                        attempt,
+                        object_id=created_id,
+                        provider_result=stage_result,
+                    ),
+                )
             resolved_action = dict(stage_plan["actions"][0])
             resolved_action["object_id"] = created_id
             spec = CREATE_ROUTES[str(resolved_action.get("object_type") or "")]
@@ -283,7 +321,62 @@ class DeliveryTransactionService:
             result=aggregate,
         )
         write_json(self.journal.save_stage_receipt_path, receipt)
+        self._persist_created_object_ownership(resolved_actions, receipt)
+        for index, _action in enumerate(resolved_actions):
+            attempt_path = self.journal.delivery_root / "private" / f"create-{index:03d}-attempt.json"
+            attempt = read_json(attempt_path, {}) or {}
+            if attempt.get("schema_id") == "datalens_create_action_attempt":
+                write_json(attempt_path, _finalize_create_attempt_marker(attempt, receipt))
         return self._stage_receipt(context, receipt, proof_level="controlled_live_write")
+
+    def _persist_created_object_ownership(
+        self,
+        resolved_actions: list[dict[str, Any]],
+        save_receipt: dict[str, Any],
+    ) -> None:
+        objects: list[dict[str, Any]] = []
+        for action in resolved_actions:
+            lifecycle = dict(action.get("cleanup_lifecycle") or {})
+            object_id = str(action.get("object_id") or "")
+            object_type = str(action.get("object_type") or "")
+            workbook_id = str(
+                lifecycle.get("parent_workbook")
+                or (self.contract.get("target") or {}).get("workbook_id")
+                or ""
+            )
+            locator = normalize_object_locator(
+                object_type=object_type,
+                object_id=object_id,
+                workbook_id=workbook_id,
+                url_source="route_builder",
+            )
+            objects.append(
+                {
+                    "run_id": str(lifecycle.get("run_id") or ""),
+                    "created_by_task_id": self.journal.task_id,
+                    "creation_receipt": str(save_receipt.get("receipt_hash") or ""),
+                    "parent_workbook": workbook_id,
+                    "cleanup_route": str(lifecycle.get("cleanup_route") or ""),
+                    "inverse_or_recreate_plan": deepcopy(
+                        lifecycle.get("inverse_or_recreate_plan") or {}
+                    ),
+                    "object_id": object_id,
+                    "object_type": object_type,
+                    "workbook_id": workbook_id,
+                    "canonical_direct_url": locator["canonical_direct_url"],
+                    "url_source": locator["url_source"],
+                }
+            )
+        artifact = {
+            "schema_id": "datalens_created_object_ownership",
+            "task_id": self.journal.task_id,
+            "contract_hash": str(self.contract.get("contract_hash") or ""),
+            "plan_hash": str(save_receipt.get("plan_hash") or ""),
+            "save_receipt_hash": str(save_receipt.get("receipt_hash") or ""),
+            "objects": objects,
+        }
+        artifact["ownership_hash"] = canonical_hash(artifact)
+        write_json(self.journal.delivery_root / "created-object-ownership.json", artifact)
 
     def read_saved_stage(self, context: dict[str, Any]) -> dict[str, Any]:
         save_receipt = self._existing_delivery_receipt(
@@ -357,6 +450,17 @@ class DeliveryTransactionService:
             write_json(self.journal.publish_execution_plan_path, publish_plan)
             write_json(public_publish_plan_path, sanitize_value(publish_plan))
         if attempt_path.is_file():
+            prior_attempt = read_json(attempt_path, {}) or {}
+            bound_attempt = (
+                prior_attempt
+                if _attempt_marker_valid(
+                    prior_attempt,
+                    task_id=self.journal.task_id,
+                    phase="publish",
+                    plan_hash=publish_plan_hash,
+                )
+                else None
+            )
             receipt = self._uncertain_write_receipt(
                 schema_id="datalens_publish_stage_receipt",
                 phase="publish",
@@ -365,14 +469,22 @@ class DeliveryTransactionService:
                 reason="publish attempt exists without a final receipt",
                 binding_name="saved_readback_hash",
                 binding_hash=str(saved_receipt.get("receipt_hash") or ""),
+                attempt=bound_attempt,
             )
             write_json(self.journal.publish_stage_receipt_path, receipt)
+            if bound_attempt:
+                write_json(attempt_path, _finalize_attempt_marker(bound_attempt, receipt))
             return self._stage_receipt(context, receipt, proof_level="controlled_live_write")
         execution_plan = _without_readback(publish_plan)
-        write_json(
-            attempt_path,
-            _attempt_marker("publish", plan_hash=publish_plan_hash, execution_plan_hash=canonical_hash(execution_plan)),
+        attempt = _attempt_marker(
+            "publish",
+            task_id=self.journal.task_id,
+            contract=self.contract,
+            plan_hash=publish_plan_hash,
+            execution_plan_hash=canonical_hash(execution_plan),
+            actions=list(publish_plan.get("actions") or []),
         )
+        write_json(attempt_path, attempt)
         try:
             result = self.executor(execution_plan)
         except Exception as exc:  # noqa: BLE001 - a dispatched write is conservatively uncertain.
@@ -384,6 +496,7 @@ class DeliveryTransactionService:
                 reason=f"publish executor raised {exc.__class__.__name__}",
                 binding_name="saved_readback_hash",
                 binding_hash=str(saved_receipt.get("receipt_hash") or ""),
+                attempt=attempt,
             )
         else:
             receipt = self._write_result_receipt(
@@ -394,8 +507,10 @@ class DeliveryTransactionService:
                 actions=list(publish_plan.get("actions") or []),
                 result=result,
                 publish_plan_hash=publish_plan_hash,
+                attempt=attempt,
             )
         write_json(self.journal.publish_stage_receipt_path, receipt)
+        write_json(attempt_path, _finalize_attempt_marker(attempt, receipt))
         return self._stage_receipt(context, receipt, proof_level="controlled_live_write")
 
     def read_published_stage(self, context: dict[str, Any]) -> dict[str, Any]:
@@ -498,7 +613,7 @@ class DeliveryTransactionService:
                     "object_type": str(template.get("object_type") or "unknown"),
                 }
             ],
-            entries_payload=sanitize_value(inventory),
+            entries_payload=deepcopy(inventory),
         )
         decision = (reconciliation.get("objects") or [{}])[0]
         if decision.get("recommended_action") != "reuse" or not decision.get("existing_object_id"):
@@ -753,15 +868,29 @@ class DeliveryTransactionService:
         actions: list[dict[str, Any]],
         result: dict[str, Any],
         publish_plan_hash: str = "",
+        attempt: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         result_actions = list(result.get("actions") or result.get("results") or [])
         write_count = len(result.get("confirmed_write_action_indices") or [])
         if not write_count:
             write_count = sum(item.get("write_outcome") == "confirmed_write" for item in result_actions)
         status = _execution_status(result, result_actions)
+        attempt_values = _receipt_attempt_values(
+            attempt or _attempt_marker(
+                phase,
+                task_id=self.journal.task_id,
+                contract=self.contract,
+                plan_hash=publish_plan_hash or binding_hash,
+                execution_plan_hash=canonical_hash(actions),
+                actions=actions,
+            ),
+            resolved_at=_utc_now(),
+        )
         values = {
+            "receipt_version": 2,
             "task_id": self.journal.task_id,
             "contract_hash": str(self.contract.get("contract_hash") or ""),
+            **attempt_values,
             binding_name: binding_hash,
             "action_ids": _action_ids(actions, binding_hash),
             "provider_request_hashes": [canonical_hash(dict(item.get("payload") or {})) for item in actions],
@@ -771,7 +900,7 @@ class DeliveryTransactionService:
             "write_count": write_count,
             "ambiguity_state": "none" if status == "success" else status,
             "status": status,
-            "safe_apply_result_hash": canonical_hash(sanitize_value(result)),
+            "safe_apply_result_hash": canonical_hash(result),
         }
         if phase == "publish":
             values["publish_plan_hash"] = publish_plan_hash
@@ -791,10 +920,24 @@ class DeliveryTransactionService:
         reason: str,
         binding_name: str = "plan_hash",
         binding_hash: str = "",
+        attempt: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        attempt_values = _receipt_attempt_values(
+            attempt or _attempt_marker(
+                phase,
+                task_id=self.journal.task_id,
+                contract=self.contract,
+                plan_hash=plan_hash,
+                execution_plan_hash=canonical_hash(actions),
+                actions=actions,
+            ),
+            resolved_at=_utc_now(),
+        )
         values = {
+            "receipt_version": 2,
             "task_id": self.journal.task_id,
             "contract_hash": str(self.contract.get("contract_hash") or ""),
+            **attempt_values,
             binding_name: binding_hash or plan_hash,
             "action_ids": _action_ids(actions, binding_hash or plan_hash),
             "provider_request_hashes": [canonical_hash(dict(item.get("payload") or {})) for item in actions],
@@ -1024,16 +1167,270 @@ def _read_payload(action: dict[str, Any], branch: str) -> dict[str, Any]:
     return payload
 
 
-def _attempt_marker(phase: str, *, plan_hash: str, execution_plan_hash: str) -> dict[str, Any]:
-    payload = {
+def _attempt_marker(
+    phase: str,
+    *,
+    task_id: str,
+    contract: dict[str, Any],
+    plan_hash: str,
+    execution_plan_hash: str,
+    actions: list[dict[str, Any]],
+) -> dict[str, Any]:
+    dispatched_at = _utc_now()
+    contract_revision = int(contract.get("contract_revision") or 0)
+    scope_revision = int(contract.get("scope_revision") or 0)
+    authorization_revision = int(contract.get("authorization_revision") or 0)
+    attempts: list[dict[str, Any]] = []
+    for index, action in enumerate(actions):
+        identity = {
+            "task_id": task_id,
+            "contract_revision": contract_revision,
+            "scope_revision": scope_revision,
+            "authorization_revision": authorization_revision,
+            "plan_hash": plan_hash,
+            "phase": phase,
+            "object_id": _action_object_id(action),
+            "expected_provider_revision": _expected_provider_revision(action),
+            "action_index": index,
+            "action_hash": canonical_hash(action),
+        }
+        attempts.append(
+            {
+                "object_id": identity["object_id"],
+                "expected_provider_revision": identity["expected_provider_revision"],
+                "attempt_id": canonical_hash({"kind": "attempt", **identity}),
+                "idempotency_key": canonical_hash({"kind": "idempotency", **identity}),
+                "dispatched_at": dispatched_at,
+                "resolved_at": "",
+                "status": "started",
+            }
+        )
+    aggregate_identity = {
+        "task_id": task_id,
+        "contract_revision": contract_revision,
+        "scope_revision": scope_revision,
+        "authorization_revision": authorization_revision,
+        "plan_hash": plan_hash,
+        "phase": phase,
+        "execution_plan_hash": execution_plan_hash,
+        "attempt_ids": [item["attempt_id"] for item in attempts],
+    }
+    payload: dict[str, Any] = {
         "schema_id": "datalens_delivery_write_attempt",
+        "task_id": task_id,
+        "contract_hash": str(contract.get("contract_hash") or ""),
+        "contract_revision": contract_revision,
+        "scope_revision": scope_revision,
+        "authorization_revision": authorization_revision,
         "phase": phase,
         "plan_hash": plan_hash,
         "execution_plan_hash": execution_plan_hash,
+        "object_id": attempts[0]["object_id"] if len(attempts) == 1 else "multiple",
+        "expected_provider_revision": attempts[0]["expected_provider_revision"] if len(attempts) == 1 else "multiple",
+        "attempt_id": canonical_hash({"kind": "aggregate_attempt", **aggregate_identity}),
+        "idempotency_key": canonical_hash({"kind": "aggregate_idempotency", **aggregate_identity}),
+        "dispatched_at": dispatched_at,
+        "resolved_at": "",
+        "final_receipt_hash": "",
+        "attempts": attempts,
         "status": "started",
     }
     payload["attempt_hash"] = canonical_hash(payload)
     return payload
+
+
+def _create_attempt_marker(
+    *,
+    task_id: str,
+    contract: dict[str, Any],
+    plan_hash: str,
+    index: int,
+    object_key: str,
+    action: dict[str, Any],
+) -> dict[str, Any]:
+    identity = {
+        "task_id": task_id,
+        "contract_hash": str(contract.get("contract_hash") or ""),
+        "contract_revision": int(contract.get("contract_revision") or 0),
+        "scope_revision": int(contract.get("scope_revision") or 0),
+        "authorization_revision": int(contract.get("authorization_revision") or 0),
+        "phase": "create",
+        "plan_hash": plan_hash,
+        "index": index,
+        "object_key_hash": canonical_hash(object_key),
+        "object_type": str(action.get("object_type") or ""),
+        "action_hash": canonical_hash(action),
+    }
+    payload: dict[str, Any] = {
+        "schema_id": "datalens_create_action_attempt",
+        **identity,
+        "attempt_id": canonical_hash({"kind": "create_attempt", **identity}),
+        "idempotency_key": canonical_hash({"kind": "create_idempotency", **identity}),
+        "dispatched_at": _utc_now(),
+        "resolved_at": "",
+        "object_id": "",
+        "provider_result_hash": "",
+        "final_receipt_hash": "",
+        "status": "started",
+    }
+    payload["attempt_hash"] = canonical_hash(payload)
+    return payload
+
+
+def _resolve_create_attempt_marker(
+    attempt: dict[str, Any],
+    *,
+    object_id: str,
+    provider_result: dict[str, Any],
+) -> dict[str, Any]:
+    resolved = deepcopy(attempt)
+    resolved["resolved_at"] = _utc_now()
+    resolved["object_id"] = object_id
+    resolved["provider_result_hash"] = canonical_hash(provider_result)
+    resolved["status"] = "provider_confirmed"
+    resolved.pop("attempt_hash", None)
+    resolved["attempt_hash"] = canonical_hash(resolved)
+    return resolved
+
+
+def _finalize_create_attempt_marker(
+    attempt: dict[str, Any],
+    receipt: dict[str, Any],
+) -> dict[str, Any]:
+    finalized = deepcopy(attempt)
+    finalized["resolved_at"] = str(finalized.get("resolved_at") or receipt.get("resolved_at") or _utc_now())
+    finalized["final_receipt_hash"] = str(receipt.get("receipt_hash") or "")
+    finalized["status"] = "completed" if receipt.get("status") == "success" else "ambiguous"
+    finalized.pop("attempt_hash", None)
+    finalized["attempt_hash"] = canonical_hash(finalized)
+    return finalized
+
+
+def _receipt_attempt_values(attempt: dict[str, Any], *, resolved_at: str) -> dict[str, Any]:
+    attempts = []
+    for item in attempt.get("attempts") or []:
+        nested = deepcopy(item)
+        nested["resolved_at"] = resolved_at
+        nested["status"] = "resolved"
+        attempts.append(nested)
+    return {
+        "contract_revision": int(attempt.get("contract_revision") or 0),
+        "scope_revision": int(attempt.get("scope_revision") or 0),
+        "authorization_revision": int(attempt.get("authorization_revision") or 0),
+        "phase": str(attempt.get("phase") or ""),
+        "plan_hash": str(attempt.get("plan_hash") or ""),
+        "object_id": str(attempt.get("object_id") or ""),
+        "expected_provider_revision": str(attempt.get("expected_provider_revision") or ""),
+        "attempt_id": str(attempt.get("attempt_id") or ""),
+        "idempotency_key": str(attempt.get("idempotency_key") or ""),
+        "dispatched_at": str(attempt.get("dispatched_at") or ""),
+        "resolved_at": resolved_at,
+        "attempts": attempts,
+    }
+
+
+def _expected_provider_revision(action: dict[str, Any]) -> str:
+    payload = action.get("payload") if isinstance(action.get("payload"), dict) else {}
+    entry = payload.get("entry") if isinstance(payload.get("entry"), dict) else {}
+    revision = str(
+        action.get("expected_revision")
+        or action.get("expected_provider_revision")
+        or entry.get("revId")
+        or payload.get("revId")
+        or ""
+    )
+    if revision:
+        return revision
+    method = str(action.get("method") or "")
+    return "not_applicable:create" if method.startswith("create") else "missing"
+
+
+def _finalize_attempt_marker(attempt: dict[str, Any], receipt: dict[str, Any]) -> dict[str, Any]:
+    finalized = deepcopy(attempt)
+    resolved_at = str(receipt.get("resolved_at") or _utc_now())
+    final_status = "ambiguous" if receipt.get("status") == "ambiguous" else "completed"
+    finalized["resolved_at"] = resolved_at
+    finalized["final_receipt_hash"] = str(receipt.get("receipt_hash") or "")
+    finalized["status"] = final_status
+    for nested in finalized.get("attempts") or []:
+        nested["resolved_at"] = resolved_at
+        nested["status"] = final_status
+    finalized.pop("attempt_hash", None)
+    finalized["attempt_hash"] = canonical_hash(finalized)
+    return finalized
+
+
+def _attempt_marker_valid(
+    attempt: dict[str, Any],
+    *,
+    task_id: str,
+    phase: str,
+    plan_hash: str,
+) -> bool:
+    if (
+        attempt.get("schema_id") != "datalens_delivery_write_attempt"
+        or attempt.get("task_id") != task_id
+        or attempt.get("phase") != phase
+        or attempt.get("plan_hash") != plan_hash
+        or attempt.get("status") not in {"started", "ambiguous", "completed"}
+        or not attempt.get("attempts")
+    ):
+        return False
+    marker_material = deepcopy(attempt)
+    marker_hash = str(marker_material.pop("attempt_hash", "") or "")
+    return bool(marker_hash and marker_hash == canonical_hash(marker_material))
+
+
+def _resolved_prior_save_attempt(
+    attempt: dict[str, Any],
+    receipt: dict[str, Any],
+    *,
+    task_id: str,
+    current_plan_hash: str,
+    current_contract_revision: int,
+) -> bool:
+    """Allow a new contract revision after a conclusively finished prior save.
+
+    Attempt markers deliberately remain durable after dispatch so a missing
+    receipt fails closed.  A post-save contract amendment creates a different
+    immutable plan while preserving the prior receipt; that resolved marker
+    must not be mistaken for an uncertain attempt of the new plan.
+    """
+
+    attempt_plan_hash = str(attempt.get("plan_hash") or "")
+    if (
+        attempt.get("schema_id") != "datalens_delivery_write_attempt"
+        or attempt.get("phase") != "save"
+        or attempt.get("status") != "completed"
+        or attempt.get("task_id") != task_id
+        or not isinstance(attempt.get("contract_revision"), int)
+        or int(attempt.get("contract_revision") or 0) >= current_contract_revision
+        or not attempt_plan_hash
+        or attempt_plan_hash == current_plan_hash
+    ):
+        return False
+    marker_material = dict(attempt)
+    marker_hash = str(marker_material.pop("attempt_hash", "") or "")
+    if marker_hash != canonical_hash(marker_material):
+        return False
+    if receipt.get("plan_hash") != attempt_plan_hash:
+        return False
+    if receipt.get("receipt_hash") != attempt.get("final_receipt_hash"):
+        return False
+    if receipt.get("contract_hash") != attempt.get("contract_hash"):
+        return False
+    if receipt.get("contract_revision") != attempt.get("contract_revision"):
+        return False
+    if receipt.get("status") not in {"success", "conflict", "failed"}:
+        return False
+    if receipt.get("ambiguity_state") == "write_outcome_unknown":
+        return False
+    return not validate_delivery_receipt(
+        receipt,
+        schema_id="datalens_save_stage_receipt",
+        task_id=task_id,
+        contract_hash=str(receipt.get("contract_hash") or ""),
+    )
 
 
 def _receipt_path(journal: ProjectJournal, schema_id: str) -> Path:
@@ -1048,3 +1445,7 @@ def _receipt_path(journal: ProjectJournal, schema_id: str) -> Path:
 def _delivery_intent(contract: dict[str, Any]) -> str:
     delivery = contract.get("delivery") or {}
     return "implement update and publish" if delivery.get("publish") else "implement update and save"
+
+
+def _utc_now() -> str:
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")

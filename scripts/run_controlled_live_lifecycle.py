@@ -43,6 +43,13 @@ CONTROLLED_LIVE_REQUIRED_ROUTES = {
     "dashboard",
     "dataset",
 }
+STALE_REVISION_REQUIRED_ROUTES = {
+    "editor_chart",
+    "table_node",
+    "control_node",
+    "markdown_node",
+    "dashboard",
+}
 NON_BLOCKING_DOCUMENTED_STATES = {
     "documented_but_not_live_write_verified",
     "documented_but_plan_only",
@@ -737,13 +744,32 @@ def run_stale_negative(
     object_id: str,
     config: DataLensConfig,
 ) -> dict[str, Any]:
+    base = {
+        "intended_guard": "stale_plan_revision",
+        "required_preconditions": [
+            "revision_field_present",
+            "fresh_provider_read_succeeds",
+            "current_provider_revision_differs_from_stale_fixture",
+            "payload_reaches_safe_apply_revision_guard",
+        ],
+    }
     stale_payload = json.loads(json.dumps(payload))
     if "entry" in stale_payload and isinstance(stale_payload["entry"], dict):
         stale_payload["entry"]["revId"] = "stale_revision_fixture"
     elif "revId" in stale_payload:
         stale_payload["revId"] = "stale_revision_fixture"
     else:
-        return {"executed": False, "status": "not_applicable", "reason": "no revision field"}
+        return {
+            **base,
+            "executed": False,
+            "status": "not_applicable",
+            "reason": "no revision field",
+            "actual_stop_guard": "revision_field_absent",
+            "provider_write_attempted": False,
+            "provider_write_executed": False,
+            "write_attempted": False,
+            "classification": "not_executed",
+        }
     action = {
         "action": "controlled_live_stale_revision_negative",
         "method": route["update_method"],
@@ -780,16 +806,61 @@ def run_stale_negative(
     error = action.get("error") if isinstance(action.get("error"), dict) else {}
     if error.get("category") == "stale_revision" and not action.get("write_attempted"):
         return {
+            **base,
             "executed": True,
             "status": "blocked_expected",
             "write_attempted": False,
+            "actual_stop_guard": "stale_plan_revision",
+            "provider_write_attempted": False,
+            "provider_write_executed": False,
+            "classification": "reached_and_rejected",
             "safe_apply_status": result.get("status"),
             "artifact": artifact,
         }
+    if not action:
+        return {
+            **base,
+            "executed": True,
+            "status": (
+                "blocked_before_revision_guard"
+                if result.get("status") == "blocked"
+                else "guard_result_missing_action"
+            ),
+            "write_attempted": False,
+            "actual_stop_guard": "payload_preflight",
+            "provider_write_attempted": False,
+            "provider_write_executed": False,
+            "classification": "blocked_before_guard",
+            "safe_apply_status": result.get("status"),
+            "blocked_reasons": [str(item) for item in result.get("blocked_reasons") or []],
+            "artifact": artifact,
+        }
+    if not action.get("write_attempted"):
+        return {
+            **base,
+            "executed": True,
+            "status": "blocked_unexpected_reason",
+            "write_attempted": False,
+            "actual_stop_guard": str(error.get("category") or "unknown_pre_guard"),
+            "provider_write_attempted": False,
+            "provider_write_executed": False,
+            "classification": "blocked_before_guard",
+            "safe_apply_status": result.get("status"),
+            "error_category": str(error.get("category") or ""),
+            "artifact": artifact,
+        }
     return {
+        **base,
         "executed": True,
-        "status": "unexpected_success",
+        "status": "guard_failed_write_attempted",
         "write_attempted": bool(action.get("write_attempted")),
+        "actual_stop_guard": "provider_write_dispatch",
+        "provider_write_attempted": bool(action.get("write_attempted")),
+        "provider_write_executed": bool(
+            action.get("write_outcome") == "confirmed_write"
+            or result.get("confirmed_write_action_indices")
+        ),
+        "classification": "reached_and_allowed",
         "object_id": object_id,
         "safe_apply_status": result.get("status"),
         "artifact": artifact,
@@ -956,6 +1027,19 @@ def missing_verified_route_evidence(route: dict[str, Any]) -> list[str]:
             missing.append(f"artifacts.{key}")
     if route.get("publishable") and not artifacts.get("publish"):
         missing.append("artifacts.publish")
+    if str(route.get("route") or "") in STALE_REVISION_REQUIRED_ROUTES:
+        stale = (
+            route.get("stale_revision_negative")
+            if isinstance(route.get("stale_revision_negative"), dict)
+            else {}
+        )
+        if (
+            stale.get("classification") != "reached_and_rejected"
+            or stale.get("actual_stop_guard") != "stale_plan_revision"
+            or stale.get("provider_write_attempted") is not False
+            or stale.get("provider_write_executed") is not False
+        ):
+            missing.append("stale_revision_negative.reached_and_rejected")
     return missing
 
 

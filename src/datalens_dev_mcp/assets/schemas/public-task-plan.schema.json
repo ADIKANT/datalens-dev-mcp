@@ -4,7 +4,7 @@
   "title": "Immutable public autonomous task plan",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_id", "plan_version", "task_id", "contract_hash", "route", "delivery", "scope", "acceptance", "dataset_context_profile_hash", "query_set_hash", "dataset_schema_hash", "context_observed_at", "context_limitations", "data_context_decisions", "plan_binding_hash", "semantic_patch_plan_hash", "style_binding_hash", "safe_apply_action_count", "artifacts", "destructive_token_required", "plan_hash"],
+  "required": ["schema_id", "plan_version", "task_id", "contract_hash", "route", "delivery", "scope", "acceptance", "dataset_context_profile_hash", "query_set_hash", "dataset_schema_hash", "context_observed_at", "context_limitations", "data_context_decisions", "plan_binding_hash", "semantic_patch_plan_hash", "style_binding_hash", "decision_context_hash", "project_profile_hash", "accepted_exemplar_selection", "accepted_exemplar_hash", "bounded_project_decisions", "project_source_hashes", "safe_apply_action_count", "artifacts", "destructive_token_required", "plan_hash"],
   "properties": {
     "schema_id": {"const": "datalens_public_task_plan"},
     "plan_version": {"const": 1},
@@ -23,6 +23,16 @@
     "plan_binding_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "semantic_patch_plan_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "style_binding_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "decision_context_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "project_profile_hash": {"type": "string", "pattern": "^$|^[a-f0-9]{64}$"},
+    "accepted_exemplar_selection": {"enum": ["selected", "none"]},
+    "accepted_exemplar_hash": {"type": "string", "pattern": "^$|^[a-f0-9]{64}$"},
+    "bounded_project_decisions": {"type": "object"},
+    "project_source_hashes": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+      "uniqueItems": true
+    },
     "safe_apply_action_count": {"type": "integer", "minimum": 1},
     "artifacts": {
       "type": "array",

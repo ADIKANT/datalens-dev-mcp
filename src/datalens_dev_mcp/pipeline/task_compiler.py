@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from typing import Any
 
@@ -10,17 +11,18 @@ from datalens_dev_mcp.pipeline.route_contract import normalize_route
 from datalens_dev_mcp.pipeline.task_contract import (
     AcceptanceCriterion,
     DeliveryContract,
+    EffectContract,
     EvidenceContract,
     ReferenceContract,
     ScopeContract,
     TargetContract,
     TaskMode,
+    VerificationContract,
     WorkspaceContract,
     create_task_contract,
     validate_task_contract,
 )
 from datalens_dev_mcp.pipeline.user_request import NormalizedUserRequest, normalize_user_request
-
 
 WRITE_MODES = {"create", "update", "redesign", "publish_only"}
 CANONICAL_ROUTES = {
@@ -30,6 +32,16 @@ CANONICAL_ROUTES = {
     "editor_js_control",
     "wizard_native",
     "ql_explicit",
+}
+
+EFFECT_EXPECTED_STATES = {
+    "saved": "saved_revision_present",
+    "published": "published_revision_matches_saved",
+    "changed": "requested_semantic_effect_observed",
+    "deleted": "requested_object_or_relation_absent",
+    "moved": "requested_workbook_relation_observed",
+    "data_appeared": "bounded_dataset_result_not_empty",
+    "restored": "object_and_required_relations_present",
 }
 
 
@@ -50,6 +62,13 @@ def compile_task_contract(
     acceptance: list[dict[str, Any] | str] | tuple[dict[str, Any] | str, ...] | None = None,
     discovered_facts: dict[str, Any] | None = None,
     unresolved_facts: dict[str, Any] | None = None,
+    task_id: str = "",
+    contract_revision: int = 1,
+    parent_contract_hash: str = "",
+    source_turn_hash: str = "",
+    semantic_delta_hash: str = "",
+    scope_revision: int = 1,
+    authorization_revision: int = 1,
 ) -> dict[str, Any]:
     correction_values = tuple(str(item).strip() for item in corrections or () if str(item).strip())
     current = current_live or {}
@@ -60,7 +79,15 @@ def compile_task_contract(
 
     normalized = normalize_user_request(raw_request)
     correction_request = normalize_user_request("\n".join(correction_values)) if correction_values else None
-    mode = _compile_mode(raw_request, normalized, correction_request)
+    operation_kind, effect_kind = _compile_operation(normalized, correction_request, journal)
+    mode = _compile_mode(
+        raw_request,
+        normalized,
+        correction_request,
+        operation_kind=operation_kind,
+        current_mode=str(journal.get("mode") or ""),
+        current_operation_kind=str(journal.get("operation_kind") or ""),
+    )
     target, target_trace = _compile_target(
         normalized,
         correction_request=correction_request,
@@ -75,6 +102,8 @@ def compile_task_contract(
     reference_contract = _compile_reference(
         raw_request,
         correction_values,
+        normalized=normalized,
+        correction=correction_request,
         reference=reference or {},
         portfolio_source=portfolio,
         current_live=current,
@@ -84,10 +113,23 @@ def compile_task_contract(
         corrections=correction_values,
         workspace_policy=workspace,
     )
-    delivery = _compile_delivery(normalized, correction_request, mode)
-    acceptance_contract = _compile_acceptance(acceptance or (), correction_contract)
+    delivery = _compile_delivery(
+        normalized,
+        correction_request,
+        mode,
+        operation_kind=operation_kind,
+        current_operation_kind=str(journal.get("operation_kind") or ""),
+        current_delivery=dict(journal.get("delivery") or {}),
+    )
+    effect = _compile_effect(operation_kind, effect_kind)
+    verification = _compile_verification(operation_kind, effect)
+    acceptance_contract = _compile_acceptance(
+        acceptance or (), correction_contract, operation_kind=operation_kind, effect=effect,
+    )
 
-    required_facts = _required_discoverable_facts(mode, target, route)
+    required_facts = _required_discoverable_facts(
+        mode, target, route, operation_kind=operation_kind, verification=verification,
+    )
     discovery = _compile_discovered_facts(discovered_facts or {}, current, target, reference_contract, browser_policy)
     unresolved = dict(unresolved_facts or {})
     if delivery.destructive:
@@ -108,6 +150,9 @@ def compile_task_contract(
         raw_request=raw_request,
         mode=mode,
         route=route,
+        operation_kind=operation_kind,
+        effect=effect,
+        verification=verification,
         workspace=WorkspaceContract(
             project_root=str(project_root),
             portfolio_subproject=str(portfolio_subproject),
@@ -126,15 +171,20 @@ def compile_task_contract(
         acceptance=acceptance_contract,
         stop_conditions=tuple(stop_conditions),
         corrections=correction_values,
+        task_id=task_id,
+        contract_revision=contract_revision,
+        parent_contract_hash=parent_contract_hash,
+        source_turn_hash=source_turn_hash,
+        semantic_delta_hash=semantic_delta_hash,
+        scope_revision=scope_revision,
+        authorization_revision=authorization_revision,
     )
     contract_payload = contract.to_dict()
     issues = list(validate_task_contract(contract))
     question_payload = question_decision.question.to_dict() if question_decision.question else None
     if question_payload:
         status = "needs_input"
-    elif question_decision.discovery_required:
-        status = "needs_discovery"
-    elif mode in WRITE_MODES and not target.object_ids and not target.workbook_id:
+    elif question_decision.discovery_required or mode in WRITE_MODES and not target.object_ids and not target.workbook_id:
         status = "needs_discovery"
     else:
         status = "ready"
@@ -153,6 +203,9 @@ def compile_task_contract(
         "discovery_required": list(question_decision.discovery_required),
         "issues": issues,
         "source_trace": {
+            "operation_kind": operation_kind,
+            "effect_kind": effect.kind,
+            "target_url": normalized.target_url,
             "target_fields": target_trace,
             "ignored_historical_target_fields": ignored_historical,
             "precedence": list(contract.source_precedence),
@@ -164,7 +217,13 @@ def _compile_mode(
     raw_request: str,
     normalized: NormalizedUserRequest,
     correction: NormalizedUserRequest | None,
+    *,
+    operation_kind: str,
+    current_mode: str = "",
+    current_operation_kind: str = "",
 ) -> TaskMode:
+    if operation_kind == "verify_existing_effect":
+        return "review"
     text = "\n".join((raw_request, correction.raw_text if correction else "")).lower()
     if re.search(r"\bpublish(?:\s+from\s+saved)?\s+only\b|только\s+опубли", text):
         return "publish_only"
@@ -181,7 +240,48 @@ def _compile_mode(
         return "create"
     if intent in {"fix", "enhance", "update"}:
         return "update"
+    if operation_kind == current_operation_kind and current_mode in {
+        "review", "diagnose", "plan", "create", "update", "redesign", "publish_only"
+    }:
+        return current_mode  # type: ignore[return-value]
     return "review"
+
+
+def _compile_operation(
+    normalized: NormalizedUserRequest,
+    correction: NormalizedUserRequest | None,
+    current_task_journal: dict[str, Any],
+) -> tuple[str, str]:
+    if correction and correction.operation_kind in {"mutate", "verify_existing_effect"}:
+        return correction.operation_kind, correction.effect_kind
+    if correction and correction.task_intent in {"review", "plan"}:
+        return "inspect", "none"
+    persisted = str(current_task_journal.get("operation_kind") or "")
+    if persisted in {"inspect", "mutate", "verify_existing_effect"}:
+        persisted_effect = str((current_task_journal.get("effect") or {}).get("kind") or "none")
+        return persisted, persisted_effect
+    return normalized.operation_kind, normalized.effect_kind
+
+
+def _compile_effect(operation_kind: str, effect_kind: str) -> EffectContract:
+    kind = effect_kind if operation_kind == "verify_existing_effect" else "none"
+    return EffectContract(kind=kind, expected_state=EFFECT_EXPECTED_STATES.get(kind, ""))
+
+
+def _compile_verification(operation_kind: str, effect: EffectContract) -> VerificationContract:
+    if operation_kind != "verify_existing_effect":
+        return VerificationContract()
+    required = ["current_object", "saved_or_published_revision", "relations"]
+    if effect.kind == "data_appeared":
+        required.append("data_assertions")
+    elif effect.kind in {"changed", "restored"}:
+        required.append("runtime_assertions_if_applicable")
+    return VerificationContract(
+        required_live_reads=tuple(required),
+        acceptance_required=True,
+        remediation_enabled=False,
+        remediation_requires_new_user_scope=True,
+    )
 
 
 def _compile_target(
@@ -253,7 +353,11 @@ def _compile_route(
     mode: TaskMode,
     target: TargetContract,
 ) -> str:
-    requested = correction.route_intent if correction and correction.route_intent != "unspecified" else normalized.route_intent
+    requested = (
+        correction.route_intent
+        if correction and correction.route_intent != "unspecified" and correction.route_explicit
+        else normalized.route_intent
+    )
     if requested == "ql_explicit":
         return "ql_explicit"
     aliases = {
@@ -302,6 +406,8 @@ def _compile_reference(
     raw_request: str,
     corrections: tuple[str, ...],
     *,
+    normalized: NormalizedUserRequest,
+    correction: NormalizedUserRequest | None,
     reference: dict[str, Any],
     portfolio_source: dict[str, Any],
     current_live: dict[str, Any],
@@ -311,6 +417,10 @@ def _compile_reference(
     locator = str(reference.get("locator") or "")
     kind = str(reference.get("kind") or "")
     source_hash = str(reference.get("source_hash") or reference.get("hash") or "")
+    request_reference = correction.reference_url if correction and correction.reference_url else normalized.reference_url
+    if not locator and request_reference:
+        locator = request_reference
+        kind = "live_object"
     if not locator and _present(portfolio_source.get("reference_locator")):
         locator = str(portfolio_source["reference_locator"])
         kind = kind or "portfolio_object"
@@ -330,13 +440,31 @@ def _compile_delivery(
     normalized: NormalizedUserRequest,
     correction: NormalizedUserRequest | None,
     mode: TaskMode,
+    *,
+    operation_kind: str,
+    current_operation_kind: str = "",
+    current_delivery: dict[str, Any] | None = None,
 ) -> DeliveryContract:
+    if operation_kind == "verify_existing_effect":
+        return DeliveryContract(save=False, publish=False, destructive=False)
     effective = correction if correction and correction.publish_override != "none" else normalized
     destructive = bool(normalized.destructive_actions or (correction.destructive_actions if correction else ()))
     if mode in {"review", "diagnose", "plan"}:
         return DeliveryContract(destructive=destructive)
     if mode == "publish_only":
         return DeliveryContract(save=False, publish=True, destructive=destructive)
+    persisted = current_delivery or {}
+    if (
+        operation_kind == current_operation_kind
+        and persisted
+        and normalized.publish_override == "none"
+        and (not correction or correction.publish_override == "none")
+    ):
+        return DeliveryContract(
+            save=bool(persisted.get("save")),
+            publish=bool(persisted.get("publish")),
+            destructive=bool(persisted.get("destructive")),
+        )
     publish = effective.publish_override not in {"draft", "save_only", "no_publish", "plan_only", "dry_run"}
     return DeliveryContract(save=True, publish=publish, destructive=destructive)
 
@@ -344,6 +472,9 @@ def _compile_delivery(
 def _compile_acceptance(
     acceptance: list[dict[str, Any] | str] | tuple[dict[str, Any] | str, ...],
     correction_contract: dict[str, list[str]],
+    *,
+    operation_kind: str,
+    effect: EffectContract,
 ) -> tuple[AcceptanceCriterion, ...]:
     criteria: list[AcceptanceCriterion] = []
     for item in acceptance:
@@ -367,13 +498,44 @@ def _compile_acceptance(
                 hard=True,
             )
         )
+    if operation_kind == "verify_existing_effect":
+        criteria.append(
+            AcceptanceCriterion(
+                kind="existing_effect",
+                statement=_canonical_json(
+                    {
+                        "effect_kind": effect.kind,
+                        "expected_state": effect.expected_state,
+                        "result_must_be_honest": True,
+                    }
+                ),
+                source="compiled_current_user_request",
+                hard=True,
+            )
+        )
+        if effect.kind == "data_appeared" and not any(item.kind == "not_empty" for item in criteria):
+            criteria.append(
+                AcceptanceCriterion(
+                    kind="not_empty",
+                    statement=_canonical_json({"scope": "sample"}),
+                    source="compiled_current_user_request",
+                    hard=True,
+                )
+            )
     deduped: dict[tuple[str, str], AcceptanceCriterion] = {}
     for item in criteria:
         deduped[(item.kind, item.statement)] = item
     return tuple(deduped.values())
 
 
-def _required_discoverable_facts(mode: TaskMode, target: TargetContract, route: str) -> list[str]:
+def _required_discoverable_facts(
+    mode: TaskMode,
+    target: TargetContract,
+    route: str,
+    *,
+    operation_kind: str,
+    verification: VerificationContract,
+) -> list[str]:
     required = ["target_ids", "object_type"]
     if mode == "create":
         required = ["workbook_id"]
@@ -383,6 +545,8 @@ def _required_discoverable_facts(mode: TaskMode, target: TargetContract, route: 
         required.append("saved_revision")
     if route.startswith("editor_"):
         required.append("tabs")
+    if operation_kind == "verify_existing_effect":
+        required.extend(verification.required_live_reads)
     return _unique(required)
 
 
@@ -404,6 +568,17 @@ def _compile_discovered_facts(
     result.setdefault("tabs", current_live.get("tabs"))
     result.setdefault("saved_revision", target.saved_revision)
     result.setdefault("published_revision", target.published_revision)
+    result.setdefault("current_object", current_live.get("current_object"))
+    result.setdefault(
+        "saved_or_published_revision",
+        current_live.get("saved_or_published_revision") or target.saved_revision or target.published_revision,
+    )
+    result.setdefault("relations", current_live.get("relations"))
+    result.setdefault("data_assertions", current_live.get("data_assertions"))
+    result.setdefault(
+        "runtime_assertions_if_applicable",
+        current_live.get("runtime_assertions_if_applicable"),
+    )
     result.setdefault("reference_hash", reference.source_hash)
     result.setdefault("browser_availability", browser_policy.mode != "forbidden")
     result.setdefault("auth_state", current_live.get("auth_state"))
@@ -484,3 +659,7 @@ def _present(value: Any) -> bool:
     if isinstance(value, (list, tuple, dict, set)):
         return bool(value)
     return value is not None and value is not False
+
+
+def _canonical_json(value: dict[str, Any]) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))

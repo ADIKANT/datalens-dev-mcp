@@ -163,7 +163,10 @@ class LiveAuthTransactionTests(unittest.TestCase):
             )
             fake_yc.chmod(0o755)
 
-            token = refresh_iam_token_with_yc(yc_binary=str(fake_yc), timeout_sec=1.0)
+            # A first execution of a newly-created script can incur platform
+            # security-scanner latency on macOS. This assertion verifies the
+            # non-interactive arguments, not a one-second process budget.
+            token = refresh_iam_token_with_yc(yc_binary=str(fake_yc), timeout_sec=5.0)
 
         self.assertEqual(token, "fresh-token")
 

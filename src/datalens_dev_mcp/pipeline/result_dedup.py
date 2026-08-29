@@ -89,4 +89,4 @@ def _without_volatile(value: Any) -> Any:
         }
     if isinstance(value, (list, tuple)):
         return [_without_volatile(item) for item in value]
-    return sanitize_value(value)
+    return value

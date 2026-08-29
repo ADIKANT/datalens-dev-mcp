@@ -85,11 +85,66 @@ def _tool_schema(
     properties: dict[str, Any] | None = None,
     required: list[str] | None = None,
 ) -> dict[str, Any]:
-    return {
+    schema = {
         "name": name,
         "description": description,
         "inputSchema": _input_schema_for_tool(name, properties=properties, required=required),
     }
+    if name in PUBLIC_TOOL_EFFECT_ANNOTATIONS:
+        schema["annotations"] = dict(PUBLIC_TOOL_EFFECT_ANNOTATIONS[name])
+    return schema
+
+
+PUBLIC_TOOL_EFFECT_ANNOTATIONS: dict[str, dict[str, Any]] = {
+    "dl_task_start": {
+        "readOnlyHint": False,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
+    "dl_task_resume": {
+        "readOnlyHint": False,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
+    "dl_task_status": {
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+    "dl_inspect": {
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
+    "dl_plan": {
+        "readOnlyHint": False,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
+    "dl_execute": {
+        "readOnlyHint": False,
+        "destructiveHint": True,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
+    "dl_verify": {
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+    "dl_evidence": {
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+}
 
 
 TOOLS: dict[str, Callable[..., Any]] = {
@@ -862,6 +917,49 @@ TOOL_PARAM_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
         "default": "completed",
     },
     ("dl_task_resume", "transition_budget"): {"type": "integer", "minimum": 1, "maximum": 100, "default": 20},
+    ("dl_task_resume", "expected_contract_revision"): {"type": "integer", "minimum": 1},
+    ("dl_task_resume", "user_turn"): {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["request", "relationship_to_previous"],
+        "properties": {
+            "source_event_id": {"type": "string"},
+            "request": {"type": "string", "minLength": 1},
+            "relationship_to_previous": {
+                "type": "string",
+                "enum": [
+                    "continue",
+                    "clarify",
+                    "correct_wrong_route",
+                    "correct_wrong_result",
+                    "extend_scope",
+                    "restrict_scope",
+                    "authorize_operation",
+                    "replace_goal",
+                    "start_new_workflow",
+                ],
+            },
+            "context": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "target_url": {"type": "string"},
+                    "reference_locator": {"type": "string"},
+                    "acceptance": {
+                        "type": "array",
+                        "items": {"oneOf": [{"type": "string"}, {"type": "object"}]},
+                    },
+                    "scope": {"type": "object"},
+                    "browser_policy": {
+                        "type": "string",
+                        "enum": ["forbidden", "optional", "required"],
+                    },
+                    "portfolio_root": {"type": "string"},
+                    "max_discovery_objects": {"type": "integer", "minimum": 1, "maximum": 200},
+                },
+            },
+        },
+    },
     ("dl_execute", "stop_after"): {
         "type": "string",
         "enum": ["saved", "completed"],

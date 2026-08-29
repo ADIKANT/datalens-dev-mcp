@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping
 
@@ -12,7 +13,6 @@ from datalens_dev_mcp.pipeline.investigation import ARCHITECTURE_REVIEW_STATE
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
 from datalens_dev_mcp.pipeline.workflow_state import WorkflowState, is_terminal, transition_name
 from datalens_dev_mcp.pipeline.task_stage_receipts import validate_stage_receipt
-from datalens_dev_mcp.validators.redaction import sanitize_value
 
 
 WorkflowHandler = Callable[[dict[str, Any]], dict[str, Any] | None]
@@ -61,7 +61,10 @@ class WorkflowEngine:
         require_typed_receipts: bool = False,
     ) -> None:
         self.journal = journal
-        self.contract = sanitize_value(contract)
+        # TaskContract is already a typed, hash-bound structure with no raw
+        # request or credential fields. Redacting it after hashing can corrupt
+        # legitimate paths/ids and make the persisted contract unverifiable.
+        self.contract = deepcopy(contract)
         self.handlers = dict(handlers)
         self.require_typed_receipts = bool(require_typed_receipts)
         if build_identity is None and any((server_build, source_branch, source_tree)):
@@ -159,7 +162,10 @@ class WorkflowEngine:
             "target_binding_hash": self.target_binding.get("binding_hash"),
         }
         try:
-            result = sanitize_value(handler(context) or {})
+            # Handler output is canonical state used for validation,
+            # reconciliation and receipts. Redaction belongs to the public
+            # projection boundary and must never rewrite this value.
+            result = deepcopy(handler(context) or {})
         except (TimeoutError, ConnectionError) as exc:
             if spec.write:
                 return self._record_reconciliation(state, spec, idempotency_key, str(exc), ambiguous=True)

@@ -7,6 +7,7 @@ from jsonschema import Draft202012Validator
 
 from datalens_dev_mcp.mcp.tools.tasks import dl_verify
 from datalens_dev_mcp.pipeline.artifacts import read_json
+from datalens_dev_mcp.pipeline.task_qa_service import _acceptance_coverage
 from datalens_dev_mcp.runtime_resources import resource_json
 from tests.integration.public_proof_support import execute_public_proof_workflow, plan_ready_task
 
@@ -56,3 +57,38 @@ def test_missing_hard_acceptance_evidence_blocks_completion() -> None:
     assert state.current_state == "BLOCKED"
     assert qa["acceptance_coverage"]["ok"] is False
     assert qa["acceptance_coverage"]["missing_evidence"] == ["hard_acceptance:0"]
+
+
+def test_compiler_owned_amendment_constraint_uses_amended_runtime_evidence() -> None:
+    contract = {
+        "contract_revision": 2,
+        "parent_contract_hash": "a" * 64,
+        "semantic_delta_hash": "b" * 64,
+        "delivery": {"save": True, "publish": True},
+        "acceptance": [
+            {
+                "kind": "constraint",
+                "statement": "Keep the target and apply the corrected value.",
+                "source": "current_user_correction",
+                "hard": True,
+            }
+        ],
+    }
+    covered = _acceptance_coverage(
+        contract,
+        data_receipt={},
+        runtime_ok=True,
+        saved={"status": "success"},
+        published={"status": "success"},
+    )
+    unbound = _acceptance_coverage(
+        {**contract, "contract_revision": 1, "parent_contract_hash": "", "semantic_delta_hash": ""},
+        data_receipt={},
+        runtime_ok=True,
+        saved={"status": "success"},
+        published={"status": "success"},
+    )
+
+    assert covered["ok"] is True
+    assert covered["criteria"][0]["evidence_kind"] == "amended_contract_runtime"
+    assert unbound["ok"] is False

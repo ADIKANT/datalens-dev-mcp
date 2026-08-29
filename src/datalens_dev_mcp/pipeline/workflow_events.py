@@ -4,7 +4,6 @@ import hashlib
 import json
 from typing import Any
 
-from datalens_dev_mcp.validators.redaction import sanitize_value
 
 
 EVENT_STATUSES = frozenset({"success", "blocked", "retryable", "failed"})
@@ -42,12 +41,14 @@ def create_workflow_event(
         "previous_hash": previous_hash,
         "task_id": task_id,
         "transition": transition,
-        "input_hash": canonical_hash(sanitize_value(input_value)),
+        # The event stores only the digest. Bind it to the canonical typed
+        # input; presentation redaction must not change execution identity.
+        "input_hash": canonical_hash(input_value),
         "result_receipt": str(result_receipt or ""),
         "status": status,
         "timestamp": timestamp,
         "idempotency_key": idempotency_key,
-        "details": sanitize_value(details or {}),
+        "details": dict(details or {}),
     }
     event["event_hash"] = event_hash(event)
     return event

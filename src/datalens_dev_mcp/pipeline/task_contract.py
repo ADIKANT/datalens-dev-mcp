@@ -8,6 +8,7 @@ from uuid import NAMESPACE_URL, uuid5
 
 
 TaskMode = Literal["review", "diagnose", "plan", "create", "update", "redesign", "publish_only"]
+OperationKind = Literal["inspect", "mutate", "verify_existing_effect"]
 BrowserMode = Literal["forbidden", "optional", "required"]
 BrowserPolicySource = Literal["explicit_user", "compiled_default", "workspace_policy"]
 
@@ -72,6 +73,20 @@ class DeliveryContract:
 
 
 @dataclass(frozen=True)
+class EffectContract:
+    kind: str = "none"
+    expected_state: str = ""
+
+
+@dataclass(frozen=True)
+class VerificationContract:
+    required_live_reads: tuple[str, ...] = ()
+    acceptance_required: bool = False
+    remediation_enabled: bool = False
+    remediation_requires_new_user_scope: bool = True
+
+
+@dataclass(frozen=True)
 class EvidenceContract:
     required_facts: tuple[str, ...] = ()
     available_facts: tuple[str, ...] = ()
@@ -100,6 +115,9 @@ class TaskContract:
     raw_request_hash: str
     mode: TaskMode
     route: str
+    operation_kind: OperationKind
+    effect: EffectContract
+    verification: VerificationContract
     workspace: WorkspaceContract
     target: TargetContract
     scope: ScopeContract
@@ -112,6 +130,12 @@ class TaskContract:
     stop_conditions: tuple[str, ...]
     corrections: tuple[str, ...]
     source_precedence: tuple[str, ...]
+    contract_revision: int = 1
+    parent_contract_hash: str = ""
+    source_turn_hash: str = ""
+    semantic_delta_hash: str = ""
+    scope_revision: int = 1
+    authorization_revision: int = 1
     contract_hash: str = ""
 
     def to_dict(self) -> dict[str, Any]:
@@ -126,6 +150,9 @@ def create_task_contract(
     raw_request: str,
     mode: TaskMode,
     route: str,
+    operation_kind: OperationKind = "inspect",
+    effect: EffectContract | None = None,
+    verification: VerificationContract | None = None,
     workspace: WorkspaceContract,
     target: TargetContract | None = None,
     scope: ScopeContract | None = None,
@@ -137,6 +164,12 @@ def create_task_contract(
     stop_conditions: tuple[str, ...] = (),
     corrections: tuple[str, ...] = (),
     task_id: str = "",
+    contract_revision: int = 1,
+    parent_contract_hash: str = "",
+    source_turn_hash: str = "",
+    semantic_delta_hash: str = "",
+    scope_revision: int = 1,
+    authorization_revision: int = 1,
 ) -> TaskContract:
     raw_hash = hashlib.sha256(raw_request.encode("utf-8")).hexdigest()
     resolved_target = target or TargetContract()
@@ -161,6 +194,9 @@ def create_task_contract(
         raw_request_hash=raw_hash,
         mode=mode,
         route=route,
+        operation_kind=operation_kind,
+        effect=effect or EffectContract(),
+        verification=verification or VerificationContract(),
         workspace=workspace,
         target=resolved_target,
         scope=scope or ScopeContract(),
@@ -173,6 +209,12 @@ def create_task_contract(
         stop_conditions=stop_conditions,
         corrections=corrections,
         source_precedence=SOURCE_PRECEDENCE,
+        contract_revision=max(1, int(contract_revision)),
+        parent_contract_hash=str(parent_contract_hash or ""),
+        source_turn_hash=str(source_turn_hash or raw_hash),
+        semantic_delta_hash=str(semantic_delta_hash or raw_hash),
+        scope_revision=max(1, int(scope_revision)),
+        authorization_revision=max(1, int(authorization_revision)),
     )
     return replace(contract, contract_hash=task_contract_hash(contract.to_dict()))
 
@@ -191,8 +233,33 @@ def validate_task_contract(contract: TaskContract | dict[str, Any]) -> tuple[str
         issues.append("schema_id must be datalens_task_contract")
     if payload.get("contract_version") != 2:
         issues.append("contract_version must be 2")
+    if not isinstance(payload.get("contract_revision"), int) or int(payload.get("contract_revision") or 0) < 1:
+        issues.append("contract_revision must be a positive integer")
+    for field_name in ("source_turn_hash", "semantic_delta_hash"):
+        if len(str(payload.get(field_name) or "")) != 64:
+            issues.append(f"{field_name} must be a SHA-256 digest")
+    for field_name in ("scope_revision", "authorization_revision"):
+        if not isinstance(payload.get(field_name), int) or int(payload.get(field_name) or 0) < 1:
+            issues.append(f"{field_name} must be a positive integer")
     if payload.get("mode") not in {"review", "diagnose", "plan", "create", "update", "redesign", "publish_only"}:
         issues.append("mode is unsupported")
+    operation_kind = payload.get("operation_kind", "inspect")
+    if operation_kind not in {"inspect", "mutate", "verify_existing_effect"}:
+        issues.append("operation_kind is unsupported")
+    verification = payload.get("verification") or {}
+    acceptance = payload.get("acceptance") or []
+    delivery = payload.get("delivery") or {}
+    if operation_kind == "verify_existing_effect":
+        required_reads = verification.get("required_live_reads") or []
+        for required in ("current_object", "saved_or_published_revision", "relations"):
+            if required not in required_reads:
+                issues.append(f"verification.required_live_reads must include {required}")
+        if verification.get("acceptance_required") is not True or not acceptance:
+            issues.append("verify_existing_effect requires a non-empty acceptance contract")
+        if any(bool(delivery.get(key)) for key in ("save", "publish", "destructive")):
+            issues.append("verify_existing_effect must have zero delivery side effects")
+        if verification.get("remediation_enabled") is not False:
+            issues.append("verify_existing_effect remediation must be disabled by default")
     if not str(payload.get("route") or "").strip():
         issues.append("route must not be empty")
     digest = str(payload.get("contract_hash") or "")

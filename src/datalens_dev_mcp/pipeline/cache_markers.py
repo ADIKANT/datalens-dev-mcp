@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from datalens_dev_mcp.serialization import stable_sha256
-from datalens_dev_mcp.validators.redaction import sanitize_value
+from copy import deepcopy
 
 
 def build_cache_marker(
@@ -14,15 +14,13 @@ def build_cache_marker(
     freshness: str = "current",
     inputs: Any = None,
 ) -> dict[str, Any]:
-    identity = sanitize_value(
-        {
-            "source": source,
-            "source_revision": version,
-            "content_hash": content_hash,
-            "freshness": freshness,
-            "inputs": inputs,
-        }
-    )
+    identity = deepcopy({
+        "source": source,
+        "source_revision": version,
+        "content_hash": content_hash,
+        "freshness": freshness,
+        "inputs": inputs,
+    })
     return {"schema_id": "datalens_cache_marker", **identity, "marker": stable_sha256(identity)}
 
 

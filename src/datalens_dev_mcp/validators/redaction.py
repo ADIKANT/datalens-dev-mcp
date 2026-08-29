@@ -20,9 +20,24 @@ COMMON_NON_SECRET_VALUES = {
     "yes",
     "no",
 }
+NON_SECRET_KEYS = {
+    # Monotonic public task metadata, never an authorization header or grant.
+    "authorization_revision",
+    # Codex task identifiers are routing identities (and appear in codex://
+    # links and task artifact paths), not authentication sessions. Treating
+    # their values as environment secrets corrupts hash-bound executable
+    # artifact paths when a project root contains the current task id.
+    "codex_session_id",
+    "codex_thread_id",
+}
 
 SENSITIVE_KEY_RE = re.compile(
-    r"(?:^|[_\-.])(?:token|authorization|subjecttoken|password|secret|iam|cookie|session|"
+    r"(?:^|[_\-.])(?:token|authorization|subjecttoken|password|secret|iam|cookie|"
+    r"api[_\-.]?key|apikey|dsn|connection[_\-.]?string)(?:$|[_\-.])",
+    re.IGNORECASE,
+)
+ENV_CREDENTIAL_KEY_RE = re.compile(
+    r"(?:^|[_\-.])(?:token|authorization|subjecttoken|password|secret|iam|cookie|"
     r"api[_\-.]?key|apikey|dsn|connection[_\-.]?string)(?:$|[_\-.])",
     re.IGNORECASE,
 )
@@ -56,7 +71,8 @@ URL_USERINFO_RE = re.compile(r"\b[a-z][a-z0-9+.-]*://[^\s/@:]+:[^\s/@]+@[^\s]+",
 
 
 def is_sensitive_key(key: Any) -> bool:
-    return bool(SENSITIVE_KEY_RE.search(str(key)))
+    text = str(key)
+    return text.lower() not in NON_SECRET_KEYS and bool(SENSITIVE_KEY_RE.search(text))
 
 
 def looks_like_secret_value(value: Any) -> bool:
@@ -81,7 +97,10 @@ def secret_values_from_mapping(values: Mapping[str, Any] | None = None) -> list[
         text = str(value or "")
         if not _redactable_secret_value(text):
             continue
-        if not is_sensitive_key(key) and not looks_like_secret_value(text):
+        # Environment values are classified by their credential source role,
+        # not by a broad routing/session name. A public task or browser
+        # session UUID can legitimately be part of an executable path.
+        if not ENV_CREDENTIAL_KEY_RE.search(str(key)) and not looks_like_secret_value(text):
             continue
         if text not in seen:
             seen.add(text)

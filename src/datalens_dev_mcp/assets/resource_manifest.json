@@ -1,5 +1,5 @@
 {
-  "resource_count": 321,
+  "resource_count": 322,
   "resources": [
     {
       "bytes": 15842,
@@ -279,7 +279,7 @@
     {
       "bytes": 12873,
       "path": "schemas/datalens-knowledge/capability-matrix.json",
-      "sha256": "7e3c630791ce38e32050ff4615749fc1827558f8ce1b5c42c8be6bc659d7e7c5"
+      "sha256": "42d3c6b860860bbbd7a2d97699873888343a6a9c0980a2d6577e9dbd59ddbf06"
     },
     {
       "bytes": 3130533,
@@ -314,7 +314,7 @@
     {
       "bytes": 6830,
       "path": "schemas/datalens-knowledge/route-capability-matrix.json",
-      "sha256": "f4fb503abffabcc866d03908bd0bfb99e4b23a7de1177ca3a05ff8a2262f1d42"
+      "sha256": "68d903a9b39969adc47032e7f4470fc37f61ea6bc89629db9ef66c980329a5d8"
     },
     {
       "bytes": 318084,
@@ -405,6 +405,11 @@
       "bytes": 1125,
       "path": "schemas/execution-authorization.schema.json",
       "sha256": "df11c276e0e8e49580fcdce204e2fbd2088b74035b46404081009df3d7ee12e5"
+    },
+    {
+      "bytes": 3318,
+      "path": "schemas/execution-evidence-model.schema.json",
+      "sha256": "9ba1b51f87c0332ff5840d2d10cc8a1f2094f44d297c54ca89d8fb4778780cfe"
     },
     {
       "bytes": 1088,
@@ -532,14 +537,14 @@
       "sha256": "8415205f39d5aa03b44d3e2e95640716f6c43e433b53e4d7b675a385e5a233c9"
     },
     {
-      "bytes": 2338,
+      "bytes": 3009,
       "path": "schemas/public-task-plan.schema.json",
-      "sha256": "3e3ecb5be86601866928eef578d895a2a25f2d58839bc5dcfd5dd94fcdcb8b1b"
+      "sha256": "854f5f561709d9543b792e63a891baa344c8df1761f47bb70ea6ac5cb1b2092b"
     },
     {
-      "bytes": 1838,
+      "bytes": 3498,
       "path": "schemas/publish-stage-receipt.schema.json",
-      "sha256": "45a78e71c18f6c61d9e719748b58e16ab5fa4385b78156c464a1500a737f728c"
+      "sha256": "862207cd96ad5cdd08bc9ad79aba073565ffe32161d5a2fc31c9977e31c56a64"
     },
     {
       "bytes": 1975,
@@ -592,9 +597,9 @@
       "sha256": "739a45e3b6c2c116421751b5020a96e6d44bb8bb38646cd57a84d99c1b7d6ec7"
     },
     {
-      "bytes": 1703,
+      "bytes": 3281,
       "path": "schemas/save-stage-receipt.schema.json",
-      "sha256": "adf12055e72ec4b7a4d622afb8639f6de08862e325a5fa3880d5890368e9b71f"
+      "sha256": "3813013fc8f3d8cb884ee45afa7d32aba8d7f16742479da60586396c6571edf9"
     },
     {
       "bytes": 2157,
@@ -682,9 +687,9 @@
       "sha256": "8ca65a56e531b0313fa0f4141fcd4ae93b3dc8d6c991b94ae6d224ec4c6318c4"
     },
     {
-      "bytes": 4985,
+      "bytes": 6531,
       "path": "schemas/task-contract.schema.json",
-      "sha256": "922a570fac769551f22c4d71f555e68b6e93c1fa65cca4e3e3e76375b88d9854"
+      "sha256": "9c0ae6134808215fbf4b2df8257bc7c5edfac0ed5d0943b6da90f45cac01ca95"
     },
     {
       "bytes": 2027,

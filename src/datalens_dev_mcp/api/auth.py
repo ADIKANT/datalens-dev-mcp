@@ -34,8 +34,7 @@ def classify_auth_probe_failure(exc: Exception) -> dict[str, str]:
     if is_missing_credentials(exc):
         category = "missing_credentials"
         next_action = (
-            "Configure DATALENS_ORG_ID and an IAM token, or enable yc token refresh, "
-            "then retry dl_auth_probe."
+            "Configure DATALENS_ORG_ID and an IAM token, or enable yc token refresh, then retry dl_auth_probe."
         )
     elif any(
         marker in text
@@ -86,6 +85,66 @@ def classify_auth_probe_failure(exc: Exception) -> dict[str, str]:
     return {"category": category, "next_action": next_action}
 
 
+def credential_recovery_contract(
+    *,
+    category: str = "",
+    canonical_env_configured: bool,
+    refresh_available: bool,
+    healthy: bool = False,
+) -> dict[str, Any]:
+    """Return a secret-free executable recovery contract for the current task."""
+
+    if healthy:
+        state = "healthy"
+        required = False
+        action_kind = "none"
+        command = ""
+        opens_browser = False
+    elif category in {"yc_reauthentication_required", "expired_token"}:
+        state = "interactive_reauthentication_required"
+        required = True
+        action_kind = "run_local_command"
+        command = "scripts/codex_mcp_launch.sh --recover-credentials"
+        opens_browser = True
+    elif category == "missing_credentials":
+        state = "canonical_configuration_required"
+        required = True
+        action_kind = "configure_canonical_env"
+        command = ""
+        opens_browser = False
+    else:
+        state = "not_a_credential_recovery"
+        required = False
+        action_kind = "none"
+        command = ""
+        opens_browser = False
+    return {
+        "schema_id": "datalens_credential_recovery/v1",
+        "state": state,
+        "background_refresh": {
+            "available": bool(refresh_available),
+            "mode": "yc_noninteractive_once",
+        },
+        "canonical_env": {
+            "configured": bool(canonical_env_configured),
+            "credential_values_exposed": False,
+        },
+        "operator_action": {
+            "required": required,
+            "kind": action_kind,
+            "command": command,
+            "opens_browser_when_required": opens_browser,
+        },
+        "canonical_env_reload": {
+            "automatic": True,
+            "restart_required": False,
+        },
+        "verification_probe": "dl_auth_probe",
+        "continuation": "same_task",
+        "old_task_lookup_required": False,
+    }
+
+
 def request_with_auth_refresh(
     operation: Callable[[], Any],
     *,
@@ -95,7 +154,7 @@ def request_with_auth_refresh(
     """Run one operation, refresh once on auth failure, then retry once."""
     try:
         return operation()
-    except Exception as first_exc:  # noqa: BLE001
+    except Exception as first_exc:
         if not is_auth_failure(first_exc):
             raise
         if refresh_token is None:
@@ -105,7 +164,7 @@ def request_with_auth_refresh(
             ) from first_exc
         try:
             refreshed = refresh_token()
-        except Exception as refresh_exc:  # noqa: BLE001
+        except Exception as refresh_exc:
             raise DataLensApiError(
                 f"{operation_label} failed with auth_invalid_or_expired; token_refresh_failed: "
                 f"{_safe_auth_error(refresh_exc)}"
@@ -116,7 +175,7 @@ def request_with_auth_refresh(
             ) from first_exc
         try:
             return operation()
-        except Exception as retry_exc:  # noqa: BLE001
+        except Exception as retry_exc:
             if is_auth_failure(retry_exc):
                 raise DataLensApiError(
                     f"{operation_label} auth_retry_failed_after_refresh: {_safe_auth_error(retry_exc)}"
@@ -130,8 +189,7 @@ def refresh_iam_token_with_yc(*, yc_binary: str = "yc", timeout_sec: float = 15.
             [yc_binary, "iam", "create-token", "--no-browser", "--no-user-output"],
             check=False,
             stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             timeout=timeout_sec,
         )

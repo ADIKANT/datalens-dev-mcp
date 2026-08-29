@@ -10,7 +10,7 @@ import tempfile
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, replace
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from http.client import RemoteDisconnected
 from pathlib import Path
@@ -33,9 +33,10 @@ COMPACT_READ_FALSE_KEYS = {
     "includePermissionsInfo",
 }
 PROTECTED_PAYLOAD_KEYS = {"entry", "data"}
+
+
 class Transport(Protocol):
-    def post_json(self, url: str, body: bytes, headers: dict[str, str]) -> bytes:
-        ...
+    def post_json(self, url: str, body: bytes, headers: dict[str, str]) -> bytes: ...
 
 
 class UrlLibTransport:
@@ -198,9 +199,9 @@ class DataLensApiClient:
                 compacted_payload,
                 exclusive=exclusive,
             )
-        except Exception as first_exc:  # noqa: BLE001
+        except Exception as first_exc:
             if is_missing_credentials(first_exc):
-                raise first_exc
+                raise
             if not is_auth_failure(first_exc):
                 raise
             classified = classify_failure(first_exc, operation=method, readonly=readonly)
@@ -214,7 +215,7 @@ class DataLensApiClient:
                 try:
                     refreshed = self._refresh_token_once()
                     if refreshed:
-                        self._persist_refreshed_token(refreshed)
+                        self.persist_refreshed_token(refreshed)
                         self._reload_canonical_env_file("reloaded_after_refresh")
                         if decision.retry:
                             try:
@@ -223,7 +224,7 @@ class DataLensApiClient:
                                     compacted_payload,
                                     exclusive=exclusive,
                                 )
-                            except Exception as retry_exc:  # noqa: BLE001
+                            except Exception as retry_exc:
                                 if is_auth_failure(retry_exc):
                                     raise DataLensApiError(
                                         f"{method} auth_retry_failed_after_refresh",
@@ -234,7 +235,7 @@ class DataLensApiClient:
                             f"{method} was not replayed after token refresh because it is not a safe read",
                             failure_family="AUTH_401_TOKEN_INVALID_OR_EXPIRED",
                         ) from first_exc
-                except Exception as refresh_exc:  # noqa: BLE001
+                except Exception as refresh_exc:
                     if isinstance(refresh_exc, DataLensApiError) and (
                         "auth_retry_failed_after_refresh" in str(refresh_exc)
                         or "was not replayed after token refresh" in str(refresh_exc)
@@ -362,7 +363,9 @@ class DataLensApiClient:
                         transport_category=transport_category,
                         retry_attempts=transient_attempts,
                         retry_exhausted=retry_exhausted,
-                        failure_family="NETWORK_TIMEOUT" if _is_transient_transport_category(transport_category) else "",
+                        failure_family="NETWORK_TIMEOUT"
+                        if _is_transient_transport_category(transport_category)
+                        else "",
                     ) from exc
                 raise
 
@@ -389,11 +392,11 @@ class DataLensApiClient:
             refreshed = self._refresh_token_once()
             if not refreshed:
                 raise DataLensApiError("yc iam create-token returned an empty token")
-            self._persist_refreshed_token(refreshed)
+            self.persist_refreshed_token(refreshed)
             if self.config.env_file_path:
                 self._reload_canonical_env_file("bootstrapped_with_yc", require_token=True)
             return True
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise DataLensApiError(f"initial_token_bootstrap_failed: {_safe_auth_error(exc)}") from exc
 
     def _refresh_token_once(self) -> str:
@@ -438,7 +441,9 @@ class DataLensApiClient:
             self.config = reloaded
             return reloaded.env_file_loaded
 
-    def _persist_refreshed_token(self, token: str) -> None:
+    def persist_refreshed_token(self, token: str) -> None:
+        """Atomically persist a refreshed token to the configured canonical env file."""
+
         with self._state_lock:
             config = self.config
         if not token or not config.env_file_path:
@@ -580,8 +585,8 @@ def _retry_after_seconds(value: str | None, *, fallback: float, wall_time: float
     try:
         parsed = parsedate_to_datetime(raw)
         if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=timezone.utc)
-        now = datetime.fromtimestamp(time.time() if wall_time is None else wall_time, tz=timezone.utc)
+            parsed = parsed.replace(tzinfo=UTC)
+        now = datetime.fromtimestamp(time.time() if wall_time is None else wall_time, tz=UTC)
         return max(0.0, (parsed - now).total_seconds())
     except (TypeError, ValueError, OverflowError):
         return max(0.0, float(fallback))
@@ -630,9 +635,7 @@ def _transport_error_category(exc: BaseException) -> str:
         )
     ):
         return "tls_unexpected_eof"
-    if "handshake" in text and any(
-        marker in text for marker in ("timed out", "timeout", "ssl connection timeout")
-    ):
+    if "handshake" in text and any(marker in text for marker in ("timed out", "timeout", "ssl connection timeout")):
         return "tls_handshake_timeout"
     if any(isinstance(item, ssl.SSLZeroReturnError) for item in chain):
         return "tls_connection_closed"

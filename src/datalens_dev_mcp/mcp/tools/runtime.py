@@ -5,21 +5,23 @@ import json
 import os
 import re
 import shutil
+import sys
 from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from datalens_dev_mcp.api.auth import classify_auth_probe_failure
+from datalens_dev_mcp.api.auth import classify_auth_probe_failure, credential_recovery_contract
 from datalens_dev_mcp.api.client import DataLensApiClient
 from datalens_dev_mcp.api.methods import compiled_api_version, openapi_lock_summary
 from datalens_dev_mcp.api.scheduler import record_cache_hit, scheduler_status
 from datalens_dev_mcp.config import DataLensConfig, use_api_defaults
 from datalens_dev_mcp.html_pages import HTML_PAGE_HARD_MAX_BYTES, validate_standalone_html_page
-from datalens_dev_mcp.local_config import load_local_config
 from datalens_dev_mcp.knowledge.reference import build_reference_response
+from datalens_dev_mcp.local_config import load_local_config
 from datalens_dev_mcp.mcp.response_projection import serialized_metadata, stable_json_text
 from datalens_dev_mcp.pipeline.artifacts import ensure_project_dirs, write_json
+from datalens_dev_mcp.pipeline.build_identity import BuildIdentityResolver
 from datalens_dev_mcp.runtime_resources import (
     RESOURCE_OVERRIDE_ENV,
     declared_resource_manifest,
@@ -30,7 +32,6 @@ from datalens_dev_mcp.validators.advanced_editor_validator import (
     validate_editor_runtime_contract,
 )
 from datalens_dev_mcp.validators.source_diagnostics import classify_datalens_source_error
-
 
 EDITOR_ARTIFACT_MAX_COUNT = 100
 EDITOR_ARTIFACT_MAX_BYTES = 2 * 1024 * 1024
@@ -65,6 +66,7 @@ def dl_runtime_status(project_root: str = ".", local_config_path: str = "") -> d
         config_defaults=config_defaults,
         refresh_available=refresh_available,
     )
+    launcher_parity = _launcher_parity(project_root=project_root)
     return {
         "ok": True,
         "allow_writes": cfg.write_enabled,
@@ -135,6 +137,7 @@ def dl_runtime_status(project_root: str = ".", local_config_path: str = "") -> d
         },
         "config_defaults": config_defaults,
         "diagnostics": diagnostics,
+        "launcher_parity": launcher_parity,
         "route_policy": {
             "supported": [
                 "wizard_native",
@@ -163,7 +166,7 @@ def dl_runtime_status(project_root: str = ".", local_config_path: str = "") -> d
             ],
             "whole_object_delete_confirmation": "confirm_delete",
         },
-}
+    }
 
 
 def _resource_status() -> dict[str, Any]:
@@ -184,31 +187,43 @@ def dl_auth_probe(client: Any | None = None) -> dict[str, Any]:
     try:
         response = active_client.rpc("getWorkbooksList", {"page": 1, "pageSize": 1})
         effective_cfg = getattr(active_client, "config", cfg)
+        refresh_available = _token_refresh_available(effective_cfg, active_client)
         return {
             "ok": True,
             "method": "getWorkbooksList",
             "auth_mode": effective_cfg.credential_source,
             "refresh_on_401": effective_cfg.token_refresh_enabled,
-            "token_refresh_available": _token_refresh_available(effective_cfg, active_client),
+            "token_refresh_available": refresh_available,
             "initial_token_bootstrapped": bool(not cfg.iam_token and effective_cfg.iam_token),
             "api_version": compiled_api_version(),
             "openapi_lock": openapi_lock_summary(),
             "credential": effective_cfg.credential_report(),
+            "credential_recovery": credential_recovery_contract(
+                canonical_env_configured=bool(effective_cfg.env_file_path),
+                refresh_available=refresh_available,
+                healthy=True,
+            ),
             "response_keys": sorted(response) if isinstance(response, dict) else [],
         }
     except Exception as exc:  # noqa: BLE001
-        effective_cfg = getattr(active_client, "config", cfg)
+        effective_cfg = getattr(active_client, "config", None) or cfg
         classified = classify_auth_probe_failure(exc)
+        refresh_available = _token_refresh_available(effective_cfg, active_client)
         return {
             "ok": False,
             "method": "getWorkbooksList",
             "auth_mode": effective_cfg.credential_source,
             "refresh_on_401": effective_cfg.token_refresh_enabled,
-            "token_refresh_available": _token_refresh_available(effective_cfg, active_client),
+            "token_refresh_available": refresh_available,
             "initial_token_bootstrapped": False,
             "api_version": compiled_api_version(),
             "openapi_lock": openapi_lock_summary(),
             "credential": effective_cfg.credential_report(),
+            "credential_recovery": credential_recovery_contract(
+                category=classified["category"],
+                canonical_env_configured=bool(effective_cfg.env_file_path),
+                refresh_available=refresh_available,
+            ),
             "error": {
                 **classified,
                 "message": _sanitize_runtime_error(str(exc) or exc.__class__.__name__),
@@ -406,7 +421,7 @@ def _load_editor_artifact_payload(*, path: Path, relative: str, kind: str) -> di
         label = "UTF-8 JSON" if kind == "json" else "UTF-8 Editor tabs"
         raise ValueError(f"Editor artifact is not valid {label}: {relative}") from exc
     if not isinstance(payload, dict):
-        raise ValueError(f"Editor artifact root must be a JSON object: {relative}")
+        raise TypeError(f"Editor artifact root must be a JSON object: {relative}")
     return payload
 
 
@@ -469,6 +484,85 @@ def _token_refresh_available(cfg: DataLensConfig, client: Any) -> bool:
     if getattr(client, "token_refresher", None) is not None:
         return True
     return bool(cfg.token_refresh_enabled and _yc_binary_path(cfg.yc_binary))
+
+
+def _launcher_parity(*, project_root: str) -> dict[str, Any]:
+    root = Path(project_root).resolve()
+    source_root = Path(__file__).resolve().parents[4]
+    expected_interpreter = str(os.getenv("DATALENS_MCP_LAUNCHER_PYTHON") or "").strip()
+    expected_project_root = str(os.getenv("DATALENS_MCP_LAUNCHER_PROJECT_ROOT") or "").strip()
+    expected_package_root = str(
+        os.getenv("DATALENS_MCP_LAUNCHER_PACKAGE_ROOT") or expected_project_root
+    ).strip()
+    expected_cwd = str(os.getenv("DATALENS_MCP_LAUNCHER_CWD") or "").strip()
+    expected_state = str(os.getenv("DATALENS_MCP_LAUNCHER_STATE_ROOT") or "").strip()
+    expected_surface = str(os.getenv("DATALENS_MCP_LAUNCHER_TOOL_SURFACE") or "").strip()
+    actual_state = Path(os.getenv("DATALENS_MCP_TASKS_DIR") or root / ".datalens-mcp" / "tasks").resolve()
+
+    build_identity = BuildIdentityResolver(source_root=source_root).resolve()
+    from datalens_dev_mcp.mcp.tool_registry_policy import resolve_tool_surface
+    from datalens_dev_mcp.server import list_tools
+
+    actual_surface = resolve_tool_surface()
+    tools = list_tools(actual_surface)
+    tool_surface_hash = hashlib.sha256(
+        json.dumps(tools, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+    def same_path(expected: str, actual: Path) -> bool:
+        return bool(expected and Path(expected).expanduser().resolve() == actual.resolve())
+
+    dimensions: dict[str, dict[str, Any]] = {
+        "interpreter": {
+            "matches": same_path(expected_interpreter, Path(sys.executable)),
+            "actual": str(Path(sys.executable).resolve()),
+            "declared": bool(expected_interpreter),
+        },
+        "package": {
+            "matches": same_path(expected_package_root, source_root)
+            and same_path(expected_project_root, root),
+            "source_root": str(source_root),
+            "project_root": str(root),
+            "package_root_declared": bool(expected_package_root),
+            "project_root_declared": bool(expected_project_root),
+            "build_identity_hash": str(build_identity.get("identity_hash") or ""),
+            "package_content_hash": str(build_identity.get("package_content_hash") or ""),
+            "declared": bool(expected_package_root and expected_project_root),
+        },
+        "cwd": {
+            "matches": same_path(expected_cwd, Path.cwd()),
+            "actual": str(Path.cwd().resolve()),
+            "declared": bool(expected_cwd),
+        },
+        "state": {
+            "matches": same_path(expected_state, actual_state),
+            "actual": str(actual_state),
+            "declared": bool(expected_state),
+        },
+        "public_surface": {
+            "matches": bool(expected_surface and expected_surface == actual_surface),
+            "name": actual_surface,
+            "tool_count": len(tools),
+            "tool_surface_hash": tool_surface_hash,
+            "declared": bool(expected_surface),
+        },
+    }
+    managed = all(
+        (
+            expected_interpreter,
+            expected_project_root,
+            expected_package_root,
+            expected_cwd,
+            expected_state,
+            expected_surface,
+        )
+    )
+    return {
+        "schema_id": "datalens_launcher_parity/v1",
+        "managed": managed,
+        "all_match": bool(managed and all(item["matches"] for item in dimensions.values())),
+        "dimensions": dimensions,
+    }
 
 
 def _auth_mode() -> str:

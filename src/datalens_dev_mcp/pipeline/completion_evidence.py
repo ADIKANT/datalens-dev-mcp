@@ -24,7 +24,13 @@ class CompletionEvidenceService:
         state, _ = self.journal.replay()
         delivery = self.contract.get("delivery") or {}
         browser = self.contract.get("browser_policy") or {}
-        required = ["public_plan", "target_binding", "fresh_data_proof", "qa_receipt", "typed_stage_receipts"]
+        verification = self.contract.get("verification") or {}
+        verify_existing = self.contract.get("operation_kind") == "verify_existing_effect"
+        required = ["public_plan", "target_binding", "qa_receipt", "typed_stage_receipts"]
+        if not verify_existing or "data_assertions" in (verification.get("required_live_reads") or []):
+            required.append("fresh_data_proof")
+        if verify_existing:
+            required.append("existing_effect_verification")
         if delivery.get("save"):
             required.extend(["save_receipt", "saved_readback_receipt"])
         if delivery.get("publish"):
@@ -97,6 +103,9 @@ class CompletionEvidenceService:
         target = read_json(self.journal.target_binding_path, {}) or {}
         data = read_json(self.journal.root / "evidence" / "data-proof-receipt.json", {}) or {}
         qa = read_json(self.journal.root / "evidence" / "qa-receipt.json", {}) or {}
+        existing_effect = read_json(
+            self.journal.root / "evidence" / "existing-effect-verification.json", {}
+        ) or {}
         save = read_json(self.journal.save_stage_receipt_path, {}) or {}
         saved = read_json(self.journal.saved_readback_receipt_path, {}) or {}
         publish = read_json(self.journal.publish_stage_receipt_path, {}) or {}
@@ -119,6 +128,15 @@ class CompletionEvidenceService:
                 "ok": bool(data.get("fresh") and data.get("status") == "passed" and data.get("live_data_verified")),
             },
             "qa_receipt": {**qa, "ok": qa.get("status") == "passed"},
+            "existing_effect_verification": {
+                **existing_effect,
+                "ok": bool(
+                    existing_effect.get("status") == "passed"
+                    and existing_effect.get("outcome") == "verified"
+                    and int(existing_effect.get("write_executed") or 0) == 0
+                ),
+                "proof_level": "live_read_only_api",
+            },
             "typed_stage_receipts": {
                 "ok": bool(state.receipt_uris),
                 "proof_level": "source_static",

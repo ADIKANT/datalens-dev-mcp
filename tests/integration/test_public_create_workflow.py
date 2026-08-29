@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
-from pathlib import Path
 import tempfile
+from pathlib import Path
 from unittest.mock import patch
 
 from datalens_dev_mcp.mcp.tools import tasks
@@ -11,6 +12,7 @@ from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.pipeline.delivery_transaction_service import DeliveryTransactionService
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
 from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService
+from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
 
 
 class _InventoryClient:
@@ -139,7 +141,9 @@ def test_workbook_scoped_create_reaches_immutable_plan_without_dashboard_selecti
                 {
                     "schema_id": "datalens_public_create_manifest",
                     "manifest_version": 1,
+                    "run_id": "controlled_run_1",
                     "workbook_id": "workbook_1",
+                    "workbook_lifecycle": "disposable_sibling",
                     "objects": [
                         {
                             "key": "dataset_main",
@@ -148,6 +152,8 @@ def test_workbook_scoped_create_reaches_immutable_plan_without_dashboard_selecti
                             "name": "Synthetic dataset",
                             "payload_path": "payloads/dataset.json",
                             "dependencies": [],
+                            "lifecycle": "temporary",
+                            "cleanup_route": "whole_disposable_workbook_delete",
                         }
                     ],
                 }
@@ -179,6 +185,107 @@ def test_workbook_scoped_create_reaches_immutable_plan_without_dashboard_selecti
         assert client.calls == [("getWorkbookEntries", {"workbookId": "workbook_1"})]
 
 
+def test_public_create_plan_binds_project_profile_exemplar_and_corrections() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "payloads").mkdir()
+        (root / "payloads" / "dataset.json").write_text(
+            json.dumps(
+                {
+                    "workbookId": "workbook_1",
+                    "dataset": {"sources": []},
+                    "name": "Synthetic dataset",
+                }
+            ),
+            encoding="utf-8",
+        )
+        profile = {
+            "accepted_layout": ["comparison, source, methodology"],
+            "selector_semantics": "empty arrays mean all values",
+            "title_hint_policy": "one visible title owner",
+            "superseded_decisions": ["duplicated embedded title"],
+        }
+        exemplar = {
+            "exemplar_id": "SYNTHETIC-ALPHA-COMPARISON",
+            "object_id": "dataset_main",
+            "visual_family": "comparison_matrix",
+            "accepted_revision": "revision_alpha_1",
+            "adaptation_rule": "replace every source-specific field",
+        }
+        descriptor = {
+            "schema_id": "datalens_project_decision_context",
+            "context_version": 1,
+            "project_id": "synthetic_alpha",
+            "match": {"workbook_ids": ["workbook_1"]},
+            "profile": profile,
+            "accepted_exemplars": [exemplar],
+            "corrections": [
+                {
+                    "decision_id": "CORRECTION-ONE-TITLE",
+                    "status": "active",
+                    "statement": "remove the duplicated embedded title",
+                    "source_sha256": "a" * 64,
+                }
+            ],
+            "source_hashes": ["b" * 64],
+        }
+        descriptor_path = root / "decision-context.json"
+        descriptor_path.write_text(json.dumps(descriptor), encoding="utf-8")
+        (root / ".datalens-mcp.json").write_text(
+            json.dumps(
+                {
+                    "project_name": "Synthetic Alpha",
+                    "workbook_id": "workbook_1",
+                    "decision_context": {
+                        "descriptor_path": "decision-context.json",
+                        "sha256": hashlib.sha256(descriptor_path.read_bytes()).hexdigest(),
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        (root / "create-manifest.json").write_text(
+            json.dumps(
+                {
+                    "schema_id": "datalens_public_create_manifest",
+                    "manifest_version": 1,
+                    "workbook_id": "workbook_1",
+                    "objects": [
+                        {
+                            "key": "dataset_main",
+                            "object_type": "dataset",
+                            "route": "dataset",
+                            "name": "Synthetic dataset",
+                            "payload_path": "payloads/dataset.json",
+                            "dependencies": [],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        client = _InventoryClient()
+        with patch.object(tasks, "TargetDiscoveryService", return_value=TargetDiscoveryService(client)):
+            started = tasks.dl_task_start(
+                "Create the declared workbook objects and save them without browser",
+                project_root=str(root),
+                context={"workbook_id": "workbook_1", "create_manifest": "create-manifest.json"},
+                run_until="plan_ready",
+            )
+
+        task_root = root / ".datalens-mcp" / "tasks" / started["task_id"]
+        plan = json.loads((task_root / "plans" / "plan.json").read_text(encoding="utf-8"))
+        binding = json.loads((task_root / "plans" / "plan-binding.json").read_text(encoding="utf-8"))
+        style = json.loads((task_root / "style-binding.json").read_text(encoding="utf-8"))
+        assert plan["project_profile_hash"] == canonical_hash(profile)
+        assert plan["accepted_exemplar_hash"] == canonical_hash(exemplar)
+        assert plan["decision_context_hash"] == style["decision_context_hash"]
+        assert binding["decision_context_hash"] == style["decision_context_hash"]
+        assert plan["bounded_project_decisions"]["active_corrections"] == [
+            "remove the duplicated embedded title"
+        ]
+
+
 def test_public_create_executes_once_and_persists_resolved_identity() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -199,7 +306,9 @@ def test_public_create_executes_once_and_persists_resolved_identity() -> None:
                 {
                     "schema_id": "datalens_public_create_manifest",
                     "manifest_version": 1,
+                    "run_id": "controlled_run_1",
                     "workbook_id": "workbook_1",
+                    "workbook_lifecycle": "disposable_sibling",
                     "objects": [
                         {
                             "key": "dataset_main",
@@ -208,6 +317,8 @@ def test_public_create_executes_once_and_persists_resolved_identity() -> None:
                             "name": "Synthetic dataset",
                             "payload_path": "payloads/dataset.json",
                             "dependencies": [],
+                            "lifecycle": "temporary",
+                            "cleanup_route": "whole_disposable_workbook_delete",
                         }
                     ],
                 }
@@ -252,8 +363,29 @@ def test_public_create_executes_once_and_persists_resolved_identity() -> None:
         resolved = json.loads(
             (task_root / "plans" / "resolved-create-safe-apply-plan.json").read_text(encoding="utf-8")
         )
+        ownership = json.loads(
+            (task_root / "delivery" / "created-object-ownership.json").read_text(encoding="utf-8")
+        )
         assert progress["identities"] == {"dataset_main": "dataset_created_1"}
         assert resolved["actions"][0]["object_id"] == "dataset_created_1"
+        assert ownership["objects"] == [
+            {
+                "run_id": "controlled_run_1",
+                "created_by_task_id": started["task_id"],
+                "creation_receipt": save_receipt["receipt_hash"],
+                "parent_workbook": "workbook_1",
+                "cleanup_route": "whole_disposable_workbook_delete",
+                "inverse_or_recreate_plan": {
+                    "strategy": "delete_workbook_and_verify_absent",
+                    "workbook_id": "workbook_1",
+                },
+                "object_id": "dataset_created_1",
+                "object_type": "dataset",
+                "workbook_id": "workbook_1",
+                "canonical_direct_url": "https://datalens.ru/datasets/dataset_created_1",
+                "url_source": "route_builder",
+            }
+        ]
 
 
 def test_public_create_resume_reconciles_attempt_without_duplicate_write() -> None:

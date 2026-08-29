@@ -2,19 +2,20 @@
 from __future__ import annotations
 
 import argparse
+import json
 from dataclasses import replace
 from datetime import UTC, datetime
-import json
 from pathlib import Path
 from typing import Any
 
 from datalens_dev_mcp.api.client import DataLensApiClient
 from datalens_dev_mcp.config import DataLensConfig, read_env_file
+from datalens_dev_mcp.pipeline.data_assertions import evaluate_data_assertions
 from datalens_dev_mcp.pipeline.dataset_context_profile import build_dataset_context_profile
-from datalens_dev_mcp.pipeline.dataset_data_normalizer import normalize_dataset_data_response
 from datalens_dev_mcp.pipeline.dataset_data_failures import dataset_failure_receipt
-from datalens_dev_mcp.pipeline.dataset_probe_planner import DatasetProbePlanner
+from datalens_dev_mcp.pipeline.dataset_data_normalizer import normalize_dataset_data_response
 from datalens_dev_mcp.pipeline.dataset_parameters import extract_dashboard_parameter_defaults
+from datalens_dev_mcp.pipeline.dataset_probe_planner import DatasetProbePlanner
 from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService, parse_target_url
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
 
@@ -27,6 +28,11 @@ def main() -> int:
     parser.add_argument("--org-env-file", type=Path)
     parser.add_argument("--limit", type=int, default=100)
     parser.add_argument("--max-objects", type=int, default=50)
+    parser.add_argument(
+        "--mode",
+        choices=("context_probe", "assertion_probe", "diagnostic_probe"),
+        default="context_probe",
+    )
     args = parser.parse_args()
 
     config = DataLensConfig.from_env(args.env_file)
@@ -74,9 +80,7 @@ def main() -> int:
         graph = dict(discovery["target_graph"])
         parameter_defaults = extract_dashboard_parameter_defaults(discovery.get("baselines") or {})
         datasets = [
-            item
-            for item in graph.get("nodes") or []
-            if isinstance(item, dict) and item.get("object_type") == "dataset"
+            item for item in graph.get("nodes") or [] if isinstance(item, dict) and item.get("object_type") == "dataset"
         ]
         dataset_receipts = []
         for dataset in datasets:
@@ -93,9 +97,9 @@ def main() -> int:
             planned = DatasetProbePlanner().plan(
                 scoped_contract,
                 graph,
-                mode="context_probe",
+                mode=args.mode,
                 limit=max(1, min(200, int(args.limit))),
-                parameter_defaults=parameter_defaults,
+                parameter_defaults={} if args.mode == "diagnostic_probe" else parameter_defaults,
             )
             if not planned.get("ok"):
                 dataset_receipts.append(
@@ -152,37 +156,60 @@ def main() -> int:
                     if isinstance(value, dict):
                         status = str(value.get("parse_status") or "unknown")
                         parse_statuses[status] = parse_statuses.get(status, 0) + 1
-            dataset_receipts.append(
-                {
-                    "dataset_id_hash": canonical_hash(dataset_id),
-                    "dataset_revision_hash": canonical_hash(str(plan.get("dataset_revision") or "")),
-                    "status": "success",
-                    "query_hash": query.get("query_hash"),
-                    "query_set_hash": plan.get("query_set_hash"),
-                    "schema_hash": normalized.get("schema_hash"),
-                    "profile_hash": profile.get("profile_hash"),
-                    "requested_column_count": len(payload.get("columns") or []),
-                    "requested_parameter_count": len(payload.get("params") or []),
-                    "response_schema_count": len(normalized.get("schema") or []),
-                    "row_count": normalized.get("row_count"),
-                    "parse_statuses": dict(sorted(parse_statuses.items())),
-                    "field_type_counts": _counts(item.get("type") for item in profile.get("fields") or []),
-                    "role_counts": _counts(
-                        role
-                        for item in profile.get("fields") or []
-                        for role in item.get("role_candidates") or []
-                    ),
-                    "selector_candidate_count": len(profile.get("selector_candidates") or []),
-                    "quality_finding_counts": _counts(
-                        item.get("kind") for item in profile.get("quality_findings") or []
-                    ),
-                    "sample_scope": profile.get("sample_scope"),
-                    "admissible_claims": profile.get("admissible_claims"),
-                    "forbidden_claims": profile.get("forbidden_claims"),
-                    "dataset_data_semantics": profile.get("dataset_data_semantics"),
-                    "raw_rows_inline": profile.get("raw_rows_inline"),
+            receipt = {
+                "dataset_id_hash": canonical_hash(dataset_id),
+                "dataset_revision_hash": canonical_hash(str(plan.get("dataset_revision") or "")),
+                "status": "success",
+                "query_hash": query.get("query_hash"),
+                "query_set_hash": plan.get("query_set_hash"),
+                "schema_hash": normalized.get("schema_hash"),
+                "profile_hash": profile.get("profile_hash"),
+                "requested_column_count": len(payload.get("columns") or []),
+                "requested_parameter_count": len(payload.get("params") or []),
+                "response_schema_count": len(normalized.get("schema") or []),
+                "row_count": normalized.get("row_count"),
+                "parse_statuses": dict(sorted(parse_statuses.items())),
+                "field_type_counts": _counts(item.get("type") for item in profile.get("fields") or []),
+                "role_counts": _counts(
+                    role for item in profile.get("fields") or [] for role in item.get("role_candidates") or []
+                ),
+                "selector_candidate_count": len(profile.get("selector_candidates") or []),
+                "quality_finding_counts": _counts(item.get("kind") for item in profile.get("quality_findings") or []),
+                "sample_scope": profile.get("sample_scope"),
+                "admissible_claims": profile.get("admissible_claims"),
+                "forbidden_claims": profile.get("forbidden_claims"),
+                "dataset_data_semantics": profile.get("dataset_data_semantics"),
+                "raw_rows_inline": profile.get("raw_rows_inline"),
+                "probe_mode": args.mode,
+            }
+            if args.mode == "assertion_probe":
+                assertion = evaluate_data_assertions(
+                    assertions=[{"kind": "not_empty", "scope": "sample"}],
+                    schema=list(normalized.get("schema") or []),
+                    rows=rows,
+                    paging={
+                        "complete": len(rows) < int(payload.get("limit") or args.limit),
+                        "pages_read": 1,
+                        "bounded_sample": True,
+                    },
+                )
+                receipt["assertion"] = {
+                    "kind": "not_empty",
+                    "status": assertion["status"],
+                    "passed": assertion["passed"],
+                    "failed": assertion["failed"],
+                    "raw_rows_inline": False,
                 }
-            )
+                if not assertion["ok"]:
+                    receipt["status"] = "assertion_failed"
+            elif args.mode == "diagnostic_probe":
+                receipt["diagnostic"] = {
+                    "status": "data_visible" if rows else "still_empty",
+                    "dashboard_parameters_removed": True,
+                    "requested_parameter_count": len(payload.get("params") or []),
+                    "raw_rows_inline": False,
+                }
+            dataset_receipts.append(receipt)
         receipts.append(
             {
                 "dashboard_id_hash": canonical_hash(dashboard_id),
@@ -196,6 +223,7 @@ def main() -> int:
         "schema_id": "datalens_dataset_data_context_canary",
         "observed_at": _utc_now(),
         "read_only": True,
+        "probe_mode": args.mode,
         "dashboard_count": len(args.dashboard),
         "successful_dataset_probe_count": sum(
             item.get("status") == "success"
@@ -203,7 +231,9 @@ def main() -> int:
             for item in dashboard.get("dataset_receipts") or []
         ),
         "provider_method_counts": _counts(provider_methods),
-        "write_method_count": sum(method.lower().startswith(("create", "update", "delete", "publish")) for method in provider_methods),
+        "write_method_count": sum(
+            method.lower().startswith(("create", "update", "delete", "publish")) for method in provider_methods
+        ),
         "dashboards": receipts,
     }
     result["receipt_hash"] = canonical_hash(result)

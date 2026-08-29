@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
 
@@ -17,8 +18,10 @@ from datalens_dev_mcp.pipeline.semantic_change_planner import SemanticChangePlan
 from datalens_dev_mcp.pipeline.task_contract import (
     AcceptanceCriterion,
     DeliveryContract,
+    EffectContract,
     ScopeContract,
     TargetContract,
+    VerificationContract,
     WorkspaceContract,
     create_task_contract,
 )
@@ -139,6 +142,40 @@ def test_public_plan_materializes_nonempty_hash_bound_artifact_set() -> None:
     assert all(not item["artifact_uri"].startswith("/") for item in plan["artifacts"])
 
 
+def test_codex_task_id_in_project_root_is_not_redacted_from_executable_plan() -> None:
+    session_id = "01a04d9d-ac5b-7102-b36b-d35e6ff58862"
+    with tempfile.TemporaryDirectory() as tmp:
+        project_root = Path(tmp) / session_id / "owned-canary-write-state" / "project"
+        project_root.mkdir(parents=True)
+        with patch.dict(
+            "os.environ",
+            {"CODEX_SESSION_ID": session_id, "CODEX_THREAD_ID": session_id},
+            clear=False,
+        ):
+            journal, _, _ = build_public_plan_fixture(project_root)
+        safe_apply = read_json(journal.root / "plans" / "safe-apply-plan.json", {})
+
+    assert safe_apply["project_root"] == str(journal.project_root)
+    assert "<redacted>" not in safe_apply["project_root"]
+
+
+def test_public_routing_session_id_in_project_root_is_not_redacted_from_executable_plan() -> None:
+    session_id = "01b04d9d-ac5b-7102-b36b-d35e6ff58863"
+    with tempfile.TemporaryDirectory() as tmp:
+        project_root = Path(tmp) / session_id / "owned-canary-write-state" / "project"
+        project_root.mkdir(parents=True)
+        with patch.dict(
+            "os.environ",
+            {"WORKFLOW_SESSION_ID": session_id},
+            clear=False,
+        ):
+            journal, _, _ = build_public_plan_fixture(project_root)
+        safe_apply = read_json(journal.root / "plans" / "safe-apply-plan.json", {})
+
+    assert safe_apply["project_root"] == str(journal.project_root)
+    assert "<redacted>" not in safe_apply["project_root"]
+
+
 def test_modified_plan_artifact_is_rejected_before_execute() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         journal, contract, _ = build_public_plan_fixture(Path(tmp))
@@ -184,3 +221,55 @@ def test_stale_dataset_context_profile_is_rejected() -> None:
         write_json(path, modified)
         issues = PublicPlanBuilder(journal, contract).validate_current()
     assert "dataset context binding is stale" in issues
+
+
+def test_verify_existing_effect_plan_is_nonempty_hash_bound_and_zero_mutation() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        contract = create_task_contract(
+            raw_request="I already published dashboard:dash_verify; verify it",
+            mode="review",
+            route="read_only",
+            operation_kind="verify_existing_effect",
+            effect=EffectContract(kind="published", expected_state="published_revision_matches_saved"),
+            verification=VerificationContract(
+                required_live_reads=("current_object", "saved_or_published_revision", "relations"),
+                acceptance_required=True,
+                remediation_enabled=False,
+                remediation_requires_new_user_scope=True,
+            ),
+            workspace=WorkspaceContract(project_root=str(root)),
+            target=TargetContract(
+                workbook_id="book_verify",
+                dashboard_id="dash_verify",
+                object_ids=("dash_verify",),
+                object_types=("dashboard",),
+            ),
+            delivery=DeliveryContract(),
+            acceptance=(
+                AcceptanceCriterion(kind="existing_effect", statement='{"effect_kind":"published"}'),
+            ),
+        ).to_dict()
+        journal = ProjectJournal(root, contract["task_id"])
+        journal.initialize(contract)
+        write_json(journal.execution_authorization_path, resolve_execution_authorization(contract))
+        write_json(journal.reference_binding_path, {"binding_hash": "c" * 64})
+        write_json(journal.style_binding_path, {"binding_hash": "d" * 64, "technology": "dashboard"})
+        write_json(
+            journal.target_binding_path,
+            {"binding_hash": "e" * 64, "source": "live_discovery", "technology": "dashboard"},
+        )
+        write_json(
+            journal.target_graph_path,
+            {"graph_hash": "f" * 64, "nodes": [{"object_id": "dash_verify"}], "edges": []},
+        )
+
+        plan = PublicPlanBuilder(journal, contract).build_verification()
+        issues = PublicPlanBuilder(journal, contract).validate_current()
+
+    assert not issues
+    assert plan["plan_kind"] == "verify_existing_effect"
+    assert plan["safe_apply_action_count"] == 0
+    assert plan["acceptance"]
+    assert plan["delivery"] == {"save": False, "publish": False, "destructive": False}
+    assert all(not item["artifact_uri"].startswith("/") for item in plan["artifacts"])

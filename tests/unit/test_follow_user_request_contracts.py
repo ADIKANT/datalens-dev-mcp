@@ -67,12 +67,26 @@ class FollowUserRequestContractTests(unittest.TestCase):
         from datalens_dev_mcp.pipeline.user_request import normalize_user_request
 
         partial = normalize_user_request("Remove the legend from chart:chart_12345")
+        header = normalize_user_request("Remove the header only from chart:chart_12345")
         whole = normalize_user_request("Remove chart:chart_12345")
 
         self.assertEqual(partial.task_intent, "update")
         self.assertEqual(partial.destructive_actions, [])
         self.assertEqual(partial.target_chart_id, "chart_12345")
+        self.assertEqual(header.task_intent, "update")
+        self.assertEqual(header.destructive_actions, [])
         self.assertIn("delete", whole.destructive_actions)
+
+    def test_permission_terms_require_an_actual_permission_mutation(self):
+        from datalens_dev_mcp.pipeline.user_request import normalize_user_request
+
+        layout = normalize_user_request("Справа отображать только значения")
+        availability = normalize_user_request("PII доступно только согласованной группе")
+        mutation = normalize_user_request("Измени права доступа для группы аналитиков")
+
+        self.assertEqual(layout.destructive_actions, [])
+        self.assertEqual(availability.destructive_actions, [])
+        self.assertIn("permissions_change", mutation.destructive_actions)
 
     def test_russian_delivery_intent_matches_public_documentation(self):
         from datalens_dev_mcp.pipeline.user_request import normalize_user_request

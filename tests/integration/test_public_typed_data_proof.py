@@ -5,8 +5,7 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
-from datalens_dev_mcp.pipeline.artifacts import read_json
-from datalens_dev_mcp.pipeline.artifacts import write_json
+from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.pipeline.target_binding import target_binding_hash
 from datalens_dev_mcp.pipeline.task_data_proof_service import TaskDataProofService
 from datalens_dev_mcp.runtime_resources import resource_json
@@ -30,9 +29,7 @@ def test_public_workflow_uses_a_fresh_typed_probe_after_planning() -> None:
     assert data_receipt["raw_rows_inline"] is False
     assert final_planning_profile == planning_profile
     assert not list(
-        Draft202012Validator(resource_json("schemas/task-data-proof-receipt.schema.json")).iter_errors(
-            data_receipt
-        )
+        Draft202012Validator(resource_json("schemas/task-data-proof-receipt.schema.json")).iter_errors(data_receipt)
     )
 
 
@@ -70,6 +67,11 @@ def test_unexpected_empty_final_probe_blocks_but_expected_empty_passes() -> None
     assert blocked.current_state == "BLOCKED"
     assert unexpected["status"] == "failed"
     assert unexpected["unexpected_empty_diagnostics"]
+    assert [method for method, _payload in client.calls].count("getDatasetData") == 3
+    assert unexpected["unexpected_empty_diagnostics"][0]["check"] == "unfiltered_dataset_probe"
+    assert unexpected["unexpected_empty_diagnostics"][0]["mode"] == "diagnostic_probe"
+    assert unexpected["unexpected_empty_diagnostics"][0]["status"] == "still_empty"
+    assert unexpected["unexpected_empty_diagnostics"][0]["raw_rows_inline"] is False
 
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -84,6 +86,7 @@ def test_unexpected_empty_final_probe_blocks_but_expected_empty_passes() -> None
     assert completed.current_state == "COMPLETED"
     assert expected["status"] == "passed"
     assert expected["unexpected_empty_diagnostics"] == []
+    assert [method for method, _payload in client.calls].count("getDatasetData") == 2
 
 
 def test_target_binding_change_blocks_fresh_probe_before_provider_call() -> None:

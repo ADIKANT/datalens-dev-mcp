@@ -8,15 +8,14 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from datalens_dev_mcp.pipeline.object_locator import normalize_object_locator, provider_direct_url
+from datalens_dev_mcp.pipeline.result_dedup import ACTIVE_CONTEXT_RESULTS
 from datalens_dev_mcp.serialization import (
     sanitize_response,
     serialized_metadata,
     stable_json_text,
-    stable_sha256,
 )
 from datalens_dev_mcp.validators.redaction import redact_text
-from datalens_dev_mcp.pipeline.result_dedup import ACTIVE_CONTEXT_RESULTS
-
 
 DEFAULT_INLINE_CHAR_BUDGET = 20_000
 WORKBOOK_ENTRY_PREVIEW_LIMIT = 12
@@ -536,8 +535,7 @@ def _fit_projected_response(
     minimum_required = _serialized_chars(minimal)
     if minimum_required > budget:
         raise ValueError(
-            f"inline_char_budget must be at least {minimum_required} characters "
-            "for an artifact-backed compact summary"
+            f"inline_char_budget must be at least {minimum_required} characters for an artifact-backed compact summary"
         )
     return minimal
 
@@ -654,9 +652,12 @@ def dashboard_summary(response: dict[str, Any]) -> dict[str, Any]:
         for link in links
         if isinstance(link, dict)
     ]
+    identity = _identity(entry, response, preferred_id="dashboardId")
+    workbook_id = _first(entry, response, keys=("workbookId", "workbook_id"))
+    locator = _response_locator(response, "dashboard", identity["id"], workbook_id)
     return {
-        "identity": _identity(entry, response, preferred_id="dashboardId"),
-        "workbook_id": _first(entry, response, keys=("workbookId", "workbook_id")),
+        "identity": identity,
+        **locator,
         "title": _title(entry, data),
         "branch": str(response.get("branch") or entry.get("branch") or ""),
         "tabs": [
@@ -702,9 +703,12 @@ def editor_chart_summary(response: dict[str, Any]) -> dict[str, Any]:
                 "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
             }
         )
+    identity = _identity(entry, response, preferred_id="chartId")
+    workbook_id = _first(entry, response, keys=("workbookId", "workbook_id"))
+    locator = _response_locator(response, "editor_chart", identity["id"], workbook_id)
     return {
-        "identity": _identity(entry, response, preferred_id="chartId"),
-        "workbook_id": _first(entry, response, keys=("workbookId", "workbook_id")),
+        "identity": identity,
+        **locator,
         "type": entry.get("type") or entry.get("scope") or response.get("type") or "editor_chart",
         "title": _title(entry, data),
         "annotation": data.get("annotation") or data.get("description") or "",
@@ -713,7 +717,8 @@ def editor_chart_summary(response: dict[str, Any]) -> dict[str, Any]:
             "ids": [
                 str(link.get("id") or link.get("linkId") or link.get("target") or link.get("to"))
                 for link in links
-                if isinstance(link, dict) and (link.get("id") or link.get("linkId") or link.get("target") or link.get("to"))
+                if isinstance(link, dict)
+                and (link.get("id") or link.get("linkId") or link.get("target") or link.get("to"))
             ][:100],
         },
         "data_sections": section_metadata,
@@ -731,12 +736,19 @@ def workbook_entries_summary(response: dict[str, Any]) -> dict[str, Any]:
         entry_type = str(entry.get("scope") or entry.get("type") or "unknown")
         type_counts[entry_type] += 1
         if len(rows) < WORKBOOK_ENTRY_PREVIEW_LIMIT:
+            object_id = entry.get("entryId") or entry.get("id")
+            workbook_id = entry.get("workbookId") or entry.get("workbook_id")
             rows.append(
                 {
-                    "entry_id": entry.get("entryId") or entry.get("id"),
+                    "entry_id": object_id,
+                    **normalize_object_locator(
+                        object_type=entry_type,
+                        object_id=str(object_id or ""),
+                        workbook_id=str(workbook_id or ""),
+                        url_source="api_inventory",
+                    ),
                     "type": entry_type,
                     "title": _truncate_text(entry.get("displayKey") or entry.get("title") or entry.get("name"), 120),
-                    "workbook_id": entry.get("workbookId") or entry.get("workbook_id"),
                 }
             )
     return {
@@ -800,10 +812,14 @@ def object_summary(response: dict[str, Any], *, object_key: str, preferred_id: s
         return dataset_summary(response, entry=entry, data=data, preferred_id=preferred_id)
     if object_key == "connection":
         return connection_summary(response, entry=entry, data=data, preferred_id=preferred_id)
+    identity = _identity(entry, response, preferred_id=preferred_id)
+    workbook_id = _first(entry, response, keys=("workbookId", "workbook_id"))
+    object_type = entry.get("type") or entry.get("scope") or response.get("type") or object_key
+    locator = _response_locator(response, str(object_type), identity["id"], workbook_id)
     return {
-        "identity": _identity(entry, response, preferred_id=preferred_id),
-        "workbook_id": _first(entry, response, keys=("workbookId", "workbook_id")),
-        "type": entry.get("type") or entry.get("scope") or response.get("type") or object_key,
+        "identity": identity,
+        **locator,
+        "type": object_type,
         "title": _title(entry, data),
         "data_metadata": serialized_metadata(data),
         "full_response": serialized_metadata(response),
@@ -823,14 +839,21 @@ def dataset_summary(
     sources = _dataset_sources(dataset_payload, data)
     sql_fragments = _bounded_sql_fragments(dataset_payload)
     connection_ids = sorted(_dataset_connection_ids(dataset_payload))
+    identity = _identity(entry, response, preferred_id=preferred_id)
+    workbook_id = _first(entry, response, keys=("workbookId", "workbook_id"))
     return {
-        "identity": _identity(entry, response, preferred_id=preferred_id),
-        "workbook_id": _first(entry, response, keys=("workbookId", "workbook_id")),
+        "identity": identity,
+        **_response_locator(response, "dataset", identity["id"], workbook_id),
         "type": entry.get("type") or entry.get("scope") or response.get("type") or "dataset",
         "title": _title(entry, data),
         "sources": {
             "count": len(sources),
-            "types": sorted({str(source.get("type") or source.get("sourceType") or source.get("kind") or "unknown") for source in sources}),
+            "types": sorted(
+                {
+                    str(source.get("type") or source.get("sourceType") or source.get("kind") or "unknown")
+                    for source in sources
+                }
+            ),
         },
         "fields": {
             "count": len(fields),
@@ -858,16 +881,32 @@ def connection_summary(
     preferred_id: str,
 ) -> dict[str, Any]:
     connection_payload = _first_nonempty_dict(entry, data)
+    identity = _identity(entry, response, preferred_id=preferred_id)
+    workbook_id = _first(entry, response, keys=("workbookId", "workbook_id"))
     return {
-        "identity": _identity(entry, response, preferred_id=preferred_id),
-        "workbook_id": _first(entry, response, keys=("workbookId", "workbook_id")),
+        "identity": identity,
+        **_response_locator(response, "connection", identity["id"], workbook_id),
         "type": entry.get("type") or entry.get("scope") or response.get("type") or "connection",
         "title": _title(entry, data),
-        "connection_kind": connection_payload.get("type") or connection_payload.get("sourceType") or connection_payload.get("kind") or "",
+        "connection_kind": connection_payload.get("type")
+        or connection_payload.get("sourceType")
+        or connection_payload.get("kind")
+        or "",
         "data_metadata": serialized_metadata(data),
         "full_response": serialized_metadata(response),
         "top_level_keys": sorted(response)[:100],
     }
+
+
+def _response_locator(response: dict[str, Any], object_type: str, object_id: Any, workbook_id: Any) -> dict[str, str]:
+    direct = provider_direct_url(response)
+    return normalize_object_locator(
+        direct,
+        object_type=object_type,
+        object_id=str(object_id or ""),
+        workbook_id=str(workbook_id or ""),
+        url_source="provider_readback" if direct else "route_builder",
+    )
 
 
 def _entry(response: dict[str, Any], object_key: str) -> dict[str, Any]:
@@ -911,7 +950,9 @@ def _identity(entry: dict[str, Any], response: dict[str, Any], *, preferred_id: 
     result = response.get("result") if isinstance(response.get("result"), dict) else {}
     return {
         "id": _first(entry, response, result, metadata, keys=("entryId", preferred_id, "id")),
-        "rev_id": _first(entry, response, result, metadata, keys=("revId", "rev_id", "revisionId", "revision_id", "revision")),
+        "rev_id": _first(
+            entry, response, result, metadata, keys=("revId", "rev_id", "revisionId", "revision_id", "revision")
+        ),
         "saved_id": _first(entry, response, result, metadata, keys=("savedId", "saved_id")),
         "name": _first(entry, response, keys=("name",)),
     }

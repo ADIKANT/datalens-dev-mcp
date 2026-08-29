@@ -42,6 +42,9 @@
   "task_id": "<TASK_ID>",
   "state": "PLAN_VALIDATED",
   "task_revision": 6,
+  "contract_revision": 2,
+  "scope_revision": 1,
+  "authorization_revision": 1,
   "state_etag": "<SHA256>",
   "observed_facts": ["semantic scope bound to immutable task contract"],
   "route": "wizard_native",
@@ -55,9 +58,9 @@
 }
 ```
 
-Внешнее состояние `PLAN_VALIDATED` соответствует внутреннему checkpoint `VALIDATED`. `state_etag` вычисляется из восстановленного state и может быть передан в `dl_task_resume.expected_hash`. Terminal-ответ имеет пустой или отсутствующий `next_action`; blocker всегда содержит проверяемую причину.
+Внешнее состояние `PLAN_VALIDATED` соответствует внутреннему checkpoint `VALIDATED`. `state_etag` вычисляется из восстановленного state и может быть передан в `dl_task_resume.expected_hash`. `contract_revision`, `scope_revision` и `authorization_revision` показывают независимо версионируемые части intent. Terminal-ответ имеет пустой или отсутствующий `next_action`; blocker всегда содержит проверяемую причину.
 
-Task journal хранится в `.datalens-mcp/tasks/<TASK_ID>/`: immutable contract, hash-chained events, checkpoint, plans и receipts. MCP resources публикуют status и разрешённые artifacts как `datalens://tasks/<TASK_ID>/...`. `dl_evidence` возвращает только один bounded excerpt:
+Task journal хранится в `.datalens-mcp/tasks/<TASK_ID>/`: текущий immutable contract, append-only `contracts/` и `contract-revisions.json`, hash-chained events, checkpoint, plans и receipts. Перед установкой поправки пишется durable pending marker; незавершённая установка блокирует продолжение до согласованного восстановления. Старые планы архивируются и не принимаются новым contract hash. MCP resources публикуют status и разрешённые artifacts как `datalens://tasks/<TASK_ID>/...`. `dl_evidence` возвращает только один bounded excerpt:
 
 ```json
 {
@@ -107,6 +110,13 @@ Task journal хранится в `.datalens-mcp/tasks/<TASK_ID>/`: immutable con
 
 Метрики агрегируются по процессу и методу. В них отсутствуют ID объектов, payload, заголовки и значения учётных данных.
 
+`launcher_parity` отдельно сравнивает interpreter, package/build identity, cwd,
+state root и public tool surface. Совпадение только токена не является
+совпадением runtime. При credential blocker поле `credential_recovery` содержит
+секрет-безопасное executable action
+`scripts/codex_mcp_launch.sh --recover-credentials`, ожидаемую перезагрузку
+канонического env-файла, контрольный `dl_auth_probe` и продолжение `same_task`.
+
 `dl_auth_probe` выполняет минимальный live-read. Ошибки разделяются по действию пользователя:
 
 | `status` | Значение |
@@ -118,7 +128,7 @@ Task journal хранится в `.datalens-mcp/tasks/<TASK_ID>/`: immutable con
 | `transport_failure` | Сетевая, DNS, TLS или proxy-ошибка до ответа API |
 | `api_failure` | DataLens API вернул техническую ошибку, не относящуюся к авторизации |
 
-Ошибочный ответ содержит очищенное сообщение и рекомендацию, но не значение или производные токена.
+Ошибочный ответ содержит очищенное сообщение и executable recovery contract, но не значение или производные токена. Канонический recovery не требует поиска старой Codex-сессии.
 
 Транспортная ошибка DataLens API сохраняет `request_phase=transport`,
 `response_received=false`, число выполненных read-retry и один из безопасных

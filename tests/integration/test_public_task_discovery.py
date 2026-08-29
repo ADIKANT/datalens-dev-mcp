@@ -50,3 +50,7 @@ def test_public_inspect_returns_live_graph_not_local_artifact_listing() -> None:
     assert result["ok"] is True
     assert result["graph_kind"] == "live_target_graph"
     assert result["node_count"] >= 4
+    assert all(
+        str(item.get("canonical_direct_url") or "").startswith("https://datalens.ru/")
+        for item in result["nodes"]
+    )

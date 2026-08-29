@@ -28,6 +28,7 @@ class DataLensApiError(RuntimeError):
         self.retry_exhausted = retry_exhausted
         self.failure_family = str(failure_family or "")
         self.retry_after_sec = max(0.0, float(retry_after_sec)) if retry_after_sec is not None else None
+        self.provider_method = ""
 
 
 class DataLensSafetyError(RuntimeError):

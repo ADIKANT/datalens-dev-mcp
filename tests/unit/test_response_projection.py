@@ -9,17 +9,17 @@ import datalens_dev_mcp.server as server_module
 from datalens_dev_mcp.mcp.response_projection import (
     dashboard_summary,
     editor_chart_summary,
-    project_dataset_response,
     project_dashboard_response,
+    project_dataset_response,
     project_editor_chart_response,
     project_public_resource_text,
     project_public_response,
     project_workbook_entries_response,
     sanitize_response,
-    stable_sha256,
 )
 from datalens_dev_mcp.mcp.tools import discovery
 from datalens_dev_mcp.mcp.tools.rpc import dl_list_api_methods
+from datalens_dev_mcp.serialization import stable_sha256
 from datalens_dev_mcp.server import JsonRpcServer
 
 
@@ -160,6 +160,40 @@ class ResponseProjectionTests(unittest.TestCase):
         self.assertNotIn(params_marker[:64], text)
         self.assertEqual(projected["summary"]["tabs"], ["params.js", "prepare.js"])
         self.assertEqual(projected["summary"]["tab_count"], 2)
+
+    def test_read_summaries_include_canonical_direct_locator(self):
+        dashboard = dashboard_summary(dashboard_fixture())
+        editor = editor_chart_summary(editor_chart_fixture())
+        inventory = project_workbook_entries_response(
+            {
+                "entries": [
+                    {
+                        "entryId": "dataset_fixture_123",
+                        "scope": "dataset",
+                        "displayKey": "Synthetic dataset",
+                        "workbookId": "workbook_1",
+                    }
+                ]
+            }
+        )["summary"]["entries"][0]
+
+        assert dashboard["object_id"] == "dash_1"
+        assert dashboard["object_type"] == "dashboard"
+        assert dashboard["canonical_direct_url"] == "https://datalens.ru/dash_1"
+        assert dashboard["url_source"] == "route_builder"
+        assert editor["object_id"] == "chart_1"
+        assert editor["object_type"] == "editor_chart"
+        assert editor["canonical_direct_url"] == "https://datalens.ru/editor/chart_1"
+        assert inventory == {
+            "entry_id": "dataset_fixture_123",
+            "object_id": "dataset_fixture_123",
+            "type": "dataset",
+            "object_type": "dataset",
+            "title": "Synthetic dataset",
+            "workbook_id": "workbook_1",
+            "canonical_direct_url": "https://datalens.ru/datasets/dataset_fixture_123",
+            "url_source": "api_inventory",
+        }
 
     def test_safe_apply_jsonrpc_summary_is_under_2048_and_artifact_backed(self):
         saved_payload_marker = "saved-payload-body-" + ("s" * 30_000)

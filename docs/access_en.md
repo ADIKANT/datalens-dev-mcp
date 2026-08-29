@@ -76,7 +76,13 @@ With `DATALENS_ENABLE_TOKEN_REFRESH_ON_401=1`, the server runs the configured `y
 
 The new value is written atomically to `DATALENS_ENV_FILE`, the file mode is set to `0600`, and the original request is retried once. Updating the token in the canonical env file does not require a client restart because the server reloads that file. Restart the client after changing MCP process settings.
 
-Background refresh never opens a browser or reads interactive input. If the `yc` profile requires reauthentication, run `yc iam create-token` in an interactive terminal, complete the opened sign-in flow, and retry the MCP call. A `127.0.0.1` callback URL is one-time: it stops working after the `yc` process that created it exits or is terminated.
+Background refresh never opens a browser or reads interactive input. If the `yc` profile requires reauthentication, run the canonical command from the current checkout:
+
+```bash
+scripts/codex_mcp_launch.sh --recover-credentials
+```
+
+It first retries safe background token creation and, when required, runs `yc init` through the same interpreter/launcher contour. The new token is written atomically only to the canonical `DATALENS_ENV_FILE`; the file is then reloaded and `dl_auth_probe` is executed. The result never contains the token value, and work continues in the same Codex task without finding an older task. A `127.0.0.1` callback URL is one-time: it stops working after the `yc` process that created it exits or is terminated.
 
 If `yc` is not on the MCP process `PATH`, set its absolute path in `DATALENS_YC_BINARY`. The `refresh_available` field from `dl_runtime_status` confirms that the refresh command was resolved.
 
@@ -105,6 +111,7 @@ Call `dl_runtime_status` first. It checks local configuration and reports:
 - whether the organization ID and token are present;
 - whether write, save, and publish are available;
 - whether token refresh through `yc` is available.
+- whether interpreter, package/build, cwd, state root, and public tool surface match the launching process.
 - the shared API limiter settings and aggregate request, 429, retry, and cache-hit counters.
 
 Then call `dl_auth_probe`. It performs a minimal `getWorkbooksList` request with page size 1.
@@ -120,7 +127,7 @@ Copyable prompt:
 | `missing_credentials` | No organization ID or token, and `yc` bootstrap is unavailable | Check `DATALENS_ENV_FILE`, `DATALENS_ORG_ID`, and `yc` installation and initialization |
 | `expired_token` | The token expired and refresh is disabled or failed | Run `yc iam create-token` and update the env file, or enable refresh on 401 |
 | `organization_access_denied` | The user or token cannot access the organization or target | Check the organization ID and [DataLens roles](https://yandex.cloud/ru/docs/datalens/security/roles) |
-| `yc_reauthentication_required` | The Yandex Cloud CLI session needs an interactive login | Run `yc init` or the login command shown by the CLI in a terminal |
+| `yc_reauthentication_required` | The Yandex Cloud CLI session needs an interactive login | Run `scripts/codex_mcp_launch.sh --recover-credentials`; it invokes `yc init` only when safe background refresh is insufficient |
 | `transport_failure` | `api.datalens.tech`, TLS/DNS, or the proxy prevents a connection | Check network, proxy, and API URL |
 | `api_failure` | DataLens API returns a technical error after the connection succeeds | Retry after service recovery and retain the sanitized response code |
 

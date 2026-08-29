@@ -20,6 +20,11 @@ DISCOVERABLE_FACTS = (
     "reference_hash",
     "browser_availability",
     "auth_state",
+    "current_object",
+    "saved_or_published_revision",
+    "relations",
+    "data_assertions",
+    "runtime_assertions_if_applicable",
 )
 QUESTION_PRIORITY = (
     "business_key",

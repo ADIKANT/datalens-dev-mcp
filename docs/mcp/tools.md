@@ -18,8 +18,8 @@
 ### `dl_task_resume`
 
 - Required: `task_id`
-- Optional: `project_root`, `expected_state`, `expected_hash`, `run_until`, `transition_budget`
-- Восстанавливает state из hash-chained events и продолжает server-owned workflow. Optimistic поля блокируют продолжение по устаревшему состоянию.
+- Optional: `project_root`, `expected_state`, `expected_hash`, `expected_contract_revision`, `user_turn`, `run_until`, `transition_budget`
+- Восстанавливает state из hash-chained events и продолжает server-owned workflow. Optimistic поля блокируют продолжение по устаревшему состоянию. `user_turn` принимает `source_event_id`, `request`, `relationship_to_previous` и необязательный `context`; для содержательной поправки обязателен точный `expected_contract_revision`. Сервер сохраняет тот же task ID, создаёт следующую immutable contract revision, выборочно инвалидирует зависимые artifacts и идемпотентно распознаёт повтор того же source event. `replace_goal` и `start_new_workflow` требуют нового `dl_task_start`.
 
 ### `dl_task_status`
 
@@ -71,6 +71,7 @@
   manifest action `retire_legacy_objects` применяет `confirm_delete`;
   произвольное удаление целого объекта недоступно.
 - Методы записи проверяют write/save/publish непосредственно перед запросом к DataLens.
+- `tools/list` публикует MCP effect annotations для всех восьми task-level инструментов. Они описывают read-only/destructive/idempotent/open-world свойства поверхности и не заменяют runtime write gates.
 
 ## Состояние и доступ
 

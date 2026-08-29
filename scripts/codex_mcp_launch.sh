@@ -4,9 +4,11 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$REPO_ROOT"
 
-PYTHON_BIN="$(command -v python3 || true)"
-if [[ -z "${PYTHON_BIN:-}" && -x "$REPO_ROOT/.venv/bin/python" ]]; then
+PYTHON_BIN=""
+if [[ -x "$REPO_ROOT/.venv/bin/python" ]]; then
   PYTHON_BIN="$REPO_ROOT/.venv/bin/python"
+else
+  PYTHON_BIN="$(command -v python3 || true)"
 fi
 if [[ -z "${PYTHON_BIN:-}" ]]; then
   echo "datalens-dev-mcp launcher: python3 was not found and .venv/bin/python is absent." >&2
@@ -32,6 +34,13 @@ case "${DATALENS_MCP_TEST_ONLY_REGISTRY:-}" in
     ;;
 esac
 
+export DATALENS_MCP_LAUNCHER_PROJECT_ROOT="$REPO_ROOT"
+export DATALENS_MCP_LAUNCHER_PACKAGE_ROOT="$REPO_ROOT"
+export DATALENS_MCP_LAUNCHER_PYTHON="$PYTHON_BIN"
+export DATALENS_MCP_LAUNCHER_CWD="$REPO_ROOT"
+export DATALENS_MCP_LAUNCHER_STATE_ROOT="${DATALENS_MCP_TASKS_DIR:-$REPO_ROOT/.datalens-mcp/tasks}"
+export DATALENS_MCP_LAUNCHER_TOOL_SURFACE="${DATALENS_MCP_TOOL_SURFACE:-autonomous-v2}"
+
 if [[ "${DATALENS_ENABLE_TOKEN_REFRESH_ON_401}" == "1" || "${DATALENS_ENABLE_TOKEN_REFRESH_ON_401}" == "true" ]]; then
   if [[ -n "${DATALENS_YC_BINARY:-}" ]]; then
     YC_BIN="$DATALENS_YC_BINARY"
@@ -45,6 +54,14 @@ if [[ "${DATALENS_ENABLE_TOKEN_REFRESH_ON_401}" == "1" || "${DATALENS_ENABLE_TOK
   else
     export DATALENS_YC_BINARY="$YC_BIN"
   fi
+fi
+
+if [[ "${1:-}" == "--recover-credentials" ]]; then
+  if [[ "$#" -ne 1 ]]; then
+    echo "datalens-dev-mcp launcher: --recover-credentials accepts no additional arguments." >&2
+    exit 2
+  fi
+  exec "$PYTHON_BIN" -m datalens_dev_mcp.credential_recovery --interactive
 fi
 
 CONFIG_PATH="$REPO_ROOT/config/datalens_mcp.local.json"

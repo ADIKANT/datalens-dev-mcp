@@ -11,6 +11,7 @@ from datalens_dev_mcp.pipeline.browser_qa import (
     validate_qa_attestation_binding,
 )
 from datalens_dev_mcp.pipeline.evidence_matrix import build_evidence_matrix, normalize_browser_policy
+from datalens_dev_mcp.pipeline.existing_effect_verification import ExistingEffectVerificationService
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
 from datalens_dev_mcp.pipeline.public_plan_builder import PublicPlanBuilder
 from datalens_dev_mcp.pipeline.task_data_proof_service import TaskDataProofService
@@ -40,6 +41,8 @@ class TaskQaService:
         return self.journal.root / "evidence" / "qa-receipt.json"
 
     def execute(self) -> dict[str, Any]:
+        if str(self.contract.get("operation_kind") or "") == "verify_existing_effect":
+            return self._execute_existing_effect()
         data_receipt = self.data_service.execute()
         plan_issues = list(PublicPlanBuilder(self.journal, self.contract).validate_current())
         static_evidence = {"ok": not plan_issues, "status": "passed" if not plan_issues else "failed"}
@@ -121,12 +124,61 @@ class TaskQaService:
         write_json(self.receipt_path, payload)
         return payload
 
+    def _execute_existing_effect(self) -> dict[str, Any]:
+        required_reads = set((self.contract.get("verification") or {}).get("required_live_reads") or [])
+        data_receipt = self.data_service.execute() if "data_assertions" in required_reads else {}
+        verification = ExistingEffectVerificationService(self.journal, self.contract).execute()
+        acceptance_coverage = _acceptance_coverage(
+            self.contract,
+            data_receipt=data_receipt,
+            runtime_ok=verification.get("status") == "passed",
+            saved={},
+            published={},
+            verification_receipt=verification,
+        )
+        missing = list(verification.get("missing_live_reads") or [])
+        missing.extend(list(acceptance_coverage.get("missing_evidence") or []))
+        ok = bool(verification.get("status") == "passed" and acceptance_coverage.get("ok"))
+        payload = {
+            "schema_id": "task_qa_receipt",
+            "receipt_version": 1,
+            "task_id": self.journal.task_id,
+            "contract_hash": str(self.contract.get("contract_hash") or ""),
+            "target_binding_hash": str((read_json(self.journal.target_binding_path, {}) or {}).get("binding_hash") or ""),
+            "observed_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+            "status": "passed" if ok else "blocked",
+            "proof_level": "live_read_only_api" if ok else "source_static",
+            "data_proof_receipt_hash": str(data_receipt.get("receipt_hash") or ""),
+            "existing_effect_verification_hash": str(verification.get("receipt_hash") or ""),
+            "existing_effect_outcome": str(verification.get("outcome") or "indeterminate"),
+            "runtime_evidence": {
+                "schema_id": "existing_effect_runtime_result",
+                "ok": ok,
+                "status": "passed" if ok else "blocked",
+                "write_attempted": 0,
+                "write_executed": 0,
+            },
+            "browser_policy": {"mode": "forbidden", "source": "compiled_verification_default"},
+            "browser_adapter_calls": 0,
+            "browser_attestation": {},
+            "evidence_matrix": {
+                "can_publish": ok,
+                "missing_evidence": sorted(set(str(item) for item in missing if str(item))),
+            },
+            "acceptance_coverage": acceptance_coverage,
+            "limitations": list(verification.get("limitations") or []),
+        }
+        payload["receipt_hash"] = canonical_hash(payload)
+        write_json(self.receipt_path, payload)
+        return payload
+
     def stage_handler(self, context: dict[str, Any]) -> dict[str, Any]:
         result = self.execute()
+        verify_existing = str(self.contract.get("operation_kind") or "") == "verify_existing_effect"
         missing = list((result.get("evidence_matrix") or {}).get("missing_evidence") or [])
         missing.extend(list((result.get("acceptance_coverage") or {}).get("missing_evidence") or []))
         if result.get("status") != "passed" and not missing:
-            missing.append("fresh_typed_data_proof")
+            missing.append("existing_effect_live_readback" if verify_existing else "fresh_typed_data_proof")
         receipt = build_stage_receipt(
             task_id=self.journal.task_id,
             contract_hash=str(self.contract.get("contract_hash") or ""),
@@ -136,9 +188,19 @@ class TaskQaService:
             build_identity_hash=str(context.get("build_identity_hash") or ""),
             target_binding_hash=str(context.get("target_binding_hash") or ""),
             output_hashes={"task_qa_receipt": str(result.get("receipt_hash") or "")},
-            hard_requirements=["fresh_typed_data_proof", "contract_runtime", "browser_policy"],
+            hard_requirements=(
+                ["existing_effect_live_readback", "required_provider_reads", "zero_mutation"]
+                if verify_existing
+                else ["fresh_typed_data_proof", "contract_runtime", "browser_policy"]
+            ),
             missing_requirements=missing,
-            reason="typed data and QA evidence passed" if result.get("status") == "passed" else "QA evidence is incomplete",
+            reason=(
+                "existing effect is verified from required live reads with zero mutation"
+                if verify_existing and result.get("status") == "passed"
+                else "typed data and QA evidence passed"
+                if result.get("status") == "passed"
+                else "QA evidence is incomplete"
+            ),
             observed_facts=[
                 f"browser mode={((result.get('browser_policy') or {}).get('mode', 'optional'))}",
                 f"browser calls={result.get('browser_adapter_calls', 0)}",
@@ -243,6 +305,7 @@ def _acceptance_coverage(
     runtime_ok: bool,
     saved: dict[str, Any],
     published: dict[str, Any],
+    verification_receipt: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     data_results = {
         str(item.get("criterion_hash") or ""): item
@@ -276,9 +339,32 @@ def _acceptance_coverage(
         }:
             evidence_kind = "data_assertion"
             satisfied = result.get("status") == "passed"
+        elif source_kind == "existing_effect":
+            evidence_kind = "existing_effect_live_readback"
+            satisfied = bool(
+                verification_receipt
+                and verification_receipt.get("status") == "passed"
+                and verification_receipt.get("outcome") == "verified"
+                and int(verification_receipt.get("write_executed") or 0) == 0
+            )
         elif source_kind == "semantic_change":
             evidence_kind = "planned_payload_readback"
             satisfied = bool(runtime_ok and delivery_ok)
+        elif source_kind == "constraint" and criterion.get("source") == "current_user_correction":
+            # A compiled follow-up correction is a contract-continuity
+            # criterion, not an independent business assertion.  Its exact
+            # text is already bound into the amended contract, semantic delta,
+            # immutable plan, and delivery receipts.  Requiring a separate
+            # verifier for the same compiler-owned criterion made every
+            # otherwise successful public amendment stop at final QA.
+            evidence_kind = "amended_contract_runtime"
+            satisfied = bool(
+                int(contract.get("contract_revision") or 1) > 1
+                and contract.get("parent_contract_hash")
+                and contract.get("semantic_delta_hash")
+                and runtime_ok
+                and delivery_ok
+            )
         else:
             evidence_kind = "unsupported_hard_acceptance"
             satisfied = False

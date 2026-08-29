@@ -26,6 +26,31 @@ class ToolSurfaceBudgetTests(unittest.TestCase):
         self.assertNotIn("dl_execute_safe_apply", names)
         self.assertNotIn("dl_rpc_expert", names)
 
+    def test_practical_surface_audit_records_rev4_metrics(self):
+        from scripts.check_autonomous_tool_surface import build_report
+
+        report = build_report(
+            {
+                "public_call_count": 12,
+                "invalid_call_count": 0,
+                "extra_contract_reads": 0,
+                "evidence_refs": ["synthetic-ledger.jsonl"],
+            }
+        )
+
+        self.assertTrue(report["ok"])
+        self.assertEqual(report["tool_count"], 8)
+        self.assertEqual(report["raw_tools_list_bytes"], report["tools_list_utf8_bytes"])
+        self.assertGreater(report["client_rendered_bytes"], report["raw_tools_list_bytes"])
+        self.assertGreater(report["estimated_tokens"], 0)
+        self.assertGreaterEqual(report["schema_branch_count"], 0)
+        self.assertIn("name", report["largest_tool_schema"])
+        self.assertGreater(report["largest_tool_schema"]["utf8_bytes"], 0)
+        self.assertGreaterEqual(report["duplicate_description_bytes"], 0)
+        self.assertEqual(report["invalid_call_rate"], 0.0)
+        self.assertEqual(report["extra_contract_reads"], 0)
+        self.assertTrue(report["checks"]["strict_object_validation"])
+
     def test_compaction_preserves_safety_critical_parameter_descriptions(self):
         from datalens_dev_mcp.server import list_tools
 

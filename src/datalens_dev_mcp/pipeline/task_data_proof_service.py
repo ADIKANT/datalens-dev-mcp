@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -60,7 +61,7 @@ class TaskDataProofService:
             planning_profile=planning_profile,
             target_binding=target_binding,
         )
-        write_json(self.plan_path, sanitize_value(assertion_plan))
+        write_json(self.plan_path, deepcopy(assertion_plan))
         if not assertion_plan.get("ok"):
             return self._write_receipt(
                 status="blocked",
@@ -97,12 +98,16 @@ class TaskDataProofService:
             "pages_read": 1 if live else 0,
             "bounded_sample": True,
         }
-        evaluated = evaluate_data_assertions(
-            assertions=list(assertion_plan.get("assertions") or []),
-            schema=schema,
-            rows=rows,
-            paging=paging,
-        ) if live else _insufficient_assertions(assertion_plan)
+        evaluated = (
+            evaluate_data_assertions(
+                assertions=list(assertion_plan.get("assertions") or []),
+                schema=schema,
+                rows=rows,
+                paging=paging,
+            )
+            if live
+            else _insufficient_assertions(assertion_plan)
+        )
         evaluated["results"] = _bind_assertion_results(
             list(assertion_plan.get("assertions") or []),
             list(evaluated.get("results") or []),
@@ -112,7 +117,40 @@ class TaskDataProofService:
             sensitive_field_guids(schema),
         )
         expected_empty = any(item.get("kind") == "expected_empty" for item in assertion_plan.get("assertions") or [])
-        diagnostics = [] if rows or expected_empty or not live else unexpected_empty_diagnostics(assertion_plan)
+        provider_calls = list(acquired.get("provider_calls") or [])
+        diagnostics: list[dict[str, Any]] = []
+        if live and not rows and not expected_empty:
+            diagnostic = self.context_service.acquire(fresh=True, mode="diagnostic_probe")
+            provider_calls.extend(list(diagnostic.get("provider_calls") or []))
+            diagnostic_profile = dict(diagnostic.get("profile") or {})
+            diagnostic_page = dict(diagnostic.get("normalized_page") or {})
+            diagnostic_live = diagnostic_profile.get(
+                "proof_level"
+            ) == "live_read_only_api" and not diagnostic_profile.get("fallback_kind")
+            diagnostic_rows = list(diagnostic_page.get("plain_rows") or []) if diagnostic_live else []
+            diagnostic_plan = dict(diagnostic.get("query_plan") or {})
+            diagnostic_query = next(
+                (dict(item) for item in diagnostic_plan.get("queries") or [] if isinstance(item, dict)),
+                {},
+            )
+            diagnostics.append(
+                {
+                    "check": "unfiltered_dataset_probe",
+                    "mode": "diagnostic_probe",
+                    "status": (
+                        "non_empty_without_parameters"
+                        if diagnostic_rows
+                        else "still_empty"
+                        if diagnostic_live
+                        else "probe_unavailable"
+                    ),
+                    "row_count": len(diagnostic_rows),
+                    "query_hash": str(diagnostic_query.get("query_hash") or ""),
+                    "requested_parameter_count": len((diagnostic_query.get("payload") or {}).get("params") or []),
+                    "raw_rows_inline": False,
+                }
+            )
+            diagnostics.extend(unexpected_empty_diagnostics(assertion_plan))
         limitations = list((profile.get("sample_scope") or {}).get("limitations") or [])
         if not live:
             limitations.extend(["fresh getDatasetData proof unavailable", "dataset schema only"])
@@ -124,7 +162,7 @@ class TaskDataProofService:
             proof_level="live_read_only_api" if live else "source_static",
             fallback_kind=str(profile.get("fallback_kind") or ""),
             assertions=list(evaluated.get("results") or []),
-            provider_calls=list(acquired.get("provider_calls") or []),
+            provider_calls=provider_calls,
             limitations=limitations,
             live_data_verified=bool(live and evaluated.get("ok")),
             assertion_plan_hash=str(assertion_plan.get("plan_hash") or ""),
@@ -176,7 +214,7 @@ class TaskDataProofService:
             "row_count": int(row_count),
             "paging": dict(paging or {}),
             "unexpected_empty_diagnostics": sanitize_value(diagnostics or []),
-            "limitations": sorted(set(str(item) for item in limitations if str(item))),
+            "limitations": sorted({str(item) for item in limitations if str(item)}),
             "raw_rows_inline": False,
         }
         payload["receipt_hash"] = canonical_hash(payload)
@@ -263,9 +301,7 @@ def _sensitive_assertion_kinds(
         fields = item.get("fields") if isinstance(item.get("fields"), list) else [item.get("field")]
         referenced = {str(field) for field in fields if str(field)}
         referenced.update(
-            str(item.get(key) or "")
-            for key in ("numerator", "denominator", "ratio")
-            if str(item.get(key) or "")
+            str(item.get(key) or "") for key in ("numerator", "denominator", "ratio") if str(item.get(key) or "")
         )
         if referenced & sensitive_fields:
             kinds.add(str(item.get("kind") or "unknown"))

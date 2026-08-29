@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -24,14 +24,10 @@ from datalens_dev_mcp.mcp.response_projection import (
     project_response,
     sanitize_response,
     serialized_metadata,
-    stable_sha256,
 )
-from datalens_dev_mcp.pipeline.safe_apply import create_safe_apply_plan
 from datalens_dev_mcp.pipeline.baseline_preservation import create_necessity_proof
 from datalens_dev_mcp.pipeline.delivery_intent import resolve_delivery_intent_from_env
-from datalens_dev_mcp.pipeline.user_request import normalize_user_request
-from datalens_dev_mcp.pipeline.sql_performance import validate_payload_sql_performance
-from datalens_dev_mcp.pipeline.sql_runtime_reality import build_sql_runtime_reality_check
+from datalens_dev_mcp.pipeline.object_locator import normalize_object_locator, provider_direct_url
 from datalens_dev_mcp.pipeline.object_routing import validate_field_availability
 from datalens_dev_mcp.pipeline.route_registry import (
     QL_EXPLICIT_ROUTE,
@@ -40,8 +36,12 @@ from datalens_dev_mcp.pipeline.route_registry import (
     is_supported_wizard_visualization,
     normalize_creation_route,
 )
+from datalens_dev_mcp.pipeline.safe_apply import create_safe_apply_plan
 from datalens_dev_mcp.pipeline.semantic_patch import build_semantic_patch_plan
-
+from datalens_dev_mcp.pipeline.sql_performance import validate_payload_sql_performance
+from datalens_dev_mcp.pipeline.sql_runtime_reality import build_sql_runtime_reality_check
+from datalens_dev_mcp.pipeline.user_request import normalize_user_request
+from datalens_dev_mcp.serialization import stable_sha256
 
 SENSITIVE_KEYWORDS = ("token", "authorization", "password", "secret", "iam", "subjecttoken")
 MIN_READ_OBJECT_INLINE_CHAR_BUDGET = 800
@@ -60,12 +60,21 @@ OBJECT_METHODS: dict[str, dict[str, str | None]] = {
     "control": {"read": "getEditorChart", "create": "createEditorChart", "update": "updateEditorChart"},
     "markdown": {"read": "getEditorChart", "create": "createEditorChart", "update": "updateEditorChart"},
     "wizard_chart": {"read": "getWizardChart", "create": "createWizardChart", "update": "updateWizardChart"},
-    "dataset": {"read": "getDataset", "create": "createDataset", "update": "updateDataset", "validate": "validateDataset"},
+    "dataset": {
+        "read": "getDataset",
+        "create": "createDataset",
+        "update": "updateDataset",
+        "validate": "validateDataset",
+    },
     "connector": {"read": "getConnection", "create": "createConnection", "update": "updateConnection"},
     "connection": {"read": "getConnection", "create": None, "update": None},
     "folder": {"read": None, "create": "createFolder", "update": None},
     "permission": {"read": "getPermissions", "create": None, "update": "modifyPermissions"},
-    "workbook_permission": {"read": "listWorkbookAccessBindings", "create": None, "update": "updateWorkbookAccessBindings"},
+    "workbook_permission": {
+        "read": "listWorkbookAccessBindings",
+        "create": None,
+        "update": "updateWorkbookAccessBindings",
+    },
     "workbook_entry": {"read": None, "create": None, "update": "renameEntry", "move": "moveFolderEntry"},
     "dataset_field": {"read": None, "create": None, "update": None},
     "calculated_field": {"read": None, "create": None, "update": None},
@@ -283,7 +292,11 @@ def dl_validate_object_payload(
         return _html_page_validation_error(html_validation, operation=operation)
     method = OBJECT_METHODS.get(normalized, {}).get(operation)
     schema = get_method_schema(method) if method else {"mode": "unknown"}
-    validation = validate_method_request(method, payload) if method else {"ok": False, "issues": ["method unavailable"], "schema_ref": ""}
+    validation = (
+        validate_method_request(method, payload)
+        if method
+        else {"ok": False, "issues": ["method unavailable"], "schema_ref": ""}
+    )
     if not validation["ok"]:
         return {
             "ok": False,
@@ -314,7 +327,11 @@ def dl_list_related_objects(entry_ids: list[str], client: Any | None = None) -> 
         return _error("missing_input", "entry_ids is required")
     try:
         active_client = client or DataLensApiClient(DataLensConfig.from_env())
-        return {"ok": True, "method": "getEntriesRelations", "response": active_client.rpc("getEntriesRelations", {"entryIds": entry_ids})}
+        return {
+            "ok": True,
+            "method": "getEntriesRelations",
+            "response": active_client.rpc("getEntriesRelations", {"entryIds": entry_ids}),
+        }
     except Exception as exc:  # noqa: BLE001
         return _error_result(exc)
 
@@ -397,7 +414,6 @@ def dl_validate_object(
     )
     if not plan.get("ok"):
         return plan
-
 
     result = {
         key: value
@@ -719,7 +735,9 @@ def dl_plan_guarded_dataset_update(
         for issue in calculated_field_report["issues"]
         if issue.get("severity") == "error"
     )
-    current_dataset_entry = current_dataset.get("dataset") if isinstance(current_dataset.get("dataset"), dict) else current_dataset
+    current_dataset_entry = (
+        current_dataset.get("dataset") if isinstance(current_dataset.get("dataset"), dict) else current_dataset
+    )
     current_revision = str(
         _first_scalar(current_dataset_entry, current_dataset, keys=("revId", "rev_id", "revisionId", "versionId")) or ""
     )
@@ -884,11 +902,15 @@ def dl_update_dataset_field_plan(config: dict[str, Any] | None = None) -> dict[s
 
 
 def dl_create_calculated_field_plan(config: dict[str, Any] | None = None) -> dict[str, Any]:
-    return _not_implemented("calculated_field", "create", config, schema_path="schemas/calculated-field-config.schema.json")
+    return _not_implemented(
+        "calculated_field", "create", config, schema_path="schemas/calculated-field-config.schema.json"
+    )
 
 
 def dl_update_calculated_field_plan(config: dict[str, Any] | None = None) -> dict[str, Any]:
-    return _not_implemented("calculated_field", "update", config, schema_path="schemas/calculated-field-config.schema.json")
+    return _not_implemented(
+        "calculated_field", "update", config, schema_path="schemas/calculated-field-config.schema.json"
+    )
 
 
 def dl_save_object_plan(
@@ -1145,7 +1167,9 @@ def _request_approval_provenance(
     raw_text = str(delivery_intent_text or "")
     normalized = normalize_user_request(raw_text or "implement")
     return {
-        "selection_origin": "explicit_user_request" if normalized.route_intent == "ql_explicit" else "current_user_request",
+        "selection_origin": "explicit_user_request"
+        if normalized.route_intent == "ql_explicit"
+        else "current_user_request",
         "selection_reason": normalized.route_intent,
         "request_digest": hashlib.sha256(raw_text.encode("utf-8")).hexdigest(),
         "approval_sources": ["current_user_request"] if authorized else [],
@@ -1168,7 +1192,9 @@ def _object_target_known(object_type: str, operation: str, payload: dict[str, An
         return location_known and planned_identity_known
     entry = payload.get("entry") if isinstance(payload.get("entry"), dict) else {}
     object_id = _object_id_for_payload(object_type, payload)
-    return _known_target(object_id, entry.get("entryId"), entry.get("chartId"), entry.get("dashboardId"), entry.get("id"))
+    return _known_target(
+        object_id, entry.get("entryId"), entry.get("chartId"), entry.get("dashboardId"), entry.get("id")
+    )
 
 
 def _prepare_lifecycle_payload(
@@ -1215,9 +1241,7 @@ def _prepare_lifecycle_payload(
         if ambiguity:
             return ambiguity
         adapter = (
-            "canonical_request_payload"
-            if validate_method_request(method, entry)["ok"]
-            else "canonical_object_payload"
+            "canonical_request_payload" if validate_method_request(method, entry)["ok"] else "canonical_object_payload"
         )
     else:
         adapter = requested_adapter
@@ -1370,7 +1394,9 @@ def _extract_canonical_object_payload(object_type: str, value: dict[str, Any]) -
 
 def _canonical_payload_shape_error(object_type: str, value: dict[str, Any]) -> dict[str, Any] | None:
     if _contains_result_envelope(value):
-        return _error("malformed_readback_envelope", "object payload still contains nested result/response envelope fields")
+        return _error(
+            "malformed_readback_envelope", "object payload still contains nested result/response envelope fields"
+        )
     if object_type == "dataset":
         object_id = str(value.get("datasetId") or value.get("dataset_id") or value.get("id") or "").strip()
         if not object_id:
@@ -1378,18 +1404,18 @@ def _canonical_payload_shape_error(object_type: str, value: dict[str, Any]) -> d
     elif object_type in {"connector", "connection"}:
         object_id = str(value.get("connectionId") or value.get("connection_id") or value.get("id") or "").strip()
         if not object_id:
-            return _error("missing_object_id", "connection payload must contain connectionId or id before lifecycle planning")
+            return _error(
+                "missing_object_id", "connection payload must contain connectionId or id before lifecycle planning"
+            )
     elif object_type in {"dashboard", "editor_chart", "wizard_chart", "ql_chart", "html_page"}:
         entry = value.get("entry") if isinstance(value.get("entry"), dict) else value
         object_id = str(
-            entry.get("entryId")
-            or entry.get("id")
-            or entry.get("dashboardId")
-            or entry.get("chartId")
-            or ""
+            entry.get("entryId") or entry.get("id") or entry.get("dashboardId") or entry.get("chartId") or ""
         ).strip()
         if not object_id:
-            return _error("missing_object_id", f"{object_type} payload must contain an object id before lifecycle planning")
+            return _error(
+                "missing_object_id", f"{object_type} payload must contain an object id before lifecycle planning"
+            )
     return None
 
 
@@ -1405,9 +1431,13 @@ def _contains_result_envelope(value: Any) -> bool:
 
 def _ambiguous_mutation_source(object_type: str, operation: str, value: dict[str, Any]) -> dict[str, Any] | None:
     if _summary_only_read(value):
-        return _error("summary_readback_not_mutation_source", "summary-only readbacks cannot be used as mutation payloads")
+        return _error(
+            "summary_readback_not_mutation_source", "summary-only readbacks cannot be used as mutation payloads"
+        )
     if any(isinstance(value.get(key), dict) for key in ("result", "response")):
-        return _error("explicit_adapter_required", "RPC readback envelopes require source_adapter=rpc_readback_envelope")
+        return _error(
+            "explicit_adapter_required", "RPC readback envelopes require source_adapter=rpc_readback_envelope"
+        )
     if object_type == "dataset" and operation in {"update", "validate"}:
         if _is_exact_dataset_mutation_request(value):
             return None
@@ -1428,7 +1458,9 @@ def _ambiguous_mutation_source(object_type: str, operation: str, value: dict[str
 
 
 def _summary_only_read(value: dict[str, Any]) -> bool:
-    return bool(value.get("summary")) and not any(key in value for key in ("entry", "data", "dataset", "connection", "connector"))
+    return bool(value.get("summary")) and not any(
+        key in value for key in ("entry", "data", "dataset", "connection", "connector")
+    )
 
 
 def _is_exact_dataset_mutation_request(value: dict[str, Any]) -> bool:
@@ -1461,7 +1493,10 @@ def _dataset_request_shape_error(method: str, payload: dict[str, Any]) -> dict[s
     if not isinstance(data, dict) or not isinstance(data.get("dataset"), dict):
         return _error("datalens_validation_error", "updateDataset/validateDataset requires data.dataset")
     if "dataset" in payload:
-        return _error("datalens_validation_error", "data.dataset must be the only dataset wrapper in updateDataset/validateDataset")
+        return _error(
+            "datalens_validation_error",
+            "data.dataset must be the only dataset wrapper in updateDataset/validateDataset",
+        )
     nested = data["dataset"]
     if isinstance(nested.get("data"), dict) and isinstance(nested["data"].get("dataset"), dict):
         return _error("datalens_validation_error", "data.dataset is double-wrapped")
@@ -1528,9 +1563,7 @@ def _project_read_response(
         if _serialized_read_chars(composed) <= inline_char_budget:
             return composed
     detail = f": {last_budget_error}" if last_budget_error else ""
-    raise ValueError(
-        f"inline_char_budget must be increased to fit the stable dl_read_object response contract{detail}"
-    )
+    raise ValueError(f"inline_char_budget must be increased to fit the stable dl_read_object response contract{detail}")
 
 
 def _read_contract_variants(contract: dict[str, Any]) -> list[dict[str, Any]]:
@@ -1611,9 +1644,7 @@ def _fit_read_object_result(result: dict[str, Any], *, budget: int) -> dict[str,
         "object_id": _bounded_read_text(result.get("object_id"), 32),
         "attempted_method": _bounded_read_text(result.get("attempted_method"), 32),
         "contract": {
-            "schema_id": str(contract.get("schema_id") or "")
-            if isinstance(contract, dict)
-            else "",
+            "schema_id": str(contract.get("schema_id") or "") if isinstance(contract, dict) else "",
             "truncated": True,
         },
         "remediation": "Increase inline_char_budget for full error details.",
@@ -1657,7 +1688,9 @@ def _serialized_read_chars(value: Any) -> int:
 
 
 def _read_object_summary(response: dict[str, Any], *, object_type: str, object_id: str, branch: str) -> dict[str, Any]:
-    entry = _first_dict(response, keys=("entry", "chart", "dashboard", "dataset", "connection", "report", "workbook", "collection"))
+    entry = _first_dict(
+        response, keys=("entry", "chart", "dashboard", "dataset", "connection", "report", "workbook", "collection")
+    )
     data = entry.get("data") if isinstance(entry.get("data"), dict) else {}
     if not data and isinstance(response.get("data"), dict):
         data = response["data"]
@@ -1675,8 +1708,17 @@ def _read_object_summary(response: dict[str, Any], *, object_type: str, object_i
                     "metadata": serialized_metadata(sanitize_response(value)),
                 }
             )
+    direct = provider_direct_url(response)
+    workbook_id = _first_scalar(entry, response, keys=("workbookId", "workbook_id"))
     return {
         "schema_id": "generic_object_summary",
+        **normalize_object_locator(
+            direct,
+            object_type=object_type,
+            object_id=object_id,
+            workbook_id=str(workbook_id or ""),
+            url_source="provider_readback" if direct else "route_builder",
+        ),
         "identity": {
             "id": _first_scalar(
                 entry,
@@ -1935,7 +1977,9 @@ def _wizard_chart_error(
             "Wizard creation requires an explicit supported visualization_id.",
         )
     if operation == "create" and not is_supported_wizard_visualization(visualization_token):
-        return _error("unsupported_chart_type", f"Unknown Wizard visualization_id `{visualization_token}` is blocked for create.")
+        return _error(
+            "unsupported_chart_type", f"Unknown Wizard visualization_id `{visualization_token}` is blocked for create."
+        )
     if route and normalize_creation_route(route) != WIZARD_NATIVE_ROUTE:
         return _error("unsupported_chart_type", "Wizard chart route must be wizard_native.")
     if route == WIZARD_MAP_ALIAS and visualization_token != "geolayer":
@@ -1990,7 +2034,9 @@ def _ql_chart_error(
         return _error("explicit_user_request_required", "QL approval provenance must include bounded request evidence.")
     data = _find_data_payload(entry)
     if not isinstance(data, dict) or not data:
-        return _error("missing_input", "QL payload data must be passed explicitly or extracted from a fresh saved QL seed.")
+        return _error(
+            "missing_input", "QL payload data must be passed explicitly or extracted from a fresh saved QL seed."
+        )
     if source_adapter in {"rpc_readback_envelope", "saved_entry"}:
         branch = str(entry.get("branch") or entry.get("source_branch") or "").strip().lower()
         if branch != "saved" or not _lifecycle_revision_token(entry):
@@ -2134,7 +2180,9 @@ def _chart_guid_references(payloads: list[dict[str, Any]], candidate_guids: set[
         text = json.dumps(payload, ensure_ascii=False, sort_keys=True)
         for guid in sorted(candidate_guids):
             if guid and guid in text:
-                chart_id = str(payload.get("chartId") or payload.get("id") or payload.get("entryId") or f"chart[{index}]")
+                chart_id = str(
+                    payload.get("chartId") or payload.get("id") or payload.get("entryId") or f"chart[{index}]"
+                )
                 references.append({"chart_id": chart_id, "guid": guid})
     return references
 
@@ -2280,7 +2328,9 @@ def _object_id_for_payload(object_type: str, payload: dict[str, Any]) -> str:
         return str(payload.get("datasetId") or payload.get("dataset_id") or payload.get("id") or "")
     if object_type == "connector":
         return str(payload.get("connectionId") or payload.get("connection_id") or payload.get("id") or "")
-    return str(payload.get("entryId") or payload.get("chartId") or payload.get("dashboardId") or payload.get("id") or "")
+    return str(
+        payload.get("entryId") or payload.get("chartId") or payload.get("dashboardId") or payload.get("id") or ""
+    )
 
 
 def _html_page_validation(
@@ -2314,8 +2364,7 @@ def _html_page_validation_error(
     return {
         **_error(
             "datalens_validation_error",
-            "html_page.content failed the standalone sandbox contract: "
-            + ", ".join(blocking[:20]),
+            "html_page.content failed the standalone sandbox contract: " + ", ".join(blocking[:20]),
         ),
         "object_type": "html_page",
         "operation": operation,

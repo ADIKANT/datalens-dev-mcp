@@ -1,20 +1,28 @@
 from __future__ import annotations
 
-from copy import deepcopy
 import json
-from pathlib import Path
 import re
+from copy import deepcopy
+from pathlib import Path
 from typing import Any
 
 from datalens_dev_mcp.api.request_compiler import project_method_request
 from datalens_dev_mcp.pipeline.baseline_preservation import build_object_reuse_decision
 from datalens_dev_mcp.pipeline.safe_apply import create_safe_apply_plan
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
-from datalens_dev_mcp.validators.redaction import sanitize_value
-
 
 CREATE_BUNDLE_SCHEMA_ID = "datalens_public_create_bundle"
 CREATE_MANIFEST_SCHEMA_ID = "datalens_public_create_manifest"
+OBJECT_LIFECYCLES = frozenset({"persistent", "temporary"})
+WORKBOOK_LIFECYCLES = frozenset({"persistent", "persistent_anchor", "disposable_sibling"})
+CLEANUP_ROUTES = frozenset(
+    {
+        "direct_object_delete",
+        "semantic_inverse_update",
+        "whole_disposable_workbook_delete",
+        "approved_retained_fixture",
+    }
+)
 PLACEHOLDER_RE = re.compile(r"\$\{object:([A-Za-z][A-Za-z0-9._-]{0,63})\}")
 KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9._-]{0,63}$")
 ROUTES: dict[str, dict[str, Any]] = {
@@ -79,6 +87,8 @@ def load_create_bundle(
     manifest = _read_json(manifest_path, label="create manifest")
     issues = list(validate_create_manifest(manifest))
     resolved_workbook = str(manifest.get("workbook_id") or workbook_id or "").strip()
+    run_id = str(manifest.get("run_id") or "").strip()
+    workbook_lifecycle = str(manifest.get("workbook_lifecycle") or "persistent").strip()
     if not resolved_workbook:
         issues.append("workbook_id is required")
     if workbook_id and manifest.get("workbook_id") and str(manifest["workbook_id"]) != workbook_id:
@@ -89,6 +99,29 @@ def load_create_bundle(
             continue
         object_type = str(item.get("object_type") or "")
         route = ROUTES.get(object_type) or {}
+        object_lifecycle = str(item.get("lifecycle") or "persistent").strip()
+        cleanup_route = str(item.get("cleanup_route") or "").strip()
+        if object_lifecycle == "temporary":
+            if not run_id:
+                issues.append("run_id is required before temporary create")
+            if not cleanup_route:
+                issues.append("cleanup_route is required before temporary create")
+        if cleanup_route == "whole_disposable_workbook_delete" and workbook_lifecycle != "disposable_sibling":
+            issues.append(
+                f"object {item.get('key')} whole_disposable_workbook_delete requires "
+                "workbook_lifecycle=disposable_sibling"
+            )
+        if object_type == "ql_chart" and object_lifecycle == "temporary":
+            if cleanup_route in {"direct_object_delete", "semantic_inverse_update"}:
+                issues.append(
+                    f"object {item.get('key')} QL temporary create requires a disposable sibling "
+                    "workbook or approved_retained_fixture"
+                )
+            if workbook_lifecycle == "persistent_anchor" and cleanup_route != "approved_retained_fixture":
+                issues.append(
+                    f"object {item.get('key')} QL temporary create in a persistent anchor "
+                    "requires approved_retained_fixture"
+                )
         if object_type == "ql_chart" and not direct_ql_requested:
             issues.append("ql_chart requires a direct QL request")
         requested_route = str(item.get("route") or route.get("route") or "")
@@ -101,7 +134,7 @@ def load_create_bundle(
             issues.append(str(exc))
             continue
         placeholders = sorted(set(_collect_placeholders(payload)))
-        declared_dependencies = sorted(set(str(value) for value in item.get("dependencies") or []))
+        declared_dependencies = sorted({str(value) for value in item.get("dependencies") or []})
         if placeholders != declared_dependencies:
             issues.append(
                 f"object {item.get('key')} placeholder dependencies do not match declared dependencies"
@@ -128,7 +161,7 @@ def load_create_bundle(
                 # marked readOnly are validated away here but reintroduced
                 # later when the create action is compiled.
                 writable_payload = projected["payload"]
-        sanitized_payload = sanitize_value(writable_payload)
+        canonical_payload = deepcopy(writable_payload)
         objects.append(
             {
                 "key": str(item.get("key") or ""),
@@ -136,18 +169,27 @@ def load_create_bundle(
                 "route": requested_route,
                 "name": str(item.get("name") or ""),
                 "dependencies": declared_dependencies,
-                "payload": sanitized_payload,
-                "payload_hash": canonical_hash(sanitized_payload),
+                "payload": canonical_payload,
+                "payload_hash": canonical_hash(canonical_payload),
+                "lifecycle": object_lifecycle,
+                "cleanup_route": cleanup_route,
+                "inverse_or_recreate_plan": _cleanup_plan(
+                    cleanup_route,
+                    workbook_id=resolved_workbook,
+                    object_type=object_type,
+                ),
             }
         )
     issues.extend(_dependency_issues(objects))
     if issues:
         raise CreateManifestError("invalid create manifest: " + "; ".join(dict.fromkeys(issues)))
-    source = sanitize_value(manifest)
+    source = deepcopy(manifest)
     bundle = {
         "schema_id": CREATE_BUNDLE_SCHEMA_ID,
         "bundle_version": 1,
+        "run_id": run_id,
         "workbook_id": resolved_workbook,
+        "workbook_lifecycle": workbook_lifecycle,
         "manifest_hash": canonical_hash(source),
         "object_count": len(objects),
         "objects": objects,
@@ -183,11 +225,20 @@ def validate_create_manifest(value: dict[str, Any]) -> tuple[str, ...]:
             issues.append(f"objects[{index}].name is required")
         if not str(item.get("payload_path") or "").strip():
             issues.append(f"objects[{index}].payload_path is required")
+        lifecycle = str(item.get("lifecycle") or "persistent").strip()
+        if lifecycle not in OBJECT_LIFECYCLES:
+            issues.append(f"objects[{index}].lifecycle is invalid")
+        cleanup_route = str(item.get("cleanup_route") or "").strip()
+        if cleanup_route and cleanup_route not in CLEANUP_ROUTES:
+            issues.append(f"objects[{index}].cleanup_route is invalid")
         dependencies = item.get("dependencies", [])
         if not isinstance(dependencies, list) or any(not isinstance(dep, str) for dep in dependencies):
             issues.append(f"objects[{index}].dependencies must be an array of keys")
     if len(keys) != len(set(keys)):
         issues.append("object keys must be unique")
+    workbook_lifecycle = str(value.get("workbook_lifecycle") or "persistent").strip()
+    if workbook_lifecycle not in WORKBOOK_LIFECYCLES:
+        issues.append("workbook_lifecycle is invalid")
     return tuple(issues)
 
 
@@ -235,6 +286,12 @@ def create_template_actions(bundle: dict[str, Any], *, baseline_artifact: str) -
             "mode": "created_object_registry",
             "owner_workflow": "public_create_manifest",
             "active_graph_check": True,
+            "run_id": str(bundle.get("run_id") or ""),
+            "object_lifecycle": str(item.get("lifecycle") or "persistent"),
+            "workbook_lifecycle": str(bundle.get("workbook_lifecycle") or "persistent"),
+            "parent_workbook": workbook_id,
+            "cleanup_route": str(item.get("cleanup_route") or ""),
+            "inverse_or_recreate_plan": deepcopy(item.get("inverse_or_recreate_plan") or {}),
         }
         reuse = build_object_reuse_decision(
             desired_role=str(item["key"]),
@@ -281,15 +338,13 @@ def create_safe_apply_template(
     task_contract_hash: str,
     baseline_artifact: str,
 ) -> dict[str, Any]:
-    return sanitize_value(
-        create_safe_apply_plan(
-            project_root=project_root,
-            actions=create_template_actions(bundle, baseline_artifact=baseline_artifact),
-            approved=True,
-            approval_note="authorized by immutable public create task contract",
-            user_request_text="create declared workbook objects and save",
-            task_contract_hash=task_contract_hash,
-        )
+    return create_safe_apply_plan(
+        project_root=project_root,
+        actions=create_template_actions(bundle, baseline_artifact=baseline_artifact),
+        approved=True,
+        approval_note="authorized by immutable public create task contract",
+        user_request_text="create declared workbook objects and save",
+        task_contract_hash=task_contract_hash,
     )
 
 
@@ -321,6 +376,18 @@ def _dependency_issues(objects: list[dict[str, Any]]) -> list[str]:
             elif positions[dependency] >= index:
                 issues.append(f"object {key} dependency {dependency} must appear earlier")
     return issues
+
+
+def _cleanup_plan(cleanup_route: str, *, workbook_id: str, object_type: str) -> dict[str, Any]:
+    if cleanup_route == "whole_disposable_workbook_delete":
+        return {"strategy": "delete_workbook_and_verify_absent", "workbook_id": workbook_id}
+    if cleanup_route == "direct_object_delete":
+        return {"strategy": "delete_object_and_verify_absent", "object_type": object_type}
+    if cleanup_route == "semantic_inverse_update":
+        return {"strategy": "restore_baseline_and_verify_equivalent"}
+    if cleanup_route == "approved_retained_fixture":
+        return {"strategy": "retained_fixture_with_named_approval"}
+    return {"strategy": "not_applicable_persistent_object"}
 
 
 def _collect_placeholders(value: Any) -> list[str]:

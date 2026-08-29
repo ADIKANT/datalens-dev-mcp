@@ -5,6 +5,7 @@ from pathlib import Path
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 from datalens_dev_mcp.pipeline.project_journal import (
     JournalIdentityError,
@@ -13,6 +14,7 @@ from datalens_dev_mcp.pipeline.project_journal import (
     build_journal_identity,
 )
 from datalens_dev_mcp.pipeline.task_contract import DeliveryContract, WorkspaceContract, create_task_contract
+from datalens_dev_mcp.pipeline.workflow_engine import WorkflowEngine
 
 
 def _contract(root: Path, *, raw: str = "Update the target") -> dict:
@@ -26,6 +28,28 @@ def _contract(root: Path, *, raw: str = "Update the target") -> dict:
 
 
 class ProjectJournalTests(unittest.TestCase):
+    def test_contract_hash_survives_project_path_containing_host_session_id(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            session_id = "01a04d9d-ac5b-7102-b36b-d35e6ff58862"
+            root = Path(tmp) / session_id / "project"
+            root.mkdir(parents=True)
+            contract = _contract(root)
+            journal = ProjectJournal(root, contract["task_id"], storage_root=root / "journal")
+            with patch.dict("os.environ", {"CODEX_SESSION_ID": session_id}, clear=False):
+                state = journal.initialize(contract)
+                journal.assert_resume_identity(contract)
+                engine = WorkflowEngine(
+                    journal,
+                    contract,
+                    handlers={"read_baseline": lambda _context: {"status": "success"}},
+                    build_identity=json.loads(journal.build_identity_path.read_text(encoding="utf-8")),
+                    target_binding=json.loads(journal.target_binding_path.read_text(encoding="utf-8")),
+                )
+                state = engine.resume(max_transitions=1)
+            self.assertEqual(state.contract_hash, contract["contract_hash"])
+            self.assertEqual(state.current_state, "BASELINE_READ")
+            self.assertEqual(journal.load_contract(), contract)
+
     def test_project_journal_layout_identity_and_checkpoint_are_bounded(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

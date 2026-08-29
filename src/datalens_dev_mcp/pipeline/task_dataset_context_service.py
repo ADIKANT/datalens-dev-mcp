@@ -2,20 +2,20 @@ from __future__ import annotations
 
 import json
 import time
+from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.pipeline.dataset_context_profile import build_dataset_context_profile
-from datalens_dev_mcp.pipeline.dataset_data_normalizer import normalize_dataset_data_response
 from datalens_dev_mcp.pipeline.dataset_data_failures import classify_dataset_data_failure
-from datalens_dev_mcp.pipeline.dataset_probe_planner import DatasetProbePlanner
+from datalens_dev_mcp.pipeline.dataset_data_normalizer import normalize_dataset_data_response
 from datalens_dev_mcp.pipeline.dataset_parameters import extract_dashboard_parameter_defaults
+from datalens_dev_mcp.pipeline.dataset_probe_planner import DatasetProbePlanner
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
 from datalens_dev_mcp.pipeline.task_stage_receipts import build_stage_receipt
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
-from datalens_dev_mcp.validators.redaction import sanitize_value
 
 
 class TaskDatasetContextService:
@@ -47,8 +47,15 @@ class TaskDatasetContextService:
 
     def acquire(self, *, fresh: bool = False, mode: str = "context_probe") -> dict[str, Any]:
         graph = read_json(self.journal.target_graph_path, {}) or {}
-        parameter_defaults = extract_dashboard_parameter_defaults(
-            [read_json(path, {}) or {} for path in sorted((self.journal.root / "snapshots").glob("baseline-*.json"))]
+        parameter_defaults = (
+            {}
+            if mode == "diagnostic_probe"
+            else extract_dashboard_parameter_defaults(
+                [
+                    read_json(path, {}) or {}
+                    for path in sorted((self.journal.root / "snapshots").glob("baseline-*.json"))
+                ]
+            )
         )
         planned = DatasetProbePlanner().plan(
             self.contract,
@@ -64,7 +71,7 @@ class TaskDatasetContextService:
             if mode == "context_probe"
             else self.journal.root / "plans" / f"{mode.replace('_', '-')}-plan.json"
         )
-        write_json(plan_path, sanitize_value(plan))
+        write_json(plan_path, deepcopy(plan))
         query = dict(plan["queries"][0])
         cache_key = canonical_hash(
             {
@@ -122,7 +129,7 @@ class TaskDatasetContextService:
                     }
                 )
             else:
-                response_hash = canonical_hash(sanitize_value(response))
+                response_hash = canonical_hash(response)
                 provider_calls.append(
                     {
                         "method": "getDatasetData",
@@ -132,7 +139,7 @@ class TaskDatasetContextService:
                     }
                 )
                 raw_path = self.journal.root / "data" / "raw" / f"page-{cache_key[:20]}.json"
-                write_json(raw_path, sanitize_value(response))
+                write_json(raw_path, deepcopy(response))
                 write_json(
                     cache_path,
                     {
@@ -150,7 +157,9 @@ class TaskDatasetContextService:
         rows = list(normalized.get("plain_rows") or [])
         row_count = len(rows)
         cell_count = sum(len(row) for row in rows)
-        byte_count = len(json.dumps(normalized.get("typed_rows") or [], ensure_ascii=False, default=str).encode("utf-8"))
+        byte_count = len(
+            json.dumps(normalized.get("typed_rows") or [], ensure_ascii=False, default=str).encode("utf-8")
+        )
         budget = plan["budget"]
         exhausted = (
             row_count > int(budget["max_rows_total"])
@@ -183,7 +192,7 @@ class TaskDatasetContextService:
             if mode == "context_probe"
             else self.journal.root / "evidence" / f"{mode.replace('_', '-')}-context-profile.json"
         )
-        write_json(profile_path, sanitize_value(profile))
+        write_json(profile_path, deepcopy(profile))
         return {
             "ok": not exhausted,
             "status": "blocked_budget" if exhausted else "completed",

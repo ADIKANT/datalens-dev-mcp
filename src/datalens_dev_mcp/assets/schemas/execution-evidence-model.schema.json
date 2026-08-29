@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datalens-dev-mcp.local/execution-evidence-model.schema.json",
+  "title": "Typed execution evidence model",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "model_version", "goal", "build", "obligations", "records", "evidence_model_hash"],
+  "properties": {
+    "schema_id": {"const": "datalens_execution_evidence_model"},
+    "model_version": {"const": 1},
+    "goal": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["revision", "hash"],
+      "properties": {
+        "revision": {"type": "string", "minLength": 1},
+        "hash": {"$ref": "#/$defs/hash"}
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["tree_hash", "package_hash", "tool_surface_hash"],
+      "properties": {
+        "tree_hash": {"type": "string", "pattern": "^(?:[a-f0-9]{40}|[a-f0-9]{64})$"},
+        "package_hash": {"$ref": "#/$defs/hash"},
+        "tool_surface_hash": {"$ref": "#/$defs/hash"}
+      }
+    },
+    "obligations": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"type": "string", "minLength": 1}
+    },
+    "records": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/record"}
+    },
+    "evidence_model_hash": {"$ref": "#/$defs/hash"}
+  },
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_id", "sequence", "mode", "status", "receipt_hash", "observed_calls", "planned_methods", "coverage_cells", "freshness"],
+      "properties": {
+        "evidence_id": {"type": "string", "minLength": 1},
+        "sequence": {"type": "integer", "minimum": 1},
+        "mode": {
+          "enum": [
+            "internal_compiler_screening",
+            "public_stdio_replay",
+            "internal_controlled_live_runner",
+            "public_eight_tool_live_lifecycle",
+            "codex_in_the_loop",
+            "browser_visual_attestation"
+          ]
+        },
+        "status": {"type": "string", "minLength": 1},
+        "receipt_hash": {"$ref": "#/$defs/hash"},
+        "artifact_uri": {"type": "string", "minLength": 1},
+        "observed_calls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["method", "effect", "count"],
+            "properties": {
+              "method": {"type": "string", "minLength": 1},
+              "effect": {"enum": ["read", "write"]},
+              "count": {"type": "integer", "minimum": 1}
+            }
+          }
+        },
+        "planned_methods": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "coverage_cells": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["cell", "state"],
+            "properties": {
+              "cell": {"type": "string", "minLength": 1},
+              "state": {"enum": ["mapped", "selected", "screened", "replayed", "live_verified", "closed"]}
+            }
+          }
+        },
+        "freshness": {"enum": ["current", "superseded"]}
+      }
+    }
+  }
+}

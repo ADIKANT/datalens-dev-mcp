@@ -1,18 +1,19 @@
 from __future__ import annotations
 
 import re
+from copy import deepcopy
 from datetime import UTC, datetime
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from datalens_dev_mcp.api.client import DataLensApiClient
 from datalens_dev_mcp.api.errors import DataLensApiError
 from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.pipeline.dataset_preview import extract_dataset_fields
+from datalens_dev_mcp.pipeline.object_locator import normalize_object_locator, provider_direct_url
 from datalens_dev_mcp.pipeline.target_binding import create_live_target_binding
 from datalens_dev_mcp.pipeline.target_graph import build_target_graph
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
-from datalens_dev_mcp.validators.redaction import sanitize_value
 
 URL_ID_RE = re.compile(r"^[A-Za-z0-9_]{8,64}")
 CHART_ID_KEYS = frozenset({"chartId", "chart_id", "entryId", "entry_id", "targetEntryId", "target_entry_id"})
@@ -39,13 +40,11 @@ class TargetDiscoveryService:
         request_text: str = "",
         target_url: str = "",
     ) -> dict[str, Any]:
+        # Request interpretation ends at TaskContract compilation. Discovery
+        # consumes typed target fields (plus an explicit structured URL input)
+        # and never recovers a target by reparsing the raw user turn.
         target = contract.get("target") or {}
-        dashboard_id = str(
-            target.get("dashboard_id")
-            or parse_target_url(target_url)
-            or parse_target_url(request_text)
-            or ""
-        )
+        dashboard_id = str(target.get("dashboard_id") or parse_target_url(target_url) or "")
         workbook_id = str(target.get("workbook_id") or "")
         requested_ids = [str(item) for item in target.get("object_ids") or [] if str(item)]
         if str(contract.get("mode") or "") == "create" and workbook_id:
@@ -54,7 +53,7 @@ class TargetDiscoveryService:
                 technology=str(contract.get("route") or ""),
             )
         if not dashboard_id and workbook_id:
-            selection = self._select_dashboard_from_workbook(workbook_id, request_text=request_text)
+            selection = self._select_dashboard_from_workbook(workbook_id)
             if selection.get("status") != "success":
                 return selection
             dashboard_id = str(selection["dashboard_id"])
@@ -70,6 +69,12 @@ class TargetDiscoveryService:
                 dashboard_id,
                 workbook_id=workbook_id,
                 requested_ids=requested_ids,
+                verification=(
+                    dict(contract.get("verification") or {})
+                    if contract.get("operation_kind") == "verify_existing_effect"
+                    else {}
+                ),
+                effect=dict(contract.get("effect") or {}),
             )
         except TargetDiscoveryError as exc:
             return {
@@ -79,17 +84,11 @@ class TargetDiscoveryService:
                 "question": None,
             }
 
-    def _select_dashboard_from_workbook(self, workbook_id: str, *, request_text: str) -> dict[str, Any]:
+    def _select_dashboard_from_workbook(self, workbook_id: str) -> dict[str, Any]:
         response = self.client.rpc_readonly("getWorkbookEntries", {"workbookId": workbook_id})
         entries = _entries(response)
         dashboards = [entry for entry in entries if _entry_type(entry) == "dashboard"]
-        lowered = request_text.casefold()
-        exact = [
-            entry for entry in dashboards
-            if str(entry.get("entryId") or entry.get("entry_id") or "") in request_text
-            or str(entry.get("displayKey") or entry.get("name") or "").casefold() in lowered
-        ]
-        candidates = exact or dashboards
+        candidates = dashboards
         if len(candidates) == 1:
             return {
                 "status": "success",
@@ -120,12 +119,21 @@ class TargetDiscoveryService:
             limitations.append("workbook inventory was bounded to the returned page")
         graph = build_target_graph(
             root_ids=[workbook_id],
-            nodes=[_node("workbook", workbook_id, technology or "workbook", "", inventory)],
+            nodes=[
+                _node(
+                    "workbook",
+                    workbook_id,
+                    technology or "workbook",
+                    "",
+                    inventory,
+                    workbook_id=workbook_id,
+                )
+            ],
             edges=[],
             provider_calls=calls,
             limitations=limitations,
         )
-        inventory_hash = canonical_hash(sanitize_value(inventory))
+        inventory_hash = canonical_hash(inventory)
         binding = create_live_target_binding(
             workbook_id=workbook_id,
             dashboard_id="",
@@ -144,7 +152,7 @@ class TargetDiscoveryService:
             "observed_at": _utc_now(),
             "target_binding": binding,
             "target_graph": graph,
-            "baselines": {f"workbook-{workbook_id}-inventory": sanitize_value(inventory)},
+            "baselines": {f"workbook-{workbook_id}-inventory": deepcopy(inventory)},
             "provider_calls": calls,
             "technology": technology or "workbook",
             "tab_count": 0,
@@ -160,6 +168,8 @@ class TargetDiscoveryService:
         *,
         workbook_id: str,
         requested_ids: list[str],
+        verification: dict[str, Any] | None = None,
+        effect: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         calls: list[dict[str, Any]] = []
         baselines: dict[str, dict[str, Any]] = {}
@@ -174,10 +184,30 @@ class TargetDiscoveryService:
             raise TargetDiscoveryError("getDashboard returned no dashboard payload")
         workbook_id = workbook_id or str(_first_deep(dashboard, ("workbookId", "workbook_id")) or "")
         dashboard_revision = str(_first_deep(dashboard, REVISION_KEYS) or "")
+        effect_kind = str((effect or {}).get("kind") or "")
+        published_dashboard: dict[str, Any] = {}
+        published_revision = ""
+        if verification and effect_kind in {"published", "changed"}:
+            published_dashboard = self._read(
+                "getDashboard", {"dashboardId": dashboard_id, "branch": "published"}, calls
+            )
+            published_revision = str(_first_deep(published_dashboard, REVISION_KEYS) or "")
+            if not _object_data(published_dashboard, "dashboard") and not _entry(published_dashboard, "dashboard"):
+                raise TargetDiscoveryError("getDashboard published branch returned no dashboard payload")
+            baselines[f"dashboard-{dashboard_id}-published"] = deepcopy(published_dashboard)
         tabs = dashboard_data.get("tabs") if isinstance(dashboard_data.get("tabs"), list) else []
         layout = dashboard_data.get("layout") or dashboard_data.get("blocks") or tabs
-        baselines[f"dashboard-{dashboard_id}-saved"] = sanitize_value(dashboard)
-        nodes.append(_node("dashboard", dashboard_id, "dashboard", dashboard_revision, dashboard))
+        baselines[f"dashboard-{dashboard_id}-saved"] = deepcopy(dashboard)
+        dashboard_node = _node(
+            "dashboard",
+            dashboard_id,
+            "dashboard",
+            dashboard_revision,
+            dashboard,
+            workbook_id=workbook_id,
+        )
+        dashboard_node["published_revision"] = published_revision
+        nodes.append(dashboard_node)
 
         inventory_types: dict[str, str] = {}
         if workbook_id:
@@ -194,7 +224,8 @@ class TargetDiscoveryService:
 
         chart_candidates = sorted(
             {
-                item for item in _collect_ids(dashboard_data, CHART_ID_KEYS)
+                item
+                for item in _collect_ids(dashboard_data, CHART_ID_KEYS)
                 if item != dashboard_id and _is_chart_type(inventory_types.get(item, "chart"))
             }
             | {item for item in requested_ids if item != dashboard_id}
@@ -224,8 +255,15 @@ class TargetDiscoveryService:
                 raise
             technologies.add(technology)
             revision = str(_first_deep(chart, REVISION_KEYS) or "")
-            baselines[f"chart-{chart_id}-saved"] = sanitize_value(chart)
-            chart_node = _node(object_type, chart_id, technology, revision, chart)
+            baselines[f"chart-{chart_id}-saved"] = deepcopy(chart)
+            chart_node = _node(
+                object_type,
+                chart_id,
+                technology,
+                revision,
+                chart,
+                workbook_id=workbook_id,
+            )
             chart_node["field_guids"] = sorted(_collect_ids(chart, FIELD_GUID_KEYS))
             nodes.append(chart_node)
             edges.append({"source": dashboard_id, "target": chart_id, "relation": "contains"})
@@ -248,12 +286,19 @@ class TargetDiscoveryService:
             fields = extract_dataset_fields(dataset)
             field_catalog = [_field_projection(item) for item in fields]
             revision = str(_first_deep(dataset, REVISION_KEYS) or "")
-            node = _node("dataset", dataset_id, "dataset", revision, dataset)
+            node = _node(
+                "dataset",
+                dataset_id,
+                "dataset",
+                revision,
+                dataset,
+                workbook_id=workbook_id,
+            )
             node["field_catalog"] = field_catalog
             node["field_catalog_hash"] = canonical_hash(field_catalog)
             nodes.append(node)
             hydrated_dataset_ids.add(dataset_id)
-            baselines[f"dataset-{dataset_id}-saved"] = sanitize_value(dataset)
+            baselines[f"dataset-{dataset_id}-saved"] = deepcopy(dataset)
             for connection_id in _collect_ids(dataset, CONNECTION_ID_KEYS):
                 connection_ids.add(connection_id)
                 edges.append({"source": dataset_id, "target": connection_id, "relation": "uses_connection"})
@@ -267,7 +312,17 @@ class TargetDiscoveryService:
             if workbook_id:
                 payload["workbookId"] = workbook_id
             connection = self._read("getConnection", payload, calls)
-            nodes.append(_node("connection", connection_id, "connection", "", connection, include_payload_hash=False))
+            nodes.append(
+                _node(
+                    "connection",
+                    connection_id,
+                    "connection",
+                    "",
+                    connection,
+                    workbook_id=workbook_id,
+                    include_payload_hash=False,
+                )
+            )
             hydrated_connection_ids.add(connection_id)
 
         graph = build_target_graph(
@@ -284,10 +339,10 @@ class TargetDiscoveryService:
             object_ids=[str(item.get("object_id") or "") for item in nodes],
             object_types=[str(item.get("object_type") or "") for item in nodes],
             saved_revision=dashboard_revision,
-            published_revision="",
-            payload_hash=canonical_hash(sanitize_value(dashboard)),
-            layout_hash=canonical_hash(sanitize_value(layout)),
-            tabs_hash=canonical_hash(sanitize_value(tabs)),
+            published_revision=published_revision,
+            payload_hash=canonical_hash(dashboard),
+            layout_hash=canonical_hash(layout),
+            tabs_hash=canonical_hash(tabs),
             technology=technology,
             target_graph_hash=str(graph["graph_hash"]),
         )
@@ -306,12 +361,16 @@ class TargetDiscoveryService:
         }
 
     def _read(self, method: str, payload: dict[str, Any], calls: list[dict[str, Any]]) -> dict[str, Any]:
-        response = self.client.rpc_readonly(method, payload)
+        try:
+            response = self.client.rpc_readonly(method, payload)
+        except DataLensApiError as exc:
+            exc.provider_method = method
+            raise
         calls.append(
             {
                 "method": method,
                 "request_hash": canonical_hash(payload),
-                "response_hash": canonical_hash(sanitize_value(response)),
+                "response_hash": canonical_hash(response),
                 "status": "success",
             }
         )
@@ -322,10 +381,19 @@ def parse_target_url(value: str) -> str:
     text = str(value or "").strip()
     if not text:
         return ""
-    match_url = re.search(r"https?://[^\s]+", text)
-    if match_url:
-        text = match_url.group(0).rstrip(".,;)")
+    urls = [match.group(0).rstrip(".,;:])}") for match in re.finditer(r"https?://[^\s]+", text)]
+    if not urls:
+        return text if re.fullmatch(r"[A-Za-z0-9_]{8,64}", text) else ""
+    datalens_urls = [url for url in urls if "datalens" in (urlparse(url).hostname or "").lower()]
+    if not datalens_urls:
+        return ""
+    text = datalens_urls[0]
     parsed = urlparse(text)
+    query = parse_qs(parsed.query)
+    for key in ("dashboardId", "dashboard_id", "id"):
+        value = str((query.get(key) or [""])[0])
+        if re.fullmatch(r"[A-Za-z0-9_]{8,64}", value):
+            return value
     segments = [segment for segment in parsed.path.split("/") if segment]
     for segment in reversed(segments):
         match = URL_ID_RE.match(segment)
@@ -355,9 +423,11 @@ def _entries(response: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _entry_type(entry: dict[str, Any]) -> str:
-    raw = " ".join(
-        str(entry.get(key) or "") for key in ("scope", "type", "entryType", "objectType", "kind")
-    ).strip().lower()
+    raw = (
+        " ".join(str(entry.get(key) or "") for key in ("scope", "type", "entryType", "objectType", "kind"))
+        .strip()
+        .lower()
+    )
     if "dashboard" in raw or raw == "dash":
         return "dashboard"
     if "dataset" in raw:
@@ -376,7 +446,16 @@ def _entry_type(entry: dict[str, Any]) -> str:
 
 
 def _is_chart_type(value: str) -> bool:
-    return value in {"chart", "widget", "editor_chart", "editor_table", "wizard_chart", "ql_chart", "control", "markdown"}
+    return value in {
+        "chart",
+        "widget",
+        "editor_chart",
+        "editor_table",
+        "wizard_chart",
+        "ql_chart",
+        "control",
+        "markdown",
+    }
 
 
 def _chart_read_route(object_type: str) -> tuple[str, str]:
@@ -452,16 +531,23 @@ def _node(
     revision: str,
     response: dict[str, Any],
     *,
+    workbook_id: str = "",
     include_payload_hash: bool = True,
 ) -> dict[str, Any]:
+    direct = provider_direct_url(response)
     payload = {
-        "object_type": object_type,
-        "object_id": object_id,
+        **normalize_object_locator(
+            direct,
+            object_type=object_type,
+            object_id=object_id,
+            workbook_id=workbook_id,
+            url_source="provider_readback" if direct else "route_builder",
+        ),
         "technology": technology,
         "saved_revision": revision,
     }
     if include_payload_hash:
-        payload["payload_hash"] = canonical_hash(sanitize_value(response))
+        payload["payload_hash"] = canonical_hash(response)
     return payload
 
 
