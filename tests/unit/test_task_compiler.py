@@ -144,6 +144,41 @@ class TaskCompilerTests(unittest.TestCase):
         self.assertEqual(publish["contract"]["operation_kind"], "mutate")
         self.assertTrue(publish["contract"]["delivery"]["publish"])
 
+    def test_russian_redo_request_preserves_mutation_and_negation_semantics(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        cases = (
+            (
+                "все отлично, теперь дашборд нравится, но остается проблемы, что kpi блоки ты сделал "
+                "одним общим чартом, а я просил так не делать. каждая kpi карточка должна быть отдельным "
+                "объектом. поэтому переделай, расположение оставь таким же, оставь через header выделение, "
+                "что это executive kpi и так далее",
+                "mutate",
+                "update",
+                {"save": True, "publish": True, "destructive": False},
+            ),
+            (
+                "Не переделывай KPI-блоки, только проверь текущую структуру.",
+                "inspect",
+                "review",
+                {"save": False, "publish": False, "destructive": False},
+            ),
+        )
+        for request, operation_kind, mode, delivery in cases:
+            with self.subTest(request=request):
+                contract = compile_task_contract(
+                    request,
+                    current_live={
+                        "workbook_id": "synthetic_workbook",
+                        "dashboard_id": "synthetic_dashboard",
+                        "technology": "dashboard",
+                    },
+                )["contract"]
+
+                self.assertEqual(contract["operation_kind"], operation_kind)
+                self.assertEqual(contract["mode"], mode)
+                self.assertEqual(contract["delivery"], delivery)
+
     def test_generic_followup_preserves_typed_mutation_mode_and_delivery(self):
         from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
 
