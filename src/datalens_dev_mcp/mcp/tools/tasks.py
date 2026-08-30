@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from datalens_dev_mcp.api.errors import DataLensApiError
+from datalens_dev_mcp.local_config import is_project_live_manifest_payload
 from datalens_dev_mcp.mcp.task_projection import (
     compact_task_status,
     project_task_summary,
@@ -52,6 +53,7 @@ AMENDMENT_RELATIONSHIPS = frozenset(
         "start_new_workflow",
     }
 )
+PROJECT_MANIFEST_NAMES = (".datalens-mcp.json", "datalens-mcp.project.json")
 
 
 def dl_task_start(
@@ -62,6 +64,7 @@ def dl_task_start(
 ) -> dict[str, Any]:
     boundary = _run_until(run_until)
     task_context = dict(context or {})
+    manifest_target = _project_manifest_target_context(project_root)
     target_url = str(task_context.get("target_url") or "")
     compile_request = request + (f"\nTarget: {target_url}" if target_url and target_url not in request else "")
     reference_locator = str(task_context.get("reference_locator") or "")
@@ -103,6 +106,14 @@ def dl_task_start(
                 ]
             )
         )
+    current_live = {
+        **manifest_target,
+        **{
+            key: task_context[key]
+            for key in ("workbook_id", "dashboard_id", "chart_id", "object_ids", "object_types")
+            if key in task_context
+        },
+    }
     preliminary = compile_task_contract(
         compile_request,
         project_root=str(Path(project_root).resolve()),
@@ -110,11 +121,7 @@ def dl_task_start(
             "kind": reference_kind if reference_locator else "none",
             "locator": reference_locator,
         },
-        current_live={
-            key: task_context[key]
-            for key in ("workbook_id", "dashboard_id", "chart_id", "object_ids", "object_types")
-            if key in task_context
-        },
+        current_live=current_live,
         scope_overrides=scope_overrides,
         acceptance=acceptance,
     )
@@ -130,6 +137,7 @@ def dl_task_start(
             direct_ql_requested=str((preliminary.get("contract") or {}).get("route") or "") == "ql_explicit",
         )
         task_context["workbook_id"] = str(create_bundle["workbook_id"])
+        current_live["workbook_id"] = task_context["workbook_id"]
         acceptance.append(
             {
                 "kind": "create_manifest",
@@ -154,11 +162,7 @@ def dl_task_start(
                 "kind": reference_kind if reference_locator else "none",
                 "locator": reference_locator,
             },
-            current_live={
-                key: task_context[key]
-                for key in ("workbook_id", "dashboard_id", "chart_id", "object_ids", "object_types")
-                if key in task_context
-            },
+            current_live=current_live,
             scope_overrides=scope_overrides,
             acceptance=acceptance,
         )
@@ -311,6 +315,39 @@ def dl_task_start(
         result.update(
             {"plan_hash": plan["plan_hash"], "plan_resource_uri": task_resource_uri(journal.task_id, "plans/plan.json")}
         )
+    return result
+
+
+def _project_manifest_target_context(project_root: str) -> dict[str, str]:
+    root = Path(project_root).resolve()
+    manifest: dict[str, Any] = {}
+    for name in PROJECT_MANIFEST_NAMES:
+        candidate = root / name
+        if candidate.is_file():
+            value = read_json(candidate, {}) or {}
+            manifest = value if isinstance(value, dict) else {}
+            break
+    if not is_project_live_manifest_payload(manifest):
+        return {}
+    target = manifest.get("target") if isinstance(manifest.get("target"), dict) else {}
+    workbooks = {
+        str(value).strip()
+        for value in (manifest.get("workbook_id"), target.get("workbook_id"))
+        if str(value or "").strip()
+    }
+    dashboard_values: list[Any] = [
+        manifest.get("dashboard_id"),
+        target.get("dashboard_id"),
+    ]
+    for value in (manifest.get("dashboard_ids"), target.get("dashboard_ids")):
+        if isinstance(value, list):
+            dashboard_values.extend(value)
+    dashboards = {str(value).strip() for value in dashboard_values if str(value or "").strip()}
+    result: dict[str, str] = {}
+    if len(workbooks) == 1:
+        result["workbook_id"] = next(iter(workbooks))
+    if len(dashboards) == 1:
+        result["dashboard_id"] = next(iter(dashboards))
     return result
 
 

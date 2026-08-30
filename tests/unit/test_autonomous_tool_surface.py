@@ -232,6 +232,43 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
                     self.assertIn("TASK_DISCOVERY_RETRY_SUCCEEDED", resumed["performed"])
                     self.assertNotEqual(resumed["blocked_by"].get("code"), "BLOCKED_DISCOVERY")
 
+    def test_public_start_resolves_unambiguous_project_manifest_target(self) -> None:
+        from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService
+        from tests.unit.test_target_discovery import DiscoveryClient
+
+        target_shapes = (
+            ("top_level", {"workbook_id": "book_demo", "dashboard_ids": ["dash_demo"]}),
+            (
+                "nested_target",
+                {"target": {"workbook_id": "book_demo", "dashboard_ids": ["dash_demo"]}},
+            ),
+        )
+        for label, target_shape in target_shapes:
+            with self.subTest(label=label), tempfile.TemporaryDirectory() as tmp:
+                manifest = {
+                    "project_name": "synthetic_project",
+                    "workflows": [{"name": "delivery", "may_execute_command": False}],
+                    **target_shape,
+                }
+                Path(tmp, ".datalens-mcp.json").write_text(json.dumps(manifest), encoding="utf-8")
+                client = DiscoveryClient()
+                service = TargetDiscoveryService(client)
+                with patch.object(tasks, "TargetDiscoveryService", return_value=service):
+                    started = tasks.dl_task_start(
+                        "Update the project dashboard while preserving its layout",
+                        project_root=tmp,
+                        run_until="plan_ready",
+                    )
+
+                contract = ProjectJournal(tmp, started["task_id"]).load_contract()
+                self.assertEqual(contract["target"]["workbook_id"], "book_demo")
+                self.assertEqual(contract["target"]["dashboard_id"], "dash_demo")
+                self.assertEqual(
+                    client.calls[0],
+                    ("getDashboard", {"dashboardId": "dash_demo", "branch": "saved"}),
+                )
+                self.assertNotEqual(started.get("blocked_by", {}).get("code"), "BLOCKED_DISCOVERY")
+
     def test_destructive_resume_requires_persisted_execution_authorization(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             safe_plan = {"ok": True, "status": "planned", "actions": [{"method": "deleteDashboard"}]}
