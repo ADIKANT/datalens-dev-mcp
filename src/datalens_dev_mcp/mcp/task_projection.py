@@ -144,10 +144,13 @@ def _resolved_route(
     target_binding: dict[str, Any] | None,
     style_binding: dict[str, Any] | None,
 ) -> str:
+    contract_route = str(contract.get("route") or "")
+    if int(contract.get("contract_revision") or 1) > 1 and contract_route:
+        return contract_route
     return str(
         (style_binding or {}).get("technology")
         or (target_binding or {}).get("technology")
-        or contract.get("route")
+        or contract_route
         or ""
     )
 

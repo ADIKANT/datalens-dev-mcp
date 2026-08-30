@@ -276,6 +276,7 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
             )
             self.assertEqual(first["task_id"], contract["task_id"])
             self.assertEqual(first["contract_revision"], 2)
+            self.assertEqual(first["route"], "editor_advanced")
             self.assertEqual(first["amendment"]["status"], "accepted")
             self.assertTrue(
                 {"public_plan", "plan"} & set(first["amendment"]["invalidated_artifacts"])
