@@ -16,8 +16,10 @@
     "proof_level": {"enum": ["source_static", "contract_runtime", "browser_rendered"]},
     "data_proof_receipt_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "runtime_evidence": {"type": "object"},
+    "api_first_diagnostics": {"type": "object"},
     "browser_policy": {"type": "object"},
     "browser_adapter_calls": {"type": "integer", "minimum": 0, "maximum": 1},
+    "browser_status": {"type": "string"},
     "browser_attestation": {"type": "object"},
     "evidence_matrix": {"type": "object"},
     "acceptance_coverage": {

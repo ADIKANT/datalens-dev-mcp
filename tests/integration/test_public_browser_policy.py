@@ -4,7 +4,6 @@ import tempfile
 from pathlib import Path
 
 from datalens_dev_mcp.pipeline.browser_qa import (
-    BROWSER_QA_ASSERTIONS,
     BROWSER_QA_RESULT_SCHEMA_ID,
     build_qa_attestation,
 )
@@ -12,9 +11,16 @@ from tests.integration.public_proof_support import execute_public_proof_workflow
 
 
 class CountingAdapter:
-    def __init__(self, artifact: Path, *, wrong_revision: bool = False) -> None:
+    def __init__(
+        self,
+        artifact: Path,
+        *,
+        wrong_revision: bool = False,
+        omit_real_scroll: bool = False,
+    ) -> None:
         self.artifact = artifact
         self.wrong_revision = wrong_revision
+        self.omit_real_scroll = omit_real_scroll
         self.calls = 0
 
     def __call__(self, plan: dict) -> dict:
@@ -22,7 +28,7 @@ class CountingAdapter:
         self.artifact.write_text("synthetic rendered evidence", encoding="utf-8")
         target = plan["target"]
         results = []
-        for width in (720, 1200, 1440):
+        for width in [item["width"] for item in plan["viewports"]]:
             for tab_id in target["tab_ids"]:
                 for scroll_position in ("top", "bottom"):
                     results.append(
@@ -31,8 +37,15 @@ class CountingAdapter:
                             "viewport": {"width": width, "height": 900},
                             "tab_id": tab_id,
                             "scroll_position": scroll_position,
+                            "scroll_reached_bottom": (
+                                scroll_position == "bottom" and not self.omit_real_scroll
+                            ),
+                            "loading_chart_count": 0,
+                            "visible_error_count": 0,
                             "passed": True,
-                            "assertions": {item["id"]: True for item in BROWSER_QA_ASSERTIONS},
+                            "assertions": {
+                                item["id"]: True for item in plan["evaluate"]["assertions"]
+                            },
                             "observations": {"selector_clear_interactions": []},
                         }
                     )
@@ -45,6 +58,12 @@ class CountingAdapter:
             published_revision=saved_revision,
             runtime_errors=[],
             artifact_paths=[str(self.artifact)],
+            browser_metrics={
+                "browser_calls_before_final_visual_stage": 0,
+                "browser_calls_to_non_dashboard_objects": 0,
+                "browser_mutation_attempts": 0,
+                "browser_tabs_fully_scrolled": len(target["tab_ids"]),
+            },
         )
 
 

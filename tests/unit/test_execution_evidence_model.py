@@ -10,6 +10,7 @@ from datalens_dev_mcp.pipeline.execution_evidence import (
     EvidenceModelError,
     build_execution_evidence_model,
     render_execution_evidence_views,
+    render_transfer_evidence,
 )
 
 
@@ -155,3 +156,65 @@ def test_mode_specific_coverage_is_not_promoted_to_another_mode() -> None:
     cells = render_execution_evidence_views(model)["coverage_matrix"]["cells"]
     assert cells == [{"cell": "followup_semantics", "mode": "internal_compiler_screening", "state": "screened"}]
     assert not any(row["mode"] == "codex_in_the_loop" for row in cells)
+
+
+@pytest.mark.parametrize(
+    ("source", "receipts", "semantic_status", "cancel_status", "completion"),
+    [
+        (
+            {"status": "partial", "export": "success", "import": "success", "scope_type_counts_equal": True},
+            [],
+            "partial",
+            "unknown",
+            False,
+        ),
+        (
+            {
+                "status": "partial",
+                "export": "success",
+                "import": "success",
+                "scope_type_counts_equal": True,
+                "completion_proven": True,
+            },
+            [],
+            "partial",
+            "unknown",
+            False,
+        ),
+        (
+            {
+                "status": "partial",
+                "cancel": {"response_bound_to_export_id": True, "terminal_status": "success"},
+            },
+            [],
+            "partial",
+            "raced_with_completion",
+            False,
+        ),
+        (
+            {"status": "partial"},
+            [{"kind": "cancel_effect", "documented_effect": "observed", "evidence_refs": ["notification:cancelled"]}],
+            "partial",
+            "observed",
+            False,
+        ),
+        (
+            {"status": "partial"},
+            [{"kind": "cancel_effect", "documented_effect": "not_observable"}],
+            "partial",
+            "not_observable",
+            False,
+        ),
+    ],
+)
+def test_transfer_evidence_parameterized_truthfulness(
+    source: dict,
+    receipts: list[dict],
+    semantic_status: str,
+    cancel_status: str,
+    completion: bool,
+) -> None:
+    projection = render_transfer_evidence(source, additional_receipts=receipts)
+    assert projection["semantic_equivalence"]["status"] == semantic_status
+    assert projection["cancel_effect"]["status"] == cancel_status
+    assert projection["completion_proven"] is completion

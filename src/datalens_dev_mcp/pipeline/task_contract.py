@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 import hashlib
 import json
 from typing import Any, Literal
@@ -10,6 +10,7 @@ from uuid import NAMESPACE_URL, uuid5
 TaskMode = Literal["review", "diagnose", "plan", "create", "update", "redesign", "publish_only"]
 OperationKind = Literal["inspect", "mutate", "verify_existing_effect"]
 BrowserMode = Literal["forbidden", "optional", "required"]
+BrowserApplicability = Literal["applicable", "not_applicable"]
 BrowserPolicySource = Literal["explicit_user", "compiled_default", "workspace_policy"]
 
 
@@ -60,9 +61,30 @@ class ReferenceContract:
 
 
 @dataclass(frozen=True)
+class BrowserTargetContract:
+    task_id: str = ""
+    contract_revision: int = 0
+    plan_hash: str = ""
+    candidate_build_identity: str = ""
+    workbook_id: str = ""
+    dashboard_id: str = ""
+    saved_revision: str = ""
+    published_revision: str = ""
+    canonical_url: str = ""
+
+
+@dataclass(frozen=True)
 class BrowserPolicyContract:
     mode: BrowserMode = "optional"
     source: BrowserPolicySource = "compiled_default"
+    applicability: BrowserApplicability = "applicable"
+    purpose: str = "runtime_visual_evidence"
+    read_only: bool = True
+    mutation_allowed: bool = False
+    earliest_stage: str = "qa"
+    calls_before_earliest_stage_allowed: bool = True
+    allowed_interactions: tuple[str, ...] = ()
+    target: BrowserTargetContract = field(default_factory=BrowserTargetContract)
 
 
 @dataclass(frozen=True)
@@ -187,6 +209,23 @@ def create_task_contract(
             ),
         )
     )
+    resolved_browser_policy = browser_policy or BrowserPolicyContract()
+    if resolved_browser_policy.purpose == "final_visual_acceptance":
+        browser_target = resolved_browser_policy.target
+        resolved_browser_policy = replace(
+            resolved_browser_policy,
+            target=replace(
+                browser_target,
+                task_id=browser_target.task_id or stable_task_id,
+                contract_revision=browser_target.contract_revision or max(1, int(contract_revision)),
+                workbook_id=browser_target.workbook_id or resolved_target.workbook_id,
+                dashboard_id=browser_target.dashboard_id or resolved_target.dashboard_id,
+                saved_revision=browser_target.saved_revision or resolved_target.saved_revision,
+                published_revision=(
+                    browser_target.published_revision or resolved_target.published_revision
+                ),
+            ),
+        )
     contract = TaskContract(
         schema_id="datalens_task_contract",
         contract_version=2,
@@ -201,7 +240,7 @@ def create_task_contract(
         target=resolved_target,
         scope=scope or ScopeContract(),
         reference=reference or ReferenceContract(),
-        browser_policy=browser_policy or BrowserPolicyContract(),
+        browser_policy=resolved_browser_policy,
         delivery=delivery or DeliveryContract(),
         evidence=evidence or EvidenceContract(),
         acceptance=acceptance,
@@ -249,6 +288,30 @@ def validate_task_contract(contract: TaskContract | dict[str, Any]) -> tuple[str
     verification = payload.get("verification") or {}
     acceptance = payload.get("acceptance") or []
     delivery = payload.get("delivery") or {}
+    browser_policy = payload.get("browser_policy") or {}
+    browser_mode = str(browser_policy.get("mode") or "")
+    if browser_mode not in {"forbidden", "optional", "required"}:
+        issues.append("browser_policy.mode is unsupported")
+    if browser_policy.get("applicability") not in {"applicable", "not_applicable"}:
+        issues.append("browser_policy.applicability is unsupported")
+    if browser_policy.get("read_only") is not True:
+        issues.append("browser_policy.read_only must be true")
+    if browser_policy.get("mutation_allowed") is not False:
+        issues.append("browser_policy.mutation_allowed must be false")
+    allowed_interactions = browser_policy.get("allowed_interactions") or []
+    if not isinstance(allowed_interactions, list) or any(
+        item not in {"activate_tab", "scroll", "hover_visual_detail", "read_only_error_detail"}
+        for item in allowed_interactions
+    ):
+        issues.append("browser_policy.allowed_interactions is invalid")
+    if browser_policy.get("purpose") == "final_visual_acceptance":
+        if browser_policy.get("earliest_stage") != "published_readback_and_api_diagnostics_complete":
+            issues.append("final visual browser earliest_stage is invalid")
+        if browser_policy.get("calls_before_earliest_stage_allowed") is not False:
+            issues.append("final visual browser calls_before_earliest_stage_allowed must be false")
+        required_interactions = {"activate_tab", "scroll"}
+        if not required_interactions.issubset(set(allowed_interactions)):
+            issues.append("final visual browser requires tab activation and scroll interactions")
     if operation_kind == "verify_existing_effect":
         required_reads = verification.get("required_live_reads") or []
         for required in ("current_object", "saved_or_published_revision", "relations"):

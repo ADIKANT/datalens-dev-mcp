@@ -127,9 +127,9 @@
       "sha256": "71e380a31770b98d5752d703f391e0213f2c2bd3c6ea40d4a5dbea26fa357f2d"
     },
     {
-      "bytes": 425,
+      "bytes": 1777,
       "path": "schemas/browser-policy.schema.json",
-      "sha256": "9e54e5d2e8665cac17aee03a3174fe8d8e97f3f23399dcf9e164b939a711a733"
+      "sha256": "89fb622bc460fbe7a9d9d5cf58fcc4570537477b9a446fa311a3c3cf6912aace"
     },
     {
       "bytes": 8932,
@@ -552,9 +552,9 @@
       "sha256": "620e301d05b6b1c9fa2d511302d15d52471b83f2a33f5fb4ccb607d4494cf337"
     },
     {
-      "bytes": 2030,
+      "bytes": 2650,
       "path": "schemas/qa-attestation.schema.json",
-      "sha256": "7de6dcfc0a8cd21170264b4c97927ac34c3cba0045cb46ee4389904f53379072"
+      "sha256": "db2d31e9c33b8daa54536aa8c2e32f528e98b80f15677273d76a91de20c1743d"
     },
     {
       "bytes": 931,
@@ -697,14 +697,14 @@
       "sha256": "f18860ff8004f5957904ac7044c6d9f0a9a407361dc80d58ba6df7640586d026"
     },
     {
-      "bytes": 2167,
+      "bytes": 2241,
       "path": "schemas/task-data-proof-receipt.schema.json",
-      "sha256": "617d5cf5701176e39a429756c3d703728f37cba338d34d0d10db277cc730fc30"
+      "sha256": "b90c15beabf687b678d32954043166e3ac5719cb2b4a7ba4cb198203307f7045"
     },
     {
-      "bytes": 1845,
+      "bytes": 1936,
       "path": "schemas/task-qa-receipt.schema.json",
-      "sha256": "8116ec1932d6dc0ab6881dcea5e5e9ed5982c6c9823110be701c334d77ed6873"
+      "sha256": "ae6c56798fdf5b4bb67a38931194cf275c66e7830eb96665cff62cbbedb3f636"
     },
     {
       "bytes": 765,

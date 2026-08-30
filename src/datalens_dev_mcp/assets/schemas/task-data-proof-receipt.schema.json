@@ -4,7 +4,7 @@
   "title": "Fresh typed data proof receipt",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_id", "receipt_version", "task_id", "contract_hash", "target_binding_hash", "planning_profile_hash", "planning_query_set_hash", "assertion_plan_hash", "schema_hash", "observed_at", "fresh", "proof_level", "fallback_kind", "live_data_verified", "dataset_data_semantics", "status", "assertions", "provider_calls", "row_count", "paging", "unexpected_empty_diagnostics", "limitations", "raw_rows_inline", "receipt_hash"],
+  "required": ["schema_id", "receipt_version", "task_id", "contract_hash", "target_binding_hash", "planning_profile_hash", "planning_query_set_hash", "assertion_plan_hash", "schema_hash", "observed_at", "fresh", "proof_level", "fallback_kind", "live_data_verified", "dataset_data_semantics", "api_first_diagnostics", "status", "assertions", "provider_calls", "row_count", "paging", "unexpected_empty_diagnostics", "limitations", "raw_rows_inline", "receipt_hash"],
   "properties": {
     "schema_id": {"const": "task_data_proof_receipt"},
     "receipt_version": {"const": 1},
@@ -21,6 +21,7 @@
     "fallback_kind": {"type": "string"},
     "live_data_verified": {"type": "boolean"},
     "dataset_data_semantics": {"const": "unknown_experimental"},
+    "api_first_diagnostics": {"type": "object"},
     "status": {"enum": ["passed", "failed", "blocked", "insufficient_evidence"]},
     "assertions": {"type": "array", "items": {"type": "object"}},
     "provider_calls": {"type": "array", "items": {"type": "object"}},

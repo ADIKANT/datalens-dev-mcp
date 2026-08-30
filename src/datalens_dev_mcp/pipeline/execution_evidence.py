@@ -178,6 +178,125 @@ def render_execution_evidence_views(model: dict[str, Any]) -> dict[str, dict[str
     }
 
 
+def render_transfer_evidence(
+    source: dict[str, Any],
+    *,
+    additional_receipts: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Render export/import/cancel claims without strengthening source evidence."""
+
+    material = deepcopy(source if isinstance(source, dict) else {})
+    receipts = [deepcopy(item) for item in additional_receipts or [] if isinstance(item, dict)]
+    passed_tokens = {"success", "passed", "completed", "export_completed", "import_completed"}
+    export_value = material.get("export") or material.get("export_status") or ""
+    import_value = material.get("import") or material.get("import_status") or ""
+    export_raw = export_value.get("status") if isinstance(export_value, dict) else export_value
+    import_raw = import_value.get("status") if isinstance(import_value, dict) else import_value
+    export_status = "passed" if str(export_raw or "").lower() in passed_tokens else "partial"
+    import_status = "passed" if str(import_raw or "").lower() in passed_tokens else "partial"
+    counts_equal = bool(
+        material.get("scope_type_counts_equal")
+        or (material.get("semantic_comparison") or {}).get("scope_type_counts_equal")
+    )
+    semantic = dict(
+        material.get("semantic_equivalence")
+        or material.get("semantic_comparison")
+        or {}
+    )
+    semantic_receipts = [item for item in receipts if item.get("kind") == "semantic_equivalence"]
+    if semantic_receipts:
+        semantic = semantic_receipts[-1]
+    objects = semantic.get("objects") if isinstance(semantic.get("objects"), list) else []
+    remapping = semantic.get("id_remapping") if isinstance(semantic.get("id_remapping"), dict) else {}
+    semantic_pass = bool(
+        str(semantic.get("status") or semantic.get("semantic_equivalence") or "")
+        in {"passed", "semantic_equivalence_passed"}
+        and objects
+        and remapping
+        and all(
+            isinstance(item, dict)
+            and item.get("source_id")
+            and item.get("imported_id")
+            and item.get("normalized_payload_hash")
+            for item in objects
+        )
+    )
+    property_names = (
+        "acl", "secrets", "saved_revision_identity",
+        "published_revision_identity", "external_references",
+    )
+    source_properties = semantic.get("properties") if isinstance(semantic.get("properties"), dict) else {}
+    properties = {name: str(source_properties.get(name) or "unknown") for name in property_names}
+
+    cancel = dict(material.get("cancel") or {})
+    cancel_receipts = [item for item in receipts if item.get("kind") == "cancel_effect"]
+    if cancel_receipts:
+        cancel = {**cancel, **cancel_receipts[-1]}
+    cancel_request = cancel.get("cancel_request") if isinstance(cancel.get("cancel_request"), dict) else {}
+    post_cancel = cancel.get("post_cancel_observation") if isinstance(cancel.get("post_cancel_observation"), dict) else {}
+    response_bound = bool(
+        cancel.get("response_bound_to_export_id")
+        or cancel.get("cancel_response_bound_to_exact_export")
+        or cancel_request.get("response_bound_to_export_id")
+        or material.get("cancel_response_bound_to_exact_export")
+    )
+    terminal = str(
+        cancel.get("terminal_status")
+        or post_cancel.get("terminal_status")
+        or "unknown"
+    ).lower()
+    documented_effect = str(cancel.get("documented_effect") or cancel.get("effect_status") or "").lower()
+    if documented_effect in {"observed", "cancelled", "canceled"} and cancel.get("evidence_refs"):
+        effect_status = "observed"
+    elif documented_effect in {"not_observable", "unobservable"}:
+        effect_status = "not_observable"
+    elif terminal == "success":
+        effect_status = "raced_with_completion" if response_bound else "unknown"
+    else:
+        effect_status = "unknown"
+    cleanup_value = material.get("cleanup") or {}
+    if isinstance(cleanup_value, list):
+        cleanup_passed = bool(cleanup_value) and all(item.get("absence_verified") is True for item in cleanup_value)
+    else:
+        cleanup_raw = str(material.get("cleanup_status") or cleanup_value.get("status") or "unknown").lower()
+        cleanup_passed = cleanup_raw in {"passed", "success", "completed"}
+    source_status = str(material.get("status") or "partial").lower()
+    completion_proven = bool(
+        source_status in {"passed", "completed"}
+        and export_status == "passed"
+        and import_status == "passed"
+        and semantic_pass
+        and effect_status in {"observed", "not_observable"}
+        and cleanup_passed
+    )
+    payload = {
+        "schema_id": "datalens_transfer_evidence_projection",
+        "export": {"status": export_status},
+        "import": {"status": import_status},
+        "inventory_counts_equal": counts_equal,
+        "semantic_equivalence": {
+            "status": "passed" if semantic_pass else "partial",
+            "object_count": len(objects),
+            "id_remapping_count": len(remapping),
+            "properties": properties,
+        },
+        "cancel_request": {
+            "attempted": bool(cancel.get("attempted", response_bound)),
+            "response_bound_to_export_id": response_bound,
+            "status": "acknowledged" if response_bound else "unknown",
+        },
+        "post_cancel_observation": {"terminal_status": terminal},
+        "cancel_effect": {
+            "status": effect_status,
+            "evidence_refs": [str(item) for item in cancel.get("evidence_refs") or [] if str(item)],
+        },
+        "cleanup": {"status": "passed" if cleanup_passed else "unknown"},
+        "completion_proven": completion_proven,
+    }
+    payload["projection_hash"] = canonical_hash(payload)
+    return payload
+
+
 def _progress_projection(model: dict[str, Any], *, completion_proven: bool) -> dict[str, Any]:
     goal = dict(model.get("goal") or {})
     obligations = {str(key): str(value) for key, value in (model.get("obligations") or {}).items()}

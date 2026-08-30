@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
+from datalens_dev_mcp.pipeline.evidence_matrix import normalize_browser_policy
+
 
 BrowserQaStatus = Literal[
     "browser_pass",
@@ -30,8 +32,10 @@ RUNTIME_ERROR_MARKERS = [
 
 BROWSER_QA_PLAN_SCHEMA_ID = "datalens.browser-qa-plan"
 BROWSER_QA_RESULT_SCHEMA_ID = "datalens.browser-qa-result"
-BROWSER_QA_MAX_CALLS = 3
-BROWSER_QA_VIEWPORTS = (
+BROWSER_QA_DEFAULT_VIEWPORTS = (
+    {"id": "desktop", "width": 1200, "height": 900},
+)
+BROWSER_QA_RESPONSIVE_VIEWPORTS = (
     {"id": "narrow", "width": 720, "height": 900},
     {"id": "compact_desktop", "width": 1200, "height": 900},
     {"id": "wide", "width": 1440, "height": 900},
@@ -149,6 +153,20 @@ BROWSER_QA_ASSERTIONS = (
         "description": "Every expected object initializes after each tab is checked at top and after full scroll.",
     },
 )
+BROWSER_QA_UNIVERSAL_ASSERTION_IDS = frozenset(
+    {
+        "objects_visible_nonempty",
+        "document_no_horizontal_overflow",
+        "objects_not_clipped_or_paint_overflow",
+        "lazy_full_scroll_contract",
+    }
+)
+BROWSER_QA_UNIVERSAL_ASSERTIONS = tuple(
+    item for item in BROWSER_QA_ASSERTIONS if item["id"] in BROWSER_QA_UNIVERSAL_ASSERTION_IDS
+)
+BROWSER_QA_PROFILE_ASSERTIONS = tuple(
+    item for item in BROWSER_QA_ASSERTIONS if item["id"] not in BROWSER_QA_UNIVERSAL_ASSERTION_IDS
+)
 BROWSER_QA_FORBIDDEN_SOURCE_TOKENS = (
     ".click(",
     ".focus(",
@@ -189,14 +207,19 @@ def build_browser_qa_plan(
     published_revision: str = "",
     final_payload_attestation_sha256: str = "",
     payload_set_sha256: str = "",
+    browser_policy: dict[str, Any] | None = None,
+    api_diagnostics_receipt_hash: str = "",
+    task_id: str = "",
+    contract_revision: int = 0,
+    plan_hash: str = "",
+    candidate_build_identity: str = "",
+    workbook_id: str = "",
+    responsive_acceptance: bool = False,
+    profile_assertions: list[dict[str, Any]] | None = None,
+    active_provenance_hash: str = "",
+    tab_object_ids: dict[str, list[str]] | None = None,
 ) -> dict[str, Any]:
-    """Build a deterministic three-call, read-only browser QA plan.
-
-    The executor performs one navigation, one batched evaluation call covering
-    all tabs, scroll positions, and viewports, and one batched full-page screenshot call.
-    The evaluate source is intentionally self-contained so a browser adapter
-    does not need exploratory DOM calls.
-    """
+    """Build a candidate-bound, read-only browser QA traversal plan."""
 
     normalized_dashboard_id = str(dashboard_id or "").strip()
     if not normalized_dashboard_id:
@@ -205,6 +228,43 @@ def build_browser_qa_plan(
     if not normalized_object_ids:
         raise ValueError("expected_object_ids must contain at least one object id")
     normalized_tabs = _normalized_string_list(tab_ids)
+    normalized_tab_objects = {
+        str(tab_id): _normalized_string_list(list(object_ids or []))
+        for tab_id, object_ids in (tab_object_ids or {}).items()
+        if str(tab_id) in normalized_tabs
+    }
+    normalized_policy = normalize_browser_policy(
+        browser_policy,
+        change_class="dashboard_layout",
+    )
+    final_visual = normalized_policy["purpose"] == "final_visual_acceptance"
+    normalized_dashboard_url = str(dashboard_url or "").strip()
+    normalized_saved_revision = str(saved_revision or "").strip()
+    normalized_published_revision = str(published_revision or "").strip()
+    normalized_api_diagnostics_hash = str(api_diagnostics_receipt_hash or "").strip()
+    normalized_plan_hash = str(plan_hash or "").strip()
+    normalized_build_identity = str(candidate_build_identity or "").strip()
+    if final_visual:
+        if normalized_policy["mode"] == "forbidden":
+            raise ValueError("forbidden browser policy cannot produce a final visual plan")
+        if not normalized_dashboard_url:
+            raise ValueError("final visual acceptance requires the canonical dashboard URL")
+        if not normalized_tabs:
+            raise ValueError("final visual acceptance requires API-derived tab ids")
+        if len(normalized_tabs) == 1 and not normalized_tab_objects:
+            normalized_tab_objects = {normalized_tabs[0]: normalized_object_ids}
+        if set(normalized_tab_objects) != set(normalized_tabs):
+            raise ValueError("final visual acceptance requires expected objects for every tab")
+        if not normalized_saved_revision or normalized_published_revision != normalized_saved_revision:
+            raise ValueError("final visual acceptance requires the exact saved and published revision")
+        if not re.fullmatch(r"[a-f0-9]{64}", normalized_api_diagnostics_hash):
+            raise ValueError("final visual acceptance requires a completed API diagnostics receipt hash")
+        if not str(task_id or "") or int(contract_revision or 0) < 1:
+            raise ValueError("final visual acceptance requires task and contract revision binding")
+        if not re.fullmatch(r"[a-f0-9]{64}", normalized_plan_hash):
+            raise ValueError("final visual acceptance requires the exact plan hash")
+        if not re.fullmatch(r"[a-f0-9]{64}", normalized_build_identity):
+            raise ValueError("final visual acceptance requires the candidate build identity")
     normalized_selectors = _normalize_selector_contracts(selector_contracts or [])
     normalized_comparison_ids = _normalized_string_list(comparison_context_object_ids or [])
     normalized_tooltip_modes = _normalize_tooltip_comparison_modes(
@@ -213,9 +273,23 @@ def build_browser_qa_plan(
     normalized_render_contract = _normalize_browser_render_contract(render_contract or {})
     normalized_title_contracts = _normalize_title_contracts(title_contracts or [])
     normalized_composition = _normalize_composition_binding(dashboard_composition or {})
-    viewports = [dict(viewport) for viewport in BROWSER_QA_VIEWPORTS]
+    viewports = [
+        dict(viewport)
+        for viewport in (
+            BROWSER_QA_RESPONSIVE_VIEWPORTS if responsive_acceptance else BROWSER_QA_DEFAULT_VIEWPORTS
+        )
+    ]
+    normalized_profile_assertions = _normalize_profile_assertions(
+        profile_assertions or [],
+        active_provenance_hash=str(active_provenance_hash or ""),
+    )
+    required_assertions = [
+        *[dict(item) for item in BROWSER_QA_UNIVERSAL_ASSERTIONS],
+        *normalized_profile_assertions,
+    ]
     evaluation_input = {
         "expected_object_ids": normalized_object_ids,
+        "required_assertion_ids": [assertion["id"] for assertion in required_assertions],
         "selector_contracts": normalized_selectors,
         "comparison_enabled": bool(comparison_enabled),
         "comparison_context_object_ids": normalized_comparison_ids,
@@ -228,18 +302,39 @@ def build_browser_qa_plan(
     artifact_stem = _safe_artifact_stem(normalized_dashboard_id)
     plan: dict[str, Any] = {
         "schema_id": BROWSER_QA_PLAN_SCHEMA_ID,
+        "browser_policy": normalized_policy,
+        "prerequisites": {
+            "published_readback_complete": bool(
+                normalized_published_revision
+                and normalized_published_revision == normalized_saved_revision
+            ),
+            "api_diagnostics_complete": bool(normalized_api_diagnostics_hash),
+            "api_diagnostics_receipt_hash": normalized_api_diagnostics_hash,
+            "task_id": str(task_id or ""),
+            "contract_revision": int(contract_revision or 0),
+            "plan_hash": normalized_plan_hash,
+            "candidate_build_identity": normalized_build_identity,
+        },
         "target": {
             "dashboard_id": normalized_dashboard_id,
-            "dashboard_url": str(dashboard_url or "").strip(),
+            "dashboard_url": normalized_dashboard_url,
+            "object_kind": "dashboard",
+            "workbook_id": str(workbook_id or ""),
             "tab_ids": normalized_tabs,
             "expected_object_ids": normalized_object_ids,
-            "saved_revision": str(saved_revision or "").strip(),
-            "published_revision": str(published_revision or "").strip(),
+            "tab_object_ids": normalized_tab_objects,
+            "saved_revision": normalized_saved_revision,
+            "published_revision": normalized_published_revision,
         },
         "attestation_binding": {
             "final_payload_attestation_sha256": str(final_payload_attestation_sha256 or "").strip(),
             "payload_set_sha256": str(payload_set_sha256 or "").strip(),
             "dashboard_composition_sha256": str((dashboard_composition or {}).get("sha256") or ""),
+            "api_diagnostics_receipt_hash": normalized_api_diagnostics_hash,
+            "candidate_build_identity": normalized_build_identity,
+            "contract_revision": int(contract_revision or 0),
+            "plan_hash": normalized_plan_hash,
+            "task_id": str(task_id or ""),
         },
         "viewports": viewports,
         "render_contract": normalized_render_contract,
@@ -249,15 +344,30 @@ def build_browser_qa_plan(
         "tooltip_comparison_modes": normalized_tooltip_modes,
         "title_contracts": normalized_title_contracts,
         "dashboard_composition": normalized_composition,
+        "assertion_scope": {
+            "universal_assertion_ids": [item["id"] for item in BROWSER_QA_UNIVERSAL_ASSERTIONS],
+            "profile_assertions": normalized_profile_assertions,
+            "active_provenance_hash": str(active_provenance_hash or ""),
+        },
         "execution": {
             "browser_route": "internal_browser_adapter",
-            "max_browser_calls": BROWSER_QA_MAX_CALLS,
+            "bounded_call_count": 2,
             "navigation_count": 1,
-            "evaluation_count_per_viewport": 1,
-            "screenshots_per_viewport": 1,
             "reload_count": 0,
             "retry_count": 0,
             "dom_mutation_allowed": False,
+            "actual_tab_activation_required": final_visual,
+            "viewport_increment_scroll_required": final_visual,
+            "condition_based_wait_required": final_visual,
+            "allowed_interactions": list(normalized_policy["allowed_interactions"]),
+            "forbidden_interactions": [
+                "change_selector",
+                "clear_selector",
+                "apply_filter",
+                "reset_filter",
+                "cross_filter_click",
+                "mutation",
+            ],
             "calls": [
                 {
                     "ordinal": 1,
@@ -268,20 +378,26 @@ def build_browser_qa_plan(
                 },
                 {
                     "ordinal": 2,
-                    "operation": "evaluate_viewports_batch",
+                    "operation": "traverse_tabs_and_capture",
                     "viewport_ids": [viewport["id"] for viewport in viewports],
                     "tab_ids": normalized_tabs,
-                    "scroll_positions": ["top", "bottom"],
+                    "required_observations": [
+                        "activation_observed",
+                        "top_observed",
+                        "scroll_checkpoint_count",
+                        "scroll_reached_bottom",
+                        "observed_object_ids",
+                        "loading_object_ids",
+                        "visible_error_object_ids",
+                        "no_data_object_ids",
+                        "layout_findings",
+                        "screenshot_ref",
+                    ],
                     "wait_for_lazy_initialization": True,
-                    "ephemeral_interactions": ["multiselect_clear_roundtrip"],
+                    "ephemeral_interactions": [],
                     "persisted_state_mutation_allowed": False,
                     "evaluate_source_ref": "#/evaluate/source",
-                },
-                {
-                    "ordinal": 3,
-                    "operation": "screenshot_viewports_batch",
-                    "viewport_ids": [viewport["id"] for viewport in viewports],
-                    "full_page": True,
+                    "compact_screenshot_per_tab": True,
                 },
             ],
         },
@@ -289,12 +405,12 @@ def build_browser_qa_plan(
             "language": "javascript",
             "read_only": True,
             "source": evaluate_source,
-            "assertions": [dict(assertion) for assertion in BROWSER_QA_ASSERTIONS],
+            "assertions": required_assertions,
         },
         "expected_result": {
             "schema_id": BROWSER_QA_RESULT_SCHEMA_ID,
             "required_fields": ["viewport", "passed", "assertions", "observations"],
-            "assertion_ids": [assertion["id"] for assertion in BROWSER_QA_ASSERTIONS],
+            "assertion_ids": [assertion["id"] for assertion in required_assertions],
             "pass_condition": "all_assertions_true",
             "maximum_failed_assertions": 0,
         },
@@ -324,7 +440,8 @@ def execute_browser_qa_by_policy(
     execute_optional: bool = False,
 ) -> dict[str, Any]:
     """Call the internal adapter only when policy permits it; forbidden means zero calls."""
-    mode = str(browser_policy.get("mode") or "optional").strip().lower()
+    policy = normalize_browser_policy(browser_policy, change_class="dashboard_layout")
+    mode = policy["mode"]
     if mode == "forbidden":
         return {
             "ok": True,
@@ -337,6 +454,14 @@ def execute_browser_qa_by_policy(
         return {
             "ok": True,
             "status": "browser_optional_skipped",
+            "adapter_calls": 0,
+            "proof_level": "contract_runtime",
+            "browser_rendered": False,
+        }
+    if policy["applicability"] == "not_applicable":
+        return {
+            "ok": True,
+            "status": "browser_not_applicable_skipped",
             "adapter_calls": 0,
             "proof_level": "contract_runtime",
             "browser_rendered": False,
@@ -366,42 +491,69 @@ def validate_browser_qa_plan(plan: dict[str, Any]) -> dict[str, Any]:
         return {"ok": False, "issues": ["invalid_schema_id"]}
 
     viewports = plan.get("viewports")
-    expected_viewports = [dict(viewport) for viewport in BROWSER_QA_VIEWPORTS]
-    if viewports != expected_viewports:
-        issues.append("required_viewports_missing_or_changed")
+    if not isinstance(viewports, list) or not viewports:
+        issues.append("applicable_viewport_missing")
 
     execution = plan.get("execution") if isinstance(plan.get("execution"), dict) else {}
+    policy = normalize_browser_policy(
+        plan.get("browser_policy") if isinstance(plan.get("browser_policy"), dict) else {},
+        change_class="dashboard_layout",
+    )
+    final_visual = policy["purpose"] == "final_visual_acceptance"
     calls = execution.get("calls") if isinstance(execution.get("calls"), list) else []
-    max_calls = execution.get("max_browser_calls")
-    if not isinstance(max_calls, int) or max_calls > BROWSER_QA_MAX_CALLS or len(calls) > BROWSER_QA_MAX_CALLS:
-        issues.append("browser_call_budget_exceeded")
-    expected_operations = ["navigate_once", "evaluate_viewports_batch", "screenshot_viewports_batch"]
+    bounded_calls = execution.get("bounded_call_count")
+    if not isinstance(bounded_calls, int) or bounded_calls < 1 or bounded_calls != len(calls):
+        issues.append("browser_call_ledger_mismatch")
+    expected_operations = ["navigate_once", "traverse_tabs_and_capture"]
     if [call.get("operation") for call in calls if isinstance(call, dict)] != expected_operations:
         issues.append("browser_call_sequence_changed")
     if execution.get("navigation_count") != 1:
         issues.append("navigation_count_changed")
-    if execution.get("evaluation_count_per_viewport") != 1:
-        issues.append("evaluation_count_changed")
-    if execution.get("screenshots_per_viewport") != 1:
-        issues.append("screenshot_count_changed")
     if execution.get("reload_count") != 0 or execution.get("retry_count") != 0:
         issues.append("reload_or_retry_not_allowed")
     if execution.get("dom_mutation_allowed") is not False:
         issues.append("dom_mutation_must_be_disabled")
     evaluation_call = next(
-        (call for call in calls if isinstance(call, dict) and call.get("operation") == "evaluate_viewports_batch"),
+        (call for call in calls if isinstance(call, dict) and call.get("operation") == "traverse_tabs_and_capture"),
         {},
     )
-    if evaluation_call.get("scroll_positions") != ["top", "bottom"]:
-        issues.append("full_scroll_positions_missing")
     if evaluation_call.get("wait_for_lazy_initialization") is not True:
         issues.append("lazy_initialization_wait_missing")
-    if evaluation_call.get("ephemeral_interactions") != ["multiselect_clear_roundtrip"]:
-        issues.append("selector_clear_roundtrip_missing")
+    if evaluation_call.get("ephemeral_interactions") != []:
+        issues.append("default_visual_qa_must_not_change_selectors_or_filters")
     if evaluation_call.get("persisted_state_mutation_allowed") is not False:
         issues.append("persisted_state_mutation_must_be_disabled")
     if evaluation_call.get("tab_ids") != (plan.get("target") or {}).get("tab_ids"):
         issues.append("all_tabs_not_bound_to_evaluation")
+    forbidden_interactions = set(execution.get("forbidden_interactions") or [])
+    if not {"change_selector", "clear_selector", "apply_filter", "reset_filter"}.issubset(
+        forbidden_interactions
+    ):
+        issues.append("visual_interaction_boundary_missing")
+    if final_visual:
+        target = plan.get("target") if isinstance(plan.get("target"), dict) else {}
+        prerequisites = plan.get("prerequisites") if isinstance(plan.get("prerequisites"), dict) else {}
+        if target.get("object_kind") != "dashboard" or not str(target.get("dashboard_url") or ""):
+            issues.append("final_visual_target_must_be_exact_dashboard_url")
+        if not target.get("saved_revision") or target.get("published_revision") != target.get("saved_revision"):
+            issues.append("final_visual_revision_binding_missing")
+        if prerequisites.get("published_readback_complete") is not True:
+            issues.append("published_readback_prerequisite_missing")
+        if prerequisites.get("api_diagnostics_complete") is not True or not re.fullmatch(
+            r"[a-f0-9]{64}", str(prerequisites.get("api_diagnostics_receipt_hash") or "")
+        ):
+            issues.append("api_diagnostics_prerequisite_missing")
+        for field_name in ("task_id", "contract_revision", "plan_hash", "candidate_build_identity"):
+            if not prerequisites.get(field_name):
+                issues.append(f"candidate_binding_missing:{field_name}")
+        if policy["mode"] == "forbidden":
+            issues.append("forbidden_policy_cannot_produce_browser_plan")
+        if execution.get("actual_tab_activation_required") is not True:
+            issues.append("actual_tab_activation_required")
+        if execution.get("viewport_increment_scroll_required") is not True:
+            issues.append("viewport_increment_scroll_required")
+        if execution.get("condition_based_wait_required") is not True:
+            issues.append("condition_based_wait_required")
 
     evaluate = plan.get("evaluate") if isinstance(plan.get("evaluate"), dict) else {}
     source = evaluate.get("source")
@@ -422,7 +574,7 @@ def validate_browser_qa_plan(plan: dict[str, Any]) -> dict[str, Any]:
         for assertion in assertions
         if isinstance(assertion, dict)
     }
-    required_assertion_ids = {assertion["id"] for assertion in BROWSER_QA_ASSERTIONS}
+    required_assertion_ids = {assertion["id"] for assertion in BROWSER_QA_UNIVERSAL_ASSERTIONS}
     if not required_assertion_ids.issubset(assertion_ids):
         issues.append("required_assertions_missing")
 
@@ -1155,7 +1307,7 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
   return {
     schema_id: "datalens.browser-qa-result",
     viewport: {width: window.innerWidth, height: window.innerHeight},
-    passed: Object.values(assertions).every(Boolean),
+    passed: input.required_assertion_ids.every((assertionId) => assertions[assertionId] === true),
     assertions,
     observations: {
       object_rows: objectRows,
@@ -1560,6 +1712,45 @@ def _normalize_tooltip_comparison_modes(values: dict[str, str]) -> dict[str, str
     return dict(sorted(normalized.items()))
 
 
+def _normalize_profile_assertions(
+    values: list[dict[str, Any]],
+    *,
+    active_provenance_hash: str,
+) -> list[dict[str, Any]]:
+    if not values:
+        return []
+    if not re.fullmatch(r"[a-f0-9]{64}", active_provenance_hash):
+        raise ValueError("profile assertions require an active provenance hash")
+    allowed_ids = {item["id"] for item in BROWSER_QA_PROFILE_ASSERTIONS}
+    normalized: list[dict[str, Any]] = []
+    for value in values:
+        assertion_id = str(value.get("assertion_id") or value.get("id") or "").strip()
+        scope = str(value.get("scope") or "").strip()
+        source_ref = str(value.get("source_ref") or "").strip()
+        source_hash = str(value.get("profile_or_exemplar_hash") or "").strip()
+        if assertion_id not in allowed_ids:
+            raise ValueError(f"unsupported profile assertion: {assertion_id or 'missing'}")
+        if scope not in {"portfolio", "project", "task", "exemplar"}:
+            raise ValueError("profile assertion scope is invalid")
+        if not source_ref or source_hash != active_provenance_hash:
+            raise ValueError("profile assertion provenance does not match the active binding")
+        definition = next(item for item in BROWSER_QA_PROFILE_ASSERTIONS if item["id"] == assertion_id)
+        normalized.append(
+            {
+                **dict(definition),
+                "scope": scope,
+                "source_ref": source_ref,
+                "profile_or_exemplar_hash": source_hash,
+                "applies_to_object_ids": _normalized_string_list(
+                    list(value.get("applies_to_object_ids") or [])
+                ),
+                "expected": value.get("expected"),
+                "status": "required",
+            }
+        )
+    return sorted(normalized, key=lambda item: (item["id"], item["source_ref"]))
+
+
 def _normalized_string_list(values: list[str]) -> list[str]:
     return sorted({str(value).strip() for value in values if str(value).strip()})
 
@@ -1618,6 +1809,7 @@ def build_qa_attestation(
     published_revision: str = "",
     runtime_errors: list[str] | None = None,
     artifact_paths: list[str] | None = None,
+    browser_metrics: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Bind successful top-to-bottom browser evidence to one payload and revision."""
 
@@ -1626,11 +1818,45 @@ def build_qa_attestation(
     normalized_saved_revision = str(saved_revision or "").strip()
     normalized_published_revision = str(published_revision or "").strip()
     target = plan.get("target") if isinstance(plan.get("target"), dict) else {}
+    policy = normalize_browser_policy(
+        plan.get("browser_policy") if isinstance(plan.get("browser_policy"), dict) else {},
+        change_class="dashboard_layout",
+    )
+    final_visual = policy["purpose"] == "final_visual_acceptance"
     expected_tabs = list((plan.get("target") or {}).get("tab_ids") or []) or [""]
-    required_widths = [item["width"] for item in BROWSER_QA_VIEWPORTS]
+    required_widths = [
+        int(item["width"])
+        for item in plan.get("viewports") or []
+        if isinstance(item, dict) and isinstance(item.get("width"), int)
+    ]
+    required_assertions = [
+        str(item.get("id") or "")
+        for item in (plan.get("evaluate") or {}).get("assertions") or []
+        if isinstance(item, dict) and item.get("id")
+    ]
     normalized_errors = [str(item) for item in runtime_errors or [] if str(item)]
     coverage: set[tuple[int, str, str]] = set()
-    selector_clear_passed: set[str] = set()
+    tab_runtime: dict[str, dict[str, Any]] = {
+        tab_id: {
+            "tab_id": tab_id,
+            "activation_observed": False,
+            "activation_method": "",
+            "top_observed": False,
+            "scroll_checkpoint_count": 0,
+            "scroll_reached_bottom": False,
+            "expected_object_ids": list(
+                (target.get("tab_object_ids") or {}).get(tab_id) or []
+            ),
+            "observed_object_ids": [],
+            "loading_object_ids": [],
+            "visible_error_object_ids": [],
+            "no_data_object_ids": [],
+            "layout_findings": [],
+            "screenshot_ref": "",
+            "published_revision": normalized_published_revision,
+        }
+        for tab_id in expected_tabs
+    }
     result_issues: list[str] = []
     for index, result in enumerate(viewport_results):
         if not isinstance(result, dict):
@@ -1641,19 +1867,43 @@ def build_qa_attestation(
         scroll_position = str(result.get("scroll_position") or "")
         if isinstance(width, int) and not isinstance(width, bool):
             coverage.add((width, tab_id, scroll_position))
+        if tab_id in tab_runtime:
+            receipt = tab_runtime[tab_id]
+            if result.get("activation_observed") is True:
+                receipt["activation_observed"] = True
+                receipt["activation_method"] = str(result.get("activation_method") or "tab_control")
+            if scroll_position == "top" and result.get("top_observed") is True:
+                receipt["top_observed"] = True
+            checkpoints = result.get("scroll_checkpoint_count")
+            if isinstance(checkpoints, int) and not isinstance(checkpoints, bool):
+                receipt["scroll_checkpoint_count"] = max(
+                    int(receipt["scroll_checkpoint_count"]), checkpoints
+                )
+            if scroll_position == "bottom" and result.get("scroll_reached_bottom") is True:
+                receipt["scroll_reached_bottom"] = True
+            for field_name in (
+                "observed_object_ids",
+                "loading_object_ids",
+                "visible_error_object_ids",
+                "no_data_object_ids",
+                "layout_findings",
+            ):
+                receipt[field_name] = sorted(
+                    set(receipt[field_name])
+                    | {str(item) for item in result.get(field_name) or [] if str(item)}
+                )
+            if result.get("screenshot_ref"):
+                receipt["screenshot_ref"] = str(result["screenshot_ref"])
         if result.get("schema_id") != BROWSER_QA_RESULT_SCHEMA_ID:
             result_issues.append(f"viewport_results[{index}] has an unsupported schema_id")
         if result.get("passed") is not True:
             result_issues.append(f"viewport_results[{index}] did not pass every assertion")
         assertions = result.get("assertions") if isinstance(result.get("assertions"), dict) else {}
         observations = result.get("observations") if isinstance(result.get("observations"), dict) else {}
-        for interaction in observations.get("selector_clear_interactions") or []:
-            if isinstance(interaction, dict) and interaction.get("passed") is True:
-                selector_clear_passed.add(str(interaction.get("selector_id") or ""))
         missing = [
-            item["id"]
-            for item in BROWSER_QA_ASSERTIONS
-            if assertions.get(item["id"]) is not True
+            assertion_id
+            for assertion_id in required_assertions
+            if assertions.get(assertion_id) is not True
         ]
         if missing:
             result_issues.append(
@@ -1671,16 +1921,43 @@ def build_qa_attestation(
             "missing tab/viewport/scroll coverage: "
             + ", ".join(f"{width}:{tab_id or 'main'}:{position}" for width, tab_id, position in missing_coverage)
         )
-    expected_clear_selectors = {
-        str(item.get("selector_id") or "")
-        for item in plan.get("selector_contracts") or []
-        if isinstance(item, dict) and item.get("multiple") is True
-    }
-    missing_clear = sorted(expected_clear_selectors - selector_clear_passed)
-    if missing_clear:
-        result_issues.append(
-            "multiselect Clear roundtrip was not proven for: " + ", ".join(missing_clear)
-        )
+    if final_visual:
+        incomplete_tabs = [
+            tab_id
+            for tab_id, receipt in tab_runtime.items()
+            if receipt["activation_observed"] is not True
+            or receipt["top_observed"] is not True
+            or int(receipt["scroll_checkpoint_count"]) < 1
+            or receipt["scroll_reached_bottom"] is not True
+            or not receipt["screenshot_ref"]
+        ]
+        if incomplete_tabs:
+            result_issues.append(
+                "actual bottom scroll was not proven for: " + ", ".join(incomplete_tabs)
+            )
+        loading_tabs = [
+            tab_id
+            for tab_id, receipt in tab_runtime.items()
+            if receipt["loading_object_ids"]
+        ]
+        if loading_tabs:
+            result_issues.append("charts remained loading on: " + ", ".join(loading_tabs))
+        error_tabs = [
+            tab_id
+            for tab_id, receipt in tab_runtime.items()
+            if receipt["visible_error_object_ids"]
+        ]
+        if error_tabs:
+            result_issues.append("visible chart errors remained on: " + ", ".join(error_tabs))
+        missing_objects = [
+            f"{tab_id}:{object_id}"
+            for tab_id, receipt in tab_runtime.items()
+            for object_id in receipt["expected_object_ids"]
+            if object_id not in set(receipt["observed_object_ids"])
+            and object_id not in set(receipt["no_data_object_ids"])
+        ]
+        if missing_objects:
+            result_issues.append("expected objects were not observed: " + ", ".join(missing_objects))
     if not normalized_dashboard_id:
         result_issues.append("dashboard_id is required")
     elif str(target.get("dashboard_id") or "") != normalized_dashboard_id:
@@ -1707,6 +1984,17 @@ def build_qa_attestation(
     }
     if not paths or len(artifact_hashes) != len(paths):
         issues.append("browser QA requires readable screenshot or evaluation artifacts")
+    metrics = dict(browser_metrics or {})
+    if final_visual:
+        expected_metrics = {
+            "browser_calls_before_final_visual_stage": 0,
+            "browser_calls_to_non_dashboard_objects": 0,
+            "browser_mutation_attempts": 0,
+            "browser_tabs_fully_scrolled": len(expected_tabs),
+        }
+        for key, expected_value in expected_metrics.items():
+            if metrics.get(key) != expected_value:
+                issues.append(f"browser metric {key} must equal {expected_value}")
     attestation: dict[str, Any] = {
         "schema_id": "qa_attestation",
         "ok": not issues,
@@ -1723,10 +2011,23 @@ def build_qa_attestation(
         "dashboard_composition_sha256": str(
             binding.get("dashboard_composition_sha256") or ""
         ),
+        "api_diagnostics_receipt_hash": str(
+            binding.get("api_diagnostics_receipt_hash") or ""
+        ),
         "browser_qa_plan_sha256": str(plan.get("canonical_sha256") or ""),
+        "browser_policy_mode": str(policy.get("mode") or ""),
+        "browser_policy_purpose": str(policy.get("purpose") or ""),
+        "task_id": str(binding.get("task_id") or ""),
+        "contract_revision": int(binding.get("contract_revision") or 0),
+        "plan_hash": str(binding.get("plan_hash") or ""),
+        "candidate_build_identity": str(binding.get("candidate_build_identity") or ""),
         "viewport_widths": required_widths,
         "tab_ids": expected_tabs,
-        "full_scroll_checked": not missing_coverage,
+        "full_scroll_checked": not missing_coverage and (
+            not final_visual
+            or all(receipt["scroll_reached_bottom"] is True for receipt in tab_runtime.values())
+        ),
+        "tab_receipts": list(tab_runtime.values()),
         "coverage": [
             {"width": width, "tab_id": tab_id, "scroll_position": position}
             for width, tab_id, position in sorted(coverage)
@@ -1735,6 +2036,8 @@ def build_qa_attestation(
         "issues": issues,
         "artifact_paths": paths,
         "artifact_hashes": artifact_hashes,
+        "browser_metrics": metrics,
+        "chart_query_equivalence": "incomplete" if final_visual else "not_evaluated",
     }
     attestation["sha256"] = hashlib.sha256(
         json.dumps(
@@ -1756,6 +2059,10 @@ def validate_qa_attestation_binding(
     final_payload_attestation_sha256: str,
     payload_set_sha256: str,
     dashboard_composition_sha256: str,
+    task_id: str = "",
+    contract_revision: int = 0,
+    plan_hash: str = "",
+    candidate_build_identity: str = "",
 ) -> list[str]:
     """Validate that browser evidence owns the exact revision and payload being completed."""
 
@@ -1779,6 +2086,15 @@ def validate_qa_attestation_binding(
             issues.append(f"expected {key} is required")
         elif str(qa.get(key) or "") != value:
             issues.append(f"qa_attestation {key} does not match")
+    exact_candidate = {
+        "task_id": str(task_id or ""),
+        "contract_revision": int(contract_revision or 0),
+        "plan_hash": str(plan_hash or ""),
+        "candidate_build_identity": str(candidate_build_identity or ""),
+    }
+    for key, value in exact_candidate.items():
+        if value and qa.get(key) != value:
+            issues.append(f"qa_attestation {key} does not match")
     if expected["saved_revision"] and expected["published_revision"] != expected["saved_revision"]:
         issues.append("published revision must be the exact QA-checked saved revision")
     widths = sorted(
@@ -1786,8 +2102,8 @@ def validate_qa_attestation_binding(
         for item in qa.get("viewport_widths") or []
         if isinstance(item, int) and not isinstance(item, bool)
     )
-    if widths != [720, 1200, 1440]:
-        issues.append("qa_attestation must cover viewports 720, 1200, and 1440")
+    if not widths:
+        issues.append("qa_attestation must cover at least one applicable viewport")
     tab_ids = [str(item) for item in qa.get("tab_ids") or [] if str(item)]
     coverage = {
         (
@@ -1800,12 +2116,45 @@ def validate_qa_attestation_binding(
     }
     expected_coverage = {
         (width, tab_id, position)
-        for width in (720, 1200, 1440)
+        for width in widths
         for tab_id in tab_ids
         for position in ("top", "bottom")
     }
     if not tab_ids or coverage != expected_coverage or qa.get("full_scroll_checked") is not True:
         issues.append("qa_attestation must cover every tab at top and after full scroll")
+    if qa.get("browser_policy_purpose") == "final_visual_acceptance":
+        if not re.fullmatch(r"[a-f0-9]{64}", str(qa.get("api_diagnostics_receipt_hash") or "")):
+            issues.append("final visual attestation requires API diagnostics binding")
+        for field_name in ("task_id", "contract_revision", "plan_hash", "candidate_build_identity"):
+            if not qa.get(field_name):
+                issues.append(f"final visual attestation requires {field_name}")
+        tab_receipts = {
+            str(item.get("tab_id") or ""): item
+            for item in qa.get("tab_receipts") or []
+            if isinstance(item, dict)
+        }
+        if set(tab_receipts) != set(tab_ids) or any(
+            item.get("scroll_reached_bottom") is not True
+            or item.get("activation_observed") is not True
+            or item.get("top_observed") is not True
+            or int(item.get("scroll_checkpoint_count") or 0) < 1
+            or bool(item.get("loading_object_ids"))
+            or bool(item.get("visible_error_object_ids"))
+            or not item.get("screenshot_ref")
+            for item in tab_receipts.values()
+        ):
+            issues.append("final visual attestation requires compact successful per-tab scroll receipts")
+        metrics = qa.get("browser_metrics") if isinstance(qa.get("browser_metrics"), dict) else {}
+        expected_metrics = {
+            "browser_calls_before_final_visual_stage": 0,
+            "browser_calls_to_non_dashboard_objects": 0,
+            "browser_mutation_attempts": 0,
+            "browser_tabs_fully_scrolled": len(tab_ids),
+        }
+        if any(metrics.get(key) != value for key, value in expected_metrics.items()):
+            issues.append("final visual attestation browser call ledger is incomplete")
+        if qa.get("chart_query_equivalence") != "incomplete":
+            issues.append("final visual attestation must state API chart-query equivalence limitation")
     if qa.get("runtime_errors") != []:
         issues.append("qa_attestation contains runtime or network errors")
     artifact_paths = [str(item) for item in qa.get("artifact_paths") or [] if str(item)]

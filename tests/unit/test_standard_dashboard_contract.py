@@ -452,7 +452,7 @@ class StandardDashboardContractTests(unittest.TestCase):
             )
             results = []
             assertions = {item["id"]: True for item in BROWSER_QA_ASSERTIONS}
-            for width in (720, 1200, 1440):
+            for width in (1200,):
                 for position in ("top", "bottom"):
                     results.append(
                         {
@@ -474,7 +474,7 @@ class StandardDashboardContractTests(unittest.TestCase):
                 artifact_paths=[str(proof_path)],
             )
             self.assertTrue(attestation["ok"], attestation["issues"])
-            self.assertEqual(attestation["viewport_widths"], [720, 1200, 1440])
+            self.assertEqual(attestation["viewport_widths"], [1200])
             self.assertEqual(attestation["final_payload_attestation_sha256"], "a" * 64)
             expected = {
                 "dashboard_id": "dashboard_1",

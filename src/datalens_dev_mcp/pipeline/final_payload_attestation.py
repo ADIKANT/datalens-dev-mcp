@@ -290,7 +290,7 @@ def build_final_payload_attestation(root: str | Path) -> dict[str, Any]:
             "required_for_publish": requires_attestation,
             "dashboard_revision_bound": True,
             "payload_hash_bound": True,
-            "required_viewport_widths": [720, 1200, 1440],
+            "required_viewport_widths": [1200],
         },
     }
     attestation["attestation_sha256"] = canonical_sha256(

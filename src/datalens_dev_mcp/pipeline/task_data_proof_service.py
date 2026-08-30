@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
+from datalens_dev_mcp.api.request_compiler import project_method_request
 from datalens_dev_mcp.pipeline.assertion_spec_compiler import AssertionSpecCompiler
 from datalens_dev_mcp.pipeline.data_assertions import evaluate_data_assertions, unexpected_empty_diagnostics
 from datalens_dev_mcp.pipeline.data_sample_budget import sensitive_field_guids
@@ -53,6 +54,20 @@ class TaskDataProofService:
                 assertion_plan_hash="",
                 schema_hash="",
             )
+        api_first_diagnostics = self._api_first_structural_diagnostics()
+        if api_first_diagnostics.get("status") in {"blocked", "failed"}:
+            return self._write_receipt(
+                status="blocked",
+                proof_level="live_read_only_api",
+                fallback_kind="api_first_dataset_validation_failed",
+                assertions=[],
+                provider_calls=list(api_first_diagnostics.get("provider_calls") or []),
+                limitations=list(api_first_diagnostics.get("limitations") or []),
+                live_data_verified=False,
+                assertion_plan_hash="",
+                schema_hash="",
+                api_first_diagnostics=api_first_diagnostics,
+            )
         acquired = self.context_service.acquire(fresh=True, mode="assertion_probe")
         probe_plan = dict(acquired.get("query_plan") or {})
         assertion_plan = AssertionSpecCompiler().compile(
@@ -73,6 +88,7 @@ class TaskDataProofService:
                 live_data_verified=False,
                 assertion_plan_hash=str(assertion_plan.get("plan_hash") or ""),
                 schema_hash="",
+                api_first_diagnostics=api_first_diagnostics,
             )
         profile = dict(acquired.get("profile") or {})
         normalized = dict(acquired.get("normalized_page") or {})
@@ -89,6 +105,7 @@ class TaskDataProofService:
                 live_data_verified=False,
                 assertion_plan_hash=str(assertion_plan.get("plan_hash") or ""),
                 schema_hash=schema_hash,
+                api_first_diagnostics=api_first_diagnostics,
             )
         rows = list(normalized.get("plain_rows") or []) if live else []
         schema = list(normalized.get("schema") or probe_plan.get("field_catalog") or [])
@@ -118,6 +135,38 @@ class TaskDataProofService:
         )
         expected_empty = any(item.get("kind") == "expected_empty" for item in assertion_plan.get("assertions") or [])
         provider_calls = list(acquired.get("provider_calls") or [])
+        provider_calls = [
+            *list(api_first_diagnostics.get("provider_calls") or []),
+            *provider_calls,
+        ]
+        query = next(
+            (dict(item) for item in probe_plan.get("queries") or [] if isinstance(item, dict)),
+            {},
+        )
+        query_payload = dict(query.get("payload") or {})
+        api_first_diagnostics = {
+            **api_first_diagnostics,
+            "status": (
+                "passed"
+                if api_first_diagnostics.get("status") in {"passed", "not_required"}
+                and profile.get("proof_level") == "live_read_only_api"
+                and not profile.get("fallback_kind")
+                else "blocked"
+            ),
+            "get_dataset_data_probe": {
+                "request_hash": str(query.get("query_hash") or canonical_hash(query_payload)),
+                "field_count": len(query_payload.get("columns") or []),
+                "filter_count": len(query_payload.get("filters") or []),
+                "param_count": len(query_payload.get("params") or []),
+                "sort_count": len(query_payload.get("sort") or []),
+                "limit": int(query_payload.get("limit") or 0),
+                "outcome": (
+                    "api_runtime_pass"
+                    if profile.get("proof_level") == "live_read_only_api" and not profile.get("fallback_kind")
+                    else "api_runtime_error_observed"
+                ),
+            },
+        }
         diagnostics: list[dict[str, Any]] = []
         if live and not rows and not expected_empty:
             diagnostic = self.context_service.acquire(fresh=True, mode="diagnostic_probe")
@@ -171,7 +220,160 @@ class TaskDataProofService:
             row_count=len(rows),
             paging=paging,
             sensitive_assertion_kinds=sensitive_kinds,
+            api_first_diagnostics=api_first_diagnostics,
         )
+
+    def _api_first_structural_diagnostics(self) -> dict[str, Any]:
+        policy = self.contract.get("browser_policy") or {}
+        if str(policy.get("purpose") or "") != "final_visual_acceptance":
+            return {
+                "status": "not_required",
+                "component_error_count": 0,
+                "component_error_families": [],
+                "provider_calls": [],
+                "limitations": [],
+                "chart_query_equivalence": "incomplete",
+            }
+        graph = read_json(self.journal.target_graph_path, {}) or {}
+        datasets = [
+            item
+            for item in graph.get("nodes") or []
+            if isinstance(item, dict) and str(item.get("object_type") or "") == "dataset"
+        ]
+        chart_methods = {
+            "wizard_chart": "getWizardChart",
+            "editor_chart": "getEditorChart",
+            "advanced_editor_chart": "getEditorChart",
+            "ql_chart": "getQLChart",
+            "chart": "getEditorChart",
+        }
+        charts = [
+            item
+            for item in graph.get("nodes") or []
+            if isinstance(item, dict) and str(item.get("object_type") or "") in chart_methods
+        ]
+        workbook_id = str((self.contract.get("target") or {}).get("workbook_id") or "")
+        provider_calls: list[dict[str, Any]] = []
+        component_errors: list[dict[str, Any]] = []
+        limitations = [
+            "public OpenAPI has no exact chart render/query-error endpoint",
+            "bounded getDatasetData is not claimed equivalent to the final chart query",
+        ]
+        chart_definition_hashes: dict[str, str] = {}
+        for node in charts:
+            chart_id = str(node.get("object_id") or "")
+            method = chart_methods[str(node.get("object_type") or "")]
+            chart_payload = {"chartId": chart_id, "branch": "saved"}
+            try:
+                chart_definition = self.context_service.client.rpc_readonly(method, chart_payload)
+            except Exception as exc:  # noqa: BLE001 - typed provider boundary.
+                provider_calls.append(
+                    {
+                        "method": method,
+                        "request_hash": canonical_hash(chart_payload),
+                        "status": "unavailable",
+                        "error_family": exc.__class__.__name__,
+                    }
+                )
+                limitations.append(f"{method} unavailable for {chart_id}")
+                continue
+            response_hash = canonical_hash(chart_definition)
+            chart_definition_hashes[chart_id] = response_hash
+            provider_calls.append(
+                {
+                    "method": method,
+                    "request_hash": canonical_hash(chart_payload),
+                    "response_hash": response_hash,
+                    "status": "success",
+                }
+            )
+        for node in datasets:
+            dataset_id = str(node.get("object_id") or "")
+            read_payload: dict[str, Any] = {"datasetId": dataset_id}
+            if workbook_id:
+                read_payload["workbookId"] = workbook_id
+            try:
+                readback = self.context_service.client.rpc_readonly("getDataset", read_payload)
+            except Exception as exc:  # noqa: BLE001 - typed provider boundary.
+                provider_calls.append(
+                    {
+                        "method": "getDataset",
+                        "request_hash": canonical_hash(read_payload),
+                        "status": "unavailable",
+                        "error_family": exc.__class__.__name__,
+                    }
+                )
+                limitations.append(f"getDataset unavailable for {dataset_id}")
+                continue
+            provider_calls.append(
+                {
+                    "method": "getDataset",
+                    "request_hash": canonical_hash(read_payload),
+                    "response_hash": canonical_hash(readback),
+                    "status": "success",
+                }
+            )
+            dataset_payload = _dataset_payload(readback)
+            compiled = project_method_request(
+                "validateDataset",
+                dataset_payload,
+                object_type="dataset",
+                operation="validate",
+                object_id=dataset_id,
+                workbook_id=workbook_id,
+                mode="validate",
+            )
+            if not compiled.get("ok"):
+                provider_calls.append(
+                    {
+                        "method": "validateDataset",
+                        "status": "blocked_before_provider",
+                        "request_hash": str(compiled.get("final_request_sha256") or ""),
+                    }
+                )
+                limitations.extend(str(item) for item in compiled.get("issues") or [])
+                continue
+            validate_payload = dict(compiled.get("payload") or {})
+            try:
+                validation = self.context_service.client.rpc_readonly(
+                    "validateDataset",
+                    validate_payload,
+                )
+            except Exception as exc:  # noqa: BLE001 - typed provider boundary.
+                provider_calls.append(
+                    {
+                        "method": "validateDataset",
+                        "request_hash": canonical_hash(validate_payload),
+                        "status": "unavailable",
+                        "error_family": exc.__class__.__name__,
+                    }
+                )
+                limitations.append(f"validateDataset unavailable for {dataset_id}")
+                continue
+            provider_calls.append(
+                {
+                    "method": "validateDataset",
+                    "request_hash": canonical_hash(validate_payload),
+                    "response_hash": canonical_hash(validation),
+                    "status": "success",
+                }
+            )
+            component_errors.extend(_component_error_projection(validation, dataset_id=dataset_id))
+        unavailable = any(item.get("status") != "success" for item in provider_calls)
+        return {
+            "status": "failed" if component_errors else "blocked" if unavailable else "passed",
+            "dataset_ids": sorted(str(item.get("object_id") or "") for item in datasets),
+            "chart_definition_ids": sorted(chart_definition_hashes),
+            "chart_definition_hashes": dict(sorted(chart_definition_hashes.items())),
+            "component_error_count": len(component_errors),
+            "component_error_families": sorted(
+                {str(item.get("family") or "unknown") for item in component_errors}
+            ),
+            "component_errors": component_errors,
+            "provider_calls": provider_calls,
+            "limitations": sorted(set(limitations)),
+            "chart_query_equivalence": "incomplete",
+        }
 
     def _write_receipt(
         self,
@@ -189,6 +391,7 @@ class TaskDataProofService:
         row_count: int = 0,
         paging: dict[str, Any] | None = None,
         sensitive_assertion_kinds: set[str] | None = None,
+        api_first_diagnostics: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         target_binding = read_json(self.journal.target_binding_path, {}) or {}
         planning_profile = read_json(self.journal.root / "data" / "context-profile.json", {}) or {}
@@ -208,6 +411,14 @@ class TaskDataProofService:
             "fallback_kind": fallback_kind,
             "live_data_verified": live_data_verified,
             "dataset_data_semantics": "unknown_experimental",
+            "api_first_diagnostics": sanitize_value(api_first_diagnostics or {
+                "status": "not_required",
+                "component_error_count": 0,
+                "component_error_families": [],
+                "provider_calls": [],
+                "limitations": [],
+                "chart_query_equivalence": "incomplete",
+            }),
             "status": status,
             "assertions": _sanitize_assertions(assertions, sensitive_assertion_kinds or set()),
             "provider_calls": sanitize_value(provider_calls),
@@ -220,6 +431,43 @@ class TaskDataProofService:
         payload["receipt_hash"] = canonical_hash(payload)
         write_json(self.receipt_path, payload)
         return payload
+
+
+def _dataset_payload(response: dict[str, Any]) -> dict[str, Any]:
+    result = response.get("result") if isinstance(response.get("result"), dict) else response
+    dataset = result.get("dataset") if isinstance(result, dict) and isinstance(result.get("dataset"), dict) else result
+    return dict(dataset) if isinstance(dataset, dict) else {}
+
+
+def _component_error_projection(value: Any, *, dataset_id: str) -> list[dict[str, Any]]:
+    errors: list[dict[str, Any]] = []
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            if key in {"component_errors", "componentErrors"} and isinstance(nested, (dict, list)):
+                items = nested if isinstance(nested, list) else [nested]
+                for item in items:
+                    if not isinstance(item, dict):
+                        continue
+                    family = str(
+                        item.get("code")
+                        or item.get("type")
+                        or item.get("kind")
+                        or item.get("component")
+                        or "unknown"
+                    )
+                    errors.append(
+                        {
+                            "dataset_id": dataset_id,
+                            "family": family[:160],
+                            "error_hash": canonical_hash(item),
+                        }
+                    )
+            else:
+                errors.extend(_component_error_projection(nested, dataset_id=dataset_id))
+    elif isinstance(value, list):
+        for nested in value:
+            errors.extend(_component_error_projection(nested, dataset_id=dataset_id))
+    return errors
 
 
 def _binding_issues(

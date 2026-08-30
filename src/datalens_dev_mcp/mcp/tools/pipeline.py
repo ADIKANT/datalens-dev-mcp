@@ -1620,7 +1620,7 @@ def _write_bundle_browser_qa_plan(
         "schema_id": plan["schema_id"],
         "plan_sha256": plan["canonical_sha256"],
         "artifact_path": str(plan_path),
-        "max_browser_calls": plan["execution"]["max_browser_calls"],
+        "max_browser_calls": plan["execution"]["bounded_call_count"],
         "viewports": [
             {
                 "id": item["id"],

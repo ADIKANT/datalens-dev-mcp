@@ -25,6 +25,16 @@ class ProofClient(PlanningClient):
         self.dataset_behavior = "normal"
 
     def rpc_readonly(self, method: str, payload: dict) -> dict:
+        if method == "validateDataset":
+            self.calls.append((method, deepcopy(payload)))
+            return {
+                "result": {
+                    "dataset": {
+                        "datasetId": str(payload.get("datasetId") or ""),
+                        "component_errors": [],
+                    }
+                }
+            }
         if method == "getDatasetData" and self.dataset_behavior != "normal":
             self.calls.append((method, deepcopy(payload)))
             if self.dataset_behavior == "fail":
@@ -77,7 +87,15 @@ def plan_ready_task(
         return TaskDatasetContextService(journal, contract, client=client)
 
     delivery_text = "save and publish" if publish else "save only"
-    browser_text = "without browser" if browser == "forbidden" else "browser is required"
+    if browser == "forbidden":
+        browser_text = "without browser"
+    elif browser == "final_visual_acceptance":
+        browser_text = (
+            "Browser QA is allowed exclusively at final acceptance for a read-only all-tabs "
+            "visual pass after API diagnostics; Browser must never mutate DataLens"
+        )
+    else:
+        browser_text = "browser is required"
     with (
         patch.object(tasks, "TargetDiscoveryService", return_value=discovery),
         patch.object(planning_services, "TaskDatasetContextService", side_effect=context_factory),

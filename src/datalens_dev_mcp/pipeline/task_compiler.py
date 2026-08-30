@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import replace
 from typing import Any
 
 from datalens_dev_mcp.pipeline.browser_policy import compile_browser_policy
@@ -113,6 +114,18 @@ def compile_task_contract(
         corrections=correction_values,
         workspace_policy=workspace,
     )
+    if browser_policy.purpose == "final_visual_acceptance":
+        browser_policy = replace(
+            browser_policy,
+            target=replace(
+                browser_policy.target,
+                workbook_id=target.workbook_id,
+                dashboard_id=target.dashboard_id,
+                saved_revision=target.saved_revision,
+                published_revision=target.published_revision,
+                canonical_url=normalized.target_url,
+            ),
+        )
     delivery = _compile_delivery(
         normalized,
         correction_request,
@@ -227,11 +240,7 @@ def _compile_mode(
     text = "\n".join((raw_request, correction.raw_text if correction else "")).lower()
     if re.search(r"\bpublish(?:\s+from\s+saved)?\s+only\b|только\s+опубли", text):
         return "publish_only"
-    if any(term in text for term in ("diagnose", "diagnostic", "root cause", "диагност", "причин")):
-        return "diagnose"
     intent = correction.task_intent if correction and correction.task_intent != "unknown" else normalized.task_intent
-    if intent == "review":
-        return "review"
     if intent == "plan" or normalized.publish_override in {"plan_only", "dry_run"}:
         return "plan"
     if intent == "redesign":
@@ -240,6 +249,14 @@ def _compile_mode(
         return "create"
     if intent in {"fix", "enhance", "update"}:
         return "update"
+    # Diagnostics may be a required stage of an explicitly requested mutation
+    # (for example, "update and publish; run API diagnostics before browser").
+    # Only classify the whole task as diagnose when no stronger mutation intent
+    # was compiled from the request.
+    if any(term in text for term in ("diagnose", "diagnostic", "root cause", "диагност", "причин")):
+        return "diagnose"
+    if intent == "review":
+        return "review"
     if operation_kind == current_operation_kind and current_mode in {
         "review", "diagnose", "plan", "create", "update", "redesign", "publish_only"
     }:

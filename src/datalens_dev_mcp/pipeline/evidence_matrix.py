@@ -26,7 +26,11 @@ def build_evidence_matrix(
     required = list(CHANGE_CLASS_REQUIREMENTS[normalized_change])
     if normalized_change == "publish_only" and stage == "completion":
         required.append("published_readback")
-    if policy["mode"] == "required":
+    final_visual = policy["purpose"] == "final_visual_acceptance"
+    browser_required = policy["mode"] == "required" and (
+        not final_visual or stage == "completion"
+    )
+    if browser_required:
         required.append("browser_attestation")
     observed = _normalize_evidence(evidence or {})
     missing = [name for name in required if not observed.get(name, False)]
@@ -39,9 +43,13 @@ def build_evidence_matrix(
         "required_evidence": required,
         "observed_evidence": observed,
         "missing_evidence": missing,
-        "browser_adapter_allowed": policy["mode"] != "forbidden",
-        "browser_adapter_required": policy["mode"] == "required",
-        "should_call_browser": policy["mode"] == "required" and not observed.get("browser_attestation", False),
+        "browser_adapter_allowed": (
+            policy["mode"] != "forbidden"
+            and policy["applicability"] == "applicable"
+            and not (final_visual and stage != "completion")
+        ),
+        "browser_adapter_required": browser_required,
+        "should_call_browser": browser_required and not observed.get("browser_attestation", False),
         "can_publish": not missing,
         "proof_claims": claims,
     }
@@ -51,7 +59,7 @@ def normalize_browser_policy(
     policy: dict[str, Any] | None,
     *,
     change_class: str = "renderer_logic",
-) -> dict[str, str]:
+) -> dict[str, Any]:
     value = policy if isinstance(policy, dict) else {}
     mode = str(value.get("mode") or "").strip().lower()
     source = str(value.get("source") or "").strip().lower()
@@ -60,7 +68,30 @@ def normalize_browser_policy(
         source = "compiled_default"
     if source not in {"explicit_user", "compiled_default", "workspace_policy"}:
         source = "compiled_default"
-    return {"mode": mode, "source": source, "change_class": change_class}
+    applicability = str(value.get("applicability") or "applicable")
+    if applicability not in {"applicable", "not_applicable"}:
+        applicability = "applicable"
+    purpose = str(value.get("purpose") or "runtime_visual_evidence")
+    final_visual = purpose == "final_visual_acceptance"
+    return {
+        "mode": mode,
+        "source": source,
+        "applicability": applicability,
+        "change_class": change_class,
+        "purpose": purpose,
+        "read_only": True,
+        "mutation_allowed": False,
+        "earliest_stage": str(value.get("earliest_stage") or (
+            "published_readback_and_api_diagnostics_complete" if final_visual else "qa"
+        )),
+        "calls_before_earliest_stage_allowed": bool(
+            value.get("calls_before_earliest_stage_allowed", not final_visual)
+        ),
+        "allowed_interactions": [
+            str(item) for item in value.get("allowed_interactions") or [] if str(item)
+        ],
+        "target": dict(value.get("target") or {}),
+    }
 
 
 def browser_policy_from_legacy_flag(
@@ -68,19 +99,24 @@ def browser_policy_from_legacy_flag(
     *,
     maintenance_mode: str,
     supplied_policy: dict[str, Any] | None = None,
-) -> dict[str, str]:
+) -> dict[str, Any]:
     if isinstance(supplied_policy, dict) and supplied_policy:
         return normalize_browser_policy(supplied_policy)
     if browser_runtime_required is True:
-        return {"mode": "required", "source": "compiled_default", "change_class": "renderer_logic"}
+        return normalize_browser_policy(
+            {"mode": "required", "source": "compiled_default"},
+            change_class="renderer_logic",
+        )
     if browser_runtime_required is False:
-        return {"mode": "forbidden", "source": "compiled_default", "change_class": "source_labels_only"}
+        return normalize_browser_policy(
+            {"mode": "forbidden", "source": "compiled_default"},
+            change_class="source_labels_only",
+        )
     data_only = maintenance_mode in {"dataset_sql_patch", "source_availability_patch"}
-    return {
-        "mode": "optional" if data_only else "required",
-        "source": "compiled_default",
-        "change_class": "source_labels_only" if data_only else "renderer_logic",
-    }
+    return normalize_browser_policy(
+        {"mode": "optional" if data_only else "required", "source": "compiled_default"},
+        change_class="source_labels_only" if data_only else "renderer_logic",
+    )
 
 
 def _normalize_evidence(evidence: dict[str, Any]) -> dict[str, bool]:

@@ -60,7 +60,20 @@ class TaskQaService:
             dict(self.contract.get("browser_policy") or {}),
             change_class=_change_class(self.contract),
         )
-        browser = self._browser_evidence(policy, saved=saved, published=published)
+        api_first_diagnostics = _api_first_diagnostics_summary(
+            self.journal,
+            self.contract,
+            data_receipt=data_receipt,
+            saved=saved,
+            published=published,
+        )
+        browser = self._browser_evidence(
+            policy,
+            saved=saved,
+            published=published,
+            data_receipt=data_receipt,
+            plan_issues=plan_issues,
+        )
         acceptance_coverage = _acceptance_coverage(
             self.contract,
             data_receipt=data_receipt,
@@ -113,8 +126,10 @@ class TaskQaService:
             "proof_level": str(browser.get("proof_level") or "contract_runtime"),
             "data_proof_receipt_hash": str(data_receipt.get("receipt_hash") or ""),
             "runtime_evidence": runtime_evidence,
+            "api_first_diagnostics": api_first_diagnostics,
             "browser_policy": policy,
             "browser_adapter_calls": int(browser.get("adapter_calls") or 0),
+            "browser_status": str(browser.get("status") or "not_required"),
             "browser_attestation": sanitize_value(browser.get("attestation") or {}),
             "evidence_matrix": matrix,
             "acceptance_coverage": acceptance_coverage,
@@ -215,17 +230,55 @@ class TaskQaService:
         *,
         saved: dict[str, Any],
         published: dict[str, Any],
+        data_receipt: dict[str, Any],
+        plan_issues: list[str],
     ) -> dict[str, Any]:
         mode = str(policy.get("mode") or "optional")
-        should_execute = mode == "required" or (mode == "optional" and self.execute_optional_browser)
+        should_execute = mode == "required" or (
+            mode == "optional" and self.execute_optional_browser
+        )
         if not should_execute:
-            return {"ok": True, "adapter_calls": 0, "proof_level": "contract_runtime", "attestation": {}}
+            return {
+                "ok": True,
+                "adapter_calls": 0,
+                "proof_level": "contract_runtime",
+                "attestation": {},
+                "status": "forbidden_zero_calls" if mode == "forbidden" else "optional_not_collected",
+            }
+        final_visual = str(policy.get("purpose") or "") == "final_visual_acceptance"
+        if final_visual:
+            data_diagnostics = data_receipt.get("api_first_diagnostics") or {}
+            prerequisites_ok = bool(
+                not plan_issues
+                and data_receipt.get("status") == "passed"
+                and data_diagnostics.get("status") == "passed"
+                and saved.get("status") == "success"
+                and published.get("status") == "success"
+                and str(data_receipt.get("receipt_hash") or "")
+            )
+            if not prerequisites_ok:
+                return {
+                    "ok": False,
+                    "adapter_calls": 0,
+                    "proof_level": "contract_runtime",
+                    "attestation": {},
+                    "reason": "final_visual_prerequisites_incomplete",
+                    "status": "awaiting_api_first_prerequisites",
+                }
         if self.browser_adapter is None:
-            return {"ok": False, "adapter_calls": 0, "proof_level": "contract_runtime", "attestation": {}}
+            return {
+                "ok": False,
+                "adapter_calls": 0,
+                "proof_level": "contract_runtime",
+                "attestation": {},
+                "reason": "browser_adapter_unavailable",
+                "status": "awaiting_visual_acceptance" if final_visual else "browser_required_unavailable",
+            }
         expected = _browser_binding(self.journal, self.contract, saved=saved, published=published)
         try:
             plan = build_browser_qa_plan(
                 dashboard_id=expected["dashboard_id"],
+                dashboard_url=expected["dashboard_url"],
                 tab_ids=expected["tab_ids"],
                 expected_object_ids=expected["object_ids"],
                 saved_revision=expected["saved_revision"],
@@ -233,6 +286,14 @@ class TaskQaService:
                 final_payload_attestation_sha256=expected["final_payload_attestation_sha256"],
                 payload_set_sha256=expected["payload_set_sha256"],
                 dashboard_composition={"sha256": expected["dashboard_composition_sha256"]},
+                browser_policy=policy,
+                api_diagnostics_receipt_hash=str(data_receipt.get("receipt_hash") or ""),
+                task_id=expected["task_id"],
+                contract_revision=expected["contract_revision"],
+                plan_hash=expected["plan_hash"],
+                candidate_build_identity=expected["candidate_build_identity"],
+                workbook_id=expected["workbook_id"],
+                tab_object_ids=expected["tab_object_ids"],
             )
         except Exception as exc:  # noqa: BLE001 - invalid browser binding is explicit evidence.
             return {
@@ -241,6 +302,7 @@ class TaskQaService:
                 "proof_level": "contract_runtime",
                 "attestation": {},
                 "reason": f"browser_plan_invalid:{exc.__class__.__name__}",
+                "status": "awaiting_visual_acceptance" if final_visual else "browser_plan_invalid",
             }
         try:
             attestation = self.browser_adapter(plan)
@@ -251,6 +313,7 @@ class TaskQaService:
                 "proof_level": "contract_runtime",
                 "attestation": {},
                 "reason": exc.__class__.__name__,
+                "status": "awaiting_visual_acceptance" if final_visual else "browser_adapter_failed",
             }
         issues = validate_qa_attestation_binding(
             attestation,
@@ -260,6 +323,10 @@ class TaskQaService:
             final_payload_attestation_sha256=expected["final_payload_attestation_sha256"],
             payload_set_sha256=expected["payload_set_sha256"],
             dashboard_composition_sha256=expected["dashboard_composition_sha256"],
+            task_id=expected["task_id"],
+            contract_revision=expected["contract_revision"],
+            plan_hash=expected["plan_hash"],
+            candidate_build_identity=expected["candidate_build_identity"],
         )
         return {
             "ok": not issues,
@@ -267,6 +334,7 @@ class TaskQaService:
             "proof_level": "browser_rendered" if not issues else "contract_runtime",
             "attestation": attestation if not issues else {},
             "issues": issues,
+            "status": "passed" if not issues else "awaiting_visual_acceptance",
         }
 
 
@@ -421,8 +489,51 @@ def _browser_binding(
         if str(item)
     ] or ["main"]
     composition_hash = canonical_hash({"dashboard_id": dashboard_id, "object_ids": object_ids, "tabs": tabs})
+    graph = read_json(journal.target_graph_path, {}) or {}
+    dashboard_url = next(
+        (
+            str(
+                item.get("canonical_direct_url")
+                or item.get("direct_url")
+                or item.get("canonical_url")
+                or ""
+            )
+            for item in graph.get("nodes") or []
+            if isinstance(item, dict)
+            and str(item.get("object_id") or "") == dashboard_id
+            and str(
+                item.get("canonical_direct_url")
+                or item.get("direct_url")
+                or item.get("canonical_url")
+                or ""
+            )
+        ),
+        "",
+    ) or (f"https://datalens.ru/{dashboard_id}" if dashboard_id else "")
+    tab_object_ids = {
+        tab_id: sorted(
+            {
+                str(item.get("object_id") or "")
+                for item in graph.get("nodes") or []
+                if isinstance(item, dict)
+                and str(item.get("tab_id") or item.get("dashboard_tab_id") or "") == tab_id
+                and str(item.get("object_id") or "")
+            }
+        )
+        for tab_id in tabs
+    }
+    if len(tabs) == 1 and not tab_object_ids[tabs[0]]:
+        tab_object_ids[tabs[0]] = object_ids or [dashboard_id]
+    build_identity = read_json(journal.build_identity_path, {}) or {}
     return {
         "dashboard_id": dashboard_id,
+        "dashboard_url": dashboard_url,
+        "workbook_id": str(target.get("workbook_id") or target_binding.get("workbook_id") or ""),
+        "task_id": str(contract.get("task_id") or ""),
+        "contract_revision": int(contract.get("contract_revision") or 0),
+        "plan_hash": str(public_plan.get("plan_hash") or ""),
+        "candidate_build_identity": str(build_identity.get("identity_hash") or ""),
+        "tab_object_ids": tab_object_ids,
         "object_ids": object_ids or [dashboard_id],
         "tab_ids": tabs,
         "saved_revision": saved_revision,
@@ -430,4 +541,57 @@ def _browser_binding(
         "final_payload_attestation_sha256": artifact_hashes.get("safe_apply_plan") or "0" * 64,
         "payload_set_sha256": artifact_hashes.get("materialized_payloads") or "0" * 64,
         "dashboard_composition_sha256": composition_hash,
+    }
+
+
+def _api_first_diagnostics_summary(
+    journal: ProjectJournal,
+    contract: dict[str, Any],
+    *,
+    data_receipt: dict[str, Any],
+    saved: dict[str, Any],
+    published: dict[str, Any],
+) -> dict[str, Any]:
+    graph = read_json(journal.target_graph_path, {}) or {}
+    nodes = [item for item in graph.get("nodes") or [] if isinstance(item, dict)]
+    chart_types = {"chart", "editor_chart", "advanced_editor_chart", "wizard_chart", "ql_chart"}
+    charts = [item for item in nodes if str(item.get("object_type") or "") in chart_types]
+    datasets = [item for item in nodes if str(item.get("object_type") or "") == "dataset"]
+    data_diagnostics = data_receipt.get("api_first_diagnostics") or {}
+    target_binding = read_json(journal.target_binding_path, {}) or {}
+    browser_policy = contract.get("browser_policy") or {}
+    required = str(browser_policy.get("purpose") or "") == "final_visual_acceptance"
+    status = (
+        "passed"
+        if not required
+        or (
+            data_receipt.get("status") == "passed"
+            and data_diagnostics.get("status") == "passed"
+            and saved.get("status") == "success"
+            and published.get("status") == "success"
+        )
+        else "blocked"
+    )
+    return {
+        "status": status,
+        "required": required,
+        "dashboard_id": str(
+            (contract.get("target") or {}).get("dashboard_id")
+            or target_binding.get("dashboard_id")
+            or ""
+        ),
+        "target_graph_hash": str(graph.get("graph_hash") or ""),
+        "chart_definition_ids": sorted(str(item.get("object_id") or "") for item in charts),
+        "chart_types": sorted({str(item.get("technology") or item.get("object_type") or "") for item in charts}),
+        "dataset_ids": sorted(str(item.get("object_id") or "") for item in datasets),
+        "saved_readback_complete": saved.get("status") == "success",
+        "published_readback_complete": published.get("status") == "success",
+        "data_proof_receipt_hash": str(data_receipt.get("receipt_hash") or ""),
+        "component_error_count": int(data_diagnostics.get("component_error_count") or 0),
+        "get_dataset_data_probe": dict(data_diagnostics.get("get_dataset_data_probe") or {}),
+        "chart_query_equivalence": "incomplete",
+        "limitations": [
+            "public OpenAPI has no exact chart render/query-error endpoint",
+            "API object and dataset proof does not claim frontend layout or exact chart query equivalence",
+        ],
     }
