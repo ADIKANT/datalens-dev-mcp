@@ -12,7 +12,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
-from http.client import RemoteDisconnected
+from http.client import IncompleteRead, RemoteDisconnected
 from pathlib import Path
 from threading import RLock
 from typing import Any, Protocol
@@ -594,6 +594,7 @@ def _retry_after_seconds(value: str | None, *, fallback: float, wall_time: float
 
 TRANSIENT_TRANSPORT_CATEGORIES = {
     "connection_reset",
+    "incomplete_read",
     "remote_disconnected",
     "temporarily_unavailable",
     "tls_connection_closed",
@@ -641,6 +642,8 @@ def _transport_error_category(exc: BaseException) -> str:
         return "tls_connection_closed"
     if any(isinstance(item, ssl.SSLError) for item in chain):
         return "tls_failure"
+    if any(isinstance(item, IncompleteRead) for item in chain):
+        return "incomplete_read"
     if any(isinstance(item, RemoteDisconnected) for item in chain) or "remote end closed" in text:
         return "remote_disconnected"
     if any(isinstance(item, (ConnectionResetError, ConnectionAbortedError)) for item in chain) or any(

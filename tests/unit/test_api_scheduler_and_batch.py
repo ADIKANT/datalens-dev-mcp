@@ -3,6 +3,7 @@ import ssl
 import tempfile
 import threading
 import unittest
+from http.client import IncompleteRead
 from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
@@ -363,6 +364,36 @@ class ApiSchedulerAndBatchTests(unittest.TestCase):
                 )
         self.assertEqual(len(transport.requests), 1)
         self.assertEqual(raised.exception.transport_category, "tls_unexpected_eof")
+        self.assertEqual(raised.exception.retry_attempts, 0)
+        self.assertFalse(raised.exception.retry_exhausted)
+
+    def test_incomplete_read_retry_is_read_only(self):
+        config = DataLensConfig(
+            iam_token="token",
+            org_id="org",
+            request_interval_sec=0,
+            read_transient_retries=2,
+        )
+        read_transport = SequenceTransport(
+            [IncompleteRead(b'{"entries":', 17), {"entries": []}]
+        )
+        with patch("datalens_dev_mcp.api.client._transient_retry_pause", return_value=None):
+            result = DataLensApiClient(config, transport=read_transport).rpc_readonly(
+                "getWorkbookEntries", {"workbookId": "workbook_1"}
+            )
+        self.assertEqual(result, {"entries": []})
+        self.assertEqual(len(read_transport.requests), 2)
+
+        write_transport = SequenceTransport(
+            [IncompleteRead(b'{"entry":', 19), {"ok": True}]
+        )
+        with patch("datalens_dev_mcp.api.client._transient_retry_pause", return_value=None):
+            with self.assertRaises(DataLensApiError) as raised:
+                DataLensApiClient(config, transport=write_transport).rpc(
+                    "updateDashboard", {"entry": {"entryId": "dashboard_1"}}
+                )
+        self.assertEqual(len(write_transport.requests), 1)
+        self.assertEqual(raised.exception.transport_category, "incomplete_read")
         self.assertEqual(raised.exception.retry_attempts, 0)
         self.assertFalse(raised.exception.retry_exhausted)
 
