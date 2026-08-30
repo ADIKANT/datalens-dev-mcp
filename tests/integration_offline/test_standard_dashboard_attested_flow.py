@@ -144,7 +144,7 @@ class StandardDashboardAttestedFlowTests(unittest.TestCase):
                     "assertions": assertions,
                     "observations": {},
                 }
-                for width in (720, 1200, 1440)
+                for width in (item["width"] for item in browser_plan["viewports"])
                 for position in ("top", "bottom")
             ]
             qa = build_qa_attestation(
