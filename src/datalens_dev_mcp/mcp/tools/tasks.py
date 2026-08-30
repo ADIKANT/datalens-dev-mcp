@@ -379,8 +379,19 @@ def dl_task_resume(
     state, _ = journal.replay()
     _assert_expected_state(state, expected_state=expected_state, expected_hash=expected_hash)
     before = state.last_event_id
-    if user_turn is None and _blocked_discovery_is_retryable(state):
-        state, blocked_result = _retry_blocked_discovery(journal, contract, state, before=before)
+    if user_turn is None and _discovery_recovery_required(state, journal):
+        recovery_source = (
+            "BLOCKED_DISCOVERY"
+            if _blocked_discovery_is_retryable(state)
+            else "INTERRUPTED_OR_INCOMPLETE_DISCOVERY"
+        )
+        state, blocked_result = _retry_blocked_discovery(
+            journal,
+            contract,
+            state,
+            before=before,
+            recovery_source=recovery_source,
+        )
         if blocked_result is not None:
             return blocked_result
     if state.current_state == "VALIDATED":
@@ -1119,6 +1130,24 @@ def _blocked_discovery_is_retryable(state: Any) -> bool:
     )
 
 
+def _discovery_recovery_required(state: Any, journal: ProjectJournal) -> bool:
+    if _blocked_discovery_is_retryable(state):
+        return True
+    if state.current_state == "BLOCKED":
+        blocker = dict(state.blocker or {})
+        details = dict(blocker.get("details") or {})
+        missing = {str(value) for value in details.get("missing_requirements") or []}
+        return (
+            str(blocker.get("reason") or "") == "live target discovery is unavailable"
+            and bool(missing & {"live_target_binding", "target_graph"})
+        )
+    if state.current_state != "RESOLVED":
+        return False
+    target = read_json(journal.target_binding_path, {}) or {}
+    graph = read_json(journal.target_graph_path, {}) or {}
+    return target.get("source") != "live_discovery" or not graph.get("graph_hash")
+
+
 def _provider_discovery_failure(
     exc: DataLensApiError,
     *,
@@ -1171,6 +1200,7 @@ def _retry_blocked_discovery(
     state,
     *,
     before: int,
+    recovery_source: str = "BLOCKED_DISCOVERY",
 ) -> tuple[Any, dict[str, Any] | None]:
     target_url = str(
         (((contract.get("browser_policy") or {}).get("target") or {}).get("canonical_url")) or ""
@@ -1252,7 +1282,7 @@ def _retry_blocked_discovery(
             "tab_count": discovery.get("tab_count", 0),
             "dataset_count": discovery.get("dataset_count", 0),
             "field_count": discovery.get("field_count", 0),
-            "recovered_from": "BLOCKED_DISCOVERY",
+            "recovered_from": recovery_source,
         },
     )
     with journal.locked(owner="task-discovery-retry"):
@@ -1260,7 +1290,7 @@ def _retry_blocked_discovery(
         recovered = journal.append_transition(
             current,
             transition="TASK_DISCOVERY_RETRY_SUCCEEDED",
-            input_value={"prior_blocker": "BLOCKED_DISCOVERY"},
+            input_value={"prior_blocker": recovery_source},
             receipt_uri=journal.receipt_uri("discovery.json"),
             status="success",
             idempotency_key=canonical_hash(

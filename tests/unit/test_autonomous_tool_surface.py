@@ -269,6 +269,56 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
                 )
                 self.assertNotEqual(started.get("blocked_by", {}).get("code"), "BLOCKED_DISCOVERY")
 
+    def test_public_resume_recovers_interrupted_or_incomplete_discovery(self) -> None:
+        from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService
+        from tests.unit.test_target_discovery import DiscoveryClient
+
+        class SimulatedInterruption(BaseException):
+            pass
+
+        for label, persist_baseline_blocker in (
+            ("interrupted_resolved", False),
+            ("persisted_baseline_blocker", True),
+        ):
+            with self.subTest(label=label), tempfile.TemporaryDirectory() as tmp:
+                with (
+                    patch.object(
+                        tasks.TargetDiscoveryService,
+                        "discover",
+                        side_effect=SimulatedInterruption,
+                    ),
+                    self.assertRaises(SimulatedInterruption),
+                ):
+                    tasks.dl_task_start(
+                        "Update the current dashboard while preserving its layout",
+                        project_root=tmp,
+                        context={"workbook_id": "book_demo", "dashboard_id": "dash_demo"},
+                        run_until="plan_ready",
+                    )
+
+                task_id = next(
+                    path.name
+                    for path in (Path(tmp) / ".datalens-mcp" / "tasks").iterdir()
+                    if path.is_dir() and not path.name.startswith(".")
+                )
+                journal = ProjectJournal(tmp, task_id)
+                contract = journal.load_contract()
+                if persist_baseline_blocker:
+                    tasks._advance(journal, contract, boundary="plan_ready")
+                    state, _ = journal.replay()
+                    self.assertEqual(state.current_state, "BLOCKED")
+
+                service = TargetDiscoveryService(DiscoveryClient())
+                with patch.object(tasks, "TargetDiscoveryService", return_value=service):
+                    resumed = tasks.dl_task_resume(
+                        task_id,
+                        project_root=tmp,
+                        run_until="plan_ready",
+                    )
+
+                self.assertIn("TASK_DISCOVERY_RETRY_SUCCEEDED", resumed["performed"])
+                self.assertNotEqual(resumed.get("risk"), "live target discovery is unavailable")
+
     def test_destructive_resume_requires_persisted_execution_authorization(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             safe_plan = {"ok": True, "status": "planned", "actions": [{"method": "deleteDashboard"}]}
