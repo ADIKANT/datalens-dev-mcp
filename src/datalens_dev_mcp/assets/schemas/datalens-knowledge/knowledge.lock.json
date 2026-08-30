@@ -4,11 +4,11 @@
     "api_content_hash": "ee44f86e42047f297b425552bfe0ad92deac80ee8fff00bd27ff87ba78c94636",
     "asset_count": 924,
     "assets_content_hash": "b0fbc4405c02d564fe9cc649d1ca685f40b7468bfe30688d1a69f5b01b76e75c",
-    "generated_at": "2026-08-26T06:53:47.702546Z",
+    "generated_at": "2026-08-29T11:23:13.584302Z",
     "manifest_count": 1639,
-    "manifest_stable_hash": "1d25c07bbaad581b788b1761349352be7eaacdcdff2164c17688125f5c0a63ab",
+    "manifest_stable_hash": "e23f1a894c759eb06494dfb3661b42cf8cf582a8958b9436da99eaec6cb28901",
     "page_count": 707,
-    "pages_content_hash": "8697d7d3e9958ee9f2ea76f49b161e1c684ab5be3570aa99d4b87a8d9f860dc8"
+    "pages_content_hash": "f7e7a612983ff25ae70017babbe4d536bd22eade063c443f43d6cd252c68798a"
   },
   "corpus_root_hint": "<DATALENS_DOCS_CORPUS_ROOT>",
   "counts": {
@@ -25,9 +25,9 @@
     "troubleshooting_error_pages": 86,
     "visualization_pages": 23
   },
-  "coverage_report_sha256": "86d4777e302fdd0c1490607f5dcbafce25be40379c1e7b0c5701d620e00b1dcb",
-  "deterministic_hash": "d10860bcdc1a3b08a247e80e05e43d8a443c975e5e1a44ba5840c9d16fd7a1aa",
-  "latest_source_timestamp": "2026-08-26T06:53:47.539313Z",
+  "coverage_report_sha256": "d8dd7a8be0b4e7a26131ae760b29cbd84512c5ca1cb1412f1c9962a493eca51b",
+  "deterministic_hash": "9167bec45fd042175bb87871b9b4d958f4dc0a6316afc20792e673f76bb44646",
+  "latest_source_timestamp": "2026-08-29T11:23:13.422862Z",
   "openapi_sha256": "12afd0555509ef02e8fbe2b0254deb5f58f35a6a08481e5d64ef83c77a6ffb92",
   "schema_id": "semantic_authoring",
   "source_precedence": [
@@ -38,5 +38,5 @@
     "public_datalens_skills_repository",
     "local_safety_governance_policy"
   ],
-  "validation_report_sha256": "deb8d33b00a9f784bbb86aa62dabd837943729a6c3940a6d6540bd0f2d47f54f"
+  "validation_report_sha256": "02e9d9ffe039d8cd541a8d94c55cef9e2690ac0d2d79aafbefad7ee4b12ff63c"
 }
