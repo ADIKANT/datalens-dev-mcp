@@ -175,32 +175,61 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
             self.assertEqual(result["state"], "BLOCKED")
             self.assertEqual(result["blocked_by"]["code"], "BLOCKED_DISCOVERY")
 
-    def test_provider_discovery_failure_records_a_typed_read_attempt(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            failure = DataLensApiError(
-                "sanitized provider timeout",
-                request_phase="read",
-                response_received=False,
-                transport_category="timeout",
-            )
-            failure.provider_method = "getDashboard"
-            with patch(
-                "datalens_dev_mcp.mcp.tools.tasks.TargetDiscoveryService.discover",
-                side_effect=failure,
-            ):
-                result = tasks.dl_task_start(
-                    "Review https://datalens.example/synthetic_target_123",
-                    project_root=tmp,
-                )
+    def test_provider_discovery_failure_is_actionable_and_retryable_after_recovery(self) -> None:
+        from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService
+        from tests.unit.test_target_discovery import DiscoveryClient
 
-            journal = ProjectJournal(tmp, result["task_id"])
-            receipt_path = next((journal.root / "receipts").glob(
-                "target-discovery-blocked-*.json"
-            ))
-            receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-            self.assertEqual(receipt["provider_calls"][0]["method"], "getDashboard")
-            self.assertEqual(receipt["provider_calls"][0]["effect"], "read")
-            self.assertEqual(receipt["provider_calls"][0]["failure_category"], "transport_failure")
+        scenarios = (
+            (
+                "credential_recovery",
+                DataLensApiError(
+                    "sanitized token refresh failure",
+                    failure_family="AUTH_401_TOKEN_INVALID_OR_EXPIRED",
+                ),
+                "credential_recovery_required",
+            ),
+            (
+                "transport",
+                DataLensApiError(
+                    "sanitized provider timeout",
+                    request_phase="read",
+                    response_received=False,
+                    transport_category="transport_timeout",
+                ),
+                "transport_timeout",
+            ),
+        )
+        for label, failure, expected_category in scenarios:
+            with self.subTest(label=label), tempfile.TemporaryDirectory() as tmp:
+                failure.provider_method = "getDashboard"
+                with patch(
+                    "datalens_dev_mcp.mcp.tools.tasks.TargetDiscoveryService.discover",
+                    side_effect=failure,
+                ):
+                    result = tasks.dl_task_start(
+                        "Review https://datalens.example/dash_demo",
+                        project_root=tmp,
+                    )
+
+                journal = ProjectJournal(tmp, result["task_id"])
+                receipt_path = next((journal.root / "receipts").glob(
+                    "target-discovery-blocked-*.json"
+                ))
+                receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+                self.assertEqual(receipt["provider_calls"][0]["method"], "getDashboard")
+                self.assertEqual(receipt["provider_calls"][0]["effect"], "read")
+                self.assertEqual(receipt["provider_calls"][0]["failure_category"], expected_category)
+                if label == "credential_recovery":
+                    service = TargetDiscoveryService(DiscoveryClient())
+                    with patch.object(tasks, "TargetDiscoveryService", return_value=service):
+                        resumed = tasks.dl_task_resume(
+                            result["task_id"],
+                            project_root=tmp,
+                            expected_state="BLOCKED",
+                            run_until="plan_ready",
+                        )
+                    self.assertIn("TASK_DISCOVERY_RETRY_SUCCEEDED", resumed["performed"])
+                    self.assertNotEqual(resumed["blocked_by"].get("code"), "BLOCKED_DISCOVERY")
 
     def test_destructive_resume_requires_persisted_execution_authorization(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

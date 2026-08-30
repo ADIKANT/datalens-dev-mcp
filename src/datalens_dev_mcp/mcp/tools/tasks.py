@@ -225,31 +225,10 @@ def dl_task_start(
                 target_url=target_url or compiled_target_url,
             )
         except DataLensApiError as exc:
-            status = int(exc.http_status) if isinstance(exc.http_status, int) else None
-            if status in {401, 403}:
-                category = "authorization_or_access_denied"
-            elif status == 404:
-                category = "target_not_found"
-            elif exc.transport_category or exc.failure_family:
-                category = "transport_failure"
-            else:
-                category = "provider_failure"
-            discovery = {
-                "status": "blocked",
-                "reason": f"live target discovery provider read failed: {category}",
-                "missing_facts": compiled.get("discovery_required") or [],
-                "question": None,
-                "provider_calls": [
-                    {
-                        "method": str(getattr(exc, "provider_method", "target_discovery") or "target_discovery"),
-                        "status": "failed",
-                        "effect": "read",
-                        "failure_category": category,
-                        "http_status": status,
-                        "response_received": exc.response_received,
-                    }
-                ],
-            }
+            discovery = _provider_discovery_failure(
+                exc,
+                missing_facts=compiled.get("discovery_required") or [],
+            )
         except Exception as exc:  # noqa: BLE001
             discovery = {
                 "status": "blocked",
@@ -362,6 +341,14 @@ def dl_task_resume(
     state, _ = journal.replay()
     _assert_expected_state(state, expected_state=expected_state, expected_hash=expected_hash)
     before = state.last_event_id
+    if (
+        user_turn is None
+        and state.current_state == "BLOCKED"
+        and str((state.blocker or {}).get("code") or "") == "BLOCKED_DISCOVERY"
+    ):
+        state, blocked_result = _retry_blocked_discovery(journal, contract, state, before=before)
+        if blocked_result is not None:
+            return blocked_result
     if state.current_state == "VALIDATED":
         _ensure_task_plan(journal, contract, state)
     state = _advance(
@@ -997,6 +984,162 @@ def _block_task(
         performed_after=before,
         **_projection_bindings(journal),
     )
+
+
+def _provider_discovery_failure(
+    exc: DataLensApiError,
+    *,
+    missing_facts: list[str],
+) -> dict[str, Any]:
+    status = int(exc.http_status) if isinstance(exc.http_status, int) else None
+    failure_family = str(exc.failure_family or "")
+    transport_category = str(exc.transport_category or "")
+    if status == 401 or failure_family == "AUTH_401_TOKEN_INVALID_OR_EXPIRED":
+        category = "credential_recovery_required"
+        recovery_action = "run launcher --recover-credentials, then resume the same task"
+    elif status == 403 or failure_family == "AUTH_403_PERMISSION_DENIED":
+        category = "access_denied"
+        recovery_action = "verify target access without changing owner ACL"
+    elif status == 404 or failure_family == "NOT_FOUND_404":
+        category = "target_not_found"
+        recovery_action = "refresh the exact target binding"
+    elif transport_category:
+        category = transport_category
+        recovery_action = "retry the same read after transport health is restored"
+    elif failure_family:
+        category = failure_family.lower()
+        recovery_action = "resolve the classified provider boundary and resume the same task"
+    else:
+        category = "provider_failure"
+        recovery_action = "inspect the bounded provider failure receipt"
+    provider_call = {
+        "method": str(getattr(exc, "provider_method", "target_discovery") or "target_discovery"),
+        "status": "failed",
+        "effect": "read",
+        "failure_category": category,
+        "http_status": status,
+        "response_received": exc.response_received,
+        "failure_family": failure_family or None,
+        "transport_category": transport_category or None,
+    }
+    return {
+        "status": "blocked",
+        "reason": f"live target discovery provider read failed: {category}",
+        "missing_facts": list(missing_facts),
+        "question": None,
+        "recovery_action": recovery_action,
+        "provider_calls": [provider_call],
+    }
+
+
+def _retry_blocked_discovery(
+    journal: ProjectJournal,
+    contract: dict[str, Any],
+    state,
+    *,
+    before: int,
+) -> tuple[Any, dict[str, Any] | None]:
+    target_url = str(
+        (((contract.get("browser_policy") or {}).get("target") or {}).get("canonical_url")) or ""
+    )
+    try:
+        discovery = TargetDiscoveryService(max_objects=50).discover(
+            contract,
+            request_text="",
+            target_url=target_url,
+        )
+    except DataLensApiError as exc:
+        discovery = _provider_discovery_failure(exc, missing_facts=[])
+    except Exception as exc:  # noqa: BLE001
+        discovery = {
+            "status": "blocked",
+            "reason": f"live target discovery failed: {exc.__class__.__name__}",
+            "missing_facts": [],
+            "question": None,
+        }
+    if discovery.get("status") != "success":
+        receipt = journal.write_receipt(
+            f"target-discovery-retry-blocked-{canonical_hash(discovery)[:16]}",
+            discovery,
+        )
+        return state, _block_task(
+            journal,
+            contract,
+            before=before,
+            code="BLOCKED_DISCOVERY",
+            reason=str(discovery.get("reason") or "server-owned target discovery is incomplete"),
+            question=discovery.get("question"),
+            missing_facts=discovery.get("missing_facts") or [],
+            receipt_uri=receipt,
+            transition="TASK_DISCOVERY_RETRY_REQUIRED",
+            issues=[],
+        )
+    reference = contract.get("reference") or {}
+    reference_locator = str(reference.get("locator") or "")
+    portfolio_root = ""
+    if str(reference.get("kind") or "") == "portfolio_object" and reference_locator:
+        portfolio_root = str(Path(reference_locator).resolve().parent)
+    style = ReferenceStyleService().bind(
+        contract,
+        target_graph=dict(discovery["target_graph"]),
+        baselines=dict(discovery.get("baselines") or {}),
+        portfolio_root=portfolio_root,
+    )
+    if style.get("status") != "success":
+        receipt = journal.write_receipt(
+            f"style-binding-retry-blocked-{canonical_hash(style)[:16]}",
+            style,
+        )
+        return state, _block_task(
+            journal,
+            contract,
+            before=before,
+            code="BLOCKED_STYLE_BINDING",
+            reason=str(style.get("reason") or "exact style binding is unavailable"),
+            question=None,
+            missing_facts=["reference_binding", "style_binding"],
+            receipt_uri=receipt,
+            transition="TASK_STYLE_BINDING_RETRY_REQUIRED",
+            issues=[],
+        )
+    journal.bind_discovery(
+        contract,
+        target_binding=dict(discovery["target_binding"]),
+        target_graph=dict(discovery["target_graph"]),
+        reference_binding=dict(style["reference_binding"]),
+        style_binding=dict(style["style_binding"]),
+        baselines=dict(discovery.get("baselines") or {}),
+        discovery_receipt={
+            "schema_id": "datalens_target_discovery_receipt",
+            "status": "success",
+            "observed_at": discovery.get("observed_at"),
+            "provider_calls": discovery.get("provider_calls") or [],
+            "technology": discovery.get("technology"),
+            "tab_count": discovery.get("tab_count", 0),
+            "dataset_count": discovery.get("dataset_count", 0),
+            "field_count": discovery.get("field_count", 0),
+            "recovered_from": "BLOCKED_DISCOVERY",
+        },
+    )
+    with journal.locked(owner="task-discovery-retry"):
+        current, _ = journal.replay()
+        recovered = journal.append_transition(
+            current,
+            transition="TASK_DISCOVERY_RETRY_SUCCEEDED",
+            input_value={"prior_blocker": "BLOCKED_DISCOVERY"},
+            receipt_uri=journal.receipt_uri("discovery.json"),
+            status="success",
+            idempotency_key=canonical_hash(
+                {
+                    "task_id": journal.task_id,
+                    "transition": "TASK_DISCOVERY_RETRY_SUCCEEDED",
+                    "target_binding_hash": discovery["target_binding"].get("binding_hash"),
+                }
+            ),
+            next_state="RESOLVED",
+            next_transition="RESOLVED -> BASELINE_READ",
+        )
+    return recovered, None
 
 
 def _live_graph_projection(graph: dict[str, Any], *, task_id: str) -> dict[str, Any]:
