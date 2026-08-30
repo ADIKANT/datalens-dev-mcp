@@ -6870,7 +6870,7 @@
         "добавление-рассылки-в-yandex-datalens"
       ],
       "asset_count": 0,
-      "bytes": 1996,
+      "bytes": 3625,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -6878,13 +6878,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-08-26T06:22:25.520716Z",
+      "fetched_at": "2026-08-29T11:18:02.253753Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Tue, 25 Aug 2026 13:29:48 GMT",
-      "link_count": 7,
+      "last_modified": "Fri, 28 Aug 2026 14:10:06 GMT",
+      "link_count": 8,
       "local_path": "raw/md/datalens/concepts/maillists.md",
       "mirror_path": "datalens/concepts/maillists.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/concepts/maillists.md",
@@ -6893,7 +6893,7 @@
         "concepts",
         "maillists"
       ],
-      "sha256": "9b3724323171c5df3b3fafa304559b3e57a919ae67ae1d457a1fe491db1ddbe6",
+      "sha256": "f5ffcb3224b7092a21df4eaf0f58b0839de53b442ad56512c6c9f266db496849",
       "source_url": "https://yandex.cloud/ru/docs/datalens/concepts/maillists",
       "title": "Добавление рассылки в Yandex DataLens"
     },
@@ -18291,7 +18291,7 @@
         "рассылки-для-дашборда"
       ],
       "asset_count": 19,
-      "bytes": 14676,
+      "bytes": 16236,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -18299,13 +18299,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-08-26T06:23:10.991260Z",
+      "fetched_at": "2026-08-29T11:17:21.525303Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Tue, 25 Aug 2026 13:29:47 GMT",
-      "link_count": 40,
+      "last_modified": "Fri, 28 Aug 2026 14:10:02 GMT",
+      "link_count": 41,
       "local_path": "raw/md/datalens/operations/dashboard/add-maillists.md",
       "mirror_path": "datalens/operations/dashboard/add-maillists.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/operations/dashboard/add-maillists.md",
@@ -18315,7 +18315,7 @@
         "dashboard",
         "add-maillists"
       ],
-      "sha256": "8fb7fd2e5e60d8a08df4d80e721f695170a771f21208269238cbda2ea3b0b6b3",
+      "sha256": "3add13effafbd7935503afe6d961177c66ff16a011791e25a55dec19b6f791e5",
       "source_url": "https://yandex.cloud/ru/docs/datalens/operations/dashboard/add-maillists",
       "title": "Рассылки для дашборда"
     },
@@ -21235,7 +21235,7 @@
         "рассылки-для-отчета"
       ],
       "asset_count": 16,
-      "bytes": 12609,
+      "bytes": 14165,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -21243,13 +21243,13 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-08-26T06:21:29.712617Z",
+      "fetched_at": "2026-08-29T11:22:22.737644Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Tue, 25 Aug 2026 13:29:48 GMT",
-      "link_count": 35,
+      "last_modified": "Fri, 28 Aug 2026 14:10:06 GMT",
+      "link_count": 36,
       "local_path": "raw/md/datalens/reports/add-report-maillists.md",
       "mirror_path": "datalens/reports/add-report-maillists.md",
       "mirror_url": "https://docs.yandex.cloud/ru/ru/datalens/reports/add-report-maillists.md",
@@ -21258,7 +21258,7 @@
         "reports",
         "add-report-maillists"
       ],
-      "sha256": "1c691fed382c6eabad36b230cd69a782a2b5dc0d589a3363ce4de7f5946bff2f",
+      "sha256": "dae8554b6c1c18f03ca0408379bbdc312ae95fb0341d5c737c8a1ab9d21b9169",
       "source_url": "https://yandex.cloud/ru/docs/datalens/reports/add-report-maillists",
       "title": "Рассылки для отчета"
     },
@@ -26101,7 +26101,7 @@
         "передача-событий-yandex-cloud-postbox-в-yandex-data-streams-и-их-анализ-с-помощью-yandex-datalens"
       ],
       "asset_count": 10,
-      "bytes": 44452,
+      "bytes": 44453,
       "classification": {
         "generated_artifact_owners": [
           "schemas/datalens-knowledge/page-registry.json"
@@ -26109,12 +26109,12 @@
         "reason": "Official docs page retained as compact indexed reference.",
         "status": "indexed_reference"
       },
-      "fetched_at": "2026-08-26T06:22:26.088144Z",
+      "fetched_at": "2026-08-29T11:17:17.683279Z",
       "freshness": "current_official_docs_snapshot",
       "knowledge_layers": [
         "official_docs"
       ],
-      "last_modified": "Tue, 25 Aug 2026 13:29:48 GMT",
+      "last_modified": "Fri, 28 Aug 2026 14:10:11 GMT",
       "link_count": 116,
       "local_path": "raw/md/datalens/tutorials/events-from-postbox-to-yds.md",
       "mirror_path": "datalens/tutorials/events-from-postbox-to-yds.md",
@@ -26124,7 +26124,7 @@
         "tutorials",
         "events-from-postbox-to-yds"
       ],
-      "sha256": "ccb31f7e979ce1d1a07723d11f9f1c2fb05ee71a796331d1474580b643dbe83d",
+      "sha256": "7604eec9be0ae9f02419a73f68435b0f5798d476d4f8c4a71c9d2e9410a4a7f9",
       "source_url": "https://yandex.cloud/ru/docs/datalens/tutorials/events-from-postbox-to-yds",
       "title": "Передача событий Yandex Cloud Postbox в Yandex Data Streams и их анализ с помощью Yandex DataLens"
     },

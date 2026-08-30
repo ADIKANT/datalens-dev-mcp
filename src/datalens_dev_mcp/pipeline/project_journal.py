@@ -295,7 +295,14 @@ class ProjectJournal:
         with self.locked(owner="target-discovery-binding"):
             state, _ = self.replay()
             existing = read_json(self.target_binding_path, {}) or {}
-            if state.current_state != "RESOLVED" or state.last_event_id > 1:
+            retrying_blocked_discovery = (
+                state.current_state == "BLOCKED"
+                and str((state.blocker or {}).get("code") or "") == "BLOCKED_DISCOVERY"
+                and not self.discovery_path.is_file()
+            )
+            if not retrying_blocked_discovery and (
+                state.current_state != "RESOLVED" or state.last_event_id > 1
+            ):
                 if existing.get("binding_hash") != target_binding.get("binding_hash"):
                     raise JournalIdentityError(
                         "TARGET_BINDING_CONFLICT: discovery changed after workflow progress; start a new task revision"
