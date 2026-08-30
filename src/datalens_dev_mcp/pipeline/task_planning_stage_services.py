@@ -49,6 +49,24 @@ def task_planning_stage_services(
                 observed=["verification data probe not applicable"],
                 reason="existing-effect verification uses fresh object/revision/relation reads",
             )
+        diagnostics = (
+            contract.get("data_diagnostics")
+            if isinstance(contract.get("data_diagnostics"), dict)
+            else {}
+        )
+        if diagnostics.get("required") is not True:
+            target = read_json(journal.target_binding_path, {}) or {}
+            graph = read_json(journal.target_graph_path, {}) or {}
+            return _receipt(
+                context,
+                status="success",
+                output_hashes={
+                    "target_binding": str(target.get("binding_hash") or ""),
+                    "target_graph": str(graph.get("graph_hash") or ""),
+                },
+                observed=["data diagnostics required=False", "dataset probe not applicable"],
+                reason="data proof is not required by the typed data/change impact decision",
+            )
         return context_service.stage_handler(context)
 
     def plan_semantic_change(context: dict[str, Any]) -> dict[str, Any]:
