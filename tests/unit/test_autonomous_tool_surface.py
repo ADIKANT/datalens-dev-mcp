@@ -262,8 +262,15 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
             status = tasks.dl_task_status(journal.task_id, project_root=tmp)
             turn = {
                 "source_event_id": "user-event-42",
-                "request": "Use JavaScript Editor for this dashboard update.",
-                "relationship_to_previous": "correct_wrong_route",
+                "request": "Use JavaScript Editor and replace created orders with paid orders.",
+                "relationship_to_previous": "correct_wrong_result",
+                "context": {
+                    "semantic_changes": [{
+                        "target_id": "dash_1",
+                        "anchor": {"kind": "json_pointer", "pointer": "/metric"},
+                        "value": "paid_orders",
+                    }],
+                },
             }
             first = tasks.dl_task_resume(
                 journal.task_id,
@@ -278,6 +285,13 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
             self.assertEqual(first["contract_revision"], 2)
             self.assertEqual(first["route"], "editor_advanced")
             self.assertEqual(first["amendment"]["status"], "accepted")
+            amended = journal.load_contract()
+            semantic_acceptance = [
+                item for item in amended["acceptance"] if item.get("kind") == "semantic_change"
+            ]
+            self.assertEqual(len(semantic_acceptance), 1)
+            self.assertEqual(json.loads(semantic_acceptance[0]["statement"])["value"], "paid_orders")
+            self.assertEqual(semantic_acceptance[0]["source"], "current_user_correction")
             self.assertTrue(
                 {"public_plan", "plan"} & set(first["amendment"]["invalidated_artifacts"])
             )

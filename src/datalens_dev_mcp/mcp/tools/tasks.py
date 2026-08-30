@@ -633,8 +633,51 @@ def _amend_task(
     old_scope = deepcopy(old.get("scope") or {})
     requested_scope = context.get("scope") if isinstance(context.get("scope"), dict) else {}
     scope = {**old_scope, **requested_scope}
+    semantic_changes = [item for item in context.get("semantic_changes") or [] if isinstance(item, dict)]
+    if semantic_changes:
+        scope["allowed_objects"] = list(
+            dict.fromkeys(
+                [
+                    *list(scope.get("allowed_objects") or []),
+                    *[
+                        str(item.get("target_id") or item.get("object_id") or "")
+                        for item in semantic_changes
+                        if str(item.get("target_id") or item.get("object_id") or "")
+                    ],
+                ]
+            )
+        )
+        scope["allowed_tabs"] = list(
+            dict.fromkeys(
+                [
+                    *list(scope.get("allowed_tabs") or []),
+                    *[str(item.get("tab") or "") for item in semantic_changes if str(item.get("tab") or "")],
+                ]
+            )
+        )
+        scope["allowed_semantic_slots"] = list(
+            dict.fromkeys(
+                [
+                    *list(scope.get("allowed_semantic_slots") or []),
+                    *[
+                        str(item.get("slot_id") or "")
+                        for item in semantic_changes
+                        if str(item.get("slot_id") or "")
+                    ],
+                ]
+            )
+        )
     acceptance = [deepcopy(item) for item in old.get("acceptance") or []]
     acceptance.extend(deepcopy(item) for item in context.get("acceptance") or [])
+    acceptance.extend(
+        {
+            "kind": "semantic_change",
+            "statement": json.dumps(item, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+            "source": "current_user_correction",
+            "hard": True,
+        }
+        for item in semantic_changes
+    )
     reference = deepcopy(old.get("reference") or {})
     if str(context.get("reference_locator") or "").strip():
         reference["locator"] = str(context["reference_locator"]).strip()

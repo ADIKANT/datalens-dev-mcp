@@ -945,6 +945,7 @@ TOOL_PARAM_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
                 "properties": {
                     "target_url": {"type": "string"},
                     "reference_locator": {"type": "string"},
+                    "semantic_changes": {"type": "array", "items": {"type": "object"}},
                     "acceptance": {
                         "type": "array",
                         "items": {"oneOf": [{"type": "string"}, {"type": "object"}]},
