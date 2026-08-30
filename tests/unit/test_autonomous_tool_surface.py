@@ -265,6 +265,7 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
                 "request": "Use JavaScript Editor and replace created orders with paid orders.",
                 "relationship_to_previous": "correct_wrong_result",
                 "context": {
+                    "browser_policy": "forbidden",
                     "semantic_changes": [{
                         "target_id": "dash_1",
                         "anchor": {"kind": "json_pointer", "pointer": "/metric"},
@@ -292,6 +293,11 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
             self.assertEqual(len(semantic_acceptance), 1)
             self.assertEqual(json.loads(semantic_acceptance[0]["statement"])["value"], "paid_orders")
             self.assertEqual(semantic_acceptance[0]["source"], "current_user_correction")
+            self.assertEqual(amended["browser_policy"]["mode"], "forbidden")
+            self.assertEqual(amended["browser_policy"]["applicability"], "not_applicable")
+            self.assertTrue(amended["browser_policy"]["read_only"])
+            self.assertFalse(amended["browser_policy"]["mutation_allowed"])
+            self.assertFalse(amended["browser_policy"]["calls_before_earliest_stage_allowed"])
             expanded_target = tasks._amendment_current_live_target(
                 amended["target"],
                 [{"target_id": "chart_2", "value": "paid_orders"}],

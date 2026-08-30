@@ -737,7 +737,29 @@ def _amend_task(
     if browser_policy:
         if browser_policy not in {"forbidden", "optional", "required"}:
             raise ValueError("user_turn.context.browser_policy must be forbidden, optional, or required")
-        new_contract["browser_policy"] = {"mode": browser_policy, "source": "explicit_user"}
+        amended_browser_policy = dict(new_contract.get("browser_policy") or {})
+        amended_browser_policy.update(
+            {
+                "mode": browser_policy,
+                "source": "explicit_user",
+                "applicability": "not_applicable" if browser_policy == "forbidden" else "applicable",
+                "purpose": (
+                    "runtime_visual_evidence" if browser_policy == "forbidden" else "final_visual_acceptance"
+                ),
+                "read_only": True,
+                "mutation_allowed": False,
+                "earliest_stage": (
+                    "qa" if browser_policy == "forbidden" else "published_readback_and_api_diagnostics_complete"
+                ),
+                "calls_before_earliest_stage_allowed": False,
+                "allowed_interactions": (
+                    []
+                    if browser_policy == "forbidden"
+                    else ["activate_tab", "scroll", "hover_visual_detail", "read_only_error_detail"]
+                ),
+            }
+        )
+        new_contract["browser_policy"] = amended_browser_policy
 
     semantic_fields = (
         "mode",
