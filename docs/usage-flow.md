@@ -226,9 +226,11 @@ Editor-объектов применяет защищённый renderer тог�
        dashboard_composition.version=2
   -> dl_validate_project + final_payload_attestation
   -> один attested payload/safe-apply plan
-  -> saved readback + browser QA для точной saved revision
-  -> один attested publish через dl_execute_safe_apply
-  -> published readback + published qa_attestation для той же revision
+  -> saved readback
+  -> один publish из проверенного saved state через dl_execute_safe_apply
+  -> published readback
+  -> применимые validateDataset/getDatasetData diagnostics
+  -> final read-only Browser QA exact published dashboard
 ```
 
 `chart_specs` принимает до 100 уникальных виджетов. Полные bundles и tabs
@@ -241,12 +243,14 @@ Editor-объектов применяет защищённый renderer тог�
 строке. После validation любое изменение route, runtime, title, selector,
 layout или payload аннулирует attestation.
 
-Browser QA проверяет каждую вкладку сверху и после полного скролла на ширинах
-720, 1200 и 1440 px, включая Clear пустого multiselect, lazy initialization,
-clipping/scroll, title/hint, tooltip, legend, comparison context и
-runtime/network errors. Publish дашборда разрешён только для revision и payload
-hashes, совпадающих с успешной `qa_attestation`; `done` дополнительно требует
-published revision и проверяемые browser-artifact hashes.
+Final Browser QA запускается только после publish/readback и API-first
+diagnostics. Он проверяет каждую required вкладку сверху до фактического низа,
+lazy initialization, clipping/overlap, title/hint, tooltip, legend, comparison
+context и runtime errors. Default acceptance не меняет selectors/filters;
+interaction testing является отдельной explicit cell с baseline/restore.
+Неатрибутированная видимая ошибка оставляет acceptance открытым. Publish не
+зависит от Browser; `done` требует published readback и проверяемые per-tab
+Browser receipts exact target.
 
 ## Быстрый путь для объединения селекторов дат
 

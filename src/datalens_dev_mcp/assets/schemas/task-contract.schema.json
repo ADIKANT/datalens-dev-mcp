@@ -18,6 +18,7 @@
     "scope",
     "reference",
     "browser_policy",
+    "data_diagnostics",
     "delivery",
     "evidence",
     "acceptance",
@@ -120,6 +121,22 @@
       "additionalProperties": false
     },
     "browser_policy": {"$ref": "browser-policy.schema.json"},
+    "data_diagnostics": {
+      "type": "object",
+      "required": ["required", "reason_classes", "affected_dataset_ids", "affected_field_guids", "validate_dataset", "context_probe", "diagnostic_probe", "assertion_probe", "freshness_dependencies"],
+      "properties": {
+        "required": {"type": "boolean"},
+        "reason_classes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "affected_dataset_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "affected_field_guids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "validate_dataset": {"type": "boolean"},
+        "context_probe": {"type": "boolean"},
+        "diagnostic_probe": {"type": "boolean"},
+        "assertion_probe": {"type": "boolean"},
+        "freshness_dependencies": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
     "delivery": {
       "type": "object",
       "required": ["save", "publish", "destructive"],

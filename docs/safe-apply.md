@@ -70,13 +70,19 @@ layout, tabs и весь dashboard payload. Safe Apply отклоняет отс
 устаревший attestation, переписанный protected runtime, Wizard→Editor drift,
 новый dashboard и любое изменение payload после validation.
 
-Dashboard publish дополнительно требует успешный `qa_attestation`, связанный с
-тем же dashboard ID, точной saved revision, выбранной для publish, ожидаемой
-published revision, final-attestation hash, composition hash и payload hashes.
-Attestation содержит проверяемые hashes browser-артефактов и полное покрытие
-каждой вкладки сверху и после полного scroll на ширинах 720, 1200 и 1440 px.
-После published readback статус `done` допустим только для того же revision;
-любое изменение требует новой validation и нового QA.
+Final Browser `qa_attestation` не является precondition для publish. Safe Apply
+публикует только из проверенного saved readback и выполняет published readback;
+после него применимые API-first diagnostics и read-only Browser QA связываются
+с точными свежими saved/published identities, final-attestation hash,
+composition hash и payload hashes. Saved identity до publish не обязана
+совпадать с новой published identity.
+
+Attestation содержит компактные hashes Browser-артефактов и per-tab ledger:
+активацию, верх, фактические scroll checkpoints, низ, ожидаемые объекты и
+loading/error result. По умолчанию используется один desktop viewport;
+дополнительные ширины нужны только для явного responsive acceptance. Статус
+`done` допустим только после успешного final Browser QA exact published target;
+любое исправление требует republish и повторной проверки затронутых вкладок.
 
 ## Жёсткие выключатели
 

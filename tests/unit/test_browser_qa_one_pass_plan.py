@@ -655,6 +655,9 @@ class BrowserQaOnePassPlanTests(unittest.TestCase):
         "profile_assertion_requires_matching_provenance",
         "three_tabs_require_three_observed_ledgers",
         "republish_invalidates_receipt",
+        "distinct_saved_published_revisions_are_bound",
+        "unattributed_global_error_keeps_acceptance_open",
+        "irrelevant_ui_global_error_is_bounded",
         "responsive_viewports_are_applicability_driven",
     ],
 )
@@ -710,8 +713,8 @@ def test_candidate_bound_browser_owner_parameterized(case: str, tmp_path) -> Non
             "tab-c": ["chart-c"],
         },
         expected_object_ids=["chart-a", "chart-b", "chart-c"],
-        saved_revision="revision-final",
-        published_revision="revision-final",
+        saved_revision="revision-saved" if case == "distinct_saved_published_revisions_are_bound" else "revision-final",
+        published_revision="revision-published" if case == "distinct_saved_published_revisions_are_bound" else "revision-final",
         browser_policy=policy,
         api_diagnostics_receipt_hash="a" * 64,
         task_id="task-final",
@@ -768,6 +771,40 @@ def test_candidate_bound_browser_owner_parameterized(case: str, tmp_path) -> Non
                     "visible_error_object_ids": [],
                     "no_data_object_ids": [],
                     "layout_findings": [],
+                    "global_error_markers": (
+                        [
+                            {
+                                "error_id": "global-error-1",
+                                "marker": "Error",
+                                "screen_location": "dashboard-body",
+                                "candidate_object_ids": [],
+                                "attribution": {
+                                    "status": (
+                                        "irrelevant_ui"
+                                        if case == "irrelevant_ui_global_error_is_bounded"
+                                        else "unknown"
+                                    ),
+                                    "object_id": "",
+                                    "reason": (
+                                        "Browser chrome marker outside dashboard canvas"
+                                        if case == "irrelevant_ui_global_error_is_bounded"
+                                        else ""
+                                    ),
+                                },
+                                "runtime_diagnostic_ref": "",
+                                "acceptance_effect": (
+                                    "none"
+                                    if case == "irrelevant_ui_global_error_is_bounded"
+                                    else "partial"
+                                ),
+                            }
+                        ]
+                        if case in {
+                            "unattributed_global_error_keeps_acceptance_open",
+                            "irrelevant_ui_global_error_is_bounded",
+                        } and position == "bottom"
+                        else []
+                    ),
                     "screenshot_ref": f"{artifact.name}:{tab_id}",
                     "passed": True,
                     "assertions": {item["id"]: True for item in plan["evaluate"]["assertions"]},
@@ -782,8 +819,8 @@ def test_candidate_bound_browser_owner_parameterized(case: str, tmp_path) -> Non
         plan=plan,
         viewport_results=results,
         dashboard_id="dashboard-final",
-        saved_revision="revision-final",
-        published_revision="revision-final",
+        saved_revision="revision-saved" if case == "distinct_saved_published_revisions_are_bound" else "revision-final",
+        published_revision="revision-published" if case == "distinct_saved_published_revisions_are_bound" else "revision-final",
         artifact_paths=[str(artifact)],
         browser_metrics={
             "browser_calls_before_final_visual_stage": 0,
@@ -794,6 +831,19 @@ def test_candidate_bound_browser_owner_parameterized(case: str, tmp_path) -> Non
     )
     if case == "three_tabs_require_three_observed_ledgers":
         assert attestation["status"] == "failed"
+        return
+    if case == "unattributed_global_error_keeps_acceptance_open":
+        assert attestation["status"] == "failed"
+        assert any("unattributed" in issue for issue in attestation["issues"])
+        return
+    if case == "irrelevant_ui_global_error_is_bounded":
+        assert attestation["status"] == "passed", attestation["issues"]
+        assert attestation["tab_receipts"][0]["global_error_markers"]
+        return
+    if case == "distinct_saved_published_revisions_are_bound":
+        assert attestation["status"] == "passed", attestation["issues"]
+        assert attestation["saved_revision"] == "revision-saved"
+        assert attestation["published_revision"] == "revision-published"
         return
     issues = validate_qa_attestation_binding(
         attestation,

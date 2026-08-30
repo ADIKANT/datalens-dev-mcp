@@ -139,21 +139,21 @@ final request.
 
 ## Browser QA and delivery
 
-The generated QA plan is bound to dashboard ID, saved/published revision,
-final-attestation hash, composition hash, and payload hashes. It checks every
-tab at its top and after full scroll at 720, 1200, and 1440 CSS pixels.
+The generated final QA plan is bound to dashboard ID, exact fresh
+saved/published identities, final-attestation hash, composition hash, and
+payload hashes. It checks every required tab from its top through real scroll
+checkpoints to its bottom at one desktop viewport by default. Additional widths
+apply only to explicit responsive acceptance.
 
-The pass verifies title/hint ownership, selector labels and width, Clear and
-blank-multiselect behavior, equal row heights, undeclared gaps, KPI density,
-clipping and useful sticky columns, internal scroll, tooltip, legend,
-comparison context, visible series, lazy initialization, and runtime/network
-errors.
+The pass verifies applicable universal assertions plus project/profile-bound
+style assertions with active provenance. Default final visual QA does not
+change selectors or filters; those interactions require a separate explicit
+cell with baseline/restore. Any visible error must be attributed or acceptance
+stays open.
 
-A dashboard publish action requires a successful matching `qa_attestation`
-with hashed browser evidence for the exact saved revision selected for publish.
-Safe Apply publishes only that revision and verifies the published readback.
-Published browser evidence for the same revision is then required before the
-delivery state can become `done`.
+Safe Apply publishes from verified saved state and verifies published readback
+before Browser. A successful matching `qa_attestation` is then required before
+the delivery state can become `done`; it is never a publish precondition.
 
 Dashboard composition emits the native DataLens `widget.data.tabs[]` payload shape.
 Its `operation` selects a schema-valid `CreateDashboardV1Args` or

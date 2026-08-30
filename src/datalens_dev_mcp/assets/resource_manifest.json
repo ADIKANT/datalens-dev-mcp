@@ -687,9 +687,9 @@
       "sha256": "8ca65a56e531b0313fa0f4141fcd4ae93b3dc8d6c991b94ae6d224ec4c6318c4"
     },
     {
-      "bytes": 6531,
+      "bytes": 7511,
       "path": "schemas/task-contract.schema.json",
-      "sha256": "9c0ae6134808215fbf4b2df8257bc7c5edfac0ed5d0943b6da90f45cac01ca95"
+      "sha256": "1c3be7487288e1fab0953f73a0c870187142f56772ece95799ad4ec477bbe928"
     },
     {
       "bytes": 2027,

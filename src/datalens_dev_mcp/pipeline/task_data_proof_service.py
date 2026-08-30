@@ -224,10 +224,15 @@ class TaskDataProofService:
         )
 
     def _api_first_structural_diagnostics(self) -> dict[str, Any]:
-        policy = self.contract.get("browser_policy") or {}
-        if str(policy.get("purpose") or "") != "final_visual_acceptance":
+        decision = (
+            self.contract.get("data_diagnostics")
+            if isinstance(self.contract.get("data_diagnostics"), dict)
+            else {}
+        )
+        if decision.get("required") is not True or decision.get("validate_dataset") is not True:
             return {
                 "status": "not_required",
+                "decision": dict(decision),
                 "component_error_count": 0,
                 "component_error_families": [],
                 "provider_calls": [],
@@ -362,6 +367,7 @@ class TaskDataProofService:
         unavailable = any(item.get("status") != "success" for item in provider_calls)
         return {
             "status": "failed" if component_errors else "blocked" if unavailable else "passed",
+            "decision": dict(decision),
             "dataset_ids": sorted(str(item.get("object_id") or "") for item in datasets),
             "chart_definition_ids": sorted(chart_definition_hashes),
             "chart_definition_hashes": dict(sorted(chart_definition_hashes.items())),

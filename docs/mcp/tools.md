@@ -186,8 +186,9 @@
   `comparison_range`.
 - Результат содержит role-based `title_mode`, render contract и hash-bound
   `dashboard_composition.version=2`. `dl_validate_project` выпускает
-  `final_payload_attestation`; Safe Apply требует совпадающие payload и
-  `qa_attestation` для dashboard publish.
+  `final_payload_attestation`; Safe Apply требует совпадающий payload для
+  save/publish/readback, а final Browser `qa_attestation` — после published
+  readback и до статуса `done`, но не как precondition для publish.
 - `html_page` взаимоисключающий с chart/selector inputs. Он создаёт полный
   self-contained HTML artifact, проводит строгую sandbox/privacy-проверку и
   возвращает только путь, размер и SHA-256. Генератор не пишет live сам;

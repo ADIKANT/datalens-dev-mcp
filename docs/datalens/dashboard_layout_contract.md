@@ -91,11 +91,11 @@ percentage `width` values. Fallback generated single selectors use `width: '94%'
 
 ## Browser Viewport Evidence
 
-- Layout and dashboard changes require checks at exactly the standard widths
-  720, 1200, and 1440 CSS pixels.
+- Layout and dashboard changes use one desktop viewport by default. Additional
+  widths are required only by explicit responsive acceptance.
 - Every tab is checked from its top and again after full scroll so lower lazy
   objects must initialize.
-- Every viewport check records positive CSS `width` and `height`,
+- Every applicable viewport check records positive CSS `width` and `height`,
   `device_pixel_ratio`, document width, overflow, scoped object IDs, and a
   hash-bound screenshot.
 - Screenshot pixel dimensions must match

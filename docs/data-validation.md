@@ -2,6 +2,14 @@
 
 Data proof uses declarative assertion specifications and the curated read-only `getDatasetData` route. The server validates saved dataset and field identities, filters, parameters, ordering, paging, and row/cell/byte budgets before requesting data.
 
+The task contract records one typed `data_diagnostics` decision derived from
+data/change impact: dataset or source changes, field/schema changes,
+filters/parameters, chart query/aggregation, runtime data errors, and explicit
+null/zero/no-data semantics. This decision is independent of Browser policy.
+Final visual acceptance alone does not trigger `validateDataset` or a data
+probe, while an applicable data-impact task does so even when Browser is
+forbidden.
+
 The route also supplies bounded planning context. `context_probe` selects the smallest relevant GUID set and derives observed field roles, date bounds, selector samples, null/zero/negative signals, and visualization constraints before the semantic plan is built. The resulting profile, query set, schema hash, observation time, and limitations are bound to the public plan. `assertion_probe` is always a separate fresh verification read; `diagnostic_probe` is used only to explain empty or inconsistent results.
 
 Paging is deterministic only when the sort contract proves a total order, including a unique tie-breaker. The assertion engine supports typed null, uniqueness, range, set, date, aggregate, relationship, selector, formatting, and empty-result checks. It never executes model-written validation code.

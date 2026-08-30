@@ -116,6 +116,19 @@ class EvidenceContract:
 
 
 @dataclass(frozen=True)
+class DataDiagnosticsContract:
+    required: bool = False
+    reason_classes: tuple[str, ...] = ()
+    affected_dataset_ids: tuple[str, ...] = ()
+    affected_field_guids: tuple[str, ...] = ()
+    validate_dataset: bool = False
+    context_probe: bool = False
+    diagnostic_probe: bool = False
+    assertion_probe: bool = False
+    freshness_dependencies: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class AcceptanceCriterion:
     kind: str
     statement: str
@@ -145,6 +158,7 @@ class TaskContract:
     scope: ScopeContract
     reference: ReferenceContract
     browser_policy: BrowserPolicyContract
+    data_diagnostics: DataDiagnosticsContract
     delivery: DeliveryContract
     evidence: EvidenceContract
     acceptance: tuple[AcceptanceCriterion, ...]
@@ -180,6 +194,7 @@ def create_task_contract(
     scope: ScopeContract | None = None,
     reference: ReferenceContract | None = None,
     browser_policy: BrowserPolicyContract | None = None,
+    data_diagnostics: DataDiagnosticsContract | None = None,
     delivery: DeliveryContract | None = None,
     evidence: EvidenceContract | None = None,
     acceptance: tuple[AcceptanceCriterion, ...] = (),
@@ -241,6 +256,7 @@ def create_task_contract(
         scope=scope or ScopeContract(),
         reference=reference or ReferenceContract(),
         browser_policy=resolved_browser_policy,
+        data_diagnostics=data_diagnostics or DataDiagnosticsContract(),
         delivery=delivery or DeliveryContract(),
         evidence=evidence or EvidenceContract(),
         acceptance=acceptance,

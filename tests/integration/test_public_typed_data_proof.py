@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tempfile
+from copy import deepcopy
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
@@ -8,6 +9,7 @@ from jsonschema import Draft202012Validator
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.pipeline.target_binding import target_binding_hash
 from datalens_dev_mcp.pipeline.task_data_proof_service import TaskDataProofService
+from datalens_dev_mcp.pipeline.task_qa_service import TaskQaService, _api_first_diagnostics_summary
 from datalens_dev_mcp.runtime_resources import resource_json
 from tests.integration.public_proof_support import execute_public_proof_workflow, plan_ready_task
 
@@ -103,3 +105,85 @@ def test_target_binding_change_blocks_fresh_probe_before_provider_call() -> None
     assert receipt["status"] == "blocked"
     assert receipt["fallback_kind"] == "stale_planning_binding"
     assert before == after
+
+
+def test_data_diagnostics_are_impact_driven_when_browser_is_forbidden() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        journal, contract, client, _ = plan_ready_task(
+            Path(tmp),
+            publish=True,
+            browser="forbidden",
+            semantic_changes=[
+                {
+                    "target_id": "chart_demo",
+                    "slot_id": "series_label",
+                    "dataset_id": "dataset_demo",
+                    "field_guid": "guid_value",
+                    "change_kind": "filter_change",
+                    "value": {"operator": "GT", "value": 0},
+                }
+            ],
+        )
+        receipt = TaskDataProofService(journal, contract, client=client).execute()
+        impact_journal = journal
+
+    decision = contract["data_diagnostics"]
+    assert decision["required"] is True
+    assert "filter_or_parameter_change" in decision["reason_classes"]
+    assert decision["validate_dataset"] is True
+    assert decision["assertion_probe"] is True
+    assert receipt["api_first_diagnostics"]["status"] == "passed"
+    assert [method for method, _payload in client.calls].count("validateDataset") == 1
+
+    with tempfile.TemporaryDirectory() as tmp:
+        layout_journal, layout_contract, layout_client, _ = plan_ready_task(
+            Path(tmp),
+            publish=True,
+            browser="final_visual_acceptance",
+            semantic_changes=[
+                {"target_id": "chart_demo", "slot_id": "series_label", "value": "Revenue"}
+            ],
+        )
+        layout_receipt = TaskDataProofService(
+            layout_journal,
+            layout_contract,
+            client=layout_client,
+        ).execute()
+
+    assert layout_contract["browser_policy"]["purpose"] == "final_visual_acceptance"
+    assert layout_contract["data_diagnostics"]["required"] is False
+    assert layout_receipt["api_first_diagnostics"]["decision"]["required"] is False
+    assert [method for method, _payload in layout_client.calls].count("validateDataset") == 0
+
+    impact_summary = _api_first_diagnostics_summary(
+        impact_journal,
+        contract,
+        data_receipt=receipt,
+        saved={"status": "success"},
+        published={"status": "success"},
+    )
+    assert impact_summary["required"] is True
+    assert impact_summary["decision"]["required"] is True
+
+    layout_summary = _api_first_diagnostics_summary(
+        layout_journal,
+        layout_contract,
+        data_receipt=layout_receipt,
+        saved={"status": "success"},
+        published={"status": "success"},
+    )
+    assert layout_summary["required"] is False
+    assert layout_summary["status"] == "passed"
+
+    not_required_receipt = deepcopy(layout_receipt)
+    not_required_receipt["status"] = "not_required"
+    not_required_receipt["api_first_diagnostics"]["status"] = "not_required"
+    boundary = TaskQaService(layout_journal, layout_contract, client=layout_client)._browser_evidence(
+        layout_contract["browser_policy"],
+        saved={"status": "success"},
+        published={"status": "success"},
+        data_receipt=not_required_receipt,
+        plan_issues=[],
+    )
+    assert boundary["status"] == "awaiting_visual_acceptance"
+    assert boundary["reason"] == "browser_adapter_unavailable"

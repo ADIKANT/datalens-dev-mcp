@@ -70,13 +70,19 @@ layout, tabs, and the complete dashboard payload. Safe Apply rejects a missing
 or stale attestation, rewritten protected runtime, Wizard-to-Editor drift, a new
 noncanonical dashboard, and any payload change after validation.
 
-Dashboard publishing additionally requires a successful `qa_attestation`
-bound to the same dashboard ID, the exact saved revision selected for publish,
-the expected published revision, final-attestation hash, composition hash, and
-payload hashes. The attestation contains verifiable browser-artifact hashes and
-covers every tab at its top and after full scroll at 720, 1200, and 1440
-pixels. After published readback, `done` is allowed only for that same revision;
-any change requires validation and QA again.
+Final Browser `qa_attestation` is not a publish precondition. Safe Apply
+publishes only from verified saved readback and performs published readback;
+applicable API-first diagnostics and read-only Browser QA then bind the exact
+fresh saved/published identities, final-attestation hash, composition hash, and
+payload hashes. The pre-publish saved identity need not equal the new published
+identity.
+
+The attestation contains compact Browser-artifact hashes and a per-tab ledger
+for activation, top, real scroll checkpoints, bottom, expected objects, and
+loading/error results. The default is one desktop viewport; additional widths
+are required only by explicit responsive acceptance. `done` is allowed only
+after successful final Browser QA of the exact published target. A correction
+requires republish and rechecking the affected tabs.
 
 ## Hard-off switches
 

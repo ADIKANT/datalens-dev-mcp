@@ -11,6 +11,7 @@ from datalens_dev_mcp.pipeline.question_policy import resolve_question_policy
 from datalens_dev_mcp.pipeline.route_contract import normalize_route
 from datalens_dev_mcp.pipeline.task_contract import (
     AcceptanceCriterion,
+    DataDiagnosticsContract,
     DeliveryContract,
     EffectContract,
     EvidenceContract,
@@ -139,6 +140,12 @@ def compile_task_contract(
     acceptance_contract = _compile_acceptance(
         acceptance or (), correction_contract, operation_kind=operation_kind, effect=effect,
     )
+    data_diagnostics = _compile_data_diagnostics(
+        normalized=normalized,
+        mode=mode,
+        target=target,
+        acceptance=acceptance_contract,
+    )
 
     required_facts = _required_discoverable_facts(
         mode, target, route, operation_kind=operation_kind, verification=verification,
@@ -175,6 +182,7 @@ def compile_task_contract(
         scope=scope,
         reference=reference_contract,
         browser_policy=browser_policy,
+        data_diagnostics=data_diagnostics,
         delivery=delivery,
         evidence=EvidenceContract(
             required_facts=tuple(required_facts),
@@ -224,6 +232,91 @@ def compile_task_contract(
             "precedence": list(contract.source_precedence),
         },
     }
+
+
+def _compile_data_diagnostics(
+    *,
+    normalized: NormalizedUserRequest,
+    mode: TaskMode,
+    target: TargetContract,
+    acceptance: tuple[AcceptanceCriterion, ...],
+) -> DataDiagnosticsContract:
+    semantic_changes: list[dict[str, Any]] = []
+    for criterion in acceptance:
+        if criterion.kind != "semantic_change":
+            continue
+        try:
+            value = json.loads(criterion.statement)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict):
+            semantic_changes.append(value)
+
+    flattened = " ".join(_semantic_strings(semantic_changes)).lower()
+    request_text = normalized.raw_text.lower()
+    reason_classes: set[str] = set()
+    if "dataset" in target.object_types or any(
+        token in request_text
+        for token in ("create dataset", "update dataset", "создай датасет", "обнови датасет")
+    ):
+        reason_classes.add("dataset_create_or_update")
+    if any(token in flattened for token in ("source_change", "source", "connection", "dataset_id")) or any(
+        token in request_text for token in ("source change", "change source", "сменить источник", "источник данных")
+    ):
+        reason_classes.add("source_change")
+    if any(token in flattened for token in ("field_guid", "field_id", "rename_field", "field_type", "remove_field", "add_field")):
+        reason_classes.add("field_schema_change")
+    if any(token in flattened for token in ("filter", "parameter", "param", "selector")) or any(
+        token in request_text for token in ("filter change", "parameter change", "selector data semantics")
+    ):
+        reason_classes.add("filter_or_parameter_change")
+    if any(token in flattened for token in ("aggregation", "query", "metric", "measure", "formula")):
+        reason_classes.add("chart_query_or_aggregation")
+    if any(token in request_text for token in ("database error", "source error", "runtime error", "empty chart")):
+        reason_classes.add("runtime_data_error")
+    if any(token in flattened for token in ("expected_empty", "unexpected_empty", "no_data", "null", "zero")):
+        reason_classes.add("data_state_semantics")
+    if mode == "diagnose" and any(token in request_text for token in ("data", "database", "source", "dataset", "query")):
+        reason_classes.add("runtime_data_error")
+
+    dataset_ids = sorted(
+        {
+            str(value)
+            for change in semantic_changes
+            for key, value in change.items()
+            if key in {"dataset_id", "datasetId"} and isinstance(value, str) and value
+        }
+    )
+    field_guids = sorted(
+        {
+            str(value)
+            for change in semantic_changes
+            for key, value in change.items()
+            if key in {"field_guid", "field_id", "guid"} and isinstance(value, str) and value
+        }
+    )
+    required = bool(reason_classes)
+    return DataDiagnosticsContract(
+        required=required,
+        reason_classes=tuple(sorted(reason_classes)),
+        affected_dataset_ids=tuple(dataset_ids),
+        affected_field_guids=tuple(field_guids),
+        validate_dataset=required,
+        context_probe=bool(reason_classes & {"dataset_create_or_update", "source_change", "field_schema_change"}),
+        diagnostic_probe=bool(reason_classes & {"runtime_data_error", "data_state_semantics", "filter_or_parameter_change"}),
+        assertion_probe=required,
+        freshness_dependencies=("dataset_readback", "dataset_schema") if required else (),
+    )
+
+
+def _semantic_strings(value: Any) -> list[str]:
+    if isinstance(value, dict):
+        return [str(key) for key in value] + [item for child in value.values() for item in _semantic_strings(child)]
+    if isinstance(value, list):
+        return [item for child in value for item in _semantic_strings(child)]
+    if value is None:
+        return []
+    return [str(value)]
 
 
 def _compile_mode(

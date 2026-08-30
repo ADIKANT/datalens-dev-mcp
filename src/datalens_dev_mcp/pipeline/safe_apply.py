@@ -3619,7 +3619,7 @@ def _qa_attestation_issues(
             browser_policy=action.get("browser_policy") if isinstance(action.get("browser_policy"), dict) else None,
             evidence=action.get("proof_evidence") if isinstance(action.get("proof_evidence"), dict) else {},
         )
-        if matrix["browser_policy"]["mode"] != "required":
+        if not matrix["browser_adapter_required"]:
             return [
                 f"action {index} missing required proof: {item}"
                 for item in matrix["missing_evidence"]

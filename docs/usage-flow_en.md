@@ -222,13 +222,14 @@ protected renderer, left-labelled selector rows at exactly 94 percent, a
 gap-free 36-column layout with equal peer heights, and no more than three
 standard KPI cards per row.
 
-Browser QA checks every tab at its top and after full scroll at 720, 1200, and
-1440 pixels. It covers empty-multiselect Clear behavior, lazy initialization,
-clipping and scroll, title/hint ownership, tooltip, legend, comparison context,
-and runtime/network errors. Dashboard publish requires a successful
-`qa_attestation` bound to the exact saved revision selected for publish and the
-same payload hashes. `done` additionally requires published readback and hashed
-browser evidence for that same revision.
+Final Browser QA runs only after publish/readback and API-first diagnostics. It
+checks every required tab from top to its real bottom, including lazy loading,
+clipping/overlap, title/hint ownership, tooltip, legend, comparison context,
+and runtime errors. Default acceptance does not change selectors or filters;
+interaction testing is a separate explicit cell with baseline/restore. An
+unattributed visible error keeps acceptance open. Publish does not depend on
+Browser; `done` requires published readback and verifiable per-tab Browser
+receipts for the exact target.
 
 ## Fast path for merging date selectors
 

@@ -51,7 +51,35 @@ class BrowserPolicySafeApplyIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(issues, [])
 
-    def test_required_visual_task_blocks_without_attestation(self):
+    def test_required_final_visual_does_not_block_publish_but_blocks_completion(self):
+        action = {
+            "change_class": "renderer_logic",
+            "browser_policy": {
+                "mode": "required",
+                "source": "explicit_user",
+                "purpose": "final_visual_acceptance",
+                "earliest_stage": "published_readback_and_api_diagnostics_complete",
+            },
+            "proof_evidence": {"static": True, "contract_harness": True, "saved": True},
+        }
+        issues = _qa_attestation_issues(
+            action=action,
+            payload={"dashboardId": "synthetic"},
+            index=0,
+            attestation={"attestation_sha256": "a" * 64, "payload_set_sha256": "b" * 64},
+            project_root=Path("."),
+        )
+        self.assertEqual(issues, [])
+        completion = build_evidence_matrix(
+            change_class="renderer_logic",
+            browser_policy=action["browser_policy"],
+            evidence=action["proof_evidence"],
+            stage="completion",
+        )
+        self.assertIn("browser_attestation", completion["missing_evidence"])
+        self.assertFalse(completion["can_publish"])
+
+    def test_required_runtime_visual_still_requires_attestation_before_publish(self):
         action = {
             "change_class": "renderer_logic",
             "browser_policy": {"mode": "required", "source": "explicit_user"},

@@ -255,8 +255,8 @@ def build_browser_qa_plan(
             normalized_tab_objects = {normalized_tabs[0]: normalized_object_ids}
         if set(normalized_tab_objects) != set(normalized_tabs):
             raise ValueError("final visual acceptance requires expected objects for every tab")
-        if not normalized_saved_revision or normalized_published_revision != normalized_saved_revision:
-            raise ValueError("final visual acceptance requires the exact saved and published revision")
+        if not normalized_saved_revision or not normalized_published_revision:
+            raise ValueError("final visual acceptance requires exact saved and published revisions")
         if not re.fullmatch(r"[a-f0-9]{64}", normalized_api_diagnostics_hash):
             raise ValueError("final visual acceptance requires a completed API diagnostics receipt hash")
         if not str(task_id or "") or int(contract_revision or 0) < 1:
@@ -304,10 +304,7 @@ def build_browser_qa_plan(
         "schema_id": BROWSER_QA_PLAN_SCHEMA_ID,
         "browser_policy": normalized_policy,
         "prerequisites": {
-            "published_readback_complete": bool(
-                normalized_published_revision
-                and normalized_published_revision == normalized_saved_revision
-            ),
+            "published_readback_complete": bool(normalized_saved_revision and normalized_published_revision),
             "api_diagnostics_complete": bool(normalized_api_diagnostics_hash),
             "api_diagnostics_receipt_hash": normalized_api_diagnostics_hash,
             "task_id": str(task_id or ""),
@@ -389,6 +386,7 @@ def build_browser_qa_plan(
                         "observed_object_ids",
                         "loading_object_ids",
                         "visible_error_object_ids",
+                        "global_error_markers",
                         "no_data_object_ids",
                         "layout_findings",
                         "screenshot_ref",
@@ -535,7 +533,7 @@ def validate_browser_qa_plan(plan: dict[str, Any]) -> dict[str, Any]:
         prerequisites = plan.get("prerequisites") if isinstance(plan.get("prerequisites"), dict) else {}
         if target.get("object_kind") != "dashboard" or not str(target.get("dashboard_url") or ""):
             issues.append("final_visual_target_must_be_exact_dashboard_url")
-        if not target.get("saved_revision") or target.get("published_revision") != target.get("saved_revision"):
+        if not target.get("saved_revision") or not target.get("published_revision"):
             issues.append("final_visual_revision_binding_missing")
         if prerequisites.get("published_readback_complete") is not True:
             issues.append("published_readback_prerequisite_missing")
@@ -1308,6 +1306,15 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
     schema_id: "datalens.browser-qa-result",
     viewport: {width: window.innerWidth, height: window.innerHeight},
     passed: input.required_assertion_ids.every((assertionId) => assertions[assertionId] === true),
+    global_error_markers: markerMatches.map((marker, index) => ({
+      error_id: `global-marker-${index + 1}`,
+      marker,
+      screen_location: "dashboard-body",
+      candidate_object_ids: [],
+      attribution: {status: "unknown", object_id: "", reason: ""},
+      runtime_diagnostic_ref: "",
+      acceptance_effect: "partial"
+    })),
     assertions,
     observations: {
       object_rows: objectRows,
@@ -1755,6 +1762,66 @@ def _normalized_string_list(values: list[str]) -> list[str]:
     return sorted({str(value).strip() for value in values if str(value).strip()})
 
 
+def _unattributed_markers_from_observations(value: Any) -> list[dict[str, Any]]:
+    observations = value if isinstance(value, dict) else {}
+    return [
+        {
+            "error_id": f"global-marker-{index}",
+            "marker": str(marker),
+            "screen_location": "dashboard-body",
+            "candidate_object_ids": [],
+            "attribution": {"status": "unknown", "object_id": "", "reason": ""},
+            "runtime_diagnostic_ref": "",
+            "acceptance_effect": "partial",
+        }
+        for index, marker in enumerate(observations.get("marker_matches") or [], start=1)
+        if str(marker)
+    ]
+
+
+def _merge_global_error_markers(current: list[dict[str, Any]], incoming: Any) -> list[dict[str, Any]]:
+    rows = [dict(item) for item in current if isinstance(item, dict)]
+    rows.extend(dict(item) for item in incoming or [] if isinstance(item, dict))
+    deduplicated: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        key = json.dumps(
+            {
+                "error_id": str(row.get("error_id") or ""),
+                "marker": str(row.get("marker") or ""),
+                "screen_location": str(row.get("screen_location") or ""),
+                "attribution": row.get("attribution") if isinstance(row.get("attribution"), dict) else {},
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        deduplicated[key] = row
+    return list(deduplicated.values())
+
+
+def _global_error_marker_issues(tab_id: str, markers: Any) -> list[str]:
+    issues: list[str] = []
+    for index, raw in enumerate(markers or [], start=1):
+        if not isinstance(raw, dict):
+            issues.append(f"unattributed global error marker remains on tab {tab_id}: marker {index}")
+            continue
+        marker_id = str(raw.get("error_id") or f"marker-{index}")
+        attribution = raw.get("attribution") if isinstance(raw.get("attribution"), dict) else {}
+        status = str(attribution.get("status") or "unknown")
+        reason = str(attribution.get("reason") or "").strip()
+        effect = str(raw.get("acceptance_effect") or "partial")
+        if status == "unknown":
+            issues.append(f"unattributed global error marker remains on tab {tab_id}: {marker_id}")
+        elif status == "attributed":
+            issues.append(f"attributed visible error fails tab {tab_id}: {marker_id}")
+        elif status in {"irrelevant_ui", "transient_resolved"}:
+            if not reason or effect != "none":
+                issues.append(f"global error attribution is incomplete on tab {tab_id}: {marker_id}")
+        else:
+            issues.append(f"global error attribution status is invalid on tab {tab_id}: {marker_id}")
+    return issues
+
+
 def _positive_number(value: Any, *, default: int) -> int | float:
     try:
         number = float(value)
@@ -1852,6 +1919,7 @@ def build_qa_attestation(
             "visible_error_object_ids": [],
             "no_data_object_ids": [],
             "layout_findings": [],
+            "global_error_markers": [],
             "screenshot_ref": "",
             "published_revision": normalized_published_revision,
         }
@@ -1892,6 +1960,12 @@ def build_qa_attestation(
                     set(receipt[field_name])
                     | {str(item) for item in result.get(field_name) or [] if str(item)}
                 )
+            receipt["global_error_markers"] = _merge_global_error_markers(
+                list(receipt["global_error_markers"]),
+                result.get("global_error_markers")
+                or _unattributed_markers_from_observations(result.get("observations"))
+                or [],
+            )
             if result.get("screenshot_ref"):
                 receipt["screenshot_ref"] = str(result["screenshot_ref"])
         if result.get("schema_id") != BROWSER_QA_RESULT_SCHEMA_ID:
@@ -1949,6 +2023,12 @@ def build_qa_attestation(
         ]
         if error_tabs:
             result_issues.append("visible chart errors remained on: " + ", ".join(error_tabs))
+        global_error_issues = [
+            issue
+            for tab_id, receipt in tab_runtime.items()
+            for issue in _global_error_marker_issues(tab_id, receipt["global_error_markers"])
+        ]
+        result_issues.extend(global_error_issues)
         missing_objects = [
             f"{tab_id}:{object_id}"
             for tab_id, receipt in tab_runtime.items()
@@ -1968,8 +2048,6 @@ def build_qa_attestation(
         result_issues.append("saved_revision differs from the browser QA plan")
     if not normalized_published_revision:
         result_issues.append("published_revision is required")
-    elif normalized_published_revision != normalized_saved_revision:
-        result_issues.append("published_revision must identify the exact saved revision selected for publish")
     elif str(target.get("published_revision") or "") and str(target.get("published_revision")) != normalized_published_revision:
         result_issues.append("published_revision differs from the browser QA plan")
     if normalized_errors:
@@ -2095,8 +2173,6 @@ def validate_qa_attestation_binding(
     for key, value in exact_candidate.items():
         if value and qa.get(key) != value:
             issues.append(f"qa_attestation {key} does not match")
-    if expected["saved_revision"] and expected["published_revision"] != expected["saved_revision"]:
-        issues.append("published revision must be the exact QA-checked saved revision")
     widths = sorted(
         int(item)
         for item in qa.get("viewport_widths") or []
@@ -2144,6 +2220,13 @@ def validate_qa_attestation_binding(
             for item in tab_receipts.values()
         ):
             issues.append("final visual attestation requires compact successful per-tab scroll receipts")
+        marker_issues = [
+            issue
+            for tab_id, item in tab_receipts.items()
+            for issue in _global_error_marker_issues(tab_id, item.get("global_error_markers") or [])
+        ]
+        if marker_issues:
+            issues.extend(marker_issues)
         metrics = qa.get("browser_metrics") if isinstance(qa.get("browser_metrics"), dict) else {}
         expected_metrics = {
             "browser_calls_before_final_visual_stage": 0,

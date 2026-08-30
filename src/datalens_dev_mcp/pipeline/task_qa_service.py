@@ -248,10 +248,21 @@ class TaskQaService:
         final_visual = str(policy.get("purpose") or "") == "final_visual_acceptance"
         if final_visual:
             data_diagnostics = data_receipt.get("api_first_diagnostics") or {}
+            diagnostics_decision = (
+                self.contract.get("data_diagnostics")
+                if isinstance(self.contract.get("data_diagnostics"), dict)
+                else {}
+            )
+            diagnostics_required = diagnostics_decision.get("required") is True
+            diagnostics_status = str(data_diagnostics.get("status") or "")
             prerequisites_ok = bool(
                 not plan_issues
-                and data_receipt.get("status") == "passed"
-                and data_diagnostics.get("status") == "passed"
+                and data_receipt.get("status") in {"passed", "not_required"}
+                and (
+                    diagnostics_status == "passed"
+                    if diagnostics_required
+                    else diagnostics_status in {"passed", "not_required"}
+                )
                 and saved.get("status") == "success"
                 and published.get("status") == "success"
                 and str(data_receipt.get("receipt_hash") or "")
@@ -559,14 +570,19 @@ def _api_first_diagnostics_summary(
     datasets = [item for item in nodes if str(item.get("object_type") or "") == "dataset"]
     data_diagnostics = data_receipt.get("api_first_diagnostics") or {}
     target_binding = read_json(journal.target_binding_path, {}) or {}
-    browser_policy = contract.get("browser_policy") or {}
-    required = str(browser_policy.get("purpose") or "") == "final_visual_acceptance"
+    decision = (
+        contract.get("data_diagnostics")
+        if isinstance(contract.get("data_diagnostics"), dict)
+        else {}
+    )
+    required = decision.get("required") is True
+    diagnostics_status = str(data_diagnostics.get("status") or "")
     status = (
         "passed"
         if not required
         or (
             data_receipt.get("status") == "passed"
-            and data_diagnostics.get("status") == "passed"
+            and diagnostics_status == "passed"
             and saved.get("status") == "success"
             and published.get("status") == "success"
         )
@@ -575,6 +591,7 @@ def _api_first_diagnostics_summary(
     return {
         "status": status,
         "required": required,
+        "decision": dict(decision),
         "dashboard_id": str(
             (contract.get("target") or {}).get("dashboard_id")
             or target_binding.get("dashboard_id")

@@ -72,16 +72,18 @@ For a normal strict Editor dashboard, the token-bounded path is:
 one scoped baseline
   -> one dl_generate_editor_bundle call with strict_dashboard + chart_specs
   -> local validation and one safe-apply plan
-  -> one dl_execute_safe_apply
-  -> one generated browser QA pass
+  -> one dl_execute_safe_apply with saved and published readbacks
+  -> applicable API-first diagnostics
+  -> one generated final browser QA pass
 ```
 
-The browser QA artifact fixes the runtime work to one navigation, one batched
-read-only evaluation across `720 x 900`, `1200 x 900`, and `1440 x 900`, and one batched
-screenshot operation. Its call budget is three. Do not replace it with
-per-widget DOM exploration, mutation, reload loops, or repeated screenshots.
-If the pass fails, use its assertion results and artifacts to make a scoped
-change, then generate a new hash-bound plan.
+The Browser QA artifact fixes the runtime work to one navigation and a compact
+per-tab read-only interaction ledger with activation, top, real scroll
+checkpoints, bottom, object states, and screenshot receipts. One desktop
+viewport is the default; additional widths apply only to responsive
+acceptance. Do not mutate the page or replace the ledger with per-widget DOM
+dumps or repeated screenshots. If the pass fails, use its assertion results
+and artifacts to make a scoped change, republish, and recheck affected tabs.
 
 The serialized projection stays within a valid `inline_char_budget`. If the
 summary itself is oversized, the inline value becomes a deterministic compact

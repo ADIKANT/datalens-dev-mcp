@@ -79,6 +79,7 @@ def plan_ready_task(
     publish: bool = True,
     browser: str = "forbidden",
     extra_acceptance: list[dict] | None = None,
+    semantic_changes: list[dict] | None = None,
 ):
     client = ProofClient()
     discovery = TargetDiscoveryService(client)
@@ -105,9 +106,9 @@ def plan_ready_task(
             project_root=str(root),
             context={
                 "acceptance": list(extra_acceptance or []),
-                "semantic_changes": [
+                "semantic_changes": list(semantic_changes) if semantic_changes is not None else [
                     {"target_id": "chart_demo", "slot_id": "series_label", "value": "Revenue"}
-                ]
+                ],
             },
             run_until="plan_ready",
         )
