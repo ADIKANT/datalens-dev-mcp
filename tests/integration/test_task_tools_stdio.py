@@ -40,6 +40,7 @@ class TaskToolsStdioTests(unittest.TestCase):
             )
             self.assertEqual(started["state"], "BLOCKED")
             self.assertEqual(started["blocked_by"]["code"], "BLOCKED_DISCOVERY")
+            self.assertIs(started["blocked_by"]["retryable"], False)
             task_id = started["task_id"]
 
             restarted = JsonRpcServer(project_root=tmp)

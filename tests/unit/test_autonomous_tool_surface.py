@@ -219,6 +219,7 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
                 self.assertEqual(receipt["provider_calls"][0]["method"], "getDashboard")
                 self.assertEqual(receipt["provider_calls"][0]["effect"], "read")
                 self.assertEqual(receipt["provider_calls"][0]["failure_category"], expected_category)
+                self.assertIs(result["blocked_by"]["retryable"], True)
                 if label == "credential_recovery":
                     service = TargetDiscoveryService(DiscoveryClient())
                     with patch.object(tasks, "TargetDiscoveryService", return_value=service):

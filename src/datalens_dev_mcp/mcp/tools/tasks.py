@@ -252,6 +252,7 @@ def dl_task_start(
                 receipt_uri=receipt,
                 transition="TASK_DISCOVERY_REQUIRED",
                 issues=compiled.get("issues") or [],
+                retryable=bool(discovery.get("recovery_action")),
             )
         style = ReferenceStyleService().bind(
             contract,
@@ -341,11 +342,7 @@ def dl_task_resume(
     state, _ = journal.replay()
     _assert_expected_state(state, expected_state=expected_state, expected_hash=expected_hash)
     before = state.last_event_id
-    if (
-        user_turn is None
-        and state.current_state == "BLOCKED"
-        and str((state.blocker or {}).get("code") or "") == "BLOCKED_DISCOVERY"
-    ):
+    if user_turn is None and _blocked_discovery_is_retryable(state):
         state, blocked_result = _retry_blocked_discovery(journal, contract, state, before=before)
         if blocked_result is not None:
             return blocked_result
@@ -1038,6 +1035,7 @@ def _block_task(
     receipt_uri: str,
     transition: str,
     issues: list[Any],
+    retryable: bool = False,
 ) -> dict[str, Any]:
     blocker = {
         "reason": reason,
@@ -1045,6 +1043,7 @@ def _block_task(
         "question": question,
         "missing_facts": list(missing_facts),
         "receipt": receipt_uri,
+        "retryable": bool(retryable),
     }
     with journal.locked(owner="task-blocker"):
         state, _ = journal.replay()
@@ -1066,6 +1065,20 @@ def _block_task(
         resource_uri=task_resource_uri(journal.task_id),
         performed_after=before,
         **_projection_bindings(journal),
+    )
+
+
+def _blocked_discovery_is_retryable(state: Any) -> bool:
+    blocker = dict(state.blocker or {})
+    if state.current_state != "BLOCKED" or str(blocker.get("code") or "") != "BLOCKED_DISCOVERY":
+        return False
+    if "retryable" in blocker:
+        return bool(blocker.get("retryable"))
+    # Compatibility for provider blockers persisted before the typed flag was
+    # added. Missing-target and missing-reference discovery boundaries use
+    # different reason prefixes and therefore remain idempotently blocked.
+    return str(blocker.get("reason") or "").startswith(
+        "live target discovery provider read failed:"
     )
 
 
@@ -1156,6 +1169,7 @@ def _retry_blocked_discovery(
             receipt_uri=receipt,
             transition="TASK_DISCOVERY_RETRY_REQUIRED",
             issues=[],
+            retryable=bool(discovery.get("recovery_action")),
         )
     reference = contract.get("reference") or {}
     reference_locator = str(reference.get("locator") or "")
