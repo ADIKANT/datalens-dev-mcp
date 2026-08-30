@@ -37,9 +37,22 @@ class CountingAdapter:
                             "viewport": {"width": width, "height": 900},
                             "tab_id": tab_id,
                             "scroll_position": scroll_position,
+                            "activation_observed": scroll_position == "top",
+                            "activation_method": "tab_control",
+                            "top_observed": scroll_position == "top",
+                            "scroll_checkpoint_count": 1,
                             "scroll_reached_bottom": (
                                 scroll_position == "bottom" and not self.omit_real_scroll
                             ),
+                            "observed_object_ids": list(
+                                (target.get("tab_object_ids") or {}).get(tab_id) or []
+                            ),
+                            "loading_object_ids": [],
+                            "visible_error_object_ids": [],
+                            "no_data_object_ids": [],
+                            "layout_findings": [],
+                            "global_error_markers": [],
+                            "screenshot_ref": str(self.artifact),
                             "loading_chart_count": 0,
                             "visible_error_count": 0,
                             "passed": True,
@@ -55,7 +68,9 @@ class CountingAdapter:
             viewport_results=results,
             dashboard_id=target["dashboard_id"],
             saved_revision=saved_revision,
-            published_revision=saved_revision,
+            published_revision=(
+                "wrong-revision" if self.wrong_revision else target["published_revision"]
+            ),
             runtime_errors=[],
             artifact_paths=[str(self.artifact)],
             browser_metrics={

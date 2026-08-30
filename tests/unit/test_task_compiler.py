@@ -180,6 +180,79 @@ class TaskCompilerTests(unittest.TestCase):
         )["contract"]
         self.assertEqual(save_only_amended["delivery"], save_only["delivery"])
 
+    def test_runtime_error_browser_request_keeps_api_diagnostics_before_final_visual_qa(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        cases = (
+            (
+                "открой браузер внутренний, там ошибка: Code: 184. DB::Exception: "
+                "Aggregate function min(payment_at) is found in WHERE (ILLEGAL_AGGREGATION)",
+                "illegal_aggregation",
+            ),
+            (
+                "verify in the browser after fixing Data fetching error "
+                '{"code":"ERR.DS_API.DB.SOURCE_CONNECT_ERROR"}',
+                "data fetching error",
+            ),
+        )
+        for correction, expected_reason in cases:
+            with self.subTest(correction=correction):
+                base = compile_task_contract(
+                    "Update dashboard:synthetic_dashboard_diagnostics and publish it",
+                    current_live={
+                        "dashboard_id": "synthetic_dashboard_diagnostics",
+                        "technology": "wizard_native",
+                    },
+                )["contract"]
+                contract = compile_task_contract(
+                    "Continue the current typed task contract.",
+                    current_live=base["target"],
+                    current_task_journal=base,
+                    corrections=[correction],
+                )["contract"]
+
+                self.assertEqual(contract["browser_policy"]["mode"], "required")
+                self.assertEqual(contract["browser_policy"]["purpose"], "final_visual_acceptance")
+                self.assertEqual(
+                    contract["browser_policy"]["earliest_stage"],
+                    "published_readback_and_api_diagnostics_complete",
+                )
+                self.assertFalse(contract["browser_policy"]["calls_before_earliest_stage_allowed"])
+                self.assertTrue(contract["browser_policy"]["read_only"])
+                self.assertFalse(contract["browser_policy"]["mutation_allowed"])
+                self.assertTrue(contract["data_diagnostics"]["required"])
+                self.assertTrue(contract["data_diagnostics"]["validate_dataset"])
+                self.assertTrue(contract["data_diagnostics"]["diagnostic_probe"])
+                self.assertIn("runtime_data_error", contract["data_diagnostics"]["reason_classes"])
+                self.assertIn(expected_reason, json.dumps(contract["acceptance"]).lower())
+
+    def test_followup_preserves_exact_reference_without_spurious_discovery(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        for correction in ("стоп, не надо в браузер лезть", "Use the API and MCP first"):
+            with self.subTest(correction=correction):
+                base = compile_task_contract(
+                    "Update chart:synthetic_chart_reference exactly like the supplied example",
+                    current_live={
+                        "chart_id": "synthetic_chart_reference",
+                        "technology": "editor_advanced",
+                    },
+                    reference={
+                        "kind": "portfolio_object",
+                        "locator": "portfolio/synthetic-reference",
+                        "required_exact_style": True,
+                    },
+                )["contract"]
+                contract = compile_task_contract(
+                    "Continue the current typed task contract.",
+                    current_live=base["target"],
+                    current_task_journal=base,
+                    corrections=[correction],
+                    reference=base["reference"],
+                )["contract"]
+
+                self.assertEqual(contract["reference"], base["reference"])
+
     def test_explicit_followup_can_transition_typed_operation_without_inheriting_delivery(self):
         from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
 

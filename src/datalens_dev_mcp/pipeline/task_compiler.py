@@ -253,7 +253,9 @@ def _compile_data_diagnostics(
             semantic_changes.append(value)
 
     flattened = " ".join(_semantic_strings(semantic_changes)).lower()
-    request_text = normalized.raw_text.lower()
+    request_text = " ".join(
+        [normalized.raw_text, *(criterion.statement for criterion in acceptance)]
+    ).lower()
     reason_classes: set[str] = set()
     if "dataset" in target.object_types or any(
         token in request_text
@@ -261,7 +263,18 @@ def _compile_data_diagnostics(
     ):
         reason_classes.add("dataset_create_or_update")
     if any(token in flattened for token in ("source_change", "source", "connection", "dataset_id")) or any(
-        token in request_text for token in ("source change", "change source", "сменить источник", "источник данных")
+        token in request_text
+        for token in (
+            "source change",
+            "change source",
+            "switch connection",
+            "connection",
+            "connector",
+            "сменить источник",
+            "источник данных",
+            "коннектор",
+            "переведи дашборд на",
+        )
     ):
         reason_classes.add("source_change")
     if any(token in flattened for token in ("field_guid", "field_id", "rename_field", "field_type", "remove_field", "add_field")):
@@ -272,7 +285,23 @@ def _compile_data_diagnostics(
         reason_classes.add("filter_or_parameter_change")
     if any(token in flattened for token in ("aggregation", "query", "metric", "measure", "formula")):
         reason_classes.add("chart_query_or_aggregation")
-    if any(token in request_text for token in ("database error", "source error", "runtime error", "empty chart")):
+    if any(
+        token in request_text
+        for token in (
+            "database error",
+            "source error",
+            "runtime error",
+            "empty chart",
+            "data fetching error",
+            "db::exception",
+            "illegal_aggregation",
+            "err.ds_api",
+            "source_connect_error",
+            "ошибка данных",
+            "ошибка источника",
+            "системную ошибку",
+        )
+    ):
         reason_classes.add("runtime_data_error")
     if any(token in flattened for token in ("expected_empty", "unexpected_empty", "no_data", "null", "zero")):
         reason_classes.add("data_state_semantics")
@@ -523,7 +552,9 @@ def _compile_reference(
     current_live: dict[str, Any],
 ) -> ReferenceContract:
     text = "\n".join((raw_request, *corrections)).lower()
-    exact = any(term in text for term in ("exact", "точно", "один в один", "сохрани этот js", "preserve this js"))
+    exact = bool(reference.get("required_exact_style")) or any(
+        term in text for term in ("exact", "точно", "один в один", "сохрани этот js", "preserve this js")
+    )
     locator = str(reference.get("locator") or "")
     kind = str(reference.get("kind") or "")
     source_hash = str(reference.get("source_hash") or reference.get("hash") or "")
