@@ -9,15 +9,15 @@ class UserRequestContractTests(unittest.TestCase):
 
         cases = (
             (
-                "[https://datalens.ru/workbooks/u8pn8dlinqumf]"
-                "(https://datalens.ru/workbooks/u8pn8dlinqumf)",
-                "u8pn8dlinqumf",
+                "[https://datalens.ru/workbooks/synthetic_workbook_123]"
+                "(https://datalens.ru/workbooks/synthetic_workbook_123)",
+                "synthetic_workbook_123",
                 "",
             ),
             (
-                "[dashboard](https://datalens.ru/7l21cz8lo954s-data-platform-health)",
+                "[dashboard](https://datalens.ru/dashboard/synthetic_dashboard_123)",
                 "",
-                "7l21cz8lo954s",
+                "synthetic_dashboard_123",
             ),
         )
         for text, workbook_id, dashboard_id in cases:
