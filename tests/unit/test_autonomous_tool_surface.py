@@ -298,6 +298,8 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
             self.assertTrue(amended["browser_policy"]["read_only"])
             self.assertFalse(amended["browser_policy"]["mutation_allowed"])
             self.assertFalse(amended["browser_policy"]["calls_before_earliest_stage_allowed"])
+            self.assertIn("data_diagnostics", first["amendment"]["semantic_delta"])
+            self.assertIn("data_profile", first["amendment"]["invalidated_artifacts"])
             expanded_target = tasks._amendment_current_live_target(
                 amended["target"],
                 [{"target_id": "chart_2", "value": "paid_orders"}],

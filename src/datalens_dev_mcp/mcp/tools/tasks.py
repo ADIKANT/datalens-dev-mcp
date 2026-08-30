@@ -771,6 +771,7 @@ def _amend_task(
         "scope",
         "reference",
         "browser_policy",
+        "data_diagnostics",
         "delivery",
         "evidence",
         "acceptance",
@@ -921,7 +922,7 @@ def _amendment_impact(delta: dict[str, Any], journal: ProjectJournal) -> dict[st
         next_state, next_transition = "BASELINE_READ", "BASELINE_READ -> REFERENCE_BOUND"
         invalidated = ["style_binding", "plan", "delivery", "qa"]
         preserved = ["target_binding", "target_graph", "data_profile", "task_history"]
-    elif "evidence" in changed:
+    elif changed & {"evidence", "data_diagnostics"}:
         next_state, next_transition = "ROUTE_BOUND", "ROUTE_BOUND -> DATA_PROOF_PLANNED"
         invalidated = ["data_profile", "plan", "delivery", "qa"]
         preserved = ["target_binding", "reference_binding", "style_binding", "task_history"]
