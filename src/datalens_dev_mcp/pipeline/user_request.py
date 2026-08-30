@@ -301,7 +301,10 @@ class UserRequestNormalizer:
         "project_manifest_operator_approval": ("manifest approved", "operator approval"),
         "explicit_chat_approval": ("i approve", "я подтверждаю", "одобряю"),
     }
-    URL_RE = re.compile(r"https?://[^\s)>\"]+", re.I)
+    # Markdown links repeat the URL as ``[label](target)``. Treat Markdown
+    # delimiters as URL boundaries so a label URL cannot absorb ``](https:``
+    # and corrupt the extracted DataLens object ID.
+    URL_RE = re.compile(r"https?://[^\s()<>\[\]\"]+", re.I)
     LABELED_ID_RE = re.compile(
         r"\b(?P<label>workbook|workbook_id|workbookId|dashboard|dashboard_id|dashboardId|chart|chart_id|chartId)"
         r"[ \t]*[:=][ \t]*(?P<id>[A-Za-z0-9_-]{5,64})",

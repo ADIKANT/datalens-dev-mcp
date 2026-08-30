@@ -4,6 +4,29 @@ import unittest
 
 
 class UserRequestContractTests(unittest.TestCase):
+    def test_markdown_datalens_target_links_preserve_exact_ids(self) -> None:
+        from datalens_dev_mcp.pipeline.user_request import normalize_user_request
+
+        cases = (
+            (
+                "[https://datalens.ru/workbooks/u8pn8dlinqumf]"
+                "(https://datalens.ru/workbooks/u8pn8dlinqumf)",
+                "u8pn8dlinqumf",
+                "",
+            ),
+            (
+                "[dashboard](https://datalens.ru/7l21cz8lo954s-data-platform-health)",
+                "",
+                "7l21cz8lo954s",
+            ),
+        )
+        for text, workbook_id, dashboard_id in cases:
+            with self.subTest(text=text):
+                request = normalize_user_request(text)
+                self.assertEqual(request.target_workbook_id, workbook_id)
+                self.assertEqual(request.target_dashboard_id, dashboard_id)
+                self.assertNotIn("](", request.target_url)
+
     def test_multi_url_request_separates_target_reference_and_evidence(self):
         from datalens_dev_mcp.pipeline.user_request import normalize_user_request
 
