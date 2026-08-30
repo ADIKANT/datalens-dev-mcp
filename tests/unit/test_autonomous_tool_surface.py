@@ -292,6 +292,11 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
             self.assertEqual(len(semantic_acceptance), 1)
             self.assertEqual(json.loads(semantic_acceptance[0]["statement"])["value"], "paid_orders")
             self.assertEqual(semantic_acceptance[0]["source"], "current_user_correction")
+            expanded_target = tasks._amendment_current_live_target(
+                amended["target"],
+                [{"target_id": "chart_2", "value": "paid_orders"}],
+            )
+            self.assertEqual(expanded_target["object_ids"], ["dash_1", "chart_2"])
             self.assertTrue(
                 {"public_plan", "plan"} & set(first["amendment"]["invalidated_artifacts"])
             )

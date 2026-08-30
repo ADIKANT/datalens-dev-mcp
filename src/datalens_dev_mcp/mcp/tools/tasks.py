@@ -571,6 +571,23 @@ def dl_evidence(
     )
 
 
+def _amendment_current_live_target(
+    old_target: dict[str, Any],
+    semantic_changes: list[dict[str, Any]],
+) -> dict[str, Any]:
+    current_live = deepcopy(old_target)
+    semantic_target_ids = [
+        str(item.get("target_id") or item.get("object_id") or "")
+        for item in semantic_changes
+        if str(item.get("target_id") or item.get("object_id") or "")
+    ]
+    if semantic_target_ids:
+        current_live["object_ids"] = list(
+            dict.fromkeys([*list(current_live.get("object_ids") or []), *semantic_target_ids])
+        )
+    return current_live
+
+
 def _amend_task(
     journal: ProjectJournal,
     *,
@@ -690,7 +707,7 @@ def _amend_task(
         project_root=str((old.get("workspace") or {}).get("project_root") or journal.project_root),
         portfolio_subproject=str((old.get("workspace") or {}).get("portfolio_subproject") or ""),
         config_path=str((old.get("workspace") or {}).get("config_path") or ""),
-        current_live=old_target,
+        current_live=_amendment_current_live_target(old_target, semantic_changes),
         current_task_journal=old,
         corrections=[*list(old.get("corrections") or []), correction_text],
         scope_overrides=scope,
