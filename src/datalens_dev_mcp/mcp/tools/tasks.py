@@ -261,11 +261,10 @@ def dl_task_start(
                 issues=compiled.get("issues") or [],
                 retryable=bool(discovery.get("recovery_action")),
             )
-        style = ReferenceStyleService().bind(
+        style = _bind_style_with_reference_discovery(
             contract,
-            target_graph=dict(discovery["target_graph"]),
-            baselines=dict(discovery.get("baselines") or {}),
-            portfolio_root=str(task_context.get("portfolio_root") or ""),
+            discovery=discovery,
+            context=task_context,
         )
         if style.get("status") != "success":
             receipt = journal.write_receipt(
@@ -400,6 +399,58 @@ def _request_project_root(request: str, supplied_root: str) -> str:
     if candidates:
         return str(max(candidates, key=lambda item: (item[0], item[1]))[2])
     return str(root)
+
+
+def _bind_style_with_reference_discovery(
+    contract: dict[str, Any],
+    *,
+    discovery: dict[str, Any],
+    context: dict[str, Any],
+) -> dict[str, Any]:
+    """Keep target and exact-reference reads separate while binding one style contract."""
+
+    target_graph = dict(discovery["target_graph"])
+    target_baselines = dict(discovery.get("baselines") or {})
+    reference = contract.get("reference") if isinstance(contract.get("reference"), dict) else {}
+    locator = str(reference.get("locator") or "")
+    kind = str(reference.get("kind") or "")
+    reference_graph: dict[str, Any] = {}
+    reference_baselines: dict[str, dict[str, Any]] = {}
+    reference_calls: list[dict[str, Any]] = []
+    if locator and kind == "live_object":
+        workspace = contract.get("workspace") if isinstance(contract.get("workspace"), dict) else {}
+        compiled = compile_task_contract(
+            f"Inspect DataLens reference target {locator}",
+            project_root=str(workspace.get("project_root") or "."),
+        )
+        reference_discovery = TargetDiscoveryService(
+            max_objects=int(context.get("max_reference_objects") or 12)
+        ).discover(
+            dict(compiled["contract"]),
+            request_text=locator,
+            target_url=locator,
+        )
+        if reference_discovery.get("status") != "success":
+            return {
+                "status": "blocked",
+                "reason": "exact reference discovery is incomplete: "
+                + str(reference_discovery.get("reason") or "reference target is unavailable"),
+                "reference_discovery": reference_discovery,
+            }
+        reference_graph = dict(reference_discovery["target_graph"])
+        reference_baselines = dict(reference_discovery.get("baselines") or {})
+        reference_calls = list(reference_discovery.get("provider_calls") or [])
+    result = ReferenceStyleService().bind(
+        contract,
+        target_graph=target_graph,
+        baselines=target_baselines,
+        reference_target_graph=reference_graph,
+        reference_baselines=reference_baselines,
+        portfolio_root=str(context.get("portfolio_root") or ""),
+    )
+    if reference_calls:
+        result["reference_provider_calls"] = reference_calls
+    return result
 
 
 def dl_task_resume(
@@ -956,11 +1007,10 @@ def _amend_task(
                 "CONTRACT_AMENDMENT_DISCOVERY_BLOCKED: "
                 + str(discovered.get("reason") or "fresh target discovery is incomplete")
             )
-        style = ReferenceStyleService().bind(
+        style = _bind_style_with_reference_discovery(
             new_contract,
-            target_graph=dict(discovered["target_graph"]),
-            baselines=dict(discovered.get("baselines") or {}),
-            portfolio_root=str(context.get("portfolio_root") or ""),
+            discovery=discovered,
+            context=context,
         )
         if style.get("status") != "success":
             raise JournalIdentityError(
@@ -1321,11 +1371,10 @@ def _retry_blocked_discovery(
     portfolio_root = ""
     if str(reference.get("kind") or "") == "portfolio_object" and reference_locator:
         portfolio_root = str(Path(reference_locator).resolve().parent)
-    style = ReferenceStyleService().bind(
+    style = _bind_style_with_reference_discovery(
         contract,
-        target_graph=dict(discovery["target_graph"]),
-        baselines=dict(discovery.get("baselines") or {}),
-        portfolio_root=portfolio_root,
+        discovery=discovery,
+        context={"portfolio_root": portfolio_root},
     )
     if style.get("status") != "success":
         receipt = journal.write_receipt(

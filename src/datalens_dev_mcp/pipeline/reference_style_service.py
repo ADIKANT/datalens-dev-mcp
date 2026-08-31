@@ -22,6 +22,8 @@ class ReferenceStyleService:
         *,
         target_graph: dict[str, Any],
         baselines: dict[str, dict[str, Any]],
+        reference_target_graph: dict[str, Any] | None = None,
+        reference_baselines: dict[str, dict[str, Any]] | None = None,
         portfolio_root: str = "",
     ) -> dict[str, Any]:
         reference = contract.get("reference") or {}
@@ -38,8 +40,8 @@ class ReferenceStyleService:
             result = self._bind_live_target(
                 locator=locator,
                 exact_required=exact_required,
-                target_graph=target_graph,
-                baselines=baselines,
+                target_graph=(reference_target_graph or target_graph) if locator else target_graph,
+                baselines=(reference_baselines or baselines) if locator else baselines,
             )
         compatible = _assert_technology_compatibility(
             result,

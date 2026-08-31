@@ -59,8 +59,21 @@ def test_reference_path_outside_allowed_workspace_is_blocked() -> None:
 
 
 def test_exact_live_reference_url_is_resolved_to_fresh_graph_object() -> None:
-    graph = {
-        "root_ids": ["dash_demo"],
+    target_graph = {
+        "root_ids": ["target_chart"],
+        "graph_hash": "t" * 64,
+        "nodes": [
+            {
+                "object_type": "editor_chart",
+                "object_id": "target_chart",
+                "technology": "editor_advanced",
+                "saved_revision": "r8",
+            }
+        ],
+    }
+    reference_graph = {
+        "root_ids": ["abc123456789"],
+        "graph_hash": "r" * 64,
         "nodes": [
             {
                 "object_type": "editor_chart",
@@ -78,8 +91,10 @@ def test_exact_live_reference_url_is_resolved_to_fresh_graph_object() -> None:
     contract["reference"]["kind"] = "live_object"
     result = ReferenceStyleService().bind(
         contract,
-        target_graph=graph,
-        baselines={"chart-abc123456789-saved": {"data": {"meta": "{}"}}},
+        target_graph=target_graph,
+        baselines={},
+        reference_target_graph=reference_graph,
+        reference_baselines={"chart-abc123456789-saved": {"data": {"meta": "{}"}}},
     )
     assert result["status"] == "success"
     assert result["reference_binding"]["object_id"] == "abc123456789"
