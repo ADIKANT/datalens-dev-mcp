@@ -412,6 +412,20 @@ class PublicPlanBuilder:
     def build_verification(self) -> dict[str, Any]:
         """Build a zero-mutation plan for verifying an already-existing effect."""
 
+        return self._build_read_only_plan(plan_kind="verify_existing_effect")
+
+    def build_read_only_review(self) -> dict[str, Any]:
+        """Build a zero-mutation plan for an inspect/review request."""
+
+        return self._build_read_only_plan(plan_kind="read_only_review")
+
+    def _build_read_only_plan(self, *, plan_kind: str) -> dict[str, Any]:
+        operation_kind = str(self.contract.get("operation_kind") or "")
+        if plan_kind == "verify_existing_effect" and operation_kind != "verify_existing_effect":
+            raise ValueError("existing-effect verification requires verify_existing_effect operation kind")
+        if plan_kind == "read_only_review" and operation_kind != "inspect":
+            raise ValueError("read-only review requires inspect operation kind")
+
         plan_root = self.journal.root / "plans"
         execution_auth = read_json(self.journal.execution_authorization_path, {}) or {}
         build_identity = read_json(self.journal.build_identity_path, {}) or {}
@@ -421,7 +435,11 @@ class PublicPlanBuilder:
         style_binding = read_json(self.journal.style_binding_path, {}) or {}
         verification_plan = deepcopy(
             {
-                "schema_id": "datalens_existing_effect_verification_plan",
+                "schema_id": (
+                    "datalens_existing_effect_verification_plan"
+                    if plan_kind == "verify_existing_effect"
+                    else "datalens_read_only_review_plan"
+                ),
                 "task_id": self.journal.task_id,
                 "contract_hash": str(self.contract.get("contract_hash") or ""),
                 "operation_kind": str(self.contract.get("operation_kind") or ""),
@@ -461,7 +479,7 @@ class PublicPlanBuilder:
             {
                 "schema_id": "datalens_public_task_plan",
                 "plan_version": 1,
-                "plan_kind": "verify_existing_effect",
+                "plan_kind": plan_kind,
                 "task_id": self.journal.task_id,
                 "contract_hash": self.contract.get("contract_hash"),
                 "operation_kind": self.contract.get("operation_kind"),
@@ -521,7 +539,7 @@ class PublicPlanBuilder:
                 issues.append(f"plan artifact hash mismatch: {item.get('kind')}")
         if plan.get("plan_kind") == "create_manifest":
             return (*issues, *self._validate_create_current(plan))
-        if plan.get("plan_kind") == "verify_existing_effect":
+        if plan.get("plan_kind") in {"verify_existing_effect", "read_only_review"}:
             return (*issues, *self._validate_verification_current(plan))
         if plan.get("plan_kind") == "already_satisfied_no_write":
             return (*issues, *self._validate_already_satisfied_current(plan))
@@ -682,11 +700,19 @@ class PublicPlanBuilder:
         issues.extend(validate_binding(binding, schema_id="datalens_public_plan_binding"))
         if plan.get("contract_hash") != self.contract.get("contract_hash"):
             issues.append("public verification plan contract hash is stale")
-        if plan.get("operation_kind") != "verify_existing_effect":
-            issues.append("public verification plan operation kind is invalid")
+        expected_kind = str(self.contract.get("operation_kind") or "")
+        expected_plan_kind = (
+            "verify_existing_effect" if expected_kind == "verify_existing_effect" else "read_only_review"
+        )
+        if expected_kind not in {"inspect", "verify_existing_effect"}:
+            issues.append("public read-only plan operation kind is invalid")
+        if plan.get("operation_kind") != expected_kind:
+            issues.append("public read-only plan operation kind is stale")
+        if plan.get("plan_kind") != expected_plan_kind:
+            issues.append("public read-only plan kind is invalid")
         if plan.get("delivery") != {"save": False, "publish": False, "destructive": False}:
             issues.append("public verification plan must have zero delivery side effects")
-        if not plan.get("acceptance"):
+        if expected_kind == "verify_existing_effect" and not plan.get("acceptance"):
             issues.append("public verification plan acceptance is empty")
         if int(plan.get("safe_apply_action_count") or 0) != 0:
             issues.append("public verification plan must not contain Safe Apply actions")

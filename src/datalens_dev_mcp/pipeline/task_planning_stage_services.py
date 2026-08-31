@@ -100,14 +100,23 @@ def task_planning_stage_services(
                 observed=[f"safe apply action count={plan.get('safe_apply_action_count', 0)}"],
                 reason="typed create manifest is materialized as an immutable Safe Apply template",
             )
-        if str(contract.get("operation_kind") or "") == "verify_existing_effect":
-            plan = builder.build_verification()
+        operation_kind = str(contract.get("operation_kind") or "")
+        if operation_kind in {"inspect", "verify_existing_effect"}:
+            plan = (
+                builder.build_read_only_review()
+                if operation_kind == "inspect"
+                else builder.build_verification()
+            )
             return _receipt(
                 context,
                 status="success",
                 output_hashes={"public_plan": str(plan.get("plan_hash") or "")},
-                observed=["safe apply action count=0", "operation kind=verify_existing_effect"],
-                reason="zero-mutation existing-effect verification plan is materialized",
+                observed=["safe apply action count=0", f"operation kind={operation_kind}"],
+                reason=(
+                    "zero-mutation read-only review plan is materialized"
+                    if operation_kind == "inspect"
+                    else "zero-mutation existing-effect verification plan is materialized"
+                ),
             )
         graph = read_json(journal.target_graph_path, {}) or {}
         style_binding = read_json(journal.style_binding_path, {}) or {}
@@ -183,11 +192,11 @@ def task_planning_stage_services(
     def validate_plan(context: dict[str, Any]) -> dict[str, Any]:
         issues = list(builder.validate_current())
         plan = read_json(journal.root / "plans" / "plan.json", {}) or {}
-        verification = str(contract.get("operation_kind") or "") == "verify_existing_effect"
+        read_only = str(contract.get("operation_kind") or "") in {"inspect", "verify_existing_effect"}
         already_satisfied = plan.get("plan_kind") == "already_satisfied_no_write"
-        if verification and int(plan.get("safe_apply_action_count") or 0) != 0:
-            issues.append("verification public plan must have zero actions")
-        elif not verification and not already_satisfied and int(plan.get("safe_apply_action_count") or 0) < 1:
+        if read_only and int(plan.get("safe_apply_action_count") or 0) != 0:
+            issues.append("read-only public plan must have zero actions")
+        elif not read_only and not already_satisfied and int(plan.get("safe_apply_action_count") or 0) < 1:
             issues.append("public plan action set is empty")
         return _receipt(
             context,

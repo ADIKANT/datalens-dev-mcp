@@ -124,6 +124,10 @@ class UserRequestNormalizer:
         "аудит",
         "диагност",
         "проанализ",
+        "изучи",
+        "изучить",
+        "сравни",
+        "сравнить",
     )
     VERIFY_EXISTING_EFFECT_PATTERNS = (
         re.compile(
