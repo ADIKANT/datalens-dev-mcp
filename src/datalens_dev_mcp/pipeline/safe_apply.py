@@ -4619,8 +4619,11 @@ def _saved_entry_completeness_issues(saved_entry: dict[str, Any], *, method: str
     issues: list[str] = []
     if not isinstance(saved_entry.get("data"), dict):
         issues.append("publish requires full saved entry.data, not summary-only revision identity")
-    if method == "updateDashboard" and not isinstance(saved_entry.get("meta"), dict):
-        issues.append("dashboard publish requires full saved entry.meta")
+    meta_is_invalid = "meta" not in saved_entry or (
+        saved_entry.get("meta") is not None and not isinstance(saved_entry.get("meta"), dict)
+    )
+    if method == "updateDashboard" and meta_is_invalid:
+        issues.append("dashboard publish requires saved entry.meta with its nullable value preserved")
     if method in {"updateEditorChart", "updateWizardChart", "updateDashboard", "updateHtmlPage"}:
         object_id = _candidate_object_id(saved_entry)
         if not object_id:

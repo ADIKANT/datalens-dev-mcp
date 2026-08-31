@@ -508,7 +508,7 @@ class SafeApplyTests(unittest.TestCase):
                                 "revId": "rev_saved",
                                 "savedId": "saved_123",
                                 "data": {"counter": 1, "salt": "s", "schemeVersion": 8, "tabs": [], "settings": {}},
-                                "meta": {},
+                                "meta": None,
                             }
                         },
                     }
@@ -532,6 +532,8 @@ class SafeApplyTests(unittest.TestCase):
         self.assertEqual(action["expected_saved_rev_id"], "rev_saved")
         self.assertEqual(action["expected_saved_id"], "saved_123")
         self.assertNotIn("savedId", action["payload"]["entry"])
+        self.assertIn("meta", action["payload"]["entry"])
+        self.assertIsNone(action["payload"]["entry"]["meta"])
         self.assertEqual(action["fresh_read_payload"]["branch"], "saved")
         self.assertEqual(action["readback_payload"]["branch"], "published")
 
