@@ -160,8 +160,8 @@ class UserRequestContractTests(unittest.TestCase):
                 request = normalize_user_request(f"Update target {url}")
                 self.assertEqual(request.target_object_type, object_type)
                 self.assertEqual(request.target_technology, technology)
-        bare = normalize_user_request("11eh9ffzcvggm - это dashboard")
-        self.assertEqual(bare.target_dashboard_id, "11eh9ffzcvggm")
+        bare = normalize_user_request("synthetic1234 - это dashboard")
+        self.assertEqual(bare.target_dashboard_id, "synthetic1234")
 
     def test_exception_payload_cannot_select_table_route_and_manual_layout_is_read_only(self):
         from datalens_dev_mcp.pipeline.user_request import normalize_user_request

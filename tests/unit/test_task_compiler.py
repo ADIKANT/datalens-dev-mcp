@@ -435,12 +435,12 @@ class TaskCompilerTests(unittest.TestCase):
         from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
 
         vehicle = compile_task_contract(
-            "работать будем над таблицей https://datalens.ru/editor/mqc6snad6u2o6; "
+            "работать будем над таблицей https://datalens.ru/editor/synthetic_editor_chart; "
             "добавь selector nexus ci diff flg"
         )["contract"]
         self.assertEqual(vehicle["mode"], "update")
         self.assertEqual(vehicle["route"], "editor_advanced")
-        self.assertEqual(vehicle["target"]["object_ids"], ["mqc6snad6u2o6"])
+        self.assertEqual(vehicle["target"]["object_ids"], ["synthetic_editor_chart"])
 
         base = compile_task_contract(
             "Update chart:synthetic_editor_chart and publish it",
