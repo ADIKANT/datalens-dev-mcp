@@ -33,7 +33,7 @@ def test_write_workflow_completes_in_two_high_level_public_calls() -> None:
     assert started["state"] == "COMPLETED"
     assert verified["ok"] is True
     assert api.write_count == 2
-    assert [method for method, _ in api.calls].count("getDatasetData") == 2
+    assert [method for method, _ in api.calls].count("getDatasetData") == 1
 
 
 def test_restart_after_save_stays_below_ten_public_calls() -> None:

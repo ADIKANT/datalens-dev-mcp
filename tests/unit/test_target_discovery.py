@@ -4,7 +4,11 @@ import tempfile
 from pathlib import Path
 
 from datalens_dev_mcp.api.errors import DataLensApiError
-from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService, parse_target_url
+from datalens_dev_mcp.pipeline.target_discovery import (
+    TargetDiscoveryService,
+    compact_object_index,
+    parse_target_url,
+)
 from datalens_dev_mcp.pipeline.task_contract import TargetContract, WorkspaceContract, create_task_contract
 
 
@@ -151,6 +155,14 @@ def test_dashboard_discovery_builds_bounded_graph_and_dataset_field_catalog() ->
     assert [item["type"] for item in dataset["field_catalog"]] == ["date", "float"]
     assert [item["semantic_role"] for item in dataset["field_catalog"]] == ["dimension", "measure"]
     assert chart["field_guids"] == ["guid_value"]
+    object_index = compact_object_index(result["target_graph"])
+    indexed_chart = next(item for item in object_index if item["object_id"] == "chart_demo")
+    assert indexed_chart["tab_id"] == "main"
+    assert indexed_chart["technology"] == "editor_advanced"
+    assert indexed_chart["saved_revision"] == "chart-r3"
+    assert indexed_chart["dataset_ids"] == ["dataset_demo"]
+    assert indexed_chart["connection_ids"] == ["connection_demo"]
+    assert indexed_chart["dependencies"] == ["dataset_demo"]
     assert [method for method, _ in client.calls] == [
         "getDashboard", "getWorkbookEntries", "getEditorChart", "getDataset", "getConnection"
     ]

@@ -4,6 +4,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping
 
+from datalens_dev_mcp.pipeline.artifacts import read_json
 from datalens_dev_mcp.pipeline.build_identity import BuildIdentityResolver
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal, build_journal_identity
 from datalens_dev_mcp.pipeline.target_binding import resolve_contract_target_binding
@@ -102,6 +103,8 @@ class WorkflowEngine:
             state, _ = self.journal.replay()
             count = 0
             while not is_terminal(state):
+                if state.current_state == "VALIDATED" and self._already_satisfied_no_write():
+                    break
                 if stop_states and state.current_state in stop_states:
                     break
                 if max_transitions is not None and count >= max_transitions:
@@ -110,6 +113,14 @@ class WorkflowEngine:
                 state = self._execute(state, spec)
                 count += 1
             return state
+
+    def _already_satisfied_no_write(self) -> bool:
+        plan = read_json(self.journal.root / "plans" / "plan.json", {}) or {}
+        return (
+            plan.get("plan_kind") == "already_satisfied_no_write"
+            and plan.get("semantic_state") == "already_satisfied_no_write"
+            and int(plan.get("safe_apply_action_count") or 0) == 0
+        )
 
     def _next_spec(self, state: WorkflowState) -> TransitionSpec:
         if state.current_state == "VALIDATED":

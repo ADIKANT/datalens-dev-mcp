@@ -24,7 +24,7 @@ def test_public_workflow_uses_a_fresh_typed_probe_after_planning() -> None:
 
     assert state.current_state == "COMPLETED"
     assert len(executor.plans) == 2
-    assert [method for method, _payload in client.calls].count("getDatasetData") == 2
+    assert [method for method, _payload in client.calls].count("getDatasetData") == 1
     assert data_receipt["fresh"] is True
     assert data_receipt["proof_level"] == "live_read_only_api"
     assert data_receipt["live_data_verified"] is True
@@ -69,7 +69,7 @@ def test_unexpected_empty_final_probe_blocks_but_expected_empty_passes() -> None
     assert blocked.current_state == "BLOCKED"
     assert unexpected["status"] == "failed"
     assert unexpected["unexpected_empty_diagnostics"]
-    assert [method for method, _payload in client.calls].count("getDatasetData") == 3
+    assert [method for method, _payload in client.calls].count("getDatasetData") == 2
     assert unexpected["unexpected_empty_diagnostics"][0]["check"] == "unfiltered_dataset_probe"
     assert unexpected["unexpected_empty_diagnostics"][0]["mode"] == "diagnostic_probe"
     assert unexpected["unexpected_empty_diagnostics"][0]["status"] == "still_empty"
@@ -88,7 +88,7 @@ def test_unexpected_empty_final_probe_blocks_but_expected_empty_passes() -> None
     assert completed.current_state == "COMPLETED"
     assert expected["status"] == "passed"
     assert expected["unexpected_empty_diagnostics"] == []
-    assert [method for method, _payload in client.calls].count("getDatasetData") == 2
+    assert [method for method, _payload in client.calls].count("getDatasetData") == 1
 
 
 def test_target_binding_change_blocks_fresh_probe_before_provider_call() -> None:

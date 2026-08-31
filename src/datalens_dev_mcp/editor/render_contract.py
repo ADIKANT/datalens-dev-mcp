@@ -111,6 +111,7 @@ def resolve_dashboard_render_contract(
     profile_id: str = "",
     family: str,
     overrides: Mapping[str, Any] | None = None,
+    overlay_ids: list[str] | tuple[str, ...] | None = None,
 ) -> Mapping[str, Any]:
     """Resolve one registered family to an immutable, exact render contract."""
 
@@ -130,6 +131,8 @@ def resolve_dashboard_render_contract(
         )
     family_id = str(family or "").strip()
     profile = _materialize_profile(registry, selected_profile_id)
+    selected_overlays = tuple(dict.fromkeys(str(value).strip() for value in overlay_ids or () if str(value).strip()))
+    profile = _apply_named_overlays(profile, selected_overlays)
     raw_profile = profiles[selected_profile_id]
     family_map = profile.get("family_map")
     if not isinstance(family_map, Mapping) or family_id not in family_map:
@@ -195,6 +198,7 @@ def resolve_dashboard_render_contract(
         "core": core,
         "adapters": {adapter_id: resolved_adapter},
         "overrides": normalized_overrides,
+        "overlay_ids": list(selected_overlays),
         "effective_tokens": effective_tokens,
     }
     composite_payload = {
@@ -203,6 +207,7 @@ def resolve_dashboard_render_contract(
         "family": family_id,
         "adapter_ids": resolved["adapter_ids"],
         "overrides": normalized_overrides,
+        "overlay_ids": list(selected_overlays),
         "effective_tokens": effective_tokens,
     }
     resolved["composite_sha256"] = canonical_sha256(composite_payload)
@@ -284,6 +289,7 @@ def _build_renderer_visual_spec(
         "family": str(render_contract["family"]),
         "adapter_ids": list(render_contract["adapter_ids"]),
         "overrides": _jsonable(render_contract["overrides"]),
+        "overlay_ids": list(render_contract.get("overlay_ids") or []),
         "composite_sha256": str(render_contract["composite_sha256"]),
     }
 
@@ -326,22 +332,25 @@ def _build_renderer_visual_spec(
     else:
         result.pop("horizontal_rank", None)
 
-    kpi_context = _dict_at(result, "kpi_context")
     kpi = _mapping_at(tokens, "kpi")
-    kpi_context["surface"] = copy.deepcopy(kpi.get("surface") or {})
-    kpi_context["padding_px"] = copy.deepcopy(kpi.get("padding_px") or {})
-    kpi_context["label_typography"] = copy.deepcopy(kpi.get("label_typography") or {})
-    kpi_context["value_typography"] = copy.deepcopy(kpi.get("value_typography") or {})
-    kpi_context["content"] = copy.deepcopy(kpi.get("content") or {})
-    kpi_context["layout"] = copy.deepcopy(kpi.get("layout") or {})
-    kpi_context["sparkline_policy"] = str(kpi.get("sparkline_policy") or "")
+    if kpi:
+        kpi_context = _dict_at(result, "kpi_context")
+        for key in ("surface", "padding_px", "label_typography", "value_typography", "content", "layout"):
+            if key in kpi:
+                kpi_context[key] = copy.deepcopy(kpi[key])
+        if "sparkline_policy" in kpi:
+            kpi_context["sparkline_policy"] = str(kpi.get("sparkline_policy") or "")
 
     legend = _dict_at(result, "legend")
     for key in _INLINE_LEGEND_TYPOGRAPHY_KEYS:
         legend.pop(key, None)
     legend_tokens = _mapping_at(typography, "legend")
-    legend["typography_token"] = str(legend_tokens.get("active_token") or "")
-    legend["single_typography_token"] = True
+    if legend_tokens:
+        legend["typography_token"] = str(legend_tokens.get("active_token") or "")
+        legend["single_typography_token"] = True
+    else:
+        legend.pop("typography_token", None)
+        legend.pop("single_typography_token", None)
 
     tooltip = _dict_at(result, "tooltip")
     tooltip_tokens = _mapping_at(tokens, "tooltip")
@@ -350,12 +359,9 @@ def _build_renderer_visual_spec(
     tooltip.pop("renderer_owner", None)
     tooltip["owner"] = str(tooltip_tokens.get("owner") or "")
     tooltip["single_owner"] = True
-    tooltip["max_width_px"] = int(tooltip_tokens.get("max_width_px") or 0)
-    tooltip["padding_px"] = copy.deepcopy(tooltip_tokens.get("padding_px") or {})
-    tooltip["surface"] = copy.deepcopy(tooltip_tokens.get("surface") or {})
-    tooltip["redundant_row_title"] = bool(
-        tooltip_tokens.get("redundant_row_title")
-    )
+    for key in ("max_width_px", "padding_px", "surface", "redundant_row_title"):
+        if key in tooltip_tokens:
+            tooltip[key] = copy.deepcopy(tooltip_tokens[key])
     tooltip["comparison_mode"] = (
         "comparison" if comparison_enabled else "single_period"
     )
@@ -367,59 +373,35 @@ def _build_renderer_visual_spec(
     tooltip["show_comparison_period"] = comparison_enabled
     tooltip["allow_empty_comparison_period"] = False
 
-    selector_contract = _dict_at(result, "selector_contract")
     selector = _mapping_at(tokens, "selector")
-    selector_contract["update_mode"] = str(selector.get("update_mode") or "")
-    selector_contract["apply_button"] = bool(selector.get("apply_button"))
-    selector_contract["control_max_width_percent"] = int(
-        selector.get("control_max_width_percent") or 0
-    )
-    selector_contract["row_height_px"] = int(selector.get("row_height_px") or 0)
     native_heights = _mapping_at(_mapping_at(tokens, "layout_grid"), "native_height_units")
-    selector_contract["dashboard_grid_height_units"] = int(
-        native_heights.get("selector_creation_default") or 0
-    )
-    selector_contract["label_placement"] = str(
-        selector.get("label_placement") or ""
-    )
-    selector_contract["blank_multiselect_semantics"] = str(
-        selector.get("blank_multiselect_semantics") or ""
-    )
-    selector_contract["period_first_if_present"] = bool(
-        selector.get("period_first_if_present")
-    )
-    selector_contract["single_row"] = bool(selector.get("single_row"))
-    selector_contract["row_target_width_percent"] = int(
-        selector.get("row_target_width_percent") or 0
-    )
-    selector_contract["row_width_tolerance_percent"] = int(
-        selector.get("row_width_tolerance_percent") or 0
-    )
+    if selector or native_heights.get("selector_creation_default") is not None:
+        selector_contract = _dict_at(result, "selector_contract")
+        for key in (
+            "update_mode", "apply_button", "control_max_width_percent", "row_height_px",
+            "label_placement", "blank_multiselect_semantics", "period_first_if_present",
+            "single_row", "row_target_width_percent", "row_width_tolerance_percent",
+        ):
+            if key in selector:
+                selector_contract[key] = copy.deepcopy(selector[key])
+        if "selector_creation_default" in native_heights:
+            selector_contract["dashboard_grid_height_units"] = int(
+                native_heights.get("selector_creation_default") or 0
+            )
 
     comparison = _dict_at(result, "comparison_context")
     comparison["enabled"] = comparison_enabled
     comparison["block_count"] = 1 if comparison_enabled else 0
     comparison["render_mode"] = "single_text_block" if comparison_enabled else "none"
-    comparison["placement"] = str(
-        _mapping_at(tokens, "comparison_context").get("placement") or ""
-    )
     comparison["single_shared_summary"] = True
     comparison_tokens = _mapping_at(tokens, "comparison_context")
-    comparison["required_fields"] = copy.deepcopy(
-        comparison_tokens.get("required_fields") or []
-    )
-    comparison["duplicate_chart_captions"] = bool(
-        comparison_tokens.get("duplicate_chart_captions")
-    )
-    comparison["minimum_height_px"] = int(
-        comparison_tokens.get("minimum_height_px") or 0
-    )
-    comparison["dashboard_grid_height_units"] = int(
-        native_heights.get("comparison_context_minimum") or 0
-    )
-    comparison["semantic_line_count"] = int(
-        comparison_tokens.get("semantic_line_count") or 0
-    )
+    for key in ("placement", "required_fields", "duplicate_chart_captions", "minimum_height_px", "semantic_line_count"):
+        if key in comparison_tokens:
+            comparison[key] = copy.deepcopy(comparison_tokens[key])
+    if "comparison_context_minimum" in native_heights:
+        comparison["dashboard_grid_height_units"] = int(
+            native_heights.get("comparison_context_minimum") or 0
+        )
 
     return result
 
@@ -443,6 +425,7 @@ def _validate_renderer_visual_spec_base(
         "family": str(render_contract["family"]),
         "adapter_ids": list(render_contract["adapter_ids"]),
         "overrides": _jsonable(render_contract["overrides"]),
+        "overlay_ids": list(render_contract.get("overlay_ids") or []),
         "composite_sha256": str(render_contract["composite_sha256"]),
     }
     if binding != expected_binding:
@@ -496,33 +479,35 @@ def _validate_renderer_visual_spec_base(
         kpi_context.get("surface") if isinstance(kpi_context.get("surface"), dict) else {}
     )
     expected_kpi = _mapping_at(tokens, "kpi")
-    if kpi_surface.get("background") != "transparent":
-        issues.append("kpi.surface.background_must_be_transparent")
-    if kpi_surface.get("border") != {"style": "none", "width_px": 0}:
-        issues.append("kpi.surface.border_must_be_none")
-    if kpi_surface.get("radius_px") != 0:
-        issues.append("kpi.surface.radius_must_be_zero")
-    if kpi_surface.get("outline") != {"style": "none", "width_px": 0}:
-        issues.append("kpi.surface.outline_must_be_none")
-    if kpi_surface.get("shadow") != "none":
-        issues.append("kpi.surface.shadow_must_be_none")
-    if kpi_surface != expected_kpi.get("surface"):
-        issues.append("kpi.surface.profile_token_mismatch")
-    if kpi_context.get("padding_px") != expected_kpi.get("padding_px"):
-        issues.append("kpi.padding.profile_token_mismatch")
-    if kpi_context.get("content") != expected_kpi.get("content"):
-        issues.append("kpi.content.profile_token_mismatch")
-    if kpi_context.get("layout") != expected_kpi.get("layout"):
-        issues.append("kpi.layout.profile_token_mismatch")
-    if kpi_context.get("sparkline_policy") != expected_kpi.get("sparkline_policy"):
-        issues.append("kpi.sparkline_policy.profile_token_mismatch")
+    if "surface" in expected_kpi:
+        if kpi_surface.get("background") != "transparent":
+            issues.append("kpi.surface.background_must_be_transparent")
+        if kpi_surface.get("border") != {"style": "none", "width_px": 0}:
+            issues.append("kpi.surface.border_must_be_none")
+        if kpi_surface.get("radius_px") != 0:
+            issues.append("kpi.surface.radius_must_be_zero")
+        if kpi_surface.get("outline") != {"style": "none", "width_px": 0}:
+            issues.append("kpi.surface.outline_must_be_none")
+        if kpi_surface.get("shadow") != "none":
+            issues.append("kpi.surface.shadow_must_be_none")
+        if kpi_surface != expected_kpi.get("surface"):
+            issues.append("kpi.surface.profile_token_mismatch")
+    for key, issue in (
+        ("padding_px", "kpi.padding.profile_token_mismatch"),
+        ("content", "kpi.content.profile_token_mismatch"),
+        ("layout", "kpi.layout.profile_token_mismatch"),
+        ("sparkline_policy", "kpi.sparkline_policy.profile_token_mismatch"),
+    ):
+        if key in expected_kpi and kpi_context.get(key) != expected_kpi.get(key):
+            issues.append(issue)
 
     legend = spec.get("legend") if isinstance(spec.get("legend"), dict) else {}
     legend_tokens = _mapping_at(_mapping_at(tokens, "typography"), "legend")
-    if legend.get("typography_token") != legend_tokens.get("active_token"):
-        issues.append("legend.typography_token_mismatch")
-    if legend.get("single_typography_token") is not True:
-        issues.append("legend.single_typography_token_required")
+    if legend_tokens:
+        if legend.get("typography_token") != legend_tokens.get("active_token"):
+            issues.append("legend.typography_token_mismatch")
+        if legend.get("single_typography_token") is not True:
+            issues.append("legend.single_typography_token_required")
     if _INLINE_LEGEND_TYPOGRAPHY_KEYS.intersection(legend):
         issues.append("legend.inline_typography_forbidden")
 
@@ -534,14 +519,14 @@ def _validate_renderer_visual_spec_base(
         issues.append("tooltip.single_owner_required")
     if any(key in tooltip for key in ("owners", "native_owner", "renderer_owner")):
         issues.append("tooltip.multiple_owner_fields_forbidden")
-    if tooltip.get("max_width_px") != expected_tooltip.get("max_width_px"):
-        issues.append("tooltip.max_width_profile_token_mismatch")
-    if tooltip.get("padding_px") != expected_tooltip.get("padding_px"):
-        issues.append("tooltip.padding_profile_token_mismatch")
-    if tooltip.get("surface") != expected_tooltip.get("surface"):
-        issues.append("tooltip.surface_profile_token_mismatch")
-    if tooltip.get("redundant_row_title") is not False:
-        issues.append("tooltip.redundant_row_title_must_be_false")
+    for key, issue in (
+        ("max_width_px", "tooltip.max_width_profile_token_mismatch"),
+        ("padding_px", "tooltip.padding_profile_token_mismatch"),
+        ("surface", "tooltip.surface_profile_token_mismatch"),
+        ("redundant_row_title", "tooltip.redundant_row_title_profile_token_mismatch"),
+    ):
+        if key in expected_tooltip and tooltip.get(key) != expected_tooltip.get(key):
+            issues.append(issue)
     comparison = (
         spec.get("comparison_context")
         if isinstance(spec.get("comparison_context"), dict)
@@ -571,41 +556,27 @@ def _validate_renderer_visual_spec_base(
         else {}
     )
     expected_selector = _mapping_at(tokens, "selector")
-    if selector.get("update_mode") != "immediate":
-        issues.append("selector.update_mode_must_be_immediate")
-    if selector.get("apply_button") is not False:
-        issues.append("selector.apply_button_must_be_absent")
-    selector_max_width = selector.get("control_max_width_percent")
-    if (
-        not isinstance(selector_max_width, int)
-        or isinstance(selector_max_width, bool)
-        or selector_max_width <= 0
-        or selector_max_width > 94
+    for key in (
+        "update_mode", "apply_button", "control_max_width_percent", "row_height_px",
+        "label_placement", "blank_multiselect_semantics", "period_first_if_present",
+        "single_row", "row_target_width_percent", "row_width_tolerance_percent",
     ):
-        issues.append("selector.control_max_width_must_not_exceed_94")
-    if selector_max_width != expected_selector.get("control_max_width_percent"):
-        issues.append("selector.control_max_width_profile_token_mismatch")
-    if selector.get("row_height_px") != expected_selector.get("row_height_px"):
-        issues.append("selector.row_height_profile_token_mismatch")
+        if key in expected_selector and selector.get(key) != expected_selector.get(key):
+            issues.append(f"selector.{key}_profile_token_mismatch")
+    if "control_max_width_percent" in expected_selector:
+        selector_max_width = selector.get("control_max_width_percent")
+        if (
+            not isinstance(selector_max_width, int)
+            or isinstance(selector_max_width, bool)
+            or selector_max_width <= 0
+            or selector_max_width > 94
+        ):
+            issues.append("selector.control_max_width_must_not_exceed_94")
     native_heights = _mapping_at(_mapping_at(tokens, "layout_grid"), "native_height_units")
-    if (
-        selector.get("dashboard_grid_height_units")
-        != native_heights.get("selector_creation_default")
+    if "selector_creation_default" in native_heights and (
+        selector.get("dashboard_grid_height_units") != native_heights.get("selector_creation_default")
     ):
         issues.append("selector.grid_height_profile_token_mismatch")
-    if selector.get("label_placement") != expected_selector.get("label_placement"):
-        issues.append("selector.label_placement_profile_token_mismatch")
-    if (
-        selector.get("blank_multiselect_semantics")
-        != expected_selector.get("blank_multiselect_semantics")
-    ):
-        issues.append("selector.blank_multiselect_profile_token_mismatch")
-    for key in ("period_first_if_present", "single_row"):
-        if selector.get(key) is not expected_selector.get(key):
-            issues.append(f"selector.{key}_profile_token_mismatch")
-    for key in ("row_target_width_percent", "row_width_tolerance_percent"):
-        if selector.get(key) != expected_selector.get(key):
-            issues.append(f"selector.{key}_profile_token_mismatch")
 
     expected_block_count = 1 if comparison_enabled else 0
     if comparison.get("block_count") != expected_block_count:
@@ -615,23 +586,14 @@ def _validate_renderer_visual_spec_base(
         issues.append("comparison_context.render_mode_mismatch")
     if comparison.get("single_shared_summary") is not True:
         issues.append("comparison_context.single_shared_summary_required")
-    expected_placement = _mapping_at(tokens, "comparison_context").get("placement")
-    if comparison.get("placement") != expected_placement:
-        issues.append("comparison_context.placement_profile_token_mismatch")
     expected_comparison = _mapping_at(tokens, "comparison_context")
-    if comparison.get("required_fields") != expected_comparison.get("required_fields"):
-        issues.append("comparison_context.required_fields_profile_token_mismatch")
-    if comparison.get("duplicate_chart_captions") is not False:
-        issues.append("comparison_context.duplicate_chart_captions_forbidden")
-    for key in (
-        "minimum_height_px",
-        "semantic_line_count",
-    ):
-        if comparison.get(key) != expected_comparison.get(key):
+    if "placement" in expected_comparison and comparison.get("placement") != expected_comparison.get("placement"):
+        issues.append("comparison_context.placement_profile_token_mismatch")
+    for key in ("required_fields", "duplicate_chart_captions", "minimum_height_px", "semantic_line_count"):
+        if key in expected_comparison and comparison.get(key) != expected_comparison.get(key):
             issues.append(f"comparison_context.{key}_profile_token_mismatch")
-    if (
-        comparison.get("dashboard_grid_height_units")
-        != native_heights.get("comparison_context_minimum")
+    if "comparison_context_minimum" in native_heights and (
+        comparison.get("dashboard_grid_height_units") != native_heights.get("comparison_context_minimum")
     ):
         issues.append("comparison_context.dashboard_grid_height_units_profile_token_mismatch")
 
@@ -779,6 +741,22 @@ def _validate_profile(registry: Mapping[str, Any], profile_id: str, raw_profile:
             "invalid_dashboard_render_profile",
             f"profile {profile_id!r} has an invalid default tooltip owner",
         )
+    overlays = profile.get("overlays") or {}
+    if not isinstance(overlays, dict):
+        raise DashboardRenderContractError(
+            "invalid_dashboard_render_profile",
+            f"profile {profile_id!r} overlays must be an object",
+        )
+    for overlay_id, overlay in overlays.items():
+        if (
+            not str(overlay_id).strip()
+            or not isinstance(overlay, dict)
+            or not isinstance(overlay.get("tokens"), dict)
+        ):
+            raise DashboardRenderContractError(
+                "invalid_dashboard_render_profile",
+                f"profile {profile_id!r} has an invalid named overlay",
+            )
     _validate_core_geometry(profile_id, core)
 
 
@@ -823,71 +801,34 @@ def _materialize_profile(
     return _deep_merge(base, own)
 
 
+def _apply_named_overlays(profile: dict[str, Any], overlay_ids: tuple[str, ...]) -> dict[str, Any]:
+    if not overlay_ids:
+        return profile
+    result = copy.deepcopy(profile)
+    overlays = result.get("overlays") if isinstance(result.get("overlays"), dict) else {}
+    for overlay_id in overlay_ids:
+        overlay = overlays.get(overlay_id)
+        if not isinstance(overlay, dict):
+            raise DashboardRenderContractError(
+                "unknown_render_overlay",
+                f"unknown named render overlay {overlay_id!r}",
+            )
+        result["core"] = _deep_merge(result.get("core") or {}, overlay.get("tokens") or {})
+        if isinstance(overlay.get("adapters"), dict):
+            result["adapters"] = _deep_merge(result.get("adapters") or {}, overlay["adapters"])
+    return result
+
+
 def _validate_core_geometry(profile_id: str, core: dict[str, Any]) -> None:
     grid = _mapping_at(core, "layout_grid")
-    native_heights = _mapping_at(grid, "native_height_units")
-    selector = _mapping_at(core, "selector")
-    comparison = _mapping_at(core, "comparison_context")
-    kpi = _mapping_at(core, "kpi")
-    kpi_layout = _mapping_at(kpi, "layout")
-    expected_native_heights = {
-        "title_creation_default": 2,
-        "selector_creation_default": 2,
-        "selector_two_row_default": 3,
-        "comparison_context_minimum": 1,
-        "comparison_context_maximum": 3,
-        "kpi_creation_default": 8,
-        "kpi_compact_default": 6,
-    }
-    if native_heights != expected_native_heights:
-        raise DashboardRenderContractError(
-            "invalid_dashboard_render_profile",
-            f"profile {profile_id!r} has invalid native dashboard height defaults",
-        )
     if (
         grid.get("update_policy") != "preserve_fresh_saved_geometry"
         or grid.get("runtime_relation") != "measured_independently_from_native_units"
-        or grid.get("equal_height_within_semantic_row") is not True
         or grid.get("overflow_policy") != "expand_or_scroll_never_clip"
-        or selector.get("row_height_px") != 44
-        or comparison.get("minimum_height_px") != 24
-        or kpi_layout
-        != {
-            "update_policy": "preserve_fresh_saved_geometry",
-            "equal_height_within_kpi_set": True,
-            "runtime_policy": "content_visible_without_clipping",
-        }
     ):
         raise DashboardRenderContractError(
             "invalid_dashboard_render_profile",
-            f"profile {profile_id!r} has inconsistent semantic object heights",
-        )
-    composition = _mapping_at(core, "dashboard_composition")
-    if composition != {
-        "schema_id": "dashboard_composition",
-        "desktop_grid_columns": 36,
-        "selector_row_width_percent": 94,
-        "selector_height_units": {"one_row": 2, "two_rows": 3},
-        "kpi_max_per_row": 3,
-        "kpi_width_units": 12,
-        "kpi_height_units": {"sparkline": 8, "compact": 6},
-        "gap_after_default": 0,
-        "equal_height_within_semantic_row": True,
-    }:
-        raise DashboardRenderContractError(
-            "invalid_dashboard_render_profile",
-            f"profile {profile_id!r} has inconsistent dashboard composition defaults",
-        )
-    plot = _mapping_at(_mapping_at(core, "plot_area"), "inset_px")
-    if plot != {
-        "top": 22,
-        "right": {"compact": 10, "normal": 16},
-        "bottom": 34,
-        "left": "family_axis_owned",
-    }:
-        raise DashboardRenderContractError(
-            "invalid_dashboard_render_profile",
-            f"profile {profile_id!r} has inconsistent coordinate plot insets",
+            f"profile {profile_id!r} must preserve live geometry and prevent clipping",
         )
     visibility = _mapping_at(core, "series_visibility")
     if any(
@@ -897,6 +838,12 @@ def _validate_core_geometry(profile_id: str, core: dict[str, Any]) -> None:
         raise DashboardRenderContractError(
             "invalid_dashboard_render_profile",
             f"profile {profile_id!r} must bind legends and marks to filtered rows",
+        )
+    title = _mapping_at(core, "title_contract")
+    if title.get("native_and_runtime_mutually_exclusive") is not True:
+        raise DashboardRenderContractError(
+            "invalid_dashboard_render_profile",
+            f"profile {profile_id!r} must keep title ownership mutually exclusive",
         )
 
 
@@ -944,8 +891,17 @@ def _apply_density_override(tokens: dict[str, Any], density_override: str | None
 
 
 def _apply_legend_override(tokens: dict[str, Any], legend_override: str | None) -> None:
-    typography = _mapping_at(tokens, "typography")
-    legend = _mapping_at(typography, "legend")
+    typography = tokens.get("typography")
+    legend = typography.get("legend") if isinstance(typography, dict) else None
+    if not isinstance(legend, dict):
+        if legend_override is None:
+            return
+        raise DashboardRenderContractError(
+            "invalid_dashboard_render_profile",
+            f"legend typography token {legend_override!r} is absent",
+        )
+    if not legend and legend_override is None:
+        return
     selected = legend_override or "default"
     variant = legend.get(selected)
     if not isinstance(variant, dict):
@@ -975,6 +931,7 @@ def _require_resolved_contract(render_contract: Mapping[str, Any]) -> None:
         "family",
         "adapter_ids",
         "overrides",
+        "overlay_ids",
         "effective_tokens",
         "composite_sha256",
     }

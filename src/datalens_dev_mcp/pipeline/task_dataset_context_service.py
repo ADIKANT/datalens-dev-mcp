@@ -45,6 +45,60 @@ class TaskDatasetContextService:
     def proof_plan_path(self) -> Path:
         return self.journal.root / "plans" / "data-proof-plan.json"
 
+    def persist_not_applicable(self, *, reason: str) -> dict[str, Any]:
+        """Persist bounded proof artifacts when a live dataset probe is not required."""
+
+        graph = read_json(self.journal.target_graph_path, {}) or {}
+        dataset = next(
+            (
+                item
+                for item in graph.get("nodes") or []
+                if isinstance(item, dict) and item.get("object_type") == "dataset"
+            ),
+            {},
+        )
+        observed_at = _utc_now()
+        query_set_hash = canonical_hash(
+            {
+                "status": "not_applicable",
+                "reason": reason,
+                "contract_hash": str(self.contract.get("contract_hash") or ""),
+                "target_graph_hash": str(graph.get("graph_hash") or ""),
+            }
+        )
+        schema_hash = str(dataset.get("schema_hash") or canonical_hash([]))
+        plan = {
+            "schema_id": "dataset_probe_plan",
+            "status": "not_applicable",
+            "reason": reason,
+            "dataset_id": str(dataset.get("object_id") or ""),
+            "dataset_revision": str(dataset.get("saved_revision") or ""),
+            "dataset_schema_hash": schema_hash,
+            "query_set_hash": query_set_hash,
+            "queries": [],
+            "provider_calls_required": False,
+        }
+        plan["plan_hash"] = canonical_hash(plan)
+        profile = build_dataset_context_profile(
+            dataset_id=str(dataset.get("object_id") or ""),
+            workbook_id=str((self.contract.get("target") or {}).get("workbook_id") or ""),
+            dataset_revision=str(dataset.get("saved_revision") or ""),
+            query_set_hash=query_set_hash,
+            schema_hash=schema_hash,
+            field_catalog=[],
+            rows=[],
+            pages_read=0,
+            requested_limit=0,
+            deterministic=False,
+            limitations=[reason, "dataset probe not applicable"],
+            observed_at=observed_at,
+            proof_level="source_static",
+            fallback_kind="not_applicable",
+        )
+        write_json(self.proof_plan_path, plan)
+        write_json(self.profile_path, profile)
+        return {"profile": profile, "query_plan": plan, "provider_calls": []}
+
     def acquire(self, *, fresh: bool = False, mode: str = "context_probe") -> dict[str, Any]:
         graph = read_json(self.journal.target_graph_path, {}) or {}
         parameter_defaults = (

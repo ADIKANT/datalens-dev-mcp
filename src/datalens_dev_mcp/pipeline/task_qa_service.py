@@ -305,6 +305,13 @@ class TaskQaService:
                 candidate_build_identity=expected["candidate_build_identity"],
                 workbook_id=expected["workbook_id"],
                 tab_object_ids=expected["tab_object_ids"],
+                profile_assertions=expected["effective_visual_assertions"],
+                active_provenance_hash=expected["active_visual_provenance_hash"],
+                task_acceptance=expected["task_acceptance"],
+                project_profile_hash=expected["project_profile_hash"],
+                accepted_exemplar_hash=expected["accepted_exemplar_hash"],
+                affected_object_ids=expected["affected_object_ids"],
+                affected_tab_ids=expected["affected_tab_ids"],
             )
         except Exception as exc:  # noqa: BLE001 - invalid browser binding is explicit evidence.
             return {
@@ -536,6 +543,25 @@ def _browser_binding(
     if len(tabs) == 1 and not tab_object_ids[tabs[0]]:
         tab_object_ids[tabs[0]] = object_ids or [dashboard_id]
     build_identity = read_json(journal.build_identity_path, {}) or {}
+    applied_constraints = [
+        item
+        for item in public_plan.get("effective_visual_constraints") or []
+        if isinstance(item, dict)
+    ]
+    affected_object_ids = sorted(
+        {
+            str(item.get("target_id") or "")
+            for item in applied_constraints
+            if str(item.get("target_id") or "")
+        }
+        or set(object_ids or [dashboard_id])
+    )
+    constrained_tab_ids = {
+            str(item.get("tab_id") or "")
+            for item in applied_constraints
+            if str(item.get("tab_id") or "")
+        } & set(tabs)
+    affected_tab_ids = sorted(constrained_tab_ids or set(tabs))
     return {
         "dashboard_id": dashboard_id,
         "dashboard_url": dashboard_url,
@@ -552,6 +578,17 @@ def _browser_binding(
         "final_payload_attestation_sha256": artifact_hashes.get("safe_apply_plan") or "0" * 64,
         "payload_set_sha256": artifact_hashes.get("materialized_payloads") or "0" * 64,
         "dashboard_composition_sha256": composition_hash,
+        "effective_visual_assertions": list(public_plan.get("effective_visual_assertions") or []),
+        "active_visual_provenance_hash": str(public_plan.get("active_visual_provenance_hash") or ""),
+        "task_acceptance": [
+            dict(item)
+            for item in contract.get("acceptance") or []
+            if isinstance(item, dict) and item.get("hard") is not False
+        ][:100],
+        "project_profile_hash": str(public_plan.get("project_profile_hash") or ""),
+        "accepted_exemplar_hash": str(public_plan.get("accepted_exemplar_hash") or ""),
+        "affected_object_ids": affected_object_ids,
+        "affected_tab_ids": affected_tab_ids,
     }
 
 

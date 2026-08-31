@@ -31,8 +31,9 @@ from datalens_dev_mcp.pipeline.execution_authorization import (
 from datalens_dev_mcp.pipeline.project_journal import JournalIdentityError, ProjectJournal
 from datalens_dev_mcp.pipeline.public_plan_builder import PublicPlanBuilder
 from datalens_dev_mcp.pipeline.reference_style_service import ReferenceStyleService
+from datalens_dev_mcp.pipeline.semantic_change_planner import SemanticChangePlanner
 from datalens_dev_mcp.pipeline.target_binding import resolve_contract_target_binding
-from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService
+from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService, compact_object_index
 from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
 from datalens_dev_mcp.pipeline.task_completion import TaskCompletionEvaluator
 from datalens_dev_mcp.pipeline.task_contract import task_contract_hash, validate_task_contract
@@ -301,6 +302,16 @@ def dl_task_start(
                 "field_count": discovery.get("field_count", 0),
             },
         )
+    semantic_gate = _semantic_action_gate(journal, contract)
+    if semantic_gate:
+        current, _ = journal.replay()
+        return _project_semantic_action_gate(
+            journal,
+            contract,
+            state=current,
+            before=before,
+            outcome=semantic_gate,
+        )
     state = _advance(journal, contract, boundary=boundary, execution_grant=grant)
     plan = _ensure_task_plan(journal, contract, state) if state.current_state == "VALIDATED" else {}
     if boundary == "completed" and state.current_state == "VALIDATED":
@@ -313,10 +324,15 @@ def dl_task_start(
         performed_after=before,
         **_projection_bindings(journal),
     )
+    _attach_object_index(result, journal)
     if plan:
         result.update(
             {"plan_hash": plan["plan_hash"], "plan_resource_uri": task_resource_uri(journal.task_id, "plans/plan.json")}
         )
+        result["semantic_state"] = str(plan.get("semantic_state") or "semantic_plan_ready")
+        if plan.get("semantic_state") == "already_satisfied_no_write":
+            result["state"] = "already_satisfied_no_write"
+            result["matched_assertions"] = list(plan.get("matched_assertions") or [])
     return result
 
 
@@ -357,9 +373,15 @@ def _request_project_root(request: str, supplied_root: str) -> str:
     """Resolve an explicit child project path without searching sibling projects."""
 
     root = Path(supplied_root).resolve()
-    candidates = re.findall(r"(?:'([^']+)'|\"([^\"]+)\"|(?<!\w)(/[A-Za-z0-9_./ -]+))", request)
-    for groups in candidates:
-        raw = next((value for value in groups if value), "").strip().rstrip(".,;:")
+    candidates: list[tuple[int, int, Path]] = []
+    path_pattern = re.compile(
+        r"(?:'(?P<single>/[^']+)'|\"(?P<double>/[^\"]+)\"|"
+        r"(?<![:\w])(?P<bare>/[^'\"\n]+?)(?=\s+-\s+|[,.!?;]|$))"
+    )
+    for match_index, match in enumerate(path_pattern.finditer(request)):
+        raw = str(
+            match.group("single") or match.group("double") or match.group("bare") or ""
+        ).strip().rstrip(".,;:")
         if not raw.startswith("/"):
             continue
         candidate = Path(raw).resolve()
@@ -368,7 +390,15 @@ def _request_project_root(request: str, supplied_root: str) -> str:
         if not candidate.is_dir():
             continue
         if any((candidate / name).is_file() for name in PROJECT_MANIFEST_NAMES):
-            return str(candidate)
+            vicinity = request[max(0, match.start() - 180):match.start()].lower()
+            score = 0
+            if re.search(r"(?:работ\w*\s+.*(?:проект|папк)|рабоч\w*\s+папк|project\s+root|working\s+project)", vicinity):
+                score += 100
+            if re.search(r"(?:а\s+это\s+дашборд|построен\w*\s+на\s+основе|context|reference)", vicinity):
+                score -= 40
+            candidates.append((score, match_index, candidate))
+    if candidates:
+        return str(max(candidates, key=lambda item: (item[0], item[1]))[2])
     return str(root)
 
 
@@ -417,6 +447,18 @@ def dl_task_resume(
             return blocked_result
     if state.current_state == "VALIDATED":
         _ensure_task_plan(journal, contract, state)
+    semantic_gate = _semantic_action_gate(journal, contract)
+    if semantic_gate:
+        projected = _project_semantic_action_gate(
+            journal,
+            contract,
+            state=state,
+            before=before,
+            outcome=semantic_gate,
+        )
+        if amendment_result:
+            projected["amendment"] = amendment_result
+        return projected
     state = _advance(
         journal,
         contract,
@@ -432,6 +474,7 @@ def dl_task_resume(
         performed_after=before,
         **_projection_bindings(journal),
     )
+    _attach_object_index(result, journal)
     result.update(_contract_revision_projection(contract))
     if amendment_result:
         result["amendment"] = amendment_result
@@ -440,6 +483,10 @@ def dl_task_resume(
         result.update(
             {"plan_hash": plan.get("plan_hash"), "plan_resource_uri": task_resource_uri(task_id, "plans/plan.json")}
         )
+        result["semantic_state"] = str(plan.get("semantic_state") or "semantic_plan_ready")
+        if plan.get("semantic_state") == "already_satisfied_no_write":
+            result["state"] = "already_satisfied_no_write"
+            result["matched_assertions"] = list(plan.get("matched_assertions") or [])
     return result
 
 
@@ -450,6 +497,7 @@ def dl_task_status(task_id: str, project_root: str = ".") -> dict[str, Any]:
     result = compact_task_status(
         contract, state, resource_uri=task_resource_uri(task_id), **_projection_bindings(journal)
     )
+    _attach_object_index(result, journal)
     result["journal_recovered"] = corrupt_tail
     result.update(_contract_revision_projection(contract))
     return result
@@ -557,6 +605,8 @@ def dl_plan(task_id: str, project_root: str = ".") -> dict[str, Any]:
         "query_set_hash": plan.get("query_set_hash"),
         "dataset_schema_hash": plan.get("dataset_schema_hash"),
         "context_limitations": plan.get("context_limitations") or [],
+        "semantic_state": str(plan.get("semantic_state") or "semantic_plan_ready"),
+        "matched_assertions": list(plan.get("matched_assertions") or []),
         "next_action": "dl_execute" if (contract.get("delivery") or {}).get("save") else "dl_verify",
     }
 
@@ -1336,6 +1386,7 @@ def _retry_blocked_discovery(
 
 def _live_graph_projection(graph: dict[str, Any], *, task_id: str) -> dict[str, Any]:
     nodes = list(graph.get("nodes") or [])
+    object_index = compact_object_index(graph, max_objects=50)
     return {
         "ok": True,
         "task_id": task_id,
@@ -1343,21 +1394,81 @@ def _live_graph_projection(graph: dict[str, Any], *, task_id: str) -> dict[str, 
         "graph_hash": graph.get("graph_hash"),
         "node_count": len(nodes),
         "edge_count": len(graph.get("edges") or []),
-        "nodes": [
-            {
-                "object_type": item.get("object_type"),
-                "object_id": item.get("object_id"),
-                "technology": item.get("technology"),
-                "saved_revision": item.get("saved_revision"),
-                "canonical_direct_url": item.get("canonical_direct_url"),
-                "field_count": len(item.get("field_catalog") or []),
-            }
-            for item in nodes[:50]
-        ],
+        "nodes": object_index,
+        "object_index": object_index,
         "limitations": graph.get("limitations") or [],
         "bounded": True,
         "resource_uri": task_resource_uri(task_id, "target-graph") if task_id else "datalens://inspect/target-graph",
     }
+
+
+def _semantic_action_gate(journal: ProjectJournal, contract: dict[str, Any]) -> dict[str, Any]:
+    if str(contract.get("operation_kind") or "") != "mutate":
+        return {}
+    if str(contract.get("mode") or "") not in {"create", "update", "redesign"}:
+        return {}
+    if _contract_semantic_changes(contract):
+        return {}
+    create_bundle = read_json(journal.root / "inputs" / "create-bundle.json", {}) or {}
+    if str(contract.get("mode") or "") == "create" and create_bundle.get("bundle_hash"):
+        return {}
+    graph = read_json(journal.target_graph_path, {}) or {}
+    if not graph.get("nodes"):
+        return {}
+    style = read_json(journal.style_binding_path, {}) or {}
+    outcome = SemanticChangePlanner().plan(
+        contract,
+        target_graph=graph,
+        baselines={},
+        effective_visual_contract=dict(style.get("effective_visual_contract") or {}),
+    )
+    if outcome.get("status") != "needs_semantic_actions":
+        return {}
+    return {
+        **outcome,
+        "route": str(style.get("technology") or contract.get("route") or ""),
+        "target_binding_hash": str((read_json(journal.target_binding_path, {}) or {}).get("binding_hash") or ""),
+        "style_binding_hash": str(style.get("binding_hash") or ""),
+        "resource_uri": task_resource_uri(journal.task_id),
+    }
+
+
+def _project_semantic_action_gate(
+    journal: ProjectJournal,
+    contract: dict[str, Any],
+    *,
+    state: Any,
+    before: int,
+    outcome: dict[str, Any],
+) -> dict[str, Any]:
+    result = project_task_summary(
+        contract=contract,
+        state=state,
+        events_path=journal.events_path,
+        resource_uri=task_resource_uri(journal.task_id),
+        performed_after=before,
+        **_projection_bindings(journal),
+    )
+    if result.get("blocked_by") is None:
+        result.pop("blocked_by", None)
+    result.update(outcome)
+    _attach_object_index(result, journal)
+    result.update(_contract_revision_projection(contract))
+    return result
+
+
+def _contract_semantic_changes(contract: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for item in contract.get("acceptance") or []:
+        if not isinstance(item, dict) or item.get("kind") != "semantic_change":
+            continue
+        try:
+            value = json.loads(str(item.get("statement") or ""))
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict):
+            rows.append(value)
+    return rows
 
 
 def _projection_bindings(journal: ProjectJournal) -> dict[str, dict[str, Any]]:
@@ -1365,6 +1476,14 @@ def _projection_bindings(journal: ProjectJournal) -> dict[str, dict[str, Any]]:
         "target_binding": read_json(journal.target_binding_path, {}) or {},
         "style_binding": read_json(journal.style_binding_path, {}) or {},
     }
+
+
+def _attach_object_index(result: dict[str, Any], journal: ProjectJournal) -> None:
+    graph = read_json(journal.target_graph_path, {}) or {}
+    if not graph.get("nodes"):
+        return
+    result["object_index"] = compact_object_index(graph, max_objects=50)
+    result["object_index_resource_uri"] = task_resource_uri(journal.task_id, "target-graph")
 
 
 def _context_profile_projection(profile: dict[str, Any], *, task_id: str) -> dict[str, Any]:

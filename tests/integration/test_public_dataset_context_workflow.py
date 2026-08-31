@@ -72,6 +72,6 @@ def test_dashboard_to_dataset_context_to_public_plan_uses_internal_service() -> 
     assert profile["raw_rows_inline"] is False
     assert inspection["data_context"]["dataset_context_profile_hash"] == profile["profile_hash"]
     assert inspection["data_context"]["raw_rows_inline"] is False
-    assert [method for method, _ in client.calls].count("getDatasetData") == 1
+    assert [method for method, _ in client.calls].count("getDatasetData") == 0
     assert all(not method.startswith(("create", "update", "delete")) for method, _ in client.calls)
-    assert raw_dir_present
+    assert not raw_dir_present

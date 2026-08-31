@@ -102,6 +102,9 @@ class PublicPlanBuilder:
                 semantic_patch_plan=patch_plan,
             )
             action["semantic_fresh_reads"] = semantic_fresh_reads
+            action["effective_visual_constraints"] = deepcopy(
+                planned_target.get("effective_visual_constraints") or []
+            )
             actions.append(action)
         execution_auth = read_json(self.journal.execution_authorization_path, {}) or {}
         safe_apply = create_safe_apply_plan(
@@ -140,6 +143,21 @@ class PublicPlanBuilder:
         target_binding = read_json(self.journal.target_binding_path, {}) or {}
         reference_binding = read_json(self.journal.reference_binding_path, {}) or {}
         style_binding = read_json(self.journal.style_binding_path, {}) or {}
+        effective_visual_contract = deepcopy(
+            semantic_result.get("effective_visual_contract")
+            or style_binding.get("effective_visual_contract")
+            or {}
+        )
+        effective_visual_contract_hash = str(effective_visual_contract.get("contract_hash") or "")
+        if effective_visual_contract:
+            write_json(plan_root / "effective-visual-contract.json", effective_visual_contract)
+            artifacts["effective_visual_contract"] = (
+                "plans/effective-visual-contract.json",
+                portable_artifact_hash(
+                    effective_visual_contract,
+                    project_root=self.journal.project_root,
+                ),
+            )
         binding = build_plan_binding(
             contract_hash=str(self.contract.get("contract_hash") or ""),
             execution_authorization_hash=str(execution_auth.get("authorization_hash") or ""),
@@ -151,6 +169,11 @@ class PublicPlanBuilder:
             dataset_context_binding_hash=str(context_binding.get("binding_hash") or ""),
             semantic_patch_plan_hash=str(patch_plan.get("plan_hash") or ""),
             safe_apply_plan_hash=artifacts["safe_apply_plan"][1],
+            **(
+                {"effective_visual_contract_hash": effective_visual_contract_hash}
+                if effective_visual_contract_hash
+                else {}
+            ),
         )
         write_json(plan_root / "plan-binding.json", binding)
         artifacts["plan_binding"] = (
@@ -175,6 +198,12 @@ class PublicPlanBuilder:
             "plan_binding_hash": binding["binding_hash"],
             "semantic_patch_plan_hash": patch_plan["plan_hash"],
             "style_binding_hash": style_binding.get("binding_hash"),
+            "semantic_state": "semantic_plan_ready",
+            "chart_decisions": deepcopy(list(semantic_result.get("chart_decisions") or []))[:100],
+            **_effective_visual_projection(
+                style_binding,
+                semantic_result=semantic_result,
+            ),
             **_decision_context_projection(style_binding),
             "safe_apply_action_count": len(actions),
             "artifacts": [
@@ -188,6 +217,104 @@ class PublicPlanBuilder:
         # every key containing "token" as sensitive, so restore its boolean
         # representation after sanitizing the rest of the public artifact.
         payload["destructive_token_required"] = bool((self.contract.get("delivery") or {}).get("destructive"))
+        payload["plan_hash"] = public_plan_hash(payload)
+        write_json(plan_root / "plan.json", payload)
+        return payload
+
+    def build_already_satisfied(self, *, semantic_result: dict[str, Any]) -> dict[str, Any]:
+        """Bind a true no-write outcome to typed assertions and fresh live state."""
+
+        plan_root = self.journal.root / "plans"
+        target_graph = read_json(self.journal.target_graph_path, {}) or {}
+        target_binding = read_json(self.journal.target_binding_path, {}) or {}
+        reference_binding = read_json(self.journal.reference_binding_path, {}) or {}
+        style_binding = read_json(self.journal.style_binding_path, {}) or {}
+        execution_auth = read_json(self.journal.execution_authorization_path, {}) or {}
+        build_identity = read_json(self.journal.build_identity_path, {}) or {}
+        matched = deepcopy(list(semantic_result.get("matched_assertions") or []))
+        effective_visual_contract = deepcopy(
+            semantic_result.get("effective_visual_contract")
+            or style_binding.get("effective_visual_contract")
+            or {}
+        )
+        no_write = {
+            "schema_id": "datalens_already_satisfied_plan",
+            "task_id": self.journal.task_id,
+            "contract_hash": str(self.contract.get("contract_hash") or ""),
+            "target_binding_hash": str(target_binding.get("binding_hash") or ""),
+            "target_graph_hash": str(target_graph.get("graph_hash") or ""),
+            "semantic_patch_plan_hash": str(
+                (semantic_result.get("semantic_patch_plan") or {}).get("plan_hash") or ""
+            ),
+            "matched_assertions": matched,
+            "write_required": False,
+        }
+        no_write["plan_hash"] = canonical_hash(no_write)
+        write_json(plan_root / "already-satisfied-plan.json", no_write)
+        artifacts = {
+            "already_satisfied_plan": (
+                "plans/already-satisfied-plan.json",
+                portable_artifact_hash(no_write, project_root=self.journal.project_root),
+            )
+        }
+        effective_hash = str(effective_visual_contract.get("contract_hash") or "")
+        if effective_visual_contract:
+            write_json(plan_root / "effective-visual-contract.json", effective_visual_contract)
+            artifacts["effective_visual_contract"] = (
+                "plans/effective-visual-contract.json",
+                portable_artifact_hash(
+                    effective_visual_contract,
+                    project_root=self.journal.project_root,
+                ),
+            )
+        binding = build_plan_binding(
+            contract_hash=str(self.contract.get("contract_hash") or ""),
+            execution_authorization_hash=str(execution_auth.get("authorization_hash") or ""),
+            build_identity_hash=str(build_identity.get("identity_hash") or ""),
+            target_binding_hash=str(target_binding.get("binding_hash") or ""),
+            reference_binding_hash=str(reference_binding.get("binding_hash") or ""),
+            style_binding_hash=str(style_binding.get("binding_hash") or ""),
+            decision_context_hash=_decision_context_binding_hash(style_binding),
+            already_satisfied_plan_hash=str(no_write.get("plan_hash") or ""),
+            **({"effective_visual_contract_hash": effective_hash} if effective_hash else {}),
+        )
+        write_json(plan_root / "plan-binding.json", binding)
+        artifacts["plan_binding"] = (
+            "plans/plan-binding.json",
+            portable_artifact_hash(binding, project_root=self.journal.project_root),
+        )
+        payload = sanitize_value(
+            {
+                "schema_id": "datalens_public_task_plan",
+                "plan_version": 1,
+                "plan_kind": "already_satisfied_no_write",
+                "semantic_state": "already_satisfied_no_write",
+                "task_id": self.journal.task_id,
+                "contract_hash": self.contract.get("contract_hash"),
+                "route": str(
+                    style_binding.get("technology")
+                    or target_binding.get("technology")
+                    or self.contract.get("route")
+                    or ""
+                ),
+                "delivery": {"save": False, "publish": False, "destructive": False},
+                "requested_delivery": self.contract.get("delivery") or {},
+                "scope": self.contract.get("scope") or {},
+                "acceptance": self.contract.get("acceptance") or [],
+                "matched_assertions": matched,
+                "plan_binding_hash": binding.get("binding_hash"),
+                "style_binding_hash": style_binding.get("binding_hash"),
+                **_effective_visual_projection(style_binding, semantic_result=semantic_result),
+                **_decision_context_projection(style_binding),
+                "safe_apply_action_count": 0,
+                "artifacts": [
+                    {"kind": kind, "artifact_uri": uri, "sha256": digest}
+                    for kind, (uri, digest) in sorted(artifacts.items())
+                ],
+                "destructive_token_required": False,
+            }
+        )
+        payload["destructive_token_required"] = False
         payload["plan_hash"] = public_plan_hash(payload)
         write_json(plan_root / "plan.json", payload)
         return payload
@@ -210,6 +337,10 @@ class PublicPlanBuilder:
         target_binding = read_json(self.journal.target_binding_path, {}) or {}
         reference_binding = read_json(self.journal.reference_binding_path, {}) or {}
         style_binding = read_json(self.journal.style_binding_path, {}) or {}
+        effective_visual_contract = deepcopy(style_binding.get("effective_visual_contract") or {})
+        effective_visual_contract_hash = str(effective_visual_contract.get("contract_hash") or "")
+        if effective_visual_contract:
+            write_json(plan_root / "effective-visual-contract.json", effective_visual_contract)
         safe_apply_hash = portable_artifact_hash(safe_apply, project_root=self.journal.project_root)
         binding = build_plan_binding(
             contract_hash=str(self.contract.get("contract_hash") or ""),
@@ -221,6 +352,11 @@ class PublicPlanBuilder:
             decision_context_hash=_decision_context_binding_hash(style_binding),
             create_bundle_hash=str(create_bundle.get("bundle_hash") or ""),
             safe_apply_plan_hash=safe_apply_hash,
+            **(
+                {"effective_visual_contract_hash": effective_visual_contract_hash}
+                if effective_visual_contract_hash
+                else {}
+            ),
         )
         write_json(plan_root / "plan-binding.json", binding)
         artifacts = {
@@ -234,6 +370,14 @@ class PublicPlanBuilder:
                 portable_artifact_hash(binding, project_root=self.journal.project_root),
             ),
         }
+        if effective_visual_contract:
+            artifacts["effective_visual_contract"] = (
+                "plans/effective-visual-contract.json",
+                portable_artifact_hash(
+                    effective_visual_contract,
+                    project_root=self.journal.project_root,
+                ),
+            )
         payload = sanitize_value(
             {
                 "schema_id": "datalens_public_task_plan",
@@ -249,6 +393,8 @@ class PublicPlanBuilder:
                 "create_manifest_hash": create_bundle.get("manifest_hash"),
                 "plan_binding_hash": binding.get("binding_hash"),
                 "style_binding_hash": style_binding.get("binding_hash"),
+                "semantic_state": "semantic_plan_ready",
+                **_effective_visual_projection(style_binding),
                 **_decision_context_projection(style_binding),
                 "safe_apply_action_count": len(safe_apply.get("actions") or []),
                 "artifacts": [
@@ -377,6 +523,8 @@ class PublicPlanBuilder:
             return (*issues, *self._validate_create_current(plan))
         if plan.get("plan_kind") == "verify_existing_effect":
             return (*issues, *self._validate_verification_current(plan))
+        if plan.get("plan_kind") == "already_satisfied_no_write":
+            return (*issues, *self._validate_already_satisfied_current(plan))
         binding = read_json(self.journal.root / "plans" / "plan-binding.json", {}) or {}
         issues.extend(validate_binding(binding, schema_id="datalens_public_plan_binding"))
         context_binding = read_json(self.journal.root / "plans" / "dataset-context-binding.json", {}) or {}
@@ -412,6 +560,26 @@ class PublicPlanBuilder:
         target_binding = read_json(self.journal.target_binding_path, {}) or {}
         style_binding = read_json(self.journal.style_binding_path, {}) or {}
         issues.extend(_decision_context_projection_issues(plan, style_binding))
+        effective_visual_contract = read_json(
+            self.journal.root / "plans" / "effective-visual-contract.json", {}
+        ) or {}
+        if effective_visual_contract:
+            if plan.get("effective_visual_contract_hash") != effective_visual_contract.get("contract_hash"):
+                issues.append("public plan effective visual contract is stale")
+            if plan.get("effective_visual_assertions") != sanitize_value(
+                effective_visual_contract.get("assertions") or []
+            ):
+                issues.append("public plan effective visual assertions are stale")
+            patch = read_json(self.journal.root / "plans" / "semantic-patch-plan.json", {}) or {}
+            expected_constraints = [
+                deepcopy(item)
+                for target in patch.get("targets") or []
+                if isinstance(target, dict)
+                for item in target.get("effective_visual_constraints") or []
+                if isinstance(item, dict)
+            ][:100]
+            if plan.get("effective_visual_constraints") != sanitize_value(expected_constraints):
+                issues.append("public plan applied visual constraints are stale")
         expected_route = str(
             style_binding.get("technology")
             or target_binding.get("technology")
@@ -449,9 +617,62 @@ class PublicPlanBuilder:
                 project_root=self.journal.project_root,
             ),
         }
+        if effective_visual_contract.get("contract_hash"):
+            current["effective_visual_contract_hash"] = str(
+                effective_visual_contract.get("contract_hash") or ""
+            )
         for key, expected in current.items():
             if binding.get(key) != expected:
                 issues.append(f"plan binding is stale: {key}")
+        return tuple(issues)
+
+    def _validate_already_satisfied_current(self, plan: dict[str, Any]) -> tuple[str, ...]:
+        issues: list[str] = []
+        no_write = read_json(self.journal.root / "plans" / "already-satisfied-plan.json", {}) or {}
+        binding = read_json(self.journal.root / "plans" / "plan-binding.json", {}) or {}
+        target_graph = read_json(self.journal.target_graph_path, {}) or {}
+        target_binding = read_json(self.journal.target_binding_path, {}) or {}
+        style_binding = read_json(self.journal.style_binding_path, {}) or {}
+        effective = read_json(self.journal.root / "plans" / "effective-visual-contract.json", {}) or {}
+        issues.extend(validate_binding(binding, schema_id="datalens_public_plan_binding"))
+        if plan.get("contract_hash") != self.contract.get("contract_hash"):
+            issues.append("already-satisfied plan contract hash is stale")
+        if plan.get("semantic_state") != "already_satisfied_no_write":
+            issues.append("already-satisfied semantic state is invalid")
+        if plan.get("delivery") != {"save": False, "publish": False, "destructive": False}:
+            issues.append("already-satisfied plan must have zero delivery side effects")
+        if int(plan.get("safe_apply_action_count") or 0) != 0:
+            issues.append("already-satisfied plan must not contain Safe Apply actions")
+        if not plan.get("matched_assertions") or plan.get("matched_assertions") != no_write.get("matched_assertions"):
+            issues.append("already-satisfied plan lacks exact matched assertions")
+        if no_write.get("target_graph_hash") != target_graph.get("graph_hash"):
+            issues.append("already-satisfied plan target graph is stale")
+        if no_write.get("target_binding_hash") != target_binding.get("binding_hash"):
+            issues.append("already-satisfied plan target binding is stale")
+        if no_write.get("write_required") is not False:
+            issues.append("already-satisfied plan must declare write_required=false")
+        expected = {
+            "contract_hash": str(self.contract.get("contract_hash") or ""),
+            "execution_authorization_hash": str(
+                (read_json(self.journal.execution_authorization_path, {}) or {}).get("authorization_hash") or ""
+            ),
+            "build_identity_hash": str(
+                (read_json(self.journal.build_identity_path, {}) or {}).get("identity_hash") or ""
+            ),
+            "target_binding_hash": str(target_binding.get("binding_hash") or ""),
+            "reference_binding_hash": str(
+                (read_json(self.journal.reference_binding_path, {}) or {}).get("binding_hash") or ""
+            ),
+            "style_binding_hash": str(style_binding.get("binding_hash") or ""),
+            "decision_context_hash": _decision_context_binding_hash(style_binding),
+            "already_satisfied_plan_hash": str(no_write.get("plan_hash") or ""),
+        }
+        if effective.get("contract_hash"):
+            expected["effective_visual_contract_hash"] = str(effective.get("contract_hash") or "")
+        for key, value in expected.items():
+            if binding.get(key) != value:
+                issues.append(f"already-satisfied plan binding is stale: {key}")
+        issues.extend(_decision_context_projection_issues(plan, style_binding))
         return tuple(issues)
 
     def _validate_verification_current(self, plan: dict[str, Any]) -> tuple[str, ...]:
@@ -534,6 +755,11 @@ class PublicPlanBuilder:
                 project_root=self.journal.project_root,
             ),
         }
+        effective = read_json(self.journal.root / "plans" / "effective-visual-contract.json", {}) or {}
+        if effective.get("contract_hash"):
+            expected["effective_visual_contract_hash"] = str(effective.get("contract_hash") or "")
+            if plan.get("effective_visual_contract_hash") != effective.get("contract_hash"):
+                issues.append("public create plan effective visual contract is stale")
         for key, value in expected.items():
             if binding.get(key) != value:
                 issues.append(f"public create plan binding is stale: {key}")
@@ -565,6 +791,35 @@ def _decision_context_projection(style_binding: dict[str, Any]) -> dict[str, Any
         "accepted_exemplar_hash": str(context.get("accepted_exemplar_hash") or ""),
         "bounded_project_decisions": deepcopy(context.get("bounded_decisions") or {}),
         "project_source_hashes": list(context.get("source_hashes") or []),
+    }
+
+
+def _effective_visual_projection(
+    style_binding: dict[str, Any],
+    *,
+    semantic_result: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    semantic = semantic_result or {}
+    effective = semantic.get("effective_visual_contract") or style_binding.get("effective_visual_contract") or {}
+    if not isinstance(effective, dict) or not effective.get("contract_hash"):
+        return {
+            "effective_visual_contract_hash": "",
+            "effective_visual_constraints": [],
+            "effective_visual_assertions": [],
+            "active_visual_provenance_hash": "",
+        }
+    constraints = [
+        deepcopy(item)
+        for item in semantic.get("applied_visual_constraints") or []
+        if isinstance(item, dict)
+    ][:100]
+    return {
+        "effective_visual_contract_hash": str(effective.get("contract_hash") or ""),
+        "effective_visual_constraints": constraints,
+        "effective_visual_assertions": deepcopy(list(effective.get("assertions") or []))[:100],
+        "active_visual_provenance_hash": str(
+            (effective.get("provenance") or {}).get("active_provenance_hash") or ""
+        ),
     }
 
 

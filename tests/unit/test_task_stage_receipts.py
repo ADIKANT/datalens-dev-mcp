@@ -4,6 +4,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from datalens_dev_mcp.pipeline.artifacts import read_json
+from datalens_dev_mcp.pipeline.dataset_context_profile import validate_dataset_context_profile
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
 from datalens_dev_mcp.pipeline.task_contract import WorkspaceContract, create_task_contract
 from datalens_dev_mcp.pipeline.task_dataset_context_service import TaskDatasetContextService
@@ -63,6 +65,11 @@ class TaskStageReceiptTests(unittest.TestCase):
                     self.assertEqual(result["status"], "success")
                     self.assertIn("dataset probe not applicable", result["observed_facts"])
                     context_probe.assert_not_called()
+                    profile = read_json(journal.root / "data" / "context-profile.json", {})
+                    proof_plan = read_json(journal.root / "plans" / "data-proof-plan.json", {})
+                    self.assertFalse(validate_dataset_context_profile(profile))
+                    self.assertEqual(proof_plan["status"], "not_applicable")
+                    self.assertFalse(proof_plan["provider_calls_required"])
 
 
 if __name__ == "__main__":

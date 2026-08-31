@@ -94,7 +94,12 @@ class TaskDataProofService:
         normalized = dict(acquired.get("normalized_page") or {})
         live = profile.get("proof_level") == "live_read_only_api" and not profile.get("fallback_kind")
         schema_hash = str(normalized.get("schema_hash") or profile.get("schema_hash") or "")
-        if live and schema_hash != str(planning_profile.get("schema_hash") or ""):
+        planning_probe_was_applicable = str(planning_profile.get("fallback_kind") or "") != "not_applicable"
+        if (
+            live
+            and planning_probe_was_applicable
+            and schema_hash != str(planning_profile.get("schema_hash") or "")
+        ):
             return self._write_receipt(
                 status="blocked",
                 proof_level="live_read_only_api",

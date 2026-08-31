@@ -22,12 +22,14 @@ def test_public_task_closes_discovery_with_real_mocked_read_receipts() -> None:
         graph = tasks.read_json(journal.target_graph_path, {})
         binding = tasks.read_json(journal.target_binding_path, {})
         style = tasks.read_json(journal.style_binding_path, {})
-    assert result["state"] == "BLOCKED"
-    assert "RESOLVED -> BASELINE_READ" in result["performed"]
-    assert "BASELINE_READ -> REFERENCE_BOUND" in result["performed"]
-    assert "REFERENCE_BOUND -> ROUTE_BOUND" in result["performed"]
-    assert "ROUTE_BOUND -> DATA_PROOF_PLANNED" in result["performed"]
-    assert result["blocked_by"]["details"]["missing_requirements"] == ["non_empty_semantic_change"]
+    assert result["state"] == "needs_semantic_actions"
+    assert result["status"] == "needs_semantic_actions"
+    assert result["required_next_call"]["tool"] == "dl_task_resume"
+    assert result["required_next_call"]["arguments"]["user_turn"]["context"] == {
+        "semantic_changes": []
+    }
+    assert result["object_index"]
+    assert "blocked_by" not in result
     assert binding["source"] == "live_discovery"
     assert graph["graph_hash"]
     assert style["binding_hash"]

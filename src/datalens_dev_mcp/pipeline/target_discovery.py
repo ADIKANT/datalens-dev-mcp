@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, urlparse
 from datalens_dev_mcp.api.client import DataLensApiClient
 from datalens_dev_mcp.api.errors import DataLensApiError
 from datalens_dev_mcp.config import DataLensConfig
+from datalens_dev_mcp.editor.semantic_slots import discover_semantic_slots
 from datalens_dev_mcp.pipeline.dataset_preview import extract_dataset_fields
 from datalens_dev_mcp.pipeline.object_locator import normalize_object_locator, provider_direct_url
 from datalens_dev_mcp.pipeline.target_binding import create_live_target_binding
@@ -197,6 +198,7 @@ class TargetDiscoveryService:
             baselines[f"dashboard-{dashboard_id}-published"] = deepcopy(published_dashboard)
         tabs = dashboard_data.get("tabs") if isinstance(dashboard_data.get("tabs"), list) else []
         layout = dashboard_data.get("layout") or dashboard_data.get("blocks") or tabs
+        object_contexts = _dashboard_object_contexts(dashboard_data)
         baselines[f"dashboard-{dashboard_id}-saved"] = deepcopy(dashboard)
         dashboard_node = _node(
             "dashboard",
@@ -207,9 +209,13 @@ class TargetDiscoveryService:
             workbook_id=workbook_id,
         )
         dashboard_node["published_revision"] = published_revision
+        dashboard_node["dashboard_id"] = dashboard_id
+        dashboard_node["tab_count"] = len(tabs)
+        dashboard_node["layout"] = _bounded_layout(layout)
         nodes.append(dashboard_node)
 
         inventory_types: dict[str, str] = {}
+        inventory_titles: dict[str, str] = {}
         if workbook_id:
             inventory = self._read("getWorkbookEntries", {"workbookId": workbook_id}, calls)
             entries = _entries(inventory)
@@ -218,6 +224,16 @@ class TargetDiscoveryService:
                 for item in entries
                 if item.get("entryId") or item.get("entry_id")
             }
+            inventory_titles = {
+                str(item.get("entryId") or item.get("entry_id") or ""): str(
+                    item.get("displayKey") or item.get("title") or item.get("name") or ""
+                )
+                for item in entries
+                if item.get("entryId") or item.get("entry_id")
+            }
+            dashboard_node["title"] = str(
+                dashboard_node.get("title") or inventory_titles.get(dashboard_id) or ""
+            )
             total = int(inventory.get("total") or (inventory.get("result") or {}).get("total") or len(entries))
             if total > len(entries):
                 limitations.append("workbook inventory was bounded to the returned page")
@@ -281,7 +297,11 @@ class TargetDiscoveryService:
                 chart,
                 workbook_id=workbook_id,
             )
+            chart_node.update(object_contexts.get(chart_id) or {})
+            chart_node["title"] = str(chart_node.get("title") or inventory_titles.get(chart_id) or "")
+            chart_node["dashboard_id"] = dashboard_id
             chart_node["field_guids"] = sorted(_collect_ids(chart, FIELD_GUID_KEYS))
+            chart_node["semantic_slots"] = discover_semantic_slots(_source_tabs(chart))
             nodes.append(chart_node)
             edges.append({"source": dashboard_id, "target": chart_id, "relation": "contains"})
             chart_dataset_ids = _collect_ids(chart, DATASET_ID_KEYS)
@@ -289,6 +309,7 @@ class TargetDiscoveryService:
             for dataset_id in chart_dataset_ids:
                 dataset_ids.add(dataset_id)
                 edges.append({"source": chart_id, "target": dataset_id, "relation": "uses_dataset"})
+            chart_node["dataset_ids"] = sorted(chart_dataset_ids)
 
         connection_ids: set[str] = set()
         hydrated_dataset_ids: set[str] = set()
@@ -319,6 +340,7 @@ class TargetDiscoveryService:
             for connection_id in _collect_ids(dataset, CONNECTION_ID_KEYS):
                 connection_ids.add(connection_id)
                 edges.append({"source": dataset_id, "target": connection_id, "relation": "uses_connection"})
+            node["connection_ids"] = sorted(_collect_ids(dataset, CONNECTION_ID_KEYS))
 
         hydrated_connection_ids: set[str] = set()
         for connection_id in sorted(connection_ids):
@@ -571,7 +593,175 @@ def _node(
     }
     if include_payload_hash:
         payload["payload_hash"] = canonical_hash(response)
+    payload["title"] = _object_title(response)
+    payload["visualization_family"] = str(
+        _first_deep(response, ("visualizationId", "visualization_id", "visualizationType", "family"))
+        or ""
+    )
     return payload
+
+
+def compact_object_index(graph: dict[str, Any], *, max_objects: int = 50) -> list[dict[str, Any]]:
+    """Return a bounded public index without embedding provider payloads."""
+
+    limit = max(1, min(200, int(max_objects or 50)))
+    nodes = [item for item in graph.get("nodes") or [] if isinstance(item, dict)]
+    edges = [item for item in graph.get("edges") or [] if isinstance(item, dict)]
+    dependencies: dict[str, list[str]] = {}
+    for edge in edges:
+        source = str(edge.get("source") or "")
+        target = str(edge.get("target") or "")
+        if source and target:
+            dependencies.setdefault(source, []).append(target)
+    by_id = {str(item.get("object_id") or ""): item for item in nodes if item.get("object_id")}
+
+    def descendants(object_id: str, object_type: str) -> list[str]:
+        found: set[str] = set()
+        pending = list(dependencies.get(object_id) or [])
+        while pending:
+            candidate = pending.pop(0)
+            if candidate in found:
+                continue
+            found.add(candidate)
+            pending.extend(dependencies.get(candidate) or [])
+        return sorted(
+            item_id
+            for item_id in found
+            if str((by_id.get(item_id) or {}).get("object_type") or "") == object_type
+        )
+
+    result: list[dict[str, Any]] = []
+    for item in nodes[:limit]:
+        canonical_url = str(
+            item.get("canonical_direct_url")
+            or item.get("canonical_url")
+            or item.get("direct_url")
+            or ""
+        )
+        result.append({
+            "object_id": str(item.get("object_id") or ""),
+            "object_type": str(item.get("object_type") or ""),
+            "title": str(item.get("title") or ""),
+            "technology": str(item.get("technology") or ""),
+            "visualization_family": str(item.get("visualization_family") or ""),
+            "workbook_id": str(item.get("workbook_id") or ""),
+            "dashboard_id": str(item.get("dashboard_id") or ""),
+            "tab_id": str(item.get("tab_id") or ""),
+            "tab_title": str(item.get("tab_title") or ""),
+            "layout": deepcopy(item.get("layout") or {}),
+            "saved_revision": str(item.get("saved_revision") or ""),
+            "published_revision": str(item.get("published_revision") or ""),
+            "dataset_ids": sorted(
+                set(str(value) for value in item.get("dataset_ids") or [])
+                | set(descendants(str(item.get("object_id") or ""), "dataset"))
+            ),
+            "connection_ids": sorted(
+                set(str(value) for value in item.get("connection_ids") or [])
+                | set(descendants(str(item.get("object_id") or ""), "connection"))
+            ),
+            "canonical_url": canonical_url,
+            "canonical_direct_url": canonical_url,
+            "semantic_slots": [
+                {
+                    "id": str(slot.get("id") or ""),
+                    "tab": str(slot.get("tab") or ""),
+                    "kind": str(slot.get("kind") or ""),
+                }
+                for slot in item.get("semantic_slots") or []
+                if isinstance(slot, dict)
+            ][:50],
+            "dependencies": sorted(set(dependencies.get(str(item.get("object_id") or ""), []))),
+        })
+    return result
+
+
+def _object_title(response: dict[str, Any]) -> str:
+    result = response.get("result") if isinstance(response.get("result"), dict) else response
+    candidates = [result] if isinstance(result, dict) else []
+    if isinstance(result, dict):
+        candidates.extend(value for value in result.values() if isinstance(value, dict))
+    for candidate in candidates:
+        entry = candidate.get("entry") if isinstance(candidate.get("entry"), dict) else candidate
+        for key in ("title", "name", "displayName", "display_name"):
+            if str(entry.get(key) or "").strip():
+                return str(entry[key]).strip()
+    return ""
+
+
+def _source_tabs(response: dict[str, Any]) -> dict[str, str]:
+    data = _first_deep(response, ("data",))
+    if not isinstance(data, dict):
+        return {}
+    suffix = {
+        "meta": "meta.json",
+        "params": "params.js",
+        "sources": "sources.js",
+        "controls": "controls.js",
+        "prepare": "prepare.js",
+        "config": "config.js",
+    }
+    return {
+        suffix[key]: value
+        for key, value in data.items()
+        if key in suffix and isinstance(value, str)
+    }
+
+
+def _dashboard_object_contexts(dashboard_data: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    contexts: dict[str, dict[str, Any]] = {}
+    tabs = dashboard_data.get("tabs") if isinstance(dashboard_data.get("tabs"), list) else []
+    for index, tab in enumerate(tabs):
+        if not isinstance(tab, dict):
+            continue
+        tab_id = str(tab.get("id") or tab.get("tabId") or tab.get("uuid") or f"tab-{index + 1}")
+        tab_title = str(tab.get("title") or tab.get("name") or "")
+
+        def visit(value: Any, inherited_layout: dict[str, Any] | None = None) -> None:
+            if isinstance(value, dict):
+                layout = _bounded_layout(
+                    value.get("layout")
+                    or value.get("position")
+                    or value.get("grid")
+                    or inherited_layout
+                    or {}
+                )
+                for key in CHART_ID_KEYS:
+                    object_id = value.get(key)
+                    if isinstance(object_id, (str, int)) and str(object_id):
+                        contexts.setdefault(
+                            str(object_id),
+                            {
+                                "tab_id": tab_id,
+                                "tab_title": tab_title,
+                                "layout": layout,
+                            },
+                        )
+                for nested in value.values():
+                    visit(nested, layout)
+            elif isinstance(value, list):
+                for nested in value:
+                    visit(nested, inherited_layout)
+
+        visit(tab)
+    return contexts
+
+
+def _bounded_layout(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    aliases = {
+        "x": ("x", "left", "column"),
+        "y": ("y", "top", "row"),
+        "width": ("w", "width", "widthUnits", "width_units"),
+        "height": ("h", "height", "heightUnits", "height_units"),
+    }
+    result: dict[str, Any] = {}
+    for target, keys in aliases.items():
+        for key in keys:
+            if key in value and isinstance(value[key], (int, float, str, bool)):
+                result[target] = value[key]
+                break
+    return result
 
 
 def _field_projection(value: dict[str, Any]) -> dict[str, Any]:

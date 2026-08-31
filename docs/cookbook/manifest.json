@@ -1384,7 +1384,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "4ecc40418c38027331500765917acb44788e0e19747249d1278cd802ba7d55d0"
+        "e0421acbdd2150e2424aa418a72303ecfa563645378aceb63ed6fd065375460d"
       ],
       "family": "stacked_100",
       "locales": {
@@ -1411,9 +1411,9 @@
               "sha256": "33776d7a7f6e5132f75ed225be70ab323ee24aec1e6bf6b47db2aeebb5bf5680"
             },
             {
-              "bytes": 39829,
+              "bytes": 37429,
               "path": "recipes/stacked-100/code/en/prepare.js",
-              "sha256": "57f8a39b036f4f98a8fc0e6c9050136e14a9080cd1119d85deaa8f82083412a5"
+              "sha256": "9a647831263fbce38a096fdc8736459896d5e54178890d5814d798ba840fdf3c"
             },
             {
               "bytes": 1523,
@@ -1429,7 +1429,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "c2e96e7c567fb40144a2034ad4da276694a0653dde8a3254ab0e2a3a7801301a",
+            "prepare.js": "00cc17c843e948e2e03a755bef22f841a4f53a9bc350e7118cf323dde52da30d",
             "sources.js": "2214de68056e2dd067a1326ce7b1b8f81cf03c2321fb9ddd173cf3ea7ba1aec7"
           }
         },
@@ -1456,9 +1456,9 @@
               "sha256": "d63ba92e62aa120aab0045b67e1ab6ab38410207eb66260d022a520bbbbbb837"
             },
             {
-              "bytes": 40425,
+              "bytes": 38025,
               "path": "recipes/stacked-100/code/ru/prepare.js",
-              "sha256": "a683aeabfdb5345b9109e3cbb66b2a7ed070dd113272592a67734dd4a18783da"
+              "sha256": "5cb0d4edb30f2f178ff664056bc4ace2b520f055bf6ad1e793552fb2109fd1c8"
             },
             {
               "bytes": 1714,
@@ -1474,7 +1474,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "c2e96e7c567fb40144a2034ad4da276694a0653dde8a3254ab0e2a3a7801301a",
+            "prepare.js": "00cc17c843e948e2e03a755bef22f841a4f53a9bc350e7118cf323dde52da30d",
             "sources.js": "2214de68056e2dd067a1326ce7b1b8f81cf03c2321fb9ddd173cf3ea7ba1aec7"
           }
         }
@@ -1498,7 +1498,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "267db93c0fdfb1d524d51f000fca0a397972422f24899d67d8e1b5ad069c9dc2"
+        "f85c4713885b9e1b7bef9e29e0706d952d2ee96ed79c215915619d7cd81e6191"
       ],
       "family": "bullet_assignees",
       "locales": {
@@ -1525,9 +1525,9 @@
               "sha256": "33776d7a7f6e5132f75ed225be70ab323ee24aec1e6bf6b47db2aeebb5bf5680"
             },
             {
-              "bytes": 39880,
+              "bytes": 37480,
               "path": "recipes/bullet-actual-target/code/en/prepare.js",
-              "sha256": "136b5aa2b85e78eba1e26f54776cb4db69d355cb9753edbd19c6726ba2232c19"
+              "sha256": "5d5906167750d8575d20027919e373a51cdd476209b48b5498456393316027ef"
             },
             {
               "bytes": 1536,
@@ -1543,7 +1543,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "4e6d85fb6bae142b989cf28ffff94641af3fe09b8ffb54a6496aa29b5ee21b9f",
+            "prepare.js": "a5894c6478c580d98919e4ef41dd7de648c70b53ffee06b9827f3d989f73e129",
             "sources.js": "2214de68056e2dd067a1326ce7b1b8f81cf03c2321fb9ddd173cf3ea7ba1aec7"
           }
         },
@@ -1570,9 +1570,9 @@
               "sha256": "d63ba92e62aa120aab0045b67e1ab6ab38410207eb66260d022a520bbbbbb837"
             },
             {
-              "bytes": 40472,
+              "bytes": 38072,
               "path": "recipes/bullet-actual-target/code/ru/prepare.js",
-              "sha256": "babab419b90e7ed4cecb0bbf40f6bf28cd2fed0b0d8d6c42801f362f44dc1e09"
+              "sha256": "6c8bafa96f8d5f3f4f1a057aed817e13c6a12721bab9fa68ebe5844aed192db2"
             },
             {
               "bytes": 1684,
@@ -1588,7 +1588,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "4e6d85fb6bae142b989cf28ffff94641af3fe09b8ffb54a6496aa29b5ee21b9f",
+            "prepare.js": "a5894c6478c580d98919e4ef41dd7de648c70b53ffee06b9827f3d989f73e129",
             "sources.js": "2214de68056e2dd067a1326ce7b1b8f81cf03c2321fb9ddd173cf3ea7ba1aec7"
           }
         }
@@ -1612,7 +1612,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "fdeda5b6ed79017a70fd4ef94da9243ce4281af064781a937be8a347a38d85ea"
+        "39950876b12fa52076a3dfed0e46ce377c3c4d82b13426ebcb1a546cc7bd7ca0"
       ],
       "family": "heatmap",
       "locales": {
@@ -1639,9 +1639,9 @@
               "sha256": "33776d7a7f6e5132f75ed225be70ab323ee24aec1e6bf6b47db2aeebb5bf5680"
             },
             {
-              "bytes": 39475,
+              "bytes": 37075,
               "path": "recipes/matrix-heatmap/code/en/prepare.js",
-              "sha256": "4e8119dd6d05b678bad90a8c0c83b11566eeda0e3afaf7fc240fccfd10540239"
+              "sha256": "d9196e6c9993393b60594a0ff22b0ffe3331485fa7ad3475c664cc8ed7e17efc"
             },
             {
               "bytes": 1525,
@@ -1657,7 +1657,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "855f4bb10b02a9bf7194e57f7524557db4b202754274ef1c12de8419cbd75581",
+            "prepare.js": "b148780142d699e8a1808fdf8806f290f0ba272ec4f5f6306e51bb9749a52211",
             "sources.js": "2214de68056e2dd067a1326ce7b1b8f81cf03c2321fb9ddd173cf3ea7ba1aec7"
           }
         },
@@ -1684,9 +1684,9 @@
               "sha256": "d63ba92e62aa120aab0045b67e1ab6ab38410207eb66260d022a520bbbbbb837"
             },
             {
-              "bytes": 40147,
+              "bytes": 37747,
               "path": "recipes/matrix-heatmap/code/ru/prepare.js",
-              "sha256": "fefd80f1d7795eedea7f10caae23b54f8deccbabe5a8ce493d594c15f2f95d79"
+              "sha256": "d1ccd6f4d0cc9f349f51c51d8912e84733deed821f5969e8543ab4e12f0c82d8"
             },
             {
               "bytes": 1710,
@@ -1702,7 +1702,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "855f4bb10b02a9bf7194e57f7524557db4b202754274ef1c12de8419cbd75581",
+            "prepare.js": "b148780142d699e8a1808fdf8806f290f0ba272ec4f5f6306e51bb9749a52211",
             "sources.js": "2214de68056e2dd067a1326ce7b1b8f81cf03c2321fb9ddd173cf3ea7ba1aec7"
           }
         }
@@ -1726,7 +1726,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "afb6ef1e907dbdfb3345a810e0dbd61c744b766c7680dc67a416c59c481a8a46"
+        "ec684a2cd32212db2c98ec6945aa1f38375db437f31f26b0eaa24a917731ada8"
       ],
       "family": "waterfall",
       "locales": {
@@ -1753,9 +1753,9 @@
               "sha256": "33776d7a7f6e5132f75ed225be70ab323ee24aec1e6bf6b47db2aeebb5bf5680"
             },
             {
-              "bytes": 39443,
+              "bytes": 37043,
               "path": "recipes/waterfall/code/en/prepare.js",
-              "sha256": "be1b0d8e59993bcba62de4eafef61990b0feba9c8826dbdc4897a669781e5c6d"
+              "sha256": "21c050aab009c8859bc8f604830d7e174e6a441a72c04d0b5d8854324c4bf27d"
             },
             {
               "bytes": 1520,
@@ -1771,7 +1771,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "51a1b28d290cb7dd0636d1253a46e786771cf6d165ede0c981fe221fa2c16a70",
+            "prepare.js": "c107a36603c01e47d68e1a571689d1120c13a0dc21dd9c60f738c9a0600b6115",
             "sources.js": "2214de68056e2dd067a1326ce7b1b8f81cf03c2321fb9ddd173cf3ea7ba1aec7"
           }
         },
@@ -1798,9 +1798,9 @@
               "sha256": "d63ba92e62aa120aab0045b67e1ab6ab38410207eb66260d022a520bbbbbb837"
             },
             {
-              "bytes": 40117,
+              "bytes": 37717,
               "path": "recipes/waterfall/code/ru/prepare.js",
-              "sha256": "0c0c08ce56e72d037ef38b8213313de86fd70e0bbd725f5423f9a24ee0cf4be6"
+              "sha256": "c669c391a675ace0fbc067fdbf802fcca74207804dd85ba6838478b32be8d7bc"
             },
             {
               "bytes": 1701,
@@ -1816,7 +1816,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "51a1b28d290cb7dd0636d1253a46e786771cf6d165ede0c981fe221fa2c16a70",
+            "prepare.js": "c107a36603c01e47d68e1a571689d1120c13a0dc21dd9c60f738c9a0600b6115",
             "sources.js": "2214de68056e2dd067a1326ce7b1b8f81cf03c2321fb9ddd173cf3ea7ba1aec7"
           }
         }
@@ -1840,7 +1840,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "453d1982eda495d29c133d4c8a59889bff1d8edbc7ac9f073cd46832a42c19d4"
+        "796bd48ff9c9316ee880427f8ba363e2285d2fbe10954046300c9e876b1cea5f"
       ],
       "family": "funnel_snapshot",
       "locales": {
@@ -1867,9 +1867,9 @@
               "sha256": "33776d7a7f6e5132f75ed225be70ab323ee24aec1e6bf6b47db2aeebb5bf5680"
             },
             {
-              "bytes": 39407,
+              "bytes": 37007,
               "path": "recipes/funnel/code/en/prepare.js",
-              "sha256": "5a52f0bf1e8c96cfc51b844876251a55340fbfb40eaafc40c3e63c3fb3544f3c"
+              "sha256": "ed5a026e5cd5d78c8380f4abcfe2ad4c45183bc52414149c07aa3189e5d92107"
             },
             {
               "bytes": 1199,
@@ -1885,7 +1885,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "1ec3c9bd7bbdaa88805bb52c35c4be577cb49f961ab4011a6356d72b9013aed4",
+            "prepare.js": "af457b7fc8ce53c2926409237630773dd4c5b564db6f2af038105925c04dedbd",
             "sources.js": "bd1b21f590d977ba51853a2b1b7ebdb19642fbdfcefc16b9ff6af9efe57cadac"
           }
         },
@@ -1912,9 +1912,9 @@
               "sha256": "d63ba92e62aa120aab0045b67e1ab6ab38410207eb66260d022a520bbbbbb837"
             },
             {
-              "bytes": 39835,
+              "bytes": 37435,
               "path": "recipes/funnel/code/ru/prepare.js",
-              "sha256": "5597972a4c975d9e53ff0ab08ade0662c4d22df06bad4a2c44956cb28ca2fbf3"
+              "sha256": "df3b707c1653df4600e439cd930fe41dc64d3ca0e6b8fa6592d1a55e2973ee57"
             },
             {
               "bytes": 1388,
@@ -1930,7 +1930,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "1ec3c9bd7bbdaa88805bb52c35c4be577cb49f961ab4011a6356d72b9013aed4",
+            "prepare.js": "af457b7fc8ce53c2926409237630773dd4c5b564db6f2af038105925c04dedbd",
             "sources.js": "bd1b21f590d977ba51853a2b1b7ebdb19642fbdfcefc16b9ff6af9efe57cadac"
           }
         }
@@ -1952,7 +1952,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "0f67a1b6c7987cd43607b99e1c89b8f25b2af51d3f21754735fdcf145380cedd"
+        "eb4fd8abb20020273c82148547d6099cc5dceda8d7b61630de9cc52e29397599"
       ],
       "family": "sankey_status_flow",
       "locales": {
@@ -1979,9 +1979,9 @@
               "sha256": "33776d7a7f6e5132f75ed225be70ab323ee24aec1e6bf6b47db2aeebb5bf5680"
             },
             {
-              "bytes": 33558,
+              "bytes": 31158,
               "path": "recipes/sankey/code/en/prepare.js",
-              "sha256": "63133cf93d560e3138fabcc683ac93def43e6a60f2d9c4e0c9d38919b351546e"
+              "sha256": "59d16404504f8ff1dd946ebc12238470d74bee49ebe6f37db154af121b99ac45"
             },
             {
               "bytes": 1291,
@@ -1997,7 +1997,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "8357f896cbfd58865db8c3d38b2dd4fed9a495dc98366ea658be0da2d72eebd7",
+            "prepare.js": "0213dd5eefa2d4902389da000cdeb05a1ccd31f28c028da291165f3ce33d93e7",
             "sources.js": "cf313aa47633ec7dc66fc8a494af00ce4888251b9cff8523b457837913feac18"
           }
         },
@@ -2024,9 +2024,9 @@
               "sha256": "d63ba92e62aa120aab0045b67e1ab6ab38410207eb66260d022a520bbbbbb837"
             },
             {
-              "bytes": 34051,
+              "bytes": 31651,
               "path": "recipes/sankey/code/ru/prepare.js",
-              "sha256": "1af4146cd4e125aa2de68d0bb9df03d1cbe6b45fb14e434f3ed4732a093b6776"
+              "sha256": "192b64b803a5b794ef4e0dc3cca692429884974eefddbbaea8f3f82c59502f14"
             },
             {
               "bytes": 1415,
@@ -2042,7 +2042,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "8357f896cbfd58865db8c3d38b2dd4fed9a495dc98366ea658be0da2d72eebd7",
+            "prepare.js": "0213dd5eefa2d4902389da000cdeb05a1ccd31f28c028da291165f3ce33d93e7",
             "sources.js": "cf313aa47633ec7dc66fc8a494af00ce4888251b9cff8523b457837913feac18"
           }
         }
@@ -2065,7 +2065,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "b101dac6d45a58f8488c355b7dee1ab61f46b6c2c119bf05087ea21ec60ff513"
+        "5894248be69ccf6a53bafd0357ae3410cb2936b8b828465733af87ef69b18860"
       ],
       "family": "histogram",
       "locales": {
@@ -2092,9 +2092,9 @@
               "sha256": "33776d7a7f6e5132f75ed225be70ab323ee24aec1e6bf6b47db2aeebb5bf5680"
             },
             {
-              "bytes": 34998,
+              "bytes": 32598,
               "path": "recipes/histogram/code/en/prepare.js",
-              "sha256": "e1443017fb473c3cdda71c118060015b1d6b45f292f7fd4bec7298f6d1784eca"
+              "sha256": "f02913c20770757749a1847e1f478f49a7c8dfa269deb254bf37b9e9b2b4d9d8"
             },
             {
               "bytes": 2577,
@@ -2110,7 +2110,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "efd1e847e61d487f032a5a61fa7976d727ebf33fb1bb4e9b891fde6fb62e5968",
+            "prepare.js": "04bca0248133d35ce08a25262f39ec20607de62d595771166479a47cf0256065",
             "sources.js": "f25811b01ae13e9d83c1df524f1a44c7231c70be1e574a86311b3baa7aeca473"
           }
         },
@@ -2137,9 +2137,9 @@
               "sha256": "d63ba92e62aa120aab0045b67e1ab6ab38410207eb66260d022a520bbbbbb837"
             },
             {
-              "bytes": 35412,
+              "bytes": 33012,
               "path": "recipes/histogram/code/ru/prepare.js",
-              "sha256": "f84378cc23b1ae2f2cd507ff9d2121274591fc5afff67a55a67fabdc47ae0939"
+              "sha256": "abaea68d0c8e76f3f019765f88988bf54af150f3dd41454277d3e0dcb6bf4081"
             },
             {
               "bytes": 2857,
@@ -2155,7 +2155,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "efd1e847e61d487f032a5a61fa7976d727ebf33fb1bb4e9b891fde6fb62e5968",
+            "prepare.js": "04bca0248133d35ce08a25262f39ec20607de62d595771166479a47cf0256065",
             "sources.js": "f25811b01ae13e9d83c1df524f1a44c7231c70be1e574a86311b3baa7aeca473"
           }
         }
@@ -2185,7 +2185,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "feaccf7816084d89e64f874d3925b30d82ffde2ef50a93029abd118c66214d43"
+        "974fab4421ac4a128146cd0ace5ceeb85a8390e96e0af57555b962d26c206a0d"
       ],
       "family": "box_plot",
       "locales": {
@@ -2212,9 +2212,9 @@
               "sha256": "33776d7a7f6e5132f75ed225be70ab323ee24aec1e6bf6b47db2aeebb5bf5680"
             },
             {
-              "bytes": 35009,
+              "bytes": 32609,
               "path": "recipes/box-plot/code/en/prepare.js",
-              "sha256": "33a5f309ed35ce07bfebba4db4150c725a25b1dbefbc0992047a98447b68fe51"
+              "sha256": "fd673ab3e00a928e8b67d0b8fa0876500d54553ecfba7f243e6009e793dbf3d3"
             },
             {
               "bytes": 2576,
@@ -2230,7 +2230,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "69fddb0ea68d7f0eeae6dcf07479558ecc00ca7e4937c328a121545e8c874911",
+            "prepare.js": "45d6956bf61b66eb4742cd49dc558f1c4e8a5ab0946cff1ae73ca5a5d87f55c5",
             "sources.js": "f25811b01ae13e9d83c1df524f1a44c7231c70be1e574a86311b3baa7aeca473"
           }
         },
@@ -2257,9 +2257,9 @@
               "sha256": "d63ba92e62aa120aab0045b67e1ab6ab38410207eb66260d022a520bbbbbb837"
             },
             {
-              "bytes": 35469,
+              "bytes": 33069,
               "path": "recipes/box-plot/code/ru/prepare.js",
-              "sha256": "da3255b9e3f0da2c3d9cf6b36d8fee851ea92b0996b79afcedc347ccf9796f1a"
+              "sha256": "9dc978213a4df7e695ec3988036909e803b80d638e45a22c5d22d367c7bca034"
             },
             {
               "bytes": 2868,
@@ -2275,7 +2275,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "69fddb0ea68d7f0eeae6dcf07479558ecc00ca7e4937c328a121545e8c874911",
+            "prepare.js": "45d6956bf61b66eb4742cd49dc558f1c4e8a5ab0946cff1ae73ca5a5d87f55c5",
             "sources.js": "f25811b01ae13e9d83c1df524f1a44c7231c70be1e574a86311b3baa7aeca473"
           }
         }
@@ -2305,7 +2305,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "94ac39b4f6cb4c8758d09bc31f62cab92f5592eee6b8cee6cda96281a24de574"
+        "4cf53498ed55f0aeb5982baec16980d13a64ae8cdaa9a6eb28754193e2e7430b"
       ],
       "family": "scatter",
       "locales": {
@@ -2332,9 +2332,9 @@
               "sha256": "33776d7a7f6e5132f75ed225be70ab323ee24aec1e6bf6b47db2aeebb5bf5680"
             },
             {
-              "bytes": 35010,
+              "bytes": 32610,
               "path": "recipes/scatter/code/en/prepare.js",
-              "sha256": "bb2f6220249e24e6f8e4c37b47b32749c58f34946822df5f053163bb912a6f38"
+              "sha256": "69606365692024681ebd11866e7cfa2e4500c0fbb3692dc5c905b200f056e5e8"
             },
             {
               "bytes": 2580,
@@ -2350,7 +2350,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "d19baa9f7f3fecf9f8e3c88fec1cbbd8a6849e68e651aaf39c9693be157e6aee",
+            "prepare.js": "03cf6ad61d3e615a554e6e307aa3790d272f6946f13931fb936141c67bbdc868",
             "sources.js": "f25811b01ae13e9d83c1df524f1a44c7231c70be1e574a86311b3baa7aeca473"
           }
         },
@@ -2377,9 +2377,9 @@
               "sha256": "d63ba92e62aa120aab0045b67e1ab6ab38410207eb66260d022a520bbbbbb837"
             },
             {
-              "bytes": 35390,
+              "bytes": 32990,
               "path": "recipes/scatter/code/ru/prepare.js",
-              "sha256": "19cd683bc452934f748647132d7477b914f822710e9f3d6521efda83a4a1db6d"
+              "sha256": "5108e466c1124c270fc405ad2badfb256f2d064d3c2205e2247767284baf2bc5"
             },
             {
               "bytes": 2870,
@@ -2395,7 +2395,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "d19baa9f7f3fecf9f8e3c88fec1cbbd8a6849e68e651aaf39c9693be157e6aee",
+            "prepare.js": "03cf6ad61d3e615a554e6e307aa3790d272f6946f13931fb936141c67bbdc868",
             "sources.js": "f25811b01ae13e9d83c1df524f1a44c7231c70be1e574a86311b3baa7aeca473"
           }
         }
@@ -2425,7 +2425,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "ae9dbb9734f28d9dd3ba68b6024f0aed9622ce8f832fb507a55b3042fc1e6eea"
+        "01db8af69e085f248295d1319fb1bff95d2da1705799dac5f3bea883573e75ba"
       ],
       "family": "bubble",
       "locales": {
@@ -2452,9 +2452,9 @@
               "sha256": "33776d7a7f6e5132f75ed225be70ab323ee24aec1e6bf6b47db2aeebb5bf5680"
             },
             {
-              "bytes": 35037,
+              "bytes": 32637,
               "path": "recipes/bubble/code/en/prepare.js",
-              "sha256": "250f3e917d588ac143ed337db46e2bafbb4c02ae58ebf3bbcc495b1bd63557f1"
+              "sha256": "9218f519a28e0298cef5969b1c4f737864f05b381d6d694c47a7a0bbe8bbff93"
             },
             {
               "bytes": 2580,
@@ -2470,7 +2470,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "4cc902dbd393a1444c31253bce6e44581f7203a7584cd10a4bec2641ae1fce8d",
+            "prepare.js": "47787373376d5c1703cd7317061d9d6d3d65a86e501ee68249efbf5dc739cde6",
             "sources.js": "f25811b01ae13e9d83c1df524f1a44c7231c70be1e574a86311b3baa7aeca473"
           }
         },
@@ -2497,9 +2497,9 @@
               "sha256": "d63ba92e62aa120aab0045b67e1ab6ab38410207eb66260d022a520bbbbbb837"
             },
             {
-              "bytes": 35427,
+              "bytes": 33027,
               "path": "recipes/bubble/code/ru/prepare.js",
-              "sha256": "4c0e978f0602f9aed47bf544d248e76660d59a3f0c8f1fb14ab344c3e77afa87"
+              "sha256": "d6bf22cc4777bc0ea7ab6c763955c64e6b9bef11436fec456af71f59f1a57bcb"
             },
             {
               "bytes": 2876,
@@ -2515,7 +2515,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "4cc902dbd393a1444c31253bce6e44581f7203a7584cd10a4bec2641ae1fce8d",
+            "prepare.js": "47787373376d5c1703cd7317061d9d6d3d65a86e501ee68249efbf5dc739cde6",
             "sources.js": "f25811b01ae13e9d83c1df524f1a44c7231c70be1e574a86311b3baa7aeca473"
           }
         }
@@ -2545,7 +2545,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "8615a23cd423d01bb59e159cc899617784ba3b1dbb3e24e05cc33d95b65977bc"
+        "89de78f109ba0100f8a5e18a021c850782833118f73c0b962c9d1e7bbdcbe520"
       ],
       "family": "pie",
       "locales": {
@@ -2572,9 +2572,9 @@
               "sha256": "33776d7a7f6e5132f75ed225be70ab323ee24aec1e6bf6b47db2aeebb5bf5680"
             },
             {
-              "bytes": 32398,
+              "bytes": 29998,
               "path": "recipes/pie/code/en/prepare.js",
-              "sha256": "bf6cbcd0471cfb4e5a2ea7dad414999efbe6c7c95d955ce52ef49a65dcda0404"
+              "sha256": "540bf96cb1490ceb55f81270e41d4c81ce3935a6fc9a9112566792e95f75f1d3"
             },
             {
               "bytes": 1101,
@@ -2590,7 +2590,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "cb1487d3fd0138be8216f80bcccc0c6c9228c8f6fa08504419a4883c8ed4f9e4",
+            "prepare.js": "0796add93e77daf17b5e3c7c306f60734488d9acad27ce7c9ae3f46bb1a5d578",
             "sources.js": "bd1b21f590d977ba51853a2b1b7ebdb19642fbdfcefc16b9ff6af9efe57cadac"
           }
         },
@@ -2617,9 +2617,9 @@
               "sha256": "d63ba92e62aa120aab0045b67e1ab6ab38410207eb66260d022a520bbbbbb837"
             },
             {
-              "bytes": 32954,
+              "bytes": 30554,
               "path": "recipes/pie/code/ru/prepare.js",
-              "sha256": "f8e428cbbc518d210e5635f5176b69db4c35ad691807ea4349745571732e7603"
+              "sha256": "4f781af8568b75be77b39570a6b1f7df13fc0277331ef97802659e4a3365eab2"
             },
             {
               "bytes": 1206,
@@ -2635,7 +2635,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "cb1487d3fd0138be8216f80bcccc0c6c9228c8f6fa08504419a4883c8ed4f9e4",
+            "prepare.js": "0796add93e77daf17b5e3c7c306f60734488d9acad27ce7c9ae3f46bb1a5d578",
             "sources.js": "bd1b21f590d977ba51853a2b1b7ebdb19642fbdfcefc16b9ff6af9efe57cadac"
           }
         }
@@ -2657,7 +2657,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "12ef122af1dc7e82e452ee89e35947707bdd8e57872fa13dd36d1d4d5acc61d4"
+        "917f1b208c0fbd85f0bf641e94c79dd83b69c651274663924b50327b323a3488"
       ],
       "family": "donut",
       "locales": {
@@ -2684,9 +2684,9 @@
               "sha256": "33776d7a7f6e5132f75ed225be70ab323ee24aec1e6bf6b47db2aeebb5bf5680"
             },
             {
-              "bytes": 32424,
+              "bytes": 30024,
               "path": "recipes/donut/code/en/prepare.js",
-              "sha256": "e45dd157079cd19d4f190ceb7e9667ecfd63636f93bbe23ff77b2874a32dee86"
+              "sha256": "5f9831f5e6f6aec72b2d9787476a075f94b1359e284e624d012954d948583e70"
             },
             {
               "bytes": 1103,
@@ -2702,7 +2702,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "22b14ef7e49b326002b3d95dcdfa1fdb37a5a9ed43e06152444b3c6cfcc52160",
+            "prepare.js": "20b055fd93608c4bf9e9da637304c46f3de29c46c8d8eb2adeb057ecc73a45d9",
             "sources.js": "bd1b21f590d977ba51853a2b1b7ebdb19642fbdfcefc16b9ff6af9efe57cadac"
           }
         },
@@ -2729,9 +2729,9 @@
               "sha256": "d63ba92e62aa120aab0045b67e1ab6ab38410207eb66260d022a520bbbbbb837"
             },
             {
-              "bytes": 32944,
+              "bytes": 30544,
               "path": "recipes/donut/code/ru/prepare.js",
-              "sha256": "bd985940bf2ec6f42b3a6f0bd6bd2a0256b95ab72b7296c14800cc168b50bab0"
+              "sha256": "9cb5f2bbb8b9794eb7d6a57e0b91e9ecc2872e1710dc95645edfc0b6ef42c1e9"
             },
             {
               "bytes": 1208,
@@ -2747,7 +2747,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "22b14ef7e49b326002b3d95dcdfa1fdb37a5a9ed43e06152444b3c6cfcc52160",
+            "prepare.js": "20b055fd93608c4bf9e9da637304c46f3de29c46c8d8eb2adeb057ecc73a45d9",
             "sources.js": "bd1b21f590d977ba51853a2b1b7ebdb19642fbdfcefc16b9ff6af9efe57cadac"
           }
         }
@@ -2769,7 +2769,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "d93cf78f8d48fc549e6d249e034be5f550b8ef138b2f0da0e2bdebe49287ed22"
+        "8641785de046c5a69a973f84e1cd4fc8d7861f1e7f4242e9e4a29ddfd0915263"
       ],
       "family": "treemap",
       "locales": {
@@ -2796,9 +2796,9 @@
               "sha256": "33776d7a7f6e5132f75ed225be70ab323ee24aec1e6bf6b47db2aeebb5bf5680"
             },
             {
-              "bytes": 32432,
+              "bytes": 30032,
               "path": "recipes/treemap/code/en/prepare.js",
-              "sha256": "1f87f93f535c5e2abd094f45bd084cba5a73ea15c9d444a8d784ff7f1e4caee0"
+              "sha256": "82a66c83a8c70312666d3c4295c764a36c11ea0399f4cbd7ad49913ae360e244"
             },
             {
               "bytes": 1099,
@@ -2814,7 +2814,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "14d31ab98646a4ae489d2cfba87bd50128a4794a0d87145fef9e9081589e4a18",
+            "prepare.js": "61ab789b732187af340fc1c3e3693f6309237db9a1113d060827fbea3b0e726b",
             "sources.js": "bd1b21f590d977ba51853a2b1b7ebdb19642fbdfcefc16b9ff6af9efe57cadac"
           }
         },
@@ -2841,9 +2841,9 @@
               "sha256": "d63ba92e62aa120aab0045b67e1ab6ab38410207eb66260d022a520bbbbbb837"
             },
             {
-              "bytes": 33040,
+              "bytes": 30640,
               "path": "recipes/treemap/code/ru/prepare.js",
-              "sha256": "fd4cec109f093b93a7c569d004443db401fe0d753f1ceea9cc3e42e298a56657"
+              "sha256": "cfd074ee1ec255e3c8be3d6f9a8421fb065699ebdd62cf7c843dc7a9f2a96e14"
             },
             {
               "bytes": 1208,
@@ -2859,7 +2859,7 @@
           "structure_hashes": {
             "controls.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
-            "prepare.js": "14d31ab98646a4ae489d2cfba87bd50128a4794a0d87145fef9e9081589e4a18",
+            "prepare.js": "61ab789b732187af340fc1c3e3693f6309237db9a1113d060827fbea3b0e726b",
             "sources.js": "bd1b21f590d977ba51853a2b1b7ebdb19642fbdfcefc16b9ff6af9efe57cadac"
           }
         }
@@ -2881,7 +2881,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "502969ffc5e8f680e8ecc33c30624afe63a74b6be570ff5f1491a12ba1e25d2f"
+        "13f37d4acf7f5e0a863f6823e2df48fcb9aa6821e73046b630ba5a15d0c4f6c1"
       ],
       "family": "table_node",
       "locales": {
@@ -2908,9 +2908,9 @@
               "sha256": "bbe946022a429d2c233dabbd517219a93f67887f4839cd6797f36ba0644707d1"
             },
             {
-              "bytes": 10339,
+              "bytes": 7939,
               "path": "recipes/editor-table/code/en/config.js",
-              "sha256": "d63fb4b12acd5a90bd9d0b26c66a6a8e7d66ba11728f4a746f6a7b16c388998b"
+              "sha256": "df5e9e57fcadb901a0ae4ea5cff2d8876fa1b1510fa4bae494d5f38e66c0492a"
             },
             {
               "bytes": 1301,
@@ -2924,7 +2924,7 @@
             }
           ],
           "structure_hashes": {
-            "config.js": "ca169bf564f70eb9fd40c975e5c13adb304a2d8076da15e40cf74f06049fbc22",
+            "config.js": "dcb031c88a5a5f02eb28d23f146973b5c567e990591046ee0f21fa848d357c23",
             "params.js": "bf32ef213815f8376a836cb29007926873135b705f9c65af34657647c0481c3b",
             "prepare.js": "dbb9888d69e65a6ccb1d0f2cb41868286d4ee3978d8fb38e00f993977d07616f",
             "sources.js": "cf313aa47633ec7dc66fc8a494af00ce4888251b9cff8523b457837913feac18"
@@ -2953,9 +2953,9 @@
               "sha256": "e7b2ae286d67f58579e117999d7fe578f0e7eef94d7a8f1e82e52f33ec11f2c7"
             },
             {
-              "bytes": 10639,
+              "bytes": 8239,
               "path": "recipes/editor-table/code/ru/config.js",
-              "sha256": "dc6d051640860384eead43066352e22e90170b07d63061f46861d0262994de81"
+              "sha256": "3233f0d72c988ed93c5f08fcd5f8e4730bd3085a1d6bc3d5177f2f26b1d3e31e"
             },
             {
               "bytes": 1438,
@@ -2969,7 +2969,7 @@
             }
           ],
           "structure_hashes": {
-            "config.js": "ca169bf564f70eb9fd40c975e5c13adb304a2d8076da15e40cf74f06049fbc22",
+            "config.js": "dcb031c88a5a5f02eb28d23f146973b5c567e990591046ee0f21fa848d357c23",
             "params.js": "bf32ef213815f8376a836cb29007926873135b705f9c65af34657647c0481c3b",
             "prepare.js": "dbb9888d69e65a6ccb1d0f2cb41868286d4ee3978d8fb38e00f993977d07616f",
             "sources.js": "cf313aa47633ec7dc66fc8a494af00ce4888251b9cff8523b457837913feac18"
@@ -2994,7 +2994,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "2d418a1723700d6dd18fe3705e6e86588636d14e865e9dd91209a5a575c29d1d"
+        "119c3d09135fc93f372a6d941b60960c0eef4a12b6e4f001ae084c0b508bf91a"
       ],
       "family": "table_node",
       "locales": {
@@ -3021,9 +3021,9 @@
               "sha256": "bbe946022a429d2c233dabbd517219a93f67887f4839cd6797f36ba0644707d1"
             },
             {
-              "bytes": 10339,
+              "bytes": 7939,
               "path": "recipes/detail-table/code/en/config.js",
-              "sha256": "d63fb4b12acd5a90bd9d0b26c66a6a8e7d66ba11728f4a746f6a7b16c388998b"
+              "sha256": "df5e9e57fcadb901a0ae4ea5cff2d8876fa1b1510fa4bae494d5f38e66c0492a"
             },
             {
               "bytes": 2004,
@@ -3037,7 +3037,7 @@
             }
           ],
           "structure_hashes": {
-            "config.js": "ca169bf564f70eb9fd40c975e5c13adb304a2d8076da15e40cf74f06049fbc22",
+            "config.js": "dcb031c88a5a5f02eb28d23f146973b5c567e990591046ee0f21fa848d357c23",
             "params.js": "bf32ef213815f8376a836cb29007926873135b705f9c65af34657647c0481c3b",
             "prepare.js": "dbb9888d69e65a6ccb1d0f2cb41868286d4ee3978d8fb38e00f993977d07616f",
             "sources.js": "109dc5d918455812e89b632cd740d85baac2064a5cc0ca16b6b31dd6df9f80f6"
@@ -3066,9 +3066,9 @@
               "sha256": "e7b2ae286d67f58579e117999d7fe578f0e7eef94d7a8f1e82e52f33ec11f2c7"
             },
             {
-              "bytes": 10639,
+              "bytes": 8239,
               "path": "recipes/detail-table/code/ru/config.js",
-              "sha256": "dc6d051640860384eead43066352e22e90170b07d63061f46861d0262994de81"
+              "sha256": "3233f0d72c988ed93c5f08fcd5f8e4730bd3085a1d6bc3d5177f2f26b1d3e31e"
             },
             {
               "bytes": 2253,
@@ -3082,7 +3082,7 @@
             }
           ],
           "structure_hashes": {
-            "config.js": "ca169bf564f70eb9fd40c975e5c13adb304a2d8076da15e40cf74f06049fbc22",
+            "config.js": "dcb031c88a5a5f02eb28d23f146973b5c567e990591046ee0f21fa848d357c23",
             "params.js": "bf32ef213815f8376a836cb29007926873135b705f9c65af34657647c0481c3b",
             "prepare.js": "dbb9888d69e65a6ccb1d0f2cb41868286d4ee3978d8fb38e00f993977d07616f",
             "sources.js": "109dc5d918455812e89b632cd740d85baac2064a5cc0ca16b6b31dd6df9f80f6"
@@ -3110,7 +3110,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "77556194d2a2940ad0db555e5c1cfef9dca93517b2ce5464cf7dd7e52bd71ed7"
+        "e147185b34aab24b57f0261113cc2ee2b7c67d5fbd3671a01955d5e8b78fdac9"
       ],
       "family": "table_node",
       "locales": {
@@ -3137,9 +3137,9 @@
               "sha256": "bbe946022a429d2c233dabbd517219a93f67887f4839cd6797f36ba0644707d1"
             },
             {
-              "bytes": 10339,
+              "bytes": 7939,
               "path": "recipes/status-table/code/en/config.js",
-              "sha256": "d63fb4b12acd5a90bd9d0b26c66a6a8e7d66ba11728f4a746f6a7b16c388998b"
+              "sha256": "df5e9e57fcadb901a0ae4ea5cff2d8876fa1b1510fa4bae494d5f38e66c0492a"
             },
             {
               "bytes": 1791,
@@ -3153,7 +3153,7 @@
             }
           ],
           "structure_hashes": {
-            "config.js": "ca169bf564f70eb9fd40c975e5c13adb304a2d8076da15e40cf74f06049fbc22",
+            "config.js": "dcb031c88a5a5f02eb28d23f146973b5c567e990591046ee0f21fa848d357c23",
             "params.js": "bf32ef213815f8376a836cb29007926873135b705f9c65af34657647c0481c3b",
             "prepare.js": "dbb9888d69e65a6ccb1d0f2cb41868286d4ee3978d8fb38e00f993977d07616f",
             "sources.js": "66d4101754ad5bfe922db6db0f25a2810ae818b555c415c7598fc480c43180c8"
@@ -3182,9 +3182,9 @@
               "sha256": "e7b2ae286d67f58579e117999d7fe578f0e7eef94d7a8f1e82e52f33ec11f2c7"
             },
             {
-              "bytes": 10639,
+              "bytes": 8239,
               "path": "recipes/status-table/code/ru/config.js",
-              "sha256": "dc6d051640860384eead43066352e22e90170b07d63061f46861d0262994de81"
+              "sha256": "3233f0d72c988ed93c5f08fcd5f8e4730bd3085a1d6bc3d5177f2f26b1d3e31e"
             },
             {
               "bytes": 2014,
@@ -3198,7 +3198,7 @@
             }
           ],
           "structure_hashes": {
-            "config.js": "ca169bf564f70eb9fd40c975e5c13adb304a2d8076da15e40cf74f06049fbc22",
+            "config.js": "dcb031c88a5a5f02eb28d23f146973b5c567e990591046ee0f21fa848d357c23",
             "params.js": "bf32ef213815f8376a836cb29007926873135b705f9c65af34657647c0481c3b",
             "prepare.js": "dbb9888d69e65a6ccb1d0f2cb41868286d4ee3978d8fb38e00f993977d07616f",
             "sources.js": "66d4101754ad5bfe922db6db0f25a2810ae818b555c415c7598fc480c43180c8"
@@ -3225,7 +3225,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "502969ffc5e8f680e8ecc33c30624afe63a74b6be570ff5f1491a12ba1e25d2f"
+        "13f37d4acf7f5e0a863f6823e2df48fcb9aa6821e73046b630ba5a15d0c4f6c1"
       ],
       "family": "table_node",
       "locales": {
@@ -3252,9 +3252,9 @@
               "sha256": "bbe946022a429d2c233dabbd517219a93f67887f4839cd6797f36ba0644707d1"
             },
             {
-              "bytes": 10339,
+              "bytes": 7939,
               "path": "recipes/grouped-summary-table/code/en/config.js",
-              "sha256": "d63fb4b12acd5a90bd9d0b26c66a6a8e7d66ba11728f4a746f6a7b16c388998b"
+              "sha256": "df5e9e57fcadb901a0ae4ea5cff2d8876fa1b1510fa4bae494d5f38e66c0492a"
             },
             {
               "bytes": 1284,
@@ -3268,7 +3268,7 @@
             }
           ],
           "structure_hashes": {
-            "config.js": "ca169bf564f70eb9fd40c975e5c13adb304a2d8076da15e40cf74f06049fbc22",
+            "config.js": "dcb031c88a5a5f02eb28d23f146973b5c567e990591046ee0f21fa848d357c23",
             "params.js": "bf32ef213815f8376a836cb29007926873135b705f9c65af34657647c0481c3b",
             "prepare.js": "dbb9888d69e65a6ccb1d0f2cb41868286d4ee3978d8fb38e00f993977d07616f",
             "sources.js": "cf313aa47633ec7dc66fc8a494af00ce4888251b9cff8523b457837913feac18"
@@ -3297,9 +3297,9 @@
               "sha256": "e7b2ae286d67f58579e117999d7fe578f0e7eef94d7a8f1e82e52f33ec11f2c7"
             },
             {
-              "bytes": 10639,
+              "bytes": 8239,
               "path": "recipes/grouped-summary-table/code/ru/config.js",
-              "sha256": "dc6d051640860384eead43066352e22e90170b07d63061f46861d0262994de81"
+              "sha256": "3233f0d72c988ed93c5f08fcd5f8e4730bd3085a1d6bc3d5177f2f26b1d3e31e"
             },
             {
               "bytes": 1405,
@@ -3313,7 +3313,7 @@
             }
           ],
           "structure_hashes": {
-            "config.js": "ca169bf564f70eb9fd40c975e5c13adb304a2d8076da15e40cf74f06049fbc22",
+            "config.js": "dcb031c88a5a5f02eb28d23f146973b5c567e990591046ee0f21fa848d357c23",
             "params.js": "bf32ef213815f8376a836cb29007926873135b705f9c65af34657647c0481c3b",
             "prepare.js": "dbb9888d69e65a6ccb1d0f2cb41868286d4ee3978d8fb38e00f993977d07616f",
             "sources.js": "cf313aa47633ec7dc66fc8a494af00ce4888251b9cff8523b457837913feac18"
@@ -3338,7 +3338,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "c01244e9ae74d13abbd5f896be48ef9e54b9a6093b8e6d0c51582ebc40dab95d"
+        "9f3b77b46836fec3ceb70e2a032f9f5c5bd69d1ee0efceb8c1ea4df841157bdc"
       ],
       "family": "search_selector",
       "locales": {
@@ -3360,9 +3360,9 @@
               "sha256": "8d1aaf367426ce504eb48355b5f3d91cac118efb03185361cec2de47a7161379"
             },
             {
-              "bytes": 9533,
+              "bytes": 7102,
               "path": "recipes/search-selector/code/en/controls.js",
-              "sha256": "5597f050ba5cadd04a8de3b8503f19dec3c5b76264839c2c36890ac79d93987d"
+              "sha256": "6deb63484f66354d9b0ea4da3c863b17db2f230fedb427ef9043efd28832c64b"
             },
             {
               "bytes": 475,
@@ -3376,7 +3376,7 @@
             }
           ],
           "structure_hashes": {
-            "controls.js": "38f50142730f0472862e708061c76069a57961550255a7513f621046342bd3d1",
+            "controls.js": "e67dd25f3331a82ef2243d34b03ec56981399d18fd6dedf4a3f936a3b5bdcf23",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
             "sources.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390"
           }
@@ -3399,9 +3399,9 @@
               "sha256": "3f38c9142b01cb4e14758972c12c3a7c7964eda58b1c21e1c7f50bf128288e13"
             },
             {
-              "bytes": 9668,
+              "bytes": 7237,
               "path": "recipes/search-selector/code/ru/controls.js",
-              "sha256": "b57506ee05a9161defbae3bcb7fe574c7882c178cc5974a3a0a71e586668ad6b"
+              "sha256": "7148a75d9c40c64b2bbfbbae0025a3998ce10fa25fccde222123e3522b8a29d8"
             },
             {
               "bytes": 509,
@@ -3415,7 +3415,7 @@
             }
           ],
           "structure_hashes": {
-            "controls.js": "38f50142730f0472862e708061c76069a57961550255a7513f621046342bd3d1",
+            "controls.js": "e67dd25f3331a82ef2243d34b03ec56981399d18fd6dedf4a3f936a3b5bdcf23",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
             "sources.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390"
           }
@@ -3434,7 +3434,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "c5184b3bedda38103cb9bf4345fbb641e9ee8c7e2dcdbfe3387fb2f77c691759"
+        "51901b4e2c79a200415f6f5de5a48e58fec1596289e4327197f8350d2586be13"
       ],
       "family": "date_range_selector",
       "locales": {
@@ -3456,9 +3456,9 @@
               "sha256": "8d1aaf367426ce504eb48355b5f3d91cac118efb03185361cec2de47a7161379"
             },
             {
-              "bytes": 9395,
+              "bytes": 6964,
               "path": "recipes/date-range-selector/code/en/controls.js",
-              "sha256": "ba9cf1d061d9dd6482e7f4adafbd8e1d7de64cdb26971af81588ba6395987176"
+              "sha256": "d2adf4d49bdf5676e51725010a5bbaec200b7695d2cbb982aee8acd50d9bbc6b"
             },
             {
               "bytes": 479,
@@ -3472,7 +3472,7 @@
             }
           ],
           "structure_hashes": {
-            "controls.js": "5f54723db03d1459cea39283bd082747e436fd33f0196b387b3c6a810a5236d8",
+            "controls.js": "d4dc4e9df05705f91493a12565a5df841ad6841f38f8868ed587a14f6bba63e2",
             "params.js": "bf32ef213815f8376a836cb29007926873135b705f9c65af34657647c0481c3b",
             "sources.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390"
           }
@@ -3495,9 +3495,9 @@
               "sha256": "3f38c9142b01cb4e14758972c12c3a7c7964eda58b1c21e1c7f50bf128288e13"
             },
             {
-              "bytes": 9503,
+              "bytes": 7072,
               "path": "recipes/date-range-selector/code/ru/controls.js",
-              "sha256": "b86dfd93c8416a907710db197f6661d1bccd66d8e8446fa4e4158ce48a2f0d7f"
+              "sha256": "cf7690f2715af19b1c3945bac2bf22643e6193bdf9623de31220cf41a2ae9f14"
             },
             {
               "bytes": 497,
@@ -3511,7 +3511,7 @@
             }
           ],
           "structure_hashes": {
-            "controls.js": "5f54723db03d1459cea39283bd082747e436fd33f0196b387b3c6a810a5236d8",
+            "controls.js": "d4dc4e9df05705f91493a12565a5df841ad6841f38f8868ed587a14f6bba63e2",
             "params.js": "bf32ef213815f8376a836cb29007926873135b705f9c65af34657647c0481c3b",
             "sources.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390"
           }
@@ -3530,7 +3530,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "9676465b8ba765a3b8d1bca18e38296b120643533cddcbd4021a2da54b521eef"
+        "c9c7aa9c9e64af957bff857b5649303efe4861b7b293d52fe1d38a6392c421ae"
       ],
       "family": "selector_family_static",
       "locales": {
@@ -3552,9 +3552,9 @@
               "sha256": "8d1aaf367426ce504eb48355b5f3d91cac118efb03185361cec2de47a7161379"
             },
             {
-              "bytes": 9531,
+              "bytes": 7100,
               "path": "recipes/static-selector/code/en/controls.js",
-              "sha256": "8eb77d432c389a9717fad00cf07c2d56d70292bb9b61c9907e4164d4905de443"
+              "sha256": "fc79f97a3e0792a562612f7ce156899d9dd03b9f943233dc7ecc132ae833d278"
             },
             {
               "bytes": 475,
@@ -3568,7 +3568,7 @@
             }
           ],
           "structure_hashes": {
-            "controls.js": "1666743c1d0ef77e65a52005fcf059e38a1fe6548c3d0a1254021dc189065f67",
+            "controls.js": "a1bad4f6c3390d41192704374f8aaad0b4dd59c6b94a392c4abe700527a4e49a",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
             "sources.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390"
           }
@@ -3591,9 +3591,9 @@
               "sha256": "3f38c9142b01cb4e14758972c12c3a7c7964eda58b1c21e1c7f50bf128288e13"
             },
             {
-              "bytes": 9658,
+              "bytes": 7227,
               "path": "recipes/static-selector/code/ru/controls.js",
-              "sha256": "95517b89d01e7acf580dc98e5591e56176d15d3548677159c01441745fe05333"
+              "sha256": "3c2204acaafed466834f9626a42f6087fab7aaaa9cbfd1d9e075202a9b4f6a40"
             },
             {
               "bytes": 513,
@@ -3607,7 +3607,7 @@
             }
           ],
           "structure_hashes": {
-            "controls.js": "1666743c1d0ef77e65a52005fcf059e38a1fe6548c3d0a1254021dc189065f67",
+            "controls.js": "a1bad4f6c3390d41192704374f8aaad0b4dd59c6b94a392c4abe700527a4e49a",
             "params.js": "6c0a8c583d64bd37256370f0bafcd88dd32d9be43e6a442d4ed1783f6d25c90a",
             "sources.js": "1cf3e1eeed2d717d4dba8a101c28b71f65e908beb02f90371b11f927125b8390"
           }
@@ -3626,7 +3626,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "f996c581e2687f9be2d387535b1f5a6776f0b64e4a39d69bfc9776137e69e42a"
+        "abfdbac03937759711ac03520cddc7a266a7f2cc6511f38953c2d67e7844a719"
       ],
       "family": "selector_family_dynamic",
       "locales": {
@@ -3648,9 +3648,9 @@
               "sha256": "9718dddacf6a8646c4568e805d2e26e98100c16b4983e3f994ae21ee5021ff64"
             },
             {
-              "bytes": 10684,
+              "bytes": 8253,
               "path": "recipes/dynamic-selector/code/en/controls.js",
-              "sha256": "3f9fbfbf08d2e9151d382a6e1faf73375c6dd25737c4a283455082755f4dc2dc"
+              "sha256": "51b59e40bc6b49a8424d93526a3cc5a0f869cedf7ccb51558a25570ab38fd2e4"
             },
             {
               "bytes": 1139,
@@ -3664,7 +3664,7 @@
             }
           ],
           "structure_hashes": {
-            "controls.js": "2a6d67b80a43b4ecc5fdc906e70158903a6553538a7a8b8a727cd90992d4e905",
+            "controls.js": "1b779c4a4edeb92acfd8f95d747f7c394d2adee9959fb98c68b4257f8c4b2489",
             "params.js": "e7aa6f11e692668c258129e64593d153b7c9ba210ec65cd4e54cd4b32965e0f1",
             "sources.js": "bd1b21f590d977ba51853a2b1b7ebdb19642fbdfcefc16b9ff6af9efe57cadac"
           }
@@ -3687,9 +3687,9 @@
               "sha256": "b5bf8a5fa5d84366ff1da6b83b0c2158b380f5ce6f9b200f6b3e1d229135845d"
             },
             {
-              "bytes": 10793,
+              "bytes": 8362,
               "path": "recipes/dynamic-selector/code/ru/controls.js",
-              "sha256": "5dfcbadb94277fb7be2c92521d625ee0f531fee2d581dd5f5b4b02745ca51ba5"
+              "sha256": "67836298b2cca8ed7bbda922151d8cf12fed29ce29c3be12c6b3742f8c27884c"
             },
             {
               "bytes": 1272,
@@ -3703,7 +3703,7 @@
             }
           ],
           "structure_hashes": {
-            "controls.js": "2a6d67b80a43b4ecc5fdc906e70158903a6553538a7a8b8a727cd90992d4e905",
+            "controls.js": "1b779c4a4edeb92acfd8f95d747f7c394d2adee9959fb98c68b4257f8c4b2489",
             "params.js": "e7aa6f11e692668c258129e64593d153b7c9ba210ec65cd4e54cd4b32965e0f1",
             "sources.js": "bd1b21f590d977ba51853a2b1b7ebdb19642fbdfcefc16b9ff6af9efe57cadac"
           }
@@ -3725,7 +3725,7 @@
     },
     {
       "canonical_executable_hashes": [
-        "5d6162579a770d10cc22406c66d9222a5df13b6bc7bcdc01d12f0228bdb206e8"
+        "75855dfcac554239b41bd9ce88119a30822dfb59455b07a19c62af4a62ed74c1"
       ],
       "family": "selector_group",
       "locales": {
@@ -3747,9 +3747,9 @@
               "sha256": "9718dddacf6a8646c4568e805d2e26e98100c16b4983e3f994ae21ee5021ff64"
             },
             {
-              "bytes": 11041,
+              "bytes": 8610,
               "path": "recipes/selector-group/code/en/controls.js",
-              "sha256": "c9cf7568bf4e2b3f7b5b353b1f2940bb8cc7570a7b981ea0d66550cb998d484d"
+              "sha256": "26012331b8b17a786525d1e64636ac9bdbbfa37f7cc4413ac4da2def55e02bde"
             },
             {
               "bytes": 1137,
@@ -3763,7 +3763,7 @@
             }
           ],
           "structure_hashes": {
-            "controls.js": "30126ff1b6878d8f43962929c11b9330923ad3b279c92f2c11910c626352f39a",
+            "controls.js": "e99245a98a886cc13270b38a3d922d61b5df2b5bcb39117d783456280e6fe76b",
             "params.js": "bb5a436c1b7d00af28bae467c3d063149a0809d312a7b6dd341a8418b8f4c3ba",
             "sources.js": "bd1b21f590d977ba51853a2b1b7ebdb19642fbdfcefc16b9ff6af9efe57cadac"
           }
@@ -3786,9 +3786,9 @@
               "sha256": "b5bf8a5fa5d84366ff1da6b83b0c2158b380f5ce6f9b200f6b3e1d229135845d"
             },
             {
-              "bytes": 11205,
+              "bytes": 8774,
               "path": "recipes/selector-group/code/ru/controls.js",
-              "sha256": "082f383cc94a640d810ee7087a0e0e01531f1cd48c29041c2f66ea4dc42f6db2"
+              "sha256": "00cebe0ffd40f1efd2e2019417d8c0e4225fda7cded2bc68dd885b0914e6c8f7"
             },
             {
               "bytes": 1264,
@@ -3802,7 +3802,7 @@
             }
           ],
           "structure_hashes": {
-            "controls.js": "30126ff1b6878d8f43962929c11b9330923ad3b279c92f2c11910c626352f39a",
+            "controls.js": "e99245a98a886cc13270b38a3d922d61b5df2b5bcb39117d783456280e6fe76b",
             "params.js": "bb5a436c1b7d00af28bae467c3d063149a0809d312a7b6dd341a8418b8f4c3ba",
             "sources.js": "bd1b21f590d977ba51853a2b1b7ebdb19642fbdfcefc16b9ff6af9efe57cadac"
           }

@@ -269,6 +269,21 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
                 )
                 self.assertNotEqual(started.get("blocked_by", {}).get("code"), "BLOCKED_DISCOVERY")
 
+    def test_explicit_working_project_path_outranks_context_project_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            reference = root / "reference project"
+            target = root / "target project"
+            for path in (reference, target):
+                path.mkdir()
+                (path / ".datalens-mcp.json").write_text("{}", encoding="utf-8")
+            request = (
+                f"'{reference}' - это дашборд для контекста. "
+                f"Работать мы будем в проекте - '{target}'."
+            )
+
+            self.assertEqual(tasks._request_project_root(request, tmp), str(target.resolve()))
+
     def test_public_resume_recovers_interrupted_or_incomplete_discovery(self) -> None:
         from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService
         from tests.unit.test_target_discovery import DiscoveryClient

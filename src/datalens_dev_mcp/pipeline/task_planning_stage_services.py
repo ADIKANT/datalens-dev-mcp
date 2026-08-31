@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 from datalens_dev_mcp.pipeline.artifacts import read_json
+from datalens_dev_mcp.pipeline.effective_visual_contract import resolve_effective_visual_contract
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
 from datalens_dev_mcp.pipeline.public_plan_builder import PublicPlanBuilder
 from datalens_dev_mcp.pipeline.semantic_change_planner import SemanticChangePlanner
@@ -57,12 +58,20 @@ def task_planning_stage_services(
         if diagnostics.get("required") is not True:
             target = read_json(journal.target_binding_path, {}) or {}
             graph = read_json(journal.target_graph_path, {}) or {}
+            not_applicable = context_service.persist_not_applicable(
+                reason="typed data/change impact decision does not require diagnostics"
+            )
+            profile = dict(not_applicable.get("profile") or {})
+            query_plan = dict(not_applicable.get("query_plan") or {})
             return _receipt(
                 context,
                 status="success",
                 output_hashes={
                     "target_binding": str(target.get("binding_hash") or ""),
                     "target_graph": str(graph.get("graph_hash") or ""),
+                    "dataset_context_profile": str(profile.get("profile_hash") or ""),
+                    "dataset_query_set": str(query_plan.get("query_set_hash") or ""),
+                    "dataset_schema": str(profile.get("schema_hash") or ""),
                 },
                 observed=["data diagnostics required=False", "dataset probe not applicable"],
                 reason="data proof is not required by the typed data/change impact decision",
@@ -101,9 +110,27 @@ def task_planning_stage_services(
                 reason="zero-mutation existing-effect verification plan is materialized",
             )
         graph = read_json(journal.target_graph_path, {}) or {}
+        style_binding = read_json(journal.style_binding_path, {}) or {}
         baselines = {
             path.name: read_json(path, {}) or {}
             for path in sorted((journal.root / "snapshots").glob("baseline-*.json"))
+        }
+        effective_result = resolve_effective_visual_contract(
+            contract,
+            target_graph=graph,
+            baselines=baselines,
+            style_binding=style_binding,
+            decision_context=dict(style_binding.get("decision_context") or {}),
+        )
+        if effective_result.get("status") != "success":
+            return _receipt(
+                context,
+                status="blocked",
+                missing=["effective_visual_contract"],
+                reason=str(effective_result.get("reason") or "effective visual contract is invalid"),
+            )
+        effective_visual_contract = {
+            key: value for key, value in effective_result.items() if key != "status"
         }
         semantic = SemanticChangePlanner().plan(
             contract,
@@ -111,16 +138,30 @@ def task_planning_stage_services(
             baselines=baselines,
             binding_hashes={
                 "target_binding_hash": str((read_json(journal.target_binding_path, {}) or {}).get("binding_hash") or ""),
-                "style_binding_hash": str((read_json(journal.style_binding_path, {}) or {}).get("binding_hash") or ""),
+                "style_binding_hash": str(style_binding.get("binding_hash") or ""),
+                "effective_visual_contract_hash": str(effective_visual_contract.get("contract_hash") or ""),
                 "dataset_context_profile_hash": str((read_json(context_service.profile_path, {}) or {}).get("profile_hash") or ""),
             },
+            effective_visual_contract=effective_visual_contract,
         )
         if not semantic.get("ok"):
             return _receipt(
                 context,
                 status="blocked",
-                missing=["non_empty_semantic_change"],
+                missing=[str(semantic.get("status") or "semantic_plan")],
                 reason=str(semantic.get("status") or "semantic planning blocked") + ": " + "; ".join(semantic.get("issues") or []),
+            )
+        if semantic.get("status") == "already_satisfied_no_write":
+            plan = builder.build_already_satisfied(semantic_result=semantic)
+            return _receipt(
+                context,
+                status="success",
+                output_hashes={"public_plan": str(plan.get("plan_hash") or "")},
+                observed=[
+                    f"matched semantic assertion count={len(semantic.get('matched_assertions') or [])}",
+                    "safe apply action count=0",
+                ],
+                reason="fresh live state already satisfies every typed semantic action",
             )
         profile = read_json(context_service.profile_path, {}) or {}
         plan = builder.build(semantic_result=semantic, context_profile=profile)
@@ -143,9 +184,10 @@ def task_planning_stage_services(
         issues = list(builder.validate_current())
         plan = read_json(journal.root / "plans" / "plan.json", {}) or {}
         verification = str(contract.get("operation_kind") or "") == "verify_existing_effect"
+        already_satisfied = plan.get("plan_kind") == "already_satisfied_no_write"
         if verification and int(plan.get("safe_apply_action_count") or 0) != 0:
             issues.append("verification public plan must have zero actions")
-        elif not verification and int(plan.get("safe_apply_action_count") or 0) < 1:
+        elif not verification and not already_satisfied and int(plan.get("safe_apply_action_count") or 0) < 1:
             issues.append("public plan action set is empty")
         return _receipt(
             context,
