@@ -130,6 +130,15 @@ class PublicAutonomyApi:
             schema = [deepcopy(schema_by_guid[item]) for item in columns]
             rows = [] if self.dataset_behavior == "empty" else [[_dataset_values()[item] for item in columns]]
             return {"schema": schema, "rows": rows}
+        if method == "validateDataset":
+            return {
+                "result": {
+                    "dataset": {
+                        "datasetId": str(payload.get("datasetId") or "dataset_demo"),
+                        "component_errors": [],
+                    }
+                }
+            }
         raise AssertionError(f"unexpected read method: {method}")
 
     def rpc_exclusive_read(self, method: str, payload: dict[str, Any]) -> dict[str, Any]:

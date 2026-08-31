@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 from tests.fixtures.public_autonomy_api.fake_api import PublicAutonomyApi
 from tests.integration.public_autonomy_jsonrpc_support import public_call, public_server, semantic_context

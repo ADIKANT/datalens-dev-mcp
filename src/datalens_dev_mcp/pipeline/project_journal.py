@@ -295,10 +295,21 @@ class ProjectJournal:
         with self.locked(owner="target-discovery-binding"):
             state, _ = self.replay()
             existing = read_json(self.target_binding_path, {}) or {}
+            blocker = dict(state.blocker or {})
+            blocker_details = dict(blocker.get("details") or {})
+            blocker_missing = {
+                str(value) for value in blocker_details.get("missing_requirements") or []
+            }
             retrying_blocked_discovery = (
                 state.current_state == "BLOCKED"
-                and str((state.blocker or {}).get("code") or "") == "BLOCKED_DISCOVERY"
                 and not self.discovery_path.is_file()
+                and (
+                    str(blocker.get("code") or "") == "BLOCKED_DISCOVERY"
+                    or (
+                        str(blocker.get("reason") or "") == "live target discovery is unavailable"
+                        and bool(blocker_missing & {"live_target_binding", "target_graph"})
+                    )
+                )
             )
             if not retrying_blocked_discovery and (
                 state.current_state != "RESOLVED" or state.last_event_id > 1

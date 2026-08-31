@@ -144,6 +144,38 @@ class UserRequestContractTests(unittest.TestCase):
         self.assertEqual(review.operation_kind, "inspect")
         self.assertEqual(mutation.operation_kind, "mutate")
 
+    def test_datalens_url_families_and_trailing_labels_preserve_typed_roles(self):
+        from datalens_dev_mcp.pipeline.user_request import normalize_user_request
+
+        cases = (
+            ("https://datalens.ru/editor/editor_target_123", "editor_chart", "editor_advanced"),
+            ("https://datalens.ru/wizard/wizard_target_123", "wizard_chart", "wizard_native"),
+            ("https://datalens.ru/ql/ql_target_123", "ql_chart", "ql_explicit"),
+            ("https://datalens.ru/datasets/dataset_target_123", "dataset", ""),
+            ("https://datalens.ru/connections/connection_target_123", "connection", ""),
+            ("https://datalens.ru/html/html_target_123", "html_page", "editor_advanced"),
+        )
+        for url, object_type, technology in cases:
+            with self.subTest(url=url):
+                request = normalize_user_request(f"Update target {url}")
+                self.assertEqual(request.target_object_type, object_type)
+                self.assertEqual(request.target_technology, technology)
+        bare = normalize_user_request("synthetic1234 - это dashboard")
+        self.assertEqual(bare.target_dashboard_id, "synthetic1234")
+
+    def test_exception_payload_cannot_select_table_route_and_manual_layout_is_read_only(self):
+        from datalens_dev_mcp.pipeline.user_request import normalize_user_request
+
+        error = normalize_user_request(
+            "Code: 47. DB::Exception: no column in table v (UNKNOWN_IDENTIFIER) — поправишь?"
+        )
+        manual = normalize_user_request(
+            "перечитай еще раз дашборд, запомни расположение, я корректно переделал размещение в layout"
+        )
+        self.assertEqual(error.task_intent, "fix")
+        self.assertEqual(error.route_intent, "unspecified")
+        self.assertEqual(manual.operation_kind, "verify_existing_effect")
+
 
 if __name__ == "__main__":
     unittest.main()

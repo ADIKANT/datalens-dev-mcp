@@ -25,7 +25,7 @@
     "forbidden_provider_calls": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
     "expected_questions": {"type": "integer", "minimum": 0, "maximum": 1},
     "expected_browser_calls": {"type": "integer", "minimum": 0, "maximum": 1},
-    "expected_terminal_state": {"enum": ["COMPLETED", "BLOCKED", "BLOCKED_CONFLICT"]},
+    "expected_terminal_state": {"enum": ["COMPLETED", "BLOCKED", "BLOCKED_CONFLICT", "already_satisfied_no_write"]},
     "expected_proof": {"type": "object"},
     "call_budget": {"type": "integer", "minimum": 1, "maximum": 12},
     "source_signal_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}

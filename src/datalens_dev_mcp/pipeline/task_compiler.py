@@ -92,6 +92,7 @@ def compile_task_contract(
     )
     target, target_trace = _compile_target(
         normalized,
+        mode=mode,
         correction_request=correction_request,
         current_live=current,
         portfolio_source=portfolio,
@@ -262,28 +263,31 @@ def _compile_data_diagnostics(
         for token in ("create dataset", "update dataset", "создай датасет", "обнови датасет")
     ):
         reason_classes.add("dataset_create_or_update")
-    if any(token in flattened for token in ("source_change", "source", "connection", "dataset_id")) or any(
-        token in request_text
-        for token in (
-            "source change",
-            "change source",
-            "switch connection",
-            "connection",
-            "connector",
-            "сменить источник",
-            "источник данных",
-            "коннектор",
-            "переведи дашборд на",
-        )
-    ):
+    if any(
+        token in flattened
+        for token in ("source_change", "source", "connection", "dataset_id")
+    ) or _has_source_change_intent(request_text):
         reason_classes.add("source_change")
-    if any(token in flattened for token in ("field_guid", "field_id", "rename_field", "field_type", "remove_field", "add_field")):
+    if any(
+        token in flattened
+        for token in (
+            "field_guid",
+            "field_id",
+            "rename_field",
+            "field_type",
+            "remove_field",
+            "add_field",
+        )
+    ) or _has_field_schema_change_intent(request_text):
         reason_classes.add("field_schema_change")
     if any(token in flattened for token in ("filter", "parameter", "param", "selector")) or any(
         token in request_text for token in ("filter change", "parameter change", "selector data semantics")
     ):
         reason_classes.add("filter_or_parameter_change")
-    if any(token in flattened for token in ("aggregation", "query", "metric", "measure", "formula")):
+    if any(
+        token in flattened
+        for token in ("aggregation", "query", "metric", "measure", "formula")
+    ) or _has_query_semantics_change_intent(request_text, mode=mode):
         reason_classes.add("chart_query_or_aggregation")
     if any(
         token in request_text
@@ -300,6 +304,10 @@ def _compile_data_diagnostics(
             "ошибка данных",
             "ошибка источника",
             "системную ошибку",
+            "данные не показываются",
+            "данные не отображаются",
+            "данных не видно",
+            "почему данные не",
         )
     ):
         reason_classes.add("runtime_data_error")
@@ -348,6 +356,61 @@ def _semantic_strings(value: Any) -> list[str]:
     return [str(value)]
 
 
+def _request_clauses(text: str) -> tuple[str, ...]:
+    return tuple(
+        clause.strip()
+        for clause in re.split(r"(?:\n+|[;!?]+|(?<!https):\s+|\.\s+)", text)
+        if clause.strip()
+    )
+
+
+def _has_source_change_intent(text: str) -> bool:
+    direct_terms = (
+        "source change",
+        "change source",
+        "switch source",
+        "switch connection",
+        "connection",
+        "connector",
+        "сменить источник",
+        "источник данных",
+        "коннектор",
+        "переведи дашборд на",
+        "переключи пока что",
+        "переключи источник",
+        "переключи на табличку",
+    )
+    if any(term in text for term in direct_terms):
+        return True
+    switch = re.compile(r"(?:переключ|перевед|смен|замен)\w*", re.I)
+    source = re.compile(
+        r"(?:источник|подключен|коннектор|витрин|таблиц|dataset|connection|analytics|dm(?:\\?_|\s)|dev click|prod окруж)",
+        re.I,
+    )
+    subject = re.compile(r"(?:дашборд|датасет|все зависимост|источник|подключен|коннектор)", re.I)
+    return any(switch.search(clause) and source.search(clause) and subject.search(clause) for clause in _request_clauses(text))
+
+
+def _has_field_schema_change_intent(text: str) -> bool:
+    mutation = r"(?:добав|удал|убер|переимен|измен|замен|add|remove|rename|change)\w*"
+    field = r"(?:пол[ея]|колонк\w*|field\w*|column\w*)"
+    return any(
+        re.search(rf"{mutation}.{{0,100}}{field}|{field}.{{0,100}}{mutation}", clause, re.I)
+        for clause in _request_clauses(text)
+    )
+
+
+def _has_query_semantics_change_intent(text: str, *, mode: TaskMode) -> bool:
+    if mode not in WRITE_MODES:
+        return False
+    query_marker = re.compile(r"(?:\bsql\b|запрос\w*|формул\w*|агрегац\w*|\bquery\b|\bmeasure\b)", re.I)
+    data_logic = re.compile(
+        r"(?:раздел\w*|примен\w*|логик\w*).{0,140}(?:пол[ея]|таблиц\w*|данн\w*|sw\s*/\s*hw|bootloader)",
+        re.I,
+    )
+    return any(query_marker.search(clause) or data_logic.search(clause) for clause in _request_clauses(text))
+
+
 def _compile_mode(
     raw_request: str,
     normalized: NormalizedUserRequest,
@@ -363,12 +426,20 @@ def _compile_mode(
     if re.search(r"\bpublish(?:\s+from\s+saved)?\s+only\b|только\s+опубли", text):
         return "publish_only"
     intent = correction.task_intent if correction and correction.task_intent != "unknown" else normalized.task_intent
+    if operation_kind == "inspect" and any(
+        term in text for term in ("diagnose", "diagnostic", "root cause", "диагност", "причин")
+    ):
+        return "diagnose"
+    if intent == "review" and not re.search(r"\bplan\b|план\w*|спланир\w*", text):
+        return "review"
     if intent == "plan" or normalized.publish_override in {"plan_only", "dry_run"}:
         return "plan"
     if intent == "redesign":
         return "redesign"
     if intent == "implement":
-        return "create"
+        if current_mode in {"create", "update", "redesign"}:
+            return current_mode  # type: ignore[return-value]
+        return "update" if normalized.target_known else "create"
     if intent in {"fix", "enhance", "update"}:
         return "update"
     # Diagnostics may be a required stage of an explicitly requested mutation
@@ -426,22 +497,31 @@ def _compile_verification(operation_kind: str, effect: EffectContract) -> Verifi
 def _compile_target(
     normalized: NormalizedUserRequest,
     *,
+    mode: TaskMode,
     correction_request: NormalizedUserRequest | None,
     current_live: dict[str, Any],
     portfolio_source: dict[str, Any],
     workspace_policy: dict[str, Any],
     current_task_journal: dict[str, Any],
 ) -> tuple[TargetContract, dict[str, str]]:
-    direct = _request_target(correction_request) if correction_request and correction_request.target_known else {}
+    correction_has_container = bool(correction_request and correction_request.target_workbook_id)
+    direct = (
+        _request_target(correction_request)
+        if correction_request and (correction_request.target_known or correction_has_container)
+        else {}
+    )
     raw_direct = _request_target(normalized)
-    sources = (
+    sources = [
         ("current_user_correction", direct),
         ("current_user_request", raw_direct),
         ("current_live_readback", _target_mapping(current_live)),
         ("current_portfolio_source", _target_mapping(portfolio_source)),
         ("active_workspace_policy", _target_mapping(workspace_policy)),
         ("current_task_journal", _target_mapping(current_task_journal)),
-    )
+    ]
+    if mode == "create" and correction_has_container and not correction_request.target_known:
+        sources = sources[:2]
+    sources_tuple = tuple(sources)
     values: dict[str, Any] = {}
     trace: dict[str, str] = {}
     for key in (
@@ -452,7 +532,7 @@ def _compile_target(
         "published_revision",
         "technology",
     ):
-        for source_name, source in sources:
+        for source_name, source in sources_tuple:
             if _present(source.get(key)):
                 values[key] = source[key]
                 trace[key] = source_name
@@ -461,14 +541,13 @@ def _compile_target(
         [
             str(values.get("dashboard_id") or ""),
             str(values.get("chart_id") or ""),
-            *[str(item) for item in _first_list(sources, "object_ids")],
+            *[str(item) for item in _first_list(sources_tuple, "object_ids")],
         ]
     )
     object_types = _unique(
         [
             "dashboard" if values.get("dashboard_id") else "",
-            "editor_chart" if values.get("chart_id") else "",
-            *[str(item) for item in _first_list(sources, "object_types")],
+            *[str(item) for item in _first_list(sources_tuple, "object_types")],
         ]
     )
     return (
@@ -492,11 +571,14 @@ def _compile_route(
     mode: TaskMode,
     target: TargetContract,
 ) -> str:
-    requested = (
-        correction.route_intent
-        if correction and correction.route_intent != "unspecified" and correction.route_explicit
-        else normalized.route_intent
-    )
+    if correction and correction.route_intent != "unspecified" and correction.route_explicit:
+        requested = correction.route_intent
+    elif normalized.route_intent != "unspecified" and normalized.route_explicit:
+        requested = normalized.route_intent
+    elif mode == "create":
+        requested = normalized.route_intent
+    else:
+        requested = "unspecified"
     if requested == "ql_explicit":
         return "ql_explicit"
     aliases = {
@@ -553,7 +635,19 @@ def _compile_reference(
 ) -> ReferenceContract:
     text = "\n".join((raw_request, *corrections)).lower()
     exact = bool(reference.get("required_exact_style")) or any(
-        term in text for term in ("exact", "точно", "один в один", "сохрани этот js", "preserve this js")
+        term in text
+        for term in (
+            "exact",
+            "точно",
+            "один в один",
+            "сохрани этот js",
+            "preserve this js",
+            "по аналогии",
+            "как в примере",
+            "по форматированию",
+            "в таком же стиле",
+            "в том же стиле",
+        )
     )
     locator = str(reference.get("locator") or "")
     kind = str(reference.get("kind") or "")
@@ -747,11 +841,17 @@ def _stop_conditions(
 def _request_target(request: NormalizedUserRequest | None) -> dict[str, Any]:
     if request is None:
         return {}
-    object_ids = _unique((request.target_dashboard_id, request.target_chart_id))
+    object_ids = _unique(
+        (request.target_dashboard_id, request.target_chart_id, request.target_object_id)
+    )
+    chart_type = request.target_object_type if request.target_chart_id else ""
+    if chart_type not in {"editor_chart", "wizard_chart", "ql_chart", "chart"}:
+        chart_type = "editor_chart" if request.target_chart_id else ""
     object_types = _unique(
         (
             "dashboard" if request.target_dashboard_id else "",
-            "editor_chart" if request.target_chart_id else "",
+            chart_type,
+            request.target_object_type if request.target_object_id else "",
         )
     )
     return {
@@ -760,6 +860,7 @@ def _request_target(request: NormalizedUserRequest | None) -> dict[str, Any]:
         "chart_id": request.target_chart_id,
         "object_ids": object_ids,
         "object_types": object_types,
+        "technology": request.target_technology,
     }
 
 

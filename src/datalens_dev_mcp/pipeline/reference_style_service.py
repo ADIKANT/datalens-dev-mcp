@@ -7,6 +7,7 @@ from datalens_dev_mcp.editor.protected_regions import build_protected_regions
 from datalens_dev_mcp.editor.semantic_slots import discover_semantic_slots
 from datalens_dev_mcp.editor.style_registry import select_style_profile
 from datalens_dev_mcp.editor.style_scanner import TAB_ORDER, scan_portfolio_style_registry
+from datalens_dev_mcp.pipeline.effective_visual_contract import resolve_effective_visual_contract
 from datalens_dev_mcp.pipeline.project_decision_context import resolve_project_decision_context
 from datalens_dev_mcp.pipeline.reference_binding import build_reference_binding
 from datalens_dev_mcp.pipeline.style_binding_receipt import build_style_binding_receipt, style_binding_hash
@@ -21,6 +22,8 @@ class ReferenceStyleService:
         *,
         target_graph: dict[str, Any],
         baselines: dict[str, dict[str, Any]],
+        reference_target_graph: dict[str, Any] | None = None,
+        reference_baselines: dict[str, dict[str, Any]] | None = None,
         portfolio_root: str = "",
     ) -> dict[str, Any]:
         reference = contract.get("reference") or {}
@@ -37,8 +40,8 @@ class ReferenceStyleService:
             result = self._bind_live_target(
                 locator=locator,
                 exact_required=exact_required,
-                target_graph=target_graph,
-                baselines=baselines,
+                target_graph=(reference_target_graph or target_graph) if locator else target_graph,
+                baselines=(reference_baselines or baselines) if locator else baselines,
             )
         compatible = _assert_technology_compatibility(
             result,
@@ -53,8 +56,10 @@ class ReferenceStyleService:
                 "status": "blocked",
                 "reason": str(decision_context.get("reason") or "project decision context is invalid"),
             }
+        style_binding = dict(compatible["style_binding"])
+        style_binding["protected_regions"] = list(compatible.get("protected_regions") or [])
+        style_binding["semantic_slots"] = list(compatible.get("semantic_slots") or [])
         if decision_context.get("status") == "success":
-            style_binding = dict(compatible["style_binding"])
             style_binding.update(
                 {
                     "decision_context_hash": str(decision_context.get("context_hash") or ""),
@@ -67,12 +72,33 @@ class ReferenceStyleService:
                     },
                 }
             )
-            style_binding.pop("binding_hash", None)
-            style_binding["binding_hash"] = style_binding_hash(style_binding)
-            compatible["style_binding"] = style_binding
             compatible["decision_context"] = {
                 key: value for key, value in decision_context.items() if key != "status"
             }
+        effective = resolve_effective_visual_contract(
+            contract,
+            target_graph=target_graph,
+            baselines=baselines,
+            style_binding=style_binding,
+            decision_context=(
+                {key: value for key, value in decision_context.items() if key != "status"}
+                if decision_context.get("status") == "success"
+                else {}
+            ),
+        )
+        if effective.get("status") != "success":
+            return {
+                "status": "blocked",
+                "reason": str(effective.get("reason") or "effective visual contract is invalid"),
+                "conflicts": list(effective.get("conflicts") or []),
+            }
+        public_effective = {key: value for key, value in effective.items() if key != "status"}
+        style_binding["effective_visual_contract_hash"] = str(effective.get("contract_hash") or "")
+        style_binding["effective_visual_contract"] = public_effective
+        style_binding.pop("binding_hash", None)
+        style_binding["binding_hash"] = style_binding_hash(style_binding)
+        compatible["style_binding"] = style_binding
+        compatible["effective_visual_contract"] = public_effective
         return compatible
 
     def _bind_portfolio(

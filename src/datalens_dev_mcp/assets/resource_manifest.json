@@ -2,9 +2,9 @@
   "resource_count": 322,
   "resources": [
     {
-      "bytes": 15842,
+      "bytes": 17000,
       "path": "config/dashboard_render_profiles.json",
-      "sha256": "59dd8a1c1c5ac9d70dcbf61e40ddf930a7a560957d63b92c4ba1add1d02167a7"
+      "sha256": "3585ea42902a90433f2d055f8551589b7c5de164bc0aebcd09054e26553262c8"
     },
     {
       "bytes": 92314,
@@ -74,7 +74,7 @@
     {
       "bytes": 1828,
       "path": "config/editor_authoring_profiles.json",
-      "sha256": "98d3419ea3661db540ee55e73a74770e5443d84cc29602de4780892e95ce1b47"
+      "sha256": "c21d2649e96084ff7fbf2117e284c3bf4dc926efefe4eb82306ef89534353557"
     },
     {
       "bytes": 197728,
@@ -122,9 +122,9 @@
       "sha256": "e5816a2ee65ad7efb86e859a2e456719a717d0236e76b123887c2ab64bc87ab6"
     },
     {
-      "bytes": 1786,
+      "bytes": 1816,
       "path": "schemas/behavior-trace-case.schema.json",
-      "sha256": "71e380a31770b98d5752d703f391e0213f2c2bd3c6ea40d4a5dbea26fa357f2d"
+      "sha256": "067ccb12708cea03b10ade39cd7e23ce008bfb76dd2d6fc687f93d4407338f22"
     },
     {
       "bytes": 1777,
@@ -537,9 +537,9 @@
       "sha256": "8415205f39d5aa03b44d3e2e95640716f6c43e433b53e4d7b675a385e5a233c9"
     },
     {
-      "bytes": 3009,
+      "bytes": 3700,
       "path": "schemas/public-task-plan.schema.json",
-      "sha256": "854f5f561709d9543b792e63a891baa344c8df1761f47bb70ea6ac5cb1b2092b"
+      "sha256": "299efce8f6201b31967ddd240cc470ffde7cc4c502eb8e4948715035bb952377"
     },
     {
       "bytes": 3498,

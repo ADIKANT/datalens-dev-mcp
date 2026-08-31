@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
 from datalens_dev_mcp.api.errors import DataLensApiError
+from datalens_dev_mcp.local_config import is_project_live_manifest_payload
 from datalens_dev_mcp.mcp.task_projection import (
     compact_task_status,
     project_task_summary,
@@ -29,8 +31,9 @@ from datalens_dev_mcp.pipeline.execution_authorization import (
 from datalens_dev_mcp.pipeline.project_journal import JournalIdentityError, ProjectJournal
 from datalens_dev_mcp.pipeline.public_plan_builder import PublicPlanBuilder
 from datalens_dev_mcp.pipeline.reference_style_service import ReferenceStyleService
+from datalens_dev_mcp.pipeline.semantic_change_planner import SemanticChangePlanner
 from datalens_dev_mcp.pipeline.target_binding import resolve_contract_target_binding
-from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService
+from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService, compact_object_index
 from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
 from datalens_dev_mcp.pipeline.task_completion import TaskCompletionEvaluator
 from datalens_dev_mcp.pipeline.task_contract import task_contract_hash, validate_task_contract
@@ -52,6 +55,7 @@ AMENDMENT_RELATIONSHIPS = frozenset(
         "start_new_workflow",
     }
 )
+PROJECT_MANIFEST_NAMES = (".datalens-mcp.json", "datalens-mcp.project.json")
 
 
 def dl_task_start(
@@ -60,8 +64,10 @@ def dl_task_start(
     context: dict[str, Any] | None = None,
     run_until: str = "plan_ready",
 ) -> dict[str, Any]:
+    project_root = _request_project_root(request, project_root)
     boundary = _run_until(run_until)
     task_context = dict(context or {})
+    manifest_target = _project_manifest_target_context(project_root)
     target_url = str(task_context.get("target_url") or "")
     compile_request = request + (f"\nTarget: {target_url}" if target_url and target_url not in request else "")
     reference_locator = str(task_context.get("reference_locator") or "")
@@ -103,6 +109,14 @@ def dl_task_start(
                 ]
             )
         )
+    current_live = {
+        **manifest_target,
+        **{
+            key: task_context[key]
+            for key in ("workbook_id", "dashboard_id", "chart_id", "object_ids", "object_types")
+            if key in task_context
+        },
+    }
     preliminary = compile_task_contract(
         compile_request,
         project_root=str(Path(project_root).resolve()),
@@ -110,11 +124,7 @@ def dl_task_start(
             "kind": reference_kind if reference_locator else "none",
             "locator": reference_locator,
         },
-        current_live={
-            key: task_context[key]
-            for key in ("workbook_id", "dashboard_id", "chart_id", "object_ids", "object_types")
-            if key in task_context
-        },
+        current_live=current_live,
         scope_overrides=scope_overrides,
         acceptance=acceptance,
     )
@@ -130,6 +140,7 @@ def dl_task_start(
             direct_ql_requested=str((preliminary.get("contract") or {}).get("route") or "") == "ql_explicit",
         )
         task_context["workbook_id"] = str(create_bundle["workbook_id"])
+        current_live["workbook_id"] = task_context["workbook_id"]
         acceptance.append(
             {
                 "kind": "create_manifest",
@@ -154,11 +165,7 @@ def dl_task_start(
                 "kind": reference_kind if reference_locator else "none",
                 "locator": reference_locator,
             },
-            current_live={
-                key: task_context[key]
-                for key in ("workbook_id", "dashboard_id", "chart_id", "object_ids", "object_types")
-                if key in task_context
-            },
+            current_live=current_live,
             scope_overrides=scope_overrides,
             acceptance=acceptance,
         )
@@ -254,11 +261,10 @@ def dl_task_start(
                 issues=compiled.get("issues") or [],
                 retryable=bool(discovery.get("recovery_action")),
             )
-        style = ReferenceStyleService().bind(
+        style = _bind_style_with_reference_discovery(
             contract,
-            target_graph=dict(discovery["target_graph"]),
-            baselines=dict(discovery.get("baselines") or {}),
-            portfolio_root=str(task_context.get("portfolio_root") or ""),
+            discovery=discovery,
+            context=task_context,
         )
         if style.get("status") != "success":
             receipt = journal.write_receipt(
@@ -295,6 +301,16 @@ def dl_task_start(
                 "field_count": discovery.get("field_count", 0),
             },
         )
+    semantic_gate = _semantic_action_gate(journal, contract)
+    if semantic_gate:
+        current, _ = journal.replay()
+        return _project_semantic_action_gate(
+            journal,
+            contract,
+            state=current,
+            before=before,
+            outcome=semantic_gate,
+        )
     state = _advance(journal, contract, boundary=boundary, execution_grant=grant)
     plan = _ensure_task_plan(journal, contract, state) if state.current_state == "VALIDATED" else {}
     if boundary == "completed" and state.current_state == "VALIDATED":
@@ -307,10 +323,133 @@ def dl_task_start(
         performed_after=before,
         **_projection_bindings(journal),
     )
+    _attach_object_index(result, journal)
     if plan:
         result.update(
             {"plan_hash": plan["plan_hash"], "plan_resource_uri": task_resource_uri(journal.task_id, "plans/plan.json")}
         )
+        result["semantic_state"] = str(plan.get("semantic_state") or "semantic_plan_ready")
+        if plan.get("semantic_state") == "already_satisfied_no_write":
+            result["state"] = "already_satisfied_no_write"
+            result["matched_assertions"] = list(plan.get("matched_assertions") or [])
+    return result
+
+
+def _project_manifest_target_context(project_root: str) -> dict[str, str]:
+    root = Path(project_root).resolve()
+    manifest: dict[str, Any] = {}
+    for name in PROJECT_MANIFEST_NAMES:
+        candidate = root / name
+        if candidate.is_file():
+            value = read_json(candidate, {}) or {}
+            manifest = value if isinstance(value, dict) else {}
+            break
+    if not is_project_live_manifest_payload(manifest):
+        return {}
+    target = manifest.get("target") if isinstance(manifest.get("target"), dict) else {}
+    workbooks = {
+        str(value).strip()
+        for value in (manifest.get("workbook_id"), target.get("workbook_id"))
+        if str(value or "").strip()
+    }
+    dashboard_values: list[Any] = [
+        manifest.get("dashboard_id"),
+        target.get("dashboard_id"),
+    ]
+    for value in (manifest.get("dashboard_ids"), target.get("dashboard_ids")):
+        if isinstance(value, list):
+            dashboard_values.extend(value)
+    dashboards = {str(value).strip() for value in dashboard_values if str(value or "").strip()}
+    result: dict[str, str] = {}
+    if len(workbooks) == 1:
+        result["workbook_id"] = next(iter(workbooks))
+    if len(dashboards) == 1:
+        result["dashboard_id"] = next(iter(dashboards))
+    return result
+
+
+def _request_project_root(request: str, supplied_root: str) -> str:
+    """Resolve an explicit child project path without searching sibling projects."""
+
+    root = Path(supplied_root).resolve()
+    candidates: list[tuple[int, int, Path]] = []
+    path_pattern = re.compile(
+        r"(?:'(?P<single>/[^']+)'|\"(?P<double>/[^\"]+)\"|"
+        r"(?<![:\w])(?P<bare>/[^'\"\n]+?)(?=\s+-\s+|[,.!?;]|$))"
+    )
+    for match_index, match in enumerate(path_pattern.finditer(request)):
+        raw = str(
+            match.group("single") or match.group("double") or match.group("bare") or ""
+        ).strip().rstrip(".,;:")
+        if not raw.startswith("/"):
+            continue
+        candidate = Path(raw).resolve()
+        if candidate != root and root not in candidate.parents:
+            continue
+        if not candidate.is_dir():
+            continue
+        if any((candidate / name).is_file() for name in PROJECT_MANIFEST_NAMES):
+            vicinity = request[max(0, match.start() - 180):match.start()].lower()
+            score = 0
+            if re.search(r"(?:работ\w*\s+.*(?:проект|папк)|рабоч\w*\s+папк|project\s+root|working\s+project)", vicinity):
+                score += 100
+            if re.search(r"(?:а\s+это\s+дашборд|построен\w*\s+на\s+основе|context|reference)", vicinity):
+                score -= 40
+            candidates.append((score, match_index, candidate))
+    if candidates:
+        return str(max(candidates, key=lambda item: (item[0], item[1]))[2])
+    return str(root)
+
+
+def _bind_style_with_reference_discovery(
+    contract: dict[str, Any],
+    *,
+    discovery: dict[str, Any],
+    context: dict[str, Any],
+) -> dict[str, Any]:
+    """Keep target and exact-reference reads separate while binding one style contract."""
+
+    target_graph = dict(discovery["target_graph"])
+    target_baselines = dict(discovery.get("baselines") or {})
+    reference = contract.get("reference") if isinstance(contract.get("reference"), dict) else {}
+    locator = str(reference.get("locator") or "")
+    kind = str(reference.get("kind") or "")
+    reference_graph: dict[str, Any] = {}
+    reference_baselines: dict[str, dict[str, Any]] = {}
+    reference_calls: list[dict[str, Any]] = []
+    if locator and kind == "live_object":
+        workspace = contract.get("workspace") if isinstance(contract.get("workspace"), dict) else {}
+        compiled = compile_task_contract(
+            f"Inspect DataLens reference target {locator}",
+            project_root=str(workspace.get("project_root") or "."),
+        )
+        reference_discovery = TargetDiscoveryService(
+            max_objects=int(context.get("max_reference_objects") or 12)
+        ).discover(
+            dict(compiled["contract"]),
+            request_text=locator,
+            target_url=locator,
+        )
+        if reference_discovery.get("status") != "success":
+            return {
+                "status": "blocked",
+                "reason": "exact reference discovery is incomplete: "
+                + str(reference_discovery.get("reason") or "reference target is unavailable"),
+                "reference_discovery": reference_discovery,
+            }
+        reference_graph = dict(reference_discovery["target_graph"])
+        reference_baselines = dict(reference_discovery.get("baselines") or {})
+        reference_calls = list(reference_discovery.get("provider_calls") or [])
+    result = ReferenceStyleService().bind(
+        contract,
+        target_graph=target_graph,
+        baselines=target_baselines,
+        reference_target_graph=reference_graph,
+        reference_baselines=reference_baselines,
+        portfolio_root=str(context.get("portfolio_root") or ""),
+    )
+    if reference_calls:
+        result["reference_provider_calls"] = reference_calls
     return result
 
 
@@ -342,12 +481,35 @@ def dl_task_resume(
     state, _ = journal.replay()
     _assert_expected_state(state, expected_state=expected_state, expected_hash=expected_hash)
     before = state.last_event_id
-    if user_turn is None and _blocked_discovery_is_retryable(state):
-        state, blocked_result = _retry_blocked_discovery(journal, contract, state, before=before)
+    if user_turn is None and _discovery_recovery_required(state, journal):
+        recovery_source = (
+            "BLOCKED_DISCOVERY"
+            if _blocked_discovery_is_retryable(state)
+            else "INTERRUPTED_OR_INCOMPLETE_DISCOVERY"
+        )
+        state, blocked_result = _retry_blocked_discovery(
+            journal,
+            contract,
+            state,
+            before=before,
+            recovery_source=recovery_source,
+        )
         if blocked_result is not None:
             return blocked_result
     if state.current_state == "VALIDATED":
         _ensure_task_plan(journal, contract, state)
+    semantic_gate = _semantic_action_gate(journal, contract)
+    if semantic_gate:
+        projected = _project_semantic_action_gate(
+            journal,
+            contract,
+            state=state,
+            before=before,
+            outcome=semantic_gate,
+        )
+        if amendment_result:
+            projected["amendment"] = amendment_result
+        return projected
     state = _advance(
         journal,
         contract,
@@ -363,6 +525,7 @@ def dl_task_resume(
         performed_after=before,
         **_projection_bindings(journal),
     )
+    _attach_object_index(result, journal)
     result.update(_contract_revision_projection(contract))
     if amendment_result:
         result["amendment"] = amendment_result
@@ -371,6 +534,10 @@ def dl_task_resume(
         result.update(
             {"plan_hash": plan.get("plan_hash"), "plan_resource_uri": task_resource_uri(task_id, "plans/plan.json")}
         )
+        result["semantic_state"] = str(plan.get("semantic_state") or "semantic_plan_ready")
+        if plan.get("semantic_state") == "already_satisfied_no_write":
+            result["state"] = "already_satisfied_no_write"
+            result["matched_assertions"] = list(plan.get("matched_assertions") or [])
     return result
 
 
@@ -381,6 +548,7 @@ def dl_task_status(task_id: str, project_root: str = ".") -> dict[str, Any]:
     result = compact_task_status(
         contract, state, resource_uri=task_resource_uri(task_id), **_projection_bindings(journal)
     )
+    _attach_object_index(result, journal)
     result["journal_recovered"] = corrupt_tail
     result.update(_contract_revision_projection(contract))
     return result
@@ -488,6 +656,8 @@ def dl_plan(task_id: str, project_root: str = ".") -> dict[str, Any]:
         "query_set_hash": plan.get("query_set_hash"),
         "dataset_schema_hash": plan.get("dataset_schema_hash"),
         "context_limitations": plan.get("context_limitations") or [],
+        "semantic_state": str(plan.get("semantic_state") or "semantic_plan_ready"),
+        "matched_assertions": list(plan.get("matched_assertions") or []),
         "next_action": "dl_execute" if (contract.get("delivery") or {}).get("save") else "dl_verify",
     }
 
@@ -643,7 +813,14 @@ def _amend_task(
     )
     persisted_old_target = deepcopy(old.get("target") or {})
     old_target = deepcopy(persisted_old_target)
-    old_target["technology"] = str(old_target.get("technology") or old.get("route") or "")
+    persisted_route = str(old.get("route") or "")
+    old_target["technology"] = str(
+        old_target.get("technology")
+        or (persisted_route if persisted_route in {
+            "editor_advanced", "editor_table", "editor_markdown", "editor_js_control",
+            "wizard_native", "ql_explicit",
+        } else "")
+    )
     old_scope = deepcopy(old.get("scope") or {})
     requested_scope = context.get("scope") if isinstance(context.get("scope"), dict) else {}
     scope = {**old_scope, **requested_scope}
@@ -830,11 +1007,10 @@ def _amend_task(
                 "CONTRACT_AMENDMENT_DISCOVERY_BLOCKED: "
                 + str(discovered.get("reason") or "fresh target discovery is incomplete")
             )
-        style = ReferenceStyleService().bind(
+        style = _bind_style_with_reference_discovery(
             new_contract,
-            target_graph=dict(discovered["target_graph"]),
-            baselines=dict(discovered.get("baselines") or {}),
-            portfolio_root=str(context.get("portfolio_root") or ""),
+            discovery=discovered,
+            context=context,
         )
         if style.get("status") != "success":
             raise JournalIdentityError(
@@ -1082,6 +1258,24 @@ def _blocked_discovery_is_retryable(state: Any) -> bool:
     )
 
 
+def _discovery_recovery_required(state: Any, journal: ProjectJournal) -> bool:
+    if _blocked_discovery_is_retryable(state):
+        return True
+    if state.current_state == "BLOCKED":
+        blocker = dict(state.blocker or {})
+        details = dict(blocker.get("details") or {})
+        missing = {str(value) for value in details.get("missing_requirements") or []}
+        return (
+            str(blocker.get("reason") or "") == "live target discovery is unavailable"
+            and bool(missing & {"live_target_binding", "target_graph"})
+        )
+    if state.current_state != "RESOLVED":
+        return False
+    target = read_json(journal.target_binding_path, {}) or {}
+    graph = read_json(journal.target_graph_path, {}) or {}
+    return target.get("source") != "live_discovery" or not graph.get("graph_hash")
+
+
 def _provider_discovery_failure(
     exc: DataLensApiError,
     *,
@@ -1134,6 +1328,7 @@ def _retry_blocked_discovery(
     state,
     *,
     before: int,
+    recovery_source: str = "BLOCKED_DISCOVERY",
 ) -> tuple[Any, dict[str, Any] | None]:
     target_url = str(
         (((contract.get("browser_policy") or {}).get("target") or {}).get("canonical_url")) or ""
@@ -1176,11 +1371,10 @@ def _retry_blocked_discovery(
     portfolio_root = ""
     if str(reference.get("kind") or "") == "portfolio_object" and reference_locator:
         portfolio_root = str(Path(reference_locator).resolve().parent)
-    style = ReferenceStyleService().bind(
+    style = _bind_style_with_reference_discovery(
         contract,
-        target_graph=dict(discovery["target_graph"]),
-        baselines=dict(discovery.get("baselines") or {}),
-        portfolio_root=portfolio_root,
+        discovery=discovery,
+        context={"portfolio_root": portfolio_root},
     )
     if style.get("status") != "success":
         receipt = journal.write_receipt(
@@ -1215,7 +1409,7 @@ def _retry_blocked_discovery(
             "tab_count": discovery.get("tab_count", 0),
             "dataset_count": discovery.get("dataset_count", 0),
             "field_count": discovery.get("field_count", 0),
-            "recovered_from": "BLOCKED_DISCOVERY",
+            "recovered_from": recovery_source,
         },
     )
     with journal.locked(owner="task-discovery-retry"):
@@ -1223,7 +1417,7 @@ def _retry_blocked_discovery(
         recovered = journal.append_transition(
             current,
             transition="TASK_DISCOVERY_RETRY_SUCCEEDED",
-            input_value={"prior_blocker": "BLOCKED_DISCOVERY"},
+            input_value={"prior_blocker": recovery_source},
             receipt_uri=journal.receipt_uri("discovery.json"),
             status="success",
             idempotency_key=canonical_hash(
@@ -1241,6 +1435,7 @@ def _retry_blocked_discovery(
 
 def _live_graph_projection(graph: dict[str, Any], *, task_id: str) -> dict[str, Any]:
     nodes = list(graph.get("nodes") or [])
+    object_index = compact_object_index(graph, max_objects=50)
     return {
         "ok": True,
         "task_id": task_id,
@@ -1248,21 +1443,81 @@ def _live_graph_projection(graph: dict[str, Any], *, task_id: str) -> dict[str, 
         "graph_hash": graph.get("graph_hash"),
         "node_count": len(nodes),
         "edge_count": len(graph.get("edges") or []),
-        "nodes": [
-            {
-                "object_type": item.get("object_type"),
-                "object_id": item.get("object_id"),
-                "technology": item.get("technology"),
-                "saved_revision": item.get("saved_revision"),
-                "canonical_direct_url": item.get("canonical_direct_url"),
-                "field_count": len(item.get("field_catalog") or []),
-            }
-            for item in nodes[:50]
-        ],
+        "nodes": object_index,
+        "object_index": object_index,
         "limitations": graph.get("limitations") or [],
         "bounded": True,
         "resource_uri": task_resource_uri(task_id, "target-graph") if task_id else "datalens://inspect/target-graph",
     }
+
+
+def _semantic_action_gate(journal: ProjectJournal, contract: dict[str, Any]) -> dict[str, Any]:
+    if str(contract.get("operation_kind") or "") != "mutate":
+        return {}
+    if str(contract.get("mode") or "") not in {"create", "update", "redesign"}:
+        return {}
+    if _contract_semantic_changes(contract):
+        return {}
+    create_bundle = read_json(journal.root / "inputs" / "create-bundle.json", {}) or {}
+    if str(contract.get("mode") or "") == "create" and create_bundle.get("bundle_hash"):
+        return {}
+    graph = read_json(journal.target_graph_path, {}) or {}
+    if not graph.get("nodes"):
+        return {}
+    style = read_json(journal.style_binding_path, {}) or {}
+    outcome = SemanticChangePlanner().plan(
+        contract,
+        target_graph=graph,
+        baselines={},
+        effective_visual_contract=dict(style.get("effective_visual_contract") or {}),
+    )
+    if outcome.get("status") != "needs_semantic_actions":
+        return {}
+    return {
+        **outcome,
+        "route": str(style.get("technology") or contract.get("route") or ""),
+        "target_binding_hash": str((read_json(journal.target_binding_path, {}) or {}).get("binding_hash") or ""),
+        "style_binding_hash": str(style.get("binding_hash") or ""),
+        "resource_uri": task_resource_uri(journal.task_id),
+    }
+
+
+def _project_semantic_action_gate(
+    journal: ProjectJournal,
+    contract: dict[str, Any],
+    *,
+    state: Any,
+    before: int,
+    outcome: dict[str, Any],
+) -> dict[str, Any]:
+    result = project_task_summary(
+        contract=contract,
+        state=state,
+        events_path=journal.events_path,
+        resource_uri=task_resource_uri(journal.task_id),
+        performed_after=before,
+        **_projection_bindings(journal),
+    )
+    if result.get("blocked_by") is None:
+        result.pop("blocked_by", None)
+    result.update(outcome)
+    _attach_object_index(result, journal)
+    result.update(_contract_revision_projection(contract))
+    return result
+
+
+def _contract_semantic_changes(contract: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for item in contract.get("acceptance") or []:
+        if not isinstance(item, dict) or item.get("kind") != "semantic_change":
+            continue
+        try:
+            value = json.loads(str(item.get("statement") or ""))
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict):
+            rows.append(value)
+    return rows
 
 
 def _projection_bindings(journal: ProjectJournal) -> dict[str, dict[str, Any]]:
@@ -1270,6 +1525,14 @@ def _projection_bindings(journal: ProjectJournal) -> dict[str, dict[str, Any]]:
         "target_binding": read_json(journal.target_binding_path, {}) or {},
         "style_binding": read_json(journal.style_binding_path, {}) or {},
     }
+
+
+def _attach_object_index(result: dict[str, Any], journal: ProjectJournal) -> None:
+    graph = read_json(journal.target_graph_path, {}) or {}
+    if not graph.get("nodes"):
+        return
+    result["object_index"] = compact_object_index(graph, max_objects=50)
+    result["object_index_resource_uri"] = task_resource_uri(journal.task_id, "target-graph")
 
 
 def _context_profile_projection(profile: dict[str, Any], *, task_id: str) -> dict[str, Any]:

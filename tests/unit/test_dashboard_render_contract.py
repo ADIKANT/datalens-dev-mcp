@@ -37,6 +37,25 @@ def _title_contract(*, family: str) -> dict:
 
 
 class DashboardRenderContractTests(unittest.TestCase):
+    def test_generic_profile_does_not_force_legacy_project_overlay(self):
+        generic = resolve_dashboard_render_contract(
+            profile_id=PROFILE_ID,
+            family="kpi_value_only",
+        )
+        legacy = resolve_dashboard_render_contract(
+            profile_id=PROFILE_ID,
+            family="kpi_value_only",
+            overlay_ids=["legacy_dense_dashboard_layout"],
+        )
+
+        self.assertNotIn("surface", generic["effective_tokens"]["kpi"])
+        self.assertNotIn("legend", generic["effective_tokens"]["typography"])
+        self.assertNotIn("period_first_if_present", generic["effective_tokens"]["selector"])
+        self.assertNotIn("kpi_max_per_row", generic["effective_tokens"]["dashboard_composition"])
+        self.assertNotIn("one_metric_per_tile", generic["effective_tokens"]["component"])
+        self.assertEqual(legacy["effective_tokens"]["kpi"]["surface"]["radius_px"], 0)
+        self.assertEqual(legacy["effective_tokens"]["dashboard_composition"]["kpi_max_per_row"], 3)
+
     def test_packaged_profile_hashes_are_deterministic_and_result_is_immutable(self):
         registry = load_dashboard_render_profiles()
         profile = registry["profiles"][PROFILE_ID]
@@ -63,11 +82,11 @@ class DashboardRenderContractTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             first["family"] = "pie"
         with self.assertRaises(TypeError):
-            first["effective_tokens"]["kpi"]["surface"]["radius_px"] = 6
+            first["effective_tokens"]["viewport"]["min_width_px"] = 6
 
     def test_registry_and_profile_fingerprints_fail_closed_on_token_drift(self):
         tampered = _plain(load_dashboard_render_profiles())
-        tampered["profiles"][PROFILE_ID]["core"]["kpi"]["surface"]["radius_px"] = 4
+        tampered["profiles"][PROFILE_ID]["core"]["viewport"]["min_width_px"] = 4
         load_dashboard_render_profiles.cache_clear()
         try:
             with patch.object(
@@ -161,6 +180,7 @@ class DashboardRenderContractTests(unittest.TestCase):
         accepted = resolve_dashboard_render_contract(
             profile_id=PROFILE_ID,
             family="horizontal_bar",
+            overlay_ids=["legacy_dense_dashboard_layout"],
             overrides={
                 "density": "compact",
                 "legend_typography": "readable",
@@ -188,6 +208,7 @@ class DashboardRenderContractTests(unittest.TestCase):
             profile_id=PROFILE_ID,
             family="horizontal_bar",
             overrides={"tooltip_owner": "native"},
+            overlay_ids=["legacy_dense_dashboard_layout"],
         )
         title_contract = _title_contract(family="horizontal_bar")
         upgraded = build_renderer_visual_spec(
@@ -372,6 +393,7 @@ class DashboardRenderContractTests(unittest.TestCase):
             profile_id=PROFILE_ID,
             family="horizontal_bar",
             overrides={"legend_typography": "readable"},
+            overlay_ids=["legacy_dense_dashboard_layout"],
         )
 
         hashes = {
@@ -421,7 +443,11 @@ class DashboardRenderContractTests(unittest.TestCase):
 
     def test_typography_and_spacing_tokens_are_consistent_across_families(self):
         family_contracts = [
-            resolve_dashboard_render_contract(profile_id=PROFILE_ID, family=family)
+            resolve_dashboard_render_contract(
+                profile_id=PROFILE_ID,
+                family=family,
+                overlay_ids=["legacy_dense_dashboard_layout"],
+            )
             for family in (
                 "kpi_value_only",
                 "line_chart",
@@ -457,6 +483,7 @@ class DashboardRenderContractTests(unittest.TestCase):
         metric = resolve_dashboard_render_contract(
             profile_id=PROFILE_ID,
             family="kpi_value_only",
+            overlay_ids=["legacy_dense_dashboard_layout"],
         )
         self.assertEqual(metric["effective_tokens"]["viewport"]["min_height_px"], 96)
         self.assertEqual(

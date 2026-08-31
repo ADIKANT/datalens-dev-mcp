@@ -11,6 +11,29 @@ from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
 DECISION_CONTEXT_SCHEMA_ID = "datalens_project_decision_context"
 PROJECT_MANIFEST_NAMES = (".datalens-mcp.json", "datalens-mcp.project.json")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+VISUAL_PROFILE_CATEGORIES = (
+    "layout",
+    "tabs",
+    "titles",
+    "hints",
+    "kpi",
+    "tables",
+    "series",
+    "legend",
+    "axes",
+    "tooltip",
+    "selectors",
+    "formatting",
+    "colors",
+    "theme",
+    "comparison",
+    "data_states",
+    "advanced_editor",
+    "performance",
+    "manual_overrides",
+)
+DECISION_SCOPES = frozenset({"portfolio", "project", "task"})
+DECISION_STATUSES = frozenset({"active", "rejected", "superseded", "unresolved"})
 
 
 def resolve_project_decision_context(
@@ -51,11 +74,21 @@ def resolve_project_decision_context(
     if not _target_matches(descriptor, contract=contract, target_graph=target_graph):
         return _error("decision_context target does not match the current project target")
     profile = dict(descriptor["profile"])
+    typed_profile = _normalized_typed_profile(profile)
     exemplar = _select_exemplar(descriptor, contract=contract, target_graph=target_graph)
     corrections = [
         dict(item)
         for item in descriptor.get("corrections") or []
-        if isinstance(item, dict) and item.get("status") == "active"
+        if isinstance(item, dict)
+        and item.get("status") == "active"
+        and _decision_applies(item, target_graph=target_graph)
+    ]
+    decisions = [
+        dict(item)
+        for item in descriptor.get("decisions") or []
+        if isinstance(item, dict)
+        and item.get("status") == "active"
+        and _decision_applies(item, target_graph=target_graph)
     ]
     bounded_decisions = {
         key: profile[key]
@@ -100,9 +133,21 @@ def resolve_project_decision_context(
         "project_id": str(descriptor.get("project_id") or ""),
         "descriptor_sha256": actual_sha256,
         "project_profile_hash": canonical_hash(profile),
+        "typed_profile": typed_profile,
+        "typed_decisions": [_typed_decision_projection(item) for item in decisions],
+        "task_corrections": [
+            _typed_decision_projection(item)
+            for item in corrections
+            if "typed_value" in item and str(item.get("category") or "") in VISUAL_PROFILE_CATEGORIES
+        ],
         "accepted_exemplar_selection": "selected" if exemplar else "none",
         "accepted_exemplar_id": str((exemplar or {}).get("exemplar_id") or ""),
         "accepted_exemplar_hash": canonical_hash(exemplar) if exemplar else "",
+        "accepted_exemplar_visual_contract": dict(
+            (exemplar or {}).get("visual_contract")
+            or (exemplar or {}).get("typed_profile")
+            or {}
+        ),
         "correction_set_hash": canonical_hash(corrections),
         "bounded_decisions": bounded_decisions,
         "source_hashes": source_hashes,
@@ -115,18 +160,39 @@ def validate_project_decision_context(value: dict[str, Any]) -> tuple[str, ...]:
     issues: list[str] = []
     if value.get("schema_id") != DECISION_CONTEXT_SCHEMA_ID:
         issues.append(f"schema_id must be {DECISION_CONTEXT_SCHEMA_ID}")
-    if value.get("context_version") != 1:
-        issues.append("context_version must equal 1")
+    version = value.get("context_version")
+    if version not in {1, 2}:
+        issues.append("context_version must equal 1 or 2")
     if not str(value.get("project_id") or "").strip():
         issues.append("project_id is required")
-    if not isinstance(value.get("profile"), dict) or not value.get("profile"):
+    profile = value.get("profile")
+    if not isinstance(profile, dict) or not profile:
         issues.append("profile must be a non-empty object")
+    elif version == 2:
+        unsupported = sorted(set(profile) - set(VISUAL_PROFILE_CATEGORIES))
+        if unsupported:
+            issues.append("profile contains unsupported categories: " + ", ".join(unsupported))
+        for category, section in profile.items():
+            if not isinstance(section, dict):
+                issues.append(f"profile.{category} must be an object")
+        advanced = profile.get("advanced_editor") or {}
+        if isinstance(advanced, dict):
+            for key in ("protected_regions", "semantic_slots"):
+                if key in advanced and not isinstance(advanced.get(key), list):
+                    issues.append(f"profile.advanced_editor.{key} must be an array")
     match = value.get("match")
     if not isinstance(match, dict) or not any(match.get(key) for key in ("workbook_ids", "dashboard_ids")):
         issues.append("match must declare workbook_ids or dashboard_ids")
     for index, item in enumerate(value.get("accepted_exemplars") or []):
         if not isinstance(item, dict) or not str(item.get("exemplar_id") or ""):
             issues.append(f"accepted_exemplars[{index}] is invalid")
+    for collection in ("decisions", "corrections"):
+        for index, item in enumerate(value.get(collection) or []):
+            if not isinstance(item, dict):
+                issues.append(f"{collection}[{index}] must be an object")
+                continue
+            if collection == "decisions" or "typed_value" in item:
+                issues.extend(_validate_decision_item(item, path=f"{collection}[{index}]"))
     hashes = [str(item) for item in value.get("source_hashes") or []]
     hashes.extend(
         str(item.get("source_sha256") or "")
@@ -136,6 +202,90 @@ def validate_project_decision_context(value: dict[str, Any]) -> tuple[str, ...]:
     if any(not SHA256_RE.fullmatch(item) for item in hashes):
         issues.append("source hashes must be lowercase SHA-256 values")
     return tuple(dict.fromkeys(issues))
+
+
+def _normalized_typed_profile(profile: dict[str, Any]) -> dict[str, Any]:
+    normalized = {
+        category: dict(profile.get(category) or {})
+        for category in VISUAL_PROFILE_CATEGORIES
+        if isinstance(profile.get(category), dict) and profile.get(category)
+    }
+    advanced = dict(normalized.get("advanced_editor") or {})
+    if advanced:
+        advanced.setdefault("protected_regions", [])
+        advanced.setdefault("semantic_slots", [])
+        normalized["advanced_editor"] = advanced
+    return normalized
+
+
+def _validate_decision_item(item: dict[str, Any], *, path: str) -> list[str]:
+    issues: list[str] = []
+    if not str(item.get("decision_id") or "").strip():
+        issues.append(f"{path}.decision_id is required")
+    category = str(item.get("category") or "")
+    if category not in VISUAL_PROFILE_CATEGORIES:
+        issues.append(f"{path}.category is unsupported")
+    if str(item.get("scope") or "") not in DECISION_SCOPES:
+        issues.append(f"{path}.scope is invalid")
+    status = str(item.get("status") or "")
+    if status not in DECISION_STATUSES:
+        issues.append(f"{path}.status is invalid")
+    applies_to = item.get("applies_to")
+    if not isinstance(applies_to, dict):
+        issues.append(f"{path}.applies_to must be an object")
+    else:
+        for key in ("object_types", "visualization_families", "object_ids"):
+            if key in applies_to and not isinstance(applies_to.get(key), list):
+                issues.append(f"{path}.applies_to.{key} must be an array")
+    if not str(item.get("statement") or "").strip():
+        issues.append(f"{path}.statement is required")
+    if "typed_value" not in item:
+        issues.append(f"{path}.typed_value is required")
+    for key in ("source_refs", "final_state_refs", "supersedes"):
+        if not isinstance(item.get(key), list):
+            issues.append(f"{path}.{key} must be an array")
+    if status == "active" and not list(item.get("final_state_refs") or []):
+        issues.append(f"{path}.final_state_refs is required for an active decision")
+    return issues
+
+
+def _typed_decision_projection(item: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: item.get(key)
+        for key in (
+            "decision_id",
+            "category",
+            "scope",
+            "status",
+            "applies_to",
+            "statement",
+            "typed_value",
+            "source_refs",
+            "final_state_refs",
+            "supersedes",
+        )
+    }
+
+
+def _decision_applies(item: dict[str, Any], *, target_graph: dict[str, Any]) -> bool:
+    applies = item.get("applies_to") if isinstance(item.get("applies_to"), dict) else {}
+    if not applies:
+        return True
+    nodes = [node for node in target_graph.get("nodes") or [] if isinstance(node, dict)]
+    actual_ids = {str(node.get("object_id") or "") for node in nodes} - {""}
+    actual_types = {str(node.get("object_type") or "") for node in nodes} - {""}
+    actual_families = {
+        str(node.get("visualization_family") or node.get("family") or "") for node in nodes
+    } - {""}
+    declared_ids = {str(value) for value in applies.get("object_ids") or []}
+    declared_types = {str(value) for value in applies.get("object_types") or []}
+    declared_families = {str(value) for value in applies.get("visualization_families") or []}
+    checks = [
+        bool(actual_ids & declared_ids) if declared_ids else True,
+        bool(actual_types & declared_types) if declared_types else True,
+        bool(actual_families & declared_families) if declared_families else True,
+    ]
+    return all(checks)
 
 
 def _project_manifest(root: Path) -> dict[str, Any]:

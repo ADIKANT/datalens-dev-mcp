@@ -152,6 +152,38 @@ BROWSER_QA_ASSERTIONS = (
         "id": "lazy_full_scroll_contract",
         "description": "Every expected object initializes after each tab is checked at top and after full scroll.",
     },
+    {
+        "id": "legend_visibility_contract",
+        "description": "Scoped legend visibility matches the effective visual contract.",
+    },
+    {
+        "id": "line_series_retention_contract",
+        "description": "Every scoped required line or series is observed in the rendered object.",
+    },
+    {
+        "id": "tooltip_fields_contract",
+        "description": "Scoped tooltip fields are exposed by the rendered object contract.",
+    },
+    {
+        "id": "axis_unit_scale_contract",
+        "description": "Scoped axis unit and scale markers match the effective visual contract.",
+    },
+    {
+        "id": "table_columns_contract",
+        "description": "Scoped table columns are present in the rendered table.",
+    },
+    {
+        "id": "kpi_separation_contract",
+        "description": "Scoped KPI values remain in the required distinct dashboard objects.",
+    },
+    {
+        "id": "selector_placement_contract",
+        "description": "Scoped selectors appear in the required visual order and placement.",
+    },
+    {
+        "id": "data_state_contract",
+        "description": "Scoped empty, error, and populated states match the effective visual contract.",
+    },
 )
 BROWSER_QA_UNIVERSAL_ASSERTION_IDS = frozenset(
     {
@@ -217,6 +249,11 @@ def build_browser_qa_plan(
     responsive_acceptance: bool = False,
     profile_assertions: list[dict[str, Any]] | None = None,
     active_provenance_hash: str = "",
+    task_acceptance: list[dict[str, Any] | str] | None = None,
+    project_profile_hash: str = "",
+    accepted_exemplar_hash: str = "",
+    affected_object_ids: list[str] | None = None,
+    affected_tab_ids: list[str] | None = None,
     tab_object_ids: dict[str, list[str]] | None = None,
 ) -> dict[str, Any]:
     """Build a candidate-bound, read-only browser QA traversal plan."""
@@ -283,6 +320,17 @@ def build_browser_qa_plan(
         profile_assertions or [],
         active_provenance_hash=str(active_provenance_hash or ""),
     )
+    normalized_affected_object_ids = _normalized_string_list(
+        list(affected_object_ids or normalized_object_ids)
+    )
+    normalized_affected_tab_ids = _normalized_string_list(
+        list(affected_tab_ids or normalized_tabs)
+    )
+    normalized_task_acceptance = [
+        dict(item) if isinstance(item, dict) else str(item)
+        for item in (task_acceptance or [])[:100]
+        if isinstance(item, (dict, str))
+    ]
     required_assertions = [
         *[dict(item) for item in BROWSER_QA_UNIVERSAL_ASSERTIONS],
         *normalized_profile_assertions,
@@ -297,6 +345,7 @@ def build_browser_qa_plan(
         "render_contract": normalized_render_contract,
         "title_contracts": normalized_title_contracts,
         "dashboard_composition": normalized_composition,
+        "scoped_assertions": normalized_profile_assertions,
     }
     evaluate_source = _build_browser_qa_evaluate_source(evaluation_input)
     artifact_stem = _safe_artifact_stem(normalized_dashboard_id)
@@ -320,6 +369,8 @@ def build_browser_qa_plan(
             "tab_ids": normalized_tabs,
             "expected_object_ids": normalized_object_ids,
             "tab_object_ids": normalized_tab_objects,
+            "affected_object_ids": normalized_affected_object_ids,
+            "affected_tab_ids": normalized_affected_tab_ids,
             "saved_revision": normalized_saved_revision,
             "published_revision": normalized_published_revision,
         },
@@ -345,6 +396,11 @@ def build_browser_qa_plan(
             "universal_assertion_ids": [item["id"] for item in BROWSER_QA_UNIVERSAL_ASSERTIONS],
             "profile_assertions": normalized_profile_assertions,
             "active_provenance_hash": str(active_provenance_hash or ""),
+            "task_acceptance": normalized_task_acceptance,
+            "project_profile_hash": str(project_profile_hash or ""),
+            "accepted_exemplar_hash": str(accepted_exemplar_hash or ""),
+            "affected_object_ids": normalized_affected_object_ids,
+            "affected_tab_ids": normalized_affected_tab_ids,
         },
         "execution": {
             "browser_route": "internal_browser_adapter",
@@ -667,6 +723,34 @@ def validate_browser_qa_plan(plan: dict[str, Any]) -> dict[str, Any]:
     )
     if f'"dashboard_composition":{encoded_composition}' not in source:
         issues.append("dashboard_composition_not_bound_to_evaluate_source")
+
+    assertion_scope = plan.get("assertion_scope") if isinstance(plan.get("assertion_scope"), dict) else {}
+    scoped_assertions = assertion_scope.get("profile_assertions")
+    if not isinstance(scoped_assertions, list):
+        issues.append("scoped_visual_assertions_invalid")
+        scoped_assertions = []
+    encoded_scoped_assertions = json.dumps(
+        scoped_assertions,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    if f'"scoped_assertions":{encoded_scoped_assertions}' not in source:
+        issues.append("scoped_visual_assertions_not_bound_to_evaluate_source")
+    if scoped_assertions and not re.fullmatch(
+        r"[a-f0-9]{64}", str(assertion_scope.get("active_provenance_hash") or "")
+    ):
+        issues.append("active_visual_provenance_hash_missing")
+    target = plan.get("target") if isinstance(plan.get("target"), dict) else {}
+    for key, target_key in (
+        ("affected_object_ids", "expected_object_ids"),
+        ("affected_tab_ids", "tab_ids"),
+    ):
+        values = assertion_scope.get(key)
+        if not isinstance(values, list) or values != sorted(set(values)):
+            issues.append(f"{key}_invalid")
+        elif not set(values).issubset(set(target.get(target_key) or [])):
+            issues.append(f"{key}_outside_browser_target")
 
     render_contract = (
         plan.get("render_contract")
@@ -1260,6 +1344,102 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
     : tooltipShells.length === 1 && tooltipOwners.length === 1 &&
       tooltipSurfaceRows.every((row) => row.border_none && row.radius_px === 0 &&
         row.outline_none && row.shadow_none);
+  const scopedExpected = (value, keys) => {
+    if (!value || typeof value !== "object") return undefined;
+    for (const key of keys) {
+      if (Object.prototype.hasOwnProperty.call(value, key)) return value[key];
+    }
+    for (const nested of Object.values(value)) {
+      const found = scopedExpected(nested, keys);
+      if (found !== undefined) return found;
+    }
+    return undefined;
+  };
+  const stringList = (value) => Array.isArray(value)
+    ? value.map((item) => String(item || "").trim()).filter(Boolean)
+    : typeof value === "string" ? [value.trim()].filter(Boolean) : [];
+  const scopedAssertionRows = (input.scoped_assertions || []).map((assertion) => {
+    const assertionId = String(assertion.id || assertion.assertion_id || "");
+    const objectIds = stringList(assertion.applies_to_object_ids);
+    const nodes = (objectIds.length > 0 ? objectIds : input.expected_object_ids)
+      .map((objectId) => findObject(objectId)).filter(Boolean);
+    const expected = assertion.expected || {};
+    let observed = false;
+    let passed = false;
+    let actual = null;
+    if (assertionId === "legend_visibility_contract") {
+      const expectedVisible = scopedExpected(expected, ["visible", "show", "enabled"]);
+      const expectedRemoved = scopedExpected(expected, ["removed", "remove", "hidden"]);
+      const expectedState = expectedVisible !== undefined ? Boolean(expectedVisible) :
+        expectedRemoved !== undefined ? !Boolean(expectedRemoved) : undefined;
+      const count = nodes.reduce((total, node) => total +
+        all('[data-role="legend"],[aria-label="Legend"],.legend', node).filter(visible).length, 0);
+      observed = expectedState !== undefined;
+      actual = {visible_count: count};
+      passed = observed && (expectedState ? count > 0 : count === 0);
+    } else if (assertionId === "line_series_retention_contract") {
+      const expectedIds = stringList(scopedExpected(expected, ["series_ids", "required_series", "retain", "lines"]));
+      const actualIds = uniqueIds(nodes.flatMap((node) =>
+        all('[data-series-role="mark"],[data-series-id]', node)));
+      observed = expectedIds.length > 0;
+      actual = {series_ids: actualIds};
+      passed = observed && expectedIds.every((id) => actualIds.includes(id));
+    } else if (assertionId === "tooltip_fields_contract") {
+      const expectedFields = stringList(scopedExpected(expected, ["fields", "field_ids", "include_fields"]));
+      const actualFields = Array.from(new Set(nodes.flatMap((node) =>
+        all('[data-tooltip-field]', node).map((field) => String(field.getAttribute("data-tooltip-field") || "").trim())
+      ).filter(Boolean))).sort();
+      observed = expectedFields.length > 0;
+      actual = {fields: actualFields};
+      passed = observed && expectedFields.every((field) => actualFields.includes(field));
+    } else if (assertionId === "axis_unit_scale_contract") {
+      const expectedUnit = scopedExpected(expected, ["unit", "axis_unit"]);
+      const expectedScale = scopedExpected(expected, ["scale", "axis_scale"]);
+      const axisNodes = nodes.flatMap((node) => all('[data-axis-unit],[data-axis-scale]', node));
+      const units = axisNodes.map((node) => String(node.getAttribute("data-axis-unit") || "")).filter(Boolean);
+      const scales = axisNodes.map((node) => String(node.getAttribute("data-axis-scale") || "")).filter(Boolean);
+      observed = expectedUnit !== undefined || expectedScale !== undefined;
+      actual = {units, scales};
+      passed = observed && (expectedUnit === undefined || units.includes(String(expectedUnit))) &&
+        (expectedScale === undefined || scales.includes(String(expectedScale)));
+    } else if (assertionId === "table_columns_contract") {
+      const expectedColumns = stringList(scopedExpected(expected, ["columns", "column_ids", "required_columns"]));
+      const actualColumns = nodes.flatMap((node) =>
+        all('th,[role="columnheader"]', node).filter(visible).map((header) => text(header))
+      );
+      observed = expectedColumns.length > 0;
+      actual = {columns: actualColumns};
+      passed = observed && expectedColumns.every((column) => actualColumns.includes(column));
+    } else if (assertionId === "kpi_separation_contract") {
+      const separate = scopedExpected(expected, ["separate", "one_metric_per_tile", "one_kpi_per_object"]);
+      const foundNodes = objectIds.map((objectId) => findObject(objectId)).filter(Boolean);
+      observed = separate !== undefined && objectIds.length > 0;
+      actual = {expected_object_count: objectIds.length, found_object_count: new Set(foundNodes).size};
+      passed = observed && (!Boolean(separate) || new Set(foundNodes).size === objectIds.length);
+    } else if (assertionId === "selector_placement_contract") {
+      const expectedOrder = stringList(scopedExpected(expected, ["order", "selector_ids"]));
+      const actualOrder = expectedOrder.map((objectId) => ({objectId, node: findObject(objectId)}))
+        .filter((item) => item.node).sort((left, right) => {
+          const leftBox = rect(left.node); const rightBox = rect(right.node);
+          return leftBox.top - rightBox.top || leftBox.left - rightBox.left;
+        }).map((item) => item.objectId);
+      observed = expectedOrder.length > 0;
+      actual = {order: actualOrder};
+      passed = observed && JSON.stringify(actualOrder) === JSON.stringify(expectedOrder);
+    } else if (assertionId === "data_state_contract") {
+      const expectedEmpty = scopedExpected(expected, ["expected_empty", "empty"]);
+      const emptyMarkers = nodes.flatMap((node) => all('[data-state="empty"],.no-data', node).filter(visible));
+      observed = expectedEmpty !== undefined;
+      actual = {empty_marker_count: emptyMarkers.length, error_marker_count: markerMatches.length};
+      passed = observed && markerMatches.length === 0 &&
+        (Boolean(expectedEmpty) ? emptyMarkers.length > 0 : emptyMarkers.length === 0);
+    }
+    return {assertion_id: assertionId, observed, passed, expected, actual};
+  });
+  const scopedAssertionPasses = (assertionId) => {
+    const rows = scopedAssertionRows.filter((row) => row.assertion_id === assertionId);
+    return rows.length > 0 && rows.every((row) => row.observed && row.passed);
+  };
   const assertions = {
     objects_visible_nonempty: objectRows.every((row) => row.found && row.visible && row.nonempty),
     no_error_retry_markers: markerMatches.length === 0,
@@ -1300,7 +1480,15 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
       row.found && row.empty_means_all && row.restore_after_clear),
     table_readability_contract: tableRows.every((row) =>
       row.headers_nonempty && row.sticky_meaningful && row.clipping_labelled),
-    lazy_full_scroll_contract: objectRows.every((row) => row.found && row.visible && row.nonempty)
+    lazy_full_scroll_contract: objectRows.every((row) => row.found && row.visible && row.nonempty),
+    legend_visibility_contract: scopedAssertionPasses("legend_visibility_contract"),
+    line_series_retention_contract: scopedAssertionPasses("line_series_retention_contract"),
+    tooltip_fields_contract: scopedAssertionPasses("tooltip_fields_contract"),
+    axis_unit_scale_contract: scopedAssertionPasses("axis_unit_scale_contract"),
+    table_columns_contract: scopedAssertionPasses("table_columns_contract"),
+    kpi_separation_contract: scopedAssertionPasses("kpi_separation_contract"),
+    selector_placement_contract: scopedAssertionPasses("selector_placement_contract"),
+    data_state_contract: scopedAssertionPasses("data_state_contract")
   };
   return {
     schema_id: "datalens.browser-qa-result",
@@ -1372,7 +1560,8 @@ def _build_browser_qa_evaluate_source(payload: dict[str, Any]) -> str:
       composition_rows: compositionRows,
       visual_kpi_rows: visualKpiRows,
       selector_clear_rows: selectorClearRows,
-      table_rows: tableRows
+      table_rows: tableRows,
+      scoped_assertion_rows: scopedAssertionRows
     }
   };
 })()""".replace("__QA_INPUT__", encoded)
@@ -1750,6 +1939,9 @@ def _normalize_profile_assertions(
                 "profile_or_exemplar_hash": source_hash,
                 "applies_to_object_ids": _normalized_string_list(
                     list(value.get("applies_to_object_ids") or [])
+                ),
+                "applies_to_tab_ids": _normalized_string_list(
+                    list(value.get("applies_to_tab_ids") or [])
                 ),
                 "expected": value.get("expected"),
                 "status": "required",

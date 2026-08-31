@@ -31,9 +31,12 @@ def unit_shards() -> tuple[list[str], list[str], list[str]]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run the complete sharded offline acceptance suite.")
+    parser = argparse.ArgumentParser(description="Run the complete sharded offline release gate.")
+    parser.add_argument("--release-gate", action="store_true", help="Required explicit release authorization.")
     parser.add_argument("--sharded", action="store_true")
-    parser.parse_args()
+    args = parser.parse_args()
+    if not args.release_gate:
+        parser.error("full acceptance is release-only; pass --release-gate explicitly")
     core, editor, pipeline = unit_shards()
     shards = [
         {"name": "unit-core", "command": py("-m", "pytest", "-q", *core), "timeout_sec": 900},

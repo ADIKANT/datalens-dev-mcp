@@ -86,9 +86,36 @@ def test_semantic_planner_blocks_noop_and_unallowed_tab() -> None:
             }
         ],
     )
-    assert noop["status"] == "NO_CHANGE_REQUIRED"
+    assert noop["status"] == "already_satisfied_no_write"
+    assert noop["matched_assertions"] == [
+        {
+            "target_id": "chart_demo",
+            "tab": "",
+            "slot_id": "series_label",
+            "expected": "Old label",
+            "matched": True,
+            "fresh_state": "already_applied",
+        }
+    ]
     assert outside["ok"] is False
     assert "outside allowed scope" in outside["issues"][0]
+
+
+def test_missing_typed_actions_is_not_reported_as_noop() -> None:
+    result = SemanticChangePlanner().plan(
+        {**_contract(), "contract_revision": 3, "mode": "update", "operation_kind": "mutate"},
+        target_graph=_graph(),
+        baselines={"chart-chart_demo-saved": _chart_payload()},
+    )
+
+    assert result["state"] == "needs_semantic_actions"
+    assert result["task_id"] == "task_demo"
+    assert result["contract_revision"] == 3
+    assert result["object_index"][0]["technology"] == ""
+    assert result["required_next_call"]["tool"] == "dl_task_resume"
+    assert result["required_next_call"]["arguments"]["user_turn"]["context"] == {
+        "semantic_changes": []
+    }
 
 
 def test_hashed_baseline_names_match_direct_object_identity_before_graph_references() -> None:

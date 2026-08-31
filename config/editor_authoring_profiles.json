@@ -29,7 +29,7 @@
       ],
       "style_contract": {
         "render_profile_id": "standard_dashboard",
-        "render_profile_sha256": "70fb8647e0ed8fe5f6f8dbab1f4aceda07b780e73de1a1c9cee55cb07ce41135",
+        "render_profile_sha256": "d02f86a0ea31b1d03d87fc734f58d166327ae7bdc0af8e33a29dbc921cf6a35d",
         "render_compiler_id": "resolved_render_contract",
         "renderer_visual_spec": "renderer_visual_spec",
         "editor_render_profile": "standard_dashboard",

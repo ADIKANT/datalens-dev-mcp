@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 import pytest
 
 from datalens_dev_mcp.server import JsonRpcServer
 from tests.fixtures.public_autonomy_api.fake_api import PublicAutonomyApi
 from tests.integration.public_autonomy_jsonrpc_support import public_exchange, public_server
-
 
 CORPUS_ROOT = Path(__file__).with_name("behavior_traces")
 CASES = [
@@ -47,7 +46,11 @@ def test_sanitized_behavior_trace_through_public_jsonrpc(case: dict) -> None:
         assert transition in observed["performed"]
     methods = [method for method, _ in api.calls]
     for expected in case["expected_provider_calls"]:
+        if expected in {"getDatasetData", "validateDataset"} and not observed["data_diagnostics_required"]:
+            continue
         assert expected in methods, (case["case_id"], expected, methods)
+    if not observed["data_diagnostics_required"]:
+        assert not ({"getDatasetData", "validateDataset"} & set(methods))
     assert not (set(case["forbidden_provider_calls"]) & set(methods))
     if observed["terminal_state"] == "COMPLETED":
         assert observed["verify_ok"] is True
@@ -187,6 +190,7 @@ def _run_case(server: JsonRpcServer, *, root: Path, api: PublicAutonomyApi, case
         "contract_mode": str(contract.get("mode") or ""),
         "contract_publish": bool((contract.get("delivery") or {}).get("publish")),
         "browser_policy": str((contract.get("browser_policy") or {}).get("mode") or ""),
+        "data_diagnostics_required": (contract.get("data_diagnostics") or {}).get("required") is True,
         "contract_route": str(contract.get("route") or ""),
         "graph_ids": sorted(
             str(item.get("object_id") or "")

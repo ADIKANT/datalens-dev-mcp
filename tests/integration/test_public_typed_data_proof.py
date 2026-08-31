@@ -13,10 +13,23 @@ from datalens_dev_mcp.pipeline.task_qa_service import TaskQaService, _api_first_
 from datalens_dev_mcp.runtime_resources import resource_json
 from tests.integration.public_proof_support import execute_public_proof_workflow, plan_ready_task
 
+DATA_IMPACTING_CHANGE = [
+    {
+        "target_id": "chart_demo",
+        "slot_id": "series_label",
+        "dataset_id": "dataset_demo",
+        "field_guid": "guid_value",
+        "change_kind": "filter_change",
+        "value": {"operator": "GT", "value": 0},
+    }
+]
+
 
 def test_public_workflow_uses_a_fresh_typed_probe_after_planning() -> None:
     with tempfile.TemporaryDirectory() as tmp:
-        journal, contract, client, _started = plan_ready_task(Path(tmp), publish=True)
+        journal, contract, client, _started = plan_ready_task(
+            Path(tmp), publish=True, semantic_changes=DATA_IMPACTING_CHANGE
+        )
         planning_profile = read_json(journal.root / "data" / "context-profile.json", {})
         state, executor, _completion = execute_public_proof_workflow(journal, contract, client)
         data_receipt = read_json(journal.root / "evidence" / "data-proof-receipt.json", {})
@@ -49,7 +62,9 @@ def test_exact_limit_sample_does_not_promote_population_uniqueness() -> None:
 
 def test_final_provider_failure_is_static_fallback_not_live_proof() -> None:
     with tempfile.TemporaryDirectory() as tmp:
-        journal, contract, client, _ = plan_ready_task(Path(tmp), publish=True)
+        journal, contract, client, _ = plan_ready_task(
+            Path(tmp), publish=True, semantic_changes=DATA_IMPACTING_CHANGE
+        )
         client.dataset_behavior = "fail"
         receipt = TaskDataProofService(journal, contract, client=client).execute()
 
@@ -62,7 +77,9 @@ def test_final_provider_failure_is_static_fallback_not_live_proof() -> None:
 def test_unexpected_empty_final_probe_blocks_but_expected_empty_passes() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        journal, contract, client, _ = plan_ready_task(root, publish=True)
+        journal, contract, client, _ = plan_ready_task(
+            root, publish=True, semantic_changes=DATA_IMPACTING_CHANGE
+        )
         client.dataset_behavior = "empty"
         blocked, _executor, _ = execute_public_proof_workflow(journal, contract, client)
         unexpected = read_json(journal.root / "evidence" / "data-proof-receipt.json", {})
@@ -81,6 +98,7 @@ def test_unexpected_empty_final_probe_blocks_but_expected_empty_passes() -> None
             root,
             publish=True,
             extra_acceptance=[{"kind": "expected_empty", "statement": "{}", "hard": True}],
+            semantic_changes=DATA_IMPACTING_CHANGE,
         )
         client.dataset_behavior = "empty"
         completed, _executor, _ = execute_public_proof_workflow(journal, contract, client)
@@ -152,8 +170,11 @@ def test_data_diagnostics_are_impact_driven_when_browser_is_forbidden() -> None:
 
     assert layout_contract["browser_policy"]["purpose"] == "final_visual_acceptance"
     assert layout_contract["data_diagnostics"]["required"] is False
+    assert layout_receipt["status"] == "passed"
+    assert layout_receipt["fallback_kind"] == "not_applicable"
     assert layout_receipt["api_first_diagnostics"]["decision"]["required"] is False
     assert [method for method, _payload in layout_client.calls].count("validateDataset") == 0
+    assert [method for method, _payload in layout_client.calls].count("getDatasetData") == 0
 
     impact_summary = _api_first_diagnostics_summary(
         impact_journal,

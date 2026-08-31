@@ -14,7 +14,14 @@ from datalens_dev_mcp.pipeline.negative_requirements import (
 )
 
 
-Route = Literal["editor_advanced", "editor_table", "editor_markdown", "editor_js_control", "wizard_native"]
+Route = Literal[
+    "editor_advanced",
+    "editor_table",
+    "editor_markdown",
+    "editor_js_control",
+    "wizard_native",
+    "ql_explicit",
+]
 Confidence = Literal["high", "medium", "low", "blocked"]
 
 
@@ -36,6 +43,7 @@ class ChartDecisionRecord:
     required_fields: list[str] = field(default_factory=list)
     optional_fields: list[str] = field(default_factory=list)
     sort_spec: dict[str, Any] = field(default_factory=dict)
+    series_spec: dict[str, Any] = field(default_factory=dict)
     color_spec: dict[str, Any] = field(default_factory=dict)
     axis_spec: dict[str, Any] = field(default_factory=dict)
     label_spec: dict[str, Any] = field(default_factory=dict)
@@ -47,6 +55,7 @@ class ChartDecisionRecord:
     negative_requirement_concepts: list[str] = field(default_factory=list)
     questions_if_blocked: list[str] = field(default_factory=list)
     source_evidence_refs: list[str] = field(default_factory=list)
+    effective_visual_contract_hash: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -67,6 +76,8 @@ class VisualDecisionEngine:
         user_decisions: list[str] | None = None,
         negative_requirements: list[dict[str, Any]] | None = None,
         requested_family: str = "",
+        requested_route: str = "",
+        effective_visual_contract: dict[str, Any] | None = None,
         source_evidence_refs: list[str] | None = None,
     ) -> ChartDecisionRecord:
         text = "\n".join([business_question, "\n".join(user_decisions or [])])
@@ -100,7 +111,16 @@ class VisualDecisionEngine:
             )
         if "implicit_period_comparison" in negative_concepts and selected_family in {"kpi_value_delta", "kpi_value_delta_sparkline"}:
             selected_family = "kpi_value_sparkline"
-        route = route_for_chart_family(selected_family)
+        effective = dict(effective_visual_contract or {})
+        preserved_technology = str(effective.get("technology") or "")
+        route = requested_route or preserved_technology or route_for_chart_family(selected_family)
+        if route not in {
+            "editor_advanced", "editor_table", "editor_markdown", "editor_js_control",
+            "wizard_native", "ql_explicit",
+        }:
+            route = route_for_chart_family(selected_family)
+        if route == "ql_explicit" and requested_route != "ql_explicit" and preserved_technology != "ql_explicit":
+            route = route_for_chart_family(selected_family)
         param_spec = get_chart_param_spec(selected_family)
         visual_spec = build_renderer_visual_spec(
             family=selected_family,
@@ -117,8 +137,29 @@ class VisualDecisionEngine:
             data_shape=data_shape,
             metric_semantics=metric_semantics,
         )
+        if effective and business_question.strip():
+            questions = []
         confidence: Confidence = "blocked" if not business_question.strip() else "low" if questions else "high"
         rejected = _rejected_families(analytical_task, selected_family, negative_concepts, forbidden_families)
+        required_visual = _effective_sections(effective)
+        series_spec = _deep_merge({}, required_visual.get("series") or {})
+        legend_spec = _deep_merge(visual_spec.legend, required_visual.get("legend") or {})
+        axis_spec = _deep_merge(visual_spec.axes, required_visual.get("axes") or {})
+        tooltip_spec = _deep_merge(visual_spec.tooltip, required_visual.get("tooltip") or {})
+        label_spec = _deep_merge(visual_spec.labels, required_visual.get("formatting") or {})
+        color_spec = _deep_merge(visual_spec.colors, required_visual.get("colors") or {})
+        interaction_spec = _deep_merge(
+            {"cross_filter": "only_when_declared", "drilldown": "only_when_target_declared"},
+            required_visual.get("selectors") or {},
+        )
+        _apply_forbidden_visuals(
+            effective.get("forbidden") if isinstance(effective.get("forbidden"), dict) else {},
+            legend=legend_spec,
+            axes=axis_spec,
+            tooltip=tooltip_spec,
+            series=series_spec,
+            interactions=interaction_spec,
+        )
         return ChartDecisionRecord(
             schema_id="dataviz_chart_decision",
             chart_id=chart_id,
@@ -134,19 +175,21 @@ class VisualDecisionEngine:
             required_fields=list(param_spec.required_parameters),
             optional_fields=list(param_spec.optional_parameters),
             sort_spec=visual_spec.sort,
-            color_spec=visual_spec.colors,
-            axis_spec=visual_spec.axes,
-            label_spec=visual_spec.labels,
-            legend_spec=visual_spec.legend,
-            tooltip_spec=visual_spec.tooltip,
+            series_spec=series_spec,
+            color_spec=color_spec,
+            axis_spec=axis_spec,
+            label_spec=label_spec,
+            legend_spec=legend_spec,
+            tooltip_spec=tooltip_spec,
             kpi_context_spec=visual_spec.kpi_context,
-            interaction_spec={"cross_filter": "only_when_declared", "drilldown": "only_when_target_declared"},
+            interaction_spec=interaction_spec,
             negative_requirements_applied=active_negative_requirement_ids(all_negative),
             negative_requirement_concepts=negative_concepts,
             renderer_visual_spec=visual_spec,
             confidence=confidence,
             questions_if_blocked=questions,
             source_evidence_refs=source_evidence_refs or [],
+            effective_visual_contract_hash=str(effective.get("contract_hash") or ""),
         )
 
 
@@ -184,6 +227,7 @@ def validate_chart_decision_record(record: dict[str, Any]) -> dict[str, Any]:
         "editor_markdown",
         "editor_js_control",
         "wizard_native",
+        "ql_explicit",
     }:
         issues.append("selected_route must be an allowed DataLens creation route")
     negative_ids = list(record.get("negative_requirements_applied") or [])
@@ -218,6 +262,52 @@ def validate_chart_decision_record(record: dict[str, Any]) -> dict[str, Any]:
         if field_name not in spec:
             issues.append(f"renderer_visual_spec.{field_name} is required")
     return {"ok": not issues, "issues": issues}
+
+
+def _effective_sections(contract: dict[str, Any]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for bucket in ("defaults", "preserve", "required"):
+        value = contract.get(bucket)
+        if isinstance(value, dict):
+            result = _deep_merge(result, value)
+    return result
+
+
+def _deep_merge(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
+    result = {key: value for key, value in left.items()}
+    for key, value in right.items():
+        if isinstance(value, dict) and isinstance(result.get(key), dict):
+            result[key] = _deep_merge(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+
+def _apply_forbidden_visuals(
+    forbidden: dict[str, Any],
+    *,
+    legend: dict[str, Any],
+    axes: dict[str, Any],
+    tooltip: dict[str, Any],
+    series: dict[str, Any],
+    interactions: dict[str, Any],
+) -> None:
+    targets = {
+        "legend": legend,
+        "axes": axes,
+        "tooltip": tooltip,
+        "series": series,
+        "selectors": interactions,
+    }
+    for category, target in targets.items():
+        value = forbidden.get(category)
+        if not isinstance(value, dict):
+            continue
+        for key, forbidden_value in value.items():
+            if forbidden_value is True and key in {"show", "visible", "enabled"}:
+                target["show" if category == "legend" else key] = False
+            else:
+                target.setdefault("forbidden", {})[key] = forbidden_value
 
 
 def infer_data_shape(text: str) -> dict[str, Any]:

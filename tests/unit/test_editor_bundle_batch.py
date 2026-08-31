@@ -428,7 +428,7 @@ class EditorBundleBatchTests(unittest.TestCase):
             ["ranking_second"],
         )
 
-    def test_batch_blocks_mixed_legend_typography_but_keeps_local_bundles(self):
+    def test_batch_blocks_legacy_legend_override_without_project_overlay(self):
         decisions = [
             {
                 "widget_id": "legend_default",
@@ -479,13 +479,15 @@ class EditorBundleBatchTests(unittest.TestCase):
         self.assertFalse(batch["ok"])
         self.assertEqual(
             batch["status"],
-            "blocked_inconsistent_render_contract",
+            "blocked_partial_batch",
         )
         self.assertEqual(batch["browser_qa_plan"], {})
-        self.assertTrue(bundle_paths_exist)
+        self.assertFalse(bundle_paths_exist)
         self.assertTrue(
             any(
-                issue.startswith("legend_typography_mismatch:")
+                issue.startswith(
+                    "legend_readable:generation_error:invalid_dashboard_render_profile"
+                )
                 for issue in batch["blocking_issues"]
             ),
             batch,

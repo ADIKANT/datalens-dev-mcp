@@ -1446,31 +1446,32 @@ def _aggregate_batch_browser_render_contract(
             if isinstance(typography.get("legend"), dict)
             else {}
         )
-        active_legend = (
-            legend.get("active")
-            if isinstance(legend.get("active"), dict)
-            else {}
-        )
-        legend_signature = {
-            "token": str(legend.get("active_token") or ""),
-            "font_size_px": active_legend.get("font_size_px"),
-            "line_height_px": active_legend.get("line_height_px"),
-        }
-        if (
-            not legend_signature["token"]
-            or not isinstance(legend_signature["font_size_px"], (int, float))
-            or isinstance(legend_signature["font_size_px"], bool)
-            or not isinstance(legend_signature["line_height_px"], (int, float))
-            or isinstance(legend_signature["line_height_px"], bool)
-        ):
-            issues.append(f"legend_typography_missing:{widget_id}")
-        elif not baseline_legend:
-            baseline_legend = legend_signature
-            baseline_widget_id = widget_id
-        elif legend_signature != baseline_legend:
-            issues.append(
-                f"legend_typography_mismatch:{baseline_widget_id}:{widget_id}"
+        if legend:
+            active_legend = (
+                legend.get("active")
+                if isinstance(legend.get("active"), dict)
+                else {}
             )
+            legend_signature = {
+                "token": str(legend.get("active_token") or ""),
+                "font_size_px": active_legend.get("font_size_px"),
+                "line_height_px": active_legend.get("line_height_px"),
+            }
+            if (
+                not legend_signature["token"]
+                or not isinstance(legend_signature["font_size_px"], (int, float))
+                or isinstance(legend_signature["font_size_px"], bool)
+                or not isinstance(legend_signature["line_height_px"], (int, float))
+                or isinstance(legend_signature["line_height_px"], bool)
+            ):
+                issues.append(f"legend_typography_invalid:{widget_id}")
+            elif not baseline_legend:
+                baseline_legend = legend_signature
+                baseline_widget_id = widget_id
+            elif legend_signature != baseline_legend:
+                issues.append(
+                    f"legend_typography_mismatch:{baseline_widget_id}:{widget_id}"
+                )
 
         density = (
             effective_tokens.get("density")
@@ -1950,7 +1951,17 @@ def _generate_editor_bundle_batch(
                     if isinstance(generated.get("comparison_context_contract"), dict)
                     else {}
                 ),
-                "blocking_issues": list(generated.get("blocking_issues") or [])[:20],
+                "blocking_issues": [
+                    *list(generated.get("blocking_issues") or []),
+                    *(
+                        [
+                            "generation_error:"
+                            + str((generated.get("error") or {}).get("category") or "blocked")
+                        ]
+                        if isinstance(generated.get("error"), dict)
+                        else []
+                    ),
+                ][:20],
             }
         )
     ready_count = sum(1 for item in results if item["ok"])
@@ -2028,6 +2039,7 @@ def _generate_editor_bundle_batch(
         browser_contract_rows
     )
     combined_contract = browser_contract_aggregation["render_contract"]
+    all_widgets_ready = ready_count == len(results)
     batch_browser_plan = _write_bundle_browser_qa_plan(
         root=root,
         widget_ids=[item["widget_id"] for item in results if item["ok"]],
@@ -2037,8 +2049,7 @@ def _generate_editor_bundle_batch(
         tooltip_comparison_modes=combined_tooltip_modes,
         render_contract=combined_contract,
         artifact_stem="dashboard_batch",
-    ) if ready_count and browser_contract_aggregation["ok"] else {}
-    all_widgets_ready = ready_count == len(results)
+    ) if all_widgets_ready and browser_contract_aggregation["ok"] else {}
     composition: dict[str, Any] = {}
     composition_issues: list[str] = []
     composition_required = bool(
@@ -2126,7 +2137,15 @@ def _generate_editor_bundle_batch(
             for key, value in browser_contract_aggregation.items()
             if key != "render_contract"
         }
-    blocking_issues = [*browser_contract_aggregation["issues"], *composition_issues]
+    blocking_issues = [
+        *[
+            f"{result['widget_id']}:{issue}"
+            for result in results
+            for issue in result.get("blocking_issues") or []
+        ],
+        *browser_contract_aggregation["issues"],
+        *composition_issues,
+    ]
     if blocking_issues:
         batch["blocking_issues"] = blocking_issues
     manifest_path = root / "artifacts" / "editor_bundle_batch.json"

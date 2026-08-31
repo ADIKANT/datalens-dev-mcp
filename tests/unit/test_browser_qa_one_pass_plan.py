@@ -54,6 +54,42 @@ def _plan():
     )
 
 
+def test_scoped_visual_assertions_and_task_binding_reach_final_browser_plan() -> None:
+    plan = build_browser_qa_plan(
+        dashboard_url="https://example.test/dashboards/dashboard-alpha",
+        dashboard_id="dashboard-alpha",
+        tab_ids=["tab-one"],
+        tab_object_ids={"tab-one": ["chart-one"]},
+        expected_object_ids=["chart-one"],
+        profile_assertions=[
+            {
+                "assertion_id": "legend_visibility_contract",
+                "scope": "task",
+                "source_ref": "effective_visual_contract:legend",
+                "profile_or_exemplar_hash": "a" * 64,
+                "applies_to_object_ids": ["chart-one"],
+                "applies_to_tab_ids": ["tab-one"],
+                "expected": {"show": False},
+            }
+        ],
+        active_provenance_hash="a" * 64,
+        task_acceptance=[{"kind": "semantic_change", "hard": True}],
+        project_profile_hash="b" * 64,
+        accepted_exemplar_hash="c" * 64,
+        affected_object_ids=["chart-one"],
+        affected_tab_ids=["tab-one"],
+    )
+
+    scope = plan["assertion_scope"]
+    assert scope["project_profile_hash"] == "b" * 64
+    assert scope["accepted_exemplar_hash"] == "c" * 64
+    assert scope["affected_object_ids"] == ["chart-one"]
+    assert scope["affected_tab_ids"] == ["tab-one"]
+    assert plan["evaluate"]["assertions"][-1]["id"] == "legend_visibility_contract"
+    assert "scoped_assertion_rows" in plan["evaluate"]["source"]
+    assert validate_browser_qa_plan(plan)["ok"]
+
+
 def _execute_geometry_plan(
     plan: dict,
     *,

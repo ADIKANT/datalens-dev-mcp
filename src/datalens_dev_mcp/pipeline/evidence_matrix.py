@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 CHANGE_CLASS_REQUIREMENTS: dict[str, tuple[str, ...]] = {
     "source_labels_only": ("static_validation", "data_assertions", "saved_readback"),
     "selector_behavior": ("static_validation", "data_assertions", "contract_harness", "saved_readback"),
@@ -34,7 +33,7 @@ def build_evidence_matrix(
         required.append("browser_attestation")
     observed = _normalize_evidence(evidence or {})
     missing = [name for name in required if not observed.get(name, False)]
-    claims = _claims_from_observed(observed)
+    claims = _claims_from_observed(observed, evidence=evidence or {})
     return {
         "schema_id": "evidence_matrix",
         "change_class": normalized_change,
@@ -145,12 +144,20 @@ def _evidence_passes(value: Any) -> bool:
     return str(value.get("status") or "").lower() in {"passed", "pass", "completed", "attested"}
 
 
-def _claims_from_observed(observed: dict[str, bool]) -> list[str]:
+def _claims_from_observed(
+    observed: dict[str, bool],
+    *,
+    evidence: dict[str, Any],
+) -> list[str]:
     claims: list[str] = []
     if observed.get("static_validation"):
         claims.append("source_static_validated")
     if observed.get("data_assertions"):
-        claims.append("live_data_verified")
+        data_evidence = evidence.get("data_assertions")
+        if isinstance(data_evidence, dict) and data_evidence.get("fallback_kind") == "not_applicable":
+            claims.append("data_assertions_not_applicable")
+        else:
+            claims.append("live_data_verified")
     if observed.get("contract_harness"):
         claims.append("editor_contract_runtime_validated")
     if observed.get("saved_readback"):

@@ -34,15 +34,6 @@
           }
         },
         "layout_grid": {
-          "native_height_units": {
-            "title_creation_default": 2,
-            "selector_creation_default": 2,
-            "selector_two_row_default": 3,
-            "comparison_context_minimum": 1,
-            "comparison_context_maximum": 3,
-            "kpi_creation_default": 8,
-            "kpi_compact_default": 6
-          },
           "update_policy": "preserve_fresh_saved_geometry",
           "runtime_relation": "measured_independently_from_native_units",
           "equal_height_within_semantic_row": true,
@@ -84,20 +75,6 @@
             "font_size_px": 12,
             "line_height_px": 16
           },
-          "legend": {
-            "default": {
-              "font_size_px": 12,
-              "line_height_px": 16
-            },
-            "compact": {
-              "font_size_px": 12,
-              "line_height_px": 16
-            },
-            "readable": {
-              "font_size_px": 14,
-              "line_height_px": 18
-            }
-          },
           "tooltip": {
             "font_size_px": 12,
             "line_height_px": 16
@@ -123,19 +100,6 @@
             "right": 11,
             "bottom": 7,
             "left": 11
-          },
-          "surface": {
-            "background": "transparent",
-            "border": {
-              "style": "none",
-              "width_px": 0
-            },
-            "radius_px": 0,
-            "outline": {
-              "style": "none",
-              "width_px": 0
-            },
-            "shadow": "none"
           },
           "label_typography": {
             "font_size_px": 12,
@@ -166,20 +130,11 @@
         },
         "selector": {
           "update_mode": "immediate",
-          "apply_button": false,
-          "control_max_width_percent": 94,
-          "row_height_px": 44,
-          "label_placement": "left",
-          "blank_multiselect_semantics": "all",
-          "period_first_if_present": true,
-          "single_row": false,
-          "row_target_width_percent": 94,
-          "row_width_tolerance_percent": 0
+          "apply_button": false
         },
         "comparison_context": {
           "required_when_comparison_enabled": true,
           "max_blocks": 1,
-          "placement": "below_selectors",
           "required_fields": [
             "method",
             "selected_range",
@@ -193,17 +148,6 @@
         "dashboard_composition": {
           "schema_id": "dashboard_composition",
           "desktop_grid_columns": 36,
-          "selector_row_width_percent": 94,
-          "selector_height_units": {
-            "one_row": 2,
-            "two_rows": 3
-          },
-          "kpi_max_per_row": 3,
-          "kpi_width_units": 12,
-          "kpi_height_units": {
-            "sparkline": 8,
-            "compact": 6
-          },
           "gap_after_default": 0,
           "equal_height_within_semantic_row": true
         },
@@ -229,24 +173,6 @@
         },
         "tooltip": {
           "owner": "native",
-          "max_width_px": 340,
-          "padding_px": {
-            "vertical": 10,
-            "horizontal": 12
-          },
-          "surface": {
-            "border": {
-              "style": "none",
-              "width_px": 0
-            },
-            "radius_px": 0,
-            "outline": {
-              "style": "none",
-              "width_px": 0
-            },
-            "shadow": "none"
-          },
-          "redundant_row_title": false,
           "comparison_adaptive": true,
           "period_value_source": "normalized",
           "show_current_label_only_when_comparison": true,
@@ -279,7 +205,6 @@
             },
             "component": {
               "kind": "metric_tile",
-              "one_metric_per_tile": true,
               "height_policy": "shared_layout_grid"
             }
           }
@@ -365,8 +290,7 @@
             },
             "selector": {
               "update_mode": "immediate",
-              "apply_button": false,
-              "control_max_width_percent": 94
+              "apply_button": false
             }
           }
         },
@@ -547,8 +471,120 @@
         "prepare_adapter": "templates/datalens/authoring_profiles/standard_dashboard/prepare_adapter.js",
         "prepare_adapter_sha256": "facfa61fb1a75e8c0abc1fc520b1b80b6f13f65f1135c3c531f544a5cfded407"
       },
-      "sha256": "70fb8647e0ed8fe5f6f8dbab1f4aceda07b780e73de1a1c9cee55cb07ce41135"
+      "sha256": "d02f86a0ea31b1d03d87fc734f58d166327ae7bdc0af8e33a29dbc921cf6a35d",
+      "overlays": {
+        "legacy_dense_dashboard_layout": {
+          "description": "Optional legacy dense dashboard composition and visual shell tokens",
+          "scope": "named_overlay",
+          "tokens": {
+            "layout_grid": {
+              "native_height_units": {
+                "title_creation_default": 2,
+                "selector_creation_default": 2,
+                "selector_two_row_default": 3,
+                "comparison_context_minimum": 1,
+                "comparison_context_maximum": 3,
+                "kpi_creation_default": 8,
+                "kpi_compact_default": 6
+              }
+            },
+            "typography": {
+              "legend": {
+                "default": {
+                  "font_size_px": 12,
+                  "line_height_px": 16
+                },
+                "compact": {
+                  "font_size_px": 12,
+                  "line_height_px": 16
+                },
+                "readable": {
+                  "font_size_px": 14,
+                  "line_height_px": 18
+                }
+              }
+            },
+            "kpi": {
+              "surface": {
+                "background": "transparent",
+                "border": {
+                  "style": "none",
+                  "width_px": 0
+                },
+                "radius_px": 0,
+                "outline": {
+                  "style": "none",
+                  "width_px": 0
+                },
+                "shadow": "none"
+              }
+            },
+            "selector": {
+              "control_max_width_percent": 94,
+              "row_height_px": 44,
+              "label_placement": "left",
+              "blank_multiselect_semantics": "all",
+              "period_first_if_present": true,
+              "single_row": false,
+              "row_target_width_percent": 94,
+              "row_width_tolerance_percent": 0
+            },
+            "comparison_context": {
+              "placement": "below_selectors"
+            },
+            "tooltip": {
+              "max_width_px": 340,
+              "padding_px": {
+                "vertical": 10,
+                "horizontal": 12
+              },
+              "surface": {
+                "border": {
+                  "style": "none",
+                  "width_px": 0
+                },
+                "radius_px": 0,
+                "outline": {
+                  "style": "none",
+                  "width_px": 0
+                },
+                "shadow": "none"
+              },
+              "redundant_row_title": false
+            },
+            "dashboard_composition": {
+              "selector_row_width_percent": 94,
+              "selector_height_units": {
+                "one_row": 2,
+                "two_rows": 3
+              },
+              "kpi_max_per_row": 3,
+              "kpi_width_units": 12,
+              "kpi_height_units": {
+                "sparkline": 8,
+                "compact": 6
+              }
+            }
+          },
+          "adapters": {
+            "metric_tile": {
+              "tokens": {
+                "component": {
+                  "one_metric_per_tile": true
+                }
+              }
+            },
+            "selector_rows": {
+              "tokens": {
+                "selector": {
+                  "control_max_width_percent": 94
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
-  "sha256": "39cdac0e2e5eedf0dedda2631d127344f3e471cac311851293f48d5c021e1de8"
+  "sha256": "c068d515bb5cbaa031fc728e6e49bd5ae6ea13b8118190eea18af0b3e85ab7f1"
 }

@@ -4,7 +4,11 @@ import tempfile
 from pathlib import Path
 
 from datalens_dev_mcp.api.errors import DataLensApiError
-from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService, parse_target_url
+from datalens_dev_mcp.pipeline.target_discovery import (
+    TargetDiscoveryService,
+    compact_object_index,
+    parse_target_url,
+)
 from datalens_dev_mcp.pipeline.task_contract import TargetContract, WorkspaceContract, create_task_contract
 
 
@@ -122,6 +126,31 @@ class DiscoveryClient:
         raise AssertionError(method)
 
 
+class DirectDiscoveryClient(DiscoveryClient):
+    def rpc_readonly(self, method: str, payload: dict) -> dict:
+        if method == "getQLChart":
+            self.calls.append((method, payload))
+            return {
+                "result": {
+                    "chart": {
+                        "entry": {"entryId": "chart_demo", "revId": "chart-r3"},
+                        "data": {"datasetId": "dataset_demo"},
+                    }
+                }
+            }
+        if method == "getHtmlPage":
+            self.calls.append((method, payload))
+            return {
+                "result": {
+                    "htmlPage": {
+                        "entry": {"entryId": "html_demo", "revId": "html-r1"},
+                        "data": {"content": "<main>demo</main>"},
+                    }
+                }
+            }
+        return super().rpc_readonly(method, payload)
+
+
 def _contract(root: Path, *, dashboard_id: str = "dash_demo", workbook_id: str = "") -> dict:
     return create_task_contract(
         raw_request="Update the synthetic dashboard",
@@ -151,9 +180,40 @@ def test_dashboard_discovery_builds_bounded_graph_and_dataset_field_catalog() ->
     assert [item["type"] for item in dataset["field_catalog"]] == ["date", "float"]
     assert [item["semantic_role"] for item in dataset["field_catalog"]] == ["dimension", "measure"]
     assert chart["field_guids"] == ["guid_value"]
+    object_index = compact_object_index(result["target_graph"])
+    indexed_chart = next(item for item in object_index if item["object_id"] == "chart_demo")
+    assert indexed_chart["tab_id"] == "main"
+    assert indexed_chart["technology"] == "editor_advanced"
+    assert indexed_chart["saved_revision"] == "chart-r3"
+    assert indexed_chart["dataset_ids"] == ["dataset_demo"]
+    assert indexed_chart["connection_ids"] == ["connection_demo"]
+    assert indexed_chart["dependencies"] == ["dataset_demo"]
     assert [method for method, _ in client.calls] == [
         "getDashboard", "getWorkbookEntries", "getEditorChart", "getDataset", "getConnection"
     ]
+
+
+def test_direct_object_targets_use_their_typed_read_routes() -> None:
+    cases = (
+        ("editor_chart", "chart_demo", "getEditorChart", "editor_advanced"),
+        ("wizard_chart", "chart_demo", "getWizardChart", "wizard_native"),
+        ("ql_chart", "chart_demo", "getQLChart", "ql_explicit"),
+        ("dataset", "dataset_demo", "getDataset", "dataset"),
+        ("connection", "connection_demo", "getConnection", "connection"),
+        ("html_page", "html_demo", "getHtmlPage", "editor_advanced"),
+    )
+    for object_type, object_id, method, technology in cases:
+        with tempfile.TemporaryDirectory() as tmp:
+            contract = _contract(Path(tmp), dashboard_id="")
+            contract["target"].update(
+                {"object_ids": [object_id], "object_types": [object_type]}
+            )
+            client = DirectDiscoveryClient()
+            result = TargetDiscoveryService(client).discover(contract)
+        assert result["status"] == "success", (object_type, result)
+        assert client.calls[0][0] == method
+        assert result["target_binding"]["technology"] == technology
+        assert result["target_graph"]["root_ids"] == [object_id]
 
 
 def test_editor_string_dependency_is_resolved_only_through_workbook_inventory() -> None:
@@ -249,6 +309,17 @@ def test_graph_object_budget_is_global_and_records_truncation() -> None:
     assert result["status"] == "success"
     assert len(result["target_graph"]["nodes"]) == 2
     assert result["target_graph"]["limitations"] == ["target graph reached the configured object limit"]
+
+
+def test_explicit_chart_target_scopes_discovery_to_that_chart() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        client = DiscoveryClient()
+        contract = _contract(Path(tmp))
+        contract["target"]["object_ids"] = ["dash_demo", "chart_demo"]
+        result = TargetDiscoveryService(client, max_objects=50).discover(contract)
+    assert result["status"] == "success"
+    chart_reads = [payload["chartId"] for method, payload in client.calls if method in {"getEditorChart", "getWizardChart"}]
+    assert chart_reads == ["chart_demo"]
 
 
 def test_unrequested_unavailable_chart_is_recorded_as_bounded_limitation() -> None:

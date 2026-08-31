@@ -4,6 +4,7 @@ import hashlib
 import json
 
 from datalens_dev_mcp.pipeline.reference_style_service import ReferenceStyleService
+from datalens_dev_mcp.pipeline.project_decision_context import validate_project_decision_context
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
 
 
@@ -128,3 +129,31 @@ def test_project_decision_context_does_not_leak_to_another_workbook(tmp_path) ->
         "status": "blocked",
         "reason": "decision_context target does not match the current project target",
     }
+
+
+def test_v2_active_decision_requires_typed_final_state_provenance() -> None:
+    descriptor = {
+        "schema_id": "datalens_project_decision_context",
+        "context_version": 2,
+        "project_id": "synthetic_alpha",
+        "match": {"workbook_ids": ["workbook_alpha"]},
+        "profile": {"legend": {"show": False}, "advanced_editor": {"protected_regions": []}},
+        "decisions": [
+            {
+                "decision_id": "legend-hidden",
+                "category": "legend",
+                "scope": "project",
+                "status": "active",
+                "applies_to": {"object_types": ["editor_chart"], "visualization_families": [], "object_ids": []},
+                "statement": "Hide the legend for this chart family.",
+                "typed_value": {"show": False},
+                "source_refs": ["datalens://source/legend-review"],
+                "final_state_refs": [],
+                "supersedes": [],
+            }
+        ],
+    }
+
+    assert validate_project_decision_context(descriptor) == (
+        "decisions[0].final_state_refs is required for an active decision",
+    )

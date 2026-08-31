@@ -26,7 +26,7 @@
   "expected_plan": {
     "family": "semantic-no-op",
     "ql_fallback": false,
-    "target_count": 1,
+    "target_count": 0,
     "technology": "editor_advanced"
   },
   "expected_proof": {
@@ -39,10 +39,12 @@
     "getWorkbookEntries"
   ],
   "expected_questions": 0,
-  "expected_terminal_state": "BLOCKED",
+  "expected_terminal_state": "already_satisfied_no_write",
   "expected_transitions": [],
   "forbidden_provider_calls": [
     "deleteDashboard",
+    "publishEditorChart",
+    "updateEditorChart",
     "updateDataset",
     "updateConnection"
   ],

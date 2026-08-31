@@ -5,9 +5,12 @@
     "driver": "direct",
     "semantic_changes": [
       {
+        "change_kind": "filter_change",
+        "dataset_id": "dataset_demo",
+        "field_guid": "guid_value",
         "slot_id": "series_label",
         "target_id": "chart_demo",
-        "value": "Revenue"
+        "value": {"operator": "GT", "value": 0}
       }
     ],
     "variant": 2

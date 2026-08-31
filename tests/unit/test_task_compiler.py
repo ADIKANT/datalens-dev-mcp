@@ -144,6 +144,41 @@ class TaskCompilerTests(unittest.TestCase):
         self.assertEqual(publish["contract"]["operation_kind"], "mutate")
         self.assertTrue(publish["contract"]["delivery"]["publish"])
 
+    def test_russian_redo_request_preserves_mutation_and_negation_semantics(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        cases = (
+            (
+                "все отлично, теперь дашборд нравится, но остается проблемы, что kpi блоки ты сделал "
+                "одним общим чартом, а я просил так не делать. каждая kpi карточка должна быть отдельным "
+                "объектом. поэтому переделай, расположение оставь таким же, оставь через header выделение, "
+                "что это executive kpi и так далее",
+                "mutate",
+                "update",
+                {"save": True, "publish": True, "destructive": False},
+            ),
+            (
+                "Не переделывай KPI-блоки, только проверь текущую структуру.",
+                "inspect",
+                "review",
+                {"save": False, "publish": False, "destructive": False},
+            ),
+        )
+        for request, operation_kind, mode, delivery in cases:
+            with self.subTest(request=request):
+                contract = compile_task_contract(
+                    request,
+                    current_live={
+                        "workbook_id": "synthetic_workbook",
+                        "dashboard_id": "synthetic_dashboard",
+                        "technology": "dashboard",
+                    },
+                )["contract"]
+
+                self.assertEqual(contract["operation_kind"], operation_kind)
+                self.assertEqual(contract["mode"], mode)
+                self.assertEqual(contract["delivery"], delivery)
+
     def test_generic_followup_preserves_typed_mutation_mode_and_delivery(self):
         from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
 
@@ -395,6 +430,82 @@ class TaskCompilerTests(unittest.TestCase):
         ):
             compiled = compile_task_contract(request)
             self.assertNotEqual(compiled["contract"]["route"], "ql_explicit", request)
+
+    def test_real_journey_owner_transitions_preserve_target_route_and_delivery(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        vehicle = compile_task_contract(
+            "работать будем над таблицей https://datalens.ru/editor/synthetic_editor_chart; "
+            "добавь selector nexus ci diff flg"
+        )["contract"]
+        self.assertEqual(vehicle["mode"], "update")
+        self.assertEqual(vehicle["route"], "editor_advanced")
+        self.assertEqual(vehicle["target"]["object_ids"], ["synthetic_editor_chart"])
+
+        base = compile_task_contract(
+            "Update chart:synthetic_editor_chart and publish it",
+            current_live={"chart_id": "synthetic_editor_chart", "technology": "editor_advanced"},
+        )["contract"]
+        correction = compile_task_contract(
+            "Continue the current typed task contract.",
+            current_live=base["target"],
+            current_task_journal=base,
+            corrections=[
+                "оставь линии, но убери легенду; в tooltip покажи статус, число и долю; "
+                "расположение не меняй"
+            ],
+        )["contract"]
+        self.assertEqual(correction["operation_kind"], "mutate")
+        self.assertEqual(correction["route"], "editor_advanced")
+        self.assertEqual(correction["delivery"], base["delivery"])
+
+        adopted = compile_task_contract(
+            "Continue the current typed task contract.",
+            current_live=base["target"],
+            current_task_journal=base,
+            corrections=[
+                "перечитай еще раз дашборд, запомни расположение, "
+                "я корректно переделал размещение в layout"
+            ],
+        )["contract"]
+        self.assertEqual(adopted["operation_kind"], "verify_existing_effect")
+        self.assertEqual(adopted["delivery"], {"save": False, "publish": False, "destructive": False})
+
+    def test_data_impact_owner_recognizes_source_query_and_field_semantics(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        cases = (
+            (
+                "переключи дашборд и все зависимости на корректную prod таблицу",
+                "source_change",
+            ),
+            (
+                "переключил дашборд на analytics\\_sbx, там теперь корректная витрина",
+                "source_change",
+            ),
+            (
+                "сделай понятнее SQL скрипт и добавь параметр ci, чтобы он менял дашборд",
+                "chart_query_or_aggregation",
+            ),
+            (
+                "примени логику разделения sw/hw/bootloader к остальным таблицам, где есть эти поля",
+                "chart_query_or_aggregation",
+            ),
+        )
+        base = compile_task_contract(
+            "Update chart:synthetic_editor_chart and publish it",
+            current_live={"chart_id": "synthetic_editor_chart", "technology": "editor_advanced"},
+        )["contract"]
+        for request, reason in cases:
+            with self.subTest(request=request):
+                contract = compile_task_contract(
+                    request,
+                    current_live=base["target"],
+                    current_task_journal=base,
+                )["contract"]
+                self.assertTrue(contract["data_diagnostics"]["required"])
+                self.assertTrue(contract["data_diagnostics"]["validate_dataset"])
+                self.assertIn(reason, contract["data_diagnostics"]["reason_classes"])
 
     @staticmethod
     def _assert_expected(result: dict, expected: dict) -> None:
