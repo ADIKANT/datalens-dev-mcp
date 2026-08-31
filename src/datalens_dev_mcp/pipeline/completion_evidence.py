@@ -112,6 +112,17 @@ class CompletionEvidenceService:
         published = read_json(self.journal.published_readback_receipt_path, {}) or {}
         state, _ = self.journal.replay()
         contract_hash = str(self.contract.get("contract_hash") or "")
+        diagnostics_decision = (
+            self.contract.get("data_diagnostics")
+            if isinstance(self.contract.get("data_diagnostics"), dict)
+            else {}
+        )
+        data_not_applicable = bool(
+            diagnostics_decision.get("required") is False
+            and data.get("fallback_kind") == "not_applicable"
+            and not data.get("provider_calls")
+            and not (data.get("api_first_diagnostics") or {}).get("provider_calls")
+        )
         values = {
             "public_plan": {
                 "ok": bool(plan.get("plan_hash") and plan.get("contract_hash") == contract_hash),
@@ -125,7 +136,11 @@ class CompletionEvidenceService:
             },
             "fresh_data_proof": {
                 **data,
-                "ok": bool(data.get("fresh") and data.get("status") == "passed" and data.get("live_data_verified")),
+                "ok": bool(
+                    data.get("fresh")
+                    and data.get("status") == "passed"
+                    and (data.get("live_data_verified") or data_not_applicable)
+                ),
             },
             "qa_receipt": {**qa, "ok": qa.get("status") == "passed"},
             "existing_effect_verification": {

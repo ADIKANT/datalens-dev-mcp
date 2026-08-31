@@ -15,7 +15,20 @@ from tests.integration.public_proof_support import execute_public_proof_workflow
 def test_dl_verify_is_stable_across_restart_and_reads_typed_completion_receipt() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        journal, contract, client, _started = plan_ready_task(root, publish=True)
+        journal, contract, client, _started = plan_ready_task(
+            root,
+            publish=True,
+            semantic_changes=[
+                {
+                    "target_id": "chart_demo",
+                    "slot_id": "series_label",
+                    "dataset_id": "dataset_demo",
+                    "field_guid": "guid_value",
+                    "change_kind": "filter_change",
+                    "value": {"operator": "GT", "value": 0},
+                }
+            ],
+        )
         state, _executor, _completion = execute_public_proof_workflow(journal, contract, client)
         first = dl_verify(journal.task_id, project_root=str(root))
         second = dl_verify(journal.task_id, project_root=str(root))
@@ -92,3 +105,34 @@ def test_compiler_owned_amendment_constraint_uses_amended_runtime_evidence() -> 
     assert covered["ok"] is True
     assert covered["criteria"][0]["evidence_kind"] == "amended_contract_runtime"
     assert unbound["ok"] is False
+
+
+def test_create_manifest_uses_typed_runtime_and_delivery_readbacks() -> None:
+    contract = {
+        "delivery": {"save": True, "publish": True},
+        "acceptance": [
+            {
+                "kind": "create_manifest",
+                "statement": "Create exactly the typed dashboard manifest.",
+                "hard": True,
+            }
+        ],
+    }
+    covered = _acceptance_coverage(
+        contract,
+        data_receipt={},
+        runtime_ok=True,
+        saved={"status": "success"},
+        published={"status": "success"},
+    )
+    missing_publish = _acceptance_coverage(
+        contract,
+        data_receipt={},
+        runtime_ok=True,
+        saved={"status": "success"},
+        published={"status": "blocked"},
+    )
+
+    assert covered["ok"] is True
+    assert covered["criteria"][0]["evidence_kind"] == "typed_create_manifest_delivery_readback"
+    assert missing_publish["ok"] is False

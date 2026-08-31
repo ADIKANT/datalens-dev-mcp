@@ -83,7 +83,11 @@ class TaskQaService:
         )
         evidence = {
             "static_validation": static_evidence,
-            "data_assertions": {"ok": data_receipt.get("status") == "passed"},
+            "data_assertions": {
+                "ok": data_receipt.get("status") == "passed",
+                "fallback_kind": str(data_receipt.get("fallback_kind") or ""),
+                "live_data_verified": bool(data_receipt.get("live_data_verified")),
+            },
             "contract_harness": runtime_evidence,
             "composition_validation": static_evidence,
             "saved_readback": {
@@ -435,6 +439,9 @@ def _acceptance_coverage(
             )
         elif source_kind == "semantic_change":
             evidence_kind = "planned_payload_readback"
+            satisfied = bool(runtime_ok and delivery_ok)
+        elif source_kind == "create_manifest":
+            evidence_kind = "typed_create_manifest_delivery_readback"
             satisfied = bool(runtime_ok and delivery_ok)
         elif source_kind == "constraint" and criterion.get("source") == "current_user_correction":
             # A compiled follow-up correction is a contract-continuity

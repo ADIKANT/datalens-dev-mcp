@@ -5,8 +5,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.api.request_compiler import project_method_request
+from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.pipeline.assertion_spec_compiler import AssertionSpecCompiler
 from datalens_dev_mcp.pipeline.data_assertions import evaluate_data_assertions, unexpected_empty_diagnostics
 from datalens_dev_mcp.pipeline.data_sample_budget import sensitive_field_guids
@@ -53,6 +53,34 @@ class TaskDataProofService:
                 live_data_verified=False,
                 assertion_plan_hash="",
                 schema_hash="",
+            )
+        diagnostics_decision = (
+            self.contract.get("data_diagnostics")
+            if isinstance(self.contract.get("data_diagnostics"), dict)
+            else {}
+        )
+        if diagnostics_decision.get("required") is False:
+            reason = "dataset proof is not applicable because the compiled change has no data impact"
+            query_plan = read_json(self.context_service.proof_plan_path, {}) or {}
+            return self._write_receipt(
+                status="passed",
+                proof_level="source_static",
+                fallback_kind="not_applicable",
+                assertions=[],
+                provider_calls=[],
+                limitations=[reason, "validateDataset and getDatasetData were intentionally not called"],
+                live_data_verified=False,
+                assertion_plan_hash=str(query_plan.get("plan_hash") or ""),
+                schema_hash=str(planning_profile.get("schema_hash") or ""),
+                api_first_diagnostics={
+                    "status": "not_required",
+                    "decision": dict(diagnostics_decision),
+                    "component_error_count": 0,
+                    "component_error_families": [],
+                    "provider_calls": [],
+                    "limitations": [],
+                    "chart_query_equivalence": "not_applicable",
+                },
             )
         api_first_diagnostics = self._api_first_structural_diagnostics()
         if api_first_diagnostics.get("status") in {"blocked", "failed"}:
