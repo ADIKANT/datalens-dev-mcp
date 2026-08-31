@@ -48,6 +48,13 @@ def semantic_context(*, acceptance: list[dict] | None = None) -> dict:
     return {
         "acceptance": list(acceptance or []),
         "semantic_changes": [
-            {"target_id": "chart_demo", "slot_id": "series_label", "value": "Revenue"}
+            {
+                "target_id": "chart_demo",
+                "slot_id": "series_label",
+                "dataset_id": "dataset_demo",
+                "field_guid": "guid_value",
+                "change_kind": "filter_change",
+                "value": {"operator": "GT", "value": 0},
+            }
         ],
     }

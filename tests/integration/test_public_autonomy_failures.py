@@ -37,7 +37,7 @@ def test_experimental_dataset_endpoint_failure_is_explicit_static_fallback(tmp_p
     assert receipt["fallback_kind"].startswith("dataset_schema_only")
     assert receipt["live_data_verified"] is False
     assert receipt["raw_rows_inline"] is False
-    assert [method for method, _ in api.calls].count("getDatasetData") == 1
+    assert [method for method, _ in api.calls].count("getDatasetData") == 2
 
 
 def test_unexpected_empty_data_runs_diagnostics_and_does_not_claim_success(tmp_path: Path) -> None:

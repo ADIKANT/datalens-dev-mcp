@@ -35,8 +35,8 @@ def test_public_jsonrpc_completes_save_publish_and_verify_without_hidden_tools()
     assert verified["highest_proof_level"] == "publish_readback"
     assert api.write_count == 2
     methods = [method for method, _ in api.calls]
-    assert methods.count("getDatasetData") == 1
-    assert methods.count("getDataset") == 2
+    assert methods.count("getDatasetData") == 2
+    assert methods.count("getDataset") == 3
     first_write = methods.index("updateEditorChart")
     assert methods[first_write - 2 : first_write] == ["getEditorChart", "getDataset"]
 

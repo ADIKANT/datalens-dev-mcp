@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 from tests.fixtures.public_autonomy_api.fake_api import PublicAutonomyApi
 from tests.integration.public_autonomy_jsonrpc_support import public_call, public_server, semantic_context
@@ -33,7 +33,7 @@ def test_write_workflow_completes_in_two_high_level_public_calls() -> None:
     assert started["state"] == "COMPLETED"
     assert verified["ok"] is True
     assert api.write_count == 2
-    assert [method for method, _ in api.calls].count("getDatasetData") == 1
+    assert [method for method, _ in api.calls].count("getDatasetData") == 2
 
 
 def test_restart_after_save_stays_below_ten_public_calls() -> None:
