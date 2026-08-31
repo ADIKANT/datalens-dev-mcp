@@ -55,7 +55,9 @@ class NormalizedUserRequest:
     target_workbook_id: str = ""
     target_dashboard_id: str = ""
     target_chart_id: str = ""
+    target_object_id: str = ""
     target_object_type: str = ""
+    target_technology: str = ""
     approval_sources: list[str] = field(default_factory=lambda: ["current_user_request"])
     evidence: list[str] = field(default_factory=list)
     browser_preference: BrowserPreference = "unspecified"
@@ -65,7 +67,7 @@ class NormalizedUserRequest:
 
     @property
     def target_known(self) -> bool:
-        return bool(self.target_dashboard_id or self.target_chart_id)
+        return bool(self.target_dashboard_id or self.target_chart_id or self.target_object_id)
 
     @property
     def publish_allowed_by_text(self) -> bool:
@@ -91,11 +93,11 @@ class UserRequestNormalizer:
             "сделай",
             "созд",
             "примени",
-            "сохран",
-            "опублику",
+            "сохрани",
+            "опубликуй",
             "добав",
         ),
-        "fix": ("fix", "repair", "исправ", "почин", "устран"),
+        "fix": ("fix", "repair", "исправ", "поправ", "почин", "устран"),
         "enhance": ("enhance", "improve", "extend", "доработ", "улучш", "расшир"),
         "redesign": ("redesign", "переработ", "редизайн"),
         "update": (
@@ -124,6 +126,13 @@ class UserRequestNormalizer:
         "проанализ",
     )
     VERIFY_EXISTING_EFFECT_PATTERNS = (
+        re.compile(
+            r"(?:перечитай\w*|прочитай\w*|проверь\w*)"
+            r"(?:(?!\n\n).){0,180}(?:я\s+)?(?:корректно\s+)?"
+            r"(?:переделал\w*|изменил\w*|поправил\w*)"
+            r"(?:(?!\n\n).){0,100}(?:layout|расположен\w*|размещен\w*|размещён\w*)",
+            re.IGNORECASE | re.DOTALL,
+        ),
         re.compile(
             r"\b(?:i\s+(?:have\s+|already\s+)?|i(?:'ve|\s+have)\s+)"
             r"(?:saved|published|changed|updated|deleted|removed|moved|restored)\b"
@@ -198,7 +207,6 @@ class UserRequestNormalizer:
             "спланируй",
             "без изменений",
             "без записи",
-            "не меняй",
             "ничего не меняй",
             "не сохраняй",
             "ничего не сохраняй",
@@ -326,6 +334,12 @@ class UserRequestNormalizer:
         r"[ \t]+`(?P<id>[A-Za-z0-9_-]{5,64})`",
         re.I,
     )
+    TRAILING_LABELED_ID_RE = re.compile(
+        r"(?<![A-Za-z0-9_-])(?P<id>[A-Za-z0-9_-]{5,64})"
+        r"[ \t]+(?:(?:[-—–,:=][ \t]*(?:это|is)?[ \t]*)|(?:(?:это|is)[ \t]+))"
+        r"(?P<label>workbook|воркбук|dashboard|дашборд|chart|чарт|dataset|датасет|connection|подключение)\b",
+        re.I,
+    )
 
     def normalize(
         self,
@@ -369,7 +383,9 @@ class UserRequestNormalizer:
             target_workbook_id=str(ctx.get("target_workbook_id") or extracted.get("workbook_id") or ""),
             target_dashboard_id=str(ctx.get("target_dashboard_id") or extracted.get("dashboard_id") or ""),
             target_chart_id=str(ctx.get("target_chart_id") or extracted.get("chart_id") or ""),
+            target_object_id=str(ctx.get("target_object_id") or extracted.get("object_id") or ""),
             target_object_type=str(ctx.get("target_object_type") or extracted.get("object_type") or ""),
+            target_technology=str(ctx.get("target_technology") or extracted.get("technology") or ""),
             approval_sources=sources,
             evidence=extracted.get("evidence", []),
             browser_preference=self._browser_preference(raw),
@@ -474,6 +490,16 @@ class UserRequestNormalizer:
 
     def _task_intent(self, lowered: str) -> TaskIntent:
         positive_text = self._positive_mutation_text(lowered)
+        if re.search(
+            r"(?:нужен\s+ли|нужна\s+ли|нужно\s+ли|надо\s+ли|может\s+стоит|"
+            r"есть\s+ли\s+смысл|should\s+we|do\s+we\s+need|would\s+it\s+be\s+better)",
+            positive_text,
+        ) and not re.search(
+            r"(?:поэтому|тогда|итого|решил\w*)[^.!?]{0,100}"
+            r"(?:сделай|убери|удали|измени|поменяй|добавь|fix|remove|change|add)",
+            positive_text,
+        ):
+            return "review"
         # Specific change intent must outrank delivery verbs such as save or
         # publish. Otherwise "update ... save and publish" is misclassified
         # as a create task merely because the sentence also contains save.
@@ -506,6 +532,7 @@ class UserRequestNormalizer:
         return "none"
 
     def _route_intent(self, lowered: str) -> RouteIntent:
+        lowered = self._without_diagnostic_payload(lowered)
         ql_positive_text = re.sub(
             r"(?i)(?:\b(?:no|without|never|forbid(?:den)?|do\s+not\s+use)\s+ql(?:\s+fallback)?\b|"
             r"\bql\s+fallback\s+(?:is\s+)?forbidden\b|"
@@ -571,18 +598,19 @@ class UserRequestNormalizer:
 
     def _url_inventory(self, raw: str) -> list[dict[str, str]]:
         inventory: list[dict[str, str]] = []
-        for match in self.URL_RE.finditer(raw):
+        matches = list(self.URL_RE.finditer(raw))
+        for match_index, match in enumerate(matches):
             url = match.group(0).rstrip(".,;:]}")
             parsed = urlparse(url)
             hostname = (parsed.hostname or "").lower()
             is_datalens = "datalens" in hostname
-            line_start = raw.rfind("\n", 0, match.start()) + 1
-            line_end = raw.find("\n", match.end())
-            if line_end < 0:
-                line_end = len(raw)
-            before = self.URL_RE.sub(" ", raw[line_start : match.start()]).lower()
-            after = self.URL_RE.sub(" ", raw[match.end() : line_end]).lower()
-            vicinity = f"{before} {after}"
+            prior_end = matches[match_index - 1].end() if match_index else max(0, match.start() - 180)
+            next_start = matches[match_index + 1].start() if match_index + 1 < len(matches) else min(len(raw), match.end() + 180)
+            before = raw[prior_end:match.start()].lower()
+            after = raw[match.end():next_start].lower()
+            immediate_before = before[-120:]
+            immediate_after = after[:120]
+            vicinity = f"{immediate_before} {immediate_after}"
             reference_marked = any(
                 marker in vicinity
                 for marker in (
@@ -609,9 +637,33 @@ class UserRequestNormalizer:
                     "изменить дашборд",
                     "обновить дашборд",
                     "доработать дашборд",
+                    "над таблицей",
+                    "над чартом",
+                    "над дашбордом",
+                    "в воркбуке",
+                    "в workbook",
                 )
             )
+            evidence_marked = any(
+                marker in vicinity
+                for marker in (
+                    "используется эта таблица",
+                    "используется этот датасет",
+                    "вот этот чарт",
+                    "ошибка в",
+                    "данные в",
+                    "diagnostic source",
+                    "data source",
+                )
+            )
+            if re.match(r"\s*(?:[-—–,:]?\s*)?(?:как\s+пример|по\s+аналогии|для\s+примера)", immediate_after):
+                reference_marked = True
+                target_marked = False
+            if re.search(r"(?:\bв|\btarget|целев\w*)\s*$", immediate_before):
+                target_marked = True
             if not is_datalens:
+                role = "evidence"
+            elif evidence_marked and not target_marked and not reference_marked:
                 role = "evidence"
             elif reference_marked and not target_marked:
                 role = "reference"
@@ -652,22 +704,46 @@ class UserRequestNormalizer:
         matches = [
             *self.LABELED_ID_RE.finditer(text_without_urls),
             *self.BACKTICK_LABELED_ID_RE.finditer(text_without_urls),
+            *self.TRAILING_LABELED_ID_RE.finditer(text_without_urls),
         ]
         for match in sorted(matches, key=lambda item: item.start()):
             label = match.group("label").lower()
             value = match.group("id")
-            if "workbook" in label:
+            if "workbook" in label or label == "воркбук":
                 values["workbook_id"] = value
                 values["evidence"].append(f"text_workbook_id:{value}")
-            elif "dashboard" in label:
+            elif "dashboard" in label or label == "дашборд":
                 values["dashboard_id"] = value
                 values["object_type"] = "dashboard"
                 values["evidence"].append(f"text_dashboard_id:{value}")
-            elif "chart" in label:
+            elif "chart" in label or label == "чарт":
                 values["chart_id"] = value
                 values["object_type"] = "chart"
                 values["evidence"].append(f"text_chart_id:{value}")
+            elif label in {"dataset", "датасет"}:
+                values["object_id"] = value
+                values["object_type"] = "dataset"
+                values["evidence"].append(f"text_dataset_id:{value}")
+            elif label in {"connection", "подключение"}:
+                values["object_id"] = value
+                values["object_type"] = "connection"
+                values["evidence"].append(f"text_connection_id:{value}")
         return values
+
+    @staticmethod
+    def _without_diagnostic_payload(lowered: str) -> str:
+        """Keep the user's instruction while excluding exception prose from routing."""
+
+        if not re.search(
+            r"(?:db::exception|unknown_identifier|illegal_aggregation|err\.ds_api|code:\s*\d+)",
+            lowered,
+        ):
+            return lowered
+        parts = re.split(r"\s+[—–-]\s+", lowered)
+        instruction = parts[-1] if len(parts) > 1 else ""
+        return instruction if re.search(
+            r"(?:fix|repair|update|change|исправ|поправ|почин|устран|проверь)", instruction
+        ) else ""
 
 
 def normalize_user_request(
@@ -712,4 +788,26 @@ def _ids_from_url(url: str) -> dict[str, str]:
         elif lowered in {"chart", "charts"} and next_part:
             result.setdefault("chart_id", next_part)
             result.setdefault("object_type", "chart")
+        elif lowered in {"editor", "editors"} and next_part:
+            result.setdefault("chart_id", next_part)
+            result.setdefault("object_type", "editor_chart")
+            result.setdefault("technology", "editor_advanced")
+        elif lowered in {"wizard", "wizards"} and next_part:
+            result.setdefault("chart_id", next_part)
+            result.setdefault("object_type", "wizard_chart")
+            result.setdefault("technology", "wizard_native")
+        elif lowered in {"ql"} and next_part:
+            result.setdefault("chart_id", next_part)
+            result.setdefault("object_type", "ql_chart")
+            result.setdefault("technology", "ql_explicit")
+        elif lowered in {"dataset", "datasets"} and next_part:
+            result.setdefault("object_id", next_part)
+            result.setdefault("object_type", "dataset")
+        elif lowered in {"connection", "connections"} and next_part:
+            result.setdefault("object_id", next_part)
+            result.setdefault("object_type", "connection")
+        elif lowered in {"html", "html-page", "html_page"} and next_part:
+            result.setdefault("object_id", next_part)
+            result.setdefault("object_type", "html_page")
+            result.setdefault("technology", "editor_advanced")
     return result

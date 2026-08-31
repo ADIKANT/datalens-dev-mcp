@@ -431,6 +431,46 @@ class TaskCompilerTests(unittest.TestCase):
             compiled = compile_task_contract(request)
             self.assertNotEqual(compiled["contract"]["route"], "ql_explicit", request)
 
+    def test_real_journey_owner_transitions_preserve_target_route_and_delivery(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        vehicle = compile_task_contract(
+            "работать будем над таблицей https://datalens.ru/editor/mqc6snad6u2o6; "
+            "добавь selector nexus ci diff flg"
+        )["contract"]
+        self.assertEqual(vehicle["mode"], "update")
+        self.assertEqual(vehicle["route"], "editor_advanced")
+        self.assertEqual(vehicle["target"]["object_ids"], ["mqc6snad6u2o6"])
+
+        base = compile_task_contract(
+            "Update chart:synthetic_editor_chart and publish it",
+            current_live={"chart_id": "synthetic_editor_chart", "technology": "editor_advanced"},
+        )["contract"]
+        correction = compile_task_contract(
+            "Continue the current typed task contract.",
+            current_live=base["target"],
+            current_task_journal=base,
+            corrections=[
+                "оставь линии, но убери легенду; в tooltip покажи статус, число и долю; "
+                "расположение не меняй"
+            ],
+        )["contract"]
+        self.assertEqual(correction["operation_kind"], "mutate")
+        self.assertEqual(correction["route"], "editor_advanced")
+        self.assertEqual(correction["delivery"], base["delivery"])
+
+        adopted = compile_task_contract(
+            "Continue the current typed task contract.",
+            current_live=base["target"],
+            current_task_journal=base,
+            corrections=[
+                "перечитай еще раз дашборд, запомни расположение, "
+                "я корректно переделал размещение в layout"
+            ],
+        )["contract"]
+        self.assertEqual(adopted["operation_kind"], "verify_existing_effect")
+        self.assertEqual(adopted["delivery"], {"save": False, "publish": False, "destructive": False})
+
     @staticmethod
     def _assert_expected(result: dict, expected: dict) -> None:
         contract = result["contract"]

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -62,6 +63,7 @@ def dl_task_start(
     context: dict[str, Any] | None = None,
     run_until: str = "plan_ready",
 ) -> dict[str, Any]:
+    project_root = _request_project_root(request, project_root)
     boundary = _run_until(run_until)
     task_context = dict(context or {})
     manifest_target = _project_manifest_target_context(project_root)
@@ -349,6 +351,25 @@ def _project_manifest_target_context(project_root: str) -> dict[str, str]:
     if len(dashboards) == 1:
         result["dashboard_id"] = next(iter(dashboards))
     return result
+
+
+def _request_project_root(request: str, supplied_root: str) -> str:
+    """Resolve an explicit child project path without searching sibling projects."""
+
+    root = Path(supplied_root).resolve()
+    candidates = re.findall(r"(?:'([^']+)'|\"([^\"]+)\"|(?<!\w)(/[A-Za-z0-9_./ -]+))", request)
+    for groups in candidates:
+        raw = next((value for value in groups if value), "").strip().rstrip(".,;:")
+        if not raw.startswith("/"):
+            continue
+        candidate = Path(raw).resolve()
+        if candidate != root and root not in candidate.parents:
+            continue
+        if not candidate.is_dir():
+            continue
+        if any((candidate / name).is_file() for name in PROJECT_MANIFEST_NAMES):
+            return str(candidate)
+    return str(root)
 
 
 def dl_task_resume(
@@ -691,7 +712,14 @@ def _amend_task(
     )
     persisted_old_target = deepcopy(old.get("target") or {})
     old_target = deepcopy(persisted_old_target)
-    old_target["technology"] = str(old_target.get("technology") or old.get("route") or "")
+    persisted_route = str(old.get("route") or "")
+    old_target["technology"] = str(
+        old_target.get("technology")
+        or (persisted_route if persisted_route in {
+            "editor_advanced", "editor_table", "editor_markdown", "editor_js_control",
+            "wizard_native", "ql_explicit",
+        } else "")
+    )
     old_scope = deepcopy(old.get("scope") or {})
     requested_scope = context.get("scope") if isinstance(context.get("scope"), dict) else {}
     scope = {**old_scope, **requested_scope}

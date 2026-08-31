@@ -251,6 +251,17 @@ def test_graph_object_budget_is_global_and_records_truncation() -> None:
     assert result["target_graph"]["limitations"] == ["target graph reached the configured object limit"]
 
 
+def test_explicit_chart_target_scopes_discovery_to_that_chart() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        client = DiscoveryClient()
+        contract = _contract(Path(tmp))
+        contract["target"]["object_ids"] = ["dash_demo", "chart_demo"]
+        result = TargetDiscoveryService(client, max_objects=50).discover(contract)
+    assert result["status"] == "success"
+    chart_reads = [payload["chartId"] for method, payload in client.calls if method in {"getEditorChart", "getWizardChart"}]
+    assert chart_reads == ["chart_demo"]
+
+
 def test_unrequested_unavailable_chart_is_recorded_as_bounded_limitation() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         result = TargetDiscoveryService(DiscoveryClient(unavailable_chart=True)).discover(_contract(Path(tmp)))

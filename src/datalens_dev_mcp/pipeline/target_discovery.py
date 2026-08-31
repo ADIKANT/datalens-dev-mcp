@@ -222,14 +222,31 @@ class TargetDiscoveryService:
             if total > len(entries):
                 limitations.append("workbook inventory was bounded to the returned page")
 
-        chart_candidates = sorted(
-            {
-                item
-                for item in _collect_ids(dashboard_data, CHART_ID_KEYS)
-                if item != dashboard_id and _is_chart_type(inventory_types.get(item, "chart"))
-            }
-            | {item for item in requested_ids if item != dashboard_id}
-        )
+        unsupported_requested = {
+            item
+            for item in requested_ids
+            if item != dashboard_id and not _is_chart_type(inventory_types.get(item, "chart"))
+        }
+        if unsupported_requested:
+            object_id = sorted(unsupported_requested)[0]
+            raise TargetDiscoveryError(
+                f"requested object {object_id} has unsupported target type "
+                f"{inventory_types.get(object_id) or 'unknown'}"
+            )
+        requested_chart_ids = {
+            item
+            for item in requested_ids
+            if item != dashboard_id and _is_chart_type(inventory_types.get(item, "chart"))
+        }
+        dashboard_chart_ids = {
+            item
+            for item in _collect_ids(dashboard_data, CHART_ID_KEYS)
+            if item != dashboard_id and _is_chart_type(inventory_types.get(item, "chart"))
+        }
+        # An explicitly typed object target defines a request-scoped graph.
+        # Hydrating every sibling widget both wastes calls and can evict the
+        # requested object at the configured limit.
+        chart_candidates = sorted(requested_chart_ids or dashboard_chart_ids)
         chart_limit = max(0, self.max_objects - len(nodes))
         chart_ids = chart_candidates[:chart_limit]
         if len(chart_candidates) > len(chart_ids):
