@@ -263,15 +263,31 @@ def _compile_data_diagnostics(
         for token in ("create dataset", "update dataset", "создай датасет", "обнови датасет")
     ):
         reason_classes.add("dataset_create_or_update")
-    if any(token in flattened for token in ("source_change", "source", "connection", "dataset_id")) or _has_source_change_intent(request_text):
+    if any(
+        token in flattened
+        for token in ("source_change", "source", "connection", "dataset_id")
+    ) or _has_source_change_intent(request_text):
         reason_classes.add("source_change")
-    if any(token in flattened for token in ("field_guid", "field_id", "rename_field", "field_type", "remove_field", "add_field")) or _has_field_schema_change_intent(request_text):
+    if any(
+        token in flattened
+        for token in (
+            "field_guid",
+            "field_id",
+            "rename_field",
+            "field_type",
+            "remove_field",
+            "add_field",
+        )
+    ) or _has_field_schema_change_intent(request_text):
         reason_classes.add("field_schema_change")
     if any(token in flattened for token in ("filter", "parameter", "param", "selector")) or any(
         token in request_text for token in ("filter change", "parameter change", "selector data semantics")
     ):
         reason_classes.add("filter_or_parameter_change")
-    if any(token in flattened for token in ("aggregation", "query", "metric", "measure", "formula")) or _has_query_semantics_change_intent(request_text, mode=mode):
+    if any(
+        token in flattened
+        for token in ("aggregation", "query", "metric", "measure", "formula")
+    ) or _has_query_semantics_change_intent(request_text, mode=mode):
         reason_classes.add("chart_query_or_aggregation")
     if any(
         token in request_text
