@@ -230,7 +230,7 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
                             run_until="plan_ready",
                         )
                     self.assertIn("TASK_DISCOVERY_RETRY_SUCCEEDED", resumed["performed"])
-                    self.assertNotEqual(resumed["blocked_by"].get("code"), "BLOCKED_DISCOVERY")
+                    self.assertIsNone(resumed.get("blocked_by"))
 
     def test_public_start_resolves_unambiguous_project_manifest_target(self) -> None:
         from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService
