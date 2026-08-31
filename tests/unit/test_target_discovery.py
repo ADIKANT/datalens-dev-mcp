@@ -126,6 +126,31 @@ class DiscoveryClient:
         raise AssertionError(method)
 
 
+class DirectDiscoveryClient(DiscoveryClient):
+    def rpc_readonly(self, method: str, payload: dict) -> dict:
+        if method == "getQLChart":
+            self.calls.append((method, payload))
+            return {
+                "result": {
+                    "chart": {
+                        "entry": {"entryId": "chart_demo", "revId": "chart-r3"},
+                        "data": {"datasetId": "dataset_demo"},
+                    }
+                }
+            }
+        if method == "getHtmlPage":
+            self.calls.append((method, payload))
+            return {
+                "result": {
+                    "htmlPage": {
+                        "entry": {"entryId": "html_demo", "revId": "html-r1"},
+                        "data": {"content": "<main>demo</main>"},
+                    }
+                }
+            }
+        return super().rpc_readonly(method, payload)
+
+
 def _contract(root: Path, *, dashboard_id: str = "dash_demo", workbook_id: str = "") -> dict:
     return create_task_contract(
         raw_request="Update the synthetic dashboard",
@@ -166,6 +191,29 @@ def test_dashboard_discovery_builds_bounded_graph_and_dataset_field_catalog() ->
     assert [method for method, _ in client.calls] == [
         "getDashboard", "getWorkbookEntries", "getEditorChart", "getDataset", "getConnection"
     ]
+
+
+def test_direct_object_targets_use_their_typed_read_routes() -> None:
+    cases = (
+        ("editor_chart", "chart_demo", "getEditorChart", "editor_advanced"),
+        ("wizard_chart", "chart_demo", "getWizardChart", "wizard_native"),
+        ("ql_chart", "chart_demo", "getQLChart", "ql_explicit"),
+        ("dataset", "dataset_demo", "getDataset", "dataset"),
+        ("connection", "connection_demo", "getConnection", "connection"),
+        ("html_page", "html_demo", "getHtmlPage", "editor_advanced"),
+    )
+    for object_type, object_id, method, technology in cases:
+        with tempfile.TemporaryDirectory() as tmp:
+            contract = _contract(Path(tmp), dashboard_id="")
+            contract["target"].update(
+                {"object_ids": [object_id], "object_types": [object_type]}
+            )
+            client = DirectDiscoveryClient()
+            result = TargetDiscoveryService(client).discover(contract)
+        assert result["status"] == "success", (object_type, result)
+        assert client.calls[0][0] == method
+        assert result["target_binding"]["technology"] == technology
+        assert result["target_graph"]["root_ids"] == [object_id]
 
 
 def test_editor_string_dependency_is_resolved_only_through_workbook_inventory() -> None:

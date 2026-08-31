@@ -48,10 +48,17 @@ class TargetDiscoveryService:
         dashboard_id = str(target.get("dashboard_id") or parse_target_url(target_url) or "")
         workbook_id = str(target.get("workbook_id") or "")
         requested_ids = [str(item) for item in target.get("object_ids") or [] if str(item)]
+        requested_types = [str(item) for item in target.get("object_types") or [] if str(item)]
         if str(contract.get("mode") or "") == "create" and workbook_id:
             return self._discover_create_workbook(
                 workbook_id,
                 technology=str(contract.get("route") or ""),
+            )
+        if not dashboard_id and len(requested_ids) == 1 and len(requested_types) == 1:
+            return self._discover_direct_object(
+                requested_ids[0],
+                requested_types[0],
+                workbook_id=workbook_id,
             )
         if not dashboard_id and workbook_id:
             selection = self._select_dashboard_from_workbook(workbook_id)
@@ -161,6 +168,144 @@ class TargetDiscoveryService:
             "connection_count": sum(_entry_type(item) == "connection" for item in entries),
             "field_count": 0,
             "inventory_count": len(entries),
+        }
+
+    def _discover_direct_object(
+        self,
+        object_id: str,
+        object_type: str,
+        *,
+        workbook_id: str,
+    ) -> dict[str, Any]:
+        """Read one explicitly typed object and only its proven dependencies."""
+
+        normalized_type = str(object_type or "").lower()
+        chart_method, chart_technology = _chart_read_route(normalized_type)
+        method_specs = {
+            "dataset": ("getDataset", "datasetId", "dataset"),
+            "connection": ("getConnection", "connectionId", "connection"),
+            "html_page": ("getHtmlPage", "entryId", "editor_advanced"),
+        }
+        if chart_method:
+            method, id_key, technology = chart_method, "chartId", chart_technology
+        elif normalized_type in method_specs:
+            method, id_key, technology = method_specs[normalized_type]
+        else:
+            return {
+                "status": "blocked",
+                "reason": f"direct discovery does not support object type {normalized_type or 'unknown'}",
+                "missing_facts": ["supported_object_type"],
+                "question": None,
+            }
+
+        calls: list[dict[str, Any]] = []
+        payload: dict[str, Any] = {id_key: object_id}
+        if method in {"getEditorChart", "getWizardChart", "getQLChart", "getHtmlPage"}:
+            payload["branch"] = "saved"
+        elif workbook_id:
+            payload["workbookId"] = workbook_id
+        response = self._read(method, payload, calls)
+        workbook_id = workbook_id or str(_first_deep(response, ("workbookId", "workbook_id")) or "")
+        revision = str(_first_deep(response, REVISION_KEYS) or "")
+        node = _node(
+            normalized_type,
+            object_id,
+            technology,
+            revision,
+            response,
+            workbook_id=workbook_id,
+            include_payload_hash=normalized_type != "connection",
+        )
+        nodes = [node]
+        edges: list[dict[str, str]] = []
+        baselines = {f"{normalized_type}-{object_id}-saved": deepcopy(response)}
+        limitations: list[str] = []
+
+        dataset_ids: set[str] = set()
+        if chart_method:
+            dataset_ids = _collect_ids(response, DATASET_ID_KEYS)
+            node["dataset_ids"] = sorted(dataset_ids)
+        connection_ids: set[str] = set()
+        for dataset_id in sorted(dataset_ids):
+            if len(nodes) >= self.max_objects:
+                limitations.append("target graph reached the configured object limit")
+                break
+            dataset_payload: dict[str, Any] = {"datasetId": dataset_id}
+            if workbook_id:
+                dataset_payload["workbookId"] = workbook_id
+            dataset = self._read("getDataset", dataset_payload, calls)
+            fields = extract_dataset_fields(dataset)
+            dataset_node = _node(
+                "dataset", dataset_id, "dataset",
+                str(_first_deep(dataset, REVISION_KEYS) or ""),
+                dataset,
+                workbook_id=workbook_id,
+            )
+            dataset_node["field_catalog"] = [_field_projection(item) for item in fields]
+            connection_ids.update(_collect_ids(dataset, CONNECTION_ID_KEYS))
+            dataset_node["connection_ids"] = sorted(_collect_ids(dataset, CONNECTION_ID_KEYS))
+            nodes.append(dataset_node)
+            edges.append({"source": object_id, "target": dataset_id, "relation": "uses_dataset"})
+            baselines[f"dataset-{dataset_id}-saved"] = deepcopy(dataset)
+        if normalized_type == "dataset":
+            fields = extract_dataset_fields(response)
+            node["field_catalog"] = [_field_projection(item) for item in fields]
+            connection_ids.update(_collect_ids(response, CONNECTION_ID_KEYS))
+            node["connection_ids"] = sorted(connection_ids)
+
+        for connection_id in sorted(connection_ids):
+            if len(nodes) >= self.max_objects:
+                limitations.append("target graph reached the configured object limit")
+                break
+            connection_payload: dict[str, Any] = {"connectionId": connection_id}
+            if workbook_id:
+                connection_payload["workbookId"] = workbook_id
+            connection = self._read("getConnection", connection_payload, calls)
+            nodes.append(
+                _node(
+                    "connection", connection_id, "connection", "", connection,
+                    workbook_id=workbook_id,
+                    include_payload_hash=False,
+                )
+            )
+            parent_ids = sorted(dataset_ids) if dataset_ids else [object_id]
+            edges.extend(
+                {"source": parent_id, "target": connection_id, "relation": "uses_connection"}
+                for parent_id in parent_ids
+            )
+
+        graph = build_target_graph(
+            root_ids=[object_id],
+            nodes=nodes,
+            edges=edges,
+            provider_calls=calls,
+            limitations=list(dict.fromkeys(limitations)),
+        )
+        binding = create_live_target_binding(
+            workbook_id=workbook_id,
+            dashboard_id="",
+            object_ids=[str(item.get("object_id") or "") for item in nodes],
+            object_types=[str(item.get("object_type") or "") for item in nodes],
+            saved_revision=revision,
+            published_revision="",
+            payload_hash=canonical_hash(response),
+            layout_hash="",
+            tabs_hash="",
+            technology=technology,
+            target_graph_hash=str(graph["graph_hash"]),
+        )
+        return {
+            "status": "success",
+            "observed_at": _utc_now(),
+            "target_binding": binding,
+            "target_graph": graph,
+            "baselines": baselines,
+            "provider_calls": calls,
+            "technology": technology,
+            "tab_count": 0,
+            "dataset_count": sum(item.get("object_type") == "dataset" for item in nodes),
+            "connection_count": sum(item.get("object_type") == "connection" for item in nodes),
+            "field_count": sum(len(item.get("field_catalog") or []) for item in nodes),
         }
 
     def _discover_dashboard(
