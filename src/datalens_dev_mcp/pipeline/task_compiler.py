@@ -263,31 +263,15 @@ def _compile_data_diagnostics(
         for token in ("create dataset", "update dataset", "создай датасет", "обнови датасет")
     ):
         reason_classes.add("dataset_create_or_update")
-    if any(token in flattened for token in ("source_change", "source", "connection", "dataset_id")) or any(
-        token in request_text
-        for token in (
-            "source change",
-            "change source",
-            "switch connection",
-            "connection",
-            "connector",
-            "сменить источник",
-            "источник данных",
-            "коннектор",
-            "переведи дашборд на",
-            "переключи пока что",
-            "переключи источник",
-            "переключи на табличку",
-        )
-    ):
+    if any(token in flattened for token in ("source_change", "source", "connection", "dataset_id")) or _has_source_change_intent(request_text):
         reason_classes.add("source_change")
-    if any(token in flattened for token in ("field_guid", "field_id", "rename_field", "field_type", "remove_field", "add_field")):
+    if any(token in flattened for token in ("field_guid", "field_id", "rename_field", "field_type", "remove_field", "add_field")) or _has_field_schema_change_intent(request_text):
         reason_classes.add("field_schema_change")
     if any(token in flattened for token in ("filter", "parameter", "param", "selector")) or any(
         token in request_text for token in ("filter change", "parameter change", "selector data semantics")
     ):
         reason_classes.add("filter_or_parameter_change")
-    if any(token in flattened for token in ("aggregation", "query", "metric", "measure", "formula")):
+    if any(token in flattened for token in ("aggregation", "query", "metric", "measure", "formula")) or _has_query_semantics_change_intent(request_text, mode=mode):
         reason_classes.add("chart_query_or_aggregation")
     if any(
         token in request_text
@@ -354,6 +338,61 @@ def _semantic_strings(value: Any) -> list[str]:
     if value is None:
         return []
     return [str(value)]
+
+
+def _request_clauses(text: str) -> tuple[str, ...]:
+    return tuple(
+        clause.strip()
+        for clause in re.split(r"(?:\n+|[;!?]+|(?<!https):\s+|\.\s+)", text)
+        if clause.strip()
+    )
+
+
+def _has_source_change_intent(text: str) -> bool:
+    direct_terms = (
+        "source change",
+        "change source",
+        "switch source",
+        "switch connection",
+        "connection",
+        "connector",
+        "сменить источник",
+        "источник данных",
+        "коннектор",
+        "переведи дашборд на",
+        "переключи пока что",
+        "переключи источник",
+        "переключи на табличку",
+    )
+    if any(term in text for term in direct_terms):
+        return True
+    switch = re.compile(r"(?:переключ|перевед|смен|замен)\w*", re.I)
+    source = re.compile(
+        r"(?:источник|подключен|коннектор|витрин|таблиц|dataset|connection|analytics|dm(?:\\?_|\s)|dev click|prod окруж)",
+        re.I,
+    )
+    subject = re.compile(r"(?:дашборд|датасет|все зависимост|источник|подключен|коннектор)", re.I)
+    return any(switch.search(clause) and source.search(clause) and subject.search(clause) for clause in _request_clauses(text))
+
+
+def _has_field_schema_change_intent(text: str) -> bool:
+    mutation = r"(?:добав|удал|убер|переимен|измен|замен|add|remove|rename|change)\w*"
+    field = r"(?:пол[ея]|колонк\w*|field\w*|column\w*)"
+    return any(
+        re.search(rf"{mutation}.{{0,100}}{field}|{field}.{{0,100}}{mutation}", clause, re.I)
+        for clause in _request_clauses(text)
+    )
+
+
+def _has_query_semantics_change_intent(text: str, *, mode: TaskMode) -> bool:
+    if mode not in WRITE_MODES:
+        return False
+    query_marker = re.compile(r"(?:\bsql\b|запрос\w*|формул\w*|агрегац\w*|\bquery\b|\bmeasure\b)", re.I)
+    data_logic = re.compile(
+        r"(?:раздел\w*|примен\w*|логик\w*).{0,140}(?:пол[ея]|таблиц\w*|данн\w*|sw\s*/\s*hw|bootloader)",
+        re.I,
+    )
+    return any(query_marker.search(clause) or data_logic.search(clause) for clause in _request_clauses(text))
 
 
 def _compile_mode(

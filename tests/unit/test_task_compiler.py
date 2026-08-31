@@ -471,6 +471,42 @@ class TaskCompilerTests(unittest.TestCase):
         self.assertEqual(adopted["operation_kind"], "verify_existing_effect")
         self.assertEqual(adopted["delivery"], {"save": False, "publish": False, "destructive": False})
 
+    def test_data_impact_owner_recognizes_source_query_and_field_semantics(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        cases = (
+            (
+                "переключи дашборд и все зависимости на корректную prod таблицу",
+                "source_change",
+            ),
+            (
+                "переключил дашборд на analytics\\_sbx, там теперь корректная витрина",
+                "source_change",
+            ),
+            (
+                "сделай понятнее SQL скрипт и добавь параметр ci, чтобы он менял дашборд",
+                "chart_query_or_aggregation",
+            ),
+            (
+                "примени логику разделения sw/hw/bootloader к остальным таблицам, где есть эти поля",
+                "chart_query_or_aggregation",
+            ),
+        )
+        base = compile_task_contract(
+            "Update chart:synthetic_editor_chart and publish it",
+            current_live={"chart_id": "synthetic_editor_chart", "technology": "editor_advanced"},
+        )["contract"]
+        for request, reason in cases:
+            with self.subTest(request=request):
+                contract = compile_task_contract(
+                    request,
+                    current_live=base["target"],
+                    current_task_journal=base,
+                )["contract"]
+                self.assertTrue(contract["data_diagnostics"]["required"])
+                self.assertTrue(contract["data_diagnostics"]["validate_dataset"])
+                self.assertIn(reason, contract["data_diagnostics"]["reason_classes"])
+
     @staticmethod
     def _assert_expected(result: dict, expected: dict) -> None:
         contract = result["contract"]
