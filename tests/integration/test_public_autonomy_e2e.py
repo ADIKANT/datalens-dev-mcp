@@ -23,14 +23,21 @@ def test_public_jsonrpc_completes_save_publish_and_verify_without_hidden_tools()
                     "run_until": "completed",
                 },
             )
-            verified = public_call(
+            completed = public_call(
                 server,
                 2,
+                "dl_execute",
+                started["next_call"]["arguments"],
+            )
+            verified = public_call(
+                server,
+                3,
                 "dl_verify",
                 {"task_id": started["task_id"], "project_root": str(root)},
             )
 
-    assert started["state"] == "COMPLETED"
+    assert started["state"] == "PLAN_VALIDATED"
+    assert completed["state"] == "COMPLETED"
     assert verified["ok"] is True
     assert verified["highest_proof_level"] == "publish_readback"
     assert api.write_count == 2
@@ -61,14 +68,21 @@ def test_public_jsonrpc_publishes_multi_object_batch_under_one_target_lock() -> 
                     "run_until": "completed",
                 },
             )
-            verified = public_call(
+            completed = public_call(
                 server,
                 2,
+                "dl_execute",
+                started["next_call"]["arguments"],
+            )
+            verified = public_call(
+                server,
+                3,
                 "dl_verify",
                 {"task_id": started["task_id"], "project_root": str(root)},
             )
 
-    assert started["state"] == "COMPLETED"
+    assert started["state"] == "PLAN_VALIDATED"
+    assert completed["state"] == "COMPLETED"
     assert verified["ok"] is True
     assert verified["highest_proof_level"] == "publish_readback"
     assert api.write_count == 4

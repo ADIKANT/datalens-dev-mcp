@@ -302,13 +302,15 @@ class ApiSchedulerAndBatchTests(unittest.TestCase):
         self.assertEqual(result, {"workbooks": []})
         self.assertEqual(len(service_transport.requests), 2)
 
-        write_transport = SequenceTransport([RemoteDisconnected("closed"), {"ok": True}])
+        write_transport = SequenceTransport(
+            [{"workbooks": []}, RemoteDisconnected("closed"), {"ok": True}]
+        )
         with patch("datalens_dev_mcp.api.client._transient_retry_pause", return_value=None):
             with self.assertRaises(DataLensApiError):
                 DataLensApiClient(config, transport=write_transport).rpc(
                     "updateDashboard", {"entry": {"entryId": "dashboard_1"}}
                 )
-        self.assertEqual(len(write_transport.requests), 1)
+        self.assertEqual(len(write_transport.requests), 2)
 
         missing_transport = SequenceTransport([http_error(404, {"message": "missing"}), {"workbooks": []}])
         with self.assertRaises(DataLensApiError):
@@ -349,7 +351,7 @@ class ApiSchedulerAndBatchTests(unittest.TestCase):
 
     def test_tls_write_failure_is_never_retried(self):
         transport = SequenceTransport(
-            [ssl.SSLEOFError(8, "UNEXPECTED_EOF_WHILE_READING"), {"ok": True}]
+            [{"workbooks": []}, ssl.SSLEOFError(8, "UNEXPECTED_EOF_WHILE_READING"), {"ok": True}]
         )
         config = DataLensConfig(
             iam_token="token",
@@ -362,7 +364,7 @@ class ApiSchedulerAndBatchTests(unittest.TestCase):
                 DataLensApiClient(config, transport=transport).rpc(
                     "updateDashboard", {"entry": {"entryId": "dashboard_1"}}
                 )
-        self.assertEqual(len(transport.requests), 1)
+        self.assertEqual(len(transport.requests), 2)
         self.assertEqual(raised.exception.transport_category, "tls_unexpected_eof")
         self.assertEqual(raised.exception.retry_attempts, 0)
         self.assertFalse(raised.exception.retry_exhausted)
@@ -385,14 +387,14 @@ class ApiSchedulerAndBatchTests(unittest.TestCase):
         self.assertEqual(len(read_transport.requests), 2)
 
         write_transport = SequenceTransport(
-            [IncompleteRead(b'{"entry":', 19), {"ok": True}]
+            [{"workbooks": []}, IncompleteRead(b'{"entry":', 19), {"ok": True}]
         )
         with patch("datalens_dev_mcp.api.client._transient_retry_pause", return_value=None):
             with self.assertRaises(DataLensApiError) as raised:
                 DataLensApiClient(config, transport=write_transport).rpc(
                     "updateDashboard", {"entry": {"entryId": "dashboard_1"}}
                 )
-        self.assertEqual(len(write_transport.requests), 1)
+        self.assertEqual(len(write_transport.requests), 2)
         self.assertEqual(raised.exception.transport_category, "incomplete_read")
         self.assertEqual(raised.exception.retry_attempts, 0)
         self.assertFalse(raised.exception.retry_exhausted)

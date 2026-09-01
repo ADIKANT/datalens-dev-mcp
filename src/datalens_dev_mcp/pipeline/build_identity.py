@@ -31,6 +31,7 @@ class BuildIdentityResolver:
         wheel_record_path: str | Path | None = None,
         resource_manifest_path: str | Path | None = None,
     ) -> None:
+        self._source_root_explicit = source_root is not None
         self.source_root = Path(source_root).resolve() if source_root else Path(__file__).resolve().parents[3]
         self.archive_manifest_path = Path(archive_manifest_path).resolve() if archive_manifest_path else None
         self.wheel_record_path = Path(wheel_record_path).resolve() if wheel_record_path else None
@@ -131,6 +132,8 @@ class BuildIdentityResolver:
     def _from_installed_wheel(self) -> dict[str, Any] | None:
         path = self.wheel_record_path
         if path is None:
+            if self._source_root_explicit:
+                return None
             try:
                 distribution = importlib.metadata.distribution("datalens-dev-mcp")
             except importlib.metadata.PackageNotFoundError:

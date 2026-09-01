@@ -49,9 +49,11 @@ class ToolSchemaTests(unittest.TestCase):
 
         for name, fn in TOOLS.items():
             schema = listed[name]["inputSchema"]
-            output_schema = listed[name]["outputSchema"]
             self.assertEqual(schema["type"], "object", name)
-            self.assertEqual(output_schema["type"], "object", name)
+            if name in AUTONOMOUS_TOOL_NAMES:
+                self.assertEqual(listed[name]["outputSchema"]["type"], "object", name)
+            else:
+                self.assertNotIn("outputSchema", listed[name], name)
             self.assertFalse(schema["additionalProperties"], name)
             self.assertIn("properties", schema, name)
 

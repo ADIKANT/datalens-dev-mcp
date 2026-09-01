@@ -133,7 +133,7 @@ class CurrentApiCorpusHardeningTests(unittest.TestCase):
             transport=read_transport,
         )
         read_client.rpc_readonly("getEntries", {"ids": ["entry_1"]})
-        write_transport = FakeTransport([{"ok": True}])
+        write_transport = FakeTransport([{"workbooks": []}, {"ok": True}])
         write_client = DataLensApiClient(
             DataLensConfig(iam_token="token", org_id="org", request_interval_sec=0),
             transport=write_transport,

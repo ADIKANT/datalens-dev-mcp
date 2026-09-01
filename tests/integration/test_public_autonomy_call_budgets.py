@@ -7,7 +7,7 @@ from tests.fixtures.public_autonomy_api.fake_api import PublicAutonomyApi
 from tests.integration.public_autonomy_jsonrpc_support import public_call, public_server, semantic_context
 
 
-def test_write_workflow_completes_in_two_high_level_public_calls() -> None:
+def test_write_workflow_completes_after_one_confirmation_and_verify() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         api = PublicAutonomyApi()
@@ -23,14 +23,22 @@ def test_write_workflow_completes_in_two_high_level_public_calls() -> None:
                     "run_until": "completed",
                 },
             )
-            verified = public_call(
+            executed = public_call(
                 server,
                 2,
+                "dl_execute",
+                started["next_call"]["arguments"],
+            )
+            verified = public_call(
+                server,
+                3,
                 "dl_verify",
                 {"task_id": started["task_id"], "project_root": str(root)},
             )
 
-    assert started["state"] == "COMPLETED"
+    assert started["state"] == "PLAN_VALIDATED"
+    assert started["status"] == "needs_confirmation"
+    assert executed["state"] == "COMPLETED"
     assert verified["ok"] is True
     assert api.write_count == 2
     assert [method for method, _ in api.calls].count("getDatasetData") == 2

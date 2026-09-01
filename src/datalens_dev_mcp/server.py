@@ -85,11 +85,13 @@ def _tool_schema(
     properties: dict[str, Any] | None = None,
     required: list[str] | None = None,
 ) -> dict[str, Any]:
-    schema = {
+    schema: dict[str, Any] = {
         "name": name,
         "description": description,
         "inputSchema": _input_schema_for_tool(name, properties=properties, required=required),
-        "outputSchema": {
+    }
+    if name in AUTONOMOUS_TOOL_NAMES:
+        schema["outputSchema"] = {
             "type": "object",
             "properties": {
                 "ok": {"type": "boolean"},
@@ -102,8 +104,7 @@ def _tool_schema(
                 "error": {"type": "object"},
             },
             "additionalProperties": True,
-        },
-    }
+        }
     if name in PUBLIC_TOOL_EFFECT_ANNOTATIONS:
         schema["annotations"] = dict(PUBLIC_TOOL_EFFECT_ANNOTATIONS[name])
     return schema
