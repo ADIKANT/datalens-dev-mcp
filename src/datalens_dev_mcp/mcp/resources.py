@@ -19,7 +19,10 @@ STATIC_RESOURCES = {
 PACKAGED_KNOWLEDGE_RESOURCES = {
     "datalens://knowledge/formulas": ("schemas/datalens-knowledge/formula-registry.json", "application/json"),
     "datalens://knowledge/wizard-authoring": ("templates/datalens/wizard/wizard_template_registry.json", "application/json"),
-    "datalens://knowledge/javascript-editor-authoring": ("schemas/datalens-knowledge/editor-visualization-contracts.json", "application/json"),
+    "datalens://knowledge/javascript-editor-authoring": (
+        "schemas/datalens-knowledge/editor-visualization-contracts.json",
+        "application/json",
+    ),
     "datalens://knowledge/chart-selection": ("config/datalens_chart_decision_rules.json", "application/json"),
     "datalens://knowledge/error-diagnosis": ("schemas/datalens-knowledge/error-registry.json", "application/json"),
     "datalens://knowledge/save-publish-lifecycle": ("config/datalens_delivery_policy.json", "application/json"),

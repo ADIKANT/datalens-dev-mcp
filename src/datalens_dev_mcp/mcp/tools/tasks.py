@@ -748,6 +748,7 @@ def dl_plan(task_id: str, project_root: str = ".") -> dict[str, Any]:
         project_root=str(journal.project_root),
         state_etag=task_state_etag(state),
         plan_hash=str(plan.get("plan_hash") or ""),
+        target_binding=read_json(journal.target_binding_path, {}) or {},
     )
     if result["execution_brief"]["confirmation_required"]:
         result["status"] = "needs_confirmation"
@@ -1077,19 +1078,7 @@ def _amend_task(
         new_contract["browser_policy"] = amended_browser_policy
 
     current_state, _ = journal.replay()
-    confirmation_already_consumed = current_state.current_state in {
-        "SAVED",
-        "SAVED_READBACK",
-        "PUBLISHED",
-        "PUBLISHED_READBACK",
-        "QA_COMPLETED",
-        "COMPLETED",
-    }
-    material_confirmation_fields = ("operation_kind", "route", "target", "scope", "delivery")
-    confirmation_scope_unchanged = all(
-        old.get(key) == new_contract.get(key) for key in material_confirmation_fields
-    )
-    if confirmation_already_consumed and confirmation_scope_unchanged:
+    if _can_inherit_confirmation(old, new_contract, current_state.current_state):
         new_contract["confirmation"] = {
             "required": False,
             "kind": "none",
@@ -1270,6 +1259,26 @@ def _infer_follow_up_relationship(
     return "continue"
 
 
+def _can_inherit_confirmation(
+    old_contract: dict[str, Any],
+    new_contract: dict[str, Any],
+    current_state: str,
+) -> bool:
+    if current_state not in {
+        "SAVED",
+        "SAVED_READBACK",
+        "PUBLISHED",
+        "PUBLISHED_READBACK",
+        "QA_COMPLETED",
+        "COMPLETED",
+    }:
+        return False
+    return all(
+        old_contract.get(key) == new_contract.get(key)
+        for key in ("operation_kind", "route", "target", "scope", "delivery")
+    )
+
+
 def _scope_is_narrower(before: dict[str, Any], after: dict[str, Any]) -> bool:
     for key in ("allowed_objects", "allowed_tabs", "allowed_semantic_slots"):
         old_values = set(before.get(key) or [])
@@ -1366,6 +1375,7 @@ def _attach_execution_brief(
         state_etag=task_state_etag(state),
         plan_hash=str((plan or {}).get("plan_hash") or ""),
         missing_fields=missing_fields,
+        target_binding=read_json(journal.target_binding_path, {}) or {},
     )
     result["execution_brief"] = brief
     result["next_call"] = brief.get("next_call")

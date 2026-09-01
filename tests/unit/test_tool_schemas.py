@@ -6,8 +6,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from jsonschema import Draft202012Validator
+
 from datalens_dev_mcp import __version__
 from datalens_dev_mcp.mcp.heavy_response import HEAVY_TOOL_NAMES
+from datalens_dev_mcp.mcp.task_projection import compact_execution_brief
 from datalens_dev_mcp.mcp.tool_registry_policy import (
     HIDDEN_TOOL_CALLS_ENV,
     LEGACY_TOOL_PROFILE_ENV,
@@ -15,6 +18,8 @@ from datalens_dev_mcp.mcp.tool_registry_policy import (
 )
 from datalens_dev_mcp.mcp.tools.runtime import dl_runtime_status
 from datalens_dev_mcp.pipeline.context_contracts import PROJECT_CONTEXT_AWARE_TOOLS
+from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+from datalens_dev_mcp.pipeline.workflow_state import WorkflowState
 from datalens_dev_mcp.server import (
     AUTONOMOUS_TOOL_NAMES,
     DEFAULT_TOOL_SURFACE,
@@ -244,6 +249,31 @@ class ToolSchemaTests(unittest.TestCase):
         result = server._call_tool({"name": "dl_task_status", "arguments": {"task_id": "missing"}})
 
         self.assertEqual(result["structuredContent"], json.loads(result["content"][0]["text"]))
+
+    def test_execution_brief_next_call_matches_current_tool_schema(self):
+        contract = compile_task_contract(
+            "Update chart:synthetic_chart_brief, save and publish it",
+            current_live={"chart_id": "synthetic_chart_brief", "technology": "editor_advanced"},
+        )["contract"]
+        state = WorkflowState(
+            task_id=contract["task_id"],
+            contract_hash=contract["contract_hash"],
+            current_state="VALIDATED",
+            next_transition="VALIDATED -> SAVED",
+        )
+        brief = compact_execution_brief(
+            contract,
+            state,
+            project_root="/synthetic/project",
+            state_etag="a" * 64,
+            plan_hash="b" * 64,
+        )
+        next_call = brief["next_call"]
+        listed = {tool["name"]: tool for tool in list_tools("autonomous-v2")}
+
+        self.assertEqual(brief["status"], "needs_confirmation")
+        self.assertTrue(brief["confirmation_required"])
+        Draft202012Validator(listed[next_call["tool"]]["inputSchema"]).validate(next_call["arguments"])
 
     def test_standard_write_plan_schemas_do_not_advertise_forbidden_routes(self):
         listed = {tool["name"]: tool for tool in list_tools("legacy-v1")}

@@ -733,14 +733,19 @@ class PublicPlanBuilder:
             issues.append("public cleanup object count mismatch")
         if plan.get("destructive_token_required") is not True:
             issues.append("run-owned cleanup requires exact-object confirmation")
+        execution_authorization = read_json(self.journal.execution_authorization_path, {}) or {}
+        build_identity = read_json(self.journal.build_identity_path, {}) or {}
+        target_binding = read_json(self.journal.target_binding_path, {}) or {}
+        reference_binding = read_json(self.journal.reference_binding_path, {}) or {}
+        style_binding = read_json(self.journal.style_binding_path, {}) or {}
         expected = {
             "contract_hash": str(self.contract.get("contract_hash") or ""),
-            "execution_authorization_hash": str((read_json(self.journal.execution_authorization_path, {}) or {}).get("authorization_hash") or ""),
-            "build_identity_hash": str((read_json(self.journal.build_identity_path, {}) or {}).get("identity_hash") or ""),
-            "target_binding_hash": str((read_json(self.journal.target_binding_path, {}) or {}).get("binding_hash") or ""),
-            "reference_binding_hash": str((read_json(self.journal.reference_binding_path, {}) or {}).get("binding_hash") or ""),
-            "style_binding_hash": str((read_json(self.journal.style_binding_path, {}) or {}).get("binding_hash") or ""),
-            "decision_context_hash": _decision_context_binding_hash(read_json(self.journal.style_binding_path, {}) or {}),
+            "execution_authorization_hash": str(execution_authorization.get("authorization_hash") or ""),
+            "build_identity_hash": str(build_identity.get("identity_hash") or ""),
+            "target_binding_hash": str(target_binding.get("binding_hash") or ""),
+            "reference_binding_hash": str(reference_binding.get("binding_hash") or ""),
+            "style_binding_hash": str(style_binding.get("binding_hash") or ""),
+            "decision_context_hash": _decision_context_binding_hash(style_binding),
             "cleanup_plan_hash": str(cleanup.get("plan_hash") or ""),
         }
         for key, value in expected.items():

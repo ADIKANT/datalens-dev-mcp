@@ -61,6 +61,7 @@ def project_task_summary(
         state,
         project_root=str((contract.get("workspace") or {}).get("project_root") or ""),
         state_etag=projected["state_etag"],
+        target_binding=target_binding,
     )
     return projected
 
@@ -101,6 +102,7 @@ def compact_task_status(
         state,
         project_root=str((contract.get("workspace") or {}).get("project_root") or ""),
         state_etag=projected["state_etag"],
+        target_binding=target_binding,
     )
     return projected
 
@@ -113,10 +115,15 @@ def compact_execution_brief(
     state_etag: str,
     plan_hash: str = "",
     missing_fields: list[str] | None = None,
+    target_binding: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Project one authoritative, schema-ready model execution brief."""
 
-    target = contract.get("target") or {}
+    target = dict(contract.get("target") or {})
+    live_target = target_binding or {}
+    for key in ("workbook_id", "dashboard_id", "object_ids", "object_types", "technology"):
+        if live_target.get(key):
+            target[key] = live_target[key]
     reference = contract.get("reference") or {}
     delivery = contract.get("delivery") or {}
     diagnostics = contract.get("data_diagnostics") or {}
@@ -127,11 +134,8 @@ def compact_execution_brief(
     confirmation_already_consumed = state.current_state in {
         "SAVED", "SAVED_READBACK", "PUBLISHED", "PUBLISHED_READBACK", "QA_COMPLETED", "COMPLETED",
     }
-    needs_confirmation = bool(
-        confirmation.get("required")
-        and not confirmation_already_consumed
-        and state.current_state == "VALIDATED"
-    )
+    confirmation_required = bool(confirmation.get("required") and not confirmation_already_consumed)
+    needs_confirmation = bool(confirmation_required and state.current_state == "VALIDATED")
     missing = list(dict.fromkeys(str(item) for item in (missing_fields or []) if str(item)))
     if state.current_state == "VALIDATED" and not plan_hash:
         missing.append("plan_hash")
@@ -177,7 +181,12 @@ def compact_execution_brief(
                 },
             }
     return {
-        "status": "needs_confirmation" if needs_confirmation else "blocked" if terminal and state.blocker else "ready",
+        "status": (
+            "needs_input" if missing else
+            "needs_confirmation" if needs_confirmation else
+            "blocked" if terminal and state.blocker else
+            "ready"
+        ),
         "task_kind": str(contract.get("task_kind") or "inspect_dashboard"),
         "project_root": project_root,
         "target": {
@@ -198,7 +207,7 @@ def compact_execution_brief(
         },
         "data_checks": list(diagnostics.get("reason_classes") or []) if diagnostics.get("required") else [],
         "visual_checks": [str(browser.get("purpose") or "")] if browser.get("mode") == "required" else [],
-        "confirmation_required": needs_confirmation,
+        "confirmation_required": confirmation_required,
         "confirmation_kind": str(confirmation.get("kind") or "none"),
         "missing_fields": missing,
         "next_call": next_call,

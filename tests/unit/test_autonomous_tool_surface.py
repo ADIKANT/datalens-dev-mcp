@@ -529,6 +529,22 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
             )
             fresh_discovery.assert_called_once()
 
+    def test_confirmation_is_inherited_only_for_unchanged_material_scope(self) -> None:
+        base = {
+            "operation_kind": "mutate",
+            "route": "editor_advanced",
+            "target": {"object_ids": ["chart_1"]},
+            "scope": {"allowed_semantic_slots": ["legend"]},
+            "delivery": {"save": True, "publish": True, "destructive": False},
+        }
+        unchanged = json.loads(json.dumps(base))
+        changed_scope = json.loads(json.dumps(base))
+        changed_scope["scope"]["allowed_semantic_slots"].append("layout")
+
+        self.assertTrue(tasks._can_inherit_confirmation(base, unchanged, "SAVED_READBACK"))
+        self.assertFalse(tasks._can_inherit_confirmation(base, unchanged, "VALIDATED"))
+        self.assertFalse(tasks._can_inherit_confirmation(base, changed_scope, "SAVED_READBACK"))
+
 
 if __name__ == "__main__":
     unittest.main()
