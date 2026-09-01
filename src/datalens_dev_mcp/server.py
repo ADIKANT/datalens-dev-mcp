@@ -89,6 +89,20 @@ def _tool_schema(
         "name": name,
         "description": description,
         "inputSchema": _input_schema_for_tool(name, properties=properties, required=required),
+        "outputSchema": {
+            "type": "object",
+            "properties": {
+                "ok": {"type": "boolean"},
+                "status": {"type": "string"},
+                "task_id": {"type": "string"},
+                "state": {"type": "string"},
+                "execution_brief": {"type": "object"},
+                "next_call": {"type": ["object", "null"]},
+                "resource_uri": {"type": "string"},
+                "error": {"type": "object"},
+            },
+            "additionalProperties": True,
+        },
     }
     if name in PUBLIC_TOOL_EFFECT_ANNOTATIONS:
         schema["annotations"] = dict(PUBLIC_TOOL_EFFECT_ANNOTATIONS[name])
@@ -494,6 +508,7 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
         "readback_path plus desired_overlay."
     ),
     "dataset_readbacks": "Fresh dataset readbacks used to validate Wizard field GUID and role bindings.",
+    "saved_seed": "Fresh saved Wizard readback used to preserve live runtime shape for create.",
     "where_clause": "Optional bounded WHERE predicate for read-only data probes.",
     "cte_sql": "CTE SQL used only for stage-count probe planning.",
     "graph_config": "Graph/link/freshness probe options such as source_key, target_key, or timestamp_column.",
@@ -571,6 +586,7 @@ COMPACT_SCHEMA_DESCRIPTION_PARAMS = {
     "dataset_id",
     "dataset_alias",
     "dataset_readbacks",
+    "saved_seed",
     "decision_id",
     "decision_patch",
     "decision_text",
@@ -903,6 +919,10 @@ TOOL_PARAM_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
             "portfolio_root": {"type": "string"},
             "max_discovery_objects": {"type": "integer", "minimum": 1, "maximum": 200},
             "create_manifest": {"type": "string"},
+            "cleanup_task_id": {
+                "type": "string",
+                "description": "Source task whose hashed ownership receipt declares exact direct-object cleanup routes.",
+            },
         },
         "additionalProperties": False,
     },
@@ -921,7 +941,7 @@ TOOL_PARAM_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
     ("dl_task_resume", "user_turn"): {
         "type": "object",
         "additionalProperties": False,
-        "required": ["request", "relationship_to_previous"],
+        "required": ["request"],
         "properties": {
             "source_event_id": {"type": "string"},
             "request": {"type": "string", "minLength": 1},
@@ -930,14 +950,15 @@ TOOL_PARAM_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
                 "enum": [
                     "continue",
                     "clarify",
-                    "correct_wrong_route",
-                    "correct_wrong_result",
+                    "correct_route",
+                    "correct_result",
                     "extend_scope",
                     "restrict_scope",
-                    "authorize_operation",
-                    "replace_goal",
-                    "start_new_workflow",
+                    "authorize",
+                    "verify_existing_effect",
+                    "start_new_task",
                 ],
+                "description": "Optional debugging override; ordinary follow-ups are inferred by the server.",
             },
             "context": {
                 "type": "object",
@@ -961,14 +982,25 @@ TOOL_PARAM_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
             },
         },
     },
+    ("dl_task_resume", "follow_up"): {
+        "type": "string",
+        "minLength": 1,
+        "description": "Plain follow-up text; the server infers its relationship to the persisted task.",
+    },
     ("dl_execute", "stop_after"): {
         "type": "string",
         "enum": ["saved", "completed"],
         "default": "completed",
     },
-    ("dl_inspect", "max_nodes"): {"type": "integer", "minimum": 1, "maximum": 200, "default": 50},
+    ("dl_execute", "mode"): {
+        "type": "string",
+        "enum": ["save", "saved", "publish", "completed"],
+        "description": "Deprecated compatibility alias for stop_after; it never changes task authorization.",
+    },
+    ("dl_inspect", "max_nodes"): {"type": "integer", "minimum": 1, "maximum": 200, "default": 12},
     ("dl_evidence", "limit"): {"type": "integer", "minimum": 1, "maximum": 20_000, "default": 4_000},
     ("dl_generate_editor_bundle", "selector_contract"): SELECTOR_CONTRACT_SCHEMA,
+    ("dl_generate_editor_bundle", "saved_seed"): {"type": "object"},
     ("dl_create_safe_apply_plan", "maintenance_contract"): DATE_RANGE_MAINTENANCE_CONTRACT_SCHEMA,
     ("dl_create_safe_apply_plan", "existing_update_actions"): EXISTING_UPDATE_ACTIONS_SCHEMA,
     ("dl_get_workbook_entries", "workbook_id"): {
@@ -1566,6 +1598,7 @@ class JsonRpcServer:
                 }
             ],
             "isError": False,
+            "structuredContent": public_output,
         }
 
     @staticmethod
@@ -1652,6 +1685,7 @@ def _tool_error_content(
             }
         ],
         "isError": True,
+        "structuredContent": public_error,
     }
 
 

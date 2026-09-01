@@ -649,6 +649,7 @@ def dl_generate_editor_bundle(
     columns: list[str] | None = None,
     selector_contract: dict[str, Any] | None = None,
     dataset_readbacks: list[dict[str, Any]] | None = None,
+    saved_seed: dict[str, Any] | None = None,
     html_page: dict[str, Any] | None = None,
     chart_specs: list[dict[str, Any]] | None = None,
     render_overrides: dict[str, Any] | None = None,
@@ -666,6 +667,7 @@ def dl_generate_editor_bundle(
             or columns is not None
             or selector_contract is not None
             or dataset_readbacks is not None
+            or saved_seed is not None
             or title_mode
         ):
             raise ValueError(
@@ -688,6 +690,7 @@ def dl_generate_editor_bundle(
             or columns is not None
             or selector_contract is not None
             or dataset_readbacks is not None
+            or saved_seed is not None
             or render_overrides
             or title_mode
             or dashboard_composition is not None
@@ -941,6 +944,7 @@ def dl_generate_editor_bundle(
                     if dataset_readbacks is not None
                     else {}
                 ),
+                **({"saved_seed": deepcopy(saved_seed)} if saved_seed is not None else {}),
                 "field_bindings": field_bindings,
                 "geo": {"evidence_kind": "validated_map_payload"} if visualization_id == "geolayer" else {},
                 "options": {"title": widget_title},
@@ -1268,6 +1272,7 @@ _BATCH_CHART_SPEC_FIELDS = {
     "columns",
     "selector_contract",
     "dataset_readbacks",
+    "saved_seed",
     "render_overrides",
     "comparison_context",
     "title_mode",
@@ -1863,6 +1868,7 @@ def _generate_editor_bundle_batch(
                 columns=item.get("columns"),
                 selector_contract=item.get("selector_contract"),
                 dataset_readbacks=item.get("dataset_readbacks"),
+                saved_seed=item.get("saved_seed"),
                 render_overrides=merged_overrides or None,
                 title_mode=str(item.get("title_mode") or ""),
             )
@@ -2615,6 +2621,7 @@ def dl_build_payload_plan(
                 "route": "wizard_native",
                 "visualization_id": wizard_plan.get("visualization_id") or "",
                 "source_kind": wizard_plan.get("source_kind") or "",
+                "wizard_live_execution": deepcopy(wizard_plan.get("wizard_live_execution") or {}),
                 "payload_path": str(out),
                 "compiled_payload_sha256": wizard_plan.get("compiled_payload_sha256") or "",
                 "validation": wizard_plan.get("validation") or {},
@@ -3629,6 +3636,7 @@ def dl_create_safe_apply_plan(
                     {
                         "dataset_readbacks": dataset_readbacks,
                         "enforce_wizard_role_types": True,
+                        "wizard_live_execution": deepcopy(item.get("wizard_live_execution") or {}),
                     }
                     if method == "createWizardChart"
                     else {}

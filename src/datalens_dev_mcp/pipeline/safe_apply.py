@@ -152,8 +152,26 @@ def create_safe_apply_plan(
 ) -> dict[str, Any]:
     normalized_actions = []
     project_path = Path(project_root)
-    attestation_path = project_path / ATTESTATION_ARTIFACT
-    final_payload_attestation = _read_json_object(attestation_path)
+    explicit_attestation_paths = {
+        str(action.get("final_payload_attestation_path") or "").strip()
+        for action in actions
+        if isinstance(action, dict) and str(action.get("final_payload_attestation_path") or "").strip()
+    }
+    if len(explicit_attestation_paths) == 1:
+        attestation_path = Path(next(iter(explicit_attestation_paths)))
+        if not attestation_path.is_absolute():
+            attestation_path = project_path / attestation_path
+        attestation_scope = "explicit_task_artifact"
+    elif task_contract_hash:
+        # A project may execute multiple independent create tasks.  A stale
+        # project-global attestation from another task must never become an
+        # ambient gate for a task-bound plan.
+        attestation_path = None
+        attestation_scope = "task_scoped_none"
+    else:
+        attestation_path = project_path / ATTESTATION_ARTIFACT
+        attestation_scope = "legacy_project_artifact"
+    final_payload_attestation = _read_json_object(attestation_path) if attestation_path else {}
     attestation_required = final_payload_attestation.get("applicability") == "required"
     created_at = now_utc()
     active_decision_ledger_sha256 = decision_ledger_sha256(project_root)
@@ -267,9 +285,10 @@ def create_safe_apply_plan(
         "decision_ledger_sha256": active_decision_ledger_sha256,
         "final_payload_attestation": {
             "required": attestation_required,
-            "path": str(attestation_path) if final_payload_attestation else "",
+            "path": str(attestation_path) if attestation_path and final_payload_attestation else "",
             "sha256": str(final_payload_attestation.get("attestation_sha256") or ""),
             "payload_set_sha256": str(final_payload_attestation.get("payload_set_sha256") or ""),
+            "scope": attestation_scope,
         },
         "target_lock": default_target_lock,
         "branch_semantics": {
@@ -584,7 +603,16 @@ def validate_safe_apply_plan_exhaustive(plan: dict[str, Any]) -> dict[str, Any]:
         if isinstance(plan.get("final_payload_attestation"), dict)
         else {}
     )
-    current_attestation = _read_json_object(project_root / ATTESTATION_ARTIFACT)
+    attestation_locator = str(plan_attestation.get("path") or "").strip()
+    if attestation_locator:
+        attestation_path = Path(attestation_locator)
+        if not attestation_path.is_absolute():
+            attestation_path = project_root / attestation_path
+        current_attestation = _read_json_object(attestation_path)
+    elif plan_attestation.get("scope") == "task_scoped_none":
+        current_attestation = {}
+    else:
+        current_attestation = _read_json_object(project_root / ATTESTATION_ARTIFACT)
     attestation_required = (
         plan_attestation.get("required") is True
         or current_attestation.get("applicability") == "required"
@@ -2477,11 +2505,31 @@ def _wizard_live_readback_contract_issues(
     method = str(action.get("method") or "")
     token = _wizard_visualization_token(payload)
     if method == "createWizardChart":
+        issues: list[str] = []
         if not token or not is_supported_wizard_visualization(token):
-            return [
+            issues.append(
                 f"action {index} Wizard creation requires one of the supported canonical visualization IDs"
-            ]
-        return []
+            )
+        evidence = (
+            action.get("wizard_live_execution")
+            if isinstance(action.get("wizard_live_execution"), dict)
+            else {}
+        )
+        if evidence.get("ok") is not True:
+            issues.append(
+                f"action {index} Wizard creation requires fresh saved-seed live execution evidence"
+            )
+        if str(evidence.get("source_kind") or "") != "fresh_saved_seed":
+            issues.append(f"action {index} Wizard creation cannot execute from an offline canonical template")
+        if str(evidence.get("branch") or "").lower() != "saved" or not str(
+            evidence.get("revision_id") or ""
+        ):
+            issues.append(f"action {index} Wizard creation seed must be a revision-bound saved readback")
+        if token and str(evidence.get("visualization_id") or "") != token:
+            issues.append(f"action {index} Wizard creation seed visualization does not match the payload")
+        if str(evidence.get("compiled_payload_sha256") or "") != serialized_metadata(payload)["sha256"]:
+            issues.append(f"action {index} Wizard creation live execution evidence is stale")
+        return issues
     if method != "updateWizardChart":
         return []
     issues: list[str] = []

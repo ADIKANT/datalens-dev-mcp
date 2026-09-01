@@ -18,7 +18,14 @@ dl_task_start(request, run_until="plan_ready")
   -> dl_evidence для одного bounded artifact
 ```
 
-`dl_task_start` компилирует неизменяемые target, delivery, evidence и browser-policy, записывает event chain и обычно останавливается в `PLAN_VALIDATED`. `dl_task_resume` продолжает тот же task после перезапуска процесса; `expected_state` и `expected_hash` предотвращают исполнение по устаревшему состоянию. Содержательная поправка передаётся как `user_turn` вместе с точным `expected_contract_revision`: сервер создаёт следующую contract revision, сохраняет task ID и инвалидирует только зависящие от изменения artifacts. Review, audit, diagnose и plan-only завершаются без записи. Write-task использует сохранённый Safe Apply plan и не принимает произвольные payload от модели на стадии `dl_execute`.
+`dl_task_start` компилирует неизменяемые target, reference, technology,
+delivery, evidence и browser-policy и возвращает компактный `execution_brief` с
+полностью заполненным `next_call`. Mutation обычно останавливается в
+`PLAN_VALIDATED` для одного подтверждения. Обычная поправка передаётся простой
+строкой `follow_up`; сервер сам определяет её связь с текущей task.
+`dl_task_resume` сохраняет task ID и инвалидирует только зависящие artifacts.
+Review, audit, diagnose и plan-only завершаются без записи. `dl_execute`
+исполняет только сохранённый Safe Apply plan и не принимает произвольный payload.
 
 До материализации плана server-owned workflow обнаруживает зависимости dataset и выполняет bounded `getDatasetData` `context_probe`. Он связывает с планом реальные GUID полей, наблюдаемые диапазоны дат, candidate roles для measure/dimension/selector, sampled domains и ограничения полноты. На стадии `dl_verify` выполняется отдельный fresh `assertion_probe`; unexpected empty переводит workflow в bounded diagnostics. Endpoint не имеет `rev_id` и branch semantics, поэтому server не приписывает ему saved/published доказательство. При недоступности endpoint остаются `source_static`, `fallback_kind` и schema-only limitations, а не ложный live success. Raw rows не возвращаются inline.
 
@@ -66,7 +73,10 @@ escape, дрейф payload, неверный порядок зависимост
   -> проверка результата в интерфейсе DataLens
 ```
 
-Формулировка задачи выбирает точку остановки. Сервер не спрашивает повторное подтверждение перед сохранением и публикацией, если пользователь уже попросил создать, исправить, обновить или переработать известный объект. Отдельное подтверждение применяется только к manifest action `retire_legacy_objects`; произвольное удаление целого объекта недоступно.
+Формулировка задачи выбирает точку остановки. Перед существенной mutation
+сервер возвращает один компактный план; подтверждение покрывает неизменённые
+save и publish. Destructive cleanup доступен только для точных run-owned
+объектов с ownership receipt и требует отдельного exact-object token.
 
 ## Подключение и проверка
 

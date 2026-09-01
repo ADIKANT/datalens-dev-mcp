@@ -79,7 +79,7 @@
     {
       "bytes": 197728,
       "path": "config/golden_runtime_gallery_contracts.json",
-      "sha256": "29aab2be424699afc804c2f80e25810e601073009ea9950034015531c301611a"
+      "sha256": "cc91bc569f4b90b4dfde2de5fe4384a265d00f745468759a9fd123b236f7ed1f"
     },
     {
       "bytes": 25159,
@@ -279,7 +279,7 @@
     {
       "bytes": 12873,
       "path": "schemas/datalens-knowledge/capability-matrix.json",
-      "sha256": "11d77cf89be80437798239a5e0af70ae1f3b50a8eac18c5c99fd1061f7679fa0"
+      "sha256": "c1c81773d16d4d9d2e3b36d7838802567288a86cc55b7c3cbab21de2efa53a95"
     },
     {
       "bytes": 3130533,
@@ -314,7 +314,7 @@
     {
       "bytes": 6830,
       "path": "schemas/datalens-knowledge/route-capability-matrix.json",
-      "sha256": "6da3dd980b0b0a0cd9150126ca01483381ed8935962cbdb1ac7e1f3d49aa885c"
+      "sha256": "e0ec66bc38ff81900d9bf9bd5d542e571893600f57596899cdd397baf56ecf1a"
     },
     {
       "bytes": 318084,
@@ -527,9 +527,9 @@
       "sha256": "916a02c49c9a3802134708dce528e668df3402a3ea80b6c4fa4e71502bb5f23b"
     },
     {
-      "bytes": 1403,
+      "bytes": 2124,
       "path": "schemas/public-create-manifest.schema.json",
-      "sha256": "3db7e956f42ede94621c69775ae7568b649dbaf428bcaee86ab1b0f409ce85f9"
+      "sha256": "997c4ca9f37f81b696bb54d08b63617051dac608b1284794de9e1ef90c0c3d12"
     },
     {
       "bytes": 956,
@@ -687,9 +687,9 @@
       "sha256": "8ca65a56e531b0313fa0f4141fcd4ae93b3dc8d6c991b94ae6d224ec4c6318c4"
     },
     {
-      "bytes": 7511,
+      "bytes": 8353,
       "path": "schemas/task-contract.schema.json",
-      "sha256": "1c3be7487288e1fab0953f73a0c870187142f56772ece95799ad4ec477bbe928"
+      "sha256": "c6d74a0ed98abddf238b41f534efba44884be4665a1d469af0973d3e4bc9885d"
     },
     {
       "bytes": 2027,

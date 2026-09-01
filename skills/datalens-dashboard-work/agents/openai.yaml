@@ -1,0 +1,11 @@
+interface:
+  display_name: DataLens dashboard work
+  short_description: Build and verify DataLens dashboards through the task-level MCP workflow.
+  default_prompt: Use the DataLens MCP task workflow from the exact dashboard project root. Read the compact execution brief, ask once before a substantial mutation, execute its complete next call, and verify API readbacks before any final read-only Browser QA.
+dependencies:
+  tools:
+    - type: mcp
+      value: datalens
+      description: Local datalens-dev-mcp server with the eight public task-level tools.
+policy:
+  allow_implicit_invocation: true

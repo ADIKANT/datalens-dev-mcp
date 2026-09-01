@@ -44,6 +44,21 @@ class TaskCompilerTests(unittest.TestCase):
 
         self.assertEqual(result["contract"]["route"], "editor_advanced")
 
+    def test_exact_live_chart_type_outranks_generic_request_type(self):
+        from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
+
+        result = compile_task_contract(
+            "Review chart:synthetic_chart_typed",
+            current_live={
+                "object_ids": ["synthetic_chart_typed"],
+                "object_types": ["wizard_chart"],
+                "technology": "wizard_native",
+            },
+        )
+
+        self.assertEqual(result["contract"]["target"]["object_types"], ["wizard_chart"])
+        self.assertEqual(result["contract"]["route"], "wizard_native")
+
     def test_fixture_matrix_has_at_least_forty_cases(self):
         payload = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
 

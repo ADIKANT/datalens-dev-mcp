@@ -1,72 +1,25 @@
 # AGENTS.md
 
-## Scope
+This repository owns the local `datalens-dev-mcp` Python stdio server.
 
-This repository contains the local `datalens-dev-mcp` Python MCP stdio server.
+## Ordinary dashboard work
 
-The server is a client-independent MCP interface for DataLens dashboard development: object discovery, planning, validation, guarded save and publish, project workflows, visual QA, diagnostics, and operator context. It runs locally and can be connected to Codex, Claude, or another MCP client.
+- Work from the exact dashboard project or subproject root. Use its manifest and decision context; do not substitute a portfolio root or the server repository.
+- Use the installed `datalens-dashboard-work` Skill and the eight public task tools. Do not read server source, run server tests, or mine other projects for an ordinary dashboard request.
+- Use API discovery, save/readback, publish-from-saved, and published readback. Browser is read-only and final-only after API and applicable data checks.
+- Read-only analysis does not need confirmation. Show one compact plan before a substantial mutation; one confirmation covers the unchanged plan. Destructive actions always require exact-object confirmation.
+- Preserve an existing object's technology. Use Wizard for new standard charts, Editor/JavaScript only by direct request or a documented gap, and QL only by direct request.
+- Never guess IDs, expose secrets, change permissions, or write to production or unowned objects.
 
-## Read Order
+## Server maintenance
 
-1. `AGENTS.md`
-2. `README.md`
-3. `README_en.md`
-4. `docs/README.md`
-5. `docs/access.md`
-6. `docs/codex_setup.md`
-7. `docs/usage-flow.md`
-8. `docs/configuration.md`
-9. `docs/local-only-safety-model.md`
-10. `docs/route-policy.md`
-11. `docs/safe-apply.md`
-12. `docs/tools.md`
-13. `docs/mcp/tools.md`
-14. `docs/mcp/response_contracts.md`
-15. `docs/sources.md`
-16. `docs/source_provenance.md`
-17. `docs/autonomous-workflow.md`
-18. `docs/project-journal.md`
-19. `docs/portfolio-style-registry.md`
-20. `docs/data-validation.md`
-21. `docs/evidence-levels.md`
-22. `docs/migration-v1-to-v2.md`
+- Read only the owners and documentation causally required for the defect. Preserve useful dirty work and keep raw corpora, sessions, runtime receipts, caches, credentials, and private object data out of Git.
+- Keep one task compiler, one task journal/workflow, the eight public tools, and the Safe Apply lifecycle. Add no public tool or parallel framework without a demonstrated expressiveness gap.
+- Verify a real fail-before, apply one coherent owner fix, then run focused and affected tests. Do not run a full suite or build repeatedly while diagnosing.
+- Treat commits, pull requests, issues, and release notes as public. Use generic behavior and synthetic evidence; never publish private names, IDs, prompts, local paths, or credential material.
 
-## Local Material Policy
+## Release and final delivery
 
-- Runtime behavior lives in MCP code, configs, schemas, templates, examples, tests, and distilled documentation.
-- Raw source corpora, long copied pages, course or book extracts, and complete extraction artifacts do not belong in the tracked repository.
-- Keep compact attributable registries, distilled rules, schemas, templates, curated examples, and tests.
-- Never commit IAM tokens, env files, live authorization headers, passwords, private keys, or other credential material.
-
-## Public Change Hygiene
-
-- Treat commit messages, pull requests, issues, release notes, and review replies as public product documentation.
-- Describe generic capabilities, contracts, and synthetic test evidence only.
-- Do not name private dashboards, workbooks, customers, internal projects, source logs, local absolute paths, or live object IDs.
-- State the product change directly. Do not narrate private-source handling, sanitization work, or removed internal material.
-- Use a public-safe author identity for commits and verify commit and pull-request metadata before publishing; do not expose an employer or private email address.
-- Run the public-release, sensitive-artifact, and repository-size gates before publishing.
-
-## Route And Write Safety
-
-- The standard runtime follows the user request. Audit, review, diagnose, and plan-only requests do not write. Save-only and no-publish stop after saved readback. Create, fix, update, enhance, and redesign requests for known targets continue through save, saved readback, publish from saved state, and published readback.
-- Write, save, and publish capabilities are enabled by default. An explicit environment value of `0` is a hard-off switch for the corresponding capability.
-- Do not ask for another confirmation before ordinary save or publish after the user has requested the change. Arbitrary whole-object deletion is unsupported; only a project-manifest `retire_legacy_objects` action requires separate confirmation with exact IDs and an unchanged plan.
-- Every write requires a known target, fresh saved readback, target and revision checks, payload validation, unknown-field preservation, save-first behavior, and readback. Publish is built only from verified saved state.
-- Removing a legend, filter, column, tab, or widget inside an object is an update. Object moves, permission changes, and credential mutations are unsupported.
-- Canonical chart creation routes are `wizard_native`, `editor_advanced`, `editor_table`, `editor_markdown`, `editor_js_control`, and direct-request-only `ql_explicit`. `wizard_map_native` is normalized to `wizard_native` with `visualization_id=geolayer`.
-- New standard KPI, table, pivot, line, area, column, bar, combined, pie/donut, scatter/bubble, treemap, and map charts use Wizard. JavaScript/Editor is selected by direct request or a documented capability gap. Updates preserve technology and visualization ID from fresh saved readback.
-- QL read/create/update is used only after a direct QL request. Never select QL automatically, use it as a fallback, or generate it from a general prompt. Whole-object QL deletion remains unsupported.
-- Do not guess IDs, perform blind writes, or publish outside the saved-readback flow.
-
-## Verification
-
-Run the offline gate:
-
-```bash
-python3 scripts/run_offline_acceptance.py
-```
-
-Final autonomy work also runs affected, autonomy, and sharded full acceptance.
-Receipts bind the exact head and unchanged publication-tree hash. A live claim
-additionally requires a completed controlled canary artifact.
+- Run the offline, affected, autonomy, and final full acceptance contours once the behavior is frozen. A live claim requires a controlled run-owned canary and cleanup.
+- Deliver through a feature branch and Pull Request; never direct-push or force-push `main`.
+- After merge, build and install from clean exact `origin/main`, install the canonical user-scope Skill, verify import from `site-packages` without `PYTHONPATH=src`, eight public tools, auth/read probes, and an ordinary task from an exact dashboard subproject.

@@ -8,6 +8,8 @@
     "contract_version",
     "task_id",
     "raw_request_hash",
+    "task_kind",
+    "requested_outcome",
     "mode",
     "route",
     "operation_kind",
@@ -20,6 +22,7 @@
     "browser_policy",
     "data_diagnostics",
     "delivery",
+    "confirmation",
     "evidence",
     "acceptance",
     "question_policy",
@@ -39,6 +42,10 @@
     "contract_version": {"const": 2},
     "task_id": {"type": "string", "format": "uuid"},
     "raw_request_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "task_kind": {
+      "enum": ["inspect_dashboard", "create_dashboard", "update_dashboard", "create_chart", "update_chart", "diagnose_chart_or_data_error", "verify_or_adopt_manual_change", "save_publish_verify", "clone_or_adapt_reference", "cleanup_run_owned_objects"]
+    },
+    "requested_outcome": {"type": "string"},
     "mode": {
       "enum": ["review", "diagnose", "plan", "create", "update", "redesign", "publish_only"]
     },
@@ -144,6 +151,18 @@
         "save": {"type": "boolean"},
         "publish": {"type": "boolean"},
         "destructive": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "confirmation": {
+      "type": "object",
+      "required": ["required", "kind", "reason", "scoped_opt_out", "inherited"],
+      "properties": {
+        "required": {"type": "boolean"},
+        "kind": {"enum": ["none", "substantial_mutation", "destructive_exact_object"]},
+        "reason": {"type": "string"},
+        "scoped_opt_out": {"type": "boolean"},
+        "inherited": {"type": "boolean"}
       },
       "additionalProperties": false
     },

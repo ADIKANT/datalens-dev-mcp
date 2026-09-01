@@ -123,6 +123,43 @@ def _context(journal: ProjectJournal, transition: str) -> dict:
     }
 
 
+def test_created_object_ownership_excludes_updates_and_unowned_actions(tmp_path: Path) -> None:
+    journal, contract = _fixture(tmp_path, publish=False)
+    service = DeliveryTransactionService(journal, contract, client=DeliveryClient())
+    lifecycle = {
+        "run_id": "run_1",
+        "parent_workbook": "book_demo",
+        "cleanup_route": "direct_object_delete",
+        "inverse_or_recreate_plan": {"strategy": "delete_object_and_verify_absent"},
+    }
+
+    service._persist_created_object_ownership(
+        [
+            {
+                "action_type": "create",
+                "object_id": "wizard_created",
+                "object_type": "wizard_chart",
+                "cleanup_lifecycle": lifecycle,
+            },
+            {
+                "action_type": "update",
+                "object_id": "wizard_existing",
+                "object_type": "wizard_chart",
+                "cleanup_lifecycle": lifecycle,
+            },
+            {
+                "action_type": "create",
+                "object_id": "unowned",
+                "object_type": "wizard_chart",
+            },
+        ],
+        {"receipt_hash": "a" * 64, "plan_hash": "b" * 64},
+    )
+
+    ownership = read_json(journal.delivery_root / "created-object-ownership.json", {})
+    assert [item["object_id"] for item in ownership["objects"]] == ["wizard_created"]
+
+
 def test_save_readback_publish_readback_are_four_separate_idempotent_stages() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)

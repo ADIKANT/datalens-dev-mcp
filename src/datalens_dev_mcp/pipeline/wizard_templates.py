@@ -145,13 +145,15 @@ def build_wizard_payload_plan(config: dict[str, Any] | None = None) -> dict[str,
         canonical["data"] = seed_data
         canonical["template"] = str(sanitized_seed.get("template") or canonical.get("template") or "datalens")
     compiled_data = deepcopy(canonical.get("data") or {})
+    nested_partial_fields = _uses_nested_partial_fields(compiled_data.get("datasetsPartialFields"))
     _ensure_visualization_id(compiled_data, visualization_id)
     _clear_runtime_bindings(compiled_data)
     dataset_id = str(normalized["dataset_id"])
     bindings = normalized.get("field_bindings") or {}
     bound_fields = _bind_fields(compiled_data, bindings, dataset_id=dataset_id)
     compiled_data["datasetsIds"] = [dataset_id]
-    compiled_data["datasetsPartialFields"] = _dedupe_fields(bound_fields)
+    deduped_fields = _dedupe_fields(bound_fields)
+    compiled_data["datasetsPartialFields"] = [deduped_fields] if nested_partial_fields else deduped_fields
     options = normalized.get("options") if isinstance(normalized.get("options"), dict) else {}
     for key, value in options.items():
         if key not in IDENTITY_KEYS:
@@ -192,6 +194,7 @@ def build_wizard_payload_plan(config: dict[str, Any] | None = None) -> dict[str,
     registry = load_wizard_template_registry()
     template_spec = (registry.get("templates") or {})[visualization_id]
     sanitized_hash = _sha256_json(sanitized_seed) if sanitized_seed else ""
+    live_shape_evidence = build_wizard_live_execution_evidence(payload, saved_seed)
     plan = {
         "ok": True,
         "schema_id": "wizard_payload_plan",
@@ -218,8 +221,11 @@ def build_wizard_payload_plan(config: dict[str, Any] | None = None) -> dict[str,
         "optional_roles": list(template_spec.get("optional_roles") or []),
         "safe_apply_required": True,
         "execute_now": False,
-        "live_verification": False,
-        "live_execution_ready": bool(dataset_readback_validation["ok"]),
+        "live_verification": bool(live_shape_evidence["ok"]),
+        "live_execution_ready": bool(
+            dataset_readback_validation["ok"] and live_shape_evidence["ok"]
+        ),
+        "wizard_live_execution": live_shape_evidence,
         "validation": validation,
         "dataset_readbacks": dataset_readbacks,
         "dataset_readback_validation": dataset_readback_validation,
@@ -241,7 +247,46 @@ def build_wizard_payload_plan(config: dict[str, Any] | None = None) -> dict[str,
             for finding in dataset_readback_validation["findings"]
             if finding.get("severity") == "error"
         )
+    elif not live_shape_evidence["ok"]:
+        plan["status"] = "compiled_payload_requires_fresh_saved_seed"
     return plan
+
+
+def build_wizard_live_execution_evidence(
+    payload: dict[str, Any],
+    saved_seed: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Bind a Wizard create payload to a fresh saved object of the same visualization.
+
+    Repository canonical templates are intentionally offline fixtures.  A live
+    create is ready only when its runtime shape is inherited from a fresh saved
+    readback and the mutable dataset/field bindings did not replace that shape.
+    """
+
+    visualization_id = _visualization_token(payload)
+    issues = (
+        _saved_seed_errors(saved_seed, visualization_id)
+        if saved_seed is not None
+        else ["a fresh saved Wizard seed is required for live creation"]
+    )
+    sanitized_seed = _sanitize_saved_seed(saved_seed) if isinstance(saved_seed, dict) else {}
+    seed_shape_sha256 = _sha256_json(_wizard_runtime_shape(sanitized_seed)) if sanitized_seed else ""
+    payload_shape_sha256 = _sha256_json(_wizard_runtime_shape(payload)) if payload else ""
+    if sanitized_seed and seed_shape_sha256 != payload_shape_sha256:
+        issues.append("compiled Wizard runtime shape differs from the fresh saved seed")
+    return {
+        "schema_id": "wizard_live_execution_evidence",
+        "ok": not issues,
+        "source_kind": "fresh_saved_seed" if saved_seed else "committed_canonical_template",
+        "branch": "saved" if saved_seed else "",
+        "revision_id": _revision_token(saved_seed) if saved_seed else "",
+        "visualization_id": visualization_id,
+        "seed_sha256": _sha256_json(saved_seed) if saved_seed else "",
+        "seed_shape_sha256": seed_shape_sha256,
+        "payload_shape_sha256": payload_shape_sha256,
+        "compiled_payload_sha256": _sha256_json(payload),
+        "issues": issues,
+    }
 
 
 def _normalize_config(config: dict[str, Any]) -> dict[str, Any]:
@@ -352,10 +397,13 @@ def _binding_type(value: Any) -> str:
 def _field_item(value: Any, *, dataset_id: str) -> dict[str, Any]:
     source = value if isinstance(value, dict) else {"guid": str(value)}
     guid = str(source.get("guid") or source.get("field_guid") or source.get("id") or "").strip()
-    item: dict[str, Any] = {"guid": guid, "datasetId": str(source.get("datasetId") or source.get("dataset_id") or dataset_id)}
-    for key in ("title", "type", "data_type", "dataType", "aggregation", "formula"):
-        if source.get(key) not in (None, ""):
-            item[key] = deepcopy(source[key])
+    item = {
+        key: deepcopy(child)
+        for key, child in source.items()
+        if key not in {"id", "field_guid", "dataset_id"}
+    }
+    item["guid"] = guid
+    item["datasetId"] = str(source.get("datasetId") or source.get("dataset_id") or dataset_id)
     return item
 
 
@@ -389,6 +437,13 @@ def _bind_fields(data: dict[str, Any], bindings: dict[str, Any], *, dataset_id: 
 def _clear_runtime_bindings(data: dict[str, Any]) -> None:
     data["datasetsIds"] = []
     data["datasetsPartialFields"] = []
+    # Saved seeds contribute the runtime envelope, not their chart-specific
+    # semantic predicates. Reusing filters or sort keys would retain field
+    # references that are intentionally absent after the new binding pass.
+    if "filters" in data:
+        data["filters"] = []
+    if "sort" in data:
+        data["sort"] = []
     for placeholder in _placeholder_objects(data.get("visualization") or {}):
         placeholder["items"] = []
 
@@ -403,6 +458,40 @@ def _dedupe_fields(fields: list[dict[str, Any]]) -> list[dict[str, Any]]:
         seen.add(key)
         result.append(field)
     return result
+
+
+def _uses_nested_partial_fields(value: Any) -> bool:
+    return isinstance(value, list) and bool(value) and isinstance(value[0], list)
+
+
+def _wizard_runtime_shape(value: dict[str, Any]) -> Any:
+    sanitized = _sanitize_saved_seed(value)
+    data = sanitized.get("data") if isinstance(sanitized.get("data"), dict) else {}
+    normalized = deepcopy(data)
+    normalized["datasetsIds"] = []
+    partial = normalized.get("datasetsPartialFields")
+    normalized["datasetsPartialFields"] = [[]] if _uses_nested_partial_fields(partial) else []
+    if "filters" in normalized:
+        normalized["filters"] = []
+    if "sort" in normalized:
+        normalized["sort"] = []
+    for placeholder in _placeholder_objects(normalized.get("visualization") or {}):
+        placeholder["items"] = []
+    return _shape_projection({"template": sanitized.get("template"), "data": normalized})
+
+
+def _shape_projection(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _shape_projection(child) for key, child in sorted(value.items())}
+    if isinstance(value, list):
+        return [_shape_projection(child) for child in value]
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, (int, float)):
+        return "number"
+    return "string"
 
 
 def _saved_seed_errors(seed: Any, visualization_id: str) -> list[str]:

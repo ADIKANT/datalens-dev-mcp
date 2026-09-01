@@ -3,6 +3,7 @@
 import json
 import tempfile
 import unittest
+from copy import deepcopy
 from pathlib import Path
 
 
@@ -26,6 +27,7 @@ class ProjectWorkflowTests(unittest.TestCase):
             dl_start_pipeline,
             dl_validate_project,
         )
+        from datalens_dev_mcp.pipeline.wizard_templates import load_canonical_wizard_templates
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -50,6 +52,18 @@ class ProjectWorkflowTests(unittest.TestCase):
             connector_plan = dl_create_connector_plan({"name": "sample_connection", "type": "clickhouse"})
             dataset_plan = dl_create_dataset_plan({"name": "sample_dataset", "source": "sample_connection"})
             field_plan = dl_create_dataset_field_plan({"name": "order_count", "type": "integer"})
+            seed_data = deepcopy(load_canonical_wizard_templates()["templates"]["flatTable"]["data"])
+            seed_data.update(
+                {
+                    "version": "15",
+                    "datasetsPartialFields": [[]],
+                    "colors": [],
+                    "extraSettings": {},
+                    "labels": [],
+                    "title": "Seed title",
+                    "tooltips": [],
+                }
+            )
             bundle = dl_generate_editor_bundle(
                 str(root),
                 widget_id="sample_widget",
@@ -65,6 +79,12 @@ class ProjectWorkflowTests(unittest.TestCase):
                         ],
                     }
                 ],
+                saved_seed={
+                    "branch": "saved",
+                    "revId": "saved_seed_revision_1",
+                    "template": "datalens",
+                    "data": seed_data,
+                },
             )
             payload_plan = dl_build_payload_plan(str(root), workbook_id="workbook_placeholder")
             (root / "datasets").mkdir()

@@ -44,7 +44,9 @@ class ToolSchemaTests(unittest.TestCase):
 
         for name, fn in TOOLS.items():
             schema = listed[name]["inputSchema"]
+            output_schema = listed[name]["outputSchema"]
             self.assertEqual(schema["type"], "object", name)
+            self.assertEqual(output_schema["type"], "object", name)
             self.assertFalse(schema["additionalProperties"], name)
             self.assertIn("properties", schema, name)
 
@@ -201,6 +203,7 @@ class ToolSchemaTests(unittest.TestCase):
 
         self.assertEqual(result["tool_surface"], DEFAULT_TOOL_SURFACE)
         self.assertEqual(names, AUTONOMOUS_TOOL_NAMES)
+        self.assertEqual(len(names), 8)
         self.assertNotIn("profile", result)
         self.assertNotIn("dl_rpc_readonly", names)
         self.assertNotIn("dl_rpc_expert", names)
@@ -224,6 +227,23 @@ class ToolSchemaTests(unittest.TestCase):
             listed["dl_execute"]["inputSchema"]["properties"]["stop_after"]["enum"],
             ["saved", "completed"],
         )
+        self.assertEqual(
+            listed["dl_execute"]["inputSchema"]["properties"]["mode"]["enum"],
+            ["save", "saved", "publish", "completed"],
+        )
+        resume_schema = listed["dl_task_resume"]["inputSchema"]
+        self.assertIn("follow_up", resume_schema["properties"])
+        self.assertNotIn(
+            "relationship_to_previous",
+            resume_schema["properties"]["user_turn"].get("required", []),
+        )
+        self.assertEqual(listed["dl_inspect"]["inputSchema"]["properties"]["max_nodes"]["default"], 12)
+
+    def test_tool_call_returns_matching_structured_content(self):
+        server = JsonRpcServer(project_root=".")
+        result = server._call_tool({"name": "dl_task_status", "arguments": {"task_id": "missing"}})
+
+        self.assertEqual(result["structuredContent"], json.loads(result["content"][0]["text"]))
 
     def test_standard_write_plan_schemas_do_not_advertise_forbidden_routes(self):
         listed = {tool["name"]: tool for tool in list_tools("legacy-v1")}

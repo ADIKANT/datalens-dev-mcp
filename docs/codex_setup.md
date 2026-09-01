@@ -14,6 +14,7 @@ cd datalens-dev-mcp
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install .
+.venv/bin/python scripts/install_datalens_skill.py
 .venv/bin/datalens-dev-mcp --version
 python3 scripts/smoke_mcp_stdio.py
 ```
@@ -47,7 +48,11 @@ startup_timeout_sec = 20
 tool_timeout_sec = 120
 ```
 
-Используйте абсолютные пути. Параметр `default_tools_approval_mode = "approve"` разрешает обычные вызовы этого сервера без отдельного вопроса Codex перед сохранением или публикацией. Отдельное подтверждение применяется только к manifest action `retire_legacy_objects`.
+Используйте абсолютные пути. Параметр `default_tools_approval_mode = "approve"`
+разрешает транспортные вызовы сервера; task workflow всё равно возвращает один
+компактный план и ждёт подтверждения перед существенной mutation. Неизменённое
+продолжение подтверждённой task второго вопроса не создаёт. Destructive cleanup
+требует отдельного exact-object token.
 
 Готовый файл: [`examples/clients/codex.toml`](../examples/clients/codex.toml).
 
@@ -103,7 +108,7 @@ codex mcp list
 
 Обычное изменение:
 
-> Исправь `<OBJECT_TYPE>` `<OBJECT_ID>` в воркбуке `<WORKBOOK_ID>`: `<ТРЕБОВАНИЕ>`. Прочитай актуальную сохранённую версию и связи, проверь план и запрос, сохрани изменение, выполни контрольное чтение, опубликуй сохранённую версию и проверь опубликованный результат. Не запрашивай отдельное подтверждение перед сохранением или публикацией.
+> Исправь `<OBJECT_TYPE>` `<OBJECT_ID>` в воркбуке `<WORKBOOK_ID>`: `<ТРЕБОВАНИЕ>`. Прочитай актуальную сохранённую версию и связи, покажи один компактный план для подтверждения, сохрани изменение, выполни контрольное чтение, опубликуй сохранённую версию и проверь опубликованный результат.
 
 Дополнительные варианты: [сценарии использования](usage-flow.md).
 
@@ -114,6 +119,7 @@ codex mcp list
 ```bash
 cd /absolute/path/to/datalens-dev-mcp
 .venv/bin/python -m pip install .
+.venv/bin/python scripts/install_datalens_skill.py
 python3 scripts/smoke_mcp_stdio.py
 codex mcp list
 ```

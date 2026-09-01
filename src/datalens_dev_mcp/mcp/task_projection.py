@@ -24,7 +24,7 @@ def project_task_summary(
     observed = _observed_facts(selected)
     blocker = state.blocker or None
     terminal = state.current_state in {"COMPLETED", "BLOCKED", "BLOCKED_CONFLICT", "FAILED"}
-    return {
+    projected = {
         "task_id": state.task_id,
         "state": public_task_state(state.current_state),
         "task_revision": state.revision,
@@ -56,6 +56,13 @@ def project_task_summary(
         "next_action": "" if terminal else _next_action(state, contract),
         "resource_uri": resource_uri,
     }
+    projected["execution_brief"] = compact_execution_brief(
+        contract,
+        state,
+        project_root=str((contract.get("workspace") or {}).get("project_root") or ""),
+        state_etag=projected["state_etag"],
+    )
+    return projected
 
 
 def compact_task_status(
@@ -67,7 +74,7 @@ def compact_task_status(
     style_binding: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     terminal = state.current_state in {"COMPLETED", "BLOCKED", "BLOCKED_CONFLICT", "FAILED"}
-    return {
+    projected = {
         "task_id": state.task_id,
         "state": public_task_state(state.current_state),
         "task_revision": state.revision,
@@ -89,6 +96,136 @@ def compact_task_status(
         "next_action": "" if terminal else _next_action(state, contract),
         "resource_uri": resource_uri,
     }
+    projected["execution_brief"] = compact_execution_brief(
+        contract,
+        state,
+        project_root=str((contract.get("workspace") or {}).get("project_root") or ""),
+        state_etag=projected["state_etag"],
+    )
+    return projected
+
+
+def compact_execution_brief(
+    contract: dict[str, Any],
+    state: WorkflowState,
+    *,
+    project_root: str,
+    state_etag: str,
+    plan_hash: str = "",
+    missing_fields: list[str] | None = None,
+) -> dict[str, Any]:
+    """Project one authoritative, schema-ready model execution brief."""
+
+    target = contract.get("target") or {}
+    reference = contract.get("reference") or {}
+    delivery = contract.get("delivery") or {}
+    diagnostics = contract.get("data_diagnostics") or {}
+    browser = contract.get("browser_policy") or {}
+    confirmation = contract.get("confirmation") or {}
+    public_state = public_task_state(state.current_state)
+    terminal = state.current_state in {"COMPLETED", "BLOCKED", "BLOCKED_CONFLICT", "FAILED"}
+    confirmation_already_consumed = state.current_state in {
+        "SAVED", "SAVED_READBACK", "PUBLISHED", "PUBLISHED_READBACK", "QA_COMPLETED", "COMPLETED",
+    }
+    needs_confirmation = bool(
+        confirmation.get("required")
+        and not confirmation_already_consumed
+        and state.current_state == "VALIDATED"
+    )
+    missing = list(dict.fromkeys(str(item) for item in (missing_fields or []) if str(item)))
+    if state.current_state == "VALIDATED" and not plan_hash:
+        missing.append("plan_hash")
+    if state.current_state == "BLOCKED":
+        missing.extend(str(item) for item in (state.blocker or {}).get("missing_facts") or [])
+    missing = list(dict.fromkeys(missing))
+    next_call: dict[str, Any] | None = None
+    if not terminal and not missing:
+        if state.current_state == "VALIDATED" and bool(
+            delivery.get("save") or delivery.get("publish") or delivery.get("destructive")
+        ):
+            execute_arguments = {
+                "task_id": state.task_id,
+                "plan_hash": plan_hash,
+                "project_root": project_root,
+                "stop_after": "completed",
+            }
+            if delivery.get("destructive"):
+                execute_arguments["destructive_token"] = f"DELETE:{state.task_id}:{plan_hash[:12]}"
+            next_call = {
+                "tool": "dl_execute",
+                "arguments": execute_arguments,
+            }
+        elif state.current_state == "VALIDATED":
+            next_call = {
+                "tool": "dl_verify",
+                "arguments": {
+                    "task_id": state.task_id,
+                    "proof_target": "completion",
+                    "project_root": project_root,
+                },
+            }
+        else:
+            next_call = {
+                "tool": "dl_task_resume",
+                "arguments": {
+                    "task_id": state.task_id,
+                    "project_root": project_root,
+                    "expected_state": public_state,
+                    "expected_hash": state_etag,
+                    "expected_contract_revision": int(contract.get("contract_revision") or 1),
+                    "run_until": "completed",
+                },
+            }
+    return {
+        "status": "needs_confirmation" if needs_confirmation else "blocked" if terminal and state.blocker else "ready",
+        "task_kind": str(contract.get("task_kind") or "inspect_dashboard"),
+        "project_root": project_root,
+        "target": {
+            "workbook_id": str(target.get("workbook_id") or ""),
+            "dashboard_id": str(target.get("dashboard_id") or ""),
+            "object_ids": list(target.get("object_ids") or []),
+            "object_types": list(target.get("object_types") or []),
+        },
+        "references": ([reference] if reference.get("locator") else []),
+        "technology": str(target.get("technology") or contract.get("route") or ""),
+        "requested_outcome": str(contract.get("requested_outcome") or ""),
+        "planned_changes": _planned_changes(contract),
+        "preserve": list((contract.get("scope") or {}).get("forbidden_changes") or []),
+        "read_scope": list(target.get("object_ids") or []),
+        "delivery": {
+            "save": bool(delivery.get("save")),
+            "publish": bool(delivery.get("publish")),
+        },
+        "data_checks": list(diagnostics.get("reason_classes") or []) if diagnostics.get("required") else [],
+        "visual_checks": [str(browser.get("purpose") or "")] if browser.get("mode") == "required" else [],
+        "confirmation_required": needs_confirmation,
+        "confirmation_kind": str(confirmation.get("kind") or "none"),
+        "missing_fields": missing,
+        "next_call": next_call,
+    }
+
+
+def _planned_changes(contract: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for item in contract.get("acceptance") or []:
+        if not isinstance(item, dict) or item.get("kind") != "semantic_change":
+            continue
+        try:
+            import json
+
+            value = json.loads(str(item.get("statement") or ""))
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(value, dict):
+            continue
+        rows.append(
+            {
+                key: value[key]
+                for key in ("target_id", "object_id", "tab", "slot_id", "category", "operation")
+                if key in value
+            }
+        )
+    return rows[:20]
 
 
 def _observed_facts(events: list[dict[str, Any]]) -> list[str]:

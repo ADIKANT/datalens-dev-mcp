@@ -10,6 +10,7 @@ from typing import Any
 from datalens_dev_mcp.api.errors import DataLensApiError
 from datalens_dev_mcp.local_config import is_project_live_manifest_payload
 from datalens_dev_mcp.mcp.task_projection import (
+    compact_execution_brief,
     compact_task_status,
     project_task_summary,
     public_task_state,
@@ -31,6 +32,7 @@ from datalens_dev_mcp.pipeline.execution_authorization import (
 from datalens_dev_mcp.pipeline.project_journal import JournalIdentityError, ProjectJournal
 from datalens_dev_mcp.pipeline.public_plan_builder import PublicPlanBuilder
 from datalens_dev_mcp.pipeline.reference_style_service import ReferenceStyleService
+from datalens_dev_mcp.pipeline.run_owned_cleanup import execute_run_owned_cleanup
 from datalens_dev_mcp.pipeline.semantic_change_planner import SemanticChangePlanner
 from datalens_dev_mcp.pipeline.target_binding import resolve_contract_target_binding
 from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService, compact_object_index
@@ -46,15 +48,22 @@ AMENDMENT_RELATIONSHIPS = frozenset(
     {
         "continue",
         "clarify",
-        "correct_wrong_route",
-        "correct_wrong_result",
+        "correct_route",
+        "correct_result",
         "extend_scope",
         "restrict_scope",
-        "authorize_operation",
-        "replace_goal",
-        "start_new_workflow",
+        "authorize",
+        "verify_existing_effect",
+        "start_new_task",
     }
 )
+RELATIONSHIP_ALIASES = {
+    "correct_wrong_route": "correct_route",
+    "correct_wrong_result": "correct_result",
+    "authorize_operation": "authorize",
+    "replace_goal": "start_new_task",
+    "start_new_workflow": "start_new_task",
+}
 PROJECT_MANIFEST_NAMES = (".datalens-mcp.json", "datalens-mcp.project.json")
 
 
@@ -67,9 +76,19 @@ def dl_task_start(
     project_root = _request_project_root(request, project_root)
     boundary = _run_until(run_until)
     task_context = dict(context or {})
+    cleanup_ownership: dict[str, Any] = {}
+    cleanup_task_id = str(task_context.get("cleanup_task_id") or "").strip()
+    if cleanup_task_id:
+        cleanup_ownership = _load_run_owned_cleanup_source(project_root, cleanup_task_id)
+        cleanup_objects = list(cleanup_ownership.get("objects") or [])
+        task_context["workbook_id"] = str(cleanup_objects[0].get("workbook_id") or "")
+        task_context["object_ids"] = [str(item.get("object_id") or "") for item in cleanup_objects]
+        task_context["object_types"] = [str(item.get("object_type") or "") for item in cleanup_objects]
     manifest_target = _project_manifest_target_context(project_root)
     target_url = str(task_context.get("target_url") or "")
     compile_request = request + (f"\nTarget: {target_url}" if target_url and target_url not in request else "")
+    if cleanup_ownership:
+        compile_request += "\nDelete the exact run-owned objects through their declared cleanup routes."
     reference_locator = str(task_context.get("reference_locator") or "")
     reference_kind = "portfolio_object" if reference_locator and task_context.get("portfolio_root") else "live_object"
     semantic_changes = [item for item in task_context.get("semantic_changes") or [] if isinstance(item, dict)]
@@ -127,6 +146,7 @@ def dl_task_start(
         current_live=current_live,
         scope_overrides=scope_overrides,
         acceptance=acceptance,
+        unresolved_facts={"destructive_scope": False} if cleanup_ownership else None,
     )
     create_bundle: dict[str, Any] = {}
     create_manifest = str(task_context.get("create_manifest") or "").strip()
@@ -168,6 +188,7 @@ def dl_task_start(
             current_live=current_live,
             scope_overrides=scope_overrides,
             acceptance=acceptance,
+            unresolved_facts={"destructive_scope": False} if cleanup_ownership else None,
         )
     compiled = preliminary
     contract = dict(compiled["contract"])
@@ -200,6 +221,13 @@ def dl_task_start(
             raise JournalIdentityError("CREATE_MANIFEST_INVALID: create bundle failed validation")
         if not existing_bundle:
             write_json(create_bundle_path, create_bundle)
+    if cleanup_ownership:
+        cleanup_path = journal.root / "inputs" / "cleanup-ownership.json"
+        existing_cleanup = read_json(cleanup_path, {}) or {}
+        if existing_cleanup and existing_cleanup != cleanup_ownership:
+            raise JournalIdentityError("RUN_OWNED_CLEANUP_CONFLICT: ownership proof changed")
+        if not existing_cleanup:
+            write_json(cleanup_path, cleanup_ownership)
     before = state.last_event_id
     if compiled.get("status") in {"invalid", "needs_input"}:
         return _block_task(
@@ -225,7 +253,7 @@ def dl_task_start(
         compiled_target_url = str((compiled.get("source_trace") or {}).get("target_url") or "")
         try:
             discovery = TargetDiscoveryService(
-                max_objects=int(task_context.get("max_discovery_objects") or 50)
+            max_objects=int(task_context.get("max_discovery_objects") or 12)
             ).discover(
                 contract,
                 request_text=compile_request,
@@ -311,9 +339,11 @@ def dl_task_start(
             before=before,
             outcome=semantic_gate,
         )
-    state = _advance(journal, contract, boundary=boundary, execution_grant=grant)
+    confirmation_required = bool((contract.get("confirmation") or {}).get("required"))
+    effective_boundary = "plan_ready" if confirmation_required and boundary == "completed" else boundary
+    state = _advance(journal, contract, boundary=effective_boundary, execution_grant=grant)
     plan = _ensure_task_plan(journal, contract, state) if state.current_state == "VALIDATED" else {}
-    if boundary == "completed" and state.current_state == "VALIDATED":
+    if boundary == "completed" and state.current_state == "VALIDATED" and not confirmation_required:
         state = _advance(journal, contract, boundary="completed", execution_grant=grant)
     result = project_task_summary(
         contract=contract,
@@ -332,6 +362,7 @@ def dl_task_start(
         if plan.get("semantic_state") == "already_satisfied_no_write":
             result["state"] = "already_satisfied_no_write"
             result["matched_assertions"] = list(plan.get("matched_assertions") or [])
+    _attach_execution_brief(result, journal, contract, state, plan=plan)
     return result
 
 
@@ -366,6 +397,37 @@ def _project_manifest_target_context(project_root: str) -> dict[str, str]:
     if len(dashboards) == 1:
         result["dashboard_id"] = next(iter(dashboards))
     return result
+
+
+def _load_run_owned_cleanup_source(project_root: str, source_task_id: str) -> dict[str, Any]:
+    source = ProjectJournal(project_root, source_task_id)
+    ownership = read_json(source.delivery_root / "created-object-ownership.json", {}) or {}
+    if ownership.get("schema_id") != "datalens_created_object_ownership":
+        raise JournalIdentityError("RUN_OWNED_CLEANUP_PROOF_REQUIRED: source task has no ownership receipt")
+    material = dict(ownership)
+    digest = str(material.pop("ownership_hash", ""))
+    if not digest or digest != canonical_hash(material):
+        raise JournalIdentityError("RUN_OWNED_CLEANUP_PROOF_INVALID: ownership receipt hash mismatch")
+    if str(ownership.get("task_id") or "") != source_task_id:
+        raise JournalIdentityError("RUN_OWNED_CLEANUP_PROOF_INVALID: source task mismatch")
+    objects = [dict(item) for item in ownership.get("objects") or [] if isinstance(item, dict)]
+    if not objects:
+        raise JournalIdentityError("RUN_OWNED_CLEANUP_PROOF_REQUIRED: no created objects are recorded")
+    workbook_ids = {str(item.get("workbook_id") or "") for item in objects}
+    if len(workbook_ids) != 1 or "" in workbook_ids:
+        raise JournalIdentityError("RUN_OWNED_CLEANUP_PROOF_INVALID: objects do not share one exact workbook")
+    for item in objects:
+        if (
+            str(item.get("created_by_task_id") or "") != source_task_id
+            or not str(item.get("run_id") or "")
+            or not str(item.get("creation_receipt") or "")
+            or str(item.get("cleanup_route") or "") != "direct_object_delete"
+            or not str(item.get("object_id") or "")
+        ):
+            raise JournalIdentityError(
+                "RUN_OWNED_CLEANUP_PROOF_INVALID: direct delete requires exact task, run, receipt, route, and object"
+            )
+    return ownership
 
 
 def _request_project_root(request: str, supplied_root: str) -> str:
@@ -462,10 +524,15 @@ def dl_task_resume(
     transition_budget: int = 20,
     expected_contract_revision: int = 0,
     user_turn: dict[str, Any] | None = None,
+    follow_up: str = "",
 ) -> dict[str, Any]:
     boundary = _run_until(run_until)
     journal = ProjectJournal(project_root, task_id)
     amendment_result: dict[str, Any] = {}
+    if follow_up and user_turn is not None:
+        raise ValueError("supply either follow_up or user_turn, not both")
+    if follow_up:
+        user_turn = {"request": follow_up}
     if user_turn is not None:
         amendment_result = _amend_task(
             journal,
@@ -497,7 +564,19 @@ def dl_task_resume(
         if blocked_result is not None:
             return blocked_result
     if state.current_state == "VALIDATED":
-        _ensure_task_plan(journal, contract, state)
+        plan = _ensure_task_plan(journal, contract, state)
+        if bool((contract.get("confirmation") or {}).get("required")) and user_turn is None:
+            result = project_task_summary(
+                contract=contract,
+                state=state,
+                events_path=journal.events_path,
+                resource_uri=task_resource_uri(task_id),
+                performed_after=before,
+                **_projection_bindings(journal),
+            )
+            result.update({"plan_hash": plan["plan_hash"], "status": "needs_confirmation"})
+            _attach_execution_brief(result, journal, contract, state, plan=plan)
+            return result
     semantic_gate = _semantic_action_gate(journal, contract)
     if semantic_gate:
         projected = _project_semantic_action_gate(
@@ -538,6 +617,7 @@ def dl_task_resume(
         if plan.get("semantic_state") == "already_satisfied_no_write":
             result["state"] = "already_satisfied_no_write"
             result["matched_assertions"] = list(plan.get("matched_assertions") or [])
+    _attach_execution_brief(result, journal, contract, state, plan=plan)
     return result
 
 
@@ -551,6 +631,7 @@ def dl_task_status(task_id: str, project_root: str = ".") -> dict[str, Any]:
     _attach_object_index(result, journal)
     result["journal_recovered"] = corrupt_tail
     result.update(_contract_revision_projection(contract))
+    _attach_execution_brief(result, journal, contract, state, plan=_load_task_plan(journal))
     return result
 
 
@@ -558,10 +639,10 @@ def dl_inspect(
     project_root: str = ".",
     task_id: str = "",
     target_url: str = "",
-    max_nodes: int = 50,
+    max_nodes: int = 12,
 ) -> dict[str, Any]:
     root = Path(project_root).resolve()
-    limit = min(200, max(1, int(max_nodes or 50)))
+    limit = min(200, max(1, int(max_nodes or 12)))
     if task_id:
         journal = ProjectJournal(root, task_id)
         graph = read_json(journal.target_graph_path, {}) or {}
@@ -601,7 +682,7 @@ def dl_inspect(
         if (root / "artifacts").is_dir()
         else []
     )
-    return {
+    result = {
         "ok": bool(validation.get("ok", True)),
         "task_id": task_id,
         "graph_kind": "local_project_graph",
@@ -618,6 +699,7 @@ def dl_inspect(
         },
         "resource_uri": task_resource_uri(task_id) if task_id else "datalens://project/requirements",
     }
+    return result
 
 
 def dl_plan(task_id: str, project_root: str = ".") -> dict[str, Any]:
@@ -641,7 +723,7 @@ def dl_plan(task_id: str, project_root: str = ".") -> dict[str, Any]:
             "reason": "task did not reach PLAN_VALIDATED",
         }
     plan = _ensure_task_plan(journal, contract, state)
-    return {
+    result = {
         "ok": True,
         "task_id": task_id,
         "state": "PLAN_VALIDATED",
@@ -660,6 +742,16 @@ def dl_plan(task_id: str, project_root: str = ".") -> dict[str, Any]:
         "matched_assertions": list(plan.get("matched_assertions") or []),
         "next_action": "dl_execute" if (contract.get("delivery") or {}).get("save") else "dl_verify",
     }
+    result["execution_brief"] = compact_execution_brief(
+        contract,
+        state,
+        project_root=str(journal.project_root),
+        state_etag=task_state_etag(state),
+        plan_hash=str(plan.get("plan_hash") or ""),
+    )
+    if result["execution_brief"]["confirmation_required"]:
+        result["status"] = "needs_confirmation"
+    return result
 
 
 def dl_execute(
@@ -668,7 +760,21 @@ def dl_execute(
     project_root: str = ".",
     destructive_token: str = "",
     stop_after: str = "completed",
+    mode: str = "",
 ) -> dict[str, Any]:
+    legacy_mode = str(mode or "").strip().lower()
+    if legacy_mode:
+        legacy_stop_after = {
+            "save": "saved",
+            "saved": "saved",
+            "publish": "completed",
+            "completed": "completed",
+        }.get(legacy_mode)
+        if not legacy_stop_after:
+            raise ValueError("mode must be save, saved, publish, or completed")
+        if stop_after != "completed" and stop_after != legacy_stop_after:
+            raise ValueError("mode and stop_after request conflicting execution boundaries")
+        stop_after = legacy_stop_after
     journal = ProjectJournal(project_root, task_id)
     contract = journal.load_contract()
     _assert_current_identity(journal, contract)
@@ -688,6 +794,36 @@ def dl_execute(
         if destructive_token != expected:
             raise ValueError("destructive task requires the exact task-bound destructive token")
     before = state.last_event_id
+    if str(contract.get("task_kind") or "") == "cleanup_run_owned_objects":
+        receipt = execute_run_owned_cleanup(journal, contract)
+        receipt_uri = task_resource_uri(task_id, "delivery/run-owned-cleanup-receipt.json")
+        with journal.locked(owner="run-owned-cleanup"):
+            state, _ = journal.replay()
+            state = journal.append_transition(
+                state,
+                transition="RUN_OWNED_CLEANUP_COMPLETED",
+                input_value={"plan_hash": plan_hash, "receipt_hash": receipt.get("receipt_hash")},
+                receipt_uri=receipt_uri,
+                status="success",
+                idempotency_key=canonical_hash({"task_id": task_id, "plan_hash": plan_hash}),
+                next_state="COMPLETED",
+                next_transition="",
+            )
+        result = project_task_summary(
+            contract=contract,
+            state=state,
+            events_path=journal.events_path,
+            resource_uri=task_resource_uri(task_id),
+            performed_after=before,
+            **_projection_bindings(journal),
+        )
+        result["cleanup"] = {
+            "object_count": receipt.get("object_count"),
+            "all_verified_absent": receipt.get("all_verified_absent"),
+            "resource_uri": receipt_uri,
+        }
+        _attach_execution_brief(result, journal, contract, state, plan=plan)
+        return result
     state = _advance(
         journal,
         contract,
@@ -695,7 +831,7 @@ def dl_execute(
         destructive_token=destructive_token,
         execution_grant=_load_authorization(journal, contract),
     )
-    return project_task_summary(
+    result = project_task_summary(
         contract=contract,
         state=state,
         events_path=journal.events_path,
@@ -703,6 +839,8 @@ def dl_execute(
         performed_after=before,
         **_projection_bindings(journal),
     )
+    _attach_execution_brief(result, journal, contract, state, plan=plan)
+    return result
 
 
 def dl_verify(task_id: str, proof_target: str = "completion", project_root: str = ".") -> dict[str, Any]:
@@ -764,7 +902,7 @@ def _amend_task(
     expected_hash: str,
 ) -> dict[str, Any]:
     request = str(user_turn.get("request") or "").strip()
-    relationship = str(user_turn.get("relationship_to_previous") or "").strip()
+    relationship_override = str(user_turn.get("relationship_to_previous") or "").strip()
     source_event_id = str(user_turn.get("source_event_id") or "").strip()
     context = user_turn.get("context") if isinstance(user_turn.get("context"), dict) else {}
     unknown = sorted(set(user_turn) - {"source_event_id", "request", "relationship_to_previous", "context"})
@@ -772,17 +910,20 @@ def _amend_task(
         raise ValueError("user_turn contains unknown fields: " + ", ".join(unknown))
     if not request:
         raise ValueError("user_turn.request must not be empty")
-    if relationship not in AMENDMENT_RELATIONSHIPS:
-        raise ValueError("user_turn.relationship_to_previous is required and unsupported")
-    if relationship in {"replace_goal", "start_new_workflow"}:
-        raise JournalIdentityError("NEW_TASK_REQUIRED: replacement goals and new workflows must use dl_task_start")
-    if int(expected_contract_revision or 0) < 1:
-        raise JournalIdentityError(
-            "EXPECTED_CONTRACT_REVISION_REQUIRED: amendment requires an explicit current contract revision"
-        )
-
     old = journal.load_contract()
+    relationship = _infer_follow_up_relationship(
+        request,
+        old,
+        context=context,
+        override=relationship_override,
+    )
+    if relationship not in AMENDMENT_RELATIONSHIPS:
+        raise ValueError("user_turn.relationship_to_previous override is unsupported")
+    if relationship == "start_new_task":
+        raise JournalIdentityError("NEW_TASK_REQUIRED: replacement goals and new workflows must use dl_task_start")
     current_revision = int(old.get("contract_revision") or 1)
+    if int(expected_contract_revision or 0) < 1:
+        expected_contract_revision = current_revision
     source_turn_hash = hashlib.sha256(request.encode("utf-8")).hexdigest()
     revision_index = read_json(journal.contract_revisions_path, {}) or {}
     delivered = next(
@@ -935,6 +1076,28 @@ def _amend_task(
         )
         new_contract["browser_policy"] = amended_browser_policy
 
+    current_state, _ = journal.replay()
+    confirmation_already_consumed = current_state.current_state in {
+        "SAVED",
+        "SAVED_READBACK",
+        "PUBLISHED",
+        "PUBLISHED_READBACK",
+        "QA_COMPLETED",
+        "COMPLETED",
+    }
+    material_confirmation_fields = ("operation_kind", "route", "target", "scope", "delivery")
+    confirmation_scope_unchanged = all(
+        old.get(key) == new_contract.get(key) for key in material_confirmation_fields
+    )
+    if confirmation_already_consumed and confirmation_scope_unchanged:
+        new_contract["confirmation"] = {
+            "required": False,
+            "kind": "none",
+            "reason": "the confirmed target, scope, technology and delivery are unchanged",
+            "scoped_opt_out": False,
+            "inherited": True,
+        }
+
     semantic_fields = (
         "mode",
         "operation_kind",
@@ -966,7 +1129,7 @@ def _amend_task(
         }
     if relationship == "restrict_scope" and not _scope_is_narrower(old_scope, new_contract.get("scope") or {}):
         raise JournalIdentityError("AMENDMENT_RELATION_CONFLICT: restrict_scope broadened the persisted scope")
-    if relationship == "authorize_operation" and "delivery" not in delta:
+    if relationship == "authorize" and "delivery" not in delta:
         raise JournalIdentityError(
             "AMENDMENT_RELATION_CONFLICT: authorize_operation did not change delivery authorization"
         )
@@ -997,7 +1160,7 @@ def _amend_task(
     discovery_values: dict[str, Any] = {}
     if "target" in delta or "reference" in delta or impact["requires_fresh_discovery"]:
         try:
-            discovered = TargetDiscoveryService(max_objects=int(context.get("max_discovery_objects") or 50)).discover(
+            discovered = TargetDiscoveryService(max_objects=int(context.get("max_discovery_objects") or 12)).discover(
                 new_contract, request_text=correction_text, target_url=target_url
             )
         except Exception as exc:
@@ -1071,7 +1234,40 @@ def _amend_task(
         "preserved_artifacts": impact["preserved"],
         "receipt_uri": record.get("receipt_uri"),
         "state_after_amendment": public_task_state(state.current_state),
+        "relationship_to_previous": relationship,
     }
+
+
+def _infer_follow_up_relationship(
+    request: str,
+    contract: dict[str, Any],
+    *,
+    context: dict[str, Any],
+    override: str = "",
+) -> str:
+    normalized_override = RELATIONSHIP_ALIASES.get(override, override)
+    if normalized_override:
+        return normalized_override
+    text = request.lower()
+    if re.search(r"(?:new|another|separate)\s+(?:task|workflow)|нов(?:ая|ую)\s+(?:задач|цель)|другая\s+задач", text):
+        return "start_new_task"
+    if re.search(r"(?:confirm|authorize|approved?|go ahead|подтвержд|разреш|выполняй|продолжай запись)", text):
+        return "authorize"
+    if re.search(r"(?:wrong|incorrect|change|switch).{0,50}(?:route|technology|wizard|editor|javascript|ql)|"
+                 r"(?:неверн|смени|поменяй).{0,50}(?:маршрут|технолог|wizard|editor|javascript|ql)", text):
+        return "correct_route"
+    if re.search(r"(?:already|manual|manually).{0,90}(?:changed|updated|layout)|"
+                 r"(?:вручн|уже).{0,90}(?:измен|передел|располож)|(?:verify|проверь).{0,90}(?:my|manual|вручн)", text):
+        return "verify_existing_effect"
+    if re.search(r"(?:only|just|nothing else|do not|don't|preserve|keep)|(?:только|ничего больше|не меня|оставь|сохрани)", text):
+        return "restrict_scope"
+    if context.get("scope") or re.search(r"(?:also|additionally|extend|include)|(?:ещ[её]|также|добавь|расширь)", text):
+        return "extend_scope"
+    if re.search(r"(?:wrong|incorrect|error|failed|fix the result|не так|ошиб|исправ|поправ)", text):
+        return "correct_result"
+    if re.search(r"(?:what|why|clarify|explain|уточн|почему|что значит)", text):
+        return "clarify"
+    return "continue"
 
 
 def _scope_is_narrower(before: dict[str, Any], after: dict[str, Any]) -> bool:
@@ -1152,6 +1348,30 @@ def _contract_revision_projection(contract: dict[str, Any]) -> dict[str, Any]:
         "authorization_revision": int(contract.get("authorization_revision") or 1),
         "contract_hash": str(contract.get("contract_hash") or ""),
     }
+
+
+def _attach_execution_brief(
+    result: dict[str, Any],
+    journal: ProjectJournal,
+    contract: dict[str, Any],
+    state: Any,
+    *,
+    plan: dict[str, Any] | None = None,
+    missing_fields: list[str] | None = None,
+) -> None:
+    brief = compact_execution_brief(
+        contract,
+        state,
+        project_root=str(journal.project_root),
+        state_etag=task_state_etag(state),
+        plan_hash=str((plan or {}).get("plan_hash") or ""),
+        missing_fields=missing_fields,
+    )
+    result["execution_brief"] = brief
+    result["next_call"] = brief.get("next_call")
+    result["missing_fields"] = brief.get("missing_fields") or []
+    if brief.get("status") == "needs_confirmation":
+        result["status"] = "needs_confirmation"
 
 
 def _advance(
@@ -1454,6 +1674,8 @@ def _live_graph_projection(graph: dict[str, Any], *, task_id: str) -> dict[str, 
 def _semantic_action_gate(journal: ProjectJournal, contract: dict[str, Any]) -> dict[str, Any]:
     if str(contract.get("operation_kind") or "") != "mutate":
         return {}
+    if str(contract.get("task_kind") or "") == "cleanup_run_owned_objects":
+        return {}
     if str(contract.get("mode") or "") not in {"create", "update", "redesign"}:
         return {}
     if _contract_semantic_changes(contract):
@@ -1503,6 +1725,14 @@ def _project_semantic_action_gate(
     result.update(outcome)
     _attach_object_index(result, journal)
     result.update(_contract_revision_projection(contract))
+    _attach_execution_brief(
+        result,
+        journal,
+        contract,
+        state,
+        plan=_load_task_plan(journal),
+        missing_fields=["semantic_changes"],
+    )
     return result
 
 

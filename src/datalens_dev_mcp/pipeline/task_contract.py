@@ -9,6 +9,18 @@ from uuid import NAMESPACE_URL, uuid5
 
 TaskMode = Literal["review", "diagnose", "plan", "create", "update", "redesign", "publish_only"]
 OperationKind = Literal["inspect", "mutate", "verify_existing_effect"]
+TaskKind = Literal[
+    "inspect_dashboard",
+    "create_dashboard",
+    "update_dashboard",
+    "create_chart",
+    "update_chart",
+    "diagnose_chart_or_data_error",
+    "verify_or_adopt_manual_change",
+    "save_publish_verify",
+    "clone_or_adapt_reference",
+    "cleanup_run_owned_objects",
+]
 BrowserMode = Literal["forbidden", "optional", "required"]
 BrowserApplicability = Literal["applicable", "not_applicable"]
 BrowserPolicySource = Literal["explicit_user", "compiled_default", "workspace_policy"]
@@ -95,6 +107,15 @@ class DeliveryContract:
 
 
 @dataclass(frozen=True)
+class ConfirmationContract:
+    required: bool = False
+    kind: str = "none"
+    reason: str = "read_only"
+    scoped_opt_out: bool = False
+    inherited: bool = False
+
+
+@dataclass(frozen=True)
 class EffectContract:
     kind: str = "none"
     expected_state: str = ""
@@ -148,6 +169,8 @@ class TaskContract:
     contract_version: int
     task_id: str
     raw_request_hash: str
+    task_kind: TaskKind
+    requested_outcome: str
     mode: TaskMode
     route: str
     operation_kind: OperationKind
@@ -160,6 +183,7 @@ class TaskContract:
     browser_policy: BrowserPolicyContract
     data_diagnostics: DataDiagnosticsContract
     delivery: DeliveryContract
+    confirmation: ConfirmationContract
     evidence: EvidenceContract
     acceptance: tuple[AcceptanceCriterion, ...]
     question_policy: QuestionPolicyContract
@@ -184,6 +208,8 @@ class TaskContract:
 def create_task_contract(
     *,
     raw_request: str,
+    task_kind: TaskKind = "inspect_dashboard",
+    requested_outcome: str = "",
     mode: TaskMode,
     route: str,
     operation_kind: OperationKind = "inspect",
@@ -196,6 +222,7 @@ def create_task_contract(
     browser_policy: BrowserPolicyContract | None = None,
     data_diagnostics: DataDiagnosticsContract | None = None,
     delivery: DeliveryContract | None = None,
+    confirmation: ConfirmationContract | None = None,
     evidence: EvidenceContract | None = None,
     acceptance: tuple[AcceptanceCriterion, ...] = (),
     stop_conditions: tuple[str, ...] = (),
@@ -246,6 +273,8 @@ def create_task_contract(
         contract_version=2,
         task_id=stable_task_id,
         raw_request_hash=raw_hash,
+        task_kind=task_kind,
+        requested_outcome=requested_outcome,
         mode=mode,
         route=route,
         operation_kind=operation_kind,
@@ -258,6 +287,7 @@ def create_task_contract(
         browser_policy=resolved_browser_policy,
         data_diagnostics=data_diagnostics or DataDiagnosticsContract(),
         delivery=delivery or DeliveryContract(),
+        confirmation=confirmation or ConfirmationContract(),
         evidence=evidence or EvidenceContract(),
         acceptance=acceptance,
         question_policy=QuestionPolicyContract(),
@@ -298,7 +328,18 @@ def validate_task_contract(contract: TaskContract | dict[str, Any]) -> tuple[str
             issues.append(f"{field_name} must be a positive integer")
     if payload.get("mode") not in {"review", "diagnose", "plan", "create", "update", "redesign", "publish_only"}:
         issues.append("mode is unsupported")
+    if payload.get("task_kind") not in {
+        "inspect_dashboard", "create_dashboard", "update_dashboard", "create_chart", "update_chart",
+        "diagnose_chart_or_data_error", "verify_or_adopt_manual_change", "save_publish_verify",
+        "clone_or_adapt_reference", "cleanup_run_owned_objects",
+    }:
+        issues.append("task_kind is unsupported")
     operation_kind = payload.get("operation_kind", "inspect")
+    confirmation = payload.get("confirmation") or {}
+    if confirmation.get("kind") not in {"none", "substantial_mutation", "destructive_exact_object"}:
+        issues.append("confirmation.kind is unsupported")
+    if bool(confirmation.get("required")) and operation_kind != "mutate":
+        issues.append("confirmation is valid only for mutation tasks")
     if operation_kind not in {"inspect", "mutate", "verify_existing_effect"}:
         issues.append("operation_kind is unsupported")
     verification = payload.get("verification") or {}

@@ -18,7 +18,10 @@ optional saved seed. Output contains source kind, sanitized seed binding/hash,
 compiled request payload, and a validation report.
 
 A template may be compiled offline without dataset readback evidence, but that
-plan is not live-execution-ready. Wizard create requires fresh saved
+plan is not live-execution-ready. A canonical fixture is never sufficient for
+live create by itself: live execution additionally requires a revision-bound
+saved seed of the same visualization and a matching runtime-shape hash. Wizard
+create requires fresh saved
 `dataset_readbacks`; the compiler keeps only the bound dataset identity and
 referenced field GUID/type pairs, checks that the evidence belongs to the
 payload dataset, and rejects role/type mismatches before payload or safe-apply
@@ -33,8 +36,16 @@ duplicate identities, or a compatible object found on any page block the write.
 A seed is accepted only from the saved branch with a fresh revision and the
 same visualization ID. Create sanitization removes entry, revision, and
 location identities while preserving unknown `data` fields, then rebinds the
-dataset and field GUIDs. Missing seed uses the canonical template. Canonical
-fixtures are offline evidence and have `live_verification=false`.
+dataset and field GUIDs. The compiler preserves the saved seed's nested or flat
+`datasetsPartialFields` container and unknown field metadata. Missing seed uses
+the canonical template for offline planning only and produces
+`live_execution_ready=false`. Canonical fixtures are offline evidence and have
+`live_verification=false`.
+
+For a public create manifest, every `wizard_chart` object therefore declares a
+project-relative `wizard_seed_path`. The referenced JSON must be a fresh saved
+readback with a revision and the same visualization. A missing, mismatched, or
+shape-incompatible seed blocks before Safe Apply and before any write.
 
 Funnel uses the native `funnel` ID. Its current payload contract places the
 category dimension and one or more measures in the required `measures`

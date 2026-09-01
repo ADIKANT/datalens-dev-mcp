@@ -157,7 +157,7 @@ project root
 | `save-only`, `no-publish`, «сохрани без публикации» | Save и saved readback без publish |
 | Создать, исправить, обновить, улучшить, переработать | Save, saved readback, publish из saved state и published readback |
 
-Явное значение `0` в write/save/publish env-переменной жёстко отключает соответствующую возможность и имеет приоритет над запросом. Обычный цикл не удаляет целые объекты; отдельное подтверждение применяется только к объявленному в project manifest действию `retire_legacy_objects` с точными ID и неизменившимся планом.
+Явное значение `0` в write/save/publish env-переменной жёстко отключает соответствующую возможность и имеет приоритет над запросом. Перед существенной mutation task workflow показывает один компактный план; неизменённые save и publish выполняются после одного подтверждения. Destructive действие требует отдельного подтверждения точных объектов и неизменившегося плана.
 
 ## Поддерживаемые объекты и ограничения
 
@@ -208,9 +208,15 @@ cd datalens-dev-mcp
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install .
+.venv/bin/python scripts/install_datalens_skill.py
 .venv/bin/datalens-dev-mcp --version
 python3 scripts/smoke_mcp_stdio.py
 ```
+
+Установщик копирует versioned Skill `datalens-dashboard-work` из того же
+checkout в `~/.agents/skills/` и проверяет точное совпадение содержимого. Skill
+задаёт короткий task-level цикл и открывает formulas, Wizard или JavaScript
+knowledge только по необходимости.
 
 В Windows используйте `.venv\Scripts\python.exe` и `.venv\Scripts\datalens-dev-mcp.exe`. Для разработки сервера установите `.venv/bin/python -m pip install -e '.[test]'`.
 

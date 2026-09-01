@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from copy import deepcopy
 from pathlib import Path
 
 
@@ -15,6 +16,7 @@ class OnePromptPipelineTests(unittest.TestCase):
             dl_start_pipeline,
             dl_validate_project,
         )
+        from datalens_dev_mcp.pipeline.wizard_templates import load_canonical_wizard_templates
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -24,6 +26,18 @@ class OnePromptPipelineTests(unittest.TestCase):
                 requirements_text="Synthetic Ops dashboard with trend, table details, and segment selector.",
             )
             brief = dl_build_governance_brief(str(root))
+            seed_data = deepcopy(load_canonical_wizard_templates()["templates"]["flatTable"]["data"])
+            seed_data.update(
+                {
+                    "version": "15",
+                    "datasetsPartialFields": [[]],
+                    "colors": [],
+                    "extraSettings": {},
+                    "labels": [],
+                    "title": "Seed title",
+                    "tooltips": [],
+                }
+            )
             bundle = dl_generate_editor_bundle(
                 str(root),
                 widget_id="widget_001",
@@ -39,6 +53,12 @@ class OnePromptPipelineTests(unittest.TestCase):
                         ],
                     }
                 ],
+                saved_seed={
+                    "branch": "saved",
+                    "revId": "saved_seed_revision_1",
+                    "template": "datalens",
+                    "data": seed_data,
+                },
             )
             payload_plan = dl_build_payload_plan(str(root), workbook_id="workbook_local_001")
             (root / "datasets").mkdir()
@@ -54,7 +74,7 @@ class OnePromptPipelineTests(unittest.TestCase):
             self.assertEqual(brief["chart_decisions"][0]["governance_decision"]["chart_family_decided_by"], "datalens-dataviz-governance")
             self.assertEqual(bundle["entry_type"], "wizard_chart")
             self.assertIn("source_gallery", bundle)
-            self.assertEqual(bundle["source_kind"], "committed_canonical_template")
+            self.assertEqual(bundle["source_kind"], "fresh_saved_seed")
             self.assertTrue(bundle["validation"]["ok"])
             self.assertEqual(validation["status"], "pass")
             self.assertEqual(payload_plan["payloads"][0]["method"], "createWizardChart")

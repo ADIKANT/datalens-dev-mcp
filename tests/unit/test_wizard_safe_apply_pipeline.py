@@ -8,7 +8,22 @@ from unittest.mock import patch
 
 class WizardSafeApplyPipelineTests(unittest.TestCase):
     def _wizard_plan(self, *, include_dataset_readback: bool = True) -> dict:
-        from datalens_dev_mcp.pipeline.wizard_templates import build_wizard_payload_plan
+        from datalens_dev_mcp.pipeline.wizard_templates import (
+            build_wizard_payload_plan,
+            load_canonical_wizard_templates,
+        )
+
+        seed_data = deepcopy(load_canonical_wizard_templates()["templates"]["column"]["data"])
+        seed_data.update(
+            {
+                "version": "15",
+                "datasetsPartialFields": [[]],
+                "colors": [],
+                "extraSettings": {},
+                "labels": [{"guid": "seed_label"}],
+                "tooltips": [],
+            }
+        )
 
         config = {
             "route": "wizard_native",
@@ -18,6 +33,12 @@ class WizardSafeApplyPipelineTests(unittest.TestCase):
             "dataset": "dataset_1",
             "field_bindings": {"x": "category_guid", "y": "value_guid"},
             "options": {"labels": [{"guid": "value_guid"}]},
+            "saved_seed": {
+                "branch": "saved",
+                "revId": "seed_revision_1",
+                "template": "datalens",
+                "data": seed_data,
+            },
         }
         if include_dataset_readback:
             config["dataset_readbacks"] = [

@@ -79,6 +79,8 @@ class WizardTemplateTests(unittest.TestCase):
             "workbookId": "deployment_workbook_removed",
             "data": {
                 "visualization": {"id": "line", "placeholders": [{"id": "x", "items": []}]},
+                "filters": [{"guid": "seed_filter_guid"}],
+                "sort": [{"guid": "seed_sort_guid"}],
                 "unknownFutureField": {"preserve": True},
             },
         }
@@ -103,6 +105,8 @@ class WizardTemplateTests(unittest.TestCase):
         self.assertNotIn("entryId", json.dumps(good["compiled_payload"]))
         self.assertNotIn("deployment_workbook_removed", json.dumps(good["compiled_payload"]))
         self.assertTrue(good["compiled_payload"]["data"]["unknownFutureField"]["preserve"])
+        self.assertEqual(good["compiled_payload"]["data"]["filters"], [])
+        self.assertEqual(good["compiled_payload"]["data"]["sort"], [])
         for blocked in (wrong_branch, stale, mismatched):
             self.assertFalse(blocked["ok"])
 
@@ -190,7 +194,24 @@ class WizardTemplateTests(unittest.TestCase):
         self.assertIn("at least two bound items", "\n".join(incomplete["validation"]["errors"]))
 
     def test_saved_dataset_readback_makes_plan_live_ready_and_is_compacted(self):
-        from datalens_dev_mcp.pipeline.wizard_templates import build_wizard_payload_plan
+        from copy import deepcopy
+
+        from datalens_dev_mcp.pipeline.wizard_templates import (
+            build_wizard_payload_plan,
+            load_canonical_wizard_templates,
+        )
+
+        seed_data = deepcopy(load_canonical_wizard_templates()["templates"]["column"]["data"])
+        seed_data.update(
+            {
+                "version": "15",
+                "datasetsPartialFields": [[]],
+                "colors": [],
+                "extraSettings": {},
+                "labels": [{"guid": "seed_label"}],
+                "tooltips": [],
+            }
+        )
 
         plan = build_wizard_payload_plan(
             {
@@ -200,6 +221,12 @@ class WizardTemplateTests(unittest.TestCase):
                 "dataset": "dataset_fixture",
                 "field_bindings": {"x": "category_guid", "y": "value_guid"},
                 "options": {"labels": [{"guid": "value_guid"}]},
+                "saved_seed": {
+                    "branch": "saved",
+                    "revId": "seed_revision_1",
+                    "template": "datalens",
+                    "data": seed_data,
+                },
                 "dataset_readbacks": [
                     {
                         "datasetId": "dataset_fixture",
@@ -217,6 +244,8 @@ class WizardTemplateTests(unittest.TestCase):
         self.assertTrue(plan["ok"], plan.get("dataset_readback_validation"))
         self.assertTrue(plan["live_execution_ready"])
         self.assertTrue(plan["dataset_readback_validation"]["ok"])
+        self.assertEqual(plan["compiled_payload"]["data"]["version"], "15")
+        self.assertIsInstance(plan["compiled_payload"]["data"]["datasetsPartialFields"][0], list)
         self.assertEqual(
             plan["dataset_readbacks"][0]["result_schema"],
             [

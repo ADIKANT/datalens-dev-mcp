@@ -45,11 +45,38 @@ class TargetDiscoveryService:
         # consumes typed target fields (plus an explicit structured URL input)
         # and never recovers a target by reparsing the raw user turn.
         target = contract.get("target") or {}
-        dashboard_id = str(target.get("dashboard_id") or parse_target_url(target_url) or "")
-        workbook_id = str(target.get("workbook_id") or "")
+        url_locator = normalize_object_locator(target_url, url_source="api_inventory") if target_url else {}
+        url_object_type = str(url_locator.get("object_type") or "")
+        url_object_id = str(url_locator.get("object_id") or "")
+        typed_dashboard_id = str(target.get("dashboard_id") or "")
+        typed_workbook_id = str(target.get("workbook_id") or "")
+        if url_object_type == "workbook":
+            workbook_id = typed_workbook_id or url_object_id
+            # The task compiler historically treated every direct DataLens URL
+            # as a dashboard locator.  A typed workbook route is authoritative
+            # when that inferred dashboard id is the workbook id itself.
+            dashboard_id = "" if typed_dashboard_id == url_object_id else typed_dashboard_id
+        elif url_object_type:
+            # A canonical non-dashboard URL already has an authoritative type
+            # and ID.  Do not feed that ID through the legacy dashboard-only
+            # parser: doing so turns /wizard/{id}, /editor/{id}, and other
+            # direct object locators into a spurious getDashboard request.
+            workbook_id = typed_workbook_id
+            dashboard_id = "" if typed_dashboard_id == url_object_id else typed_dashboard_id
+        else:
+            workbook_id = typed_workbook_id
+            dashboard_id = typed_dashboard_id or parse_target_url(target_url)
         requested_ids = [str(item) for item in target.get("object_ids") or [] if str(item)]
         requested_types = [str(item) for item in target.get("object_types") or [] if str(item)]
-        if str(contract.get("mode") or "") == "create" and workbook_id:
+        workbook_inventory_only = (
+            str(contract.get("mode") or "") in {"plan", "review"}
+            and
+            str(contract.get("operation_kind") or "") == "inspect"
+            and bool(workbook_id)
+            and not dashboard_id
+            and not requested_ids
+        )
+        if workbook_id and (str(contract.get("mode") or "") == "create" or workbook_inventory_only):
             return self._discover_create_workbook(
                 workbook_id,
                 technology=str(contract.get("route") or ""),

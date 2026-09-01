@@ -144,6 +144,17 @@ class UserRequestContractTests(unittest.TestCase):
         self.assertEqual(review.operation_kind, "inspect")
         self.assertEqual(mutation.operation_kind, "mutate")
 
+    def test_create_with_saved_and_published_readback_verification_remains_mutation(self):
+        from datalens_dev_mcp.pipeline.user_request import normalize_user_request
+
+        request = normalize_user_request(
+            "Create two declared Wizard charts, save them, publish from saved state, "
+            "and verify saved and published readbacks."
+        )
+
+        self.assertEqual(request.task_intent, "implement")
+        self.assertEqual(request.operation_kind, "mutate")
+
     def test_datalens_url_families_and_trailing_labels_preserve_typed_roles(self):
         from datalens_dev_mcp.pipeline.user_request import normalize_user_request
 

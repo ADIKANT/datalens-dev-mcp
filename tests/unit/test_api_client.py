@@ -163,7 +163,7 @@ class ApiClientTests(unittest.TestCase):
         from datalens_dev_mcp.api.client import DataLensApiClient
         from datalens_dev_mcp.config import DataLensConfig
 
-        transport = FakeTransport([{"ok": True}])
+        transport = FakeTransport([{"auth": "healthy"}, {"ok": True}])
         client = DataLensApiClient(
             DataLensConfig(iam_token="secret-token", org_id="org_synthetic", request_interval_sec=0),
             transport=transport,
@@ -181,7 +181,8 @@ class ApiClientTests(unittest.TestCase):
             },
         )
 
-        _, payload, headers = transport.requests[0]
+        self.assertEqual(transport.requests[0][0].rsplit("/", 1)[-1], "getWorkbooksList")
+        _, payload, headers = transport.requests[1]
         self.assertIn("Authorization", headers)
         self.assertEqual(headers["x-dl-org-id"], "org_synthetic")
         self.assertEqual(headers["x-dl-api-version"], "2")
@@ -223,6 +224,7 @@ class ApiClientTests(unittest.TestCase):
 
         transport = FakeTransport(
             [
+                {"auth": "healthy"},
                 http_error(401, {"message": "unauthorized"}),
                 http_error(401, {"message": "minimal probe unauthorized"}),
             ]
@@ -243,12 +245,40 @@ class ApiClientTests(unittest.TestCase):
             client.rpc("updateEditorChart", {"entryId": "entry_synthetic"})
 
         self.assertEqual(refresh_calls, ["called"])
-        self.assertEqual(len(transport.requests), 2)
-        self.assertEqual(transport.requests[0][0], "https://api.datalens.tech/rpc/updateEditorChart")
-        self.assertEqual(transport.requests[1][0], "https://api.datalens.tech/rpc/getWorkbooksList")
+        self.assertEqual(len(transport.requests), 3)
+        self.assertEqual(transport.requests[0][0], "https://api.datalens.tech/rpc/getWorkbooksList")
+        self.assertEqual(transport.requests[1][0], "https://api.datalens.tech/rpc/updateEditorChart")
+        self.assertEqual(transport.requests[2][0], "https://api.datalens.tech/rpc/getWorkbooksList")
         self.assertIn("super-secret-token-value", transport.requests[0][2]["Authorization"])
         self.assertIn("super-secret-token-value", transport.requests[1][2]["Authorization"])
         self.assertIn("not replayed", str(raised.exception))
+
+    def test_expired_prewrite_probe_refreshes_then_continues_same_write_once(self):
+        from datalens_dev_mcp.api.client import DataLensApiClient
+        from datalens_dev_mcp.config import DataLensConfig
+
+        transport = FakeTransport(
+            [
+                http_error(401, {"message": "expired"}),
+                {"auth": "healthy"},
+                {"ok": True},
+            ]
+        )
+        refresh_calls = []
+        client = DataLensApiClient(
+            DataLensConfig(iam_token="old-token", org_id="org_synthetic", request_interval_sec=0),
+            transport=transport,
+            token_refresher=lambda: refresh_calls.append("refresh") or "fresh-token",
+        )
+
+        result = client.rpc("updateEditorChart", {"entryId": "entry_synthetic"})
+
+        self.assertEqual(result, {"ok": True})
+        self.assertEqual(refresh_calls, ["refresh"])
+        self.assertEqual(
+            [request[0].rsplit("/", 1)[-1] for request in transport.requests],
+            ["getWorkbooksList", "getWorkbooksList", "updateEditorChart"],
+        )
 
     def test_401_refresh_persists_env_file_atomically_with_0600(self):
         from datalens_dev_mcp.api.client import DataLensApiClient
@@ -310,7 +340,7 @@ class ApiClientTests(unittest.TestCase):
             client.rpc("updateEditorChart", {"entryId": "entry_synthetic"})
 
         text = str(raised.exception)
-        self.assertIn("token_refresh_failed", text)
+        self.assertIn("AUTH_INTERACTION_REQUIRED", text)
         self.assertNotIn("super-secret-token-value", text)
         self.assertNotIn("Authorization", text)
 
@@ -333,6 +363,7 @@ class ApiClientTests(unittest.TestCase):
 
         transport = FakeTransport(
             [
+                {"auth": "healthy"},
                 http_error(401, {"message": "expired"}),
                 http_error(401, {"message": "still expired"}),
             ]
@@ -348,14 +379,18 @@ class ApiClientTests(unittest.TestCase):
 
         text = str(raised.exception)
         self.assertIn("not replayed", text)
-        self.assertEqual(len(transport.requests), 2)
-        self.assertNotEqual(transport.requests[0][0], transport.requests[1][0])
+        self.assertEqual(len(transport.requests), 3)
+        self.assertEqual(transport.requests[1][0].rsplit("/", 1)[-1], "updateEditorChart")
+        self.assertEqual(transport.requests[2][0].rsplit("/", 1)[-1], "getWorkbooksList")
 
     def test_400_validation_error_reports_sanitized_payload_keys(self):
         from datalens_dev_mcp.api.client import DataLensApiClient, DataLensApiError
         from datalens_dev_mcp.config import DataLensConfig
 
-        transport = FakeTransport([http_error(400, {"code": "VALIDATION_ERROR", "message": "bad field"})])
+        transport = FakeTransport([
+            {"auth": "healthy"},
+            http_error(400, {"code": "VALIDATION_ERROR", "message": "bad field"}),
+        ])
         client = DataLensApiClient(
             DataLensConfig(iam_token="token-value", org_id="org_synthetic", request_interval_sec=0),
             transport=transport,
@@ -383,11 +418,11 @@ class ApiClientTests(unittest.TestCase):
         self.assertNotIn("password1234567890", detail)
         self.assertIn("<redacted>", detail)
 
-    def test_compiled_api_version_is_used_without_probe(self):
+    def test_compiled_api_version_is_used_for_probe_and_write(self):
         from datalens_dev_mcp.api.client import DataLensApiClient
         from datalens_dev_mcp.config import DataLensConfig
 
-        transport = FakeTransport([{"ok": True}])
+        transport = FakeTransport([{"auth": "healthy"}, {"ok": True}])
         client = DataLensApiClient(
             DataLensConfig(iam_token="token-value", org_id="org_synthetic", request_interval_sec=0),
             transport=transport,
@@ -395,8 +430,11 @@ class ApiClientTests(unittest.TestCase):
 
         self.assertEqual(client.rpc("updateEditorChart", {"entry": {"entryId": "chart_1"}}), {"ok": True})
 
-        self.assertEqual([request[0].rsplit("/", 1)[-1] for request in transport.requests], ["updateEditorChart"])
-        self.assertEqual([request[2]["x-dl-api-version"] for request in transport.requests], ["2"])
+        self.assertEqual(
+            [request[0].rsplit("/", 1)[-1] for request in transport.requests],
+            ["getWorkbooksList", "updateEditorChart"],
+        )
+        self.assertEqual([request[2]["x-dl-api-version"] for request in transport.requests], ["2", "2"])
 
     def test_readonly_contract_failure_is_not_retried_with_another_version(self):
         from datalens_dev_mcp.api.client import DataLensApiClient, DataLensApiError
@@ -437,7 +475,7 @@ class ApiClientTests(unittest.TestCase):
         from datalens_dev_mcp.api.client import DataLensApiClient, DataLensApiError
         from datalens_dev_mcp.config import DataLensConfig
 
-        transport = FakeTransport([http_error(400, {"message": "unsupported api version"})])
+        transport = FakeTransport([{"auth": "healthy"}, http_error(400, {"message": "unsupported api version"})])
         client = DataLensApiClient(
             DataLensConfig(iam_token="token-value", org_id="org_synthetic", request_interval_sec=0),
             transport=transport,
@@ -447,8 +485,11 @@ class ApiClientTests(unittest.TestCase):
             client.rpc("updateEditorChart", {"entry": {"entryId": "chart_1"}})
 
         self.assertIn("HTTP 400", str(raised.exception))
-        self.assertEqual([request[0].rsplit("/", 1)[-1] for request in transport.requests], ["updateEditorChart"])
-        self.assertEqual([request[2]["x-dl-api-version"] for request in transport.requests], ["2"])
+        self.assertEqual(
+            [request[0].rsplit("/", 1)[-1] for request in transport.requests],
+            ["getWorkbooksList", "updateEditorChart"],
+        )
+        self.assertEqual([request[2]["x-dl-api-version"] for request in transport.requests], ["2", "2"])
 
 
 if __name__ == "__main__":
