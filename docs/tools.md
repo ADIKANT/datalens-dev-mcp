@@ -42,7 +42,12 @@ Acceptance receipts фиксируют `declared_surface`, `effective_surface` �
 ## Безопасность выполнения
 
 - Task contract, state и event chain сохраняются в `.datalens-mcp/tasks/<TASK_ID>/` и проверяются при replay.
+- Каждый task-level ответ содержит компактный `execution_brief` и идентичный
+  `structuredContent`; обычный follow-up передаётся строкой, а relation
+  определяет сервер.
 - `dl_execute` принимает только plan hash, связанный с неизменяемым task contract.
+- Устаревший аргумент `mode=save|saved|publish|completed` поддерживается только
+  как alias для `stop_after`; он не расширяет авторизацию и не обходит target/editor lock.
 - Write-task использует обычный save-first Safe Apply, saved readback, publish из verified saved state и published readback.
 - Review, audit, diagnose и plan-only не выполняют запись.
 - Тяжёлые планы и доказательства возвращаются как `datalens://tasks/<TASK_ID>/...`; `dl_evidence` читает только один разрешённый artifact с ограничением размера.

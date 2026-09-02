@@ -216,6 +216,26 @@ def test_direct_object_targets_use_their_typed_read_routes() -> None:
         assert result["target_graph"]["root_ids"] == [object_id]
 
 
+def test_direct_wizard_url_never_falls_back_to_dashboard_route() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        contract = _contract(Path(tmp), dashboard_id="")
+        contract["target"].update(
+            {"object_ids": ["chart_demo"], "object_types": ["wizard_chart"]}
+        )
+        # Simulate the historical compiler artifact where the direct URL ID
+        # was also placed into dashboard_id.
+        contract["target"]["dashboard_id"] = "chart_demo"
+        client = DirectDiscoveryClient()
+        result = TargetDiscoveryService(client).discover(
+            contract,
+            target_url="https://datalens.ru/wizard/chart_demo",
+        )
+
+    assert result["status"] == "success"
+    assert client.calls[0][0] == "getWizardChart"
+    assert all(method != "getDashboard" for method, _ in client.calls)
+
+
 def test_editor_string_dependency_is_resolved_only_through_workbook_inventory() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         client = DiscoveryClient(embedded_dataset_only=True)
@@ -242,6 +262,29 @@ def test_workbook_ambiguity_is_reported_only_after_inventory_read() -> None:
 
 def test_target_url_parses_the_stable_id_before_a_slug() -> None:
     assert parse_target_url("https://datalens.example/abc123456789-demo-dashboard") == "abc123456789"
+
+
+def test_workbook_url_is_not_reinterpreted_as_dashboard_id() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        client = DiscoveryClient(ambiguous=True)
+        contract = _contract(
+            Path(tmp),
+            dashboard_id="book_demo",
+            workbook_id="book_demo",
+        )
+        contract["target"]["object_ids"] = []
+        contract["target"]["object_types"] = ["dataset", "chart"]
+        contract["mode"] = "plan"
+        contract["operation_kind"] = "inspect"
+        result = TargetDiscoveryService(client).discover(
+            contract,
+            request_text="Inspect workbook",
+            target_url="https://datalens.ru/workbooks/book_demo",
+        )
+
+    assert result["status"] == "success"
+    assert result["inventory_count"] == 5
+    assert client.calls == [("getWorkbookEntries", {"workbookId": "book_demo"})]
 
 
 def test_target_url_skips_external_evidence_urls_before_dashboard_target() -> None:

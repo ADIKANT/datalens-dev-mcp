@@ -18,7 +18,7 @@ def test_stale_target_revision_blocks_entire_batch_before_write(tmp_path: Path) 
     result, api = _start(PublicAutonomyApi(stale_chart_after_reads=1), tmp_path)
     assert result["state"] == "BLOCKED"
     assert api.write_count == 0
-    assert "semantic" in json.dumps(result).lower()
+    assert "revision/hash mismatch" in json.dumps(result).lower()
 
 
 def test_permission_failure_does_not_refresh_or_retry(tmp_path: Path) -> None:
@@ -63,4 +63,11 @@ def _start(api: PublicAutonomyApi, root: Path) -> tuple[dict, PublicAutonomyApi]
                 "run_until": "completed",
             },
         )
+        if result.get("state") == "PLAN_VALIDATED":
+            result = public_call(
+                server,
+                2,
+                "dl_execute",
+                result["next_call"]["arguments"],
+            )
     return result, api

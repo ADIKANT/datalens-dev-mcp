@@ -111,6 +111,9 @@ class UserRequestNormalizer:
             "поменяй",
             "настрой",
             "передел",
+            "cleanup",
+            "clean up",
+            "очист",
         ),
     }
     REVIEW_TERMS = (
@@ -168,7 +171,7 @@ class UserRequestNormalizer:
             r"(?:implement\w*|build\w*|create\w*|make|apply\w*|publish\w*|save\w*|fix\w*|repair\w*|"
             r"enhance\w*|improve\w*|extend\w*|redesign\w*|update\w*|change\w*|modify\w*|"
             r"delete\w*|remove\w*)"
-            r"(?:\s+(?:or|and)\s+"
+            r"(?:\s*(?:/|,|;|\bor\b|\band\b)\s*"
             r"(?:implement\w*|build\w*|create\w*|make|apply\w*|publish\w*|save\w*|fix\w*|repair\w*|"
             r"enhance\w*|improve\w*|extend\w*|redesign\w*|update\w*|change\w*|modify\w*|"
             r"delete\w*|remove\w*))*",
@@ -184,7 +187,7 @@ class UserRequestNormalizer:
             r"(?:созда\w*|сдела\w*|реализ\w*|примен\w*|сохран\w*|опубли\w*|добав\w*|исправ\w*|"
             r"почин\w*|устран\w*|доработ\w*|улучш\w*|расшир\w*|переработ\w*|передел\w*|обнов\w*|измени\w*|"
             r"замен\w*|помен\w*|настро\w*|удал\w*)"
-            r"(?:\s+и\s+не\s+"
+            r"(?:\s*(?:/|,|;|\bи\b)\s*(?:не\s+)?"
             r"(?:созда\w*|сдела\w*|реализ\w*|примен\w*|сохран\w*|опубли\w*|добав\w*|исправ\w*|"
             r"почин\w*|устран\w*|доработ\w*|улучш\w*|расшир\w*|переработ\w*|передел\w*|обнов\w*|измени\w*|"
             r"замен\w*|помен\w*|настро\w*|удал\w*))*",
@@ -399,10 +402,30 @@ class UserRequestNormalizer:
         )
 
     def _operation_kind(self, lowered: str) -> OperationKind:
-        if any(pattern.search(lowered) for pattern in self.VERIFY_EXISTING_EFFECT_PATTERNS):
-            return "verify_existing_effect"
         intent = self._task_intent(lowered)
+        verifies_existing = any(pattern.search(lowered) for pattern in self.VERIFY_EXISTING_EFFECT_PATTERNS)
+        # A leading imperative mutation owns the operation even when the same
+        # sentence requests verification of the resulting saved/published
+        # state. Past-effect checks keep the verification route.
+        if verifies_existing and not self._starts_with_future_mutation(lowered):
+            return "verify_existing_effect"
         return "mutate" if intent in {"implement", "fix", "enhance", "redesign", "update"} else "inspect"
+
+    @staticmethod
+    def _starts_with_future_mutation(lowered: str) -> bool:
+        return bool(
+            re.match(
+                r"^\s*(?:please\s+)?(?:create|build|make|implement|fix|repair|enhance|improve|extend|"
+                r"redesign|update|change|modify|add|save|publish)\b",
+                lowered,
+            )
+            or re.match(
+                r"^\s*(?:пожалуйста[,\s]+)?(?:создай|сделай|реализуй|исправь|поправь|почини|"
+                r"доработай|улучши|расширь|переработай|обнови|измени|замени|поменяй|настрой|"
+                r"добавь|сохрани|опубликуй)\b",
+                lowered,
+            )
+        )
 
     @staticmethod
     def _effect_kind(lowered: str) -> EffectKind:
@@ -490,6 +513,10 @@ class UserRequestNormalizer:
 
     def _is_partial_content_update(self, lowered: str) -> bool:
         has_removal_verb = any(term in lowered for term in self.DESTRUCTIVE_TERMS["delete"])
+        if any(term in lowered for term in self.WHOLE_OBJECT_DELETE_TERMS) or any(
+            marker in lowered for marker in ("run-owned", "run owned", "cleanup route", "ownership receipt")
+        ):
+            return False
         return bool(has_removal_verb and any(term in lowered for term in self.PARTIAL_CONTENT_TERMS))
 
     def _task_intent(self, lowered: str) -> TaskIntent:

@@ -14,6 +14,7 @@ cd datalens-dev-mcp
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install .
+.venv/bin/python scripts/install_datalens_skill.py
 .venv/bin/datalens-dev-mcp --version
 python3 scripts/smoke_mcp_stdio.py
 ```
@@ -47,7 +48,11 @@ startup_timeout_sec = 20
 tool_timeout_sec = 120
 ```
 
-Use absolute paths. `default_tools_approval_mode = "approve"` allows normal calls to this server without a separate Codex prompt before save or publish. Separate confirmation applies only to a manifest `retire_legacy_objects` action.
+Use absolute paths. `default_tools_approval_mode = "approve"` permits transport
+calls to the server; the task workflow still returns one compact plan and waits
+for confirmation before a substantial mutation. An unchanged continuation of a
+confirmed task does not ask again. Destructive cleanup requires a separate
+exact-object token.
 
 Copyable file: [`examples/clients/codex.toml`](../examples/clients/codex.toml).
 
@@ -101,7 +106,7 @@ Read-only audit:
 
 Normal change:
 
-> Fix `<OBJECT_TYPE>` `<OBJECT_ID>` in workbook `<WORKBOOK_ID>`: `<REQUIREMENT>`. Read current saved state and relations, validate the plan and request, save the change, verify saved state, publish from the saved version, and verify the published result. Do not ask for another confirmation before save or publish.
+> Fix `<OBJECT_TYPE>` `<OBJECT_ID>` in workbook `<WORKBOOK_ID>`: `<REQUIREMENT>`. Read current saved state and relations, show one compact plan for confirmation, save the change, verify saved state, publish from the saved version, and verify the published result.
 
 See [usage workflows](usage-flow_en.md) for more variants.
 
@@ -112,6 +117,7 @@ After updating the checkout, reinstall and restart Codex:
 ```bash
 cd /absolute/path/to/datalens-dev-mcp
 .venv/bin/python -m pip install .
+.venv/bin/python scripts/install_datalens_skill.py
 python3 scripts/smoke_mcp_stdio.py
 codex mcp list
 ```

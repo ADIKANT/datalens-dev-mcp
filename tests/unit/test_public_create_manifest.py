@@ -83,6 +83,37 @@ def test_bundle_is_hash_bound_and_dependency_order_is_deterministic() -> None:
     assert "${object:" not in json.dumps(resolved)
 
 
+def test_create_plan_rejects_unmapped_hard_acceptance_before_write() -> None:
+    from datalens_dev_mcp.pipeline.public_plan_builder import (
+        unsupported_hard_acceptance_indices,
+    )
+
+    contract = {
+        "acceptance": [
+            {
+                "kind": "business",
+                "statement": "A free-form claim with no executable evidence route",
+                "source": "current_user_request",
+                "hard": True,
+            },
+            {
+                "kind": "create_manifest",
+                "statement": "The typed create manifest and readbacks must match",
+                "source": "current_user_request",
+                "hard": True,
+            },
+            {
+                "kind": "business",
+                "statement": "An explicitly soft observation",
+                "source": "current_user_request",
+                "hard": False,
+            },
+        ]
+    }
+
+    assert unsupported_hard_acceptance_indices(contract) == (0,)
+
+
 def test_bundle_persists_writable_projection_instead_of_read_model() -> None:
     from datalens_dev_mcp.pipeline.create_manifest import load_create_bundle
 
@@ -130,3 +161,80 @@ def test_manifest_path_escape_and_forward_dependency_fail_closed() -> None:
         (root / "create-manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
         with pytest.raises(CreateManifestError, match="dependencies"):
             load_create_bundle(root, "create-manifest.json", workbook_id="workbook_1")
+
+
+def test_wizard_manifest_requires_fresh_saved_seed_and_preserves_nested_runtime_shape() -> None:
+    from copy import deepcopy
+
+    from datalens_dev_mcp.pipeline.create_manifest import CreateManifestError, load_create_bundle
+    from datalens_dev_mcp.pipeline.wizard_templates import (
+        build_wizard_payload_plan,
+        load_canonical_wizard_templates,
+    )
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "payloads").mkdir()
+        seed_data = deepcopy(load_canonical_wizard_templates()["templates"]["metric"]["data"])
+        seed_data.update(
+            {
+                "version": "15",
+                "datasetsPartialFields": [[]],
+                "colors": [],
+                "extraSettings": {},
+                "labels": [],
+                "tooltips": [],
+            }
+        )
+        seed = {
+            "branch": "saved",
+            "revId": "saved_revision_1",
+            "template": "datalens",
+            "data": seed_data,
+        }
+        plan = build_wizard_payload_plan(
+            {
+                "route": "wizard_native",
+                "visualization_id": "metric",
+                "location": {"workbookId": "workbook_1", "name": "synthetic_metric"},
+                "dataset": "dataset_existing_1",
+                "field_bindings": {"measures": {"guid": "value_guid", "type": "float"}},
+                "saved_seed": seed,
+                "dataset_readbacks": [
+                    {
+                        "datasetId": "dataset_existing_1",
+                        "result_schema": [{"guid": "value_guid", "type": "float"}],
+                    }
+                ],
+            }
+        )
+        assert plan["live_execution_ready"], plan
+        (root / "payloads" / "metric.json").write_text(
+            json.dumps(plan["compiled_payload"]), encoding="utf-8"
+        )
+        (root / "payloads" / "metric-seed.json").write_text(json.dumps(seed), encoding="utf-8")
+        manifest = {
+            "schema_id": "datalens_public_create_manifest",
+            "manifest_version": 1,
+            "workbook_id": "workbook_1",
+            "objects": [
+                {
+                    "key": "metric_main",
+                    "object_type": "wizard_chart",
+                    "route": "wizard_native",
+                    "name": "synthetic_metric",
+                    "payload_path": "payloads/metric.json",
+                    "dependencies": [],
+                }
+            ],
+        }
+        (root / "create-manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        with pytest.raises(CreateManifestError, match="wizard_seed_path"):
+            load_create_bundle(root, "create-manifest.json", workbook_id="workbook_1")
+
+        manifest["objects"][0]["wizard_seed_path"] = "payloads/metric-seed.json"
+        (root / "create-manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        bundle = load_create_bundle(root, "create-manifest.json", workbook_id="workbook_1")
+
+    assert bundle["objects"][0]["wizard_live_execution"]["ok"] is True
+    assert isinstance(bundle["objects"][0]["payload"]["data"]["datasetsPartialFields"][0], list)

@@ -18,8 +18,8 @@
 ### `dl_task_resume`
 
 - Required: `task_id`
-- Optional: `project_root`, `expected_state`, `expected_hash`, `expected_contract_revision`, `user_turn`, `run_until`, `transition_budget`
-- Восстанавливает state из hash-chained events и продолжает server-owned workflow. Optimistic поля блокируют продолжение по устаревшему состоянию. `user_turn` принимает `source_event_id`, `request`, `relationship_to_previous` и необязательный `context`; для содержательной поправки обязателен точный `expected_contract_revision`. Сервер сохраняет тот же task ID, создаёт следующую immutable contract revision, выборочно инвалидирует зависимые artifacts и идемпотентно распознаёт повтор того же source event. `replace_goal` и `start_new_workflow` требуют нового `dl_task_start`.
+- Optional: `project_root`, `expected_state`, `expected_hash`, `expected_contract_revision`, `follow_up`, `user_turn`, `run_until`, `transition_budget`
+- Восстанавливает state из hash-chained events и продолжает server-owned workflow. Для обычной поправки достаточно `follow_up`: relation и текущую contract revision определяет сервер. `user_turn` остаётся расширенным typed вариантом и допускает relation только как debugging override. Сервер сохраняет тот же task ID, создаёт следующую immutable contract revision и выборочно инвалидирует зависимые artifacts. Новая независимая задача требует `dl_task_start`.
 
 ### `dl_task_status`
 
@@ -41,9 +41,19 @@
 
 ### `dl_execute`
 
+`stop_after=saved|completed` is the canonical execution boundary. For older
+clients, `mode=save|saved|publish|completed` is accepted as a compatibility
+alias only; it maps to the same boundary and cannot add authorization, bypass a
+target lock, or force an editor lock.
+
 - Required: `task_id`, `plan_hash`
 - Optional: `project_root`, `destructive_token`
 - Исполняет только сохранённый план с точным hash. Произвольный payload не принимается. Для destructive scope требуется точный task-bound token; whole-object delete по-прежнему ограничен manifest-контрактом.
+
+Все восемь task-level tools возвращают одинаковые JSON text и
+`structuredContent`. `execution_brief` содержит task kind, точную цель,
+reference, technology, ожидаемый результат, preservation rules, delivery,
+confirmation, missing fields и полностью заполненный `next_call`.
 
 ### `dl_verify`
 

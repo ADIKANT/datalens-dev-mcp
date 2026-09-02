@@ -9,6 +9,7 @@ from pathlib import Path
 from datalens_dev_mcp.api.methods import get_method_schema, openapi_lock_summary
 from datalens_dev_mcp.api.request_compiler import compile_method_request
 from datalens_dev_mcp.knowledge.reference import build_reference_response
+from datalens_dev_mcp.mcp.resources import list_resources, read_resource
 from datalens_dev_mcp.pipeline.wizard_templates import build_wizard_payload_plan, load_wizard_template_registry
 from datalens_dev_mcp.runtime_resources import declared_resource_manifest, resource_manifest
 from datalens_dev_mcp.validators.advanced_editor_validator import validate_editor_runtime_contract
@@ -85,6 +86,24 @@ class PortableRuntimeResourceTests(unittest.TestCase):
         self.assertTrue(wizard_plan["ok"])
         self.assertTrue(reference["ok"])
         self.assertGreaterEqual(reference["result_count"], 1)
+
+    def test_focused_model_knowledge_resources_are_packaged_and_readable(self):
+        expected = {
+            "datalens://knowledge/formulas",
+            "datalens://knowledge/wizard-authoring",
+            "datalens://knowledge/javascript-editor-authoring",
+            "datalens://knowledge/chart-selection",
+            "datalens://knowledge/error-diagnosis",
+            "datalens://knowledge/save-publish-lifecycle",
+        }
+        listed = {item["uri"] for item in list_resources()}
+
+        self.assertTrue(expected.issubset(listed))
+        for uri in expected:
+            with self.subTest(uri=uri):
+                payload = read_resource(uri)
+                self.assertEqual(payload["mimeType"], "application/json")
+                self.assertTrue(json.loads(payload["text"]))
 
     def test_runtime_resource_files_do_not_use_repo_relative_config_schema_template_roots(self):
         forbidden = ("Path(__file__).resolve().parents[3]", "Path(__file__).resolve().parents[2]")

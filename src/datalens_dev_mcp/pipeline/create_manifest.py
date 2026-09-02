@@ -10,6 +10,7 @@ from datalens_dev_mcp.api.request_compiler import project_method_request
 from datalens_dev_mcp.pipeline.baseline_preservation import build_object_reuse_decision
 from datalens_dev_mcp.pipeline.safe_apply import create_safe_apply_plan
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
+from datalens_dev_mcp.pipeline.wizard_templates import build_wizard_live_execution_evidence
 
 CREATE_BUNDLE_SCHEMA_ID = "datalens_public_create_bundle"
 CREATE_MANIFEST_SCHEMA_ID = "datalens_public_create_manifest"
@@ -162,6 +163,29 @@ def load_create_bundle(
                 # later when the create action is compiled.
                 writable_payload = projected["payload"]
         canonical_payload = deepcopy(writable_payload)
+        wizard_live_execution: dict[str, Any] = {}
+        if object_type == "wizard_chart":
+            seed_locator = str(item.get("wizard_seed_path") or "").strip()
+            if not seed_locator:
+                issues.append(
+                    f"object {item.get('key')} wizard_seed_path is required for live Wizard creation"
+                )
+            else:
+                try:
+                    seed_path = _inside_project(root, seed_locator, label="Wizard saved seed")
+                    saved_seed = _read_json(seed_path, label="Wizard saved seed")
+                except CreateManifestError as exc:
+                    issues.append(str(exc))
+                else:
+                    wizard_live_execution = build_wizard_live_execution_evidence(
+                        canonical_payload,
+                        saved_seed,
+                    )
+                    if not wizard_live_execution.get("ok"):
+                        issues.extend(
+                            f"object {item.get('key')} Wizard seed: {issue}"
+                            for issue in wizard_live_execution.get("issues") or []
+                        )
         objects.append(
             {
                 "key": str(item.get("key") or ""),
@@ -173,6 +197,7 @@ def load_create_bundle(
                 "payload_hash": canonical_hash(canonical_payload),
                 "lifecycle": object_lifecycle,
                 "cleanup_route": cleanup_route,
+                "wizard_live_execution": wizard_live_execution,
                 "inverse_or_recreate_plan": _cleanup_plan(
                     cleanup_route,
                     workbook_id=resolved_workbook,
@@ -225,6 +250,10 @@ def validate_create_manifest(value: dict[str, Any]) -> tuple[str, ...]:
             issues.append(f"objects[{index}].name is required")
         if not str(item.get("payload_path") or "").strip():
             issues.append(f"objects[{index}].payload_path is required")
+        if str(item.get("object_type") or "") == "wizard_chart" and not str(
+            item.get("wizard_seed_path") or ""
+        ).strip():
+            issues.append(f"objects[{index}].wizard_seed_path is required for Wizard live create")
         lifecycle = str(item.get("lifecycle") or "persistent").strip()
         if lifecycle not in OBJECT_LIFECYCLES:
             issues.append(f"objects[{index}].lifecycle is invalid")
@@ -256,6 +285,13 @@ def validate_create_bundle(value: dict[str, Any]) -> tuple[str, ...]:
     for item in objects:
         if not isinstance(item, dict) or item.get("payload_hash") != canonical_hash(item.get("payload")):
             issues.append("create bundle payload hash mismatch")
+            continue
+        if item.get("object_type") == "wizard_chart":
+            evidence = item.get("wizard_live_execution")
+            if not isinstance(evidence, dict) or evidence.get("ok") is not True:
+                issues.append("Wizard create bundle requires valid live execution evidence")
+            elif evidence.get("compiled_payload_sha256") != canonical_hash(item.get("payload")):
+                issues.append("Wizard create bundle live execution evidence is stale")
     issues.extend(_dependency_issues([item for item in objects if isinstance(item, dict)]))
     return tuple(dict.fromkeys(issues))
 
@@ -326,6 +362,11 @@ def create_template_actions(bundle: dict[str, Any], *, baseline_artifact: str) -
                 "object_reuse_decision": reuse,
                 "cleanup_lifecycle": lifecycle,
                 "changed": True,
+                **(
+                    {"wizard_live_execution": deepcopy(item.get("wizard_live_execution") or {})}
+                    if item["object_type"] == "wizard_chart"
+                    else {}
+                ),
             }
         )
     return actions

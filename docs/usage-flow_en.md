@@ -62,7 +62,10 @@ connect the MCP client
   -> verify the result in DataLens
 ```
 
-The request selects the stopping point. The server does not ask again before save or publish after the user has requested a create, fix, update, enhancement, or redesign of a known object. Arbitrary whole-object deletion is unavailable; only a manifest `retire_legacy_objects` action requires separate confirmation.
+The request selects the stopping point. Before a substantial mutation the
+server returns one compact plan; that confirmation covers unchanged save and
+publish. Destructive cleanup is limited to exact run-owned objects with an
+ownership receipt and requires a separate exact-object token.
 
 ## Connection and preflight
 
@@ -199,7 +202,7 @@ stopped saved artifact, not a required second plan in the normal flow.
 
 Prompt:
 
-> Fix `<OBJECT_TYPE>` `<OBJECT_ID>` in workbook `<WORKBOOK_ID>`: `<REQUIREMENT>`. Read current saved state and relations, plan and validate the change, save it, verify saved state, publish from the saved version, and verify the published result. Do not ask for another confirmation before save or publish. If UI verification is unavailable, state that limitation in the result.
+> Fix `<OBJECT_TYPE>` `<OBJECT_ID>` in workbook `<WORKBOOK_ID>`: `<REQUIREMENT>`. Read current saved state and relations, show one compact plan for confirmation, save it, verify saved state, publish from the saved version, and verify the published result. If UI verification is unavailable, state that limitation in the result.
 
 For a visible chart or dashboard change, final verification should cover the changed tab or object. API readback verifies structure; UI verification confirms rendering.
 

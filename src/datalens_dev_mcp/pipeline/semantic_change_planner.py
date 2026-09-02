@@ -248,18 +248,12 @@ def _needs_semantic_actions(
             },
             "anyOf": [{"required": ["slot_id"]}, {"required": ["anchor"]}],
         },
-        "required_next_call": {
-            "tool": "dl_task_resume",
-            "arguments": {
-                "task_id": task_id,
-                "expected_contract_revision": revision,
-                "user_turn": {
-                    "request": "Resume with typed semantic actions for the discovered target.",
-                    "relationship_to_previous": "continue",
-                    "context": {"semantic_changes": []},
-                },
-            },
+        "task_handle": {
+            "task_id": task_id,
+            "expected_contract_revision": revision,
         },
+        "missing_fields": ["semantic_changes"],
+        "required_next_call": None,
         "issues": ["mutation request requires a valid typed semantic action set"],
     }
 

@@ -24,10 +24,11 @@ def test_public_task_closes_discovery_with_real_mocked_read_receipts() -> None:
         style = tasks.read_json(journal.style_binding_path, {})
     assert result["state"] == "needs_semantic_actions"
     assert result["status"] == "needs_semantic_actions"
-    assert result["required_next_call"]["tool"] == "dl_task_resume"
-    assert result["required_next_call"]["arguments"]["user_turn"]["context"] == {
-        "semantic_changes": []
-    }
+    assert result["required_next_call"] is None
+    assert result["next_call"] is None
+    assert result["missing_fields"] == ["semantic_changes"]
+    assert result["execution_brief"]["status"] == "needs_input"
+    assert result["execution_brief"]["target"]["dashboard_id"] == "dash_demo"
     assert result["object_index"]
     assert "blocked_by" not in result
     assert binding["source"] == "live_discovery"

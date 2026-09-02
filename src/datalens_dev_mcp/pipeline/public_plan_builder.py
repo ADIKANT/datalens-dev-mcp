@@ -5,10 +5,12 @@ from pathlib import Path
 from typing import Any
 
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
+from datalens_dev_mcp.pipeline.assertion_spec_compiler import ALIASES
 from datalens_dev_mcp.pipeline.create_manifest import (
     create_safe_apply_template,
     validate_create_bundle,
 )
+from datalens_dev_mcp.pipeline.data_assertions import ASSERTION_KINDS
 from datalens_dev_mcp.pipeline.dataset_context_profile import (
     derive_dataset_plan_context,
     validate_dataset_context_profile,
@@ -414,6 +416,73 @@ class PublicPlanBuilder:
 
         return self._build_read_only_plan(plan_kind="verify_existing_effect")
 
+    def build_run_owned_cleanup(self, *, ownership: dict[str, Any]) -> dict[str, Any]:
+        """Bind an exact ownership receipt to a destructive cleanup plan."""
+
+        plan_root = self.journal.root / "plans"
+        objects = [deepcopy(item) for item in ownership.get("objects") or [] if isinstance(item, dict)]
+        cleanup = {
+            "schema_id": "datalens_run_owned_cleanup_plan",
+            "source_task_id": str(ownership.get("task_id") or ""),
+            "ownership_hash": str(ownership.get("ownership_hash") or ""),
+            "objects": objects,
+            "delete_order": [str(item.get("object_id") or "") for item in reversed(objects)],
+            "verify_absent": True,
+        }
+        cleanup["plan_hash"] = canonical_hash(cleanup)
+        write_json(plan_root / "run-owned-cleanup-plan.json", cleanup)
+        execution_auth = read_json(self.journal.execution_authorization_path, {}) or {}
+        build_identity = read_json(self.journal.build_identity_path, {}) or {}
+        target_binding = read_json(self.journal.target_binding_path, {}) or {}
+        reference_binding = read_json(self.journal.reference_binding_path, {}) or {}
+        style_binding = read_json(self.journal.style_binding_path, {}) or {}
+        binding = build_plan_binding(
+            contract_hash=str(self.contract.get("contract_hash") or ""),
+            execution_authorization_hash=str(execution_auth.get("authorization_hash") or ""),
+            build_identity_hash=str(build_identity.get("identity_hash") or ""),
+            target_binding_hash=str(target_binding.get("binding_hash") or ""),
+            reference_binding_hash=str(reference_binding.get("binding_hash") or ""),
+            style_binding_hash=str(style_binding.get("binding_hash") or ""),
+            decision_context_hash=_decision_context_binding_hash(style_binding),
+            cleanup_plan_hash=str(cleanup.get("plan_hash") or ""),
+        )
+        write_json(plan_root / "plan-binding.json", binding)
+        artifacts = {
+            "cleanup_plan": (
+                "plans/run-owned-cleanup-plan.json",
+                portable_artifact_hash(cleanup, project_root=self.journal.project_root),
+            ),
+            "plan_binding": (
+                "plans/plan-binding.json",
+                portable_artifact_hash(binding, project_root=self.journal.project_root),
+            ),
+        }
+        payload = sanitize_value(
+            {
+                "schema_id": "datalens_public_task_plan",
+                "plan_version": 1,
+                "plan_kind": "run_owned_cleanup",
+                "task_id": self.journal.task_id,
+                "contract_hash": self.contract.get("contract_hash"),
+                "route": "run_owned_cleanup",
+                "delivery": self.contract.get("delivery") or {},
+                "scope": self.contract.get("scope") or {},
+                "acceptance": self.contract.get("acceptance") or [],
+                "plan_binding_hash": binding.get("binding_hash"),
+                "cleanup_plan_hash": cleanup.get("plan_hash"),
+                "safe_apply_action_count": len(objects),
+                "artifacts": [
+                    {"kind": kind, "artifact_uri": uri, "sha256": digest}
+                    for kind, (uri, digest) in sorted(artifacts.items())
+                ],
+                "destructive_token_required": True,
+            }
+        )
+        payload["destructive_token_required"] = True
+        payload["plan_hash"] = public_plan_hash(payload)
+        write_json(plan_root / "plan.json", payload)
+        return payload
+
     def build_read_only_review(self) -> dict[str, Any]:
         """Build a zero-mutation plan for an inspect/review request."""
 
@@ -539,6 +608,8 @@ class PublicPlanBuilder:
                 issues.append(f"plan artifact hash mismatch: {item.get('kind')}")
         if plan.get("plan_kind") == "create_manifest":
             return (*issues, *self._validate_create_current(plan))
+        if plan.get("plan_kind") == "run_owned_cleanup":
+            return (*issues, *self._validate_cleanup_current(plan))
         if plan.get("plan_kind") in {"verify_existing_effect", "read_only_review"}:
             return (*issues, *self._validate_verification_current(plan))
         if plan.get("plan_kind") == "already_satisfied_no_write":
@@ -644,6 +715,44 @@ class PublicPlanBuilder:
                 issues.append(f"plan binding is stale: {key}")
         return tuple(issues)
 
+    def _validate_cleanup_current(self, plan: dict[str, Any]) -> tuple[str, ...]:
+        issues: list[str] = []
+        cleanup = read_json(self.journal.root / "plans" / "run-owned-cleanup-plan.json", {}) or {}
+        ownership = read_json(self.journal.root / "inputs" / "cleanup-ownership.json", {}) or {}
+        binding = read_json(self.journal.root / "plans" / "plan-binding.json", {}) or {}
+        issues.extend(validate_binding(binding, schema_id="datalens_public_plan_binding"))
+        if plan.get("contract_hash") != self.contract.get("contract_hash"):
+            issues.append("cleanup plan contract hash is stale")
+        if cleanup.get("ownership_hash") != ownership.get("ownership_hash"):
+            issues.append("cleanup plan ownership proof is stale")
+        if cleanup.get("plan_hash") != canonical_hash({key: value for key, value in cleanup.items() if key != "plan_hash"}):
+            issues.append("cleanup plan hash mismatch")
+        if plan.get("cleanup_plan_hash") != cleanup.get("plan_hash"):
+            issues.append("public cleanup plan is stale")
+        if int(plan.get("safe_apply_action_count") or 0) != len(cleanup.get("objects") or []):
+            issues.append("public cleanup object count mismatch")
+        if plan.get("destructive_token_required") is not True:
+            issues.append("run-owned cleanup requires exact-object confirmation")
+        execution_authorization = read_json(self.journal.execution_authorization_path, {}) or {}
+        build_identity = read_json(self.journal.build_identity_path, {}) or {}
+        target_binding = read_json(self.journal.target_binding_path, {}) or {}
+        reference_binding = read_json(self.journal.reference_binding_path, {}) or {}
+        style_binding = read_json(self.journal.style_binding_path, {}) or {}
+        expected = {
+            "contract_hash": str(self.contract.get("contract_hash") or ""),
+            "execution_authorization_hash": str(execution_authorization.get("authorization_hash") or ""),
+            "build_identity_hash": str(build_identity.get("identity_hash") or ""),
+            "target_binding_hash": str(target_binding.get("binding_hash") or ""),
+            "reference_binding_hash": str(reference_binding.get("binding_hash") or ""),
+            "style_binding_hash": str(style_binding.get("binding_hash") or ""),
+            "decision_context_hash": _decision_context_binding_hash(style_binding),
+            "cleanup_plan_hash": str(cleanup.get("plan_hash") or ""),
+        }
+        for key, value in expected.items():
+            if binding.get(key) != value:
+                issues.append(f"cleanup plan binding is stale: {key}")
+        return tuple(issues)
+
     def _validate_already_satisfied_current(self, plan: dict[str, Any]) -> tuple[str, ...]:
         issues: list[str] = []
         no_write = read_json(self.journal.root / "plans" / "already-satisfied-plan.json", {}) or {}
@@ -747,6 +856,10 @@ class PublicPlanBuilder:
 
     def _validate_create_current(self, plan: dict[str, Any]) -> tuple[str, ...]:
         issues: list[str] = []
+        issues.extend(
+            f"hard acceptance has no executable evidence contract: acceptance[{index}]"
+            for index in unsupported_hard_acceptance_indices(self.contract)
+        )
         bundle = read_json(self.journal.root / "inputs" / "create-bundle.json", {}) or {}
         safe_apply = read_json(self.journal.root / "plans" / "safe-apply-plan.json", {}) or {}
         binding = read_json(self.journal.root / "plans" / "plan-binding.json", {}) or {}
@@ -791,6 +904,33 @@ class PublicPlanBuilder:
                 issues.append(f"public create plan binding is stale: {key}")
         issues.extend(_decision_context_projection_issues(plan, style_binding))
         return tuple(issues)
+
+
+def unsupported_hard_acceptance_indices(contract: dict[str, Any]) -> tuple[int, ...]:
+    """Return create criteria that would otherwise fail only after delivery.
+
+    A create plan must not begin writes when final QA has no deterministic
+    evidence route for one of its hard requirements.  This keeps unsupported
+    free-form business criteria fail-closed at the immutable-plan boundary.
+    """
+
+    supported = {
+        *ASSERTION_KINDS,
+        *ALIASES,
+        "semantic_change",
+        "create_manifest",
+    }
+    unsupported: list[int] = []
+    for index, criterion in enumerate(contract.get("acceptance") or []):
+        if not isinstance(criterion, dict) or criterion.get("hard") is False:
+            continue
+        kind = str(criterion.get("kind") or "business")
+        if ALIASES.get(kind, kind) in supported:
+            continue
+        if kind == "constraint" and criterion.get("source") == "current_user_correction":
+            continue
+        unsupported.append(index)
+    return tuple(unsupported)
 
 
 def public_plan_hash(plan: dict[str, Any]) -> str:

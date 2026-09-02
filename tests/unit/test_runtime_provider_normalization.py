@@ -50,13 +50,15 @@ class RuntimeProviderNormalizationTests(unittest.TestCase):
         self.assertEqual(result, {"entries": []})
         self.assertEqual(len(read_transport.requests), 2)
 
-        write_transport = _SequenceTransport([_http_error(500), {"ok": True}])
+        write_transport = _SequenceTransport(
+            [{"workbooks": []}, _http_error(500), {"ok": True}]
+        )
         with patch("datalens_dev_mcp.api.client._transient_retry_pause", return_value=None):
             with self.assertRaises(DataLensApiError):
                 DataLensApiClient(config, transport=write_transport).rpc(
                     "createDashboard", {"entry": {"data": {}, "meta": {}}}
                 )
-        self.assertEqual(len(write_transport.requests), 1)
+        self.assertEqual(len(write_transport.requests), 2)
 
     def test_create_identity_prefers_strong_response_root(self):
         from datalens_dev_mcp.pipeline.safe_apply import _object_identity, _revision_id

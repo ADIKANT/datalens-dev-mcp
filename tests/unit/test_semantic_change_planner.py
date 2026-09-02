@@ -112,10 +112,8 @@ def test_missing_typed_actions_is_not_reported_as_noop() -> None:
     assert result["task_id"] == "task_demo"
     assert result["contract_revision"] == 3
     assert result["object_index"][0]["technology"] == ""
-    assert result["required_next_call"]["tool"] == "dl_task_resume"
-    assert result["required_next_call"]["arguments"]["user_turn"]["context"] == {
-        "semantic_changes": []
-    }
+    assert result["missing_fields"] == ["semantic_changes"]
+    assert result["required_next_call"] is None
 
 
 def test_hashed_baseline_names_match_direct_object_identity_before_graph_references() -> None:

@@ -157,6 +157,13 @@ def _run_case(server: JsonRpcServer, *, root: Path, api: PublicAutonomyApi, case
             first = exchange(server, "dl_task_status", {"task_id": task_id, "project_root": str(root)})
             second = exchange(server, "dl_task_status", {"task_id": task_id, "project_root": str(root)})
             assert first == second
+    if result.get("state") == "PLAN_VALIDATED" and (result.get("next_call") or {}).get("tool") == "dl_execute":
+        confirmed = exchange(
+            server,
+            "dl_execute",
+            dict((result.get("next_call") or {}).get("arguments") or {}),
+        )
+        result = confirmed["payload"] if confirmed["ok"] else {"state": "BLOCKED"}
     question = result.get("question") or (result.get("blocked_by") or {}).get("question")
     task_root = root / ".datalens-mcp" / "tasks" / task_id
     contract = _read_json(task_root / "contract.json")

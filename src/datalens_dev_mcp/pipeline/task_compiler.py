@@ -11,6 +11,7 @@ from datalens_dev_mcp.pipeline.question_policy import resolve_question_policy
 from datalens_dev_mcp.pipeline.route_contract import normalize_route
 from datalens_dev_mcp.pipeline.task_contract import (
     AcceptanceCriterion,
+    ConfirmationContract,
     DataDiagnosticsContract,
     DeliveryContract,
     EffectContract,
@@ -18,6 +19,7 @@ from datalens_dev_mcp.pipeline.task_contract import (
     ReferenceContract,
     ScopeContract,
     TargetContract,
+    TaskKind,
     TaskMode,
     VerificationContract,
     WorkspaceContract,
@@ -147,6 +149,25 @@ def compile_task_contract(
         target=target,
         acceptance=acceptance_contract,
     )
+    task_kind = _compile_task_kind(
+        raw_request,
+        mode=mode,
+        operation_kind=operation_kind,
+        target=target,
+        route=route,
+        reference=reference_contract,
+        delivery=delivery,
+    )
+    confirmation = _compile_confirmation(
+        raw_request,
+        operation_kind=operation_kind,
+        mode=mode,
+        delivery=delivery,
+        current_contract=journal,
+        target=target,
+        route=route,
+        scope=scope,
+    )
 
     required_facts = _required_discoverable_facts(
         mode, target, route, operation_kind=operation_kind, verification=verification,
@@ -169,6 +190,8 @@ def compile_task_contract(
 
     contract = create_task_contract(
         raw_request=raw_request,
+        task_kind=task_kind,
+        requested_outcome=_requested_outcome(task_kind, delivery),
         mode=mode,
         route=route,
         operation_kind=operation_kind,
@@ -185,6 +208,7 @@ def compile_task_contract(
         browser_policy=browser_policy,
         data_diagnostics=data_diagnostics,
         delivery=delivery,
+        confirmation=confirmation,
         evidence=EvidenceContract(
             required_facts=tuple(required_facts),
             available_facts=available_facts,
@@ -225,6 +249,7 @@ def compile_task_contract(
         "discovery_required": list(question_decision.discovery_required),
         "issues": issues,
         "source_trace": {
+            "task_kind": task_kind,
             "operation_kind": operation_kind,
             "effect_kind": effect.kind,
             "target_url": normalized.target_url,
@@ -233,6 +258,100 @@ def compile_task_contract(
             "precedence": list(contract.source_precedence),
         },
     }
+
+
+def _compile_task_kind(
+    raw_request: str,
+    *,
+    mode: TaskMode,
+    operation_kind: str,
+    target: TargetContract,
+    route: str,
+    reference: ReferenceContract,
+    delivery: DeliveryContract,
+) -> TaskKind:
+    text = raw_request.lower()
+    if operation_kind == "verify_existing_effect" or re.search(
+        r"(?:manual|вручн\w*).{0,80}(?:layout|располож|измен)|(?:adopt|прими).{0,80}(?:layout|измен)",
+        text,
+    ):
+        return "verify_or_adopt_manual_change"
+    if delivery.destructive and re.search(r"cleanup|run[- ]owned|очист|удал", text):
+        return "cleanup_run_owned_objects"
+    if mode == "diagnose":
+        return "diagnose_chart_or_data_error"
+    if reference.locator and mode in {"create", "update", "redesign"}:
+        return "clone_or_adapt_reference"
+    object_types = set(target.object_types)
+    dashboard_target = bool(target.dashboard_id or "dashboard" in object_types or route == "dashboard")
+    if mode == "create":
+        return "create_dashboard" if dashboard_target else "create_chart"
+    if mode in {"update", "redesign"}:
+        return "update_dashboard" if dashboard_target else "update_chart"
+    if mode == "publish_only" or (
+        operation_kind == "mutate" and delivery.save and delivery.publish
+        and re.search(r"save.{0,40}publish|publish.{0,40}verify|сохран.{0,40}опубли", text)
+    ):
+        return "save_publish_verify"
+    return "inspect_dashboard"
+
+
+def _compile_confirmation(
+    raw_request: str,
+    *,
+    operation_kind: str,
+    mode: TaskMode,
+    delivery: DeliveryContract,
+    current_contract: dict[str, Any],
+    target: TargetContract,
+    route: str,
+    scope: ScopeContract,
+) -> ConfirmationContract:
+    if operation_kind != "mutate":
+        return ConfirmationContract()
+    text = raw_request.lower()
+    opt_out = bool(re.search(
+        r"(?:without|no)\s+(?:prior\s+)?confirmation|execute\s+immediately|"
+        r"без\s+(?:предварительного\s+)?подтверждения|сразу\s+(?:выполни|делай|примени)",
+        text,
+    ))
+    if delivery.destructive:
+        return ConfirmationContract(
+            required=True,
+            kind="destructive_exact_object",
+            reason="destructive operations always require exact-object confirmation",
+        )
+    # Confirmation carry-forward is bound to the persisted execution grant,
+    # not inferred from prompt text. The compiler only declares whether this
+    # contract would need a fresh confirmation on its own.
+    inherited = False
+    required = not opt_out and not inherited and bool(
+        mode in {"create", "redesign", "publish_only"} or delivery.save or delivery.publish
+    )
+    return ConfirmationContract(
+        required=required,
+        kind="substantial_mutation" if required else "none",
+        reason=(
+            "target, scope, technology and delivery are unchanged from the confirmed task"
+            if inherited
+            else "the request explicitly opted out"
+            if opt_out
+            else "the immutable plan has material save or publish effects"
+            if required
+            else "no substantial mutation"
+        ),
+        scoped_opt_out=opt_out,
+        inherited=inherited,
+    )
+
+
+def _requested_outcome(task_kind: TaskKind, delivery: DeliveryContract) -> str:
+    action = task_kind.replace("_", " ")
+    if delivery.publish:
+        return f"{action}; save, publish exact saved state, and verify readbacks"
+    if delivery.save:
+        return f"{action}; save and verify saved readback"
+    return action
 
 
 def _compile_data_diagnostics(
@@ -550,6 +669,13 @@ def _compile_target(
             *[str(item) for item in _first_list(sources_tuple, "object_types")],
         ]
     )
+    if "chart" in object_types:
+        # A bare ``chart:{id}`` in the user text identifies the object but not
+        # its technology.  Preserve an exact type supplied by fresh live
+        # context instead of silently routing the object through Editor.
+        exact_chart_type = _first_exact_chart_type(sources_tuple)
+        if exact_chart_type:
+            object_types = [exact_chart_type if item == "chart" else item for item in object_types]
     return (
         TargetContract(
             workbook_id=str(values.get("workbook_id") or ""),
@@ -684,6 +810,8 @@ def _compile_delivery(
         return DeliveryContract(save=False, publish=False, destructive=False)
     effective = correction if correction and correction.publish_override != "none" else normalized
     destructive = bool(normalized.destructive_actions or (correction.destructive_actions if correction else ()))
+    if destructive:
+        return DeliveryContract(save=False, publish=False, destructive=True)
     if mode in {"review", "diagnose", "plan"}:
         return DeliveryContract(destructive=destructive)
     if mode == "publish_only":
@@ -884,6 +1012,18 @@ def _first_list(sources: tuple[tuple[str, dict[str, Any]], ...], key: str) -> li
         if isinstance(value, (list, tuple)) and value:
             return list(value)
     return []
+
+
+def _first_exact_chart_type(sources: tuple[tuple[str, dict[str, Any]], ...]) -> str:
+    exact_types = {"editor_chart", "wizard_chart", "ql_chart"}
+    for _, source in sources:
+        values = source.get("object_types")
+        if not isinstance(values, (list, tuple)):
+            continue
+        matches = [str(item) for item in values if str(item) in exact_types]
+        if len(matches) == 1:
+            return matches[0]
+    return ""
 
 
 def _unique(values: Any) -> list[str]:

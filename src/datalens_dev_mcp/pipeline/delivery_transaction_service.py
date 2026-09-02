@@ -199,7 +199,11 @@ class DeliveryTransactionService:
             except CreateManifestError as exc:
                 return self._blocked(context, str(exc), "create_dependencies")
             action = _materialize_create_action(template, resolved_payload)
-            dataset_readbacks = self._dependency_dataset_readbacks(template, identities)
+            dataset_readbacks = self._dependency_dataset_readbacks(
+                template,
+                identities,
+                resolved_payload=resolved_payload,
+            )
             if dataset_readbacks:
                 action["dataset_readbacks"] = dataset_readbacks
             stage_plan = create_safe_apply_plan(
@@ -337,9 +341,15 @@ class DeliveryTransactionService:
     ) -> None:
         objects: list[dict[str, Any]] = []
         for action in resolved_actions:
+            if str(action.get("action_type") or "") != "create":
+                continue
             lifecycle = dict(action.get("cleanup_lifecycle") or {})
+            if not lifecycle:
+                continue
             object_id = str(action.get("object_id") or "")
             object_type = str(action.get("object_type") or "")
+            if not object_id or not object_type:
+                continue
             workbook_id = str(
                 lifecycle.get("parent_workbook")
                 or (self.contract.get("target") or {}).get("workbook_id")
@@ -549,6 +559,8 @@ class DeliveryTransactionService:
         self,
         template: dict[str, Any],
         identities: dict[str, str],
+        *,
+        resolved_payload: dict[str, Any],
     ) -> list[dict[str, Any]]:
         bundle = read_json(self.journal.root / "inputs" / "create-bundle.json", {}) or {}
         types = {
@@ -556,16 +568,19 @@ class DeliveryTransactionService:
             for item in bundle.get("objects") or []
             if isinstance(item, dict)
         }
-        readbacks: list[dict[str, Any]] = []
+        dataset_ids: set[str] = set(_collect_dataset_ids(resolved_payload))
         for dependency in template.get("dependencies") or []:
             key = str(dependency)
             if types.get(key) != "dataset" or key not in identities:
                 continue
+            dataset_ids.add(identities[key])
+        readbacks: list[dict[str, Any]] = []
+        for dataset_id in sorted(dataset_ids):
             readbacks.append(
                 self._exclusive_read(
                     "getDataset",
                     {
-                        "datasetId": identities[key],
+                        "datasetId": dataset_id,
                         "workbookId": str((self.contract.get("target") or {}).get("workbook_id") or ""),
                     },
                 )
@@ -1078,6 +1093,22 @@ def _materialize_create_action(template: dict[str, Any], payload: Any) -> dict[s
     action["payload"] = deepcopy(payload)
     action["desired_overlay"] = deepcopy(payload)
     return action
+
+
+def _collect_dataset_ids(value: Any) -> set[str]:
+    found: set[str] = set()
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if key in {"datasetId", "dataset_id"} and isinstance(child, str) and child.strip():
+                found.add(child.strip())
+            elif key in {"datasetsIds", "dataset_ids"} and isinstance(child, list):
+                found.update(str(item).strip() for item in child if str(item).strip())
+            else:
+                found.update(_collect_dataset_ids(child))
+    elif isinstance(value, list):
+        for child in value:
+            found.update(_collect_dataset_ids(child))
+    return found
 
 
 def _verified_publish_plan(

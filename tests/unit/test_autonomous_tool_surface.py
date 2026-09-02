@@ -34,6 +34,55 @@ from datalens_dev_mcp.pipeline.task_contract import (
 
 
 class AutonomousToolSurfaceTests(unittest.TestCase):
+    def test_single_run_owned_object_becomes_the_implicit_follow_up_target(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            journal = ProjectJournal(tmp, "task-created-one")
+            write_json(
+                journal.delivery_root / "created-object-ownership.json",
+                {
+                    "objects": [
+                        {
+                            "object_id": "chart_created_1",
+                            "object_type": "wizard_chart",
+                            "workbook_id": "workbook_1",
+                        }
+                    ]
+                },
+            )
+
+            inferred = tasks._run_owned_follow_up_target(
+                journal,
+                {"workbook_id": "workbook_1", "object_ids": [], "object_types": []},
+                context={
+                    "semantic_changes": [
+                        {"target_id": "chart_created_1", "anchor": {"kind": "json_pointer"}}
+                    ]
+                },
+            )
+
+            self.assertEqual(inferred["object_ids"], ["chart_created_1"])
+            self.assertEqual(inferred["object_types"], ["wizard_chart"])
+
+    def test_visual_correction_relation_outranks_preservation_language(self) -> None:
+        relationship = tasks._infer_follow_up_relationship(
+            "Change numeric precision from 0 to 1 and preserve all other settings.",
+            {},
+            context={},
+        )
+
+        self.assertEqual(relationship, "correct_result")
+
+    def test_semantic_follow_up_to_created_chart_uses_update_planning(self) -> None:
+        normalized = tasks._normalize_run_owned_semantic_follow_up(
+            {"mode": "create", "task_kind": "create_chart"},
+            previous_contract={"mode": "create", "task_kind": "create_chart"},
+            inferred_target={"object_ids": ["chart_created_1"]},
+            semantic_changes=[{"target_id": "chart_created_1", "value": "m"}],
+        )
+
+        self.assertEqual(normalized["mode"], "update")
+        self.assertEqual(normalized["task_kind"], "update_chart")
+
     def _amendable_journal(self, root: str, *, saved: bool = False) -> tuple[ProjectJournal, dict, str]:
         contract = create_task_contract(
             raw_request="Update dashboard:dash_1 and publish it",
@@ -528,6 +577,22 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
                 "saved-r2",
             )
             fresh_discovery.assert_called_once()
+
+    def test_confirmation_is_inherited_only_for_unchanged_material_scope(self) -> None:
+        base = {
+            "operation_kind": "mutate",
+            "route": "editor_advanced",
+            "target": {"object_ids": ["chart_1"]},
+            "scope": {"allowed_semantic_slots": ["legend"]},
+            "delivery": {"save": True, "publish": True, "destructive": False},
+        }
+        unchanged = json.loads(json.dumps(base))
+        changed_scope = json.loads(json.dumps(base))
+        changed_scope["scope"]["allowed_semantic_slots"].append("layout")
+
+        self.assertTrue(tasks._can_inherit_confirmation(base, unchanged, "SAVED_READBACK"))
+        self.assertFalse(tasks._can_inherit_confirmation(base, unchanged, "VALIDATED"))
+        self.assertFalse(tasks._can_inherit_confirmation(base, changed_scope, "SAVED_READBACK"))
 
 
 if __name__ == "__main__":

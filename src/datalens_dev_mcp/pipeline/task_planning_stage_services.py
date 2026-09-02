@@ -20,6 +20,15 @@ def task_planning_stage_services(
     builder = PublicPlanBuilder(journal, contract)
 
     def plan_data_proof(context: dict[str, Any]) -> dict[str, Any]:
+        if str(contract.get("task_kind") or "") == "cleanup_run_owned_objects":
+            ownership = read_json(journal.root / "inputs" / "cleanup-ownership.json", {}) or {}
+            return _receipt(
+                context,
+                status="success",
+                output_hashes={"ownership": str(ownership.get("ownership_hash") or "")},
+                observed=[f"run-owned cleanup object count={len(ownership.get('objects') or [])}"],
+                reason="cleanup is bound to an exact ownership receipt; data diagnostics are not applicable",
+            )
         if str(contract.get("mode") or "") == "create":
             bundle = read_json(journal.root / "inputs" / "create-bundle.json", {}) or {}
             if not bundle.get("bundle_hash"):
@@ -79,6 +88,19 @@ def task_planning_stage_services(
         return context_service.stage_handler(context)
 
     def plan_semantic_change(context: dict[str, Any]) -> dict[str, Any]:
+        if str(contract.get("task_kind") or "") == "cleanup_run_owned_objects":
+            ownership = read_json(journal.root / "inputs" / "cleanup-ownership.json", {}) or {}
+            try:
+                plan = builder.build_run_owned_cleanup(ownership=ownership)
+            except ValueError as exc:
+                return _receipt(context, status="blocked", missing=["run_owned_cleanup_plan"], reason=str(exc))
+            return _receipt(
+                context,
+                status="success",
+                output_hashes={"public_plan": str(plan.get("plan_hash") or "")},
+                observed=[f"cleanup object count={plan.get('safe_apply_action_count', 0)}"],
+                reason="exact run-owned objects are bound to official delete and absence-readback routes",
+            )
         if str(contract.get("mode") or "") == "create":
             bundle = read_json(journal.root / "inputs" / "create-bundle.json", {}) or {}
             try:

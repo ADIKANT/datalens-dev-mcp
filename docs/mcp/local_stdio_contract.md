@@ -23,10 +23,10 @@ default_tools_approval_mode = "approve"
 - `initialize` возвращает версию протокола, capabilities и server info.
 - `notifications/initialized` не создаёт ответ в stdout.
 - `tools/list` по умолчанию возвращает 8 инструментов `autonomous-v2` с
-  `name`, `description` и `inputSchema`; избыточный `title` не передаётся.
-- `tools/call` возвращает MCP content и `isError`; прикладная ошибка кодируется как JSON с `ok: false`.
+  `name`, `description`, `inputSchema` и `outputSchema`; избыточный `title` не передаётся.
+- `tools/call` возвращает одинаковые JSON text и `structuredContent` вместе с `isError`; прикладная ошибка кодируется как JSON с `ok: false`.
 
-Runtime следует пользовательскому запросу через task contract. Write/save/publish доступны, а audit/plan-only не выполняют запись. Save-only останавливается после saved readback. Обычная команда на изменение проходит save и publish без повторного подтверждения. Произвольное удаление целого объекта недоступно; manifest action `retire_legacy_objects` требует `confirm_delete`.
+Runtime следует пользовательскому запросу через task contract. Write/save/publish доступны, а audit/plan-only не выполняют запись. Save-only останавливается после saved readback. Существенная mutation требует одного подтверждения компактного immutable плана; неизменённые save и publish второго вопроса не создают. Destructive cleanup ограничен точными run-owned объектами с ownership receipt и task-bound token.
 
 ## Локальная проверка
 

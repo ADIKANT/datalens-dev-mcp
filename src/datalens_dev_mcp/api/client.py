@@ -33,6 +33,7 @@ COMPACT_READ_FALSE_KEYS = {
     "includePermissionsInfo",
 }
 PROTECTED_PAYLOAD_KEYS = {"entry", "data"}
+AUTH_HEALTH_TTL_SEC = 30.0
 
 
 class Transport(Protocol):
@@ -169,6 +170,7 @@ class DataLensApiClient:
         self.transport = transport or UrlLibTransport(config.request_timeout_sec)
         self.token_refresher = token_refresher
         self._state_lock = RLock()
+        self._auth_health_until = 0.0
 
     def headers(self) -> dict[str, str]:
         with self._state_lock:
@@ -193,17 +195,23 @@ class DataLensApiClient:
         self._bootstrap_missing_token()
         compacted_payload = compact_rpc_payload(payload or {}, method=method) or {}
         readonly = _is_readonly_method(method)
+        if not readonly:
+            self._ensure_write_auth_health()
         try:
-            return self._rpc_once(
+            result = self._rpc_once(
                 method,
                 compacted_payload,
                 exclusive=exclusive,
             )
+            if readonly:
+                self._mark_auth_healthy()
+            return result
         except Exception as first_exc:
             if is_missing_credentials(first_exc):
                 raise
             if not is_auth_failure(first_exc):
                 raise
+            self._invalidate_auth_health()
             classified = classify_failure(first_exc, operation=method, readonly=readonly)
             probe = self._minimal_auth_probe()
             decision = retry_decision(
@@ -219,11 +227,13 @@ class DataLensApiClient:
                         self._reload_canonical_env_file("reloaded_after_refresh")
                         if decision.retry:
                             try:
-                                return self._rpc_once(
+                                result = self._rpc_once(
                                     method,
                                     compacted_payload,
                                     exclusive=exclusive,
                                 )
+                                self._mark_auth_healthy()
+                                return result
                             except Exception as retry_exc:
                                 if is_auth_failure(retry_exc):
                                     raise DataLensApiError(
@@ -380,6 +390,54 @@ class DataLensApiClient:
 
     def _can_refresh_token(self) -> bool:
         return self.token_refresher is not None or self.config.token_refresh_enabled
+
+    def _ensure_write_auth_health(self) -> None:
+        """Require one recent harmless auth proof before an ambiguous write."""
+
+        with self._state_lock:
+            if time.monotonic() < self._auth_health_until:
+                return
+        probe = self._minimal_auth_probe()
+        if probe.get("status") == "success":
+            self._mark_auth_healthy()
+            return
+        if probe.get("status") != "auth_401":
+            raise DataLensApiError(
+                "write blocked before request because auth health probe failed",
+                failure_family=str(probe.get("failure_family") or ""),
+            )
+        self._invalidate_auth_health()
+        if not self._can_refresh_token():
+            raise DataLensApiError(
+                "AUTH_INTERACTION_REQUIRED: refresh DataLens credentials, then resume the same task",
+                failure_family="AUTH_401_TOKEN_INVALID_OR_EXPIRED",
+            )
+        try:
+            refreshed = self._refresh_token_once()
+            if not refreshed:
+                raise DataLensApiError("token refresh returned no credential")
+            self.persist_refreshed_token(refreshed)
+            self._reload_canonical_env_file("reloaded_after_prewrite_refresh")
+            retry_probe = self._minimal_auth_probe()
+        except Exception as exc:
+            raise DataLensApiError(
+                "AUTH_INTERACTION_REQUIRED: automatic refresh failed; authorize once, then resume the same task",
+                failure_family="AUTH_401_TOKEN_INVALID_OR_EXPIRED",
+            ) from exc
+        if retry_probe.get("status") != "success":
+            raise DataLensApiError(
+                "AUTH_INTERACTION_REQUIRED: refreshed credential did not pass the harmless probe; resume the same task after authorization",
+                failure_family="AUTH_401_TOKEN_INVALID_OR_EXPIRED",
+            )
+        self._mark_auth_healthy()
+
+    def _mark_auth_healthy(self) -> None:
+        with self._state_lock:
+            self._auth_health_until = time.monotonic() + AUTH_HEALTH_TTL_SEC
+
+    def _invalidate_auth_health(self) -> None:
+        with self._state_lock:
+            self._auth_health_until = 0.0
 
     def _bootstrap_missing_token(self) -> bool:
         """Mint and persist the initial IAM token when refresh is configured."""

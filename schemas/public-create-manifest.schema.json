@@ -8,7 +8,11 @@
   "properties": {
     "schema_id": {"const": "datalens_public_create_manifest"},
     "manifest_version": {"const": 1},
+    "run_id": {"type": "string", "minLength": 1},
     "workbook_id": {"type": "string", "minLength": 1},
+    "workbook_lifecycle": {
+      "enum": ["persistent", "persistent_anchor", "disposable_sibling"]
+    },
     "objects": {
       "type": "array",
       "minItems": 1,
@@ -23,12 +27,28 @@
           "route": {"enum": ["dataset", "wizard_native", "editor_advanced", "editor_markdown", "dashboard", "ql_explicit"]},
           "name": {"type": "string", "minLength": 1},
           "payload_path": {"type": "string", "minLength": 1},
+          "wizard_seed_path": {"type": "string", "minLength": 1},
+          "lifecycle": {"enum": ["persistent", "temporary"]},
+          "cleanup_route": {
+            "enum": [
+              "direct_object_delete",
+              "semantic_inverse_update",
+              "whole_disposable_workbook_delete",
+              "approved_retained_fixture"
+            ]
+          },
           "dependencies": {
             "type": "array",
             "uniqueItems": true,
             "items": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9._-]{0,63}$"}
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"object_type": {"const": "wizard_chart"}}},
+            "then": {"required": ["wizard_seed_path"]}
+          }
+        ]
       }
     }
   }

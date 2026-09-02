@@ -11,9 +11,21 @@ from datalens_dev_mcp.pipeline.route_contract import route_contract_document
 from datalens_dev_mcp.mcp.task_resources import list_task_resources, read_task_resource
 from datalens_dev_mcp.editor.style_registry import load_style_registry
 from datalens_dev_mcp.editor.style_scanner import TAB_ORDER
+from datalens_dev_mcp.runtime_resources import resource_text
 
 STATIC_RESOURCES = {
     "datalens://project/requirements": "requirements/implementation_plan.md",
+}
+PACKAGED_KNOWLEDGE_RESOURCES = {
+    "datalens://knowledge/formulas": ("schemas/datalens-knowledge/formula-registry.json", "application/json"),
+    "datalens://knowledge/wizard-authoring": ("templates/datalens/wizard/wizard_template_registry.json", "application/json"),
+    "datalens://knowledge/javascript-editor-authoring": (
+        "schemas/datalens-knowledge/editor-visualization-contracts.json",
+        "application/json",
+    ),
+    "datalens://knowledge/chart-selection": ("config/datalens_chart_decision_rules.json", "application/json"),
+    "datalens://knowledge/error-diagnosis": ("schemas/datalens-knowledge/error-registry.json", "application/json"),
+    "datalens://knowledge/save-publish-lifecycle": ("config/datalens_delivery_policy.json", "application/json"),
 }
 
 
@@ -27,6 +39,23 @@ def list_resources(*, project_root: str | Path = ".") -> list[dict[str, str]]:
         }
         for uri in STATIC_RESOURCES
     ]
+    resources.append(
+        {
+            "uri": "datalens://knowledge/ordinary-workflow",
+            "name": "Ordinary DataLens workflow",
+            "title": "Ordinary DataLens Workflow",
+            "mimeType": "text/markdown",
+        }
+    )
+    resources.extend(
+        {
+            "uri": uri,
+            "name": uri.removeprefix("datalens://knowledge/").replace("-", " "),
+            "title": uri.removeprefix("datalens://knowledge/").replace("-", " ").title(),
+            "mimeType": mime,
+        }
+        for uri, (_path, mime) in PACKAGED_KNOWLEDGE_RESOURCES.items()
+    )
     resources.extend(
         [
             {
@@ -81,6 +110,11 @@ def read_resource(uri: str, *, project_root: str | Path = ".") -> dict[str, Any]
         relative = Path(STATIC_RESOURCES[uri])
         text = read_text(_path_within(root, relative.parent, relative.name), default="")
         return {"uri": uri, "mimeType": "text/markdown", "text": text}
+    if uri == "datalens://knowledge/ordinary-workflow":
+        return {"uri": uri, "mimeType": "text/markdown", "text": _ordinary_workflow_resource()}
+    if uri in PACKAGED_KNOWLEDGE_RESOURCES:
+        path, mime = PACKAGED_KNOWLEDGE_RESOURCES[uri]
+        return {"uri": uri, "mimeType": mime, "text": resource_text(path)}
     if uri == "datalens://routes/contract":
         return {"uri": uri, "mimeType": "text/markdown", "text": route_contract_document()}
     if uri == "datalens://api/methods":
@@ -102,6 +136,19 @@ def read_resource(uri: str, *, project_root: str | Path = ".") -> dict[str, Any]
         name = uri.rsplit("/", 1)[-1]
         return {"uri": uri, "mimeType": "application/json", "text": json.dumps(get_method_schema(name), indent=2)}
     raise KeyError(f"Unknown resource {uri}")
+
+
+def _ordinary_workflow_resource() -> str:
+    return """# Ordinary DataLens workflow
+
+1. Start one task with `dl_task_start` from the exact project root.
+2. Read `execution_brief`; use its target, reference, technology, delivery, missing fields, and complete `next_call`.
+3. Read only the linked knowledge resource needed for formulas, Wizard, Editor, errors, or delivery.
+4. For a mutation, show the compact brief once and wait for confirmation unless `confirmation_required` is false.
+5. Execute the unchanged plan, then verify saved readback and published readback as requested.
+6. Use Browser only for final read-only visual acceptance after API readbacks and applicable data diagnostics.
+7. Send corrections through `dl_task_resume.follow_up`; the server infers their relation to the task.
+"""
 
 
 def _read_style_profile_tab(uri: str, *, project_root: Path) -> dict[str, Any]:

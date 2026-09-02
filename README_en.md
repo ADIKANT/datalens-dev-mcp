@@ -157,7 +157,7 @@ The task wording selects the stopping point; users do not need to learn every to
 | `save-only`, `no-publish`, “save without publishing” | Save and saved readback without publish |
 | Create, fix, update, enhance, redesign | Save, saved readback, publish from saved state, and published readback |
 
-An explicit `0` in a write/save/publish environment setting hard-disables that capability and overrides the request. The normal lifecycle does not delete complete objects; separate confirmation is used only for a project-manifest `retire_legacy_objects` action with exact IDs and an unchanged plan.
+An explicit `0` in a write/save/publish environment setting hard-disables that capability and overrides the request. Before a substantial mutation, the task workflow shows one compact plan; unchanged save and publish proceed after that one confirmation. A destructive action requires separate confirmation of the exact objects and unchanged plan.
 
 ## Supported objects and limitations
 
@@ -208,9 +208,15 @@ cd datalens-dev-mcp
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install .
+.venv/bin/python scripts/install_datalens_skill.py
 .venv/bin/datalens-dev-mcp --version
 python3 scripts/smoke_mcp_stdio.py
 ```
+
+The installer copies the versioned `datalens-dashboard-work` Skill from the
+same checkout to `~/.agents/skills/` and verifies an exact content match. The
+Skill defines a short task-level workflow and opens formula, Wizard, or
+JavaScript knowledge only when needed.
 
 On Windows, use `.venv\Scripts\python.exe` and `.venv\Scripts\datalens-dev-mcp.exe`. For server development, install with `.venv/bin/python -m pip install -e '.[test]'`.
 

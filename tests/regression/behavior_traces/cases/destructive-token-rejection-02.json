@@ -16,7 +16,7 @@
   "expected_contract": {
     "browser_policy": "optional",
     "operation": "create",
-    "publish": true
+    "publish": false
   },
   "expected_discovery": {
     "dataset_id": "dataset_demo",

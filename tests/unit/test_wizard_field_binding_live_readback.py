@@ -6,6 +6,42 @@ from unittest.mock import patch
 
 
 class WizardFieldBindingLiveReadbackTests(unittest.TestCase):
+    def test_saved_visualization_null_icon_ref_is_not_a_field_reference(self):
+        from datalens_dev_mcp.pipeline.wizard_contracts import (
+            validate_wizard_field_binding_against_dataset_readback,
+        )
+
+        payload = {
+            "data": {
+                "datasetsIds": ["dataset_1"],
+                "datasetsPartialFields": [[{"guid": "value_guid", "data_type": "float"}]],
+                "visualization": {
+                    "id": "metric",
+                    "icon": {"ref": None},
+                    "placeholders": [
+                        {
+                            "id": "measures",
+                            "icon": {"ref": None},
+                            "items": [{"guid": "value_guid", "data_type": "float"}],
+                        }
+                    ],
+                },
+            }
+        }
+        readback = {
+            "datasetId": "dataset_1",
+            "dataset": {"result_schema": [{"guid": "value_guid", "data_type": "float"}]},
+        }
+
+        result = validate_wizard_field_binding_against_dataset_readback(
+            payload,
+            [readback],
+            strict=True,
+            enforce_role_types=True,
+        )
+
+        self.assertTrue(result["ok"], result["findings"])
+
     def test_nested_per_dataset_partial_fields_are_flattened(self):
         from datalens_dev_mcp.pipeline.wizard_contracts import (
             validate_wizard_field_binding_against_dataset_readback,
