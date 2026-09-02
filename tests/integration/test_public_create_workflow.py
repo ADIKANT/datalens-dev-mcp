@@ -7,12 +7,19 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from datalens_dev_mcp.mcp.tools import tasks
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.pipeline.delivery_transaction_service import DeliveryTransactionService
 from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
 from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash
+
+
+@pytest.fixture(autouse=True)
+def _external_task_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATALENS_MCP_TASKS_DIR", str(tmp_path / "runtime-tasks"))
 
 
 class _InventoryClient:
@@ -119,6 +126,18 @@ class _CreateChainClient(_CreateDatasetClient):
             }
             return {"entry": dict(self.chart_entry)}
         return super().rpc(method, payload)
+
+
+def _confirm_current_plan(started: dict, *, root: Path) -> dict:
+    action = started["confirmation_action"]
+    assert action["tool"] == "dl_task_resume"
+    arguments = dict(action["fixed_arguments"])
+    arguments["project_root"] = str(root)
+    arguments["run_until"] = "plan_ready"
+    arguments[action["user_confirmation_field"]] = (
+        "I explicitly confirm the exact unchanged current plan."
+    )
+    return tasks.dl_task_resume(**arguments)
 
 
 def test_workbook_scoped_create_reaches_immutable_plan_without_dashboard_selection() -> None:
@@ -331,7 +350,7 @@ def test_public_create_plan_binds_project_profile_exemplar_and_corrections() -> 
                 run_until="plan_ready",
             )
 
-        task_root = root / ".datalens-mcp" / "tasks" / started["task_id"]
+        task_root = ProjectJournal(root, started["task_id"]).root
         plan = json.loads((task_root / "plans" / "plan.json").read_text(encoding="utf-8"))
         binding = json.loads((task_root / "plans" / "plan-binding.json").read_text(encoding="utf-8"))
         style = json.loads((task_root / "style-binding.json").read_text(encoding="utf-8"))
@@ -401,20 +420,21 @@ def test_public_create_executes_once_and_persists_resolved_identity() -> None:
                 context={"workbook_id": "workbook_1", "create_manifest": "create-manifest.json"},
                 run_until="plan_ready",
             )
+            _confirm_current_plan(started, root=root)
             executed = tasks.dl_execute(
                 started["task_id"],
                 started["plan_hash"],
                 project_root=str(root),
                 stop_after="saved",
             )
-            task_root = root / ".datalens-mcp" / "tasks" / started["task_id"]
+            task_root = ProjectJournal(root, started["task_id"]).root
             save_receipt = json.loads(
                 (task_root / "delivery" / "save-stage-receipt.json").read_text(encoding="utf-8")
             )
 
         assert executed["state"] == "SAVED", {"task": executed, "receipt": save_receipt}
         assert client.write_count == 1
-        task_root = root / ".datalens-mcp" / "tasks" / started["task_id"]
+        task_root = ProjectJournal(root, started["task_id"]).root
         progress = json.loads(
             (task_root / "delivery" / "private" / "create-progress.json").read_text(encoding="utf-8")
         )
@@ -529,13 +549,14 @@ def test_public_create_preflight_block_finalizes_attempt_as_no_write() -> None:
                 context={"workbook_id": "workbook_1", "create_manifest": "create-manifest.json"},
                 run_until="plan_ready",
             )
+            _confirm_current_plan(started, root=root)
             executed = tasks.dl_execute(
                 started["task_id"],
                 started["plan_hash"],
                 project_root=str(root),
                 stop_after="saved",
             )
-        task_root = root / ".datalens-mcp" / "tasks" / started["task_id"]
+        task_root = ProjectJournal(root, started["task_id"]).root
         receipt = read_json(task_root / "delivery" / "save-stage-receipt.json", {})
         attempt = read_json(task_root / "delivery" / "private" / "create-000-attempt.json", {})
 
@@ -600,8 +621,9 @@ def test_public_create_resume_reconciles_attempt_without_duplicate_write() -> No
                 context={"workbook_id": "workbook_1", "create_manifest": "create-manifest.json"},
                 run_until="plan_ready",
             )
+            _confirm_current_plan(started, root=root)
             client.created = True
-            task_root = root / ".datalens-mcp" / "tasks" / started["task_id"]
+            task_root = ProjectJournal(root, started["task_id"]).root
             attempt = task_root / "delivery" / "private" / "create-000-attempt.json"
             attempt.parent.mkdir(parents=True, exist_ok=True)
             attempt.write_text(json.dumps({"status": "started"}), encoding="utf-8")
@@ -710,6 +732,7 @@ def test_public_create_resolves_dependency_identity_before_dependent_write() -> 
                 context={"workbook_id": "workbook_1", "create_manifest": "create-manifest.json"},
                 run_until="plan_ready",
             )
+            _confirm_current_plan(started, root=root)
             executed = tasks.dl_execute(
                 started["task_id"],
                 started["plan_hash"],
