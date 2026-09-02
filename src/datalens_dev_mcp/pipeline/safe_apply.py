@@ -3118,7 +3118,8 @@ def _api_noop_proven(
 def _expected_revision(action: dict[str, Any], payload: dict[str, Any]) -> str:
     entry = payload.get("entry") if isinstance(payload.get("entry"), dict) else {}
     return str(
-        action.get("expected_rev_id")
+        action.get("expected_revision")
+        or action.get("expected_rev_id")
         or action.get("expected_saved_rev_id")
         or entry.get("revId")
         or entry.get("rev_id")

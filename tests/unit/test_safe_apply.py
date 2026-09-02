@@ -5,6 +5,31 @@ from pathlib import Path
 
 
 class SafeApplyTests(unittest.TestCase):
+    def test_explicit_expected_revision_populates_revision_guard(self):
+        from datalens_dev_mcp.pipeline.safe_apply import create_safe_apply_plan
+
+        plan = create_safe_apply_plan(
+            project_root="/tmp/synthetic-project",
+            approved=True,
+            actions=[
+                {
+                    "action": "update_wizard_chart",
+                    "action_type": "update",
+                    "object_id": "chart_synthetic_001",
+                    "method": "updateWizardChart",
+                    "payload": {"entryId": "chart_synthetic_001", "mode": "save", "data": {}},
+                    "expected_revision": "saved_revision_1",
+                    "fresh_read_method": "getWizardChart",
+                    "fresh_read_payload": {"chartId": "chart_synthetic_001", "branch": "saved"},
+                }
+            ],
+        )
+
+        self.assertEqual(
+            plan["actions"][0]["revision_guard"]["expected_revision"],
+            "saved_revision_1",
+        )
+
     def full_editor_data(self):
         return {
             "meta": "{}",
