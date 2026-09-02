@@ -1276,6 +1276,12 @@ def _infer_follow_up_relationship(
     if re.search(r"(?:already|manual|manually).{0,90}(?:changed|updated|layout)|"
                  r"(?:вручн|уже).{0,90}(?:измен|передел|располож)|(?:verify|проверь).{0,90}(?:my|manual|вручн)", text):
         return "verify_existing_effect"
+    if re.search(
+        r"(?:correct|fix|adjust|change|update).{0,70}(?:precision|format|style|visual|label|color|layout)|"
+        r"(?:исправ|поправ|измени|скорректир).{0,70}(?:точност|формат|стил|визуал|подпис|цвет|макет)",
+        text,
+    ):
+        return "correct_result"
     if re.search(r"(?:only|just|nothing else|do not|don't|preserve|keep)|(?:только|ничего больше|не меня|оставь|сохрани)", text):
         return "restrict_scope"
     if context.get("scope") or re.search(r"(?:also|additionally|extend|include)|(?:ещ[её]|также|добавь|расширь)", text):

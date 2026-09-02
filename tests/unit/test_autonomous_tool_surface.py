@@ -59,6 +59,15 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
             self.assertEqual(inferred["object_ids"], ["chart_created_1"])
             self.assertEqual(inferred["object_types"], ["wizard_chart"])
 
+    def test_visual_correction_relation_outranks_preservation_language(self) -> None:
+        relationship = tasks._infer_follow_up_relationship(
+            "Change numeric precision from 0 to 1 and preserve all other settings.",
+            {},
+            context={},
+        )
+
+        self.assertEqual(relationship, "correct_result")
+
     def _amendable_journal(self, root: str, *, saved: bool = False) -> tuple[ProjectJournal, dict, str]:
         contract = create_task_contract(
             raw_request="Update dashboard:dash_1 and publish it",
