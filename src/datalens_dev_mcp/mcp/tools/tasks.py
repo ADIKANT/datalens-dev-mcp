@@ -645,11 +645,19 @@ def dl_task_resume(
         )
         if blocked_result is not None:
             return blocked_result
-    if state.current_state == "VALIDATED":
+    resumable_delivery_states = {
+        "VALIDATED",
+        "SAVED",
+        "SAVED_READBACK",
+        "PUBLISHED",
+        "PUBLISHED_READBACK",
+        "RECONCILING",
+    }
+    if state.current_state in resumable_delivery_states:
         plan = _ensure_task_plan(journal, contract, state)
         confirmation_required = bool((contract.get("confirmation") or {}).get("required"))
         confirmation = _load_confirmation_receipt(journal, contract, plan_hash=str(plan["plan_hash"]))
-        if confirmation_required and not confirmation:
+        if state.current_state == "VALIDATED" and confirmation_required and not confirmation:
             result = project_task_summary(
                 contract=contract,
                 state=state,
