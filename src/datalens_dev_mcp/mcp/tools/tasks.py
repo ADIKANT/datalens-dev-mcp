@@ -901,7 +901,7 @@ def _run_owned_follow_up_target(
     context: dict[str, Any],
 ) -> dict[str, Any]:
     """Bind an unqualified follow-up to the task's single created object."""
-    if str(context.get("target_url") or "").strip() or context.get("semantic_changes"):
+    if str(context.get("target_url") or "").strip():
         return old_target
     ownership = read_json(journal.delivery_root / "created-object-ownership.json", {}) or {}
     objects = [item for item in ownership.get("objects") or [] if isinstance(item, dict)]

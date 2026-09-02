@@ -53,7 +53,11 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
             inferred = tasks._run_owned_follow_up_target(
                 journal,
                 {"workbook_id": "workbook_1", "object_ids": [], "object_types": []},
-                context={},
+                context={
+                    "semantic_changes": [
+                        {"target_id": "chart_created_1", "anchor": {"kind": "json_pointer"}}
+                    ]
+                },
             )
 
             self.assertEqual(inferred["object_ids"], ["chart_created_1"])
