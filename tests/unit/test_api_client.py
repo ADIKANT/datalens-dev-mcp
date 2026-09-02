@@ -35,6 +35,11 @@ def http_error(status, payload):
 
 
 class ApiClientTests(unittest.TestCase):
+    def setUp(self):
+        from datalens_dev_mcp.api.scheduler import TOKEN_REFRESH_COORDINATOR
+
+        TOKEN_REFRESH_COORDINATOR.reset_for_tests()
+
     def test_default_transport_uses_configured_request_timeout(self):
         from datalens_dev_mcp.api.client import DataLensApiClient
         from datalens_dev_mcp.config import DataLensConfig
