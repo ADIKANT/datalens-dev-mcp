@@ -894,6 +894,33 @@ def _amendment_current_live_target(
     return current_live
 
 
+def _run_owned_follow_up_target(
+    journal: ProjectJournal,
+    old_target: dict[str, Any],
+    *,
+    context: dict[str, Any],
+) -> dict[str, Any]:
+    """Bind an unqualified follow-up to the task's single created object."""
+    if str(context.get("target_url") or "").strip() or context.get("semantic_changes"):
+        return old_target
+    ownership = read_json(journal.delivery_root / "created-object-ownership.json", {}) or {}
+    objects = [item for item in ownership.get("objects") or [] if isinstance(item, dict)]
+    if len(objects) != 1:
+        return old_target
+    owned = objects[0]
+    object_id = str(owned.get("object_id") or "").strip()
+    object_type = str(owned.get("object_type") or "").strip()
+    workbook_id = str(owned.get("workbook_id") or owned.get("parent_workbook") or "").strip()
+    if not object_id or not object_type:
+        return old_target
+    inferred = deepcopy(old_target)
+    inferred["object_ids"] = [object_id]
+    inferred["object_types"] = [object_type]
+    if workbook_id:
+        inferred["workbook_id"] = workbook_id
+    return inferred
+
+
 def _amend_task(
     journal: ProjectJournal,
     *,
@@ -955,6 +982,7 @@ def _amend_task(
     )
     persisted_old_target = deepcopy(old.get("target") or {})
     old_target = deepcopy(persisted_old_target)
+    old_target = _run_owned_follow_up_target(journal, old_target, context=context)
     persisted_route = str(old.get("route") or "")
     old_target["technology"] = str(
         old_target.get("technology")

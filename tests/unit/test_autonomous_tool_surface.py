@@ -34,6 +34,31 @@ from datalens_dev_mcp.pipeline.task_contract import (
 
 
 class AutonomousToolSurfaceTests(unittest.TestCase):
+    def test_single_run_owned_object_becomes_the_implicit_follow_up_target(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            journal = ProjectJournal(tmp, "task-created-one")
+            write_json(
+                journal.delivery_root / "created-object-ownership.json",
+                {
+                    "objects": [
+                        {
+                            "object_id": "chart_created_1",
+                            "object_type": "wizard_chart",
+                            "workbook_id": "workbook_1",
+                        }
+                    ]
+                },
+            )
+
+            inferred = tasks._run_owned_follow_up_target(
+                journal,
+                {"workbook_id": "workbook_1", "object_ids": [], "object_types": []},
+                context={},
+            )
+
+            self.assertEqual(inferred["object_ids"], ["chart_created_1"])
+            self.assertEqual(inferred["object_types"], ["wizard_chart"])
+
     def _amendable_journal(self, root: str, *, saved: bool = False) -> tuple[ProjectJournal, dict, str]:
         contract = create_task_contract(
             raw_request="Update dashboard:dash_1 and publish it",
