@@ -29,7 +29,6 @@ from datalens_dev_mcp.server import (
     list_tools,
 )
 
-
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -270,12 +269,23 @@ class ToolSchemaTests(unittest.TestCase):
             state_etag="a" * 64,
             plan_hash="b" * 64,
         )
-        next_call = brief["next_call"]
+        confirmation_action = brief["confirmation_action"]
         listed = {tool["name"]: tool for tool in list_tools("autonomous-v2")}
 
         self.assertEqual(brief["status"], "needs_confirmation")
         self.assertTrue(brief["confirmation_required"])
-        Draft202012Validator(listed[next_call["tool"]]["inputSchema"]).validate(next_call["arguments"])
+        self.assertIsNone(brief["next_call"])
+        self.assertEqual(
+            confirmation_action["fixed_arguments"]["project_root"],
+            "/synthetic/project",
+        )
+        arguments = {
+            **confirmation_action["fixed_arguments"],
+            confirmation_action["user_confirmation_field"]: (
+                "I explicitly confirm this exact unchanged current plan."
+            ),
+        }
+        Draft202012Validator(listed[confirmation_action["tool"]]["inputSchema"]).validate(arguments)
 
     def test_standard_write_plan_schemas_do_not_advertise_forbidden_routes(self):
         listed = {tool["name"]: tool for tool in list_tools("legacy-v1")}

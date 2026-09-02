@@ -85,6 +85,50 @@ def task_planning_stage_services(
                 observed=["data diagnostics required=False", "dataset probe not applicable"],
                 reason="data proof is not required by the typed data/change impact decision",
             )
+        graph = read_json(journal.target_graph_path, {}) or {}
+        dataset_nodes = [
+            item
+            for item in graph.get("nodes") or []
+            if isinstance(item, dict) and item.get("object_type") == "dataset"
+        ]
+        if not dataset_nodes:
+            editor_nodes = [
+                item
+                for item in graph.get("nodes") or []
+                if isinstance(item, dict)
+                and str(item.get("object_type") or "") in {"editor_chart", "advanced_editor_chart", "html_page"}
+            ]
+            if not editor_nodes:
+                return _receipt(
+                    context,
+                    status="blocked",
+                    missing=["bounded_data_or_source_context"],
+                    reason="data diagnostics are required but no dataset or direct Editor source was discovered",
+                )
+            direct_source = context_service.persist_direct_editor_source(
+                reason=(
+                    "the affected Editor object uses a direct source and has no bound dataset; "
+                    "the saved Editor definition is the available source/config readback boundary"
+                )
+            )
+            profile = dict(direct_source.get("profile") or {})
+            query_plan = dict(direct_source.get("query_plan") or {})
+            return _receipt(
+                context,
+                status="success",
+                output_hashes={
+                    "target_graph": str(graph.get("graph_hash") or ""),
+                    "dataset_context_profile": str(profile.get("profile_hash") or ""),
+                    "dataset_query_set": str(query_plan.get("query_set_hash") or ""),
+                    "dataset_schema": str(profile.get("schema_hash") or ""),
+                },
+                observed=[
+                    "data diagnostics required=True",
+                    "data proof mode=direct_editor_source",
+                    "direct Editor source has no bound dataset; saved definition readback is required",
+                ],
+                reason="direct-source diagnostics use Editor source/config readback without an invented dataset",
+            )
         return context_service.stage_handler(context)
 
     def plan_semantic_change(context: dict[str, Any]) -> dict[str, Any]:

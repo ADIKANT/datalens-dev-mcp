@@ -8,7 +8,7 @@ description: Create, inspect, diagnose, update, publish, and verify Yandex DataL
 Work from the exact dashboard project or subproject. Do not inspect the MCP server source or run its tests during ordinary dashboard work.
 
 1. Call `dl_task_start` with the user's request and exact project root. Prefer the manifest target and live discovery over guessed IDs.
-2. Read the returned `execution_brief`. Treat its task kind, target, reference, technology, preservation rules, delivery, missing fields, and `next_call` as authoritative.
+2. Read the returned `execution_brief`. Treat its task kind, target, reference, technology, preservation rules, delivery, missing fields, `confirmation_action`, and `next_call` as authoritative.
 3. If `missing_fields` names semantic changes, provide only the typed changes needed for those fields through `dl_task_resume`. For an ordinary follow-up, pass plain text in `follow_up`; do not invent a relationship enum or revision.
 4. Open detailed MCP knowledge only when needed:
    - `datalens://knowledge/formulas`
@@ -17,7 +17,7 @@ Work from the exact dashboard project or subproject. Do not inspect the MCP serv
    - `datalens://knowledge/chart-selection`
    - `datalens://knowledge/error-diagnosis`
    - `datalens://knowledge/save-publish-lifecycle`
-5. If `confirmation_required` is true, show a short plan with target, changes, preservation, and publish effect, then wait for one confirmation. After confirmation call the unchanged, fully populated `next_call`.
+5. If `confirmation_required` is true, show a short plan with target, changes, preservation, and publish effect, then wait. A question or correction is not confirmation: send it through `dl_task_resume.follow_up`; a correction returns a new plan that must be shown and confirmed. For an explicit confirmation of the exact unchanged current plan, copy `confirmation_action.fixed_arguments` into `dl_task_resume` and put the user's exact confirmation text in `confirmation_action.user_confirmation_field`. Do not call `dl_execute` directly and do not invent another confirmation path.
 6. Verify saved readback, publish only from verified saved state when requested, then verify published readback. Run data diagnostics only when the brief says data is impacted.
 7. Use Browser only for final read-only visual acceptance after published readback. Never use it for discovery or mutation.
 

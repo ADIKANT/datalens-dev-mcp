@@ -248,7 +248,7 @@ DATALENS_MCP_ENABLE_EXPERT_RPC=0
 command = "/absolute/path/to/datalens-dev-mcp/.venv/bin/datalens-dev-mcp"
 args = ["stdio", "--project-root", "/absolute/path/to/your/dashboard-project"]
 cwd = "/absolute/path/to/your/dashboard-project"
-env = { DATALENS_ENV_FILE = "/absolute/path/to/home/.config/datalens-dev-mcp/env" }
+env = { DATALENS_ENV_FILE = "/absolute/path/to/home/.config/datalens-dev-mcp/env", DATALENS_MCP_TASKS_DIR = "/absolute/path/to/home/.local/state/datalens-dev-mcp/tasks" }
 default_tools_approval_mode = "approve"
 startup_timeout_sec = 20
 tool_timeout_sec = 120
@@ -259,6 +259,7 @@ tool_timeout_sec = 120
 ```bash
 codex mcp add datalens_dev \
   --env DATALENS_ENV_FILE=/absolute/path/to/home/.config/datalens-dev-mcp/env \
+  --env DATALENS_MCP_TASKS_DIR=/absolute/path/to/home/.local/state/datalens-dev-mcp/tasks \
   -- /absolute/path/to/datalens-dev-mcp/.venv/bin/datalens-dev-mcp \
   stdio --project-root /absolute/path/to/your/dashboard-project
 ```

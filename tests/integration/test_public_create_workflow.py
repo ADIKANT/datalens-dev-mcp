@@ -175,7 +175,7 @@ def test_workbook_scoped_create_reaches_immutable_plan_without_dashboard_selecti
 
         assert result["state"] == "PLAN_VALIDATED", result
         assert result["plan_hash"]
-        task_root = root / ".datalens-mcp" / "tasks" / result["task_id"]
+        task_root = ProjectJournal(root, result["task_id"]).root
         plan = json.loads((task_root / "plans" / "plan.json").read_text(encoding="utf-8"))
         binding = json.loads((task_root / "target-binding.json").read_text(encoding="utf-8"))
         assert plan["plan_kind"] == "create_manifest"
@@ -183,6 +183,64 @@ def test_workbook_scoped_create_reaches_immutable_plan_without_dashboard_selecti
         assert binding["workbook_id"] == "workbook_1"
         assert binding["dashboard_id"] == ""
         assert client.calls == [("getWorkbookEntries", {"workbookId": "workbook_1"})]
+
+
+def test_create_correction_keeps_bundle_and_produces_a_new_confirmable_plan() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        payloads = root / "payloads"
+        payloads.mkdir()
+        (payloads / "dataset.json").write_text(
+            json.dumps(
+                {
+                    "workbookId": "workbook_1",
+                    "dataset": {"sources": []},
+                    "name": "Synthetic dataset",
+                }
+            ),
+            encoding="utf-8",
+        )
+        (root / "create-manifest.json").write_text(
+            json.dumps(
+                {
+                    "schema_id": "datalens_public_create_manifest",
+                    "manifest_version": 1,
+                    "workbook_id": "workbook_1",
+                    "objects": [
+                        {
+                            "key": "dataset_main",
+                            "object_type": "dataset",
+                            "route": "dataset",
+                            "name": "Synthetic dataset",
+                            "payload_path": "payloads/dataset.json",
+                            "dependencies": [],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        client = _InventoryClient()
+        with patch.object(tasks, "TargetDiscoveryService", return_value=TargetDiscoveryService(client)):
+            started = tasks.dl_task_start(
+                "Create the declared workbook objects, save and publish them without browser",
+                project_root=str(root),
+                context={"workbook_id": "workbook_1", "create_manifest": "create-manifest.json"},
+                run_until="plan_ready",
+            )
+            corrected = tasks.dl_task_resume(
+                started["task_id"],
+                project_root=str(root),
+                follow_up="Correction: create only the one declared object; keep save and publish.",
+                run_until="plan_ready",
+            )
+
+        assert corrected["state"] == "PLAN_VALIDATED", corrected
+        assert corrected["status"] == "needs_confirmation"
+        assert corrected["contract_revision"] == 2
+        assert corrected["plan_hash"] != started["plan_hash"]
+        assert corrected["confirmation_action"]
+        assert ProjectJournal(root, started["task_id"]).load_contract()["mode"] == "create"
 
 
 def test_public_create_plan_binds_project_profile_exemplar_and_corrections() -> None:

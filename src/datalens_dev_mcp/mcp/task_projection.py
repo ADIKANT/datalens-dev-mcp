@@ -144,7 +144,9 @@ def compact_execution_brief(
     missing = list(dict.fromkeys(missing))
     next_call: dict[str, Any] | None = None
     if not terminal and not missing:
-        if state.current_state == "VALIDATED" and bool(
+        if state.current_state == "VALIDATED" and confirmation_required:
+            next_call = None
+        elif state.current_state == "VALIDATED" and bool(
             delivery.get("save") or delivery.get("publish") or delivery.get("destructive")
         ):
             execute_arguments = {
@@ -180,6 +182,20 @@ def compact_execution_brief(
                     "run_until": "completed",
                 },
             }
+    confirmation_action: dict[str, Any] | None = None
+    if needs_confirmation and not missing:
+        confirmation_action = {
+            "tool": "dl_task_resume",
+            "fixed_arguments": {
+                "task_id": state.task_id,
+                "project_root": project_root,
+                "expected_state": public_state,
+                "expected_hash": state_etag,
+                "expected_contract_revision": int(contract.get("contract_revision") or 1),
+                "run_until": "completed",
+            },
+            "user_confirmation_field": "follow_up",
+        }
     return {
         "status": (
             "needs_input" if missing else
@@ -209,6 +225,7 @@ def compact_execution_brief(
         "visual_checks": [str(browser.get("purpose") or "")] if browser.get("mode") == "required" else [],
         "confirmation_required": confirmation_required,
         "confirmation_kind": str(confirmation.get("kind") or "none"),
+        "confirmation_action": confirmation_action,
         "missing_fields": missing,
         "next_call": next_call,
     }

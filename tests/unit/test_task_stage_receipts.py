@@ -48,6 +48,12 @@ class TaskStageReceiptTests(unittest.TestCase):
                     "required": required,
                 }
                 journal = ProjectJournal(tmp, contract["task_id"])
+                if required:
+                    journal.root.mkdir(parents=True, exist_ok=True)
+                    journal.target_graph_path.write_text(
+                        '{"nodes":[{"object_id":"dataset-1","object_type":"dataset"}]}',
+                        encoding="utf-8",
+                    )
                 sentinel = {"status": "context_probe_called", "ok": True}
                 with patch.object(
                     TaskDatasetContextService,
@@ -70,6 +76,39 @@ class TaskStageReceiptTests(unittest.TestCase):
                     self.assertFalse(validate_dataset_context_profile(profile))
                     self.assertEqual(proof_plan["status"], "not_applicable")
                     self.assertFalse(proof_plan["provider_calls_required"])
+
+    def test_direct_editor_source_skips_invented_dataset_probe(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            contract = create_task_contract(
+                raw_request="Fix UNKNOWN_IDENTIFIER in an existing Editor source",
+                mode="update",
+                route="editor_advanced",
+                workspace=WorkspaceContract(project_root=tmp),
+            ).to_dict()
+            contract["data_diagnostics"] = {
+                **dict(contract["data_diagnostics"]),
+                "required": True,
+                "reason_classes": ["source_change"],
+            }
+            journal = ProjectJournal(tmp, contract["task_id"])
+            journal.root.mkdir(parents=True, exist_ok=True)
+            journal.target_graph_path.write_text(
+                '{"nodes":[{"object_id":"editor-1","object_type":"editor_chart"}]}',
+                encoding="utf-8",
+            )
+
+            with patch.object(TaskDatasetContextService, "stage_handler") as context_probe:
+                result = task_planning_stage_services(journal, contract)["plan_data_proof"](
+                    {"transition": "ROUTE_BOUND -> DATA_PROOF_PLANNED"}
+                )
+
+            self.assertEqual(result["status"], "success")
+            self.assertIn("direct Editor source", " ".join(result["observed_facts"]))
+            context_probe.assert_not_called()
+            proof_plan = read_json(journal.root / "plans" / "data-proof-plan.json", {})
+            self.assertEqual(proof_plan["status"], "direct_editor_source")
+            self.assertEqual(proof_plan["proof_mode"], "direct_editor_source")
+            self.assertFalse(proof_plan["provider_calls_required"])
 
 
 if __name__ == "__main__":

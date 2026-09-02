@@ -9,6 +9,7 @@ from jsonschema import Draft202012Validator
 from datalens_dev_mcp.pipeline.artifacts import read_json, write_json
 from datalens_dev_mcp.pipeline.target_binding import target_binding_hash
 from datalens_dev_mcp.pipeline.task_data_proof_service import TaskDataProofService
+from datalens_dev_mcp.pipeline.task_dataset_context_service import TaskDatasetContextService
 from datalens_dev_mcp.pipeline.task_qa_service import TaskQaService, _api_first_diagnostics_summary
 from datalens_dev_mcp.runtime_resources import resource_json
 from tests.integration.public_proof_support import execute_public_proof_workflow, plan_ready_task
@@ -208,3 +209,29 @@ def test_data_diagnostics_are_impact_driven_when_browser_is_forbidden() -> None:
     )
     assert boundary["status"] == "awaiting_visual_acceptance"
     assert boundary["reason"] == "browser_adapter_unavailable"
+
+
+def test_direct_editor_source_uses_saved_definition_readback_without_dataset_probe() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        journal, contract, client, _ = plan_ready_task(
+            Path(tmp), publish=True, semantic_changes=DATA_IMPACTING_CHANGE
+        )
+        graph = read_json(journal.target_graph_path, {})
+        graph["nodes"] = [
+            node for node in graph.get("nodes") or [] if node.get("object_type") != "dataset"
+        ]
+        write_json(journal.target_graph_path, graph)
+        TaskDatasetContextService(journal, contract, client=client).persist_direct_editor_source(
+            reason="synthetic direct Editor source boundary"
+        )
+        before = len(client.calls)
+        receipt = TaskDataProofService(journal, contract, client=client).execute()
+        proof_calls = [method for method, _payload in client.calls[before:]]
+
+    assert receipt["status"] == "passed"
+    assert receipt["proof_mode"] == "direct_editor_source"
+    assert receipt["api_first_diagnostics"]["status"] == "passed"
+    assert "getEditorChart" in proof_calls
+    assert "getDataset" not in proof_calls
+    assert "validateDataset" not in proof_calls
+    assert "getDatasetData" not in proof_calls

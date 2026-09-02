@@ -67,7 +67,7 @@ class CompletionEvidenceService:
                 for name, item in evidence.items()
                 if isinstance(item, dict) and (item.get("receipt_hash") or item.get("artifact_hash"))
             },
-            "limitations": sorted(set(str(item) for item in limitations if str(item))),
+            "limitations": sorted({str(item) for item in limitations if str(item)}),
         }
         payload["receipt_hash"] = canonical_hash(payload)
         return payload
@@ -117,11 +117,20 @@ class CompletionEvidenceService:
             if isinstance(self.contract.get("data_diagnostics"), dict)
             else {}
         )
-        data_not_applicable = bool(
+        data_proof_without_dataset = bool(
             diagnostics_decision.get("required") is False
             and data.get("fallback_kind") == "not_applicable"
             and not data.get("provider_calls")
             and not (data.get("api_first_diagnostics") or {}).get("provider_calls")
+        ) or bool(
+            diagnostics_decision.get("required") is True
+            and data.get("proof_mode") == "direct_editor_source"
+            and data.get("status") == "passed"
+            and (data.get("api_first_diagnostics") or {}).get("status") == "passed"
+            and any(
+                item.get("status") == "success"
+                for item in (data.get("api_first_diagnostics") or {}).get("provider_calls") or []
+            )
         )
         values = {
             "public_plan": {
@@ -139,7 +148,7 @@ class CompletionEvidenceService:
                 "ok": bool(
                     data.get("fresh")
                     and data.get("status") == "passed"
-                    and (data.get("live_data_verified") or data_not_applicable)
+                    and (data.get("live_data_verified") or data_proof_without_dataset)
                 ),
             },
             "qa_receipt": {**qa, "ok": qa.get("status") == "passed"},

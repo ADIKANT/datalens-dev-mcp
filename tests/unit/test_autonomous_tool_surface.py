@@ -2,27 +2,19 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from datalens_dev_mcp.api.errors import DataLensApiError
-from datalens_dev_mcp.server import (
-    AUTONOMOUS_TOOL_NAMES,
-    LEGACY_TOOL_NAMES,
-    TOOLS,
-    JsonRpcServer,
-    list_tools,
-)
 from datalens_dev_mcp.mcp.heavy_response import project_task_tool_response
 from datalens_dev_mcp.mcp.tools import tasks
 from datalens_dev_mcp.pipeline.artifacts import write_json
-from datalens_dev_mcp.pipeline.project_journal import JournalIdentityError, ProjectJournal
 from datalens_dev_mcp.pipeline.build_identity import BuildIdentityResolver
 from datalens_dev_mcp.pipeline.execution_authorization import resolve_execution_authorization
-from datalens_dev_mcp.pipeline.target_binding import resolve_contract_target_binding
-from datalens_dev_mcp.pipeline.target_binding import create_live_target_binding
+from datalens_dev_mcp.pipeline.project_journal import JournalIdentityError, ProjectJournal
+from datalens_dev_mcp.pipeline.target_binding import create_live_target_binding, resolve_contract_target_binding
 from datalens_dev_mcp.pipeline.target_graph import build_target_graph
 from datalens_dev_mcp.pipeline.task_contract import (
     DeliveryContract,
@@ -30,6 +22,13 @@ from datalens_dev_mcp.pipeline.task_contract import (
     TargetContract,
     WorkspaceContract,
     create_task_contract,
+)
+from datalens_dev_mcp.server import (
+    AUTONOMOUS_TOOL_NAMES,
+    LEGACY_TOOL_NAMES,
+    TOOLS,
+    JsonRpcServer,
+    list_tools,
 )
 
 
@@ -318,6 +317,64 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
                 )
                 self.assertNotEqual(started.get("blocked_by", {}).get("code"), "BLOCKED_DISCOVERY")
 
+    def test_explicit_workbook_does_not_inherit_manifest_dashboard(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = {
+                "project_name": "synthetic_project",
+                "workflows": [{"name": "delivery", "may_execute_command": False}],
+                "workbook_id": "manifest_book",
+                "dashboard_id": "manifest_dashboard",
+            }
+            Path(tmp, ".datalens-mcp.json").write_text(json.dumps(manifest), encoding="utf-8")
+            with patch.object(
+                tasks.TargetDiscoveryService,
+                "discover",
+                return_value={
+                    "status": "blocked",
+                    "reason": "synthetic bounded stop",
+                    "missing_facts": [],
+                },
+            ):
+                started = tasks.dl_task_start(
+                    "Inspect the explicitly selected workbook without writes",
+                    project_root=tmp,
+                    context={"workbook_id": "explicit_book"},
+                    run_until="plan_ready",
+                )
+
+            contract = ProjectJournal(tmp, started["task_id"]).load_contract()
+            self.assertEqual(contract["target"]["workbook_id"], "explicit_book")
+            self.assertEqual(contract["target"]["dashboard_id"], "")
+            self.assertNotIn("manifest_dashboard", contract["target"].get("object_ids") or [])
+
+    def test_typed_explicit_target_never_inherits_unproven_manifest_relations(self) -> None:
+        manifest = {
+            "workbook_id": "same_book",
+            "dashboard_id": "manifest_dashboard",
+            "object_ids": ["manifest_chart"],
+            "object_types": ["editor_chart"],
+        }
+        cases = (
+            (
+                {"workbook_id": "same_book", "chart_id": "explicit_chart"},
+                {"workbook_id": "same_book", "chart_id": "explicit_chart"},
+            ),
+            (
+                {"workbook_id": "same_book", "dashboard_id": "explicit_dashboard"},
+                {"workbook_id": "same_book", "dashboard_id": "explicit_dashboard"},
+            ),
+            (
+                {"workbook_id": "foreign_book"},
+                {"workbook_id": "foreign_book"},
+            ),
+        )
+        for explicit, expected in cases:
+            with self.subTest(explicit=explicit):
+                self.assertEqual(tasks._merge_explicit_target_context(manifest, explicit), expected)
+
+        reference_only = {"reference_locator": "https://datalens.ru/editor/reference_chart"}
+        self.assertEqual(tasks._merge_explicit_target_context(manifest, reference_only), manifest)
+
     def test_explicit_working_project_path_outranks_context_project_path(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -360,10 +417,14 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
                         run_until="plan_ready",
                     )
 
+                tasks_root = ProjectJournal(tmp, "resource-discovery").storage_root
                 task_id = next(
                     path.name
-                    for path in (Path(tmp) / ".datalens-mcp" / "tasks").iterdir()
+                    for path in tasks_root.iterdir()
                     if path.is_dir() and not path.name.startswith(".")
+                    and (
+                        json.loads((path / "contract.json").read_text(encoding="utf-8")).get("workspace") or {}
+                    ).get("project_root") == str(Path(tmp).resolve())
                 )
                 journal = ProjectJournal(tmp, task_id)
                 contract = journal.load_contract()
@@ -385,7 +446,6 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
 
     def test_destructive_resume_requires_persisted_execution_authorization(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            safe_plan = {"ok": True, "status": "planned", "actions": [{"method": "deleteDashboard"}]}
             contract = create_task_contract(
                 raw_request="Synthetic destructive workflow guard",
                 mode="update",

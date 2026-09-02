@@ -255,8 +255,9 @@ def _project_public_string(
         projected = _NONPUBLIC_TOOL_PATTERN.sub(public_tool_name, projected)
         if matches and removed_tool and not retained_tool:
             return ""
-        projected = re.sub(r"\s*/\s*(?:/\s*)+", " / ", projected)
-        projected = re.sub(r"\s{2,}", " ", projected).strip(" \t/,:;-")
+        if matches:
+            projected = re.sub(r"\s*/\s*(?:/\s*)+", " / ", projected)
+            projected = re.sub(r"\s{2,}", " ", projected).strip(" \t/,:;-")
     return projected
 
 
