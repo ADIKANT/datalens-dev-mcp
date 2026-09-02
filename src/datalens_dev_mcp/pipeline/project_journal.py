@@ -1,36 +1,34 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
-from copy import deepcopy
-from dataclasses import replace
-from datetime import datetime, timezone
 import fcntl
-import hashlib
-import json
 import os
-from pathlib import Path
 import re
 import shutil
 import socket
 import tempfile
 import time
-from typing import Any, Iterator
+from collections.abc import Iterator
+from contextlib import contextmanager
+from copy import deepcopy
+from dataclasses import replace
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
 
 from datalens_dev_mcp import __version__
 from datalens_dev_mcp.pipeline.artifacts import append_jsonl, read_json, write_json, write_text
 from datalens_dev_mcp.pipeline.build_identity import BuildIdentityResolver, build_identity_hash, validate_build_identity
-from datalens_dev_mcp.pipeline.task_contract import task_contract_hash
 from datalens_dev_mcp.pipeline.evidence_compaction import compact_task_evidence
-from datalens_dev_mcp.pipeline.target_binding import resolve_contract_target_binding, validate_target_binding
-from datalens_dev_mcp.pipeline.target_graph import validate_target_graph
 from datalens_dev_mcp.pipeline.reference_binding import validate_reference_binding
 from datalens_dev_mcp.pipeline.style_binding_receipt import validate_style_binding_receipt
+from datalens_dev_mcp.pipeline.target_binding import resolve_contract_target_binding, validate_target_binding
+from datalens_dev_mcp.pipeline.target_graph import validate_target_graph
+from datalens_dev_mcp.pipeline.task_contract import task_contract_hash
 from datalens_dev_mcp.pipeline.task_identity import build_task_identity, validate_task_identity
 from datalens_dev_mcp.pipeline.workflow_checkpoint import render_checkpoint
 from datalens_dev_mcp.pipeline.workflow_events import canonical_hash, create_workflow_event
 from datalens_dev_mcp.pipeline.workflow_replay import repair_corrupt_event_tail, replay_workflow
 from datalens_dev_mcp.pipeline.workflow_state import WorkflowState, initial_workflow_state
-
 
 TASK_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
@@ -48,7 +46,15 @@ class TaskLockError(JournalError):
 
 
 def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+def default_runtime_state_root() -> Path:
+    """Return the canonical user-scoped runtime root outside subject projects."""
+
+    configured = str(os.environ.get("XDG_STATE_HOME") or "").strip()
+    base = Path(configured).expanduser() if configured else Path.home() / ".local" / "state"
+    return (base / "datalens-dev-mcp").resolve()
 
 
 def build_journal_identity(
@@ -95,7 +101,7 @@ class ProjectJournal:
             raise ValueError("task_id contains unsafe path characters")
         self.project_root = Path(project_root).resolve()
         configured = storage_root or os.environ.get("DATALENS_MCP_TASKS_DIR")
-        base = Path(configured) if configured else self.project_root / ".datalens-mcp" / "tasks"
+        base = Path(configured).expanduser() if configured else default_runtime_state_root() / "tasks"
         if not base.is_absolute():
             base = self.project_root / base
         self.storage_root = base.resolve()
@@ -145,7 +151,7 @@ class ProjectJournal:
         target_binding = dict(expected.get("target_binding") or resolve_contract_target_binding(safe_contract))
         with self.locked(owner="journal-initialize"):
             if self.contract_path.exists():
-                self.assert_resume_identity(safe_contract, identity=expected)
+                self.assert_resume_identity(safe_contract, build_identity=build_identity)
                 state, _ = self.replay()
                 return state
             state, _, _ = self.initialize_task(
@@ -189,9 +195,7 @@ class ProjectJournal:
             if self.contract_path.exists():
                 self.assert_resume_identity(
                     safe_contract,
-                    identity=identity,
                     build_identity=build_identity,
-                    target_binding=target_binding,
                 )
                 state, _ = self.replay()
                 return state, self._compile_receipt_uri(), False
@@ -574,7 +578,7 @@ class ProjectJournal:
                 )
                 self.amendment_pending_path.unlink(missing_ok=True)
                 return state, record, True
-            except BaseException:
+            except BaseException:  # noqa: TRY203 - durable marker must survive interrupted amendments.
                 # Keep the durable marker so the next public operation fails
                 # closed instead of accepting a mixed projection.
                 raise

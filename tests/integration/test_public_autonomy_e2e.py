@@ -4,7 +4,12 @@ import tempfile
 from pathlib import Path
 
 from tests.fixtures.public_autonomy_api.fake_api import PublicAutonomyApi
-from tests.integration.public_autonomy_jsonrpc_support import public_call, public_server, semantic_context
+from tests.integration.public_autonomy_jsonrpc_support import (
+    public_call,
+    public_confirmation_arguments,
+    public_server,
+    semantic_context,
+)
 
 
 def test_public_jsonrpc_completes_save_publish_and_verify_without_hidden_tools() -> None:
@@ -26,8 +31,8 @@ def test_public_jsonrpc_completes_save_publish_and_verify_without_hidden_tools()
             completed = public_call(
                 server,
                 2,
-                "dl_execute",
-                started["next_call"]["arguments"],
+                "dl_task_resume",
+                public_confirmation_arguments(started),
             )
             verified = public_call(
                 server,
@@ -71,8 +76,8 @@ def test_public_jsonrpc_publishes_multi_object_batch_under_one_target_lock() -> 
             completed = public_call(
                 server,
                 2,
-                "dl_execute",
-                started["next_call"]["arguments"],
+                "dl_task_resume",
+                public_confirmation_arguments(started),
             )
             verified = public_call(
                 server,

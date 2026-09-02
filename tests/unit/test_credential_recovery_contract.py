@@ -72,10 +72,13 @@ def test_launcher_recovery_mode_uses_launcher_interpreter_and_canonical_state() 
             encoding="utf-8",
         )
         python.chmod(0o755)
+        state_home = root / "state"
+        launch_env = {**os.environ, "PATH": f"{root}:{os.environ.get('PATH', '')}", "XDG_STATE_HOME": str(state_home)}
+        launch_env.pop("DATALENS_MCP_TASKS_DIR", None)
         result = subprocess.run(
             [str(launcher), "--recover-credentials"],
             cwd=root.parent,
-            env={**os.environ, "PATH": f"{root}:{os.environ.get('PATH', '')}"},
+            env=launch_env,
             capture_output=True,
             text=True,
             check=False,
@@ -86,7 +89,7 @@ def test_launcher_recovery_mode_uses_launcher_interpreter_and_canonical_state() 
     assert f"PROJECT={root.resolve()}" in result.stdout
     assert f"PYTHON={python.resolve()}" in result.stdout
     assert f"CWD={root.resolve()}" in result.stdout
-    assert f"STATE={root.resolve() / '.datalens-mcp' / 'tasks'}" in result.stdout
+    assert f"STATE={state_home / 'datalens-dev-mcp' / 'tasks'}" in result.stdout
     assert "SURFACE=autonomous-v2" in result.stdout
 
 
@@ -141,12 +144,13 @@ def test_runtime_status_proves_launcher_parity_across_all_required_dimensions() 
     from datalens_dev_mcp.mcp.tools.runtime import dl_runtime_status
 
     root = REPO_ROOT.resolve()
-    state_root = root / ".datalens-mcp" / "tasks"
+    state_root = root / ".datalens-runtime-state" / "tasks"
     env = {
         "DATALENS_MCP_LAUNCHER_PROJECT_ROOT": str(root),
         "DATALENS_MCP_LAUNCHER_PYTHON": str(Path(os.sys.executable).resolve()),
         "DATALENS_MCP_LAUNCHER_CWD": str(root),
         "DATALENS_MCP_LAUNCHER_STATE_ROOT": str(state_root),
+        "DATALENS_MCP_TASKS_DIR": str(state_root),
         "DATALENS_MCP_LAUNCHER_TOOL_SURFACE": "autonomous-v2",
     }
     with patch.dict(os.environ, env, clear=False), patch("os.getcwd", return_value=str(root)):
@@ -166,11 +170,13 @@ def test_standard_public_inspect_projects_the_same_launcher_parity() -> None:
     from datalens_dev_mcp.mcp.tools.tasks import dl_inspect
 
     root = REPO_ROOT.resolve()
+    state_root = root / ".datalens-runtime-state" / "tasks"
     env = {
         "DATALENS_MCP_LAUNCHER_PROJECT_ROOT": str(root),
         "DATALENS_MCP_LAUNCHER_PYTHON": str(Path(os.sys.executable).resolve()),
         "DATALENS_MCP_LAUNCHER_CWD": str(root),
-        "DATALENS_MCP_LAUNCHER_STATE_ROOT": str(root / ".datalens-mcp" / "tasks"),
+        "DATALENS_MCP_LAUNCHER_STATE_ROOT": str(state_root),
+        "DATALENS_MCP_TASKS_DIR": str(state_root),
         "DATALENS_MCP_LAUNCHER_TOOL_SURFACE": "autonomous-v2",
     }
     with patch.dict(os.environ, env, clear=False), patch("os.getcwd", return_value=str(root)):
@@ -187,12 +193,14 @@ def test_launcher_parity_keeps_installed_package_root_separate_from_project_root
 
     package_root = REPO_ROOT.resolve()
     project_root = tmp_path.resolve()
+    state_root = tmp_path / "external-runtime-state" / "tasks"
     env = {
         "DATALENS_MCP_LAUNCHER_PROJECT_ROOT": str(project_root),
         "DATALENS_MCP_LAUNCHER_PACKAGE_ROOT": str(package_root),
         "DATALENS_MCP_LAUNCHER_PYTHON": str(Path(os.sys.executable).resolve()),
         "DATALENS_MCP_LAUNCHER_CWD": str(project_root),
-        "DATALENS_MCP_LAUNCHER_STATE_ROOT": str(project_root / ".datalens-mcp" / "tasks"),
+        "DATALENS_MCP_LAUNCHER_STATE_ROOT": str(state_root),
+        "DATALENS_MCP_TASKS_DIR": str(state_root),
         "DATALENS_MCP_LAUNCHER_TOOL_SURFACE": "autonomous-v2",
     }
     with patch.dict(os.environ, env, clear=False), patch("os.getcwd", return_value=str(project_root)):

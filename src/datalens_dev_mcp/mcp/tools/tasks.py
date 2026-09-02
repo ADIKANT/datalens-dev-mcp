@@ -26,6 +26,7 @@ from datalens_dev_mcp.pipeline.create_manifest import (
     validate_create_bundle,
 )
 from datalens_dev_mcp.pipeline.execution_authorization import (
+    confirm_execution_authorization,
     resolve_execution_authorization,
     validate_execution_authorization,
 )
@@ -34,8 +35,12 @@ from datalens_dev_mcp.pipeline.public_plan_builder import PublicPlanBuilder
 from datalens_dev_mcp.pipeline.reference_style_service import ReferenceStyleService
 from datalens_dev_mcp.pipeline.run_owned_cleanup import execute_run_owned_cleanup
 from datalens_dev_mcp.pipeline.semantic_change_planner import SemanticChangePlanner
-from datalens_dev_mcp.pipeline.target_binding import resolve_contract_target_binding
+from datalens_dev_mcp.pipeline.target_binding import (
+    create_live_target_binding,
+    resolve_contract_target_binding,
+)
 from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService, compact_object_index
+from datalens_dev_mcp.pipeline.target_graph import build_target_graph
 from datalens_dev_mcp.pipeline.task_compiler import compile_task_contract
 from datalens_dev_mcp.pipeline.task_completion import TaskCompletionEvaluator
 from datalens_dev_mcp.pipeline.task_contract import task_contract_hash, validate_task_contract
@@ -128,14 +133,7 @@ def dl_task_start(
                 ]
             )
         )
-    current_live = {
-        **manifest_target,
-        **{
-            key: task_context[key]
-            for key in ("workbook_id", "dashboard_id", "chart_id", "object_ids", "object_types")
-            if key in task_context
-        },
-    }
+    current_live = _merge_explicit_target_context(manifest_target, task_context)
     preliminary = compile_task_contract(
         compile_request,
         project_root=str(Path(project_root).resolve()),
@@ -228,6 +226,7 @@ def dl_task_start(
             raise JournalIdentityError("RUN_OWNED_CLEANUP_CONFLICT: ownership proof changed")
         if not existing_cleanup:
             write_json(cleanup_path, cleanup_ownership)
+        _bind_cleanup_ownership_context(journal, contract, cleanup_ownership)
     before = state.last_event_id
     if compiled.get("status") in {"invalid", "needs_input"}:
         return _block_task(
@@ -249,7 +248,9 @@ def dl_task_start(
         or typed_target.get("chart_id")
         or typed_target.get("object_ids")
     )
-    if compiled.get("status") == "needs_discovery" or bool(create_bundle) or requires_live_discovery:
+    if not cleanup_ownership and (
+        compiled.get("status") == "needs_discovery" or bool(create_bundle) or requires_live_discovery
+    ):
         compiled_target_url = str((compiled.get("source_trace") or {}).get("target_url") or "")
         try:
             discovery = TargetDiscoveryService(
@@ -397,6 +398,87 @@ def _project_manifest_target_context(project_root: str) -> dict[str, str]:
     if len(dashboards) == 1:
         result["dashboard_id"] = next(iter(dashboards))
     return result
+
+
+def _bind_cleanup_ownership_context(
+    journal: ProjectJournal,
+    contract: dict[str, Any],
+    ownership: dict[str, Any],
+) -> None:
+    """Bind planning to ownership; the cleanup executor performs the live reads."""
+
+    objects = [dict(item) for item in ownership.get("objects") or [] if isinstance(item, dict)]
+    graph = build_target_graph(
+        root_ids=[str(item.get("object_id") or "") for item in objects],
+        nodes=[
+            {
+                "object_id": str(item.get("object_id") or ""),
+                "object_type": str(item.get("object_type") or ""),
+                "workbook_id": str(item.get("workbook_id") or ""),
+                "technology": "run_owned_cleanup",
+                "ownership_hash": str(ownership.get("ownership_hash") or ""),
+            }
+            for item in objects
+        ],
+        edges=[],
+        provider_calls=[],
+        limitations=["live existence and workbook identity are revalidated immediately before delete"],
+    )
+    binding = create_live_target_binding(
+        workbook_id=str(objects[0].get("workbook_id") or ""),
+        dashboard_id="",
+        object_ids=[str(item.get("object_id") or "") for item in objects],
+        object_types=[str(item.get("object_type") or "") for item in objects],
+        saved_revision="",
+        published_revision="",
+        payload_hash=str(ownership.get("ownership_hash") or ""),
+        layout_hash="",
+        tabs_hash="",
+        technology="run_owned_cleanup",
+        target_graph_hash=str(graph["graph_hash"]),
+    )
+    style = ReferenceStyleService().bind(contract, target_graph=graph, baselines={})
+    if style.get("status") != "success":
+        raise JournalIdentityError(
+            "RUN_OWNED_CLEANUP_STYLE_BINDING_INVALID: "
+            + str(style.get("reason") or "ownership route binding failed")
+        )
+    journal.bind_discovery(
+        contract,
+        target_binding=binding,
+        target_graph=graph,
+        reference_binding=dict(style["reference_binding"]),
+        style_binding=dict(style["style_binding"]),
+        baselines={},
+        discovery_receipt={
+            "schema_id": "datalens_target_discovery_receipt",
+            "status": "success",
+            "provider_calls": [],
+            "technology": "run_owned_cleanup",
+            "tab_count": 0,
+            "dataset_count": 0,
+            "field_count": 0,
+            "ownership_hash": str(ownership.get("ownership_hash") or ""),
+        },
+    )
+
+
+def _merge_explicit_target_context(
+    manifest_target: dict[str, Any],
+    task_context: dict[str, Any],
+) -> dict[str, Any]:
+    """Apply typed explicit-target precedence without assuming manifest relations."""
+
+    target_keys = ("workbook_id", "dashboard_id", "chart_id", "object_ids", "object_types")
+    explicit = {
+        key: task_context[key]
+        for key in target_keys
+        if key in task_context and task_context[key] not in (None, "", [], ())
+    }
+    has_explicit_target = bool(explicit or str(task_context.get("target_url") or "").strip())
+    merged: dict[str, Any] = {} if has_explicit_target else dict(manifest_target)
+    merged.update(explicit)
+    return merged
 
 
 def _load_run_owned_cleanup_source(project_root: str, source_task_id: str) -> dict[str, Any]:
@@ -563,9 +645,19 @@ def dl_task_resume(
         )
         if blocked_result is not None:
             return blocked_result
-    if state.current_state == "VALIDATED":
+    resumable_delivery_states = {
+        "VALIDATED",
+        "SAVED",
+        "SAVED_READBACK",
+        "PUBLISHED",
+        "PUBLISHED_READBACK",
+        "RECONCILING",
+    }
+    if state.current_state in resumable_delivery_states:
         plan = _ensure_task_plan(journal, contract, state)
-        if bool((contract.get("confirmation") or {}).get("required")) and user_turn is None:
+        confirmation_required = bool((contract.get("confirmation") or {}).get("required"))
+        confirmation = _load_confirmation_receipt(journal, contract, plan_hash=str(plan["plan_hash"]))
+        if state.current_state == "VALIDATED" and confirmation_required and not confirmation:
             result = project_task_summary(
                 contract=contract,
                 state=state,
@@ -575,8 +667,17 @@ def dl_task_resume(
                 **_projection_bindings(journal),
             )
             result.update({"plan_hash": plan["plan_hash"], "status": "needs_confirmation"})
+            result.update(_contract_revision_projection(contract))
+            if amendment_result:
+                result["amendment"] = amendment_result
             _attach_execution_brief(result, journal, contract, state, plan=plan)
             return result
+        if confirmation:
+            grant = confirm_execution_authorization(
+                contract,
+                plan_hash=str(plan["plan_hash"]),
+                source_turn_hash=str(confirmation.get("source_turn_hash") or ""),
+            )
     semantic_gate = _semantic_action_gate(journal, contract)
     if semantic_gate:
         projected = _project_semantic_action_gate(
@@ -668,10 +769,12 @@ def dl_inspect(
                 "question": discovered.get("question"),
             }
         graph = dict(discovered["target_graph"])
-        path = root / "artifacts" / "inspections" / f"target-graph-{graph['graph_hash'][:20]}.json"
+        state_root = ProjectJournal(root, "inspection-resource").storage_root.parent
+        path = state_root / "inspections" / f"target-graph-{graph['graph_hash']}.json"
         write_json(path, graph)
         result = _live_graph_projection(graph, task_id="")
         result["artifact_path"] = str(path)
+        result["resource_uri"] = f"datalens://inspections/target-graph/{graph['graph_hash']}"
         return result
     validation = pipeline.dl_validate_project(str(root))
     from datalens_dev_mcp.mcp.tools.runtime import dl_runtime_status
@@ -790,6 +893,38 @@ def dl_execute(
     plan = _ensure_task_plan(journal, contract, state)
     if plan.get("plan_hash") != plan_hash:
         raise ValueError("plan_hash does not match the immutable task plan")
+    grant = _load_authorization(journal, contract, plan_hash=plan_hash)
+    confirmation = _load_confirmation_receipt(journal, contract, plan_hash=plan_hash)
+    if bool((contract.get("confirmation") or {}).get("required")) and not confirmation:
+        result = project_task_summary(
+            contract=contract,
+            state=state,
+            events_path=journal.events_path,
+            resource_uri=task_resource_uri(task_id),
+            performed_after=state.last_event_id,
+            **_projection_bindings(journal),
+        )
+        _attach_execution_brief(result, journal, contract, state, plan=plan)
+        result.update(
+            {
+                "ok": False,
+                "status": "confirmation_required",
+                "blocked_by": {
+                    "code": "CONFIRMATION_REQUIRED",
+                    "reason": "the current immutable plan has not been explicitly confirmed",
+                    "question": "Confirm the unchanged current plan before execution.",
+                },
+            }
+        )
+        result["next_call"] = None
+        result["execution_brief"]["next_call"] = None
+        return result
+    if confirmation:
+        grant = confirm_execution_authorization(
+            contract,
+            plan_hash=plan_hash,
+            source_turn_hash=str(confirmation.get("source_turn_hash") or ""),
+        )
     if (contract.get("delivery") or {}).get("destructive"):
         expected = _destructive_token(task_id, plan_hash)
         if destructive_token != expected:
@@ -830,7 +965,7 @@ def dl_execute(
         contract,
         boundary=stop_after,
         destructive_token=destructive_token,
-        execution_grant=_load_authorization(journal, contract),
+        execution_grant=grant,
     )
     result = project_task_summary(
         contract=contract,
@@ -929,6 +1064,14 @@ def _normalize_run_owned_semantic_follow_up(
     semantic_changes: list[dict[str, Any]],
 ) -> dict[str, Any]:
     normalized = deepcopy(contract)
+    if str(previous_contract.get("mode") or "") == "create" and not semantic_changes:
+        # A clarification/correction before the first write still refers to
+        # the immutable create bundle already owned by this journal.  The
+        # generic amendment compiler has no create_manifest field at this
+        # boundary, so preserve the create route instead of silently turning
+        # the current task into an update of its workbook anchor.
+        for key in ("mode", "task_kind", "requested_outcome", "route", "operation_kind"):
+            normalized[key] = deepcopy(previous_contract.get(key))
     if (
         str(previous_contract.get("mode") or "") == "create"
         and semantic_changes
@@ -974,6 +1117,82 @@ def _amend_task(
     if int(expected_contract_revision or 0) < 1:
         expected_contract_revision = current_revision
     source_turn_hash = hashlib.sha256(request.encode("utf-8")).hexdigest()
+    current_state, _ = journal.replay()
+    confirmation_required = bool((old.get("confirmation") or {}).get("required"))
+    if relationship == "authorize" and not _is_exact_plan_confirmation(request.lower()):
+        raise JournalIdentityError(
+            "EXACT_PLAN_CONFIRMATION_REQUIRED: explicitly confirm the exact unchanged current plan"
+        )
+    if relationship == "clarify" and confirmation_required and current_state.current_state == "VALIDATED":
+        return {
+            "status": "clarification_recorded",
+            "contract_revision": current_revision,
+            "contract_hash": old.get("contract_hash"),
+            "source_turn_hash": source_turn_hash,
+            "invalidated_artifacts": [],
+            "preserved_artifacts": ["current_contract_revision", "immutable_plan", "pending_confirmation"],
+            "relationship_to_previous": relationship,
+        }
+    if relationship == "continue" and confirmation_required and current_state.current_state == "VALIDATED":
+        return {
+            "status": "continuation_requires_confirmation",
+            "contract_revision": current_revision,
+            "contract_hash": old.get("contract_hash"),
+            "source_turn_hash": source_turn_hash,
+            "invalidated_artifacts": [],
+            "preserved_artifacts": ["current_contract_revision", "immutable_plan", "pending_confirmation"],
+            "relationship_to_previous": relationship,
+        }
+    if relationship == "authorize":
+        if not confirmation_required or current_state.current_state not in {
+            "VALIDATED", "SAVED", "SAVED_READBACK", "PUBLISHED", "PUBLISHED_READBACK", "QA_COMPLETED", "COMPLETED",
+        }:
+            raise JournalIdentityError("CONFIRMATION_NOT_PENDING: no current immutable plan is awaiting confirmation")
+        plan = _ensure_task_plan(journal, old, current_state)
+        existing_confirmation = _load_confirmation_receipt(
+            journal,
+            old,
+            plan_hash=str(plan.get("plan_hash") or ""),
+        )
+        if existing_confirmation:
+            return {
+                "status": "duplicate_confirmation",
+                "contract_revision": current_revision,
+                "contract_hash": old.get("contract_hash"),
+                "source_turn_hash": source_turn_hash,
+                "invalidated_artifacts": [],
+                "preserved_artifacts": ["current_contract_revision", "immutable_plan", "confirmation_receipt"],
+                "relationship_to_previous": relationship,
+            }
+        grant = confirm_execution_authorization(
+            old,
+            plan_hash=str(plan.get("plan_hash") or ""),
+            source_turn_hash=source_turn_hash,
+        )
+        receipt_payload = {
+            "schema_id": "datalens_plan_confirmation_receipt",
+            "status": "confirmed",
+            **dict(grant.get("confirmation") or {}),
+            "contract_hash": old.get("contract_hash"),
+            "authorization_hash": grant.get("authorization_hash"),
+        }
+        receipt_payload["receipt_hash"] = canonical_hash(receipt_payload)
+        with journal.locked(owner="plan-confirmation"):
+            write_json(_confirmation_path(journal), receipt_payload)
+            receipt = journal.write_receipt(
+                f"plan-confirmation-{str(plan.get('plan_hash') or '')[:16]}",
+                receipt_payload,
+            )
+        return {
+            "status": "confirmed",
+            "contract_revision": current_revision,
+            "contract_hash": old.get("contract_hash"),
+            "source_turn_hash": source_turn_hash,
+            "receipt_uri": receipt,
+            "invalidated_artifacts": [],
+            "preserved_artifacts": ["current_contract_revision", "immutable_plan", "confirmation_receipt"],
+            "relationship_to_previous": relationship,
+        }
     revision_index = read_json(journal.contract_revisions_path, {}) or {}
     delivered = next(
         (
@@ -1294,7 +1513,7 @@ def _infer_follow_up_relationship(
     text = request.lower()
     if re.search(r"(?:new|another|separate)\s+(?:task|workflow)|нов(?:ая|ую)\s+(?:задач|цель)|другая\s+задач", text):
         return "start_new_task"
-    if re.search(r"(?:confirm|authorize|approved?|go ahead|подтвержд|разреш|выполняй|продолжай запись)", text):
+    if _is_exact_plan_confirmation(text):
         return "authorize"
     if re.search(r"(?:wrong|incorrect|change|switch).{0,50}(?:route|technology|wizard|editor|javascript|ql)|"
                  r"(?:неверн|смени|поменяй).{0,50}(?:маршрут|технолог|wizard|editor|javascript|ql)", text):
@@ -1317,6 +1536,21 @@ def _infer_follow_up_relationship(
     if re.search(r"(?:what|why|clarify|explain|уточн|почему|что значит)", text):
         return "clarify"
     return "continue"
+
+
+def _is_exact_plan_confirmation(text: str) -> bool:
+    has_confirmation = bool(
+        re.search(r"(?:explicitly confirm|confirm|authorize|approved?|подтверждаю|подтвердить)", text)
+    )
+    has_exact_plan = bool(
+        re.search(
+            r"(?:exact(?:ly)?|unchanged|current)\s+(?:plan)|"
+            r"(?:именно|точно|текущ|неизмен).{0,24}(?:plan|план)|"
+            r"(?:plan|план)\s+[abаб]",
+            text,
+        )
+    )
+    return has_confirmation and has_exact_plan
 
 
 def _can_inherit_confirmation(
@@ -1439,6 +1673,7 @@ def _attach_execution_brief(
     )
     result["execution_brief"] = brief
     result["next_call"] = brief.get("next_call")
+    result["confirmation_action"] = brief.get("confirmation_action")
     result["missing_fields"] = brief.get("missing_fields") or []
     if brief.get("status") == "needs_confirmation":
         result["status"] = "needs_confirmation"
@@ -1854,9 +2089,49 @@ def _authorization_path(journal: ProjectJournal) -> Path:
     return journal.execution_authorization_path
 
 
-def _load_authorization(journal: ProjectJournal, contract: dict[str, Any]) -> dict[str, Any]:
+def _confirmation_path(journal: ProjectJournal) -> Path:
+    return journal.root / "plan-confirmation.json"
+
+
+def _load_confirmation_receipt(
+    journal: ProjectJournal,
+    contract: dict[str, Any],
+    *,
+    plan_hash: str,
+) -> dict[str, Any]:
+    receipt = read_json(_confirmation_path(journal), default={}) or {}
+    if not receipt:
+        return {}
+    value = dict(receipt)
+    digest = str(value.pop("receipt_hash", ""))
+    target = contract.get("target") or {}
+    expected = {
+        "schema_id": "datalens_plan_confirmation_receipt",
+        "status": "confirmed",
+        "task_id": journal.task_id,
+        "contract_revision": int(contract.get("contract_revision") or 1),
+        "contract_hash": str(contract.get("contract_hash") or ""),
+        "plan_hash": str(plan_hash),
+        "target_hash": canonical_hash(target),
+        "scope_hash": canonical_hash(contract.get("scope") or {}),
+        "technology": str(target.get("technology") or contract.get("route") or ""),
+        "delivery_hash": canonical_hash(contract.get("delivery") or {}),
+    }
+    if not digest or digest != canonical_hash(value):
+        return {}
+    if any(receipt.get(key) != expected_value for key, expected_value in expected.items()):
+        return {}
+    return receipt
+
+
+def _load_authorization(
+    journal: ProjectJournal,
+    contract: dict[str, Any],
+    *,
+    plan_hash: str = "",
+) -> dict[str, Any]:
     value = read_json(_authorization_path(journal), default={}) or {}
-    issues = validate_execution_authorization(value, contract)
+    issues = validate_execution_authorization(value, contract, plan_hash=plan_hash)
     if issues:
         raise JournalIdentityError("; ".join(issues))
     return value

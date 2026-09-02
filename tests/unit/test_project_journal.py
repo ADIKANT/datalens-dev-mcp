@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+import os
 import tempfile
 import time
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from datalens_dev_mcp.pipeline.project_journal import (
@@ -28,6 +29,20 @@ def _contract(root: Path, *, raw: str = "Update the target") -> dict:
 
 
 class ProjectJournalTests(unittest.TestCase):
+    def test_default_runtime_state_is_external_to_subject_project(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "subject"
+            state = Path(tmp) / "state"
+            root.mkdir()
+            with patch.dict(
+                os.environ,
+                {"DATALENS_MCP_TASKS_DIR": "", "XDG_STATE_HOME": str(state)},
+                clear=False,
+            ):
+                journal = ProjectJournal(root, "external-state")
+            self.assertEqual(journal.storage_root, (state / "datalens-dev-mcp" / "tasks").resolve())
+            self.assertFalse((root / ".datalens-mcp").exists())
+
     def test_contract_hash_survives_project_path_containing_host_session_id(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             session_id = "01a04d9d-ac5b-7102-b36b-d35e6ff58862"
@@ -129,9 +144,8 @@ class ProjectJournalTests(unittest.TestCase):
             first.initialize(contract)
             with first.locked(owner="first"):
                 self.assertFalse(first.lease_status()["stale"])
-                with self.assertRaises(TaskLockError):
-                    with second.locked(owner="second"):
-                        pass
+                with self.assertRaises(TaskLockError), second.locked(owner="second"):
+                    pass
                 lease = json.loads(first.lease_path.read_text(encoding="utf-8"))
                 self.assertTrue(first.lease_status(now=float(lease["expires_epoch"]) + 1)["stale"])
                 first.heartbeat(owner="first-refreshed")

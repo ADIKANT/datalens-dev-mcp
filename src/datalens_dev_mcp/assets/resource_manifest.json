@@ -279,7 +279,7 @@
     {
       "bytes": 12873,
       "path": "schemas/datalens-knowledge/capability-matrix.json",
-      "sha256": "10087c506382e707ae314843e5ca70bdad3259781755a44d5df9243359e2baa8"
+      "sha256": "b7d6cbc1241444d59b2a23548dc7bcb4742e882dd0fe51064b8ccdfa6778f5f1"
     },
     {
       "bytes": 3130533,
@@ -314,7 +314,7 @@
     {
       "bytes": 6830,
       "path": "schemas/datalens-knowledge/route-capability-matrix.json",
-      "sha256": "a8f308c12e3096d60966d95432c59b9d2845697b986c51fa915df2851f8f3e57"
+      "sha256": "7227b4ae723e0cb0a121df187d34f9c9a8e0b71d4f95012953aada6855224557"
     },
     {
       "bytes": 318084,
@@ -697,9 +697,9 @@
       "sha256": "f18860ff8004f5957904ac7044c6d9f0a9a407361dc80d58ba6df7640586d026"
     },
     {
-      "bytes": 2241,
+      "bytes": 2345,
       "path": "schemas/task-data-proof-receipt.schema.json",
-      "sha256": "b90c15beabf687b678d32954043166e3ac5719cb2b4a7ba4cb198203307f7045"
+      "sha256": "44430650b8f5feda6acb1cde25261491ffb644fd380f9d1cfa5f70de740a460c"
     },
     {
       "bytes": 2010,

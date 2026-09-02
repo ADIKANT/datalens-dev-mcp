@@ -1,16 +1,18 @@
 from __future__ import annotations
 
+import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-import tempfile
 
 import pytest
 
+from datalens_dev_mcp.pipeline.artifacts import write_json
 from datalens_dev_mcp.pipeline.build_identity import build_identity_hash
 from datalens_dev_mcp.pipeline.execution_authorization import resolve_execution_authorization
-from datalens_dev_mcp.pipeline.project_journal import ProjectJournal, TaskLockError
-from datalens_dev_mcp.pipeline.target_binding import resolve_contract_target_binding
+from datalens_dev_mcp.pipeline.project_journal import JournalIdentityError, ProjectJournal, TaskLockError
+from datalens_dev_mcp.pipeline.target_binding import create_live_target_binding, resolve_contract_target_binding
 from datalens_dev_mcp.pipeline.task_contract import WorkspaceContract, create_task_contract
+from datalens_dev_mcp.pipeline.task_identity import build_task_identity
 
 
 def _contract(root: Path) -> dict:
@@ -91,3 +93,48 @@ def test_crash_while_building_snapshot_leaves_no_partial_task(monkeypatch: pytes
             _start(journal, contract)
         assert not journal.root.exists()
         assert not list((root / "journal").glob(f".{contract['task_id']}.init-*"))
+
+
+def test_identical_start_after_live_discovery_reuses_persisted_binding_but_write_drift_fails() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        contract = _contract(root)
+        journal = ProjectJournal(root, contract["task_id"], storage_root=root / "journal")
+        created, _ = _start(journal, contract)
+        assert created is True
+
+        live = create_live_target_binding(
+            workbook_id="book_demo",
+            dashboard_id="",
+            object_ids=["chart_demo"],
+            object_types=["editor_chart"],
+            saved_revision="chart-r1",
+            published_revision="",
+            payload_hash="a" * 64,
+            layout_hash="",
+            tabs_hash="",
+            technology="editor_advanced",
+            target_graph_hash="b" * 64,
+        )
+        build = _build()
+        write_json(journal.target_binding_path, live)
+        write_json(
+            journal.identity_path,
+            build_task_identity(contract, build_identity=build, target_binding=live),
+        )
+
+        restarted = ProjectJournal(root, contract["task_id"], storage_root=root / "journal")
+        created_again, receipt = _start(restarted, contract)
+        assert created_again is False
+        assert receipt
+
+        drifted = create_live_target_binding(
+            **{key: value for key, value in live.items() if key not in {"schema_id", "source", "binding_hash", "saved_revision"}},
+            saved_revision="chart-r2",
+        )
+        with pytest.raises(JournalIdentityError, match="TARGET_BINDING_CONFLICT"):
+            restarted.assert_write_resume_ready(
+                contract,
+                build_identity=build,
+                target_binding=drifted,
+            )

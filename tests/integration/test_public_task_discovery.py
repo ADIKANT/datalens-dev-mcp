@@ -4,6 +4,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
+from datalens_dev_mcp.mcp.resources import read_resource
 from datalens_dev_mcp.mcp.tools import tasks
 from datalens_dev_mcp.pipeline.target_discovery import TargetDiscoveryService
 from tests.unit.test_target_discovery import DiscoveryClient
@@ -43,13 +44,29 @@ def test_public_task_closes_discovery_with_real_mocked_read_receipts() -> None:
 
 def test_public_inspect_returns_live_graph_not_local_artifact_listing() -> None:
     with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / "subject"
+        state = Path(tmp) / "state"
+        root.mkdir()
         service = TargetDiscoveryService(DiscoveryClient())
-        with patch.object(tasks, "TargetDiscoveryService", return_value=service):
+        with patch.dict(
+            "os.environ",
+            {"DATALENS_MCP_TASKS_DIR": str(state / "tasks")},
+            clear=False,
+        ), patch.object(tasks, "TargetDiscoveryService", return_value=service):
             result = tasks.dl_inspect(
-                project_root=tmp,
+                project_root=str(root),
                 target_url="https://datalens.example/dash_demo",
             )
         assert Path(result["artifact_path"]).is_file()
+        assert Path(result["artifact_path"]).is_relative_to(state.resolve())
+        assert not any(path.is_file() for path in root.rglob("*"))
+        with patch.dict(
+            "os.environ",
+            {"DATALENS_MCP_TASKS_DIR": str(state / "tasks")},
+            clear=False,
+        ):
+            resource = read_resource(result["resource_uri"], project_root=root)
+        assert result["graph_hash"] in resource["text"]
     assert result["ok"] is True
     assert result["graph_kind"] == "live_target_graph"
     assert result["node_count"] >= 4

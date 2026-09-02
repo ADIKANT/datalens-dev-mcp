@@ -75,6 +75,7 @@ def project_task_tool_response(tool_name: str, output: Any) -> Any:
         "next_action",
         "status",
         "execution_brief",
+        "confirmation_action",
         "next_call",
         "missing_fields",
         "plan_hash",

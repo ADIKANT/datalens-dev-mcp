@@ -6,11 +6,12 @@ from pathlib import Path
 from typing import Any
 
 from datalens_dev_mcp.api.methods import get_method_schema, list_methods
-from datalens_dev_mcp.pipeline.artifacts import read_text
-from datalens_dev_mcp.pipeline.route_contract import route_contract_document
-from datalens_dev_mcp.mcp.task_resources import list_task_resources, read_task_resource
 from datalens_dev_mcp.editor.style_registry import load_style_registry
 from datalens_dev_mcp.editor.style_scanner import TAB_ORDER
+from datalens_dev_mcp.mcp.task_resources import list_task_resources, read_task_resource
+from datalens_dev_mcp.pipeline.artifacts import read_text
+from datalens_dev_mcp.pipeline.project_journal import ProjectJournal
+from datalens_dev_mcp.pipeline.route_contract import route_contract_document
 from datalens_dev_mcp.runtime_resources import resource_text
 
 STATIC_RESOURCES = {
@@ -71,6 +72,12 @@ def list_resources(*, project_root: str | Path = ".") -> list[dict[str, str]]:
                 "mimeType": "application/json",
             },
             {
+                "uri": "datalens://inspections/target-graph/{graph_hash}",
+                "name": "External inspection target graph",
+                "title": "External Inspection Target Graph",
+                "mimeType": "application/json",
+            },
+            {
                 "uri": "datalens://artifacts/{name}",
                 "name": "Project artifact by name",
                 "title": "Project Artifact",
@@ -104,6 +111,13 @@ def read_resource(uri: str, *, project_root: str | Path = ".") -> dict[str, Any]
     root = Path(project_root)
     if uri.startswith("datalens://tasks/"):
         return read_task_resource(uri, project_root=root)
+    if uri.startswith("datalens://inspections/target-graph/"):
+        graph_hash = uri.removeprefix("datalens://inspections/target-graph/").strip()
+        if not graph_hash or any(character not in "0123456789abcdef" for character in graph_hash.lower()):
+            raise KeyError("Invalid inspection target graph URI")
+        state_root = ProjectJournal(root, "inspection-resource").storage_root.parent
+        path = _path_within(state_root, Path("inspections"), f"target-graph-{graph_hash}.json")
+        return {"uri": uri, "mimeType": "application/json", "text": read_text(path, default="{}")}
     if uri.startswith("datalens://style-registry/profiles/"):
         return _read_style_profile_tab(uri, project_root=root)
     if uri in STATIC_RESOURCES:
@@ -142,10 +156,16 @@ def _ordinary_workflow_resource() -> str:
     return """# Ordinary DataLens workflow
 
 1. Start one task with `dl_task_start` from the exact project root.
-2. Read `execution_brief`; use its target, reference, technology, delivery, missing fields, and complete `next_call`.
+2. Read `execution_brief`; use its target, reference, technology, delivery,
+   missing fields, `confirmation_action`, and complete `next_call`.
 3. Read only the linked knowledge resource needed for formulas, Wizard, Editor, errors, or delivery.
-4. For a mutation, show the compact brief once and wait for confirmation unless `confirmation_required` is false.
-5. Execute the unchanged plan, then verify saved readback and published readback as requested.
+4. For a mutation, show the compact brief once and wait for confirmation unless
+   `confirmation_required` is false. Questions preserve the plan; corrections
+   create a new plan and require a new confirmation.
+5. On explicit confirmation of the exact unchanged current plan, call
+   `dl_task_resume` with `confirmation_action.fixed_arguments` and the user's
+   text in its declared confirmation field. Never bypass this with direct
+   `dl_execute`.
 6. Use Browser only for final read-only visual acceptance after API readbacks and applicable data diagnostics.
 7. Send corrections through `dl_task_resume.follow_up`; the server infers their relation to the task.
 """

@@ -8,13 +8,15 @@ import pytest
 
 from datalens_dev_mcp.server import JsonRpcServer
 from tests.fixtures.public_autonomy_api.fake_api import PublicAutonomyApi
-from tests.integration.public_autonomy_jsonrpc_support import public_exchange, public_server
+from tests.integration.public_autonomy_jsonrpc_support import (
+    public_confirmation_arguments,
+    public_exchange,
+    public_server,
+    public_task_root,
+)
 
 CORPUS_ROOT = Path(__file__).with_name("behavior_traces")
-CASES = [
-    json.loads(path.read_text(encoding="utf-8"))
-    for path in sorted((CORPUS_ROOT / "cases").glob("*.json"))
-]
+CASES = [json.loads(path.read_text(encoding="utf-8")) for path in sorted((CORPUS_ROOT / "cases").glob("*.json"))]
 
 
 @pytest.mark.parametrize("case", CASES, ids=[case["case_id"] for case in CASES])
@@ -83,7 +85,16 @@ def _run_case(server: JsonRpcServer, *, root: Path, api: PublicAutonomyApi, case
     result = started["payload"]
     task_id = str(result.get("task_id") or "")
     if driver != "direct" and result.get("state") != "BLOCKED":
-        task_root = root / ".datalens-mcp" / "tasks" / task_id
+        task_root = public_task_root(task_id)
+        if result.get("confirmation_action"):
+            authorized = exchange(
+                server,
+                "dl_task_resume",
+                public_confirmation_arguments(result, run_until="plan_ready"),
+            )
+            if not authorized["ok"]:
+                return _error_observation(authorized, call_count)
+            result = authorized["payload"]
         if driver == "restart_after_save":
             saved = exchange(
                 server,
@@ -157,15 +168,15 @@ def _run_case(server: JsonRpcServer, *, root: Path, api: PublicAutonomyApi, case
             first = exchange(server, "dl_task_status", {"task_id": task_id, "project_root": str(root)})
             second = exchange(server, "dl_task_status", {"task_id": task_id, "project_root": str(root)})
             assert first == second
-    if result.get("state") == "PLAN_VALIDATED" and (result.get("next_call") or {}).get("tool") == "dl_execute":
+    if result.get("state") == "PLAN_VALIDATED" and result.get("confirmation_action"):
         confirmed = exchange(
             server,
-            "dl_execute",
-            dict((result.get("next_call") or {}).get("arguments") or {}),
+            "dl_task_resume",
+            public_confirmation_arguments(result),
         )
         result = confirmed["payload"] if confirmed["ok"] else {"state": "BLOCKED"}
     question = result.get("question") or (result.get("blocked_by") or {}).get("question")
-    task_root = root / ".datalens-mcp" / "tasks" / task_id
+    task_root = public_task_root(task_id)
     contract = _read_json(task_root / "contract.json")
     graph = _read_json(task_root / "target-graph.json")
     plan = _read_json(task_root / "plans" / "plan.json")

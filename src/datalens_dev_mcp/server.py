@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import argparse
-from copy import deepcopy
 import inspect
 import json
 import os
 import sys
 import traceback
 from collections.abc import Callable
-from functools import lru_cache
+from copy import deepcopy
+from functools import cache, lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -24,20 +24,13 @@ from datalens_dev_mcp.mcp.heavy_response import (
     project_task_tool_response,
 )
 from datalens_dev_mcp.mcp.prompts import get_prompt, list_prompts
+from datalens_dev_mcp.mcp.resources import list_resources, read_resource
 from datalens_dev_mcp.mcp.response_projection import (
     project_public_resource_text,
     project_public_response,
     sanitize_response,
 )
-from datalens_dev_mcp.mcp.resources import list_resources, read_resource
 from datalens_dev_mcp.mcp.tool_registry_policy import hidden_tool_calls_enabled, resolve_tool_surface
-from datalens_dev_mcp.pipeline.context_contracts import (
-    PROJECT_CONTEXT_AWARE_TOOLS,
-    finalize_project_contract_result,
-    validate_project_contract_inputs,
-)
-from datalens_dev_mcp.runtime_resources import RuntimeResourceError
-from datalens_dev_mcp.validators.redaction import redact_text
 from datalens_dev_mcp.mcp.tools import (
     config_tools,
     data_evidence,
@@ -54,7 +47,13 @@ from datalens_dev_mcp.mcp.tools import (
     snapshot,
     tasks,
 )
-
+from datalens_dev_mcp.pipeline.context_contracts import (
+    PROJECT_CONTEXT_AWARE_TOOLS,
+    finalize_project_contract_result,
+    validate_project_contract_inputs,
+)
+from datalens_dev_mcp.runtime_resources import RuntimeResourceError
+from datalens_dev_mcp.validators.redaction import redact_text
 
 MCP_PROTOCOL_VERSION = "2025-06-18"
 DEFAULT_TOOL_SURFACE = "autonomous-v2"
@@ -99,6 +98,7 @@ def _tool_schema(
                 "task_id": {"type": "string"},
                 "state": {"type": "string"},
                 "execution_brief": {"type": "object"},
+                "confirmation_action": {"type": ["object", "null"]},
                 "next_call": {"type": ["object", "null"]},
                 "resource_uri": {"type": "string"},
                 "error": {"type": "object"},
@@ -1607,7 +1607,7 @@ class JsonRpcServer:
         return {"jsonrpc": "2.0", "id": message_id, "error": {"code": code, "message": message}}
 
 
-@lru_cache(maxsize=None)
+@cache
 def _cached_tool_signature(fn: Callable[..., Any]) -> inspect.Signature:
     return inspect.signature(fn)
 
@@ -1718,9 +1718,7 @@ def _structured_tool_error(name: str, exc: Exception) -> dict[str, Any]:
             category = "missing_input"
         else:
             category = "datalens_api_error"
-    elif isinstance(exc, FileNotFoundError):
-        category = "missing_input"
-    elif isinstance(exc, TypeError) and "required positional argument" in str(exc):
+    elif isinstance(exc, FileNotFoundError) or isinstance(exc, TypeError) and "required positional argument" in str(exc):
         category = "missing_input"
     elif isinstance(exc, ValueError):
         lowered = str(exc).lower()

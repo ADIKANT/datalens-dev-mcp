@@ -39,6 +39,8 @@ class TaskDataProofService:
     def execute(self) -> dict[str, Any]:
         public_plan = read_json(self.journal.root / "plans" / "plan.json", {}) or {}
         planning_profile = read_json(self.journal.root / "data" / "context-profile.json", {}) or {}
+        planning_query_plan = read_json(self.context_service.proof_plan_path, {}) or {}
+        proof_mode = str(planning_query_plan.get("proof_mode") or "dataset_backed")
         target_binding = read_json(self.journal.target_binding_path, {}) or {}
         plan_binding = read_json(self.journal.root / "plans" / "plan-binding.json", {}) or {}
         diagnostics_decision = (
@@ -51,7 +53,7 @@ class TaskDataProofService:
             planning_profile,
             target_binding,
             plan_binding,
-            require_dataset_context=diagnostics_decision.get("required") is not False,
+            require_dataset_context=proof_mode == "dataset_backed",
         )
         if binding_issues:
             return self._write_receipt(
@@ -78,6 +80,7 @@ class TaskDataProofService:
                 live_data_verified=False,
                 assertion_plan_hash=str(query_plan.get("plan_hash") or ""),
                 schema_hash=str(planning_profile.get("schema_hash") or ""),
+                proof_mode="not_applicable",
                 api_first_diagnostics={
                     "status": "not_required",
                     "decision": dict(diagnostics_decision),
@@ -87,6 +90,22 @@ class TaskDataProofService:
                     "limitations": [],
                     "chart_query_equivalence": "not_applicable",
                 },
+            )
+        if proof_mode == "direct_editor_source":
+            api_first_diagnostics = self._api_first_structural_diagnostics()
+            passed = api_first_diagnostics.get("status") == "passed"
+            return self._write_receipt(
+                status="passed" if passed else "blocked",
+                proof_level="live_read_only_api" if passed else "source_static",
+                fallback_kind="" if passed else "direct_editor_source_boundary",
+                assertions=[],
+                provider_calls=list(api_first_diagnostics.get("provider_calls") or []),
+                limitations=list(api_first_diagnostics.get("limitations") or []),
+                live_data_verified=False,
+                assertion_plan_hash=str(planning_query_plan.get("plan_hash") or ""),
+                schema_hash=str(planning_profile.get("schema_hash") or ""),
+                proof_mode="direct_editor_source",
+                api_first_diagnostics=api_first_diagnostics,
             )
         api_first_diagnostics = self._api_first_structural_diagnostics()
         if api_first_diagnostics.get("status") in {"blocked", "failed"}:
@@ -432,6 +451,7 @@ class TaskDataProofService:
         live_data_verified: bool,
         assertion_plan_hash: str,
         schema_hash: str,
+        proof_mode: str = "dataset_backed",
         diagnostics: list[dict[str, Any]] | None = None,
         row_count: int = 0,
         paging: dict[str, Any] | None = None,
@@ -453,6 +473,7 @@ class TaskDataProofService:
             "observed_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             "fresh": True,
             "proof_level": proof_level,
+            "proof_mode": proof_mode,
             "fallback_kind": fallback_kind,
             "live_data_verified": live_data_verified,
             "dataset_data_semantics": "unknown_experimental",

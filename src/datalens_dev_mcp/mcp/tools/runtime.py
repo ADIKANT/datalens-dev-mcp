@@ -28,7 +28,7 @@ from datalens_dev_mcp.runtime_resources import (
     resource_manifest,
 )
 from datalens_dev_mcp.validators.advanced_editor_validator import (
-    _EDITOR_VALIDATION_CACHE,
+    _EDITOR_VALIDATION_CACHE,  # noqa: F401 - compatibility re-export for diagnostics/tests
     validate_editor_runtime_contract,
 )
 from datalens_dev_mcp.validators.source_diagnostics import classify_datalens_source_error
@@ -497,7 +497,11 @@ def _launcher_parity(*, project_root: str) -> dict[str, Any]:
     expected_cwd = str(os.getenv("DATALENS_MCP_LAUNCHER_CWD") or "").strip()
     expected_state = str(os.getenv("DATALENS_MCP_LAUNCHER_STATE_ROOT") or "").strip()
     expected_surface = str(os.getenv("DATALENS_MCP_LAUNCHER_TOOL_SURFACE") or "").strip()
-    actual_state = Path(os.getenv("DATALENS_MCP_TASKS_DIR") or root / ".datalens-mcp" / "tasks").resolve()
+    from datalens_dev_mcp.pipeline.project_journal import default_runtime_state_root
+
+    actual_state = Path(
+        os.getenv("DATALENS_MCP_TASKS_DIR") or default_runtime_state_root() / "tasks"
+    ).expanduser().resolve()
 
     build_identity = BuildIdentityResolver(source_root=source_root).resolve()
     from datalens_dev_mcp.mcp.tool_registry_policy import resolve_tool_surface

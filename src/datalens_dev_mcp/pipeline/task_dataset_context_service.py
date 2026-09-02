@@ -48,6 +48,17 @@ class TaskDatasetContextService:
     def persist_not_applicable(self, *, reason: str) -> dict[str, Any]:
         """Persist bounded proof artifacts when a live dataset probe is not required."""
 
+        return self._persist_non_dataset_mode(proof_mode="not_applicable", reason=reason)
+
+    def persist_direct_editor_source(self, *, reason: str) -> dict[str, Any]:
+        """Persist a direct-source plan without inventing a DataLens dataset."""
+
+        return self._persist_non_dataset_mode(proof_mode="direct_editor_source", reason=reason)
+
+    def _persist_non_dataset_mode(self, *, proof_mode: str, reason: str) -> dict[str, Any]:
+        if proof_mode not in {"direct_editor_source", "not_applicable"}:
+            raise ValueError("non-dataset proof mode is invalid")
+
         graph = read_json(self.journal.target_graph_path, {}) or {}
         dataset = next(
             (
@@ -60,7 +71,8 @@ class TaskDatasetContextService:
         observed_at = _utc_now()
         query_set_hash = canonical_hash(
             {
-                "status": "not_applicable",
+                "status": proof_mode,
+                "proof_mode": proof_mode,
                 "reason": reason,
                 "contract_hash": str(self.contract.get("contract_hash") or ""),
                 "target_graph_hash": str(graph.get("graph_hash") or ""),
@@ -69,7 +81,8 @@ class TaskDatasetContextService:
         schema_hash = str(dataset.get("schema_hash") or canonical_hash([]))
         plan = {
             "schema_id": "dataset_probe_plan",
-            "status": "not_applicable",
+            "status": proof_mode,
+            "proof_mode": proof_mode,
             "reason": reason,
             "dataset_id": str(dataset.get("object_id") or ""),
             "dataset_revision": str(dataset.get("saved_revision") or ""),
@@ -93,7 +106,7 @@ class TaskDatasetContextService:
             limitations=[reason, "dataset probe not applicable"],
             observed_at=observed_at,
             proof_level="source_static",
-            fallback_kind="not_applicable",
+            fallback_kind=proof_mode,
         )
         write_json(self.proof_plan_path, plan)
         write_json(self.profile_path, profile)
@@ -120,6 +133,8 @@ class TaskDatasetContextService:
         if not planned.get("ok"):
             return {"ok": False, "status": "blocked", "issues": planned.get("issues") or []}
         plan = dict(planned["plan"])
+        plan["proof_mode"] = "dataset_backed"
+        plan["plan_hash"] = canonical_hash({key: value for key, value in plan.items() if key != "plan_hash"})
         plan_path = (
             self.proof_plan_path
             if mode == "context_probe"
