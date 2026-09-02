@@ -41,7 +41,18 @@ class TaskDataProofService:
         planning_profile = read_json(self.journal.root / "data" / "context-profile.json", {}) or {}
         target_binding = read_json(self.journal.target_binding_path, {}) or {}
         plan_binding = read_json(self.journal.root / "plans" / "plan-binding.json", {}) or {}
-        binding_issues = _binding_issues(public_plan, planning_profile, target_binding, plan_binding)
+        diagnostics_decision = (
+            self.contract.get("data_diagnostics")
+            if isinstance(self.contract.get("data_diagnostics"), dict)
+            else {}
+        )
+        binding_issues = _binding_issues(
+            public_plan,
+            planning_profile,
+            target_binding,
+            plan_binding,
+            require_dataset_context=diagnostics_decision.get("required") is not False,
+        )
         if binding_issues:
             return self._write_receipt(
                 status="blocked",
@@ -54,11 +65,6 @@ class TaskDataProofService:
                 assertion_plan_hash="",
                 schema_hash="",
             )
-        diagnostics_decision = (
-            self.contract.get("data_diagnostics")
-            if isinstance(self.contract.get("data_diagnostics"), dict)
-            else {}
-        )
         if diagnostics_decision.get("required") is False:
             reason = "dataset proof is not applicable because the compiled change has no data impact"
             query_plan = read_json(self.context_service.proof_plan_path, {}) or {}
@@ -514,14 +520,17 @@ def _binding_issues(
     planning_profile: dict[str, Any],
     target_binding: dict[str, Any],
     plan_binding: dict[str, Any],
+    *,
+    require_dataset_context: bool = True,
 ) -> list[str]:
     issues: list[str] = []
-    if public_plan.get("dataset_context_profile_hash") != planning_profile.get("profile_hash"):
-        issues.append("planning context profile hash is stale")
-    if public_plan.get("query_set_hash") != planning_profile.get("query_set_hash"):
-        issues.append("planning query set hash is stale")
-    if public_plan.get("dataset_schema_hash") != planning_profile.get("schema_hash"):
-        issues.append("planning dataset schema hash is stale")
+    if require_dataset_context:
+        if public_plan.get("dataset_context_profile_hash") != planning_profile.get("profile_hash"):
+            issues.append("planning context profile hash is stale")
+        if public_plan.get("query_set_hash") != planning_profile.get("query_set_hash"):
+            issues.append("planning query set hash is stale")
+        if public_plan.get("dataset_schema_hash") != planning_profile.get("schema_hash"):
+            issues.append("planning dataset schema hash is stale")
     if not target_binding.get("binding_hash"):
         issues.append("target binding is missing")
     if plan_binding.get("target_binding_hash") != target_binding.get("binding_hash"):

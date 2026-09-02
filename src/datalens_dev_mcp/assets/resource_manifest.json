@@ -702,9 +702,9 @@
       "sha256": "b90c15beabf687b678d32954043166e3ac5719cb2b4a7ba4cb198203307f7045"
     },
     {
-      "bytes": 1936,
+      "bytes": 2010,
       "path": "schemas/task-qa-receipt.schema.json",
-      "sha256": "ae6c56798fdf5b4bb67a38931194cf275c66e7830eb96665cff62cbbedb3f636"
+      "sha256": "4ee32b831c453629394eba8b1070d3cc51b320757d9fa779de2508b61e26af78"
     },
     {
       "bytes": 765,

@@ -79,3 +79,26 @@ def test_public_read_only_review_materializes_zero_action_plan() -> None:
     assert plan["plan_kind"] == "read_only_review"
     assert plan["safe_apply_action_count"] == 0
     assert all(method.startswith("get") for method, _ in client.calls)
+
+
+def test_public_read_only_review_completes_without_data_or_browser_qa() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        client = DiscoveryClient()
+        service = TargetDiscoveryService(client)
+        with patch.object(tasks, "TargetDiscoveryService", return_value=service):
+            result = tasks.dl_task_start(
+                (
+                    "Review dashboard https://datalens.example/dash_demo read-only. "
+                    "Do not validate data, mutate objects, or use a browser."
+                ),
+                project_root=tmp,
+                run_until="completed",
+            )
+        journal = tasks.ProjectJournal(tmp, result["task_id"])
+        qa = tasks.read_json(journal.root / "evidence" / "qa-receipt.json", {})
+
+    assert result["state"] == "COMPLETED"
+    assert qa["status"] == "passed"
+    assert qa["browser_adapter_calls"] == 0
+    assert qa["data_proof_status"] == "not_required"
+    assert all(method.startswith("get") for method, _ in client.calls)

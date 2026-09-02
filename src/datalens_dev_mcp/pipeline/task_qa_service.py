@@ -81,6 +81,11 @@ class TaskQaService:
             saved=saved,
             published=published,
         )
+        data_proof_status = (
+            "not_required"
+            if (self.contract.get("data_diagnostics") or {}).get("required") is False
+            else str(data_receipt.get("status") or "blocked")
+        )
         evidence = {
             "static_validation": static_evidence,
             "data_assertions": {
@@ -128,6 +133,7 @@ class TaskQaService:
             "observed_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             "status": "passed" if ok else "blocked",
             "proof_level": str(browser.get("proof_level") or "contract_runtime"),
+            "data_proof_status": data_proof_status,
             "data_proof_receipt_hash": str(data_receipt.get("receipt_hash") or ""),
             "runtime_evidence": runtime_evidence,
             "api_first_diagnostics": api_first_diagnostics,
@@ -182,7 +188,7 @@ class TaskQaService:
             "browser_attestation": {},
             "evidence_matrix": {
                 "can_publish": ok,
-                "missing_evidence": sorted(set(str(item) for item in missing if str(item))),
+                "missing_evidence": sorted({str(item) for item in missing if str(item)}),
             },
             "acceptance_coverage": acceptance_coverage,
             "limitations": list(verification.get("limitations") or []),
@@ -194,10 +200,17 @@ class TaskQaService:
     def stage_handler(self, context: dict[str, Any]) -> dict[str, Any]:
         result = self.execute()
         verify_existing = str(self.contract.get("operation_kind") or "") == "verify_existing_effect"
+        read_only_review = str(self.contract.get("operation_kind") or "") == "inspect"
         missing = list((result.get("evidence_matrix") or {}).get("missing_evidence") or [])
         missing.extend(list((result.get("acceptance_coverage") or {}).get("missing_evidence") or []))
         if result.get("status") != "passed" and not missing:
-            missing.append("existing_effect_live_readback" if verify_existing else "fresh_typed_data_proof")
+            missing.append(
+                "existing_effect_live_readback"
+                if verify_existing
+                else "read_only_runtime_evidence"
+                if read_only_review
+                else "fresh_typed_data_proof"
+            )
         receipt = build_stage_receipt(
             task_id=self.journal.task_id,
             contract_hash=str(self.contract.get("contract_hash") or ""),
@@ -210,12 +223,16 @@ class TaskQaService:
             hard_requirements=(
                 ["existing_effect_live_readback", "required_provider_reads", "zero_mutation"]
                 if verify_existing
+                else ["contract_runtime", "target_readback", "zero_mutation"]
+                if read_only_review
                 else ["fresh_typed_data_proof", "contract_runtime", "browser_policy"]
             ),
             missing_requirements=missing,
             reason=(
                 "existing effect is verified from required live reads with zero mutation"
                 if verify_existing and result.get("status") == "passed"
+                else "read-only target evidence passed with zero mutation"
+                if read_only_review and result.get("status") == "passed"
                 else "typed data and QA evidence passed"
                 if result.get("status") == "passed"
                 else "QA evidence is incomplete"
@@ -223,6 +240,7 @@ class TaskQaService:
             observed_facts=[
                 f"browser mode={((result.get('browser_policy') or {}).get('mode', 'optional'))}",
                 f"browser calls={result.get('browser_adapter_calls', 0)}",
+                f"data proof={result.get('data_proof_status', 'blocked')}",
             ],
         )
         receipt["limitations"] = list(result.get("limitations") or [])

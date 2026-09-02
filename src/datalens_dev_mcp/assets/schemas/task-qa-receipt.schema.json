@@ -14,6 +14,7 @@
     "observed_at": {"type": "string", "minLength": 1},
     "status": {"enum": ["passed", "blocked"]},
     "proof_level": {"enum": ["source_static", "contract_runtime", "browser_rendered"]},
+    "data_proof_status": {"enum": ["passed", "blocked", "not_required"]},
     "data_proof_receipt_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "runtime_evidence": {"type": "object"},
     "api_first_diagnostics": {"type": "object"},
