@@ -400,6 +400,7 @@ def _field_refs(value: Any, path: str = "$", *, in_ref_slot: bool = False) -> li
             if (
                 child_in_ref
                 and lowered in {"guid", "fieldguid", "field_guid", "fieldid", "field_id", "ref", "field"}
+                and item is not None
                 and not isinstance(item, (dict, list))
             ):
                 text = str(item).strip()
