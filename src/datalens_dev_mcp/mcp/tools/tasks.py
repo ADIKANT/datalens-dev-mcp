@@ -921,6 +921,27 @@ def _run_owned_follow_up_target(
     return inferred
 
 
+def _normalize_run_owned_semantic_follow_up(
+    contract: dict[str, Any],
+    *,
+    previous_contract: dict[str, Any],
+    inferred_target: dict[str, Any],
+    semantic_changes: list[dict[str, Any]],
+) -> dict[str, Any]:
+    normalized = deepcopy(contract)
+    if (
+        str(previous_contract.get("mode") or "") == "create"
+        and semantic_changes
+        and list(inferred_target.get("object_ids") or [])
+    ):
+        normalized["mode"] = "update"
+        normalized["task_kind"] = {
+            "create_dashboard": "update_dashboard",
+            "create_chart": "update_chart",
+        }.get(str(previous_contract.get("task_kind") or ""), "update_chart")
+    return normalized
+
+
 def _amend_task(
     journal: ProjectJournal,
     *,
@@ -1070,7 +1091,12 @@ def _amend_task(
             "CONTRACT_AMENDMENT_INPUT_REQUIRED: "
             + str((compiled.get("question") or {}).get("question") or compiled.get("issues") or "invalid amendment")
         )
-    new_contract = dict(compiled["contract"])
+    new_contract = _normalize_run_owned_semantic_follow_up(
+        dict(compiled["contract"]),
+        previous_contract=old,
+        inferred_target=old_target,
+        semantic_changes=semantic_changes,
+    )
     # The persisted target technology is a fresh-discovery fact.  Supplying
     # the existing route above lets an unspecified follow-up preserve its
     # technology choice, but must not manufacture a target change that would

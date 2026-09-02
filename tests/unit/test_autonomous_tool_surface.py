@@ -72,6 +72,17 @@ class AutonomousToolSurfaceTests(unittest.TestCase):
 
         self.assertEqual(relationship, "correct_result")
 
+    def test_semantic_follow_up_to_created_chart_uses_update_planning(self) -> None:
+        normalized = tasks._normalize_run_owned_semantic_follow_up(
+            {"mode": "create", "task_kind": "create_chart"},
+            previous_contract={"mode": "create", "task_kind": "create_chart"},
+            inferred_target={"object_ids": ["chart_created_1"]},
+            semantic_changes=[{"target_id": "chart_created_1", "value": "m"}],
+        )
+
+        self.assertEqual(normalized["mode"], "update")
+        self.assertEqual(normalized["task_kind"], "update_chart")
+
     def _amendable_journal(self, root: str, *, saved: bool = False) -> tuple[ProjectJournal, dict, str]:
         contract = create_task_contract(
             raw_request="Update dashboard:dash_1 and publish it",
