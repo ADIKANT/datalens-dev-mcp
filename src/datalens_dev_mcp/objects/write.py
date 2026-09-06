@@ -73,6 +73,9 @@ class ObjectMutationService:
     ) -> dict[str, Any]:
         if delivery_mode != "save":
             raise ValueError("create delivery_mode must be 'save'; publish is an explicit later operation")
+        from datalens_dev_mcp.dashboard.composition import dependency_order
+
+        drafts = dependency_order(drafts)
         oid, record = self._record("create", {"drafts": drafts, "destination": destination}, operation_id)
         if record.get("status") == "completed":
             return record

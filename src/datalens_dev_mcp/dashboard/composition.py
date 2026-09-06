@@ -1,0 +1,78 @@
+from __future__ import annotations
+
+from copy import deepcopy
+from typing import Any
+
+from datalens_dev_mcp.objects.write import semantic_merge
+
+
+RESERVED_PARAMETERS = frozenset(
+    {
+        "tab", "state", "mode", "focus", "grid", "scale", "tz", "timezone", "date", "datetime",
+        "_action_params", "_autoupdate", "_opened_info", "report_page", "preview_mode",
+    }
+)
+
+
+def compose_dashboard_patch(current: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
+    """Apply only the requested mapping paths; arrays and geometry remain untouched unless supplied."""
+    return semantic_merge(current, patch)
+
+
+def validate_dashboard_contract(contract: dict[str, Any]) -> dict[str, Any]:
+    issues: list[dict[str, str]] = []
+    for index, parameter in enumerate(contract.get("parameters") or []):
+        name = str(parameter.get("name") or "") if isinstance(parameter, dict) else ""
+        if name in RESERVED_PARAMETERS:
+            issues.append({"code": "reserved_parameter", "path": f"parameters/{index}/name", "message": f"{name} is reserved by DataLens"})
+    widgets = contract.get("widgets") or {}
+    for index, selector in enumerate(contract.get("selectors") or []):
+        if not isinstance(selector, dict):
+            continue
+        param = str(selector.get("param_name") or "")
+        consumers = selector.get("consumers") or []
+        if not consumers:
+            issues.append({"code": "selector_without_consumers", "path": f"selectors/{index}/consumers", "message": "selector must name every consumer"})
+        for consumer in consumers:
+            widget = widgets.get(consumer) if isinstance(widgets, dict) else None
+            if not isinstance(widget, dict):
+                issues.append({"code": "consumer_missing", "path": f"selectors/{index}/consumers", "message": f"unknown consumer {consumer}"})
+                continue
+            params = widget.get("params") or {}
+            if param and isinstance(params, dict) and param in params:
+                issues.append({"code": "stale_consumer_override", "path": f"widgets/{consumer}/params/{param}", "message": "widget override would reset selector state"})
+    return {"ok": not issues, "issues": issues}
+
+
+def dependency_order(drafts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Stable unbounded topological order for a concrete create batch."""
+    by_ref: dict[str, dict[str, Any]] = {}
+    position: dict[str, int] = {}
+    for index, draft in enumerate(drafts):
+        ref = str(draft.get("client_ref") or "")
+        if not ref or ref in by_ref:
+            raise ValueError("every draft requires a unique client_ref")
+        by_ref[ref] = draft
+        position[ref] = index
+    dependencies: dict[str, set[str]] = {}
+    for ref, draft in by_ref.items():
+        deps = {str(value) for value in (draft.get("depends_on") or [])}
+        missing = deps - by_ref.keys()
+        if missing:
+            raise ValueError(f"unknown dependency for {ref}: {sorted(missing)}")
+        dependencies[ref] = deps
+    ready = sorted((ref for ref, deps in dependencies.items() if not deps), key=position.get)
+    result: list[dict[str, Any]] = []
+    while ready:
+        ref = ready.pop(0)
+        result.append(deepcopy(by_ref[ref]))
+        for candidate in by_ref:
+            if ref in dependencies[candidate]:
+                dependencies[candidate].remove(ref)
+                if not dependencies[candidate] and candidate not in {str(item["client_ref"]) for item in result} and candidate not in ready:
+                    ready.append(candidate)
+        ready.sort(key=position.get)
+    if len(result) != len(drafts):
+        raise ValueError("dependency cycle in create batch")
+    return result
+

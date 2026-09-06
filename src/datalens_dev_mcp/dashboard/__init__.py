@@ -1,0 +1,2 @@
+"""Dashboard composition contracts."""
+
