@@ -12,7 +12,9 @@ from datalens_dev_mcp.api.auth import refresh_iam_token_with_yc
 from datalens_dev_mcp.api.client import DataLensApiClient
 from datalens_dev_mcp.api.errors import DataLensApiError, safe_error_text
 from datalens_dev_mcp.api.schemas import OperationRegistry
+from datalens_dev_mcp.api.sdk_adapter import SdkAdapter
 from datalens_dev_mcp.config import DataLensConfig
+from datalens_dev_mcp.objects.read import ObjectReadService
 
 MCP_PROTOCOL_VERSION = "2025-06-18"
 ToolHandler = Callable[..., dict[str, Any]]
@@ -55,11 +57,56 @@ def dl_method_schema(method: str) -> dict[str, Any]:
     return {"ok": True, "operation": OperationRegistry.load().get(method)}
 
 
+def _read_service() -> ObjectReadService:
+    config = DataLensConfig.from_env()
+    return ObjectReadService(api=DataLensApiClient(config), sdk=SdkAdapter(config))
+
+
+def dl_workbooks_list(page_size: int = 100, max_pages: int = 100) -> dict[str, Any]:
+    return _read_service().workbooks_list(page_size=page_size, max_pages=max_pages)
+
+
+def dl_workbook_entries(workbook_id: str, page_size: int = 100, max_pages: int = 100) -> dict[str, Any]:
+    return _read_service().workbook_entries(workbook_id, page_size=page_size, max_pages=max_pages)
+
+
+def dl_object_get(
+    object_type: str,
+    object_id: str,
+    branch: str = "saved",
+    revision_id: str | None = None,
+) -> dict[str, Any]:
+    return _read_service().object_get(object_type, object_id, branch=branch, revision_id=revision_id)
+
+
+def dl_object_relations(object_id: str, page_size: int = 100, max_pages: int = 100) -> dict[str, Any]:
+    return _read_service().object_relations(object_id, page_size=page_size, max_pages=max_pages)
+
+
+def dl_dashboard_snapshot(
+    dashboard_id: str,
+    branch: str = "saved",
+    revision_id: str | None = None,
+    reference_dashboard_id: str | None = None,
+) -> dict[str, Any]:
+    return _read_service().dashboard_snapshot(
+        dashboard_id,
+        branch=branch,
+        revision_id=revision_id,
+        reference_dashboard_id=reference_dashboard_id,
+    )
+
+
 TOOLS: dict[str, ToolHandler] = {
     "dl_server_info": dl_server_info,
     "dl_auth_check": dl_auth_check,
     "dl_auth_refresh": dl_auth_refresh,
     "dl_method_schema": dl_method_schema,
+    "dl_workbooks_list": dl_workbooks_list,
+    "dl_workbook_entries": dl_workbook_entries,
+    "dl_object_get": dl_object_get,
+    "dl_object_relations": dl_object_relations,
+    "dl_dashboard_snapshot": dl_dashboard_snapshot,
 }
 
 TOOL_SCHEMAS: list[dict[str, Any]] = [
@@ -96,6 +143,81 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             "additionalProperties": False,
         },
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+    },
+    {
+        "name": "dl_workbooks_list",
+        "description": "List DataLens workbooks with bounded pagination and an explicit completeness marker.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "page_size": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
+                "max_pages": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
+            },
+            "additionalProperties": False,
+        },
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    },
+    {
+        "name": "dl_workbook_entries",
+        "description": "List compact workbook objects with bounded full pagination and an explicit completeness marker.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "workbook_id": {"type": "string", "minLength": 1},
+                "page_size": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
+                "max_pages": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
+            },
+            "required": ["workbook_id"],
+            "additionalProperties": False,
+        },
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    },
+    {
+        "name": "dl_object_get",
+        "description": "Read one typed DataLens object by exact type, ID, branch and optional revision.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "object_type": {"type": "string", "minLength": 1},
+                "object_id": {"type": "string", "minLength": 1},
+                "branch": {"type": "string", "enum": ["saved", "published"], "default": "saved"},
+                "revision_id": {"type": ["string", "null"]},
+            },
+            "required": ["object_type", "object_id"],
+            "additionalProperties": False,
+        },
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    },
+    {
+        "name": "dl_object_relations",
+        "description": "Read compact direct relations for one exact DataLens object ID.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "object_id": {"type": "string", "minLength": 1},
+                "page_size": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
+                "max_pages": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
+            },
+            "required": ["object_id"],
+            "additionalProperties": False,
+        },
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    },
+    {
+        "name": "dl_dashboard_snapshot",
+        "description": "Read one dashboard and only its direct dependencies; keep an optional style reference separate.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "dashboard_id": {"type": "string", "minLength": 1},
+                "branch": {"type": "string", "enum": ["saved", "published"], "default": "saved"},
+                "revision_id": {"type": ["string", "null"]},
+                "reference_dashboard_id": {"type": ["string", "null"]},
+            },
+            "required": ["dashboard_id"],
+            "additionalProperties": False,
+        },
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
     },
 ]
 
