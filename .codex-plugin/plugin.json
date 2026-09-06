@@ -1,0 +1,30 @@
+{
+  "name": "datalens-dev-mcp",
+  "version": "1.0.0",
+  "description": "Develop and maintain Yandex DataLens objects with typed operations and reusable visual recipes.",
+  "author": {
+    "name": "ADIKANT",
+    "url": "https://github.com/ADIKANT"
+  },
+  "homepage": "https://github.com/ADIKANT/datalens-dev-mcp",
+  "repository": "https://github.com/ADIKANT/datalens-dev-mcp",
+  "license": "Apache-2.0",
+  "keywords": ["datalens", "analytics", "dashboard", "mcp"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "DataLens Dev MCP",
+    "shortDescription": "Build and maintain DataLens objects",
+    "longDescription": "Typed DataLens reads, authoring, validation, save, publish, backup, and cleanup with reusable visual recipes.",
+    "developerName": "ADIKANT",
+    "category": "Developer Tools",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://github.com/ADIKANT/datalens-dev-mcp",
+    "defaultPrompt": [
+      "Audit this DataLens dashboard without changing it.",
+      "Build a DataLens chart from this dataset.",
+      "Update this dashboard and preserve its layout."
+    ],
+    "brandColor": "#FFCC00"
+  }
+}

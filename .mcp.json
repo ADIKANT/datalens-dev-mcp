@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "datalens": {
+      "command": "datalens-dev-mcp",
+      "args": ["stdio"]
+    }
+  }
+}
