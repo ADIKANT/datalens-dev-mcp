@@ -14,6 +14,8 @@ from datalens_dev_mcp.api.errors import DataLensApiError, safe_error_text
 from datalens_dev_mcp.api.schemas import OperationRegistry
 from datalens_dev_mcp.api.sdk_adapter import SdkAdapter
 from datalens_dev_mcp.config import DataLensConfig
+from datalens_dev_mcp.dataset.contracts import extract_dataset_fields, validate_dataset_fields
+from datalens_dev_mcp.dataset.preview import DatasetPreviewService
 from datalens_dev_mcp.objects.read import ObjectReadService
 
 MCP_PROTOCOL_VERSION = "2025-06-18"
@@ -97,6 +99,55 @@ def dl_dashboard_snapshot(
     )
 
 
+def _dataset_fields(dataset_id: str, fields: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    if fields is not None:
+        return fields
+    readback = _read_service().object_get("dataset", dataset_id)
+    return extract_dataset_fields(readback["object"])
+
+
+def dl_dataset_validate(
+    dataset_id: str = "",
+    fields: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    resolved = _dataset_fields(dataset_id, fields)
+    result = validate_dataset_fields(resolved)
+    result["dataset_id"] = dataset_id or None
+    if not resolved:
+        result["ok"] = False
+        result["issues"].append(
+            {"code": "dataset_fields_missing", "path": "fields", "message": "no Dataset fields were supplied or read"}
+        )
+    return result
+
+
+def dl_dataset_preview(
+    dataset_id: str,
+    columns: list[str],
+    fields: list[dict[str, Any]] | None = None,
+    filters: list[dict[str, Any]] | None = None,
+    sort: list[dict[str, Any]] | None = None,
+    params: list[dict[str, Any]] | None = None,
+    limit: int = 100,
+    offset: int = 0,
+    max_pages: int = 1,
+    tie_breaker_guids: list[str] | None = None,
+) -> dict[str, Any]:
+    config = DataLensConfig.from_env()
+    return DatasetPreviewService(DataLensApiClient(config)).preview(
+        dataset_id=dataset_id,
+        fields=_dataset_fields(dataset_id, fields),
+        columns=columns,
+        filters=filters,
+        sort=sort,
+        params=params,
+        limit=limit,
+        offset=offset,
+        max_pages=max_pages,
+        tie_breaker_guids=tie_breaker_guids,
+    )
+
+
 TOOLS: dict[str, ToolHandler] = {
     "dl_server_info": dl_server_info,
     "dl_auth_check": dl_auth_check,
@@ -107,6 +158,8 @@ TOOLS: dict[str, ToolHandler] = {
     "dl_object_get": dl_object_get,
     "dl_object_relations": dl_object_relations,
     "dl_dashboard_snapshot": dl_dashboard_snapshot,
+    "dl_dataset_validate": dl_dataset_validate,
+    "dl_dataset_preview": dl_dataset_preview,
 }
 
 TOOL_SCHEMAS: list[dict[str, Any]] = [
@@ -215,6 +268,42 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
                 "reference_dashboard_id": {"type": ["string", "null"]},
             },
             "required": ["dashboard_id"],
+            "additionalProperties": False,
+        },
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    },
+    {
+        "name": "dl_dataset_validate",
+        "description": "Validate Dataset field GUIDs, calculation levels and known cross-field formula restrictions without mutation.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "dataset_id": {"type": "string"},
+                "fields": {"type": ["array", "null"], "items": {"type": "object"}},
+            },
+            "anyOf": [{"required": ["dataset_id"]}, {"required": ["fields"]}],
+            "additionalProperties": False,
+        },
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    },
+    {
+        "name": "dl_dataset_preview",
+        "description": "Run a bounded Dataset query by exact field GUIDs; this is data evidence, not chart branch proof.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "dataset_id": {"type": "string", "minLength": 1},
+                "columns": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+                "fields": {"type": ["array", "null"], "items": {"type": "object"}},
+                "filters": {"type": ["array", "null"], "items": {"type": "object"}},
+                "sort": {"type": ["array", "null"], "items": {"type": "object"}},
+                "params": {"type": ["array", "null"], "items": {"type": "object"}},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 100000, "default": 100},
+                "offset": {"type": "integer", "minimum": 0, "default": 0},
+                "max_pages": {"type": "integer", "minimum": 1, "maximum": 100, "default": 1},
+                "tie_breaker_guids": {"type": ["array", "null"], "items": {"type": "string"}},
+            },
+            "required": ["dataset_id", "columns"],
             "additionalProperties": False,
         },
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
