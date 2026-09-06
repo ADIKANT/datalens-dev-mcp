@@ -101,7 +101,15 @@ class SdkAdapter:
 
     def create(self, draft: dict[str, Any], destination: dict[str, Any]) -> dict[str, Any]:
         """Execute one discriminated draft through the official SDK."""
-        object_type = _canonical_object_type(str(draft.get("object_type") or ""))
+        requested_type = str(draft.get("object_type") or "")
+        if requested_type == "html_page":
+            return self._html_create(draft, destination)
+        if requested_type == "workbook":
+            client = self._sdk_client()
+            collection = datalens_sdk.EntryLocation.collection(str(destination["collection_id"])) if destination.get("collection_id") else None
+            value = client.create.workbook(name=_draft_name(draft), collection=collection).build()
+            return {"object_id": _result_id(value), "object": _json_object(value), "backend": "official_sdk"}
+        object_type = _canonical_object_type(requested_type)
         location = _entry_location(destination)
         name = _draft_name(draft)
         client = self._sdk_client()
@@ -131,17 +139,83 @@ class SdkAdapter:
             raise DataLensApiError(safe_error_text(exc), method=f"create:{object_type}", response_received=True) from exc
 
     def update(self, object_type: str, object_id: str, snapshot: dict[str, Any]) -> dict[str, Any]:
+        if object_type == "html_page":
+            return self._html_update(object_id, snapshot, publish=False)
+        if object_type == "workbook":
+            target = self._get_domain("workbook", object_id)
+            builder = target.update
+            changed = False
+            for field in ("name", "description"):
+                if field in snapshot:
+                    getattr(builder, field)(str(snapshot[field]))
+                    changed = True
+            if not changed:
+                raise ValueError("workbook update supports name and description")
+            value = builder.execute()
+            return {"object_id": object_id, "object": _json_object(value), "backend": "official_sdk"}
         return self._replace(object_type, object_id, snapshot, publish=False)
 
     def publish(self, object_type: str, object_id: str, saved: dict[str, Any]) -> dict[str, Any]:
+        if object_type == "html_page":
+            return self._html_update(object_id, saved.get("object") or saved, publish=True)
         snapshot = saved.get("object") if isinstance(saved.get("object"), dict) else saved
         return self._replace(object_type, object_id, snapshot, publish=True)
+
+    def delete(self, object_type: str, object_id: str) -> dict[str, Any]:
+        if object_type == "html_page":
+            from datalens_dev_mcp.api.client import DataLensApiClient
+
+            if self._config is None:
+                raise RuntimeError("DataLensConfig is required for HTML operations")
+            return DataLensApiClient(self._config).write("deleteHtmlPage", {"entryId": object_id})
+        try:
+            target = self._get_domain(_canonical_object_type(object_type), object_id, branch="saved")
+            target.delete()
+            return {"object_id": object_id, "deleted": True, "backend": "official_sdk"}
+        except httpx.TransportError as exc:
+            raise UncertainWriteError("SDK delete outcome is uncertain", method=f"delete:{object_type}") from exc
+        except Exception as exc:
+            raise DataLensApiError(safe_error_text(exc), method=f"delete:{object_type}", response_received=True) from exc
+
+    def _html_create(self, draft: dict[str, Any], destination: dict[str, Any]) -> dict[str, Any]:
+        from datalens_dev_mcp.api.client import DataLensApiClient
+        from datalens_dev_mcp.maintenance import validate_html_content
+
+        if self._config is None:
+            raise RuntimeError("DataLensConfig is required for HTML operations")
+        content = draft.get("content")
+        validation = validate_html_content(content)
+        if not validation["ok"]:
+            raise ValueError(validation["issues"][0]["message"])
+        payload = {"name": _draft_name(draft), "content": content}
+        if destination.get("workbook_id"):
+            payload["workbookId"] = destination["workbook_id"]
+        result = DataLensApiClient(self._config).write("createHtmlPage", payload)
+        return {"object_id": str(result.get("entryId") or result.get("id") or ""), "object": result, "backend": "public_api_adapter"}
+
+    def _html_update(self, object_id: str, snapshot: dict[str, Any], *, publish: bool) -> dict[str, Any]:
+        from datalens_dev_mcp.api.client import DataLensApiClient
+
+        if self._config is None:
+            raise RuntimeError("DataLensConfig is required for HTML operations")
+        payload: dict[str, Any] = {"entryId": object_id, "mode": "publish" if publish else "save"}
+        revision = snapshot.get("revId") or snapshot.get("rev_id")
+        if revision:
+            payload["revId"] = revision
+        if not publish:
+            if not isinstance(snapshot.get("content"), str):
+                raise ValueError("HTML Page update requires content string")
+            payload["content"] = snapshot["content"]
+            if snapshot.get("name"):
+                payload["name"] = snapshot["name"]
+        result = DataLensApiClient(self._config).write("updateHtmlPage", payload)
+        return {"object_id": object_id, "object": result, "backend": "public_api_adapter"}
 
     def _replace(
         self, object_type: str, object_id: str, snapshot: dict[str, Any], *, publish: bool
     ) -> dict[str, Any]:
         canonical = _canonical_object_type(object_type)
-        if publish and canonical in {"connection", "dataset"}:
+        if publish and canonical in {"connection", "dataset", "workbook"}:
             raise ValueError(f"{canonical} has no publish branch")
         client = self._sdk_client()
         try:
@@ -208,7 +282,7 @@ def _canonical_object_type(value: str) -> str:
         "control_node": "editor_chart",
     }
     canonical = aliases.get(value, value)
-    if canonical not in {"connection", "dataset", "wizard_chart", "editor_chart", "ql_chart", "dashboard"}:
+    if canonical not in {"workbook", "connection", "dataset", "wizard_chart", "editor_chart", "ql_chart", "dashboard"}:
         raise ValueError(f"unsupported SDK mutation object type: {value}")
     return canonical
 

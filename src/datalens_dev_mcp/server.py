@@ -19,6 +19,9 @@ from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.dataset.contracts import extract_dataset_fields, validate_dataset_fields
 from datalens_dev_mcp.dataset.preview import DatasetPreviewService
 from datalens_dev_mcp.editor.validation import validate_editor_draft
+from datalens_dev_mcp.maintenance import admin_capabilities
+from datalens_dev_mcp.objects.backup import BackupService
+from datalens_dev_mcp.objects.cleanup import CleanupService
 from datalens_dev_mcp.objects.read import ObjectReadService
 from datalens_dev_mcp.objects.write import default_mutation_service
 
@@ -216,6 +219,41 @@ def dl_operation_reconcile(operation_id: str) -> dict[str, Any]:
     return default_mutation_service().reconcile(operation_id)
 
 
+def dl_backup_export(targets: list[dict[str, Any]], output_dir: str) -> dict[str, Any]:
+    return BackupService(_read_service()).export(targets, output_dir)
+
+
+def dl_cleanup_preview(
+    candidates: list[dict[str, Any]], preserve_roots: list[dict[str, Any]]
+) -> dict[str, Any]:
+    service = _read_service()
+    return CleanupService(reader=service, deleter=SdkAdapter(DataLensConfig.from_env())).preview(
+        candidates, preserve_roots=preserve_roots
+    )
+
+
+def dl_cleanup_apply(preview: dict[str, Any], confirmed_delete: list[dict[str, Any]]) -> dict[str, Any]:
+    service = _read_service()
+    return CleanupService(reader=service, deleter=SdkAdapter(DataLensConfig.from_env())).apply(
+        preview, confirmed_delete=confirmed_delete
+    )
+
+
+def dl_admin_inventory() -> dict[str, Any]:
+    config = DataLensConfig.from_env()
+    api = DataLensApiClient(config)
+    return {
+        **admin_capabilities(),
+        "licenses": api.read("getLicenses", {}),
+        "limits": api.read("getLicensesLimit", {}),
+    }
+
+
+def dl_admin_assign_licenses(assignments: list[dict[str, Any]]) -> dict[str, Any]:
+    result = DataLensApiClient(DataLensConfig.from_env()).write("assignLicenses", {"assignments": assignments})
+    return {"ok": True, "operation": "assign", "revoke_supported": False, "result": result}
+
+
 TOOLS: dict[str, ToolHandler] = {
     "dl_server_info": dl_server_info,
     "dl_auth_check": dl_auth_check,
@@ -237,6 +275,11 @@ TOOLS: dict[str, ToolHandler] = {
     "dl_object_publish": dl_object_publish,
     "dl_operation_get": dl_operation_get,
     "dl_operation_reconcile": dl_operation_reconcile,
+    "dl_backup_export": dl_backup_export,
+    "dl_cleanup_preview": dl_cleanup_preview,
+    "dl_cleanup_apply": dl_cleanup_apply,
+    "dl_admin_inventory": dl_admin_inventory,
+    "dl_admin_assign_licenses": dl_admin_assign_licenses,
 }
 
 TOOL_SCHEMAS: list[dict[str, Any]] = [
@@ -510,6 +553,36 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             "additionalProperties": False,
         },
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    },
+    {
+        "name": "dl_backup_export",
+        "description": "Export exact object snapshots and a completeness manifest to local files; this is not a full-restore claim.",
+        "inputSchema": {"type": "object", "properties": {"targets": {"type": "array", "minItems": 1, "items": {"type": "object"}}, "output_dir": {"type": "string", "minLength": 1}}, "required": ["targets", "output_dir"], "additionalProperties": False},
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    },
+    {
+        "name": "dl_cleanup_preview",
+        "description": "Compute dependency-based preserve and delete sets without deleting anything.",
+        "inputSchema": {"type": "object", "properties": {"candidates": {"type": "array", "items": {"type": "object"}}, "preserve_roots": {"type": "array", "items": {"type": "object"}}}, "required": ["candidates", "preserve_roots"], "additionalProperties": False},
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    },
+    {
+        "name": "dl_cleanup_apply",
+        "description": "Delete only the exact ordered objects confirmed from an unchanged cleanup preview.",
+        "inputSchema": {"type": "object", "properties": {"preview": {"type": "object"}, "confirmed_delete": {"type": "array", "items": {"type": "object"}}}, "required": ["preview", "confirmed_delete"], "additionalProperties": False},
+        "annotations": {"readOnlyHint": False, "destructiveHint": True, "idempotentHint": True, "openWorldHint": True},
+    },
+    {
+        "name": "dl_admin_inventory",
+        "description": "Read documented license inventory and limits; report that license revoke is unsupported.",
+        "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    },
+    {
+        "name": "dl_admin_assign_licenses",
+        "description": "Apply explicit documented license assignments; this operation does not support revoke.",
+        "inputSchema": {"type": "object", "properties": {"assignments": {"type": "array", "minItems": 1, "items": {"type": "object"}}}, "required": ["assignments"], "additionalProperties": False},
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True},
     },
 ]
 

@@ -95,7 +95,13 @@ class ObjectReadService:
         branch: str = "saved",
         revision_id: str | None = None,
     ) -> dict[str, Any]:
-        payload = self.sdk.get_object(object_type, object_id, branch=branch, revision_id=revision_id)
+        if object_type == "html_page":
+            request = {"entryId": object_id, "branch": branch}
+            if revision_id:
+                request["revId"] = revision_id
+            payload = dict(_unwrap(self.api.read("getHtmlPage", request)))
+        else:
+            payload = self.sdk.get_object(object_type, object_id, branch=branch, revision_id=revision_id)
         actual_revision = str(
             payload.get("rev_id") or payload.get("revId") or payload.get("saved_id") or payload.get("savedId") or revision_id or ""
         )
