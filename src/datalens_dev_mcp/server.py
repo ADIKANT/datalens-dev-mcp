@@ -20,6 +20,7 @@ from datalens_dev_mcp.dataset.contracts import extract_dataset_fields, validate_
 from datalens_dev_mcp.dataset.preview import DatasetPreviewService
 from datalens_dev_mcp.editor.validation import validate_editor_draft
 from datalens_dev_mcp.objects.read import ObjectReadService
+from datalens_dev_mcp.objects.write import default_mutation_service
 
 MCP_PROTOCOL_VERSION = "2025-06-18"
 ToolHandler = Callable[..., dict[str, Any]]
@@ -182,6 +183,39 @@ def dl_editor_validate(draft: dict[str, Any]) -> dict[str, Any]:
     return validate_editor_draft(draft)
 
 
+def dl_object_diff(object_type: str, object_id: str, patch: dict[str, Any]) -> dict[str, Any]:
+    return default_mutation_service().diff(object_type, object_id, patch)
+
+
+def dl_object_create(
+    drafts: list[dict[str, Any]],
+    destination: dict[str, Any],
+    delivery_mode: str = "save",
+    operation_id: str | None = None,
+) -> dict[str, Any]:
+    return default_mutation_service().create_objects(
+        drafts, destination, delivery_mode=delivery_mode, operation_id=operation_id
+    )
+
+
+def dl_object_update(
+    changes: list[dict[str, Any]], delivery_mode: str = "save", operation_id: str | None = None
+) -> dict[str, Any]:
+    return default_mutation_service().update_objects(changes, delivery_mode=delivery_mode, operation_id=operation_id)
+
+
+def dl_object_publish(targets: list[dict[str, Any]], operation_id: str | None = None) -> dict[str, Any]:
+    return default_mutation_service().publish_objects(targets, operation_id=operation_id)
+
+
+def dl_operation_get(operation_id: str) -> dict[str, Any]:
+    return default_mutation_service().get_operation(operation_id)
+
+
+def dl_operation_reconcile(operation_id: str) -> dict[str, Any]:
+    return default_mutation_service().reconcile(operation_id)
+
+
 TOOLS: dict[str, ToolHandler] = {
     "dl_server_info": dl_server_info,
     "dl_auth_check": dl_auth_check,
@@ -197,6 +231,12 @@ TOOLS: dict[str, ToolHandler] = {
     "dl_authoring_defaults": dl_authoring_defaults,
     "dl_compile_recipe": dl_compile_recipe,
     "dl_editor_validate": dl_editor_validate,
+    "dl_object_diff": dl_object_diff,
+    "dl_object_create": dl_object_create,
+    "dl_object_update": dl_object_update,
+    "dl_object_publish": dl_object_publish,
+    "dl_operation_get": dl_operation_get,
+    "dl_operation_reconcile": dl_operation_reconcile,
 }
 
 TOOL_SCHEMAS: list[dict[str, Any]] = [
@@ -388,6 +428,88 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             "additionalProperties": False,
         },
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+    },
+    {
+        "name": "dl_object_diff",
+        "description": "Read one saved object and return the narrow semantic diff for a typed patch without mutation.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "object_type": {"type": "string", "minLength": 1},
+                "object_id": {"type": "string", "minLength": 1},
+                "patch": {"type": "object"},
+            },
+            "required": ["object_type", "object_id", "patch"],
+            "additionalProperties": False,
+        },
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    },
+    {
+        "name": "dl_object_create",
+        "description": "Create typed DataLens drafts in dependency order, save them, and return per-object saved readbacks.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "drafts": {"type": "array", "minItems": 1, "items": {"type": "object"}},
+                "destination": {"type": "object", "minProperties": 1},
+                "delivery_mode": {"type": "string", "enum": ["save"], "default": "save"},
+                "operation_id": {"type": ["string", "null"]},
+            },
+            "required": ["drafts", "destination"],
+            "additionalProperties": False,
+        },
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True},
+    },
+    {
+        "name": "dl_object_update",
+        "description": "Apply narrow saved-object patches with revision checks and per-object saved readback.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "changes": {"type": "array", "minItems": 1, "items": {"type": "object"}},
+                "delivery_mode": {"type": "string", "enum": ["save"], "default": "save"},
+                "operation_id": {"type": ["string", "null"]},
+            },
+            "required": ["changes"],
+            "additionalProperties": False,
+        },
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True},
+    },
+    {
+        "name": "dl_object_publish",
+        "description": "Publish chart or dashboard objects only from a fresh verified saved revision, then read the published branch.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "targets": {"type": "array", "minItems": 1, "items": {"type": "object"}},
+                "operation_id": {"type": ["string", "null"]},
+            },
+            "required": ["targets"],
+            "additionalProperties": False,
+        },
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True},
+    },
+    {
+        "name": "dl_operation_get",
+        "description": "Read one compact modifying-operation record by exact ID.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"operation_id": {"type": "string", "minLength": 1}},
+            "required": ["operation_id"],
+            "additionalProperties": False,
+        },
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+    },
+    {
+        "name": "dl_operation_reconcile",
+        "description": "Reconcile an uncertain modifying result by exact target readback without replaying the write.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"operation_id": {"type": "string", "minLength": 1}},
+            "required": ["operation_id"],
+            "additionalProperties": False,
+        },
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
     },
 ]
 
