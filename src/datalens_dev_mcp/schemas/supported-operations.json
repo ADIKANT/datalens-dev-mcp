@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "official_sdk": {
+    "package": "datalens-sdk",
+    "version": "0.9.0",
+    "tag": "v0.9.0",
+    "commit": "ebc861c27e7288e51f65a0ab3f7a5de043d3575e"
+  },
+  "operations": [
+    {"method": "getWorkbooksList", "backend": "public_api_adapter", "effect": "read", "verified": "schema"},
+    {"method": "getWorkbookEntries", "backend": "public_api_adapter", "effect": "read", "verified": "schema"},
+    {"method": "getDatasetData", "backend": "public_api_adapter", "effect": "read", "verified": "schema"},
+    {"method": "validateDataset", "backend": "public_api_adapter", "effect": "read", "verified": "schema"},
+    {"method": "getEntriesRelations", "backend": "public_api_adapter", "effect": "read", "verified": "schema"},
+    {"method": "createDataset", "backend": "official_sdk", "effect": "write", "verified": "sdk_0.9.0"},
+    {"method": "createWizardChart", "backend": "official_sdk", "effect": "write", "verified": "sdk_0.9.0"},
+    {"method": "createEditorChart", "backend": "official_sdk", "effect": "write", "verified": "sdk_0.9.0"},
+    {"method": "createDashboard", "backend": "official_sdk", "effect": "write", "verified": "sdk_0.9.0"},
+    {"method": "createQlChart", "backend": "official_sdk", "effect": "write", "verified": "sdk_0.9.0"},
+    {"method": "createConnection", "backend": "official_sdk", "effect": "write", "verified": "sdk_0.9.0"},
+    {"method": "getDataset", "backend": "official_sdk", "effect": "read", "verified": "sdk_0.9.0"},
+    {"method": "getWizardChart", "backend": "official_sdk", "effect": "read", "verified": "sdk_0.9.0"},
+    {"method": "getEditorChart", "backend": "official_sdk", "effect": "read", "verified": "sdk_0.9.0"},
+    {"method": "getDashboard", "backend": "official_sdk", "effect": "read", "verified": "sdk_0.9.0"},
+    {"method": "publishDashboard", "backend": "public_api_adapter", "effect": "write", "verified": "schema", "readback_required": true},
+    {"method": "createHtmlPage", "backend": "public_api_adapter", "effect": "write", "verified": "schema", "readback_required": true},
+    {"method": "getHtmlPage", "backend": "public_api_adapter", "effect": "read", "verified": "schema"},
+    {"method": "updateHtmlPage", "backend": "public_api_adapter", "effect": "write", "verified": "schema", "readback_required": true},
+    {"method": "deleteHtmlPage", "backend": "public_api_adapter", "effect": "delete", "verified": "schema", "readback_required": true},
+    {"method": "getLicenses", "backend": "public_api_adapter", "effect": "read", "verified": "schema"},
+    {"method": "getLicensesLimit", "backend": "public_api_adapter", "effect": "read", "verified": "schema"},
+    {"method": "assignLicenses", "backend": "public_api_adapter", "effect": "write", "verified": "schema", "supports_revoke": false}
+  ]
+}

@@ -37,7 +37,9 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
-dependencies = []
+dependencies = [
+  "datalens-sdk==0.9.0",
+]
 
 [project.optional-dependencies]
 yaml = [
@@ -71,6 +73,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "datalens_dev_mcp" = [
+  "schemas/*.json",
   "assets/**/*.json",
   "assets/**/*.jsonl",
   "assets/**/*.js",
