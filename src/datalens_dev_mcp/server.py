@@ -13,9 +13,12 @@ from datalens_dev_mcp.api.client import DataLensApiClient
 from datalens_dev_mcp.api.errors import DataLensApiError, safe_error_text
 from datalens_dev_mcp.api.schemas import OperationRegistry
 from datalens_dev_mcp.api.sdk_adapter import SdkAdapter
+from datalens_dev_mcp.authoring.profiles import get_authoring_defaults
+from datalens_dev_mcp.authoring.recipes import compile_recipe
 from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.dataset.contracts import extract_dataset_fields, validate_dataset_fields
 from datalens_dev_mcp.dataset.preview import DatasetPreviewService
+from datalens_dev_mcp.editor.validation import validate_editor_draft
 from datalens_dev_mcp.objects.read import ObjectReadService
 
 MCP_PROTOCOL_VERSION = "2025-06-18"
@@ -148,6 +151,37 @@ def dl_dataset_preview(
     )
 
 
+def dl_authoring_defaults(
+    project_root: str | None = None,
+    family: str | None = None,
+    explicit: dict[str, Any] | None = None,
+    reference: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return get_authoring_defaults(project_root, family, explicit=explicit, reference=reference)
+
+
+def dl_compile_recipe(
+    recipe_id: str,
+    bindings: dict[str, Any],
+    presentation: dict[str, Any] | None = None,
+    output_dir: str | None = None,
+    project_root: str | None = None,
+    reference: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return compile_recipe(
+        recipe_id,
+        bindings,
+        presentation,
+        output_dir,
+        project_root=project_root,
+        reference=reference,
+    )
+
+
+def dl_editor_validate(draft: dict[str, Any]) -> dict[str, Any]:
+    return validate_editor_draft(draft)
+
+
 TOOLS: dict[str, ToolHandler] = {
     "dl_server_info": dl_server_info,
     "dl_auth_check": dl_auth_check,
@@ -160,6 +194,9 @@ TOOLS: dict[str, ToolHandler] = {
     "dl_dashboard_snapshot": dl_dashboard_snapshot,
     "dl_dataset_validate": dl_dataset_validate,
     "dl_dataset_preview": dl_dataset_preview,
+    "dl_authoring_defaults": dl_authoring_defaults,
+    "dl_compile_recipe": dl_compile_recipe,
+    "dl_editor_validate": dl_editor_validate,
 }
 
 TOOL_SCHEMAS: list[dict[str, Any]] = [
@@ -307,6 +344,50 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             "additionalProperties": False,
         },
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    },
+    {
+        "name": "dl_authoring_defaults",
+        "description": "Resolve compact generic, user, project, reference and explicit authoring defaults for one visual family.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "project_root": {"type": ["string", "null"]},
+                "family": {"type": ["string", "null"]},
+                "explicit": {"type": ["object", "null"]},
+                "reference": {"type": ["object", "null"]},
+            },
+            "additionalProperties": False,
+        },
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+    },
+    {
+        "name": "dl_compile_recipe",
+        "description": "Compile a typed recipe and canonical packaged assets locally; never access or write DataLens.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "recipe_id": {"type": "string", "minLength": 1},
+                "bindings": {"type": "object"},
+                "presentation": {"type": ["object", "null"]},
+                "output_dir": {"type": ["string", "null"]},
+                "project_root": {"type": ["string", "null"]},
+                "reference": {"type": ["object", "null"]},
+            },
+            "required": ["recipe_id", "bindings"],
+            "additionalProperties": False,
+        },
+        "annotations": {"readOnlyHint": False, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+    },
+    {
+        "name": "dl_editor_validate",
+        "description": "Validate one Editor variant, required tabs, aliases and known constrained-runtime errors without execution.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"draft": {"type": "object"}},
+            "required": ["draft"],
+            "additionalProperties": False,
+        },
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
     },
 ]
 

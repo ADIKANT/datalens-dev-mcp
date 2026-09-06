@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "base_visual_contract": {
+    "object_name": {"required": true, "separate_from_visible_title": true},
+    "visible_title": {"text": "", "owner": "widget", "visible": true},
+    "hint": {"owner": "widget", "enabled": true, "content": ["business_meaning", "calculation", "limitations"]},
+    "tooltip": {"hover_target": "datum", "current_value": true, "unit": true, "missing": "explicit", "zero_denominator": "explicit", "comparison": {"dates": true, "values": true, "absolute_delta": true, "relative_delta": true}},
+    "axes_gridlines": {"x_grid": false, "y_grid": false, "zero_baseline": "semantic", "range": "auto", "ticks": "unique_after_formatting"},
+    "labels": {"visible": true, "precision": "from_field", "unit": "from_field", "sign": "semantic", "abbreviation": "locale", "collision": "viewport_aware"},
+    "legend": {"mode": "dynamic_series", "order": "display_order", "bound_to_visible_series": true},
+    "comparison": {"method": "explicit", "alignment": "calendar", "partial_period": "label", "missing": "explicit", "delta_format": "absolute_and_relative", "color": "semantic"},
+    "kpi": {"separate_object": false, "value": false, "comparison_label": false, "sparkline": false, "hint": true},
+    "table": {"columns": [], "widths": "explicit", "header": "pinned", "raw_and_formatted": true, "sort": "explicit", "pagination": true, "total_position": "bottom", "internal_scroll": true},
+    "selector": {"param_name": "", "type": "string", "default": null, "mode": "single", "clear": true, "select_all": false, "reset": false, "consumers": []},
+    "geometry": {"width": 12, "height": 8, "spacing": 8, "preserve_manual": true, "narrow_viewport": true, "long_labels": "wrap_or_ellipsis_with_tooltip"},
+    "states_theme": {"states": ["loading", "error", "no_data", "business_zero"], "themes": ["light", "dark"], "theme": "auto"}
+  },
+  "recipes": {
+    "kpi_sparkline": {
+      "technology": "advanced_chart",
+      "object_type": "advanced-chart_node",
+      "renderer": "advanced_renderer.js",
+      "required_bindings": ["metric", "date", "comparison"],
+      "visual_contract": {"visible_title": {"owner": "body"}, "legend": {"mode": "hidden"}, "kpi": {"separate_object": true, "value": true, "comparison_label": true, "sparkline": true}, "geometry": {"width": 6, "height": 4}},
+      "example": {"data_class": "synthetic", "states": ["value", "loading", "error", "no_data", "business_zero"]}
+    },
+    "time_comparison": {
+      "technology": "wizard",
+      "object_type": "wizard_chart",
+      "wizard_visualization": "line",
+      "required_bindings": ["date", "metric", "comparison"],
+      "visual_contract": {"axes_gridlines": {"x_grid": false, "y_grid": true}, "legend": {"mode": "dynamic_series"}, "comparison": {"method": "current_vs_explicit_period"}},
+      "example": {"data_class": "synthetic", "states": ["current_and_previous", "partial_period", "missing"]}
+    },
+    "categorical_bar": {
+      "technology": "wizard",
+      "object_type": "wizard_chart",
+      "wizard_visualization": "bar",
+      "required_bindings": ["category", "metric"],
+      "visual_contract": {"axes_gridlines": {"x_grid": true, "y_grid": false, "zero_baseline": true}, "labels": {"visible": true, "position": "outside"}, "legend": {"mode": "hidden"}},
+      "example": {"data_class": "synthetic", "states": ["positive", "zero", "missing", "long_label"]}
+    },
+    "comparison_matrix": {
+      "technology": "advanced_chart",
+      "object_type": "advanced-chart_node",
+      "renderer": "matrix_renderer.js",
+      "required_bindings": ["rows", "metric"],
+      "visual_contract": {"legend": {"mode": "fixed_semantic", "items": ["increase", "unchanged", "decrease", "missing"]}, "table": {"total_position": "none"}, "geometry": {"width": 12, "height": 10}},
+      "example": {"data_class": "synthetic", "states": ["increase", "unchanged", "decrease", "missing"]}
+    },
+    "cross_tab_totals": {
+      "technology": "wizard",
+      "object_type": "wizard_chart",
+      "wizard_visualization": "pivot_table",
+      "required_bindings": ["rows", "columns", "measures"],
+      "visual_contract": {"table": {"total_position": "bottom_and_right", "pagination": true}, "legend": {"mode": "hidden"}},
+      "example": {"data_class": "synthetic", "states": ["detail", "subtotal", "grand_total"]}
+    },
+    "native_detail_table": {
+      "technology": "wizard",
+      "object_type": "wizard_chart",
+      "wizard_visualization": "flat_table",
+      "required_bindings": ["columns"],
+      "visual_contract": {"table": {"total_position": "bottom", "header": "pinned", "pagination": true, "internal_scroll": true}, "legend": {"mode": "hidden"}},
+      "example": {"data_class": "synthetic", "states": ["rows", "empty", "long_text", "pagination"]}
+    },
+    "selector": {
+      "technology": "selector",
+      "object_type": "control_node",
+      "renderer": "selector_renderer.js",
+      "required_bindings": ["parameter", "consumers"],
+      "visual_contract": {"visible_title": {"owner": "widget"}, "hint": {"enabled": false}, "labels": {"visible": false}, "legend": {"mode": "hidden"}, "geometry": {"width": 4, "height": 2}},
+      "example": {"data_class": "synthetic", "states": ["default", "selected", "cleared", "no_options"]}
+    }
+  }
+}
