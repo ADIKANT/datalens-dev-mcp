@@ -51,6 +51,16 @@ def test_version_statuses_and_ancestor_groups():
     for color in ["#B8F6D6", "#FFF2B8", "#BBD8FF", "#FFE1D6"]:
         assert color in html
     assert ">NA<" in html and ">CONFIG ERROR<" in html and ">-<" in html
+    # Sticky labels must cover scrolled cells even outside a host theme.
+    from html.parser import HTMLParser
+
+    class StickyLabels(HTMLParser):
+        def handle_starttag(self, tag, attrs):
+            style = dict(attrs).get("style", "")
+            if "position:sticky;left:0;z-index:5" in style:
+                assert "background:var(--g-color-base-background,#ffffff)" in style
+
+    StickyLabels().feed(html)
 
 
 def test_period_series_compiles_js_family_with_comparison_and_hover():

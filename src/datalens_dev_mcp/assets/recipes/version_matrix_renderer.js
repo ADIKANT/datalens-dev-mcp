@@ -17,7 +17,7 @@ module.exports = function renderVersionMatrix(data, config) {
           : theme === 'light'
             ? {surface: '#ffffff', header: '#f4f7fb', line: '#dfe3e8', text: '#202124', muted: '#6b7280'}
             : {
-                surface: 'var(--g-color-base-background,transparent)',
+                surface: 'var(--g-color-base-background,#ffffff)',
                 header: 'var(--g-color-base-generic,#f4f7fb)',
                 line: 'var(--g-color-line-generic,#dfe3e8)',
                 text: 'var(--g-color-text-primary,#202124)',
