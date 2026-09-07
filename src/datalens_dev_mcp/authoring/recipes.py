@@ -77,6 +77,8 @@ def compile_recipe(
         draft.update(_categorical_bar_draft(bindings, contract))
     if recipe_id == "cross_tab_totals" and technology == "wizard":
         draft.update(_pivot_draft(bindings, contract))
+    if recipe_id == "time_comparison" and technology == "wizard":
+        draft.update(_time_comparison_draft(bindings, contract))
     renderer_name = recipe.get("renderer")
     renderer_text = ""
     if renderer_name:
@@ -109,6 +111,37 @@ def compile_recipe(
             "datalens_writes": 0,
         },
         "defaults": defaults,
+    }
+
+
+def _time_comparison_draft(bindings: Mapping[str, Any], contract: Mapping[str, Any]) -> dict[str, Any]:
+    dataset_id = bindings.get("dataset_id")
+    name = contract["object_name"]["value"]
+    if not isinstance(dataset_id, str) or not dataset_id.strip() or not name:
+        raise ValueError("time_comparison requires dataset_id and object_name or metric label")
+    refs = {}
+    for key in ("date", "metric", "comparison"):
+        value = bindings[key]
+        if not isinstance(value, Mapping) or not isinstance(value.get("field_guid"), str) or not value["field_guid"]:
+            raise ValueError(f"{key} requires an explicit field_guid; comparison formulas are not inferred")
+        refs[key] = value["field_guid"]
+    comparison = bindings["comparison"]
+    if not comparison.get("method") or not comparison.get("alignment"):
+        raise ValueError("comparison requires explicit method and alignment semantics")
+    if refs["comparison"] == refs["metric"]:
+        raise ValueError("current and comparison must be distinct fields")
+    title = contract["visible_title"]
+    return {
+        "name": name, "client_ref": str(bindings.get("client_ref") or "time_comparison"),
+        "wizard": {
+            "visualization": "line", "dataset_id": dataset_id,
+            "roles": {"x": [refs["date"]], "y": [refs["metric"], refs["comparison"]]},
+            "title": str(title.get("text") or name),
+            "title_mode": "show" if title.get("visible") and title.get("owner") == "chart" else "hide",
+            "grid": {"x": contract["axes_gridlines"]["x_grid"], "y": contract["axes_gridlines"]["y_grid"]},
+            "legend": "hide" if contract["legend"]["mode"] == "hidden" else "show",
+            "sort": deepcopy(bindings.get("sort") or [{"field_guid": refs["date"], "direction": "asc"}]),
+        },
     }
 
 
