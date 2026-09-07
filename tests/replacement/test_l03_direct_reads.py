@@ -88,6 +88,26 @@ def test_unbranched_object_reports_actual_semantics() -> None:
     assert result["identity"]["branch"] == "unbranched"
 
 
+@pytest.mark.parametrize(
+    ("branch", "expected"),
+    [("saved", "saved-rev"), ("published", "published-rev")],
+)
+def test_dashboard_revision_is_read_from_nested_entry(branch: str, expected: str) -> None:
+    payload = {
+        "entry": {
+            "entryId": "dash-1",
+            "savedId": "saved-rev",
+            "publishedId": "published-rev",
+            "data": {"tabs": []},
+        }
+    }
+    sdk = FakeSdk({("dashboard", "dash-1", branch): payload})
+
+    result = ObjectReadService(api=FakeApi({}), sdk=sdk).object_get("dashboard", "dash-1", branch=branch)
+
+    assert result["identity"]["revision_id"] == expected
+
+
 def test_object_relations_follow_provider_page_tokens() -> None:
     api = FakeApi(
         {

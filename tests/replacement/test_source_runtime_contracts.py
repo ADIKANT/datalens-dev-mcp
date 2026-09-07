@@ -45,14 +45,24 @@ def test_dataset_source_uses_documented_builder_and_selector_without_static_rest
 
     selected = _run_sources(source, {"region_filter": ["north"]})
     cleared = _run_sources(source, {"region_filter": []})
+    cleared_from_dashboard_default = _run_sources(source, {"region_filter": [""]})
 
     assert selected["id"] == "dataset-synthetic"
     assert selected["columns"] == ["Region", "Current", "Previous"]
-    assert selected["where"] == [{"column": "Region", "operation": "IN", "values": ["north"]}]
+    assert selected["where"] == [{"column": "Region", "type": "title", "operation": "IN", "values": ["north"]}]
     assert selected["limit"] == 25
     assert cleared["where"] == []
+    assert cleared_from_dashboard_default["where"] == []
     assert source["params"] == {"region_filter": []}
     assert "updateParams" not in source["sources_js"]
+
+
+def test_dataset_source_accepts_scalar_selector_value_from_dashboard_runtime() -> None:
+    source = matrix_dataset_source(_dataset_bindings())
+
+    selected = _run_sources(source, {"region_filter": "north"})
+
+    assert selected["where"] == [{"column": "Region", "type": "title", "operation": "IN", "values": ["north"]}]
 
 
 @pytest.mark.parametrize(
@@ -79,6 +89,73 @@ def test_dataset_prepare_keeps_valid_empty_result_distinct() -> None:
     script += "console.log(JSON.stringify(module.exports));"
     result = json.loads(subprocess.check_output(["node", "-e", script], text=True))
     assert result == {"rows": [], "state": "no_data"}
+
+
+def test_dataset_prepare_delegates_non_array_loaded_source_to_dataset_runtime() -> None:
+    """The provider may expose an opaque loaded-source handle consumed by libs/dataset/v2."""
+    source = matrix_dataset_source(_dataset_bindings())
+    loaded = {"source": {"status": "loaded"}}
+    script = "const Editor={getLoadedData:()=> (" + json.dumps(loaded) + ")};\n"
+    script += (
+        "const require=()=>({getDatasetRows:()=>[{Region:'north',Current:3,Previous:2}]});\n" + source["prepare_js"]
+    )
+    script += "console.log(JSON.stringify(module.exports));"
+
+    result = json.loads(subprocess.check_output(["node", "-e", script], text=True))
+
+    assert result == {
+        "rows": [{"label": "north", "current": 3, "previous": 2}],
+        "state": "ready",
+    }
+
+
+def test_weekly_recipe_compiles_dataset_rows_to_iso_week_totals(tmp_path) -> None:
+    result = compile_recipe(
+        "weekly_totals_table",
+        {
+            "dataset_id": "dataset-synthetic",
+            "fields": [
+                {"guid": "day", "title": "Day", "type": "DIMENSION"},
+                {"guid": "priority", "title": "Priority", "type": "DIMENSION"},
+                {"guid": "current", "title": "Current issues", "type": "MEASURE"},
+            ],
+            "group": {"field_guid": "priority", "label": "Priority"},
+            "date": {"field_guid": "day", "label": "ISO week"},
+            "metric": {"field_guid": "current", "label": "Current issues"},
+        },
+        user_config_path=tmp_path / "absent.json",
+    )
+    source = result["draft"]["bindings"]["source"]
+    loaded = {"source": {"status": "loaded"}}
+    rows = [
+        {"Day": "2026-09-01", "Priority": "High", "Current issues": 12},
+        {"Day": "2026-09-02", "Priority": "Medium", "Current issues": 8},
+        {"Day": "2026-09-03", "Priority": "Low", "Current issues": 5},
+    ]
+    script = "const Editor={getLoadedData:()=> (" + json.dumps(loaded) + ")};\n"
+    script += "const require=()=>({getDatasetRows:()=>" + json.dumps(rows) + "});\n" + source["prepare_js"]
+    script += "console.log(JSON.stringify(module.exports));"
+
+    prepared = json.loads(subprocess.check_output(["node", "-e", script], text=True))
+
+    assert prepared == {
+        "weeks": [
+            {
+                "key": "2026-W36",
+                "label": "2026-W36",
+                "date_from": "2026-08-31",
+                "date_to": "2026-09-06",
+            }
+        ],
+        "rows": [
+            {"label": "High", "values": [12], "total": 12},
+            {"label": "Low", "values": [5], "total": 5},
+            {"label": "Medium", "values": [8], "total": 8},
+        ],
+        "total_values": [25],
+        "grand_total": 25,
+        "state": "ready",
+    }
 
 
 def test_direct_ql_and_api_sources_compile_only_documented_shapes() -> None:

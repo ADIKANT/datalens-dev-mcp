@@ -37,6 +37,22 @@ WIZARD_VISUALIZATIONS = frozenset(
         "treemap",
     }
 )
+WIZARD_SETTINGS = frozenset(
+    {
+        "dataset_id",
+        "visualization",
+        "roles",
+        "title",
+        "title_mode",
+        "table",
+        "sort",
+        "column_titles",
+        "grid",
+        "legend",
+        "labels_position",
+        "subtotals",
+    }
+)
 SUPPORTED_OBJECT_TYPES = frozenset({"dataset", "wizard_chart", "dashboard", *EDITOR_OBJECT_TYPES})
 KNOWN_NOT_CHECKED_TYPES = frozenset({"connection", "workbook", "ql_chart", "html_page"})
 
@@ -141,6 +157,11 @@ def validate_drafts(drafts: Sequence[Mapping[str, Any]]) -> ValidationResult:
                 )
             )
 
+    _validate_selector_consumers(resolved, items)
+    for item in items:
+        if item["errors"] and item["status"] == "valid":
+            item["status"] = "invalid"
+
     return {
         "ok": all(item["status"] == "valid" for item in items),
         "items": items,
@@ -148,6 +169,45 @@ def validate_drafts(drafts: Sequence[Mapping[str, Any]]) -> ValidationResult:
         "provider_writes": 0,
         "proof_level": "static_validity_only",
     }
+
+
+def _validate_selector_consumers(resolved: list[dict[str, Any] | None], items: list[dict[str, Any]]) -> None:
+    by_ref = {
+        str(draft["client_ref"]): draft
+        for draft in resolved
+        if draft is not None and isinstance(draft.get("client_ref"), str) and draft["client_ref"]
+    }
+    for index, draft in enumerate(resolved):
+        if draft is None or draft.get("object_type") != "control_node":
+            continue
+        contract = draft.get("visual_contract") or draft.get("config") or {}
+        selector = contract.get("selector") if isinstance(contract, Mapping) else None
+        if not isinstance(selector, Mapping):
+            continue
+        param_name = selector.get("param_name")
+        consumers = selector.get("consumers") or []
+        if not isinstance(param_name, str) or not param_name or not isinstance(consumers, list):
+            continue
+        for consumer_index, consumer in enumerate(consumers):
+            consumer_ref = consumer.get("client_ref") if isinstance(consumer, Mapping) else consumer
+            path = f"drafts/{index}/bindings/consumers/{consumer_index}"
+            if not isinstance(consumer_ref, str) or consumer_ref not in by_ref:
+                items[index]["errors"].append(
+                    _error("selector_consumer_missing", path, f"unknown selector consumer: {consumer_ref}")
+                )
+                continue
+            consumer_parameter = consumer.get("parameter") if isinstance(consumer, Mapping) else param_name
+            bindings = by_ref[consumer_ref].get("bindings") or {}
+            source = bindings.get("source") if isinstance(bindings, Mapping) else None
+            params = source.get("params") if isinstance(source, Mapping) else None
+            if consumer_parameter != param_name or not isinstance(params, Mapping) or param_name not in params:
+                items[index]["errors"].append(
+                    _error(
+                        "selector_consumer_parameter_unbound",
+                        path,
+                        f"consumer {consumer_ref} does not declare selector parameter {param_name}",
+                    )
+                )
 
 
 def _validate_client_refs(resolved: list[dict[str, Any] | None], items: list[dict[str, Any]]) -> None:
@@ -243,11 +303,29 @@ def _validate_supported_draft(draft: Mapping[str, Any], object_type: str) -> tup
         errors.extend(_validate_wizard(draft))
         return errors, ["wizard_static_contract"]
     if object_type == "dataset":
-        fields = _dataset_fields(draft)
-        if not fields:
-            errors.append(_error("dataset_fields_missing", "fields", "Dataset draft requires typed fields"))
+        specification = draft.get("dataset")
+        snapshot = draft.get("snapshot")
+        if isinstance(specification, Mapping):
+            errors.extend(_validate_typed_dataset(specification))
+            fields = specification.get("fields")
+            if isinstance(fields, list) and fields:
+                errors.extend(validate_dataset_fields(fields)["issues"])
+        elif isinstance(snapshot, Mapping):
+            fields = extract_dataset_fields(snapshot)
+            if not fields:
+                errors.append(
+                    _error("dataset_fields_missing", "snapshot", "Dataset snapshot requires discoverable typed fields")
+                )
+            else:
+                errors.extend(validate_dataset_fields(fields)["issues"])
         else:
-            errors.extend(validate_dataset_fields(fields)["issues"])
+            errors.append(
+                _error(
+                    "dataset_contract_missing",
+                    "dataset",
+                    "Dataset draft requires a nested dataset object or a provider snapshot",
+                )
+            )
         return errors, ["dataset_static_contract"]
     dashboard = draft.get("dashboard")
     if not isinstance(dashboard, Mapping):
@@ -267,6 +345,14 @@ def _validate_wizard(draft: Mapping[str, Any]) -> list[dict[str, str]]:
     if not isinstance(specification, Mapping):
         return [_error("wizard_contract_missing", "wizard", "Wizard draft requires a wizard object")]
     errors: list[dict[str, str]] = []
+    for setting in sorted(set(specification) - WIZARD_SETTINGS):
+        errors.append(
+            _error(
+                "wizard_setting_unsupported",
+                f"wizard/{setting}",
+                f"unsupported Wizard setting: {setting}",
+            )
+        )
     dataset_id = specification.get("dataset_id")
     object_ref = (
         isinstance(dataset_id, Mapping)
@@ -303,6 +389,116 @@ def _validate_wizard(draft: Mapping[str, Any]) -> list[dict[str, str]]:
                     "Wizard roles require Dataset GUIDs, not technical measures",
                 )
             )
+    return errors
+
+
+def _validate_typed_dataset(specification: Mapping[str, Any]) -> list[dict[str, str]]:
+    errors: list[dict[str, str]] = []
+    supported = {"connection_id", "source", "fields", "parameters", "description"}
+    for setting in sorted(set(specification) - supported):
+        errors.append(
+            _error(
+                "dataset_setting_unsupported",
+                f"dataset/{setting}",
+                f"unsupported Dataset setting: {setting}",
+            )
+        )
+    connection_id = specification.get("connection_id")
+    if not isinstance(connection_id, str) or not connection_id:
+        errors.append(
+            _error(
+                "dataset_connection_missing",
+                "dataset/connection_id",
+                "typed Dataset requires a nonempty connection_id",
+            )
+        )
+    source = specification.get("source")
+    if not isinstance(source, Mapping):
+        errors.append(_error("dataset_source_missing", "dataset/source", "typed Dataset requires a source object"))
+    else:
+        for setting in sorted(set(source) - {"alias", "source_type", "parameters"}):
+            errors.append(
+                _error(
+                    "dataset_source_setting_unsupported",
+                    f"dataset/source/{setting}",
+                    f"unsupported Dataset source setting: {setting}",
+                )
+            )
+        if not isinstance(source.get("alias"), str) or not source.get("alias"):
+            errors.append(
+                _error("dataset_source_alias_missing", "dataset/source/alias", "Dataset source requires an alias")
+            )
+        if not isinstance(source.get("source_type"), str) or not source.get("source_type"):
+            errors.append(
+                _error(
+                    "dataset_source_type_missing",
+                    "dataset/source/source_type",
+                    "Dataset source requires a source_type",
+                )
+            )
+        parameters = source.get("parameters", {})
+        if not isinstance(parameters, Mapping):
+            errors.append(
+                _error(
+                    "dataset_source_parameters_invalid",
+                    "dataset/source/parameters",
+                    "Dataset source parameters must be an object",
+                )
+            )
+    fields = specification.get("fields")
+    if not isinstance(fields, list) or not fields:
+        errors.append(
+            _error("dataset_fields_missing", "dataset/fields", "typed Dataset requires a nonempty fields array")
+        )
+    else:
+        for index, field in enumerate(fields):
+            if not isinstance(field, Mapping):
+                continue
+            kind = str(field.get("kind") or field.get("type") or "").lower()
+            if kind not in {"dimension", "measure"}:
+                errors.append(
+                    _error(
+                        "dataset_field_kind_invalid",
+                        f"dataset/fields/{index}/kind",
+                        "Dataset field kind must be dimension or measure",
+                    )
+                )
+            if not isinstance(field.get("title") or field.get("name"), str) or not (
+                field.get("title") or field.get("name")
+            ):
+                errors.append(
+                    _error(
+                        "dataset_field_title_missing",
+                        f"dataset/fields/{index}/title",
+                        "Dataset field requires a nonempty title",
+                    )
+                )
+            formula = field.get("formula")
+            if formula is None and (not isinstance(field.get("source"), str) or not field.get("source")):
+                errors.append(
+                    _error(
+                        "dataset_field_source_missing",
+                        f"dataset/fields/{index}/source",
+                        "Dataset direct field requires a source",
+                    )
+                )
+            elif formula is not None and (not isinstance(formula, str) or not formula):
+                errors.append(
+                    _error(
+                        "dataset_field_formula_invalid",
+                        f"dataset/fields/{index}/formula",
+                        "Dataset calculation requires a nonempty formula",
+                    )
+                )
+    parameters = specification.get("parameters", [])
+    if not isinstance(parameters, list):
+        errors.append(
+            _error(
+                "dataset_parameters_invalid",
+                "dataset/parameters",
+                "Dataset parameters must be an array",
+            )
+        )
     return errors
 
 

@@ -33,6 +33,8 @@ def compose_dashboard_patch(current: dict[str, Any], patch: dict[str, Any]) -> d
 
 def validate_dashboard_contract(contract: dict[str, Any]) -> dict[str, Any]:
     issues: list[dict[str, str]] = []
+    if "tabs" in contract:
+        issues.extend(_validate_typed_dashboard_tabs(contract))
     parameter_names: set[str] = set()
     for index, parameter in enumerate(contract.get("parameters") or []):
         name = str(parameter.get("name") or "") if isinstance(parameter, dict) else ""
@@ -105,6 +107,125 @@ def validate_dashboard_contract(contract: dict[str, Any]) -> dict[str, Any]:
                     }
                 )
     return {"ok": not issues, "issues": issues}
+
+
+def _validate_typed_dashboard_tabs(contract: dict[str, Any]) -> list[dict[str, str]]:
+    issues: list[dict[str, str]] = []
+    tabs = contract.get("tabs")
+    if not isinstance(tabs, list) or not tabs:
+        return [
+            {
+                "code": "dashboard_tabs_missing",
+                "path": "dashboard/tabs",
+                "message": "typed dashboard requires a nonempty tabs array",
+            }
+        ]
+    if not isinstance(contract.get("settings", {}), dict):
+        issues.append(
+            {
+                "code": "dashboard_settings_invalid",
+                "path": "dashboard/settings",
+                "message": "dashboard settings must be an object",
+            }
+        )
+    for tab_index, tab in enumerate(tabs):
+        tab_path = f"dashboard/tabs/{tab_index}"
+        if not isinstance(tab, dict):
+            issues.append(
+                {"code": "dashboard_tab_invalid", "path": tab_path, "message": "dashboard tab must be an object"}
+            )
+            continue
+        if not isinstance(tab.get("title"), str) or not tab.get("title"):
+            issues.append(
+                {
+                    "code": "dashboard_tab_title_missing",
+                    "path": f"{tab_path}/title",
+                    "message": "dashboard tab requires a nonempty title",
+                }
+            )
+        items = tab.get("items")
+        if not isinstance(items, list) or not items:
+            issues.append(
+                {
+                    "code": "dashboard_items_missing",
+                    "path": f"{tab_path}/items",
+                    "message": "dashboard tab requires a nonempty items array",
+                }
+            )
+            continue
+        for item_index, item in enumerate(items):
+            item_path = f"{tab_path}/items/{item_index}"
+            if not isinstance(item, dict):
+                issues.append(
+                    {
+                        "code": "dashboard_item_invalid",
+                        "path": item_path,
+                        "message": "dashboard item must be an object",
+                    }
+                )
+                continue
+            kind = item.get("kind")
+            if kind not in {"chart", "external_selector", "title", "text"}:
+                issues.append(
+                    {
+                        "code": "dashboard_item_kind_invalid",
+                        "path": f"{item_path}/kind",
+                        "message": "dashboard item kind must be chart, external_selector, title or text",
+                    }
+                )
+            at = item.get("at")
+            if not isinstance(at, (list, tuple)) or len(at) != 4 or any(type(value) is not int for value in at):
+                issues.append(
+                    {
+                        "code": "dashboard_item_at_invalid",
+                        "path": f"{item_path}/at",
+                        "message": "dashboard item at must contain four integers",
+                    }
+                )
+            if kind in {"chart", "external_selector"}:
+                if not isinstance(item.get("chart_id"), str) or not item.get("chart_id"):
+                    issues.append(
+                        {
+                            "code": "dashboard_item_chart_missing",
+                            "path": f"{item_path}/chart_id",
+                            "message": "dashboard chart item requires a chart_id",
+                        }
+                    )
+                if not isinstance(item.get("title"), str) or not item.get("title"):
+                    issues.append(
+                        {
+                            "code": "dashboard_item_title_missing",
+                            "path": f"{item_path}/title",
+                            "message": "dashboard chart item requires a title",
+                        }
+                    )
+                if kind == "external_selector":
+                    defaults = item.get("defaults")
+                    if not isinstance(defaults, dict) or not defaults:
+                        issues.append(
+                            {
+                                "code": "external_selector_defaults_missing",
+                                "path": f"{item_path}/defaults",
+                                "message": "external selector requires nonempty dashboard defaults for parameter dispatch",
+                            }
+                        )
+            elif kind == "title" and (not isinstance(item.get("title"), str) or not item.get("title")):
+                issues.append(
+                    {
+                        "code": "dashboard_item_title_missing",
+                        "path": f"{item_path}/title",
+                        "message": "dashboard title item requires a title",
+                    }
+                )
+            elif kind == "text" and (not isinstance(item.get("text"), str) or not item.get("text")):
+                issues.append(
+                    {
+                        "code": "dashboard_item_text_missing",
+                        "path": f"{item_path}/text",
+                        "message": "dashboard text item requires text",
+                    }
+                )
+    return issues
 
 
 def dependency_order(drafts: list[dict[str, Any]]) -> list[dict[str, Any]]:

@@ -102,14 +102,7 @@ class ObjectReadService:
             payload = dict(_unwrap(self.api.read("getHtmlPage", request)))
         else:
             payload = self.sdk.get_object(object_type, object_id, branch=branch, revision_id=revision_id)
-        actual_revision = str(
-            payload.get("rev_id")
-            or payload.get("revId")
-            or payload.get("saved_id")
-            or payload.get("savedId")
-            or revision_id
-            or ""
-        )
+        actual_revision = _revision_id(payload, branch=branch, fallback=revision_id)
         unbranched = object_type in {"workbook", "connection", "dataset"}
         return {
             "ok": True,
@@ -194,6 +187,24 @@ class ObjectReadService:
         if reference_dashboard_id:
             result["reference"] = self.object_get("dashboard", reference_dashboard_id, branch=branch)
         return result
+
+
+def _revision_id(payload: Mapping[str, Any], *, branch: str, fallback: str | None) -> str:
+    branch_keys = (
+        ("published_id", "publishedId", "saved_id", "savedId")
+        if branch == "published"
+        else ("saved_id", "savedId", "published_id", "publishedId")
+    )
+    containers: list[Mapping[str, Any]] = [payload]
+    entry = payload.get("entry")
+    if isinstance(entry, Mapping):
+        containers.append(entry)
+    for container in containers:
+        for key in ("rev_id", "revId", *branch_keys):
+            value = container.get(key)
+            if isinstance(value, str) and value:
+                return value
+    return fallback or ""
 
 
 def _unwrap(raw: Mapping[str, Any]) -> Mapping[str, Any]:

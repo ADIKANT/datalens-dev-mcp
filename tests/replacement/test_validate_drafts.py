@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from datalens_dev_mcp import server
+from datalens_dev_mcp.authoring.recipes import compile_recipe
 from datalens_dev_mcp.editor.validation import validate_editor_draft
 from datalens_dev_mcp.sdk import validate_drafts
 
@@ -31,6 +32,55 @@ VALID_EDITOR = {
         "controls.js": "module.exports = {};",
     },
     "source_aliases": [],
+}
+
+
+VALID_DATASET = {
+    "client_ref": "dataset",
+    "object_type": "dataset",
+    "name": "Synthetic dataset",
+    "dataset": {
+        "connection_id": "connection-synthetic",
+        "source": {
+            "alias": "Synthetic events",
+            "source_type": "CH_SUBSELECT",
+            "parameters": {"manual": True, "subsql": "SELECT 1 AS value"},
+        },
+        "fields": [
+            {
+                "guid": "value-guid",
+                "title": "Value",
+                "kind": "measure",
+                "source": "value",
+                "aggregation": "sum",
+            }
+        ],
+    },
+}
+
+
+VALID_TYPED_DASHBOARD = {
+    "client_ref": "dashboard",
+    "object_type": "dashboard",
+    "name": "Synthetic dashboard",
+    "dashboard": {
+        "tabs": [
+            {
+                "title": "Overview",
+                "tab_id": "overview",
+                "items": [
+                    {
+                        "kind": "chart",
+                        "chart_id": "chart-synthetic",
+                        "title": "Synthetic chart",
+                        "item_id": "chart",
+                        "at": [0, 0, 12, 8],
+                    }
+                ],
+            }
+        ],
+        "settings": {"hide_dash_title": False},
+    },
 }
 
 
@@ -69,6 +119,182 @@ def test_validate_drafts_keeps_valid_neighbor_when_other_types_fail() -> None:
     assert result["items"][1]["errors"][0]["code"] == "wizard_dataset_missing"
     assert result["items"][2]["errors"][0]["code"] == "object_type_unsupported"
     assert result["provider_writes"] == 0
+
+
+def test_validate_drafts_requires_typed_dataset_members_under_dataset() -> None:
+    misplaced = {
+        "client_ref": "dataset",
+        "object_type": "dataset",
+        "name": "Misplaced dataset",
+        **VALID_DATASET["dataset"],
+    }
+
+    result = validate_drafts([misplaced])
+
+    assert result["ok"] is False
+    assert result["items"][0]["errors"] == [
+        {
+            "code": "dataset_contract_missing",
+            "path": "dataset",
+            "message": "Dataset draft requires a nested dataset object or a provider snapshot",
+        }
+    ]
+
+
+def test_validate_drafts_checks_typed_dataset_source_before_provider_write() -> None:
+    malformed = {
+        **VALID_DATASET,
+        "dataset": {
+            **VALID_DATASET["dataset"],
+            "connection_id": "",
+            "source": {"alias": "", "source_type": "", "parameters": []},
+        },
+    }
+
+    result = validate_drafts([malformed])
+
+    assert result["ok"] is False
+    assert {(error["code"], error["path"]) for error in result["items"][0]["errors"]} == {
+        ("dataset_connection_missing", "dataset/connection_id"),
+        ("dataset_source_alias_missing", "dataset/source/alias"),
+        ("dataset_source_type_missing", "dataset/source/source_type"),
+        ("dataset_source_parameters_invalid", "dataset/source/parameters"),
+    }
+
+
+def test_validate_drafts_accepts_complete_typed_dataset_contract() -> None:
+    result = validate_drafts([VALID_DATASET])
+
+    assert result["ok"] is True
+    assert result["items"][0]["checks"] == ["dataset_static_contract"]
+
+
+def test_validate_drafts_rejects_typed_dashboard_type_and_split_geometry() -> None:
+    malformed = {
+        **VALID_TYPED_DASHBOARD,
+        "dashboard": {
+            "tabs": [
+                {
+                    "title": "Overview",
+                    "items": [
+                        {
+                            "type": "chart",
+                            "chart_id": "chart-synthetic",
+                            "title": "Synthetic chart",
+                            "x": 0,
+                            "y": 0,
+                            "w": 12,
+                            "h": 8,
+                        }
+                    ],
+                }
+            ]
+        },
+    }
+
+    result = validate_drafts([malformed])
+
+    assert result["ok"] is False
+    assert {(error["code"], error["path"]) for error in result["items"][0]["errors"]} == {
+        ("dashboard_item_kind_invalid", "dashboard/tabs/0/items/0/kind"),
+        ("dashboard_item_at_invalid", "dashboard/tabs/0/items/0/at"),
+    }
+
+
+def test_validate_drafts_accepts_complete_typed_dashboard_contract() -> None:
+    result = validate_drafts([VALID_TYPED_DASHBOARD])
+
+    assert result["ok"] is True
+    assert result["items"][0]["checks"] == ["dashboard_static_contract"]
+
+
+def test_validate_drafts_rejects_wizard_setting_not_supported_by_builder() -> None:
+    result = validate_drafts(
+        [
+            {
+                **VALID_WIZARD,
+                "wizard": {**VALID_WIZARD["wizard"], "params": {"priority_filter": "All"}},
+            }
+        ]
+    )
+
+    assert result["ok"] is False
+    assert result["items"][0]["errors"] == [
+        {
+            "code": "wizard_setting_unsupported",
+            "path": "wizard/params",
+            "message": "unsupported Wizard setting: params",
+        }
+    ]
+
+
+def test_validate_drafts_requires_selector_parameter_in_every_declared_consumer() -> None:
+    matrix = compile_recipe(
+        "comparison_matrix",
+        {
+            "rows": [{"field_guid": "priority"}],
+            "metric": {"field_guid": "current"},
+            "prepared_data": {"rows": [{"label": "Blocker", "current": 3, "previous": 2}]},
+        },
+    )["draft"]
+    matrix.update(client_ref="matrix", name="Matrix")
+    selector = compile_recipe(
+        "selector",
+        {
+            "parameter": {"name": "priority_filter", "default": []},
+            "options": ["Blocker"],
+            "consumers": ["matrix"],
+        },
+    )["draft"]
+    selector.update(client_ref="selector", name="Selector")
+
+    result = validate_drafts([matrix, selector])
+
+    assert result["ok"] is False
+    assert result["items"][1]["errors"][-1] == {
+        "code": "selector_consumer_parameter_unbound",
+        "path": "drafts/1/bindings/consumers/0",
+        "message": "consumer matrix does not declare selector parameter priority_filter",
+    }
+
+
+def test_validate_drafts_accepts_dataset_source_consumer_with_matching_parameter() -> None:
+    matrix = compile_recipe(
+        "comparison_matrix",
+        {
+            "dataset_id": "dataset-synthetic",
+            "fields": [
+                {"guid": "priority", "title": "Priority"},
+                {"guid": "current", "title": "Current"},
+                {"guid": "previous", "title": "Previous"},
+            ],
+            "rows": [{"field_guid": "priority"}],
+            "metric": {"field_guid": "current"},
+            "comparison": {"field_guid": "previous"},
+            "selectors": [
+                {
+                    "param_name": "priority_filter",
+                    "field_guid": "priority",
+                    "default": [],
+                    "empty_selection": "all",
+                }
+            ],
+        },
+    )["draft"]
+    matrix.update(client_ref="matrix", name="Matrix")
+    selector = compile_recipe(
+        "selector",
+        {
+            "parameter": {"name": "priority_filter", "default": []},
+            "options": ["Blocker"],
+            "consumers": ["matrix"],
+        },
+    )["draft"]
+    selector.update(client_ref="selector", name="Selector")
+
+    result = validate_drafts([matrix, selector])
+
+    assert result["ok"] is True
 
 
 def test_validate_drafts_resolves_inline_and_artifact_inputs_compactly(tmp_path: Path) -> None:

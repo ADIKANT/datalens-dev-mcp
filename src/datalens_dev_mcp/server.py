@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import sys
 from collections.abc import Callable
 from copy import deepcopy
@@ -10,6 +11,11 @@ from datalens_dev_mcp import __version__
 from datalens_dev_mcp.api.errors import DataLensApiError, safe_error_text
 from datalens_dev_mcp.api.runtime import get_runtime
 from datalens_dev_mcp.api.schemas import OperationRegistry
+from datalens_dev_mcp.authoring.artifacts import (
+    default_recipe_artifact_dir,
+    prune_recipe_artifacts,
+    resolve_artifact,
+)
 from datalens_dev_mcp.authoring.profiles import get_authoring_defaults
 from datalens_dev_mcp.authoring.recipes import compile_recipe
 from datalens_dev_mcp.authoring.validation import validate_drafts
@@ -174,20 +180,35 @@ def dl_compile_recipe(
     project_root: str | None = None,
     reference: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    result = compile_recipe(
-        recipe_id,
-        bindings,
-        presentation,
-        output_dir,
-        project_root=project_root,
-        reference=reference,
-    )
-    if output_dir is not None:
-        # The local consumer reads the same artifact. Do not make the model
-        # receive and echo its renderer/large provider payload to create it.
-        result = {key: value for key, value in result.items() if key != "draft"}
-        result["draft_reference"] = {"artifact_path": result["files"]["draft.json"]}
-    return result
+    generated_dir = default_recipe_artifact_dir(recipe_id) if output_dir is None else None
+    materialize_dir = str(generated_dir) if generated_dir is not None else output_dir
+    try:
+        result = compile_recipe(
+            recipe_id,
+            bindings,
+            presentation,
+            materialize_dir,
+            project_root=project_root,
+            reference=reference,
+        )
+    except Exception:
+        if generated_dir is not None:
+            shutil.rmtree(generated_dir, ignore_errors=True)
+        raise
+    if generated_dir is not None:
+        prune_recipe_artifacts(generated_dir)
+    # The local consumer reads the same artifact. Do not make the model
+    # receive and echo its renderer/large provider payload to create it.
+    summary = result["summary"]
+    return {
+        "ok": result["ok"],
+        "recipe_id": result["recipe_id"],
+        "summary": {
+            key: summary[key]
+            for key in ("technology", "object_type", "renderer_reused", "network_calls", "datalens_writes")
+        },
+        "draft_reference": {"artifact_path": result["files"]["draft.json"]},
+    }
 
 
 def dl_editor_validate(
@@ -196,7 +217,7 @@ def dl_editor_validate(
 ) -> dict[str, Any]:
     if (draft is None) == (drafts is None):
         raise ValueError("provide exactly one of draft or drafts")
-    return validate_drafts(drafts) if drafts is not None else validate_editor_draft(draft)
+    return validate_drafts(drafts) if drafts is not None else validate_editor_draft(resolve_artifact(draft))
 
 
 def dl_object_diff(object_type: str, object_id: str, patch: dict[str, Any]) -> dict[str, Any]:
@@ -461,7 +482,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_compile_recipe",
-        "description": "Compile a typed recipe and canonical packaged assets locally; never access or write DataLens.",
+        "description": "Compile a typed recipe to a compact local artifact reference; never access or write DataLens.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -484,7 +505,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_editor_validate",
-        "description": "Validate one Editor variant, required tabs, aliases and known constrained-runtime errors without execution.",
+        "description": "Validate one Editor draft or a mixed typed draft batch, including artifact references, without execution.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -513,7 +534,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_object_create",
-        "description": "Create typed DataLens drafts or local JSON artifact references ({artifact_path: absolute path}) in dependency order, save, and read back. References may override client_ref/depends_on only.",
+        "description": "Create typed DataLens drafts or local JSON artifact references ({artifact_path: absolute path}) in dependency order, save, and read back. A typed Dataset uses top-level object_type/name/client_ref and nested dataset.connection_id/source/fields. References may override client_ref/depends_on only.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -534,7 +555,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_object_update",
-        "description": "Apply narrow saved-object patches with revision checks and per-object saved readback.",
+        "description": "Apply narrow saved-object patches with revision checks and per-object saved readback. A compiled Editor artifact update places artifact_path beside object_type/object_id/expected_revision; its tabs are mapped into saved data without echoing renderer source.",
         "inputSchema": {
             "type": "object",
             "properties": {

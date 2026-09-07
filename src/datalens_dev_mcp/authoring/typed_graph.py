@@ -1,11 +1,58 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from copy import deepcopy
 from typing import Any
 
 from datalens_sdk import DashboardTab
+from datalens_sdk.converter.dashboard import DashboardConverter
 
 _DATASET_KINDS = frozenset({"dimension", "measure"})
+
+
+class _DashboardCreateWithExternalDefaults:
+    """Keep typed dashboard composition while filling an SDK 0.9 external-control gap."""
+
+    def __init__(
+        self,
+        builder: Any,
+        client: Any,
+        *,
+        name: str,
+        location: Any,
+        defaults_by_item: Mapping[str, Mapping[str, Any]],
+    ) -> None:
+        self._builder = builder
+        self._client = client
+        self._name = name
+        self._location = location
+        self._defaults_by_item = {key: deepcopy(dict(value)) for key, value in defaults_by_item.items()}
+
+    def to_spec(self) -> Any:
+        return self._builder.to_spec()
+
+    @property
+    def response_snapshot(self) -> dict[str, Any]:
+        payload = DashboardConverter.from_domain_create(self.to_spec()).to_payload()
+        entry = deepcopy(payload["entry"])
+        for tab in entry["data"]["tabs"]:
+            for item in tab["items"]:
+                defaults = self._defaults_by_item.get(str(item.get("id") or ""))
+                if defaults is not None:
+                    if item.get("type") != "control" or (item.get("data") or {}).get("sourceType") != "external":
+                        raise ValueError("external selector defaults resolved to a non-external dashboard item")
+                    item["defaults"] = deepcopy(defaults)
+        # Raw SDK create accepts a captured response snapshot and discards this
+        # synthetic source identity while preserving the typed data payload.
+        entry["entryId"] = "typed-dashboard-template"
+        return {"entry": entry}
+
+    def build(self) -> Any:
+        return self._client.raw.create.dashboard(
+            response_snapshot=self.response_snapshot,
+            name=self._name,
+            location=self._location,
+        ).build()
 
 
 def dataset_builder(client: Any, connection: Any, specification: Mapping[str, Any], *, name: str, location: Any) -> Any:
@@ -119,6 +166,7 @@ def dashboard_builder(client: Any, specification: Mapping[str, Any], *, name: st
     if not isinstance(tabs, list) or not tabs:
         raise ValueError("dashboard.tabs must be a nonempty list")
     builder = client.create.dashboard(name=name, location=location)
+    external_defaults: dict[str, dict[str, Any]] = {}
     if specification.get("description") is not None:
         builder.description(str(specification["description"]))
     for raw_tab in tabs:
@@ -157,6 +205,20 @@ def dashboard_builder(client: Any, specification: Mapping[str, Any], *, name: st
                 chart_id = item.get("chart_id")
                 if not isinstance(chart_id, str) or not chart_id or not isinstance(title, str) or not title:
                     raise ValueError("external selector requires chart_id and title")
+                defaults = item.get("defaults")
+                if not isinstance(defaults, Mapping) or not defaults:
+                    raise ValueError("external selector requires nonempty defaults")
+                if item_id is None:
+                    raise ValueError("external selector defaults require an explicit item_id")
+                normalized_defaults: dict[str, Any] = {}
+                for param_name, value in defaults.items():
+                    if not isinstance(param_name, str) or not param_name:
+                        raise ValueError("external selector default names must be nonempty strings")
+                    values = value if isinstance(value, list) else [value]
+                    if any(not isinstance(entry, (str, int, float, bool)) for entry in values):
+                        raise TypeError("external selector defaults must contain scalar values")
+                    normalized_defaults[param_name] = [str(entry) for entry in values]
+                external_defaults[item_id] = normalized_defaults
                 tab.add_selector(chart=chart_id, title=title, item_id=item_id, at=at)
             elif kind == "title":
                 if not isinstance(title, str) or not title:
@@ -175,6 +237,14 @@ def dashboard_builder(client: Any, specification: Mapping[str, Any], *, name: st
         raise TypeError("dashboard settings must be an object")
     if settings:
         builder.settings(**dict(settings))
+    if external_defaults:
+        return _DashboardCreateWithExternalDefaults(
+            builder,
+            client,
+            name=name,
+            location=location,
+            defaults_by_item=external_defaults,
+        )
     return builder
 
 

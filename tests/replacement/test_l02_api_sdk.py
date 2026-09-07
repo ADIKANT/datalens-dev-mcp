@@ -55,6 +55,17 @@ def test_read_retries_transient_failure_once() -> None:
     assert [call[0] for call in transport.calls] == ["getWorkbooksList", "getWorkbooksList"]
 
 
+def test_read_uses_documented_api_version_per_method() -> None:
+    transport = SequenceTransport([{"entries": []}, {"data": {"rows": []}}])
+    client = DataLensApiClient(_config(), transport=transport)
+
+    client.read("getWorkbooksList", {"pageSize": 10})
+    client.read("getDatasetData", {"datasetId": "dataset-synthetic"})
+
+    assert transport.calls[0][2]["x-dl-api-version"] == "1"
+    assert transport.calls[1][2]["x-dl-api-version"] == "2"
+
+
 def test_write_transport_failure_is_uncertain_and_never_replayed() -> None:
     transport = SequenceTransport([TimeoutError("synthetic timeout")])
     client = DataLensApiClient(_config(), transport=transport)
@@ -90,6 +101,7 @@ def test_operation_registry_records_real_sdk_coverage() -> None:
     assert registry.get("createEditorChart")["backend"] == "official_sdk"
     assert registry.get("createDashboard")["backend"] == "official_sdk"
     assert registry.get("getDatasetData")["backend"] == "public_api_adapter"
+    assert registry.get("getDatasetData")["api_version"] == "2"
     assert registry.get("publishDashboard")["readback_required"] is True
 
 
@@ -113,3 +125,10 @@ def test_l02_tools_expose_auth_and_versioned_schema_without_generic_rpc() -> Non
     result = call_tool("dl_method_schema", {"method": "createWizardChart"})["structuredContent"]
     assert result["operation"]["backend"] == "official_sdk"
     assert result["operation"]["verified"] == "sdk_0.9.0"
+
+
+def test_create_tool_describes_nested_typed_dataset_contract() -> None:
+    create_tool = next(item for item in list_tools() if item["name"] == "dl_object_create")
+
+    assert "dataset.connection_id/source/fields" in create_tool["description"]
+    assert "top-level object_type/name/client_ref" in create_tool["description"]

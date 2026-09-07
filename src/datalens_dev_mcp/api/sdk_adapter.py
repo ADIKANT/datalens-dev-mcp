@@ -203,8 +203,10 @@ class SdkAdapter:
                 from datalens_dev_mcp.authoring.typed_graph import dashboard_builder
 
                 builder = dashboard_builder(client, draft["dashboard"], name=name, location=location)
-                payload = DashboardConverter.from_domain_create(builder.to_spec()).to_payload()
-                expected_readback = {"data": payload["entry"]["data"]}
+                payload = getattr(builder, "response_snapshot", None)
+                if payload is None:
+                    payload = DashboardConverter.from_domain_create(builder.to_spec()).to_payload()
+                expected_readback = {"entry": {"data": payload["entry"]["data"]}}
                 value = builder.build()
             else:
                 snapshot = draft.get("snapshot")
@@ -313,9 +315,9 @@ class SdkAdapter:
             # This is a second read after the service merged its patch. Never
             # attach that older snapshot to a newly observed revision. This
             # preflight is not an atomic provider-side CAS guarantee.
-            expected_revision = snapshot.get("revId") or snapshot.get("rev_id")
+            expected_revision = _saved_revision(snapshot)
             if expected_revision:
-                observed_revision = latest.get("revId") or latest.get("rev_id")
+                observed_revision = _saved_revision(latest)
                 if observed_revision != expected_revision:
                     raise ValueError("saved revision changed during SDK target fetch; re-read before retry")
             rename_to = None
@@ -383,7 +385,24 @@ def _chart_entry(snapshot: dict[str, Any]) -> dict[str, Any]:
         return snapshot
     if not isinstance(snapshot["entry"], dict):
         raise ValueError("chart response entry must be an object")  # noqa: TRY004
-    return dict(snapshot["entry"])
+    entry = dict(snapshot["entry"])
+    key = entry.get("key")
+    if not entry.get("name") and isinstance(key, str) and key.rsplit("/", 1)[-1]:
+        entry["name"] = key.rsplit("/", 1)[-1]
+    return entry
+
+
+def _saved_revision(snapshot: dict[str, Any]) -> str | None:
+    containers = [snapshot]
+    entry = snapshot.get("entry")
+    if isinstance(entry, dict):
+        containers.append(entry)
+    for container in containers:
+        for key in ("revId", "rev_id", "savedId", "saved_id"):
+            value = container.get(key)
+            if isinstance(value, str) and value:
+                return value
+    return None
 
 
 def _provider_error(exc: Exception, method: str) -> DataLensApiError:

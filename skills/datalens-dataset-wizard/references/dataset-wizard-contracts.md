@@ -1,5 +1,42 @@
 # Dataset and Wizard contracts
 
+- A new typed Dataset draft has exactly this ownership shape (values below are synthetic):
+
+  ```json
+  {
+    "object_type": "dataset",
+    "client_ref": "events_dataset",
+    "name": "Events dataset",
+    "dataset": {
+      "connection_id": "existing-connection-id",
+      "source": {
+        "alias": "Events",
+        "source_type": "CH_SUBSELECT",
+        "parameters": {
+          "manual": true,
+          "subsql": "SELECT 'North' AS region, 42 AS amount"
+        }
+      },
+      "fields": [
+        {
+          "guid": "region-guid",
+          "title": "Region",
+          "kind": "dimension",
+          "source": "region"
+        },
+        {
+          "guid": "amount-guid",
+          "title": "Amount",
+          "kind": "measure",
+          "source": "amount",
+          "aggregation": "sum"
+        }
+      ]
+    }
+  }
+  ```
+
+  Keep `connection_id`, `source`, and `fields` inside `dataset`. Do not add `snapshot` to this typed form. Run `dl_editor_validate` on the batch before `dl_object_create`; static validity still does not prove provider acceptance.
 - `dl_dataset_validate` checks identity and known formula interactions. It does not replace provider validation or prove connector-specific function support.
 - `dl_dataset_preview` accepts exact Dataset GUIDs. Multi-page reads require an explicit sort and unique tie-breaker; query success proves returned data only, not a saved or published chart.
 - Preserve an existing Dataset field GUID and meaning on update. A chart-local calculated field remains local unless the user explicitly requests a shared Dataset change.

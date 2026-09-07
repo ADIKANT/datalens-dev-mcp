@@ -23,7 +23,7 @@ The stdio connection is declared in [.mcp.json](.mcp.json). For live access, pro
 - Inspect exact IDs, saved/published revisions, complete-or-partial pagination, and direct relations.
 - Preserve real Dataset field GUIDs and Wizard aggregation/formula constraints; use bounded `getDatasetData` preview.
 - Keep Table, Gravity, Advanced, Markdown, and Selector Editor contracts distinct. Local checks are not presented as browser runtime proof.
-- Reuse eight versioned visual recipes: KPI, time comparison, bar, dynamic matrix, weekly totals, cross-tab, native table, and selector. Large JavaScript comes from canonical packaged renderers while bindings and defaults stay compact. The [property-consumer map](https://github.com/ADIKANT/datalens-dev-mcp/blob/main/docs/authoring-property-consumers.md) separates configuration presence from runtime proof.
+- Reuse eight versioned visual recipes: KPI, time comparison, bar, dynamic matrix, weekly totals, cross-tab, native table, and selector. Large JavaScript comes from canonical packaged renderers and stays in a local artifact; MCP returns a compact `draft_reference` by default. The [property-consumer map](https://github.com/ADIKANT/datalens-dev-mcp/blob/main/docs/authoring-property-consumers.md) separates configuration presence from runtime proof.
 - Create/update finish with saved readback. Publish is a separate operation sourced only from a fresh saved revision and followed by published readback.
 - Backup exports are snapshots, not an unproven full restore. Cleanup requires an unchanged exact delete set.
 

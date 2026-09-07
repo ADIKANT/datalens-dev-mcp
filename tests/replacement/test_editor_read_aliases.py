@@ -26,3 +26,19 @@ def test_chart_entry_envelope_does_not_hide_revision_or_tabs():
     snapshot = {"entry": {"id": "synthetic-chart", "revId": "r1", "data": {"prepare": "synthetic"}}}
     adapter = SdkAdapter(client=SimpleNamespace(get=SimpleNamespace(editor_chart=lambda **_: snapshot)))
     assert adapter.get_object("editor_chart", "synthetic-chart") == snapshot["entry"]
+
+
+def test_chart_entry_derives_readback_name_from_provider_key() -> None:
+    snapshot = {
+        "entry": {
+            "entryId": "synthetic-chart",
+            "key": "workbook-id/Synthetic KPI - Updated",
+            "revId": "r2",
+            "data": {"prepare": "synthetic"},
+        }
+    }
+    adapter = SdkAdapter(client=SimpleNamespace(get=SimpleNamespace(editor_chart=lambda **_: snapshot)))
+
+    result = adapter.get_object("editor_chart", "synthetic-chart")
+
+    assert result["name"] == "Synthetic KPI - Updated"

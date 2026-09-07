@@ -56,6 +56,10 @@ def compile_recipe(
         from datalens_dev_mcp.authoring.dataset_source import kpi_dataset_source
 
         bindings = {**bindings, "source": kpi_dataset_source(bindings)}
+    if recipe_id == "weekly_totals_table" and bindings.get("dataset_id") and "source" not in bindings:
+        from datalens_dev_mcp.authoring.dataset_source import weekly_dataset_source
+
+        bindings = {**bindings, "source": weekly_dataset_source(bindings)}
     recipe = recipes[recipe_id]
     missing = [key for key in recipe["required_bindings"] if key not in bindings]
     if missing:
@@ -82,6 +86,7 @@ def compile_recipe(
         raise ValueError(
             f"recipe {recipe_id} does not support technology {technology}; choose a matching recipe or author an explicit custom draft"
         )
+    _validate_prepared_data(recipe_id, bindings)
     draft: dict[str, Any] = {
         "recipe_id": recipe_id,
         "technology": technology,
@@ -434,3 +439,41 @@ def _editor_tabs(
         )
         tabs["controls.js"] = "module.exports = {controls: []};\n"
     return tabs
+
+
+def _validate_prepared_data(recipe_id: str, bindings: Mapping[str, Any]) -> None:
+    prepared = bindings.get("prepared_data")
+    if not isinstance(prepared, Mapping) or not prepared:
+        return
+    if recipe_id == "kpi_sparkline":
+        required = {"value", "previous", "points"}
+        if not required.issubset(prepared):
+            raise ValueError("kpi_sparkline prepared_data requires value, previous and points")
+        points = prepared["points"]
+        if not isinstance(points, list) or any(
+            not isinstance(point, Mapping) or "date" not in point or "value" not in point for point in points
+        ):
+            raise ValueError("kpi_sparkline prepared_data points must contain date/value objects")
+        return
+    if recipe_id != "comparison_matrix":
+        return
+    rows = prepared.get("rows")
+    if not isinstance(rows, list):
+        raise TypeError("comparison_matrix prepared_data rows must be a list")
+    if any(not isinstance(row, Mapping) for row in rows):
+        raise ValueError("comparison_matrix prepared_data rows must contain objects")
+    columns = prepared.get("columns") or []
+    if not isinstance(columns, list) or any(not isinstance(column, Mapping) for column in columns):
+        raise ValueError("comparison_matrix prepared_data columns must contain objects")
+    for column in columns:
+        if not isinstance(column.get("key"), str) or not column["key"] or not isinstance(column.get("headers"), list):
+            raise ValueError("comparison_matrix prepared_data columns require key and headers")
+    for row in rows:
+        if "cells" in row:
+            cells = row["cells"]
+            if not isinstance(cells, list) or any(
+                not isinstance(cell, Mapping) or "value" not in cell for cell in cells
+            ):
+                raise ValueError("comparison_matrix prepared_data cells must contain value objects")
+        elif not {"current", "previous"}.issubset(row):
+            raise ValueError("comparison_matrix prepared_data rows require cells or current/previous values")

@@ -7,6 +7,7 @@ from typing import Any, Protocol
 from urllib import error, request
 
 from datalens_dev_mcp.api.errors import DataLensApiError, UncertainWriteError
+from datalens_dev_mcp.api.schemas import OperationRegistry
 from datalens_dev_mcp.config import DataLensConfig
 
 
@@ -66,15 +67,20 @@ class DataLensApiClient:
         self.config = config
         self.transport = transport or HttpJsonTransport(config.base_url, config.request_timeout_sec)
         self.token_refresher = token_refresher
+        self.operation_registry = OperationRegistry.load()
 
-    def _headers(self) -> dict[str, str]:
+    def _headers(self, method: str) -> dict[str, str]:
         self.config.require_auth()
+        try:
+            api_version = str(self.operation_registry.get(method).get("api_version", "1"))
+        except KeyError:
+            api_version = "1"
         return {
             "accept": "application/json",
             "content-type": "application/json",
             "authorization": f"Bearer {self.config.iam_token}",
             "x-dl-org-id": self.config.org_id,
-            "x-dl-api-version": "1",
+            "x-dl-api-version": api_version,
         }
 
     def read(
@@ -88,7 +94,7 @@ class DataLensApiClient:
         transient_attempts = 0
         while True:
             try:
-                return self.transport.call(method, dict(payload or {}), self._headers())
+                return self.transport.call(method, dict(payload or {}), self._headers(method))
             except DataLensApiError as exc:
                 if (
                     exc.http_status == 401
@@ -119,7 +125,7 @@ class DataLensApiClient:
 
     def write(self, method: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         try:
-            return self.transport.call(method, dict(payload or {}), self._headers())
+            return self.transport.call(method, dict(payload or {}), self._headers(method))
         except DataLensApiError:
             raise
         except (TimeoutError, ConnectionError, OSError) as exc:
