@@ -16,7 +16,8 @@ def test_kpi_latest_is_chronological_and_preserves_missing_values():
     source = kpi_dataset_source({**bindings(), "value_mode": "last"})
     rows = [{"date": "2026-02-02", "current": None, "previous": 3},
             {"date": "2026-02-01", "current": 2, "previous": 1}]
-    script = "const require=()=>({getDatasetRows:()=>" + json.dumps(rows) + "});\n"
+    script = "const Editor={getLoadedData:()=>({source:[{event:'metadata'}]})};\n"
+    script += "const require=()=>({getDatasetRows:()=>" + json.dumps(rows) + "});\n"
     script += source["prepare_js"] + "\nconsole.log(JSON.stringify(module.exports));"
     result = json.loads(subprocess.check_output(["node", "-e", script], text=True))
     assert result["value"] is None

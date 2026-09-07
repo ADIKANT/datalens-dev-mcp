@@ -44,6 +44,10 @@ def compile_recipe(
     recipes = list_recipes()
     if recipe_id not in recipes:
         raise ValueError(f"unknown recipe_id: {recipe_id}")
+    if bindings.get("direct_source") and "source" not in bindings:
+        from datalens_dev_mcp.authoring.dataset_source import compile_direct_source
+
+        bindings = {**bindings, "source": compile_direct_source(bindings["direct_source"])}
     if recipe_id == "comparison_matrix" and bindings.get("dataset_id") and "source" not in bindings:
         from datalens_dev_mcp.authoring.dataset_source import matrix_dataset_source
         bindings = {**bindings, "source": matrix_dataset_source(bindings)}
@@ -360,6 +364,10 @@ def _editor_tabs(
             if not isinstance(source.get("meta"), Mapping) or not isinstance(source.get("sources_js"), str) or not isinstance(source.get("prepare_js"), str):
                 raise ValueError("source requires meta object, sources_js and prepare_js strings")
             tabs["meta.json"] = json.dumps(source["meta"], ensure_ascii=False)
+            source_params = source.get("params") or {}
+            if not isinstance(source_params, Mapping):
+                raise ValueError("source params must be an object")
+            tabs["params.js"] = "module.exports = " + json.dumps(dict(source_params), ensure_ascii=False) + ";\n"
             tabs["sources.js"] = source["sources_js"]
             prepared = "(() => { const module = {exports: {}};\n" + source["prepare_js"] + "\nreturn module.exports; })()"
         elif "prepared_data" in bindings and isinstance(bindings["prepared_data"], Mapping):

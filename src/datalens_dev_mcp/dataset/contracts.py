@@ -73,6 +73,16 @@ def validate_visualization_fields(fields: list[dict[str, Any]], field_guids: lis
     by_title = {str(field.get("title") or field.get("name")): str(field.get("guid")) for field in fields}
     pending, visited = list(field_guids), set()
     selected = []
+    issues = []
+    for guid in dict.fromkeys(field_guids):
+        if guid not in by_guid:
+            issues.append(
+                {
+                    "code": "visualization_field_guid_unknown",
+                    "path": "visualization.fields",
+                    "message": f"field GUID is absent from Dataset readback: {guid}",
+                }
+            )
     while pending:
         guid = pending.pop()
         if guid in visited:
@@ -86,7 +96,6 @@ def validate_visualization_fields(fields: list[dict[str, Any]], field_guids: lis
             if title in by_title:
                 pending.append(by_title[title])
     formulas = [str(field.get("formula") or "") for field in selected]
-    issues = []
     if any(_LOD_RE.search(formula) for formula in formulas) and any(_TIME_RE.search(formula) for formula in formulas):
         issues.append(
             {

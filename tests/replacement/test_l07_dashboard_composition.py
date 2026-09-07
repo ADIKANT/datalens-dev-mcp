@@ -25,11 +25,13 @@ def test_narrow_dashboard_patch_preserves_manual_geometry_and_unknown_widgets() 
 
 def test_range_selector_requires_every_consumer_and_no_stale_override() -> None:
     contract = {
+        "parameters": [{"name": "period", "type": "date_range", "default": []}],
         "widgets": {
             "chart-a": {"params": {}},
             "chart-b": {"params": {"period": "stale-static"}},
         },
-        "selectors": [{"id": "period-control", "param_name": "period", "mode": "range", "consumers": ["chart-a", "chart-b"]}],
+        "selectors": [{"id": "period-control", "param_name": "period", "mode": "range", "clear": True,
+                       "empty_selection": "all", "consumers": ["chart-a", "chart-b"]}],
     }
     result = validate_dashboard_contract(contract)
     assert {item["code"] for item in result["issues"]} == {"stale_consumer_override"}
@@ -72,4 +74,3 @@ def test_dependency_order_rejects_missing_and_cyclic_references() -> None:
         dependency_order([{"client_ref": "chart", "depends_on": ["missing"]}])
     with pytest.raises(ValueError, match="cycle"):
         dependency_order([{"client_ref": "a", "depends_on": ["b"]}, {"client_ref": "b", "depends_on": ["a"]}])
-

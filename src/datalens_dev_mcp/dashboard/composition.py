@@ -21,15 +21,24 @@ def compose_dashboard_patch(current: dict[str, Any], patch: dict[str, Any]) -> d
 
 def validate_dashboard_contract(contract: dict[str, Any]) -> dict[str, Any]:
     issues: list[dict[str, str]] = []
+    parameter_names: set[str] = set()
     for index, parameter in enumerate(contract.get("parameters") or []):
         name = str(parameter.get("name") or "") if isinstance(parameter, dict) else ""
         if name in RESERVED_PARAMETERS:
             issues.append({"code": "reserved_parameter", "path": f"parameters/{index}/name", "message": f"{name} is reserved by DataLens"})
+        if name in parameter_names:
+            issues.append({"code": "parameter_duplicate", "path": f"parameters/{index}/name", "message": f"duplicate dashboard parameter: {name}"})
+        elif name:
+            parameter_names.add(name)
     widgets = contract.get("widgets") or {}
     for index, selector in enumerate(contract.get("selectors") or []):
         if not isinstance(selector, dict):
             continue
         param = str(selector.get("param_name") or "")
+        if not param or param not in parameter_names:
+            issues.append({"code": "selector_parameter_undeclared", "path": f"selectors/{index}/param_name", "message": f"selector parameter is not declared: {param or '<missing>'}"})
+        if selector.get("empty_selection") not in {"all", "none", "error"}:
+            issues.append({"code": "selector_empty_semantics_missing", "path": f"selectors/{index}/empty_selection", "message": "selector must define empty selection as all, none or error"})
         consumers = selector.get("consumers") or []
         if not consumers:
             issues.append({"code": "selector_without_consumers", "path": f"selectors/{index}/consumers", "message": "selector must name every consumer"})
