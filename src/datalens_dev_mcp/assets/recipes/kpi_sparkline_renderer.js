@@ -49,14 +49,15 @@ module.exports = function renderKpi(data, config) {
             + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:' + (dense ? 10 : 14) + 'px">'
             + '<div data-id="kpi-value" style="font-size:' + valueSize + 'px;line-height:' + valueLine
             + 'px;font-weight:700;letter-spacing:-0.03em;white-space:nowrap;cursor:help">' + escape(format(prepared.value))
-            + (unit ? ' <small>' + escape(unit) + '</small>' : '') + '</div>'
+            + (unit && numeric(prepared.value) ? ' <small>' + escape(unit) + '</small>' : '') + '</div>'
             + '<div data-id="kpi-delta" aria-label="' + escape(!valid ? 'Missing comparison' : prepared.previous === 0 ? 'Undefined: previous = 0' : deltaText) + '" style="padding:' + (dense ? '5px 8px' : '6px 10px') + ';border-radius:' + (dense ? 10 : 14)
             + 'px;background:' + bg + ';color:' + fg + ';font-size:' + deltaSize + 'px;line-height:' + (deltaSize + 2)
             + 'px;font-weight:800;white-space:nowrap;letter-spacing:-0.02em;flex:0 0 auto">' + escape(deltaText) + '</div></div>'
             + '<div style="font-size:' + labelSize + 'px;line-height:' + (labelSize + 2) + 'px;color:' + muted
             + ';text-transform:uppercase;letter-spacing:0.08em;font-weight:800">' + escape(presentation.comparison.label || 'VS PREV WINDOW') + '</div>'
             + '<div data-id="kpi-previous" style="font-size:' + previousSize + 'px;line-height:' + (previousSize + 2)
-            + 'px;color:' + muted + ';font-weight:700;letter-spacing:-0.02em">' + escape(format(prepared.previous)) + '</div></div>';
+            + 'px;color:' + muted + ';font-weight:700;letter-spacing:-0.02em">' + escape(format(prepared.previous))
+            + (unit && numeric(prepared.previous) ? ' <small>' + escape(unit) + '</small>' : '') + '</div></div>';
           const points = Array.isArray(prepared.points) ? prepared.points : [];
           const values = points.map(p => p && typeof p === 'object' ? p.value : p);
           const finite = values.filter(numeric);
