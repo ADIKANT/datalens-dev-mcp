@@ -68,7 +68,11 @@ def get_authoring_defaults(
 
 
 def _user_config_path() -> Path:
-    base = Path(os.environ["XDG_CONFIG_HOME"]).expanduser() if os.environ.get("XDG_CONFIG_HOME") else Path.home() / ".config"
+    base = (
+        Path(os.environ["XDG_CONFIG_HOME"]).expanduser()
+        if os.environ.get("XDG_CONFIG_HOME")
+        else Path.home() / ".config"
+    )
     return base / "datalens-dev-mcp/authoring.json"
 
 

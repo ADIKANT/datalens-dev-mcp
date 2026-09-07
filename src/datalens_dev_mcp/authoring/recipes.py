@@ -50,9 +50,11 @@ def compile_recipe(
         bindings = {**bindings, "source": compile_direct_source(bindings["direct_source"])}
     if recipe_id == "comparison_matrix" and bindings.get("dataset_id") and "source" not in bindings:
         from datalens_dev_mcp.authoring.dataset_source import matrix_dataset_source
+
         bindings = {**bindings, "source": matrix_dataset_source(bindings)}
     if recipe_id == "kpi_sparkline" and bindings.get("dataset_id") and "source" not in bindings:
         from datalens_dev_mcp.authoring.dataset_source import kpi_dataset_source
+
         bindings = {**bindings, "source": kpi_dataset_source(bindings)}
     recipe = recipes[recipe_id]
     missing = [key for key in recipe["required_bindings"] if key not in bindings]
@@ -69,10 +71,17 @@ def compile_recipe(
     contract = _apply_profile(recipe["visual_contract"], values)
     contract = _bind_contract(contract, bindings)
     technology = str(recipe["technology"] if defaults["technology_source"] == "generic" else values.get("technology"))
-    technology = {"advanced-chart_node": "advanced_chart", "control_node": "selector",
-                  "table_node": "table", "d3_node": "gravity", "markdown_node": "markdown"}.get(technology, technology)
+    technology = {
+        "advanced-chart_node": "advanced_chart",
+        "control_node": "selector",
+        "table_node": "table",
+        "d3_node": "gravity",
+        "markdown_node": "markdown",
+    }.get(technology, technology)
     if technology != recipe["technology"]:
-        raise ValueError(f"recipe {recipe_id} does not support technology {technology}; choose a matching recipe or author an explicit custom draft")
+        raise ValueError(
+            f"recipe {recipe_id} does not support technology {technology}; choose a matching recipe or author an explicit custom draft"
+        )
     draft: dict[str, Any] = {
         "recipe_id": recipe_id,
         "technology": technology,
@@ -93,11 +102,15 @@ def compile_recipe(
     renderer_name = recipe.get("renderer")
     renderer_text = ""
     if renderer_name:
-        renderer_text = files("datalens_dev_mcp.assets.recipes").joinpath(str(renderer_name)).read_text(encoding="utf-8")
+        renderer_text = (
+            files("datalens_dev_mcp.assets.recipes").joinpath(str(renderer_name)).read_text(encoding="utf-8")
+        )
         variant = draft["object_type"]
         draft["variant"] = variant
         draft["tabs"] = _editor_tabs(str(variant), renderer_text, contract, bindings)
-        draft["name"] = contract["object_name"]["value"] or str((bindings.get("parameter") or {}).get("name") or recipe_id)
+        draft["name"] = contract["object_name"]["value"] or str(
+            (bindings.get("parameter") or {}).get("name") or recipe_id
+        )
         draft["client_ref"] = str(bindings.get("client_ref") or recipe_id)
     file_map: dict[str, str] = {}
     if output_dir is not None:
@@ -145,9 +158,11 @@ def _time_comparison_draft(bindings: Mapping[str, Any], contract: Mapping[str, A
         raise ValueError("current and comparison must be distinct fields")
     title = contract["visible_title"]
     return {
-        "name": name, "client_ref": str(bindings.get("client_ref") or "time_comparison"),
+        "name": name,
+        "client_ref": str(bindings.get("client_ref") or "time_comparison"),
         "wizard": {
-            "visualization": "line", "dataset_id": dataset_id,
+            "visualization": "line",
+            "dataset_id": dataset_id,
             "roles": {"x": [refs["date"]], "y": [refs["metric"], refs["comparison"]]},
             "title": str(title.get("text") or name),
             "title_mode": "show" if title.get("visible") and title.get("owner") == "chart" else "hide",
@@ -168,21 +183,30 @@ def _pivot_draft(bindings: Mapping[str, Any], contract: Mapping[str, Any]) -> di
         values = bindings[source]
         if not isinstance(values, list) or not values:
             raise ValueError(f"cross_tab_totals requires nonempty {source}")
-        if any(not isinstance(v, Mapping) or not isinstance(v.get("field_guid"), str) or not v["field_guid"] for v in values):
+        if any(
+            not isinstance(v, Mapping) or not isinstance(v.get("field_guid"), str) or not v["field_guid"]
+            for v in values
+        ):
             raise ValueError(f"{source} require field_guid from Dataset readback")
         roles[role] = [v["field_guid"] for v in values]
     title, table = contract["visible_title"], contract["table"]
     if table.get("total_position") not in {"bottom_and_right", "none"}:
         raise ValueError("cross_tab_totals supports bottom_and_right or none")
     return {
-        "name": name, "client_ref": str(bindings.get("client_ref") or "cross_tab_totals"),
+        "name": name,
+        "client_ref": str(bindings.get("client_ref") or "cross_tab_totals"),
         "wizard": {
-            "visualization": "pivot_table", "dataset_id": dataset_id, "roles": roles,
+            "visualization": "pivot_table",
+            "dataset_id": dataset_id,
+            "roles": roles,
             "title": str(title.get("text") or name),
             "title_mode": "show" if title.get("visible") and title.get("owner") == "chart" else "hide",
             "subtotals": [roles["rows"][0], roles["columns"][0]] if table.get("total_position") != "none" else [],
-            "table": {"pagination": table.get("pagination", True), "page_size": table.get("page_size", 100),
-                      "size": table.get("size", "m")},
+            "table": {
+                "pagination": table.get("pagination", True),
+                "page_size": table.get("page_size", 100),
+                "size": table.get("size", "m"),
+            },
             "sort": deepcopy(bindings.get("sort") or []),
         },
     }
@@ -205,9 +229,12 @@ def _categorical_bar_draft(bindings: Mapping[str, Any], contract: Mapping[str, A
         roles["labels"] = [refs["metric"]]
     title = contract["visible_title"]
     return {
-        "name": name, "client_ref": str(bindings.get("client_ref") or "categorical_bar"),
+        "name": name,
+        "client_ref": str(bindings.get("client_ref") or "categorical_bar"),
         "wizard": {
-            "visualization": "bar", "dataset_id": dataset_id, "roles": roles,
+            "visualization": "bar",
+            "dataset_id": dataset_id,
+            "roles": roles,
             "title": str(title.get("text") or name),
             "title_mode": "show" if title.get("visible") and title.get("owner") == "chart" else "hide",
             "grid": {"x": contract["axes_gridlines"]["x_grid"], "y": contract["axes_gridlines"]["y_grid"]},
@@ -242,12 +269,18 @@ def _native_table_draft(bindings: Mapping[str, Any], contract: Mapping[str, Any]
         "name": name,
         "client_ref": str(bindings.get("client_ref") or "native_detail_table"),
         "wizard": {
-            "visualization": "flat_table", "dataset_id": dataset_id,
-            "roles": {"columns": guids}, "column_titles": titles,
+            "visualization": "flat_table",
+            "dataset_id": dataset_id,
+            "roles": {"columns": guids},
+            "column_titles": titles,
             "title": str(title.get("text") or name),
             "title_mode": "show" if title.get("visible") and title.get("owner") == "chart" else "hide",
-            "table": {"pagination": table.get("pagination", True), "page_size": table.get("page_size", 100),
-                      "totals": table.get("total_position") == "bottom", "size": table.get("size", "m")},
+            "table": {
+                "pagination": table.get("pagination", True),
+                "page_size": table.get("page_size", 100),
+                "totals": table.get("total_position") == "bottom",
+                "size": table.get("size", "m"),
+            },
             "sort": deepcopy(bindings.get("sort") or []),
         },
     }
@@ -342,7 +375,7 @@ def _editor_tabs(
             elif isinstance(option, (str, int, float)) and not isinstance(option, bool):
                 normalized.append({"title": str(option), "value": str(option)})
             else:
-                raise ValueError("selector option must be a scalar or title/value object")
+                raise TypeError("selector option must be a scalar or title/value object")
         if len({option["value"] for option in normalized}) != len(normalized):
             raise ValueError("selector option values must be unique")
         default = parameter.get("default")
@@ -356,26 +389,48 @@ def _editor_tabs(
             raise ValueError("required selector needs a default")
         tabs["meta.json"] = "{}"
         tabs["params.js"] = "module.exports = " + json.dumps({name: defaults}, ensure_ascii=False) + ";\n"
-        tabs["controls.js"] = renderer + "\nmodule.exports = module.exports(" + json.dumps(normalized, ensure_ascii=False) + ", " + json.dumps(contract, ensure_ascii=False) + ");\n"
+        tabs["controls.js"] = (
+            renderer
+            + "\nmodule.exports = module.exports("
+            + json.dumps(normalized, ensure_ascii=False)
+            + ", "
+            + json.dumps(contract, ensure_ascii=False)
+            + ");\n"
+        )
         return tabs
     else:
         source = bindings.get("source")
         if isinstance(source, Mapping):
-            if not isinstance(source.get("meta"), Mapping) or not isinstance(source.get("sources_js"), str) or not isinstance(source.get("prepare_js"), str):
-                raise ValueError("source requires meta object, sources_js and prepare_js strings")
+            if (
+                not isinstance(source.get("meta"), Mapping)
+                or not isinstance(source.get("sources_js"), str)
+                or not isinstance(source.get("prepare_js"), str)
+            ):
+                raise TypeError("source requires meta object, sources_js and prepare_js strings")
             tabs["meta.json"] = json.dumps(source["meta"], ensure_ascii=False)
             source_params = source.get("params") or {}
             if not isinstance(source_params, Mapping):
-                raise ValueError("source params must be an object")
+                raise TypeError("source params must be an object")
             tabs["params.js"] = "module.exports = " + json.dumps(dict(source_params), ensure_ascii=False) + ";\n"
             tabs["sources.js"] = source["sources_js"]
-            prepared = "(() => { const module = {exports: {}};\n" + source["prepare_js"] + "\nreturn module.exports; })()"
+            prepared = (
+                "(() => { const module = {exports: {}};\n" + source["prepare_js"] + "\nreturn module.exports; })()"
+            )
         elif "prepared_data" in bindings and isinstance(bindings["prepared_data"], Mapping):
             tabs["meta.json"] = "{}"
             tabs["sources.js"] = "module.exports = {};\n"
             prepared = json.dumps(bindings["prepared_data"], ensure_ascii=False)
         else:
-            raise ValueError("Advanced recipe requires explicit source or prepared_data; no placeholder source is generated")
-        tabs["prepare.js"] = renderer + "\nmodule.exports = module.exports(" + prepared + ", " + json.dumps(contract, ensure_ascii=False) + ");\n"
+            raise ValueError(
+                "Advanced recipe requires explicit source or prepared_data; no placeholder source is generated"
+            )
+        tabs["prepare.js"] = (
+            renderer
+            + "\nmodule.exports = module.exports("
+            + prepared
+            + ", "
+            + json.dumps(contract, ensure_ascii=False)
+            + ");\n"
+        )
         tabs["controls.js"] = "module.exports = {controls: []};\n"
     return tabs

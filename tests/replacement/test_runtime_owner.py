@@ -58,9 +58,7 @@ def test_runtime_owner_refreshes_one_401_and_updates_api_and_sdk_credentials() -
 
 
 def test_explicit_refresh_control_read_cannot_trigger_a_second_refresh() -> None:
-    transport = SequenceTransport(
-        [DataLensApiError("still unauthenticated", http_status=401, response_received=True)]
-    )
+    transport = SequenceTransport([DataLensApiError("still unauthenticated", http_status=401, response_received=True)])
     refreshes: list[str] = []
     runtime = DataLensRuntime(
         _config(),
@@ -161,9 +159,7 @@ def test_sdk_read_uses_the_same_single_refresh_owner(monkeypatch) -> None:
 def test_sdk_read_does_not_loop_when_refreshed_credential_is_rejected(monkeypatch) -> None:
     class Get:
         def dataset(self, **kwargs):
-            raise UnauthorizedError(
-                APIErrorContext(status_code=401, code="UNAUTHENTICATED", message="still expired")
-            )
+            raise UnauthorizedError(APIErrorContext(status_code=401, code="UNAUTHENTICATED", message="still expired"))
 
     class Client:
         get = Get()

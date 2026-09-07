@@ -1,6 +1,5 @@
 from datalens_dev_mcp.dataset.contracts import validate_dataset_fields, validate_visualization_fields
 
-
 FIELDS = [
     {"guid": "lod", "title": "LOD", "formula": "SUM([amount] FIXED [region])"},
     {"guid": "ago", "title": "Prior", "formula": "AGO([amount], 'year')"},

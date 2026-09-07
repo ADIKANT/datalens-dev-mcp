@@ -27,12 +27,20 @@ def validate_dataset_fields(fields: list[dict[str, Any]]) -> dict[str, Any]:
     seen: set[str] = set()
     for index, raw in enumerate(fields):
         if not isinstance(raw, dict):
-            issues.append({"code": "field_shape_invalid", "path": f"fields[{index}]", "message": "field must be an object"})
+            issues.append(
+                {"code": "field_shape_invalid", "path": f"fields[{index}]", "message": "field must be an object"}
+            )
             continue
         guid = str(raw.get("guid") or "").strip()
         title = str(raw.get("title") or raw.get("name") or guid).strip()
         if not guid:
-            issues.append({"code": "field_guid_missing", "path": f"fields[{index}].guid", "message": "dataset field GUID is required"})
+            issues.append(
+                {
+                    "code": "field_guid_missing",
+                    "path": f"fields[{index}].guid",
+                    "message": "dataset field GUID is required",
+                }
+            )
             continue
         if guid.lower() in TECHNICAL_MEASURES or title.lower() in TECHNICAL_MEASURES:
             issues.append(
@@ -44,7 +52,13 @@ def validate_dataset_fields(fields: list[dict[str, Any]]) -> dict[str, Any]:
             )
             continue
         if guid in seen:
-            issues.append({"code": "field_guid_duplicate", "path": f"fields[{index}].guid", "message": f"duplicate field GUID: {guid}"})
+            issues.append(
+                {
+                    "code": "field_guid_duplicate",
+                    "path": f"fields[{index}].guid",
+                    "message": f"duplicate field GUID: {guid}",
+                }
+            )
             continue
         seen.add(guid)
         level = calculation_level(raw)

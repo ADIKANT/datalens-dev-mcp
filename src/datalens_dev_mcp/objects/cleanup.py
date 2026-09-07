@@ -17,9 +17,7 @@ class CleanupService:
         self.reader = reader
         self.deleter = deleter
 
-    def preview(
-        self, candidates: list[dict[str, Any]], *, preserve_roots: list[dict[str, Any]]
-    ) -> dict[str, Any]:
+    def preview(self, candidates: list[dict[str, Any]], *, preserve_roots: list[dict[str, Any]]) -> dict[str, Any]:
         normalized = [{"object_type": _key(item)[0], "object_id": _key(item)[1]} for item in candidates]
         by_id = {item["object_id"]: item for item in normalized}
         preserve: set[tuple[str, str]] = set()
@@ -35,7 +33,10 @@ class CleanupService:
                 relations = self.reader.object_relations(item["object_id"])
                 complete = complete and bool(relations.get("complete", False))
                 for relation in relations.get("relations") or []:
-                    related = {"object_type": str(relation.get("type") or ""), "object_id": str(relation.get("id") or "")}
+                    related = {
+                        "object_type": str(relation.get("type") or ""),
+                        "object_id": str(relation.get("id") or ""),
+                    }
                     if related["object_id"] in by_id:
                         related = by_id[related["object_id"]]
                     if related["object_id"]:
@@ -56,7 +57,11 @@ class CleanupService:
         confirmed = [{"object_type": _key(item)[0], "object_id": _key(item)[1]} for item in confirmed_delete]
         if confirmed != expected:
             raise ValueError("confirmed_delete must exactly match the ordered cleanup preview")
-        body = {"complete": bool(preview.get("complete")), "preserve": preview.get("preserve") or [], "delete": expected}
+        body = {
+            "complete": bool(preview.get("complete")),
+            "preserve": preview.get("preserve") or [],
+            "delete": expected,
+        }
         if preview.get("preview_digest") != _digest(body):
             raise ValueError("cleanup preview digest does not match its contents")
         results: list[dict[str, Any]] = []
@@ -79,7 +84,11 @@ class CleanupService:
                     results.append({**item, "status": "failed", "error": safe_error_text(exc)})
         failed = any(item["status"] in {"failed", "uncertain"} for item in results)
         absent = any(item["status"] == "already_absent" for item in results)
-        return {"ok": not failed, "status": "failed" if failed else "completed_with_absent" if absent else "completed", "results": results}
+        return {
+            "ok": not failed,
+            "status": "failed" if failed else "completed_with_absent" if absent else "completed",
+            "results": results,
+        }
 
 
 def _digest(value: Any) -> str:

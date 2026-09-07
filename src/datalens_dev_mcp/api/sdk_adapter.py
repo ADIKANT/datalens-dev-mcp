@@ -136,7 +136,11 @@ class SdkAdapter:
             return self._html_create(draft, destination)
         if requested_type == "workbook":
             client = self._sdk_client()
-            collection = datalens_sdk.EntryLocation.collection(str(destination["collection_id"])) if destination.get("collection_id") else None
+            collection = (
+                datalens_sdk.EntryLocation.collection(str(destination["collection_id"]))
+                if destination.get("collection_id")
+                else None
+            )
             value = client.create.workbook(name=_draft_name(draft), collection=collection).build()
             return {"object_id": _result_id(value), "object": _json_object(value), "backend": "official_sdk"}
         object_type = _canonical_object_type(requested_type)
@@ -163,8 +167,12 @@ class SdkAdapter:
                     name=name, location=location
                 )
                 tab_methods = {
-                    "meta.json": "meta", "params.js": "params", "sources.js": "sources",
-                    "prepare.js": "prepare", "controls.js": "controls", "config.js": "config",
+                    "meta.json": "meta",
+                    "params.js": "params",
+                    "sources.js": "sources",
+                    "prepare.js": "prepare",
+                    "controls.js": "controls",
+                    "config.js": "config",
                 }
                 expected_tabs = {}
                 for filename, content in draft["tabs"].items():
@@ -268,7 +276,11 @@ class SdkAdapter:
         if destination.get("workbook_id"):
             payload["workbookId"] = destination["workbook_id"]
         result = DataLensApiClient(self._config).write("createHtmlPage", payload)
-        return {"object_id": str(result.get("entryId") or result.get("id") or ""), "object": result, "backend": "public_api_adapter"}
+        return {
+            "object_id": str(result.get("entryId") or result.get("id") or ""),
+            "object": result,
+            "backend": "public_api_adapter",
+        }
 
     def _html_update(self, object_id: str, snapshot: dict[str, Any], *, publish: bool) -> dict[str, Any]:
         from datalens_dev_mcp.api.client import DataLensApiClient
@@ -288,9 +300,7 @@ class SdkAdapter:
         result = DataLensApiClient(self._config).write("updateHtmlPage", payload)
         return {"object_id": object_id, "object": result, "backend": "public_api_adapter"}
 
-    def _replace(
-        self, object_type: str, object_id: str, snapshot: dict[str, Any], *, publish: bool
-    ) -> dict[str, Any]:
+    def _replace(self, object_type: str, object_id: str, snapshot: dict[str, Any], *, publish: bool) -> dict[str, Any]:
         canonical = _canonical_object_type(object_type)
         if publish and canonical in {"connection", "dataset", "workbook"}:
             raise ValueError(f"{canonical} has no publish branch")
@@ -332,9 +342,14 @@ class SdkAdapter:
                 except Exception as exc:
                     # The save already returned. Even a definite rename rejection
                     # is a partial object update, never a safe-to-replay failure.
-                    raise UncertainWriteError("content saved; rename not confirmed; reconcile before retrying",
-                                              method=f"rename:{canonical}") from exc
-            return {"object_id": _result_id(value) or object_id, "object": _json_object(value), "backend": "official_sdk"}
+                    raise UncertainWriteError(
+                        "content saved; rename not confirmed; reconcile before retrying", method=f"rename:{canonical}"
+                    ) from exc
+            return {
+                "object_id": _result_id(value) or object_id,
+                "object": _json_object(value),
+                "backend": "official_sdk",
+            }
         except (httpx.TransportError, SdkTransportError) as exc:
             raise UncertainWriteError("SDK write outcome is uncertain", method=f"replace:{canonical}") from exc
         except (ValueError, TypeError):
@@ -375,9 +390,13 @@ def _provider_error(exc: Exception, method: str) -> DataLensApiError:
     if isinstance(exc, DataLensApiError):
         return exc
     if isinstance(exc, SdkApiError):
-        return DataLensApiError(safe_error_text(ValueError(exc.context.message)), method=method,
-                                http_status=exc.context.status_code, response_received=True,
-                                remote_code=exc.context.code or "")
+        return DataLensApiError(
+            safe_error_text(ValueError(exc.context.message)),
+            method=method,
+            http_status=exc.context.status_code,
+            response_received=True,
+            remote_code=exc.context.code or "",
+        )
     return DataLensApiError(safe_error_text(exc), method=method, response_received=None)
 
 
@@ -413,7 +432,11 @@ def _canonical_object_type(value: str) -> str:
 
 
 def _entry_location(destination: dict[str, Any]) -> Any:
-    values = [("workbook", destination.get("workbook_id")), ("collection", destination.get("collection_id")), ("path", destination.get("path"))]
+    values = [
+        ("workbook", destination.get("workbook_id")),
+        ("collection", destination.get("collection_id")),
+        ("path", destination.get("path")),
+    ]
     selected = [(kind, str(value)) for kind, value in values if value]
     if len(selected) != 1:
         raise ValueError("destination must contain exactly one of workbook_id, collection_id or path")

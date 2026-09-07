@@ -56,7 +56,9 @@ def service(tmp_path: Path, reader: FakeReader, backend: FakeBackend) -> ObjectM
 
 
 def test_save_only_reads_saved_and_never_publishes(tmp_path: Path) -> None:
-    reader = FakeReader({("editor_chart", "chart-1", "saved"): [rb("editor_chart", "chart-1", "r1", {"id": "chart-1", "data": {}})]})
+    reader = FakeReader(
+        {("editor_chart", "chart-1", "saved"): [rb("editor_chart", "chart-1", "r1", {"id": "chart-1", "data": {}})]}
+    )
     backend = FakeBackend([{"object_id": "chart-1"}])
     result = service(tmp_path, reader, backend).create_objects(
         [{"client_ref": "c1", "object_type": "editor_chart", "name": "Synthetic", "snapshot": {"data": {}}}],
@@ -70,10 +72,15 @@ def test_save_only_reads_saved_and_never_publishes(tmp_path: Path) -> None:
 
 
 def test_completed_operation_is_returned_without_duplicate_create(tmp_path: Path) -> None:
-    reader = FakeReader({("wizard_chart", "chart-1", "saved"): [rb("wizard_chart", "chart-1", "r1", {"id": "chart-1", "data": {}})]})
+    reader = FakeReader(
+        {("wizard_chart", "chart-1", "saved"): [rb("wizard_chart", "chart-1", "r1", {"id": "chart-1", "data": {}})]}
+    )
     backend = FakeBackend([{"object_id": "chart-1"}])
     writer = service(tmp_path, reader, backend)
-    args = ([{"client_ref": "c1", "object_type": "wizard_chart", "name": "Synthetic", "snapshot": {"data": {}}}], {"workbook_id": "wb-1"})
+    args = (
+        [{"client_ref": "c1", "object_type": "wizard_chart", "name": "Synthetic", "snapshot": {"data": {}}}],
+        {"workbook_id": "wb-1"},
+    )
     first = writer.create_objects(*args, operation_id="same-op")
     second = writer.create_objects(*args, operation_id="same-op")
     assert first == second
@@ -81,12 +88,24 @@ def test_completed_operation_is_returned_without_duplicate_create(tmp_path: Path
 
 
 def test_title_only_patch_uses_one_object_read_and_preserves_unknown_fields(tmp_path: Path) -> None:
-    reader = FakeReader({
-        ("dashboard", "dash-1", "saved"): [
-            rb("dashboard", "dash-1", "r1", {"id": "dash-1", "name": "Old", "data": {"tabs": [{"id": "manual"}]}, "unknown": {"keep": True}}),
-            rb("dashboard", "dash-1", "r2", {"id": "dash-1", "name": "New", "data": {"tabs": [{"id": "manual"}]}, "unknown": {"keep": True}}),
-        ]
-    })
+    reader = FakeReader(
+        {
+            ("dashboard", "dash-1", "saved"): [
+                rb(
+                    "dashboard",
+                    "dash-1",
+                    "r1",
+                    {"id": "dash-1", "name": "Old", "data": {"tabs": [{"id": "manual"}]}, "unknown": {"keep": True}},
+                ),
+                rb(
+                    "dashboard",
+                    "dash-1",
+                    "r2",
+                    {"id": "dash-1", "name": "New", "data": {"tabs": [{"id": "manual"}]}, "unknown": {"keep": True}},
+                ),
+            ]
+        }
+    )
     backend = FakeBackend([{"object_id": "dash-1"}])
     result = service(tmp_path, reader, backend).update_objects(
         [{"object_type": "dashboard", "object_id": "dash-1", "expected_revision": "r1", "patch": {"name": "New"}}],
@@ -101,7 +120,9 @@ def test_title_only_patch_uses_one_object_read_and_preserves_unknown_fields(tmp_
 
 
 def test_revision_drift_blocks_write(tmp_path: Path) -> None:
-    reader = FakeReader({("dashboard", "dash-1", "saved"): [rb("dashboard", "dash-1", "r2", {"id": "dash-1", "name": "Manual"})]})
+    reader = FakeReader(
+        {("dashboard", "dash-1", "saved"): [rb("dashboard", "dash-1", "r2", {"id": "dash-1", "name": "Manual"})]}
+    )
     backend = FakeBackend([])
     result = service(tmp_path, reader, backend).update_objects(
         [{"object_type": "dashboard", "object_id": "dash-1", "expected_revision": "r1", "patch": {"name": "New"}}],
@@ -113,11 +134,19 @@ def test_revision_drift_blocks_write(tmp_path: Path) -> None:
 
 
 def test_partial_batch_resumes_without_repeating_first_effect(tmp_path: Path) -> None:
-    reader = FakeReader({
-        ("editor_chart", "one", "saved"): [rb("editor_chart", "one", "r1", {"id": "one"})],
-        ("editor_chart", "two", "saved"): [rb("editor_chart", "two", "r1", {"id": "two"})],
-    })
-    backend = FakeBackend([{"object_id": "one"}, DataLensApiError("synthetic rejected", http_status=400, response_received=True), {"object_id": "two"}])
+    reader = FakeReader(
+        {
+            ("editor_chart", "one", "saved"): [rb("editor_chart", "one", "r1", {"id": "one"})],
+            ("editor_chart", "two", "saved"): [rb("editor_chart", "two", "r1", {"id": "two"})],
+        }
+    )
+    backend = FakeBackend(
+        [
+            {"object_id": "one"},
+            DataLensApiError("synthetic rejected", http_status=400, response_received=True),
+            {"object_id": "two"},
+        ]
+    )
     writer = service(tmp_path, reader, backend)
     drafts = [
         {"client_ref": "one", "object_type": "editor_chart", "name": "One", "snapshot": {}},
@@ -127,18 +156,34 @@ def test_partial_batch_resumes_without_repeating_first_effect(tmp_path: Path) ->
     second = writer.create_objects(drafts, {"workbook_id": "wb-1"}, operation_id="op-batch")
     assert first["status"] == "partial"
     assert second["status"] == "completed"
-    assert [payload["draft"]["client_ref"] for effect, payload in backend.calls if effect == "create"] == ["one", "two", "two"]
+    assert [payload["draft"]["client_ref"] for effect, payload in backend.calls if effect == "create"] == [
+        "one",
+        "two",
+        "two",
+    ]
 
 
 def test_unknown_outcome_is_persisted_and_reconcile_only_reads(tmp_path: Path) -> None:
-    reader = FakeReader({("dashboard", "dash-1", "saved"): [
-        rb("dashboard", "dash-1", "r1", {"id": "dash-1", "name": "Old"}),
-        rb("dashboard", "dash-1", "r2", {"id": "dash-1", "name": "New"}),
-    ]})
+    reader = FakeReader(
+        {
+            ("dashboard", "dash-1", "saved"): [
+                rb("dashboard", "dash-1", "r1", {"id": "dash-1", "name": "Old"}),
+                rb("dashboard", "dash-1", "r2", {"id": "dash-1", "name": "New"}),
+            ]
+        }
+    )
     backend = FakeBackend([UncertainWriteError("lost response", method="updateDashboard")])
     writer = service(tmp_path, reader, backend)
     result = writer.update_objects(
-        [{"object_type": "dashboard", "object_id": "dash-1", "expected_revision": "r1", "patch": {"name": "New"}, "current": rb("dashboard", "dash-1", "r1", {"id": "dash-1", "name": "Old"})}],
+        [
+            {
+                "object_type": "dashboard",
+                "object_id": "dash-1",
+                "expected_revision": "r1",
+                "patch": {"name": "New"},
+                "current": rb("dashboard", "dash-1", "r1", {"id": "dash-1", "name": "Old"}),
+            }
+        ],
         operation_id="op-uncertain",
     )
     assert result["status"] == "uncertain"
@@ -155,7 +200,8 @@ def test_publish_uses_fresh_saved_revision_then_published_readback(tmp_path: Pat
     reader = FakeReader({("dashboard", "dash-1", "saved"): [saved], ("dashboard", "dash-1", "published"): [published]})
     backend = FakeBackend([{"object_id": "dash-1"}])
     result = service(tmp_path, reader, backend).publish_objects(
-        [{"object_type": "dashboard", "object_id": "dash-1", "expected_saved_revision": "r7"}], operation_id="op-publish"
+        [{"object_type": "dashboard", "object_id": "dash-1", "expected_saved_revision": "r7"}],
+        operation_id="op-publish",
     )
     assert result["status"] == "completed"
     assert backend.calls[0][1]["saved"]["identity"]["revision_id"] == "r7"
@@ -164,7 +210,14 @@ def test_publish_uses_fresh_saved_revision_then_published_readback(tmp_path: Pat
 
 def test_l06_exposes_only_direct_lifecycle_tools() -> None:
     schemas = {item["name"]: item for item in list_tools()}
-    assert {"dl_object_diff", "dl_object_create", "dl_object_update", "dl_object_publish", "dl_operation_get", "dl_operation_reconcile"} <= schemas.keys()
+    assert {
+        "dl_object_diff",
+        "dl_object_create",
+        "dl_object_update",
+        "dl_object_publish",
+        "dl_operation_get",
+        "dl_operation_reconcile",
+    } <= schemas.keys()
     assert schemas["dl_object_diff"]["annotations"]["readOnlyHint"] is True
     assert schemas["dl_object_create"]["annotations"]["idempotentHint"] is False
     assert "task" not in " ".join(schemas).lower()

@@ -103,7 +103,12 @@ class ObjectReadService:
         else:
             payload = self.sdk.get_object(object_type, object_id, branch=branch, revision_id=revision_id)
         actual_revision = str(
-            payload.get("rev_id") or payload.get("revId") or payload.get("saved_id") or payload.get("savedId") or revision_id or ""
+            payload.get("rev_id")
+            or payload.get("revId")
+            or payload.get("saved_id")
+            or payload.get("savedId")
+            or revision_id
+            or ""
         )
         unbranched = object_type in {"workbook", "connection", "dataset"}
         return {

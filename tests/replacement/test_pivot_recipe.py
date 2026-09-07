@@ -6,18 +6,35 @@ from datalens_dev_mcp.wizard.authoring import wizard_builder
 
 
 def test_pivot_recipe_compiles_dimension_subtotals_and_measure_role(tmp_path):
-    draft = compile_recipe("cross_tab_totals", {
-        "dataset_id": "synthetic", "object_name": "Synthetic cross-tab",
-        "rows": [{"field_guid": "region"}], "columns": [{"field_guid": "category"}],
-        "measures": [{"field_guid": "amount"}],
-    }, user_config_path=tmp_path / "absent.json")["draft"]
-    fields = tuple({"guid": g, "title": g, "calc_mode": "direct",
-                    "type": "MEASURE" if g == "amount" else "DIMENSION",
-                    "data_type": "float" if g == "amount" else "string"}
-                   for g in ("region", "category", "amount"))
+    draft = compile_recipe(
+        "cross_tab_totals",
+        {
+            "dataset_id": "synthetic",
+            "object_name": "Synthetic cross-tab",
+            "rows": [{"field_guid": "region"}],
+            "columns": [{"field_guid": "category"}],
+            "measures": [{"field_guid": "amount"}],
+        },
+        user_config_path=tmp_path / "absent.json",
+    )["draft"]
+    fields = tuple(
+        {
+            "guid": g,
+            "title": g,
+            "calc_mode": "direct",
+            "type": "MEASURE" if g == "amount" else "DIMENSION",
+            "data_type": "float" if g == "amount" else "string",
+        }
+        for g in ("region", "category", "amount")
+    )
     with DataLensClientYC(auth=None) as client:
-        builder = wizard_builder(client, Dataset(id="synthetic", result_schema=fields), draft["wizard"],
-                                 name=draft["name"], location=EntryLocation.workbook("synthetic"))
+        builder = wizard_builder(
+            client,
+            Dataset(id="synthetic", result_schema=fields),
+            draft["wizard"],
+            name=draft["name"],
+            location=EntryLocation.workbook("synthetic"),
+        )
         data = WizardChartConverter.from_domain_create(builder.to_spec()).to_payload()["data"]
     assert draft["wizard"]["roles"]["y"] == ["amount"]
     assert draft["wizard"]["subtotals"] == ["region", "category"]

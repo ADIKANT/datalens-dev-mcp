@@ -6,18 +6,34 @@ from datalens_dev_mcp.wizard.authoring import wizard_builder
 
 
 def test_categorical_bar_uses_horizontal_roles_and_compiles_display_settings(tmp_path):
-    draft = compile_recipe("categorical_bar", {
-        "dataset_id": "synthetic-dataset",
-        "category": {"field_guid": "category", "label": "Category"},
-        "metric": {"field_guid": "amount", "label": "Synthetic amount"},
-    }, user_config_path=tmp_path / "absent.json")["draft"]
+    draft = compile_recipe(
+        "categorical_bar",
+        {
+            "dataset_id": "synthetic-dataset",
+            "category": {"field_guid": "category", "label": "Category"},
+            "metric": {"field_guid": "amount", "label": "Synthetic amount"},
+        },
+        user_config_path=tmp_path / "absent.json",
+    )["draft"]
     fields = (
         {"guid": "category", "title": "Category", "type": "DIMENSION", "data_type": "string", "calc_mode": "direct"},
-        {"guid": "amount", "title": "Amount", "type": "MEASURE", "data_type": "float", "calc_mode": "direct", "aggregation": "sum"},
+        {
+            "guid": "amount",
+            "title": "Amount",
+            "type": "MEASURE",
+            "data_type": "float",
+            "calc_mode": "direct",
+            "aggregation": "sum",
+        },
     )
     with DataLensClientYC(auth=None) as client:
-        builder = wizard_builder(client, Dataset(id="synthetic-dataset", result_schema=fields), draft["wizard"],
-                                 name=draft["name"], location=EntryLocation.workbook("synthetic"))
+        builder = wizard_builder(
+            client,
+            Dataset(id="synthetic-dataset", result_schema=fields),
+            draft["wizard"],
+            name=draft["name"],
+            location=EntryLocation.workbook("synthetic"),
+        )
         data = WizardChartConverter.from_domain_create(builder.to_spec()).to_payload()["data"]
     placeholders = {p["id"]: p for p in data["visualization"]["placeholders"]}
     assert placeholders["x"]["items"][0]["guid"] == "amount"

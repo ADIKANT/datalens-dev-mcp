@@ -1,18 +1,26 @@
 import pytest
+from test_l06_object_lifecycle import FakeBackend, FakeReader, rb, service
 
 from datalens_dev_mcp.dashboard.composition import dependency_order
-from test_l06_object_lifecycle import FakeReader, FakeBackend, rb, service
 
 
 def test_created_chart_id_is_bound_into_dependent_dashboard(tmp_path):
-    reader = FakeReader({
-        ("editor_chart", "synthetic-chart", "saved"): [rb("editor_chart", "synthetic-chart", "r1", {"data": {}})],
-        ("dashboard", "synthetic-dashboard", "saved"): [rb("dashboard", "synthetic-dashboard", "r1", {"data": {"chartId": "synthetic-chart"}})],
-    })
+    reader = FakeReader(
+        {
+            ("editor_chart", "synthetic-chart", "saved"): [rb("editor_chart", "synthetic-chart", "r1", {"data": {}})],
+            ("dashboard", "synthetic-dashboard", "saved"): [
+                rb("dashboard", "synthetic-dashboard", "r1", {"data": {"chartId": "synthetic-chart"}})
+            ],
+        }
+    )
     backend = FakeBackend([{"object_id": "synthetic-chart"}, {"object_id": "synthetic-dashboard"}])
     drafts = [
-        {"client_ref": "dashboard", "object_type": "dashboard", "name": "Synthetic dashboard",
-         "snapshot": {"data": {"chartId": {"$object_ref": "chart"}}}},
+        {
+            "client_ref": "dashboard",
+            "object_type": "dashboard",
+            "name": "Synthetic dashboard",
+            "snapshot": {"data": {"chartId": {"$object_ref": "chart"}}},
+        },
         {"client_ref": "chart", "object_type": "editor_chart", "name": "Synthetic chart", "snapshot": {"data": {}}},
     ]
     writer = service(tmp_path, reader, backend)

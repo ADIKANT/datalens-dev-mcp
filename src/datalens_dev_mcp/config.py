@@ -17,7 +17,7 @@ def _read_env_file(path: Path) -> dict[str, str]:
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        values[key.strip()] = value.strip().strip("\"").strip("'")
+        values[key.strip()] = value.strip().strip('"').strip("'")
     return values
 
 

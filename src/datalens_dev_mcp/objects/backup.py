@@ -27,9 +27,25 @@ class BackupService:
                 (root / filename).write_text(
                     json.dumps(readback, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8"
                 )
-                entries.append({"object_type": object_type, "object_id": object_id, "branch": branch, "status": "exported", "file": filename})
+                entries.append(
+                    {
+                        "object_type": object_type,
+                        "object_id": object_id,
+                        "branch": branch,
+                        "status": "exported",
+                        "file": filename,
+                    }
+                )
             except (DataLensApiError, ValueError, TypeError) as exc:
-                entries.append({"object_type": object_type, "object_id": object_id, "branch": branch, "status": "failed", "error": safe_error_text(exc)})
+                entries.append(
+                    {
+                        "object_type": object_type,
+                        "object_id": object_id,
+                        "branch": branch,
+                        "status": "failed",
+                        "error": safe_error_text(exc),
+                    }
+                )
         complete = all(item["status"] == "exported" for item in entries)
         manifest = {
             "schema_version": 1,
@@ -41,4 +57,3 @@ class BackupService:
         path = root / "manifest.json"
         path.write_text(json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8")
         return {"ok": complete, "complete": complete, "manifest_path": str(path), "objects": entries}
-

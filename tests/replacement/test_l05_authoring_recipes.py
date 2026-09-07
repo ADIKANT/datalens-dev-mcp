@@ -50,7 +50,13 @@ def test_defaults_precedence_is_generic_user_project_reference_explicit(tmp_path
     project = tmp_path / "project"
     (project / ".datalens").mkdir(parents=True)
     user.write_text(
-        json.dumps({"defaults": {"theme": "dark", "title": {"owner": "body"}}, "families": {"kpi_sparkline": {"technology": "advanced_chart"}}, "reference_files": ["references/kpi.json"]}),
+        json.dumps(
+            {
+                "defaults": {"theme": "dark", "title": {"owner": "body"}},
+                "families": {"kpi_sparkline": {"technology": "advanced_chart"}},
+                "reference_files": ["references/kpi.json"],
+            }
+        ),
         encoding="utf-8",
     )
     (project / ".datalens/authoring.json").write_text(
@@ -102,13 +108,24 @@ def test_compile_kpi_materializes_visual_fields_and_reuses_renderer(tmp_path: Pa
 def test_recipe_bindings_change_config_not_canonical_renderer() -> None:
     first = compile_recipe(
         "comparison_matrix",
-        bindings={"prepared_data": {"rows": []}, "rows": [{"field_guid": "row-a", "label": "A"}], "metric": {"field_guid": "m-a", "label": "Metric A"}},
+        bindings={
+            "prepared_data": {"rows": []},
+            "rows": [{"field_guid": "row-a", "label": "A"}],
+            "metric": {"field_guid": "m-a", "label": "Metric A"},
+        },
     )
     second = compile_recipe(
         "comparison_matrix",
-        bindings={"prepared_data": {"rows": []}, "rows": [{"field_guid": "row-b", "label": "B"}], "metric": {"field_guid": "m-b", "label": "Metric B"}},
+        bindings={
+            "prepared_data": {"rows": []},
+            "rows": [{"field_guid": "row-b", "label": "B"}],
+            "metric": {"field_guid": "m-b", "label": "Metric B"},
+        },
     )
-    assert first["draft"]["tabs"]["prepare.js"].split("\nmodule.exports = module.exports(")[0] == second["draft"]["tabs"]["prepare.js"].split("\nmodule.exports = module.exports(")[0]
+    assert (
+        first["draft"]["tabs"]["prepare.js"].split("\nmodule.exports = module.exports(")[0]
+        == second["draft"]["tabs"]["prepare.js"].split("\nmodule.exports = module.exports(")[0]
+    )
     assert first["draft"]["config"] != second["draft"]["config"]
     assert first["summary"]["visual_contract"]["legend"]["mode"] == "fixed_semantic"
 
@@ -130,9 +147,27 @@ def test_selector_recipe_has_parameter_and_consumer_contract() -> None:
 
 def test_editor_variants_have_distinct_required_tabs_and_runtime_limits() -> None:
     variants = {
-        "table_node": {"meta.json": "{}", "params.js": "module.exports = {};", "sources.js": "module.exports = {};", "prepare.js": "module.exports = {};", "config.js": "module.exports = {};"},
-        "d3_node": {"meta.json": "{}", "params.js": "module.exports = {};", "sources.js": "module.exports = {};", "prepare.js": "module.exports = {};", "controls.js": "module.exports = {};"},
-        "advanced-chart_node": {"meta.json": "{}", "params.js": "module.exports = {};", "sources.js": "module.exports = {};", "prepare.js": "module.exports = {};", "controls.js": "module.exports = {};"},
+        "table_node": {
+            "meta.json": "{}",
+            "params.js": "module.exports = {};",
+            "sources.js": "module.exports = {};",
+            "prepare.js": "module.exports = {};",
+            "config.js": "module.exports = {};",
+        },
+        "d3_node": {
+            "meta.json": "{}",
+            "params.js": "module.exports = {};",
+            "sources.js": "module.exports = {};",
+            "prepare.js": "module.exports = {};",
+            "controls.js": "module.exports = {};",
+        },
+        "advanced-chart_node": {
+            "meta.json": "{}",
+            "params.js": "module.exports = {};",
+            "sources.js": "module.exports = {};",
+            "prepare.js": "module.exports = {};",
+            "controls.js": "module.exports = {};",
+        },
         "markdown_node": {"meta.json": "{}", "params.js": "module.exports = {};", "prepare.js": "module.exports = {};"},
         "control_node": {"meta.json": "{}", "params.js": "module.exports = {};", "controls.js": "module.exports = {};"},
     }
@@ -140,7 +175,9 @@ def test_editor_variants_have_distinct_required_tabs_and_runtime_limits() -> Non
         result = validate_editor_draft({"variant": variant, "tabs": tabs, "source_aliases": []})
         assert result["ok"] is True, (variant, result)
         assert result["runtime"]["live_result_checked"] is False
-    assert validate_editor_draft({"variant": "table_node", "tabs": {"prepare.js": "module.exports = {};"}})["ok"] is False
+    assert (
+        validate_editor_draft({"variant": "table_node", "tabs": {"prepare.js": "module.exports = {};"}})["ok"] is False
+    )
 
 
 def test_editor_validation_rejects_node_sql_lib_and_duplicate_aliases() -> None:

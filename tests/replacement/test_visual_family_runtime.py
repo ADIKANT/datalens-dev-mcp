@@ -15,7 +15,11 @@ def _run_renderer(asset: str, data: dict, contract: dict, *, target_id: str = ""
     script += "const html = render({width:360,height:220}, ...exported.render.args);"
     script += "let tooltip = '';"
     script += "if (exported.tooltip) { const tip = vm.runInNewContext('(' + exported.tooltip.renderer.fn.toString() + ')', {Editor});"
-    script += "tooltip = tip({target:{getAttribute:() => " + json.dumps(target_id) + "}}, ...exported.tooltip.renderer.args); }"
+    script += (
+        "tooltip = tip({target:{getAttribute:() => "
+        + json.dumps(target_id)
+        + "}}, ...exported.tooltip.renderer.args); }"
+    )
     script += "console.log(JSON.stringify({html, tooltip}));"
     return json.loads(subprocess.check_output(["node", "-e", script], text=True))
 
@@ -50,9 +54,9 @@ def test_kpi_runtime_applies_hint_spacing_auto_theme_and_semantic_tooltip(tmp_pa
     )
 
     assert "padding:18px" in rendered["html"]
-    assert "data-id=\"kpi-hint\"" in rendered["html"]
+    assert 'data-id="kpi-hint"' in rendered["html"]
     assert "background:var(--g-color-base-background,transparent)" in rendered["html"]
-    assert "title=\"" not in rendered["html"]
+    assert 'title="' not in rendered["html"]
     assert "Current" in rendered["tooltip"]
     assert "Previous" in rendered["tooltip"]
     assert "2026-09-02" in rendered["tooltip"]
@@ -83,7 +87,14 @@ def test_matrix_runtime_has_dynamic_six_level_headers_sticky_first_column_and_dy
         },
         {
             "table": {
-                "header_rows": ["Release scope", "Release target", "CI / IS", "Release status", "For assembly", "Version type"],
+                "header_rows": [
+                    "Release scope",
+                    "Release target",
+                    "CI / IS",
+                    "Release status",
+                    "For assembly",
+                    "Version type",
+                ],
                 "first_column_label": "ECU",
             },
             "legend": {
@@ -115,9 +126,7 @@ def test_weekly_totals_runtime_has_iso_columns_sticky_edges_totals_and_configura
         "weekly_totals_table",
         {
             "prepared_data": {
-                "weeks": [
-                    {"key": "2026-W36", "label": "26w36", "date_from": "2026-08-31", "date_to": "2026-09-06"}
-                ],
+                "weeks": [{"key": "2026-W36", "label": "26w36", "date_from": "2026-08-31", "date_to": "2026-09-06"}],
                 "rows": [{"label": "Synthetic campaign", "values": [7], "total": 7}],
                 "total_values": [7],
                 "grand_total": 7,

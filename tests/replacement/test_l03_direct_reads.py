@@ -61,13 +61,7 @@ def test_workbook_entries_follow_all_pages_and_report_completeness() -> None:
 
 
 def test_workbook_entries_are_explicitly_partial_at_bound() -> None:
-    api = FakeApi(
-        {
-            "getWorkbookEntries": [
-                {"entries": [{"entryId": "a", "scope": "dash"}], "nextPageToken": "next-1"}
-            ]
-        }
-    )
+    api = FakeApi({"getWorkbookEntries": [{"entries": [{"entryId": "a", "scope": "dash"}], "nextPageToken": "next-1"}]})
     result = ObjectReadService(api=api, sdk=FakeSdk({})).workbook_entries("wb-1", max_pages=1)
     assert result["complete"] is False
     assert result["partial_reason"] == "page_limit_reached"
@@ -90,9 +84,7 @@ def test_typed_object_get_preserves_requested_branch_and_revision() -> None:
 
 def test_unbranched_object_reports_actual_semantics() -> None:
     sdk = FakeSdk({("dataset", "dataset-1", "published"): {"id": "dataset-1", "revId": "rev-2"}})
-    result = ObjectReadService(api=FakeApi({}), sdk=sdk).object_get(
-        "dataset", "dataset-1", branch="published"
-    )
+    result = ObjectReadService(api=FakeApi({}), sdk=sdk).object_get("dataset", "dataset-1", branch="published")
     assert result["identity"]["branch"] == "unbranched"
 
 

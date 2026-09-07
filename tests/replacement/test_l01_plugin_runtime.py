@@ -40,9 +40,7 @@ def test_plugin_manifest_loads_bundled_skills_and_stdio_backend() -> None:
     assert manifest["mcpServers"] == "./.mcp.json"
 
     server_map = json.loads((ROOT / ".mcp.json").read_text(encoding="utf-8"))
-    assert server_map == {
-        "mcpServers": {"datalens": {"command": "datalens-dev-mcp", "args": ["stdio"]}}
-    }
+    assert server_map == {"mcpServers": {"datalens": {"command": "datalens-dev-mcp", "args": ["stdio"]}}}
     assert {path.parent.name for path in (ROOT / "skills").glob("*/SKILL.md")} == EXPECTED_SKILLS
 
 

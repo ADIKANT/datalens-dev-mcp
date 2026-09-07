@@ -7,10 +7,19 @@ from datalens_dev_mcp.editor.validation import validate_editor_draft
 
 
 def test_assembled_prepare_calls_renderer_without_unsupported_config_tab(tmp_path):
-    draft = compile_recipe("comparison_matrix", {"rows": [], "metric": {"label": "Synthetic"},
-        "source": {"meta": {}, "sources_js": "module.exports = {};",
-                   "prepare_js": "module.exports = {rows: [{label: 'Synthetic row', current: 2, previous: 1}]};"}},
-        user_config_path=tmp_path / "absent.json")["draft"]
+    draft = compile_recipe(
+        "comparison_matrix",
+        {
+            "rows": [],
+            "metric": {"label": "Synthetic"},
+            "source": {
+                "meta": {},
+                "sources_js": "module.exports = {};",
+                "prepare_js": "module.exports = {rows: [{label: 'Synthetic row', current: 2, previous: 1}]};",
+            },
+        },
+        user_config_path=tmp_path / "absent.json",
+    )["draft"]
     assert validate_editor_draft(draft)["ok"]
     assert "config.json" not in draft["tabs"]
     script = "const Editor = {wrapFn: x => x, generateHtml: x => x};\n" + draft["tabs"]["prepare.js"]
@@ -21,5 +30,8 @@ def test_assembled_prepare_calls_renderer_without_unsupported_config_tab(tmp_pat
 
 def test_advanced_compile_does_not_invent_source(tmp_path):
     with pytest.raises(ValueError, match="explicit source"):
-        compile_recipe("comparison_matrix", {"rows": [], "metric": {"label": "Synthetic"}},
-                       user_config_path=tmp_path / "absent.json")
+        compile_recipe(
+            "comparison_matrix",
+            {"rows": [], "metric": {"label": "Synthetic"}},
+            user_config_path=tmp_path / "absent.json",
+        )

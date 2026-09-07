@@ -13,7 +13,12 @@ from datalens_dev_mcp.dashboard.composition import (
 def test_narrow_dashboard_patch_preserves_manual_geometry_and_unknown_widgets() -> None:
     current = {
         "data": {
-            "tabs": [{"id": "overview", "items": [{"id": "chart-a", "layout": {"x": 0, "y": 0, "w": 12, "h": 19}, "manual": True}]}],
+            "tabs": [
+                {
+                    "id": "overview",
+                    "items": [{"id": "chart-a", "layout": {"x": 0, "y": 0, "w": 12, "h": 19}, "manual": True}],
+                }
+            ],
             "unknown": {"keep": True},
         },
         "name": "Old",
@@ -30,8 +35,16 @@ def test_range_selector_requires_every_consumer_and_no_stale_override() -> None:
             "chart-a": {"params": {}},
             "chart-b": {"params": {"period": "stale-static"}},
         },
-        "selectors": [{"id": "period-control", "param_name": "period", "mode": "range", "clear": True,
-                       "empty_selection": "all", "consumers": ["chart-a", "chart-b"]}],
+        "selectors": [
+            {
+                "id": "period-control",
+                "param_name": "period",
+                "mode": "range",
+                "clear": True,
+                "empty_selection": "all",
+                "consumers": ["chart-a", "chart-b"],
+            }
+        ],
     }
     result = validate_dashboard_contract(contract)
     assert {item["code"] for item in result["issues"]} == {"stale_consumer_override"}
@@ -59,10 +72,10 @@ def test_fixed_matrix_legend_and_cumulative_comparison_are_not_invalidated() -> 
 
 
 def test_dependency_order_supports_more_than_25_objects_and_is_stable() -> None:
-    drafts = [
-        {"client_ref": f"chart-{index}", "depends_on": ["dataset"]}
-        for index in range(30)
-    ] + [{"client_ref": "dataset", "depends_on": ["connection"]}, {"client_ref": "connection"}]
+    drafts = [{"client_ref": f"chart-{index}", "depends_on": ["dataset"]} for index in range(30)] + [
+        {"client_ref": "dataset", "depends_on": ["connection"]},
+        {"client_ref": "connection"},
+    ]
     ordered = dependency_order(drafts)
     refs = [item["client_ref"] for item in ordered]
     assert len(refs) == 32

@@ -16,14 +16,24 @@ def test_real_sdk_editor_create_does_not_replay_ambiguous_write(failure):
             raise httpx.ReadTimeout("synthetic lost response", request=request)
         return httpx.Response(503, json={"code": "UNAVAILABLE", "message": "synthetic temporary failure"})
 
-    with DataLensClientYC(auth=None, base_url="https://example.invalid", transport=httpx.MockTransport(transport)) as client:
+    with DataLensClientYC(
+        auth=None, base_url="https://example.invalid", transport=httpx.MockTransport(transport)
+    ) as client:
         error_type = UncertainWriteError if failure == "timeout" else DataLensApiError
         with pytest.raises(error_type) as error:
-            SdkAdapter(client=client).create({
-                "object_type": "editor_chart", "variant": "control_node", "name": "Synthetic selector",
-                "tabs": {"meta.json": "{}", "params.js": "module.exports={};",
-                         "controls.js": "module.exports={controls:[]};"},
-            }, {"workbook_id": "synthetic-workbook"})
+            SdkAdapter(client=client).create(
+                {
+                    "object_type": "editor_chart",
+                    "variant": "control_node",
+                    "name": "Synthetic selector",
+                    "tabs": {
+                        "meta.json": "{}",
+                        "params.js": "module.exports={};",
+                        "controls.js": "module.exports={controls:[]};",
+                    },
+                },
+                {"workbook_id": "synthetic-workbook"},
+            )
     assert len(requests) == 1
     assert requests[0].url.path.endswith("/createEditorChart")
     if failure == "server_error":

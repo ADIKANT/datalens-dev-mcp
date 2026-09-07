@@ -41,7 +41,10 @@ def compact_object_index(entries: Iterable[Mapping[str, Any]]) -> list[dict[str,
         if not object_id:
             continue
         nested = entry.get("entry") if isinstance(entry.get("entry"), Mapping) else {}
-        item: dict[str, Any] = {"id": object_id, "type": str(entry.get("scope") or entry.get("type") or nested.get("scope") or object_type)}
+        item: dict[str, Any] = {
+            "id": object_id,
+            "type": str(entry.get("scope") or entry.get("type") or nested.get("scope") or object_type),
+        }
         name = entry.get("name") or nested.get("name")
         if name:
             item["name"] = str(name)

@@ -7,7 +7,12 @@ from datalens_sdk import DataLensClientYC, Dataset, Workbook
 from datalens_sdk.converter.wizard import WizardChartConverter
 
 from datalens_dev_mcp.api.sdk_adapter import SDK_VERSION, WIZARD_VARIANTS
-from datalens_dev_mcp.dataset.contracts import TECHNICAL_MEASURES, validate_dataset_fields, validate_visualization_fields, wire_fields
+from datalens_dev_mcp.dataset.contracts import (
+    TECHNICAL_MEASURES,
+    validate_dataset_fields,
+    validate_visualization_fields,
+    wire_fields,
+)
 
 
 def wizard_builder(client: Any, dataset: Dataset, specification: Mapping[str, Any], *, name: str, location: Any) -> Any:
@@ -19,8 +24,20 @@ def wizard_builder(client: Any, dataset: Dataset, specification: Mapping[str, An
     visualization = str(specification.get("visualization") or "")
     if visualization not in WIZARD_VARIANTS:
         raise ValueError(f"unsupported Wizard visualization: {visualization}")
-    allowed = {"dataset_id", "visualization", "roles", "title", "title_mode", "table", "sort", "column_titles",
-               "grid", "legend", "labels_position", "subtotals"}
+    allowed = {
+        "dataset_id",
+        "visualization",
+        "roles",
+        "title",
+        "title_mode",
+        "table",
+        "sort",
+        "column_titles",
+        "grid",
+        "legend",
+        "labels_position",
+        "subtotals",
+    }
     if set(specification) - allowed:
         raise ValueError(f"unsupported Wizard settings: {sorted(set(specification) - allowed)}")
     roles = specification.get("roles")
@@ -115,15 +132,33 @@ def compile_wizard_create(
     selected = [guid for guids in roles.values() for guid in guids]
     issues.extend(validate_visualization_fields(fields + (local_fields or []), selected)["issues"])
     if visualization not in WIZARD_VARIANTS:
-        issues.append({"code": "wizard_visualization_unsupported", "path": "visualization", "message": f"unsupported SDK visualization: {visualization}"})
+        issues.append(
+            {
+                "code": "wizard_visualization_unsupported",
+                "path": "visualization",
+                "message": f"unsupported SDK visualization: {visualization}",
+            }
+        )
     field_rows = wire_fields(fields)
     known = {str(item["guid"]): item for item in field_rows}
     for role, guids in roles.items():
         for guid in guids:
             if guid.lower() in TECHNICAL_MEASURES:
-                issues.append({"code": "technical_measure_role_requires_sdk_operation", "path": f"roles.{role}", "message": "technical measures must use a documented SDK chart operation"})
+                issues.append(
+                    {
+                        "code": "technical_measure_role_requires_sdk_operation",
+                        "path": f"roles.{role}",
+                        "message": "technical measures must use a documented SDK chart operation",
+                    }
+                )
             elif guid not in known:
-                issues.append({"code": "wizard_field_guid_unknown", "path": f"roles.{role}", "message": f"field GUID is absent from Dataset readback: {guid}"})
+                issues.append(
+                    {
+                        "code": "wizard_field_guid_unknown",
+                        "path": f"roles.{role}",
+                        "message": f"field GUID is absent from Dataset readback: {guid}",
+                    }
+                )
     if issues:
         return {"ok": False, "issues": issues, "sdk_version": SDK_VERSION, "dataset_fields": field_rows}
 
@@ -137,7 +172,13 @@ def compile_wizard_create(
             if method is None or not callable(method):
                 return {
                     "ok": False,
-                    "issues": [{"code": "wizard_role_unsupported", "path": f"roles.{role}", "message": f"{visualization} does not support role {role}"}],
+                    "issues": [
+                        {
+                            "code": "wizard_role_unsupported",
+                            "path": f"roles.{role}",
+                            "message": f"{visualization} does not support role {role}",
+                        }
+                    ],
                     "sdk_version": SDK_VERSION,
                     "dataset_fields": field_rows,
                 }

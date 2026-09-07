@@ -102,8 +102,8 @@ def test_sdk_adapter_exposes_versioned_factories_without_executing_them() -> Non
         "supported": True,
         "effect": "mutation_on_build",
     }
-    assert adapter.describe_factory("editor", "table") ["supported"] is True
-    assert adapter.describe_factory("editor", "unknown") ["supported"] is False
+    assert adapter.describe_factory("editor", "table")["supported"] is True
+    assert adapter.describe_factory("editor", "unknown")["supported"] is False
 
 
 def test_l02_tools_expose_auth_and_versioned_schema_without_generic_rpc() -> None:

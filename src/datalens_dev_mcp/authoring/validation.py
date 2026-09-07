@@ -1,4 +1,5 @@
 """Pure batch validation for typed authoring drafts."""
+
 from __future__ import annotations
 
 from collections import Counter
@@ -82,9 +83,7 @@ def validate_drafts(drafts: Sequence[Mapping[str, Any]]) -> ValidationResult:
         try:
             draft = resolve_artifact(dict(raw))
         except (OSError, ValueError, TypeError) as exc:
-            item["errors"].append(
-                _error("artifact_unreadable", f"drafts/{index}/artifact_path", _compact_error(exc))
-            )
+            item["errors"].append(_error("artifact_unreadable", f"drafts/{index}/artifact_path", _compact_error(exc)))
             resolved.append(None)
             continue
         if "artifact_path" in raw:
@@ -169,9 +168,7 @@ def _validate_client_refs(resolved: list[dict[str, Any] | None], items: list[dic
             )
 
 
-def _validate_dependencies(
-    resolved: list[dict[str, Any] | None], items: list[dict[str, Any]]
-) -> dict[str, set[str]]:
+def _validate_dependencies(resolved: list[dict[str, Any] | None], items: list[dict[str, Any]]) -> dict[str, set[str]]:
     known = {
         str(draft["client_ref"])
         for draft in resolved
@@ -194,9 +191,7 @@ def _validate_dependencies(
         try:
             dependencies = set(explicit) | object_references(draft)
         except ValueError as exc:
-            items[index]["errors"].append(
-                _error("object_reference_invalid", f"drafts/{index}", _compact_error(exc))
-            )
+            items[index]["errors"].append(_error("object_reference_invalid", f"drafts/{index}", _compact_error(exc)))
             dependencies = set(explicit)
         missing = sorted(dependencies - known)
         if missing:
@@ -233,9 +228,7 @@ def _cycle_refs(graph: dict[str, set[str]]) -> set[str]:
     return cycles
 
 
-def _validate_supported_draft(
-    draft: Mapping[str, Any], object_type: str
-) -> tuple[list[dict[str, str]], list[str]]:
+def _validate_supported_draft(draft: Mapping[str, Any], object_type: str) -> tuple[list[dict[str, str]], list[str]]:
     errors: list[dict[str, str]] = []
     if not isinstance(draft.get("name"), str) or not str(draft.get("name")).strip():
         errors.append(_error("object_name_missing", "name", "draft requires a nonempty object name"))

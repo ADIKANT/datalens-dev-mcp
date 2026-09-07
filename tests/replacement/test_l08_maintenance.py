@@ -13,8 +13,21 @@ from datalens_dev_mcp.objects.cleanup import CleanupService
 class Reader:
     def __init__(self) -> None:
         self.objects = {
-            ("dashboard", "dash", "saved"): {"ok": True, "identity": {"object_type": "dashboard", "object_id": "dash", "branch": "saved", "revision_id": "r1"}, "object": {"id": "dash", "data": {}}},
-            ("dataset", "shared", "saved"): {"ok": True, "identity": {"object_type": "dataset", "object_id": "shared", "branch": "unbranched", "revision_id": "r2"}, "object": {"id": "shared"}},
+            ("dashboard", "dash", "saved"): {
+                "ok": True,
+                "identity": {"object_type": "dashboard", "object_id": "dash", "branch": "saved", "revision_id": "r1"},
+                "object": {"id": "dash", "data": {}},
+            },
+            ("dataset", "shared", "saved"): {
+                "ok": True,
+                "identity": {
+                    "object_type": "dataset",
+                    "object_id": "shared",
+                    "branch": "unbranched",
+                    "revision_id": "r2",
+                },
+                "object": {"id": "shared"},
+            },
         }
         self.relations = {"dash": [{"id": "shared", "type": "dataset"}], "shared": []}
 

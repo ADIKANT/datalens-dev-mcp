@@ -38,7 +38,9 @@ def compile_preview_request(
             }
         )
     if not normalized_columns:
-        issues.append({"code": "columns_empty", "path": "columns", "message": "at least one Dataset field GUID is required"})
+        issues.append(
+            {"code": "columns_empty", "path": "columns", "message": "at least one Dataset field GUID is required"}
+        )
     normalized_filters: list[dict[str, Any]] = []
     for index, item in enumerate(filters or []):
         guid = str(item.get("guid") or "").strip()
@@ -51,7 +53,13 @@ def compile_preview_request(
                 }
             )
         elif guid not in known:
-            issues.append({"code": "unknown_filter_guid", "path": f"filters[{index}].guid", "message": "filter GUID is not in Dataset readback"})
+            issues.append(
+                {
+                    "code": "unknown_filter_guid",
+                    "path": f"filters[{index}].guid",
+                    "message": "filter GUID is not in Dataset readback",
+                }
+            )
         else:
             normalized_filters.append(dict(item))
     normalized_sort = [dict(item) for item in sort or []]
@@ -59,9 +67,21 @@ def compile_preview_request(
     for index, item in enumerate(normalized_sort):
         guid = str(item.get("guid") or "")
         if guid not in normalized_columns:
-            issues.append({"code": "sort_guid_not_selected", "path": f"sort[{index}].guid", "message": "sort GUID must also be selected in columns"})
+            issues.append(
+                {
+                    "code": "sort_guid_not_selected",
+                    "path": f"sort[{index}].guid",
+                    "message": "sort GUID must also be selected in columns",
+                }
+            )
         if item.get("direction") not in {"asc", "desc"}:
-            issues.append({"code": "sort_direction_invalid", "path": f"sort[{index}].direction", "message": "sort direction must be asc or desc"})
+            issues.append(
+                {
+                    "code": "sort_direction_invalid",
+                    "path": f"sort[{index}].direction",
+                    "message": "sort direction must be asc or desc",
+                }
+            )
     tie_breakers = list(dict.fromkeys(tie_breaker_guids or []))
     if max_pages > 1 and (not normalized_sort or not tie_breakers):
         issues.append(
@@ -72,9 +92,21 @@ def compile_preview_request(
             }
         )
     if not set(tie_breakers).issubset(set(sort_guids)):
-        issues.append({"code": "tie_breaker_not_sorted", "path": "tie_breaker_guids", "message": "every tie-breaker GUID must be present in sort"})
+        issues.append(
+            {
+                "code": "tie_breaker_not_sorted",
+                "path": "tie_breaker_guids",
+                "message": "every tie-breaker GUID must be present in sort",
+            }
+        )
     if not 1 <= limit <= 100_000 or offset < 0 or not 1 <= max_pages <= 100:
-        issues.append({"code": "preview_bound_invalid", "path": "limit", "message": "limit, offset or max_pages is outside the supported bound"})
+        issues.append(
+            {
+                "code": "preview_bound_invalid",
+                "path": "limit",
+                "message": "limit, offset or max_pages is outside the supported bound",
+            }
+        )
     request = {"datasetId": dataset_id, "columns": normalized_columns, "limit": limit, "offset": offset}
     if normalized_filters:
         request["filters"] = normalized_filters

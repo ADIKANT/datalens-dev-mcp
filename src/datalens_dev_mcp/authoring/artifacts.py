@@ -1,4 +1,5 @@
 """Local JSON artifacts are data, never executable scripts or instructions."""
+
 from __future__ import annotations
 
 import json

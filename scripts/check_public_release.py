@@ -2,6 +2,7 @@
 
 This structural check is not a substitute for a synthetic-fixture/privacy review.
 """
+
 from __future__ import annotations
 
 import sys
@@ -18,8 +19,11 @@ def audit(path: Path) -> None:
         with tarfile.open(path) as archive:
             names = archive.getnames()
     forbidden = {"pipeline", "memory-bank", "__pycache__", ".git", "artifacts", ".env"}
-    bad = [name for name in names if forbidden.intersection(Path(name).parts)
-           or name.endswith((".pyc", ".env", ".pem", ".key"))]
+    bad = [
+        name
+        for name in names
+        if forbidden.intersection(Path(name).parts) or name.endswith((".pyc", ".env", ".pem", ".key"))
+    ]
     if bad:
         raise ValueError(f"{path.name}: forbidden archive members: {bad}")
     for required in ("server.py", "api/sdk_adapter.py", "assets/recipes/registry.json"):

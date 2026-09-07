@@ -87,9 +87,7 @@ def test_validate_drafts_resolves_inline_and_artifact_inputs_compactly(tmp_path:
 
 
 def test_validate_drafts_returns_missing_artifact_as_one_item_error(tmp_path: Path) -> None:
-    result = validate_drafts(
-        [VALID_WIZARD, {"artifact_path": str(tmp_path / "missing.json"), "client_ref": "missing"}]
-    )
+    result = validate_drafts([VALID_WIZARD, {"artifact_path": str(tmp_path / "missing.json"), "client_ref": "missing"}])
 
     assert [item["status"] for item in result["items"]] == ["valid", "invalid"]
     assert result["items"][1]["errors"][0]["code"] == "artifact_unreadable"
@@ -107,13 +105,9 @@ def test_validate_drafts_marks_duplicate_missing_and_cyclic_dependencies() -> No
     )
 
     assert [item["status"] for item in duplicate["items"]] == ["invalid", "invalid"]
-    assert {error["code"] for item in duplicate["items"] for error in item["errors"]} == {
-        "client_ref_duplicate"
-    }
+    assert {error["code"] for item in duplicate["items"] for error in item["errors"]} == {"client_ref_duplicate"}
     assert missing["items"][0]["errors"][0]["code"] == "dependency_missing"
-    assert {error["code"] for item in cyclic["items"] for error in item["errors"]} == {
-        "dependency_cycle"
-    }
+    assert {error["code"] for item in cyclic["items"] for error in item["errors"]} == {"dependency_cycle"}
 
 
 def test_mcp_and_python_facade_share_batch_validation_while_single_editor_validation_remains() -> None:
