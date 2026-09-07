@@ -45,7 +45,9 @@ def semantic_diff(current: Any, proposed: Any, path: str = "") -> list[dict[str,
             else:
                 changes.extend(semantic_diff(current[key], proposed[key], child))
         return changes
-    return [] if current == proposed else [{"path": path or "/", "before": deepcopy(current), "after": deepcopy(proposed)}]
+    return (
+        [] if current == proposed else [{"path": path or "/", "before": deepcopy(current), "after": deepcopy(proposed)}]
+    )
 
 
 class ObjectMutationService:
@@ -91,10 +93,13 @@ class ObjectMutationService:
                 self._save(record)
                 continue
             try:
-                ids = {key: row["target"]["object_id"] for key, row in by_key.items()
-                       if row["status"] == "completed" and row.get("target")}
+                ids = {
+                    key: row["target"]["object_id"]
+                    for key, row in by_key.items()
+                    if row["status"] == "completed" and row.get("target")
+                }
                 draft = bind_object_references(draft, ids)
-                item["desired"] = deepcopy(draft.get("snapshot") or draft.get("draft") or {})
+                item["desired"] = _recordable(draft.get("snapshot") or draft.get("draft") or {})
                 self._begin(record, item)
                 response = self.backend.create(draft, destination)
                 object_id = str(response.get("object_id") or response.get("id") or "")
@@ -102,7 +107,7 @@ class ObjectMutationService:
                     raise UncertainWriteError("create returned no object id")
                 item["target"] = {"object_type": str(draft["object_type"]), "object_id": object_id}
                 if isinstance(response.get("expected_readback"), dict):
-                    item["desired"] = deepcopy(response["expected_readback"])
+                    item["desired"] = _recordable(response["expected_readback"])
                 self._returned(record, item, response)
                 self._verify_readback(item, branch="saved")
             except UncertainWriteError as exc:
@@ -133,7 +138,10 @@ class ObjectMutationService:
                 expected = str(change.get("expected_revision") or "")
                 if expected and actual_revision != expected:
                     item.update(
-                        status="blocked", code="revision_changed", expected_revision=expected, observed_revision=actual_revision
+                        status="blocked",
+                        code="revision_changed",
+                        expected_revision=expected,
+                        observed_revision=actual_revision,
                     )
                     self._save(record)
                     continue
@@ -141,7 +149,7 @@ class ObjectMutationService:
                 proposed = semantic_merge(current["object"], patch)
                 item.update(
                     target={"object_type": object_type, "object_id": object_id},
-                    desired=patch,
+                    desired=_recordable(patch),
                     expected_revision=actual_revision or None,
                     changes=semantic_diff(current["object"], proposed),
                 )
@@ -179,13 +187,18 @@ class ObjectMutationService:
                     self._save(record)
                     continue
                 if expected and observed != expected:
-                    item.update(status="blocked", code="revision_changed", expected_revision=expected, observed_revision=observed)
+                    item.update(
+                        status="blocked",
+                        code="revision_changed",
+                        expected_revision=expected,
+                        observed_revision=observed,
+                    )
                     self._save(record)
                     continue
                 item.update(
                     target={"object_type": object_type, "object_id": object_id},
                     expected_revision=observed or None,
-                    desired=_publish_content(saved["object"]),
+                    desired=_recordable(_publish_content(saved["object"])),
                 )
                 self._begin(record, item)
                 response = self.backend.publish(object_type, object_id, saved)
@@ -243,7 +256,7 @@ class ObjectMutationService:
     def _verify_readback(self, item: dict[str, Any], *, branch: str) -> None:
         target = item["target"]
         readback = self.reader.object_get(target["object_type"], target["object_id"], branch=branch)
-        item["readback"] = readback
+        item["readback"] = _recordable(readback)
         identity = readback.get("identity") or {}
         allowed_branch = "unbranched" if target["object_type"] in {"dataset", "connection", "workbook"} else branch
         correct_identity = (
@@ -287,12 +300,21 @@ class ObjectMutationService:
             if existing.get("effect") != effect or existing.get("request_digest") != digest:
                 raise ValueError("operation_id is already bound to a different request")
             return oid, existing
-        return oid, {"ok": True, "operation_id": oid, "effect": effect, "request_digest": digest, "status": "pending", "results": []}
+        return oid, {
+            "ok": True,
+            "operation_id": oid,
+            "effect": effect,
+            "request_digest": digest,
+            "status": "pending",
+            "results": [],
+        }
 
     @staticmethod
     def _items(record: dict[str, Any], values: list[dict[str, Any]], key_fn: Any) -> list[dict[str, Any]]:
         if not record["results"]:
-            record["results"] = [{"key": key_fn(value, index), "status": "pending"} for index, value in enumerate(values)]
+            record["results"] = [
+                {"key": key_fn(value, index), "status": "pending"} for index, value in enumerate(values)
+            ]
         if len(record["results"]) != len(values):
             raise ValueError("operation item count changed")
         return record["results"]
@@ -321,7 +343,9 @@ def _digest(value: Any) -> str:
 
 def _contains(actual: Any, expected: Any) -> bool:
     if isinstance(expected, dict):
-        return isinstance(actual, dict) and all(key in actual and _contains(actual[key], value) for key, value in expected.items())
+        return isinstance(actual, dict) and all(
+            key in actual and _contains(actual[key], value) for key, value in expected.items()
+        )
     return actual == expected
 
 
@@ -332,6 +356,21 @@ def _publish_content(snapshot: dict[str, Any]) -> dict[str, Any]:
     if not content:
         raise ValueError("saved readback lacks publishable content")
     return content
+
+
+_SENSITIVE_KEY_PARTS = ("password", "secret", "token", "credential", "authorization", "cookie")
+
+
+def _recordable(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: _recordable(item)
+            for key, item in value.items()
+            if not any(part in str(key).lower() for part in _SENSITIVE_KEY_PARTS)
+        }
+    if isinstance(value, list):
+        return [_recordable(item) for item in value]
+    return deepcopy(value)
 
 
 def default_mutation_service() -> ObjectMutationService:
@@ -350,13 +389,25 @@ def create_objects(
     destination: dict[str, Any],
     delivery_mode: str = "save",
     operation_id: str | None = None,
+    *,
+    include_detail: bool = False,
 ) -> dict[str, Any]:
-    return default_mutation_service().create_objects(
+    from datalens_dev_mcp.operation_store import compact_operation
+
+    result = default_mutation_service().create_objects(
         drafts, destination, delivery_mode=delivery_mode, operation_id=operation_id
     )
+    return result if include_detail else compact_operation(result)
 
 
 def update_objects(
-    changes: list[dict[str, Any]], delivery_mode: str = "save", operation_id: str | None = None
+    changes: list[dict[str, Any]],
+    delivery_mode: str = "save",
+    operation_id: str | None = None,
+    *,
+    include_detail: bool = False,
 ) -> dict[str, Any]:
-    return default_mutation_service().update_objects(changes, delivery_mode=delivery_mode, operation_id=operation_id)
+    from datalens_dev_mcp.operation_store import compact_operation
+
+    result = default_mutation_service().update_objects(changes, delivery_mode=delivery_mode, operation_id=operation_id)
+    return result if include_detail else compact_operation(result)
