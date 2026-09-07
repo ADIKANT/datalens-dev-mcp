@@ -1,6 +1,6 @@
 ---
 name: datalens-inspect
-description: Inspect DataLens authentication, workbooks, dashboards, charts, datasets, connections, relations, and current errors without mutation.
+description: Use when inspecting DataLens authentication, workbooks, dashboards, charts, datasets, connections, relations, or current errors without mutation.
 ---
 
 # DataLens Inspect

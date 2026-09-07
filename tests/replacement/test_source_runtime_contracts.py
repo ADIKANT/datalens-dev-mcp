@@ -66,7 +66,7 @@ def test_dataset_prepare_distinguishes_missing_alias_and_upstream_error(loaded: 
     source = matrix_dataset_source(_dataset_bindings())
     script = "const Editor={getLoadedData:()=> (" + json.dumps(loaded) + ")};\n"
     script += "const require=()=>({getDatasetRows:()=>[]});\n" + source["prepare_js"]
-    result = subprocess.run(["node", "-e", script], text=True, capture_output=True)
+    result = subprocess.run(["node", "-e", script], text=True, capture_output=True, check=False)
     assert result.returncode != 0
     assert message in result.stderr
 
@@ -103,7 +103,7 @@ def test_direct_ql_and_api_sources_compile_only_documented_shapes() -> None:
     assert "qlConnectionId: Editor.getId('connection')" in ql["sources_js"]
     assert "sql_query" in ql["sources_js"]
     assert "apiConnectionId: Editor.getId('connection')" in api["sources_js"]
-    assert "method: \"POST\"" in api["sources_js"]
+    assert 'method: "POST"' in api["sources_js"]
     assert "fetch(" not in api["sources_js"]
 
 

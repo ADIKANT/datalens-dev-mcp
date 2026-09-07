@@ -22,8 +22,11 @@ def test_visualization_rejects_unknown_guid_instead_of_silently_skipping_it() ->
 def test_dataset_validation_preserves_existing_measure_semantics_without_inventing_sum() -> None:
     direct = {"guid": "amount", "title": "Amount", "type": "MEASURE", "aggregation": "sum"}
     aggregate_formula = {
-        "guid": "orders", "title": "Orders", "type": "MEASURE",
-        "formula": "COUNTD([order_id])", "aggregation": "none",
+        "guid": "orders",
+        "title": "Orders",
+        "type": "MEASURE",
+        "formula": "COUNTD([order_id])",
+        "aggregation": "none",
     }
 
     result = validate_dataset_fields([direct, aggregate_formula])
@@ -41,8 +44,12 @@ def test_selector_requires_one_declared_parameter_and_explicit_clear_semantics()
         "widgets": {"chart-a": {"params": {}}},
         "selectors": [
             {
-                "id": "region-control", "param_name": "region", "mode": "multi",
-                "clear": True, "select_all": True, "empty_selection": "all",
+                "id": "region-control",
+                "param_name": "region",
+                "mode": "multi",
+                "clear": True,
+                "select_all": True,
+                "empty_selection": "all",
                 "consumers": ["chart-a"],
             }
         ],
@@ -50,9 +57,7 @@ def test_selector_requires_one_declared_parameter_and_explicit_clear_semantics()
     assert validate_dashboard_contract(base)["ok"] is True
 
     duplicate = {**base, "parameters": [*base["parameters"], {"name": "region", "type": "string"}]}
-    assert {issue["code"] for issue in validate_dashboard_contract(duplicate)["issues"]} == {
-        "parameter_duplicate"
-    }
+    assert {issue["code"] for issue in validate_dashboard_contract(duplicate)["issues"]} == {"parameter_duplicate"}
 
     missing_semantics = {**base, "selectors": [{**base["selectors"][0], "empty_selection": None}]}
     assert {issue["code"] for issue in validate_dashboard_contract(missing_semantics)["issues"]} == {
@@ -67,8 +72,12 @@ def test_selector_cannot_target_an_undeclared_parameter() -> None:
             "widgets": {"chart-a": {"params": {}}},
             "selectors": [
                 {
-                    "id": "region-control", "param_name": "region", "mode": "single",
-                    "clear": False, "empty_selection": "error", "consumers": ["chart-a"],
+                    "id": "region-control",
+                    "param_name": "region",
+                    "mode": "single",
+                    "clear": False,
+                    "empty_selection": "error",
+                    "consumers": ["chart-a"],
                 }
             ],
         }

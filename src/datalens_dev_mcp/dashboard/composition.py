@@ -5,11 +5,23 @@ from typing import Any
 
 from datalens_dev_mcp.objects.write import semantic_merge
 
-
 RESERVED_PARAMETERS = frozenset(
     {
-        "tab", "state", "mode", "focus", "grid", "scale", "tz", "timezone", "date", "datetime",
-        "_action_params", "_autoupdate", "_opened_info", "report_page", "preview_mode",
+        "tab",
+        "state",
+        "mode",
+        "focus",
+        "grid",
+        "scale",
+        "tz",
+        "timezone",
+        "date",
+        "datetime",
+        "_action_params",
+        "_autoupdate",
+        "_opened_info",
+        "report_page",
+        "preview_mode",
     }
 )
 
@@ -25,9 +37,21 @@ def validate_dashboard_contract(contract: dict[str, Any]) -> dict[str, Any]:
     for index, parameter in enumerate(contract.get("parameters") or []):
         name = str(parameter.get("name") or "") if isinstance(parameter, dict) else ""
         if name in RESERVED_PARAMETERS:
-            issues.append({"code": "reserved_parameter", "path": f"parameters/{index}/name", "message": f"{name} is reserved by DataLens"})
+            issues.append(
+                {
+                    "code": "reserved_parameter",
+                    "path": f"parameters/{index}/name",
+                    "message": f"{name} is reserved by DataLens",
+                }
+            )
         if name in parameter_names:
-            issues.append({"code": "parameter_duplicate", "path": f"parameters/{index}/name", "message": f"duplicate dashboard parameter: {name}"})
+            issues.append(
+                {
+                    "code": "parameter_duplicate",
+                    "path": f"parameters/{index}/name",
+                    "message": f"duplicate dashboard parameter: {name}",
+                }
+            )
         elif name:
             parameter_names.add(name)
     widgets = contract.get("widgets") or {}
@@ -36,20 +60,50 @@ def validate_dashboard_contract(contract: dict[str, Any]) -> dict[str, Any]:
             continue
         param = str(selector.get("param_name") or "")
         if not param or param not in parameter_names:
-            issues.append({"code": "selector_parameter_undeclared", "path": f"selectors/{index}/param_name", "message": f"selector parameter is not declared: {param or '<missing>'}"})
+            issues.append(
+                {
+                    "code": "selector_parameter_undeclared",
+                    "path": f"selectors/{index}/param_name",
+                    "message": f"selector parameter is not declared: {param or '<missing>'}",
+                }
+            )
         if selector.get("empty_selection") not in {"all", "none", "error"}:
-            issues.append({"code": "selector_empty_semantics_missing", "path": f"selectors/{index}/empty_selection", "message": "selector must define empty selection as all, none or error"})
+            issues.append(
+                {
+                    "code": "selector_empty_semantics_missing",
+                    "path": f"selectors/{index}/empty_selection",
+                    "message": "selector must define empty selection as all, none or error",
+                }
+            )
         consumers = selector.get("consumers") or []
         if not consumers:
-            issues.append({"code": "selector_without_consumers", "path": f"selectors/{index}/consumers", "message": "selector must name every consumer"})
+            issues.append(
+                {
+                    "code": "selector_without_consumers",
+                    "path": f"selectors/{index}/consumers",
+                    "message": "selector must name every consumer",
+                }
+            )
         for consumer in consumers:
             widget = widgets.get(consumer) if isinstance(widgets, dict) else None
             if not isinstance(widget, dict):
-                issues.append({"code": "consumer_missing", "path": f"selectors/{index}/consumers", "message": f"unknown consumer {consumer}"})
+                issues.append(
+                    {
+                        "code": "consumer_missing",
+                        "path": f"selectors/{index}/consumers",
+                        "message": f"unknown consumer {consumer}",
+                    }
+                )
                 continue
             params = widget.get("params") or {}
             if param and isinstance(params, dict) and param in params:
-                issues.append({"code": "stale_consumer_override", "path": f"widgets/{consumer}/params/{param}", "message": "widget override would reset selector state"})
+                issues.append(
+                    {
+                        "code": "stale_consumer_override",
+                        "path": f"widgets/{consumer}/params/{param}",
+                        "message": "widget override would reset selector state",
+                    }
+                )
     return {"ok": not issues, "issues": issues}
 
 
@@ -79,7 +133,11 @@ def dependency_order(drafts: list[dict[str, Any]]) -> list[dict[str, Any]]:
         for candidate in by_ref:
             if ref in dependencies[candidate]:
                 dependencies[candidate].remove(ref)
-                if not dependencies[candidate] and candidate not in {str(item["client_ref"]) for item in result} and candidate not in ready:
+                if (
+                    not dependencies[candidate]
+                    and candidate not in {str(item["client_ref"]) for item in result}
+                    and candidate not in ready
+                ):
                     ready.append(candidate)
         ready.sort(key=position.get)
     if len(result) != len(drafts):

@@ -6,29 +6,26 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
-
-- An installed-wheel public stdio canary with exact eight-tool surface proof,
-  save/restart/resume/publish readbacks, typed dataset evidence, and a
-  stale-revision zero-write negative receipt.
-- A standard-library public stdio client and schema-validated canary receipt
-  bound to the frozen source tree and installed build identity.
-- A generated JavaScript Visualization Cookbook with copy-ready Editor tabs,
-  source contracts, linked application cases, and runtime validation.
-- Native Wizard funnel routing and templates compiled from the current public
-  DataLens documentation and OpenAPI corpus.
-- A static acceptance check that prevents versioned internal routes, profiles,
-  symbols, schemas, and configuration switches from re-entering the server.
+## [1.0.0] - 2026-09-07
 
 ### Changed
 
-- Consolidated runtime code, schemas, profiles, fixtures, and packaged assets
-  into one canonical server surface. Git history and reviewed pull requests now
-  carry implementation history instead of parallel in-code generations.
-- Removed legacy API-version selection and retry fallback. Every request is
-  compiled against the single current official DataLens API contract.
-- Hardened read-only transport diagnostics for TLS failures while keeping all
-  write operations single-attempt and target-locked.
+- Replaced the internal task compiler, journal, workflow engine, and generic executors with direct typed DataLens domain operations.
+- Added the official `datalens-sdk==0.9.0` path for supported objects and retained narrow Public API adapters only where needed.
+- Added eight reusable visual recipes, canonical renderer assets, and automatic generic/user/project/reference/explicit defaults.
+- Added typed Dataset-from-existing-source and DashboardTab graph builders, selector/source contracts, batch draft validation, and compact operation responses with explicit detailed readback.
+- Added saved and published readbacks, revision drift guards, compact uncertain-write reconciliation, and resumable per-object batches.
+- Added explicit snapshot backup, dependency-safe cleanup, HTML Page, workbook, and license capability boundaries.
+
+### Added
+
+- Five scoped Codex skills for inspection, Dataset/Wizard work, Editor authoring, dashboard composition, and maintenance.
+- A closed 25-tool JSON Schema surface and a direct owner/boundary map for the 62 public use cases.
+- Installed-wheel import and stdio smoke checks that run from an unrelated directory without `PYTHONPATH`.
+
+### Removed
+
+- Removed the legacy task surface, Memory Bank-like runtime state, duplicated executors, private project profiles, and stale generated rule corpora from the shipped package.
 
 ## [0.5.0] - 2026-08-06
 
@@ -148,7 +145,8 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Private workbooks, execution evidence, credentials, and local operator state
   are excluded from the public distribution.
 
-[Unreleased]: https://github.com/ADIKANT/datalens-dev-mcp/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/ADIKANT/datalens-dev-mcp/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/ADIKANT/datalens-dev-mcp/compare/v0.5.0...v1.0.0
 [0.5.0]: https://github.com/ADIKANT/datalens-dev-mcp/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ADIKANT/datalens-dev-mcp/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ADIKANT/datalens-dev-mcp/releases/tag/v0.3.0

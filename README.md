@@ -2,367 +2,56 @@
 
 **Русский** · [English](README_en.md)
 
-Документация автономного workflow: [контракт и выполнение](docs/autonomous-workflow.md),
-[Project Journal](docs/project-journal.md), [реестр портфельных стилей](docs/portfolio-style-registry.md),
-[typed data validation](docs/data-validation.md), [уровни evidence](docs/evidence-levels.md) и
-[миграция с legacy surface](docs/migration-v1-to-v2.md).
+Публичный локальный MCP-плагин для разработки и сопровождения объектов Yandex DataLens. Версия 1.0 заменяет внутренний task workflow прямыми типизированными операциями: чтение, authoring, save/readback, publish-from-saved, backup и dependency-safe cleanup.
 
-[Быстрый старт](#быстрый-старт) · [Доступ к DataLens](docs/access.md) · [Подключение](#подключение-mcp-клиента) · [Инструменты](docs/tools.md) · [Интерактивный JS Cookbook](https://adikant.github.io/datalens-dev-mcp/?lang=ru) · [Сценарии](#примеры-задач) · [Источники](docs/sources.md) · [Безопасность](#безопасность-изменений) · [English](README_en.md)
-
-`datalens-dev-mcp` — локальный [MCP-сервер](https://modelcontextprotocol.io/), который подключает Codex, Claude и другие MCP-клиенты к Yandex DataLens. Пользователь описывает задачу в клиенте обычным языком, клиент вызывает типизированные инструменты сервера, а сервер читает актуальные объекты через DataLens Public API, проверяет зависимости и схемы запросов, готовит изменения, сохраняет их и при необходимости публикует с контрольным чтением результата.
-
-Это не отдельный интерфейс DataLens и не самостоятельный AI-ассистент. Проект даёт MCP-клиенту управляемый локальный доступ к операциям разработки DataLens и работает только с правами текущего пользователя.
-
-### Что это даёт
-
-После подключения можно:
-
-- найти нужный воркбук, дашборд, чарт, датасет или подключение;
-- разобраться в структуре дашборда, его объектах и зависимостях;
-- получить локальный снимок связанного графа и провести аудит без изменений;
-- подготовить план, создать объект или точечно изменить существующий;
-- сохранить черновик либо сохранить и опубликовать проверенную версию;
-- получить saved/published readback, отчёты и пути к локальным артефактам.
-
-Например:
-
-> Исправь чарт `<CHART_ID>` в воркбуке `<WORKBOOK_ID>`: `<ТРЕБОВАНИЕ>`. Сохрани и опубликуй результат, затем проверь сохранённую и опубликованную версии.
-
-[Перейти к быстрому старту](#быстрый-старт)
-
-> Сервер работает локально через stdio, не открывает входящий HTTP-порт и не использует отдельный облачный посредник. Это независимый Alpha-проект, не относящийся к официальным продуктам Yandex или Yandex Cloud.
-
-### Как это работает
-
-```text
-Пользователь
-  -> Codex / Claude / другой MCP-клиент
-  -> локальный datalens-dev-mcp
-  -> Yandex DataLens Public API
-
-project root
-  <- снимки, планы, проверки, readback и отчёты
-```
-
-Пользователь формулирует цель, а MCP-клиент выбирает и вызывает подходящие инструменты. Сервер применяет проверки, обращается к DataLens API и сохраняет локальные артефакты внутри выбранного project root. Клиент показывает результат пользователю и, если у него доступен браузер, может дополнительно проверить отображение в интерфейсе DataLens.
-
-## Возможности
-
-| Задача пользователя | Результат |
-| --- | --- |
-| Найти и изучить объекты | Список воркбуков и их содержимого, чтение дашбордов, чартов, датасетов, подключений и связей |
-| Провести аудит | Локальный снимок графа зависимостей, диагностические выводы и отчёты без записи |
-| Подготовить изменение | План с целями, затрагиваемыми полями, API-методами, проверками и причинами блокировки |
-| Создать или обновить | Проверенный payload для дашборда, чарта, HTML-страницы, датасета или подключения |
-| Изменить часть решения | Точечное обновление вкладки дашборда, модели датасета или связанной группы объектов |
-| Доставить результат | Save, saved readback, publish из проверенного saved state и published readback |
-| Работать локально | Standalone HTML artifacts, project manifests, снимки, планы и отчёты внутри project root |
-
-[Открыть интерактивный JavaScript Visualization Cookbook →](https://adikant.github.io/datalens-dev-mcp/?lang=ru)
-
-В нём собраны стартовые Tips, 34 готовые JavaScript-визуализации, три связанных
-прикладных кейса, контракты источников и полный набор вкладок для копирования.
-[Markdown-каталог и исходники](docs/cookbook/README.md) доступны прямо в репозитории.
-
-### Что делает сервер, а что остаётся за MCP-клиентом
-
-| Сервер | MCP-клиент |
-| --- | --- |
-| Предоставляет типизированные инструменты, читает DataLens API, проверяет и выполняет разрешённые операции, создаёт локальные артефакты | Понимает запрос на обычном языке, выбирает последовательность инструментов, показывает результат и управляет доступными ему средствами проверки интерфейса |
-
-У сервера нет собственной языковой модели, чата или пользовательского веб-интерфейса. Он не заменяет DataLens UI и не гарантирует визуальное качество без отдельной проверки отображения.
-
-### Чем это отличается от разрозненных вызовов DataLens API
-
-- MCP-клиент использует типизированные операции вместо самостоятельной сборки произвольных HTTP-запросов.
-- Изменение строится поверх актуальной сохранённой версии объекта.
-- Перед записью проверяются точная цель, ревизия и payload.
-- Неизвестные и нетронутые поля сохраняются, а изменяется только объявленная область.
-- Save и publish разделены и подтверждаются отдельными контрольными чтениями.
-- Связанные действия можно применить как одну проверяемую группу, а планы и результаты остаются локальными артефактами.
-
-Такой процесс снижает риск записи не в тот объект, потери полей и публикации непроверенной версии. При конфликте или неопределённом результате цикл останавливается вместо скрытого повтора записи.
-
-## Примеры задач
-
-### Проверка подключения
-
-```text
-Используй DataLens MCP. Проверь локальную конфигурацию и реальный доступ к DataLens. Покажи, доступны ли чтение, сохранение и публикация. Ничего не изменяй.
-```
-
-Для этого клиент использует `dl_runtime_status`, а затем минимальную реальную проверку `dl_auth_probe`.
-
-### Аудит без записи
-
-```text
-Проведи аудит дашборда <DASHBOARD_ID> в воркбуке <WORKBOOK_ID>. Покажи структуру, связанные объекты, зависимости и основные риски. Ничего не сохраняй и не публикуй.
-```
-
-### План без применения
-
-```text
-Составь план изменения чарта <CHART_ID>: <ТРЕБОВАНИЕ>. Покажи, какие поля и объекты будут затронуты, но ничего не сохраняй.
-```
-
-### Сохранение без публикации
-
-```text
-Обнови <ТИП ОБЪЕКТА> <OBJECT_ID>: <ТРЕБОВАНИЕ>. Сохрани изменение и проверь saved-версию, но не публикуй.
-```
-
-### Обычное изменение
-
-```text
-Исправь чарт <CHART_ID> в воркбуке <WORKBOOK_ID>: <ТРЕБОВАНИЕ>. Сохрани и опубликуй результат, затем проверь сохранённую и опубликованную версии.
-```
-
-### Создание объекта
-
-```text
-Создай <ТИП ОБЪЕКТА> в воркбуке <WORKBOOK_ID> по следующим требованиям: <ТРЕБОВАНИЯ>. Проверь зависимости и данные запроса, затем сохрани и опубликуй результат.
-```
-
-### HTML-страница
-
-```text
-Создай self-contained HTML-страницу в воркбуке <WORKBOOK_ID>: <ТРЕБОВАНИЕ>. Проверь sandbox-контракт, сохрани, прочитай saved-версию, опубликуй её по revId и проверь published-версию.
-```
-
-### Как выглядит результат
-
-Ниже — схема ответа, а не точный JSON-контракт:
-
-```text
-Результат
-- целевой объект найден
-- изменение проверено
-- сохранённая версия прочитана и совпала с планом
-- опубликованная версия прочитана
-- создан отчёт
-- пути к локальным артефактам возвращены
-- проверка интерфейса выполнена либо явно отмечена как недоступная
-```
-
-Если операция остановлена, пользователь получает причину и следующий безопасный шаг: например, повторно прочитать объект после конфликта ревизии или проверить DataLens вручную после неопределённого результата.
-
-## Режимы работы
-
-Формулировка задачи определяет точку остановки; изучать названия всех инструментов для выбора режима не требуется.
-
-| Запрос | Что происходит |
-| --- | --- |
-| Аудит, проверка, диагностика | Только чтение и локальные отчёты |
-| `plan-only` | План и проверки без записи |
-| `save-only`, `no-publish`, «сохрани без публикации» | Save и saved readback без publish |
-| Создать, исправить, обновить, улучшить, переработать | Save, saved readback, publish из saved state и published readback |
-
-Явное значение `0` в write/save/publish env-переменной жёстко отключает соответствующую возможность и имеет приоритет над запросом. Перед существенной mutation task workflow показывает один компактный план; неизменённые save и publish выполняются после одного подтверждения. Destructive действие требует отдельного подтверждения точных объектов и неизменившегося плана.
-
-## Поддерживаемые объекты и ограничения
-
-### Поддерживается
-
-- просмотр доступных воркбуков и их содержимого;
-- чтение связей, дашбордов, Wizard/Editor/QL-чартов, датасетов и подключений;
-- создание и обновление поддерживаемых дашбордов, чартов, HTML-страниц, датасетов и подключений через plan и Safe Apply;
-- точечное изменение вкладки дашборда и защищённое изменение модели датасета;
-- локальный снимок дашборда и его графа зависимостей;
-- локальная генерация self-contained HTML artifacts, проверка sandbox-контракта и guarded lifecycle HTML Pages через Public API;
-- заранее объявленные dry-run/apply процессы через project manifest;
-- сохранение планов, снимков, readback и отчётов внутри project root.
-
-### Wizard, Editor и QL
-
-- Новые стандартные KPI, таблицы, линии, области, столбцы, комбинированные чарты, круговые диаграммы, scatter/bubble, treemap, воронки и карты по умолчанию используют Wizard.
-- При обновлении существующего чарта сохраняются его технология и `visualization_id`.
-- Editor выбирается по прямому запросу на JavaScript либо при документированном недостатке Wizard.
-- QL используется только по прямому запросу и с явным payload или актуальной QL-версией; он не выбирается автоматически и не служит fallback.
-- Create и full redesign автоматически используют `standard_dashboard`:
-  role-based заголовки, dashboard composition, защищённый Editor runtime и финальная
-  payload/QA attestation; автономная поверхность оставляет lifecycle-вызовы внутри сервера.
-
-Подробная политика: [`docs/route-policy.md`](docs/route-policy.md).
-
-### Ограничения
-
-- Сервер не является hosted service, чат-ботом или пользовательским интерфейсом DataLens.
-- Он не предоставляет права сверх прав текущего пользователя.
-- Произвольное удаление целого объекта, включая целый QL-объект, недоступно.
-- Перемещение объектов, изменение прав доступа, лицензий и учётных данных не поддерживаются.
-- Локальный HTML-генератор сам не выполняет live-запись; создание и обновление HTML Pages идут отдельным guarded lifecycle, а whole-object delete остаётся недоступным.
-- `dl_diagnose` анализирует переданные данные, но не выполняет самостоятельные запросы к базам данных.
-- API-readback подтверждает структуру объекта; визуальная проверка зависит от браузера и возможностей MCP-клиента.
-- Snapshot покрывает граф зависимостей выбранного дашборда, а не гарантированно всю организацию.
-- Метод может присутствовать в API-каталоге, но оставаться неподдерживаемым для записи.
-
-Проект не заявляет поддержку DataLens целиком и не заменяет ручную проверку важных изменений.
+Плагин не является продуктом Yandex и работает только с правами текущего пользователя. Он не содержит языковую модель, Memory Bank, task compiler/journal, произвольный RPC/eval или browser-write fallback.
 
 ## Быстрый старт
 
-Требования: Python 3.11+, локальный stdio MCP-клиент и, для live-доступа, ID организации, IAM-токен и права на целевой воркбук.
+Требуется Python 3.11+.
 
 ```bash
-git clone https://github.com/ADIKANT/datalens-dev-mcp.git
-cd datalens-dev-mcp
 python3 -m venv .venv
-.venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install .
-.venv/bin/python scripts/install_datalens_skill.py
 .venv/bin/datalens-dev-mcp --version
-python3 scripts/smoke_mcp_stdio.py
 ```
 
-Установщик копирует versioned Skill `datalens-dashboard-work` из того же
-checkout в `~/.agents/skills/` и проверяет точное совпадение содержимого. Skill
-задаёт короткий task-level цикл и открывает formulas, Wizard или JavaScript
-knowledge только по необходимости.
+Подключение stdio описано в [.mcp.json](.mcp.json). Для live-доступа задайте собственные `DATALENS_ORG_ID` и `DATALENS_IAM_TOKEN`; значения credentials никогда не возвращаются инструментами.
 
-В Windows используйте `.venv\Scripts\python.exe` и `.venv\Scripts\datalens-dev-mcp.exe`. Для разработки сервера установите `.venv/bin/python -m pip install -e '.[test]'`.
+## Предметный маршрут
 
-Настройте доступ по [пошаговой инструкции](docs/access.md). Минимальный защищённый env-файл:
+- Inspect: точные ID, saved/published revision, pagination и прямые relations.
+- Dataset/Wizard: реальные GUID, aggregation/formula restrictions и bounded `getDatasetData` preview.
+- Editor: отдельные contracts для Table, Gravity, Advanced, Markdown и Selector; локальная проверка не выдаётся за browser runtime.
+- Authoring: восемь versioned recipes — KPI, time comparison, bar, dynamic matrix, weekly totals, cross-tab, native table и selector. Большой JS берётся из canonical packaged renderer, а bindings/defaults остаются компактными. [Карта применяющих consumers](https://github.com/ADIKANT/datalens-dev-mcp/blob/main/docs/authoring-property-consumers.md) отделяет наличие настройки от runtime-доказательства.
+- Delivery: create/update всегда заканчиваются saved readback. Publish — отдельная операция только из свежей saved revision с published readback.
+- Maintenance: snapshot export честно помечен как не доказанный full restore; cleanup требует неизменившийся exact delete set.
 
-```dotenv
-DATALENS_ORG_ID=<ID_ОРГАНИЗАЦИИ>
-DATALENS_IAM_TOKEN=<IAM_ТОКЕН>
-DATALENS_API_BASE_URL=https://api.datalens.tech
-DATALENS_MCP_ENABLE_WRITES=1
-DATALENS_MCP_LIVE_ALLOW_SAVE=1
-DATALENS_MCP_LIVE_ALLOW_PUBLISH=1
-DATALENS_ENABLE_TOKEN_REFRESH_ON_401=1
-DATALENS_MCP_ENABLE_EXPERT_RPC=0
-```
+Порядок defaults: generic → user → project → explicit reference → explicit call. Пользовательский файл: `${XDG_CONFIG_HOME:-~/.config}/datalens-dev-mcp/authoring.json`; проектный: `.datalens/authoring.json`.
 
-Храните файл вне репозитория с правами `0600` и передайте его абсолютный путь через `DATALENS_ENV_FILE`. При настроенном `yc` сервер может получить начальный IAM-токен и один раз обновить истёкший токен.
+## SDK и API
 
-## Подключение MCP-клиента
+Официальный `datalens-sdk==0.9.0` используется для поддержанных typed операций. Точечный Public API adapter остаётся для `getDatasetData`, relations, HTML Page и license endpoints. MCP и публичный модуль `datalens_dev_mcp.sdk` вызывают одни и те же сервисы.
 
-Замените `/absolute/path/...` абсолютными путями. `--project-root` задаёт локальную папку для входных файлов и артефактов; ID объектов DataLens указываются отдельно в задаче.
+`.build()` и `.execute()` выполняют внешнюю запись. Pure authoring (`dl_compile_recipe`) сети не вызывает. SDK raw replace применяется только после fresh read и narrow semantic merge; серверной общей CAS/транзакции для batch не обещается.
 
-### Codex
+## Основные ограничения
 
-Добавьте в `~/.codex/config.toml` или `.codex/config.toml` доверенного проекта:
+- Dataset и Connection не получают выдуманный publish lifecycle.
+- Wizard, Editor и QL не взаимозаменяются автоматически; update сохраняет технологию.
+- `getDatasetData` подтверждает Dataset-backed данные, но не Editor runtime и не published branch.
+- Browser используется read-only, когда задача требует rendered evidence, после API/readback и применимой проверки данных.
+- Неоднозначная потеря ответа не повторяет write: используется `dl_operation_reconcile` по известному ID/revision.
+- License revoke и общий ACL mutation не заявлены как поддержанные.
 
-```toml
-[mcp_servers.datalens_dev]
-command = "/absolute/path/to/datalens-dev-mcp/.venv/bin/datalens-dev-mcp"
-args = ["stdio", "--project-root", "/absolute/path/to/your/dashboard-project"]
-cwd = "/absolute/path/to/your/dashboard-project"
-env = { DATALENS_ENV_FILE = "/absolute/path/to/home/.config/datalens-dev-mcp/env", DATALENS_MCP_TASKS_DIR = "/absolute/path/to/home/.local/state/datalens-dev-mcp/tasks" }
-default_tools_approval_mode = "approve"
-startup_timeout_sec = 20
-tool_timeout_sec = 120
-```
-
-Или зарегистрируйте ту же команду через CLI:
-
-```bash
-codex mcp add datalens_dev \
-  --env DATALENS_ENV_FILE=/absolute/path/to/home/.config/datalens-dev-mcp/env \
-  --env DATALENS_MCP_TASKS_DIR=/absolute/path/to/home/.local/state/datalens-dev-mcp/tasks \
-  -- /absolute/path/to/datalens-dev-mcp/.venv/bin/datalens-dev-mcp \
-  stdio --project-root /absolute/path/to/your/dashboard-project
-```
-
-Проверьте `codex mcp list`, перезапустите Codex и откройте `/mcp`. Подробности: [настройка Codex](docs/codex_setup.md).
-
-### Claude Code
-
-```bash
-claude mcp add --transport stdio --scope local \
-  --env DATALENS_ENV_FILE=/absolute/path/to/home/.config/datalens-dev-mcp/env \
-  datalens-dev -- \
-  /absolute/path/to/datalens-dev-mcp/.venv/bin/datalens-dev-mcp \
-  stdio --project-root /absolute/path/to/your/dashboard-project
-```
-
-Проверьте регистрацию командой `claude mcp list`.
-
-### Claude Desktop и другие stdio-клиенты
-
-```json
-{
-  "mcpServers": {
-    "datalens-dev": {
-      "command": "/absolute/path/to/datalens-dev-mcp/.venv/bin/datalens-dev-mcp",
-      "args": ["stdio", "--project-root", "/absolute/path/to/your/dashboard-project"],
-      "env": {
-        "DATALENS_ENV_FILE": "/absolute/path/to/home/.config/datalens-dev-mcp/env"
-      }
-    }
-  }
-}
-```
-
-Готовые конфигурации: [`examples/clients/`](examples/clients/).
-
-## Первая сессия
-
-Начните с read-only проверки:
-
-> Используй DataLens MCP. Вызови `dl_runtime_status`, затем `dl_auth_probe`. Покажи, доступны ли чтение, сохранение и публикация. Ничего не изменяй и не выводи учётные данные.
-
-`dl_runtime_status` проверяет локальную конфигурацию и жёсткие выключатели. `dl_auth_probe` выполняет минимальный реальный `getWorkbooksList`. После успешной проверки можно искать объекты, читать их связи или использовать один из [готовых сценариев](#примеры-задач).
-
-## Безопасность изменений
-
-Перед записью сервер:
-
-1. повторно читает актуальную сохранённую версию;
-2. проверяет точный тип и ID цели;
-3. сверяет ревизию и ожидаемые поля;
-4. накладывает только требуемое изменение и сохраняет нетронутые поля;
-5. валидирует payload и связанные условия;
-6. после save читает и проверяет saved-версию;
-7. строит publish только из проверенного saved state;
-8. после publish читает published-версию.
-
-При конфликте ревизии, блокировке, нарушении уникальности или неопределённом результате записи цикл останавливается. Значения `DATALENS_MCP_ENABLE_WRITES=0`, `DATALENS_MCP_LIVE_ALLOW_SAVE=0` и `DATALENS_MCP_LIVE_ALLOW_PUBLISH=0` имеют приоритет над запросом.
-
-API-readback подтверждает структуру и состояние объекта. Фактическое отображение подтверждает отдельная browser-проверка со стороны MCP-клиента; если она недоступна, это ограничение должно быть явно указано в результате.
-
-Подробнее: [модель безопасности](docs/local-only-safety-model.md) и [Safe Apply](docs/safe-apply.md).
-
-## Документация
-
-| Тема | Руководство |
-| --- | --- |
-| Все документы | [`docs/README.md`](docs/README.md) |
-| Доступ, IAM-токен и роли | [`docs/access.md`](docs/access.md) |
-| Подключение Codex | [`docs/codex_setup.md`](docs/codex_setup.md) |
-| 8 автономных инструментов и совместимость | [`docs/tools.md`](docs/tools.md) |
-| Готовые сценарии | [`docs/usage-flow.md`](docs/usage-flow.md) |
-| Installed public canary | [`docs/public-autonomy-canary.md`](docs/public-autonomy-canary.md) |
-| Wizard, Editor и QL | [`docs/route-policy.md`](docs/route-policy.md) |
-| Safe Apply и readback | [`docs/safe-apply.md`](docs/safe-apply.md) |
-| Архитектура и API-покрытие | [`docs/architecture.md`](docs/architecture.md), [`docs/datalens/api_contract_coverage.md`](docs/datalens/api_contract_coverage.md) |
-
-Точная схема активной поверхности текущей установки доступна через MCP `tools/list`. По умолчанию это компактный профиль `autonomous-v2`; профиль `legacy-v1` сохраняет прежние 39 lifecycle-инструментов.
-
-## Статус проекта
-
-- Независимый проект, не относящийся к официальным продуктам Yandex или Yandex Cloud.
-- Статус Python-пакета: **Alpha**.
-- Для реальных записей рекомендуется выбирать специальные целевые объекты и проверять результат.
-- `main` содержит единственную актуальную реализацию сервера; история изменений сохраняется в Git и прошедших review pull requests.
-- Источник точного набора инструментов — `tools/list` текущей установки; поверхность по умолчанию `autonomous-v2` содержит 8 task-level инструментов.
+Полный tools/list возвращает закрытые JSON Schemas. Карта 62 пользовательских случаев находится в `datalens_dev_mcp/schemas/capability-coverage.json`. Пять bundled skills загружают только нужные references.
 
 ## Разработка
 
 ```bash
-python3 -m venv .venv
 .venv/bin/python -m pip install -e '.[test]'
-python3 scripts/check_docs_consistency.py
-python3 scripts/run_quick_checks.py
-python3 scripts/run_offline_acceptance.py
+.venv/bin/pytest -q tests/replacement
+python -m build
 ```
 
-Финальное доказательство установленного публичного workflow выполняется только
-на frozen release candidate и отдельном target по контракту
-[`docs/public-autonomy-canary.md`](docs/public-autonomy-canary.md).
-
-Offline acceptance не использует реальные учётные данные DataLens и не выполняет live-запись.
-
-## Лицензия и источники
-
-Код и оригинальная документация проекта распространяются по [Apache License 2.0](LICENSE). Справочные данные, адаптированные из документации Yandex Cloud, сопровождаются атрибуцией по [CC BY 4.0](LICENSES/CC-BY-4.0.txt). Официальные страницы перечислены в [`docs/sources.md`](docs/sources.md), полные уведомления — в [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+Лицензия: Apache-2.0 для кода; дополнительные условия и атрибуции см. в [NOTICE](NOTICE), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) и [LICENSES](LICENSES).

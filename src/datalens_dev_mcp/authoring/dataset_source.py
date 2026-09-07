@@ -1,10 +1,10 @@
 """Small Dataset-to-matrix binding compiler; no network or model-generated JS."""
+
 from __future__ import annotations
 
 import json
 from collections.abc import Mapping
 from typing import Any
-
 
 _FILTER_OPERATIONS = frozenset({"IN", "NOT_IN", "EQ", "NE", "BETWEEN", "GT", "GTE", "LT", "LTE"})
 
@@ -27,13 +27,13 @@ def _dataset_query(bindings: Mapping[str, Any], guids: list[str], titles: list[s
         raise ValueError("source_limit must be an integer from 1 to 100000")
     selectors = bindings.get("selectors") or []
     if not isinstance(selectors, list):
-        raise ValueError("selectors must be a list")
+        raise TypeError("selectors must be a list")
     selector_contracts: list[dict[str, Any]] = []
     params: dict[str, list[str]] = {}
     by_guid = _field_index(bindings)
     for selector in selectors:
         if not isinstance(selector, Mapping):
-            raise ValueError("selector binding must be an object")
+            raise TypeError("selector binding must be an object")
         name = selector.get("param_name")
         guid = selector.get("field_guid")
         empty = selector.get("empty_selection")
@@ -57,11 +57,11 @@ def _dataset_query(bindings: Mapping[str, Any], guids: list[str], titles: list[s
         )
     dataset_parameters = bindings.get("dataset_parameters") or []
     if not isinstance(dataset_parameters, list):
-        raise ValueError("dataset_parameters must be a list")
+        raise TypeError("dataset_parameters must be a list")
     parameter_contracts: list[dict[str, str]] = []
     for parameter in dataset_parameters:
         if not isinstance(parameter, Mapping):
-            raise ValueError("Dataset parameter binding must be an object")
+            raise TypeError("Dataset parameter binding must be an object")
         identifier = parameter.get("id")
         name = parameter.get("param_name")
         if not isinstance(identifier, str) or not identifier or not isinstance(name, str) or not name:
@@ -74,7 +74,9 @@ def _dataset_query(bindings: Mapping[str, Any], guids: list[str], titles: list[s
     sources += "const params = Editor.getParams();\nconst where = [];\n"
     sources += "const selectorContracts = " + json.dumps(selector_contracts, ensure_ascii=False) + ";\n"
     sources += "for (const selector of selectorContracts) {\n"
-    sources += "  const values = Array.isArray(params[selector.param_name]) ? params[selector.param_name].map(String) : [];\n"
+    sources += (
+        "  const values = Array.isArray(params[selector.param_name]) ? params[selector.param_name].map(String) : [];\n"
+    )
     sources += "  if (!values.length && selector.empty_selection === 'error') throw new Error('selector value is required: ' + selector.param_name);\n"
     sources += "  if (values.length || selector.empty_selection === 'none') where.push({column: selector.column, operation: selector.operation, values});\n}\n"
     sources += "const datasetParameters = " + json.dumps(parameter_contracts, ensure_ascii=False) + ".map(item => {\n"
@@ -91,8 +93,15 @@ def _dataset_query(bindings: Mapping[str, Any], guids: list[str], titles: list[s
     prelude += "if (!loaded || !Object.prototype.hasOwnProperty.call(loaded, 'source')) throw new Error('source alias is missing: source');\n"
     prelude += "const sourceEvents = loaded.source;\n"
     prelude += "if (!Array.isArray(sourceEvents)) throw new Error('source response is malformed: source');\n"
-    prelude += "if (sourceEvents.some(item => item && item.event === 'error')) throw new Error('source failed: source');\n"
-    return {"meta": {"links": {"dataset": bindings["dataset_id"]}}, "sources_js": sources, "params": params, "prepare_prelude": prelude}
+    prelude += (
+        "if (sourceEvents.some(item => item && item.event === 'error')) throw new Error('source failed: source');\n"
+    )
+    return {
+        "meta": {"links": {"dataset": bindings["dataset_id"]}},
+        "sources_js": sources,
+        "params": params,
+        "prepare_prelude": prelude,
+    }
 
 
 def matrix_dataset_source(bindings: Mapping[str, Any]) -> dict[str, Any]:
@@ -115,7 +124,12 @@ def matrix_dataset_source(bindings: Mapping[str, Any]) -> dict[str, Any]:
     if len(set(titles)) != len(titles):
         raise ValueError("matrix Dataset binding requires distinct field titles")
     query = _dataset_query(bindings, guids, titles)
-    prepare = query["prepare_prelude"] + "const Dataset = require('libs/dataset/v2');\nconst names = " + json.dumps(titles, ensure_ascii=False) + ";\n"
+    prepare = (
+        query["prepare_prelude"]
+        + "const Dataset = require('libs/dataset/v2');\nconst names = "
+        + json.dumps(titles, ensure_ascii=False)
+        + ";\n"
+    )
     prepare += """const rows = Dataset.getDatasetRows({datasetName: 'source'});
 const number = value => value === null || value === undefined || value === '' ? null :
   (Number.isFinite(Number(value)) ? Number(value) : null);
@@ -137,7 +151,9 @@ def kpi_dataset_source(bindings: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("sum requires an explicitly additive metric")
     source = matrix_dataset_source({**bindings, "rows": [bindings.get("date")]})
     transform = source["prepare_js"]
-    source["prepare_js"] = "const prepared = (() => { const module = {exports: {}};\n" + transform + "\nreturn module.exports; })();\n"
+    source["prepare_js"] = (
+        "const prepared = (() => { const module = {exports: {}};\n" + transform + "\nreturn module.exports; })();\n"
+    )
     source["prepare_js"] += "const mode = " + json.dumps(mode) + ";\n"
     source["prepare_js"] += """const rows = prepared.rows.map(row => ({...row, timestamp: Date.parse(row.label)}));
 if (rows.some(row => !Number.isFinite(row.timestamp))) throw new Error('KPI dates must be parseable dates');
@@ -165,7 +181,7 @@ def compile_direct_source(binding: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("direct_source requires kind ql/api and connection_id")
     params = binding.get("params") or {}
     if not isinstance(params, Mapping):
-        raise ValueError("direct_source params must be an object")
+        raise TypeError("direct_source params must be an object")
     normalized_params: dict[str, list[str]] = {}
     for key, raw in params.items():
         if not isinstance(key, str) or not key:
@@ -194,11 +210,15 @@ def compile_direct_source(binding: Mapping[str, Any]) -> dict[str, Any]:
     prelude += "if (!loaded || !Object.prototype.hasOwnProperty.call(loaded, 'source')) throw new Error('source alias is missing: source');\n"
     prelude += "const sourceEvents = loaded.source;\n"
     prelude += "if (!Array.isArray(sourceEvents)) throw new Error('source response is malformed: source');\n"
-    prelude += "if (sourceEvents.some(item => item && item.event === 'error')) throw new Error('source failed: source');\n"
+    prelude += (
+        "if (sourceEvents.some(item => item && item.event === 'error')) throw new Error('source failed: source');\n"
+    )
     transform = binding.get("prepare_js")
     if transform is not None and (not isinstance(transform, str) or not transform.strip()):
         raise ValueError("direct_source prepare_js must be nonempty source text")
-    prepare_js = prelude + (transform or "module.exports = {state: sourceEvents.length ? 'ready' : 'no_data', events: sourceEvents};")
+    prepare_js = prelude + (
+        transform or "module.exports = {state: sourceEvents.length ? 'ready' : 'no_data', events: sourceEvents};"
+    )
     return {
         "meta": {"links": {"connection": connection_id}},
         "sources_js": sources_js,

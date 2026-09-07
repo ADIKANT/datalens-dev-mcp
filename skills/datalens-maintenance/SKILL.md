@@ -1,6 +1,6 @@
 ---
 name: datalens-maintenance
-description: Export DataLens backups, inventory administrative capabilities, and preview or apply dependency-safe cleanup of test or existing unused objects.
+description: Use when exporting DataLens backups, inventorying administrative capabilities, or previewing and applying dependency-safe cleanup.
 ---
 
 # DataLens Maintenance

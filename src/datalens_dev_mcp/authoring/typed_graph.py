@@ -5,7 +5,6 @@ from typing import Any
 
 from datalens_sdk import DashboardTab
 
-
 _DATASET_KINDS = frozenset({"dimension", "measure"})
 
 
@@ -23,15 +22,17 @@ def dataset_builder(client: Any, connection: Any, specification: Mapping[str, An
         raise ValueError("Dataset connection_id must match the fetched connection")
     raw_source = specification.get("source")
     if not isinstance(raw_source, Mapping):
-        raise ValueError("Dataset source must be an object")
+        raise TypeError("Dataset source must be an object")
     if set(raw_source) - {"alias", "source_type", "parameters"}:
-        raise ValueError(f"unsupported Dataset source settings: {sorted(set(raw_source) - {'alias', 'source_type', 'parameters'})}")
+        raise ValueError(
+            f"unsupported Dataset source settings: {sorted(set(raw_source) - {'alias', 'source_type', 'parameters'})}"
+        )
     alias, source_type = raw_source.get("alias"), raw_source.get("source_type")
     parameters = raw_source.get("parameters") or {}
     if not isinstance(alias, str) or not alias or not isinstance(source_type, str) or not source_type:
         raise ValueError("Dataset source requires alias and source_type")
     if not isinstance(parameters, Mapping):
-        raise ValueError("Dataset source parameters must be an object")
+        raise TypeError("Dataset source parameters must be an object")
     source = client.create.source(using=connection).raw(
         alias=alias,
         source_type=source_type.upper(),
@@ -46,7 +47,7 @@ def dataset_builder(client: Any, connection: Any, specification: Mapping[str, An
     seen: set[str] = set()
     for index, field in enumerate(fields):
         if not isinstance(field, Mapping):
-            raise ValueError(f"Dataset field {index} must be an object")
+            raise TypeError(f"Dataset field {index} must be an object")
         guid = field.get("guid")
         title = field.get("title") or field.get("name")
         kind = str(field.get("kind") or field.get("type") or "").lower()
@@ -87,12 +88,17 @@ def dataset_builder(client: Any, connection: Any, specification: Mapping[str, An
         builder.add_field(**kwargs)
     parameters_spec = specification.get("parameters") or []
     if not isinstance(parameters_spec, list):
-        raise ValueError("Dataset parameters must be a list")
+        raise TypeError("Dataset parameters must be a list")
     for parameter in parameters_spec:
         if not isinstance(parameter, Mapping):
-            raise ValueError("Dataset parameter must be an object")
+            raise TypeError("Dataset parameter must be an object")
         required = (parameter.get("name"), parameter.get("type"), parameter.get("default"))
-        if not isinstance(required[0], str) or not required[0] or not isinstance(required[1], str) or required[2] is None:
+        if (
+            not isinstance(required[0], str)
+            or not required[0]
+            or not isinstance(required[1], str)
+            or required[2] is None
+        ):
             raise ValueError("Dataset parameter requires name, type and default")
         builder.add_parameter(
             name=required[0],
@@ -106,7 +112,9 @@ def dataset_builder(client: Any, connection: Any, specification: Mapping[str, An
 def dashboard_builder(client: Any, specification: Mapping[str, Any], *, name: str, location: Any) -> Any:
     """Build dashboard tabs/widgets using the official DashboardTab surface."""
     if set(specification) - {"tabs", "settings", "description"}:
-        raise ValueError(f"unsupported dashboard settings: {sorted(set(specification) - {'tabs', 'settings', 'description'})}")
+        raise ValueError(
+            f"unsupported dashboard settings: {sorted(set(specification) - {'tabs', 'settings', 'description'})}"
+        )
     tabs = specification.get("tabs")
     if not isinstance(tabs, list) or not tabs:
         raise ValueError("dashboard.tabs must be a nonempty list")
@@ -126,7 +134,7 @@ def dashboard_builder(client: Any, specification: Mapping[str, Any], *, name: st
             raise ValueError("dashboard tab requires items")
         for item in items:
             if not isinstance(item, Mapping):
-                raise ValueError("dashboard item must be an object")
+                raise TypeError("dashboard item must be an object")
             kind = item.get("kind")
             at = _tuple(item.get("at"), length=4, name="item.at")
             item_id = str(item["item_id"]) if item.get("item_id") else None
@@ -164,7 +172,7 @@ def dashboard_builder(client: Any, specification: Mapping[str, Any], *, name: st
         builder.add_tab(tab)
     settings = specification.get("settings") or {}
     if not isinstance(settings, Mapping):
-        raise ValueError("dashboard settings must be an object")
+        raise TypeError("dashboard settings must be an object")
     if settings:
         builder.settings(**dict(settings))
     return builder
