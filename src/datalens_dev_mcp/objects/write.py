@@ -285,7 +285,7 @@ class ObjectMutationService:
             and identity.get("branch") == allowed_branch
         )
         desired = item.get("desired") or {}
-        content_matches = _contains(readback.get("object") or {}, desired)
+        content_matches = _readback_contains(readback.get("object") or {}, desired)
         returned_revision = item.get("returned_revision")
         # Some official SDK update builders return their pre-write target
         # snapshot even though the provider has already advanced the object.
@@ -407,6 +407,23 @@ def _contains(actual: Any, expected: Any) -> bool:
             key in actual and _contains(actual[key], value) for key, value in expected.items()
         )
     return actual == expected
+
+
+def _readback_contains(actual: Any, expected: Any) -> bool:
+    if not isinstance(expected, dict) or "name" not in expected:
+        return _contains(actual, expected)
+    if not isinstance(actual, dict):
+        return False
+    actual_name = actual.get("name")
+    entry = actual.get("entry")
+    if actual_name is None and isinstance(entry, dict):
+        actual_name = entry.get("name")
+        key = entry.get("key")
+        if actual_name is None and isinstance(key, str):
+            actual_name = key.rsplit("/", 1)[-1]
+    if actual_name != expected["name"]:
+        return False
+    return _contains(actual, {key: value for key, value in expected.items() if key != "name"})
 
 
 def _publish_content(snapshot: dict[str, Any]) -> dict[str, Any]:

@@ -119,6 +119,37 @@ def test_title_only_patch_uses_one_object_read_and_preserves_unknown_fields(tmp_
     assert reader.calls == [("dashboard", "dash-1", "saved"), ("dashboard", "dash-1", "saved")]
 
 
+def test_title_only_patch_accepts_provider_entry_key_without_revision_change(tmp_path: Path) -> None:
+    reader = FakeReader(
+        {
+            ("dashboard", "dash-1", "saved"): [
+                rb(
+                    "dashboard",
+                    "dash-1",
+                    "r1",
+                    {"entry": {"key": "folder/Old", "data": {"tabs": [{"id": "manual"}]}}},
+                ),
+                rb(
+                    "dashboard",
+                    "dash-1",
+                    "r1",
+                    {"entry": {"key": "folder/New", "data": {"tabs": [{"id": "manual"}]}}},
+                ),
+            ]
+        }
+    )
+    backend = FakeBackend([{"object_id": "dash-1"}])
+
+    result = service(tmp_path, reader, backend).update_objects(
+        [{"object_type": "dashboard", "object_id": "dash-1", "expected_revision": "r1", "patch": {"name": "New"}}],
+        operation_id="op-provider-key-title",
+    )
+
+    assert result["status"] == "completed"
+    assert result["results"][0]["code"] == "readback_verified"
+    assert result["results"][0]["observed_revision"] == "r1"
+
+
 def test_update_accepts_fresh_readback_when_sdk_returns_prewrite_revision(tmp_path: Path) -> None:
     reader = FakeReader(
         {
