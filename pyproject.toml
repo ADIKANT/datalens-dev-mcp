@@ -70,14 +70,14 @@ datalens-dev-mcp = "datalens_dev_mcp.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+namespaces = false
+exclude = ["datalens_dev_mcp.assets.templates*"]
 
 [tool.setuptools.package-data]
 "datalens_dev_mcp" = [
   "schemas/*.json",
-  "assets/**/*.json",
-  "assets/**/*.jsonl",
-  "assets/**/*.js",
-  "assets/**/*.md",
+  "assets/recipes/*.json",
+  "assets/recipes/*.js",
 ]
 
 [tool.setuptools.exclude-package-data]
