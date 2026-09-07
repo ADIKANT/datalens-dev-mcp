@@ -251,15 +251,16 @@ class SdkAdapter:
                 observed_revision = latest.get("revId") or latest.get("rev_id")
                 if observed_revision != expected_revision:
                     raise ValueError("saved revision changed during SDK target fetch; re-read before retry")
+            rename_to = None
             if not publish and "name" in snapshot and snapshot["name"] != latest.get("name"):
                 old_content = {key: value for key, value in latest.items() if key != "name"}
                 new_content = {key: value for key, value in snapshot.items() if key != "name"}
-                if old_content != new_content:
-                    raise ValueError("rename and content changes require separate explicit updates")
                 if not isinstance(snapshot["name"], str) or not snapshot["name"]:
                     raise ValueError("object name must be a nonempty string")
-                value = target.rename(snapshot["name"])
-                return {"object_id": object_id, "object": _json_object(value), "backend": "official_sdk"}
+                if old_content == new_content:
+                    value = target.rename(snapshot["name"])
+                    return {"object_id": object_id, "object": _json_object(value), "backend": "official_sdk"}
+                rename_to = snapshot["name"]
             builder = getattr(client.raw.replace, canonical)(target=target, response_snapshot=snapshot)
             if canonical == "dashboard":
                 value = builder.execute(publish=publish)
@@ -267,6 +268,15 @@ class SdkAdapter:
                 value = builder.mode("publish" if publish else "save").execute()
             else:
                 value = builder.execute()
+            if rename_to is not None:
+                try:
+                    rename_target = value if callable(getattr(value, "rename", None)) else target
+                    value = rename_target.rename(rename_to)
+                except Exception as exc:
+                    # The save already returned. Even a definite rename rejection
+                    # is a partial object update, never a safe-to-replay failure.
+                    raise UncertainWriteError("content saved; rename not confirmed; reconcile before retrying",
+                                              method=f"rename:{canonical}") from exc
             return {"object_id": _result_id(value) or object_id, "object": _json_object(value), "backend": "official_sdk"}
         except (httpx.TransportError, SdkTransportError) as exc:
             raise UncertainWriteError("SDK write outcome is uncertain", method=f"replace:{canonical}") from exc
