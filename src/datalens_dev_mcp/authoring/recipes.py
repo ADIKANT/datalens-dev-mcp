@@ -73,6 +73,8 @@ def compile_recipe(
     }
     if recipe_id == "native_detail_table" and technology == "wizard":
         draft.update(_native_table_draft(bindings, contract))
+    if recipe_id == "categorical_bar" and technology == "wizard":
+        draft.update(_categorical_bar_draft(bindings, contract))
     renderer_name = recipe.get("renderer")
     renderer_text = ""
     if renderer_name:
@@ -105,6 +107,36 @@ def compile_recipe(
             "datalens_writes": 0,
         },
         "defaults": defaults,
+    }
+
+
+def _categorical_bar_draft(bindings: Mapping[str, Any], contract: Mapping[str, Any]) -> dict[str, Any]:
+    dataset_id = bindings.get("dataset_id")
+    name = contract["object_name"]["value"]
+    if not isinstance(dataset_id, str) or not dataset_id.strip() or not name:
+        raise ValueError("categorical_bar requires dataset_id and object_name or metric label")
+    refs = {}
+    for key in ("category", "metric"):
+        value = bindings[key]
+        if not isinstance(value, Mapping) or not isinstance(value.get("field_guid"), str) or not value["field_guid"]:
+            raise ValueError(f"{key} requires a field_guid from Dataset readback")
+        refs[key] = value["field_guid"]
+    # Horizontal bars: measure X, category Y (not the column-chart mapping).
+    roles = {"x": [refs["metric"]], "y": [refs["category"]]}
+    if contract["labels"].get("visible"):
+        roles["labels"] = [refs["metric"]]
+    title = contract["visible_title"]
+    return {
+        "name": name, "client_ref": str(bindings.get("client_ref") or "categorical_bar"),
+        "wizard": {
+            "visualization": "bar", "dataset_id": dataset_id, "roles": roles,
+            "title": str(title.get("text") or name),
+            "title_mode": "show" if title.get("visible") and title.get("owner") == "chart" else "hide",
+            "grid": {"x": contract["axes_gridlines"]["x_grid"], "y": contract["axes_gridlines"]["y_grid"]},
+            "legend": "hide" if contract["legend"]["mode"] == "hidden" else "show",
+            "labels_position": contract["labels"].get("position", "outside"),
+            "sort": deepcopy(bindings.get("sort") or []),
+        },
     }
 
 

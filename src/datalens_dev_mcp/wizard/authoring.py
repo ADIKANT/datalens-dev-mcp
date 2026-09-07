@@ -19,7 +19,8 @@ def wizard_builder(client: Any, dataset: Dataset, specification: Mapping[str, An
     visualization = str(specification.get("visualization") or "")
     if visualization not in WIZARD_VARIANTS:
         raise ValueError(f"unsupported Wizard visualization: {visualization}")
-    allowed = {"dataset_id", "visualization", "roles", "title", "title_mode", "table", "sort", "column_titles"}
+    allowed = {"dataset_id", "visualization", "roles", "title", "title_mode", "table", "sort", "column_titles",
+               "grid", "legend", "labels_position"}
     if set(specification) - allowed:
         raise ValueError(f"unsupported Wizard settings: {sorted(set(specification) - allowed)}")
     roles = specification.get("roles")
@@ -71,6 +72,18 @@ def wizard_builder(client: Any, dataset: Dataset, specification: Mapping[str, An
         if visualization != "flat_table":
             raise ValueError("column_titles require flat_table")
         builder.column_title(dataset.fields.by_guid(guid), title=str(title))
+    for axis, enabled in specification.get("grid", {}).items():
+        if axis not in {"x", "y"} or type(enabled) is not bool or not callable(getattr(builder, "grid", None)):
+            raise ValueError("grid requires a supported x/y axis and boolean value")
+        builder.grid(axis, enabled=enabled)
+    if "legend" in specification:
+        if specification["legend"] not in {"show", "hide"}:
+            raise ValueError("legend must be show or hide")
+        builder.legend(mode=specification["legend"])
+    if "labels_position" in specification:
+        if specification["labels_position"] not in {"inside", "outside", "auto"}:
+            raise ValueError("labels_position must be inside, outside or auto")
+        builder.labels_position(mode=specification["labels_position"])
     return builder
 
 
