@@ -76,6 +76,7 @@ def test_compile_kpi_materializes_visual_fields_and_reuses_renderer(tmp_path: Pa
     result = compile_recipe(
         "kpi_sparkline",
         bindings={
+            "prepared_data": {"value": 0, "previous": 0, "points": []},
             "metric": {"field_guid": "metric-guid", "label": "Synthetic revenue", "unit": "currency"},
             "date": {"field_guid": "date-guid", "label": "Day"},
             "comparison": {"method": "previous_period", "label": "vs previous period"},
@@ -93,20 +94,20 @@ def test_compile_kpi_materializes_visual_fields_and_reuses_renderer(tmp_path: Pa
     assert contract["states_theme"]["states"] == ["loading", "error", "no_data", "business_zero"]
     assert "renderer.js" in result["files"]
     renderer = Path(result["files"]["renderer.js"])
-    assert renderer.read_text(encoding="utf-8") == result["draft"]["tabs"]["prepare.js"]
+    assert result["draft"]["tabs"]["prepare.js"].startswith(renderer.read_text(encoding="utf-8"))
     assert "Synthetic revenue" not in renderer.read_text(encoding="utf-8")
 
 
 def test_recipe_bindings_change_config_not_canonical_renderer() -> None:
     first = compile_recipe(
         "comparison_matrix",
-        bindings={"rows": [{"field_guid": "row-a", "label": "A"}], "metric": {"field_guid": "m-a", "label": "Metric A"}},
+        bindings={"prepared_data": {"rows": []}, "rows": [{"field_guid": "row-a", "label": "A"}], "metric": {"field_guid": "m-a", "label": "Metric A"}},
     )
     second = compile_recipe(
         "comparison_matrix",
-        bindings={"rows": [{"field_guid": "row-b", "label": "B"}], "metric": {"field_guid": "m-b", "label": "Metric B"}},
+        bindings={"prepared_data": {"rows": []}, "rows": [{"field_guid": "row-b", "label": "B"}], "metric": {"field_guid": "m-b", "label": "Metric B"}},
     )
-    assert first["draft"]["tabs"]["prepare.js"] == second["draft"]["tabs"]["prepare.js"]
+    assert first["draft"]["tabs"]["prepare.js"].split("\nmodule.exports = module.exports(")[0] == second["draft"]["tabs"]["prepare.js"].split("\nmodule.exports = module.exports(")[0]
     assert first["draft"]["config"] != second["draft"]["config"]
     assert first["summary"]["visual_contract"]["legend"]["mode"] == "fixed_semantic"
 

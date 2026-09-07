@@ -86,9 +86,8 @@ def compile_recipe(
         variant = draft["object_type"]
         draft["variant"] = variant
         draft["tabs"] = _editor_tabs(str(variant), renderer_text, contract, bindings)
-        if variant == "control_node":
-            draft["name"] = contract["object_name"]["value"] or str(bindings["parameter"]["name"])
-            draft["client_ref"] = str(bindings.get("client_ref") or "selector")
+        draft["name"] = contract["object_name"]["value"] or str((bindings.get("parameter") or {}).get("name") or recipe_id)
+        draft["client_ref"] = str(bindings.get("client_ref") or recipe_id)
     file_map: dict[str, str] = {}
     if output_dir is not None:
         destination = Path(output_dir).expanduser().resolve()
@@ -315,8 +314,6 @@ def _editor_tabs(
         "meta.json": json.dumps({"variant": variant}, sort_keys=True),
         "params.js": "module.exports = {};\n",
     }
-    if variant != "control_node":
-        tabs["sources.js"] = "module.exports = {source: {kind: 'binding'}};\n"
     if variant == "control_node":
         parameter = bindings.get("parameter") or {}
         name = parameter.get("name")
@@ -351,7 +348,19 @@ def _editor_tabs(
         tabs["controls.js"] = renderer + "\nmodule.exports = module.exports(" + json.dumps(normalized, ensure_ascii=False) + ", " + json.dumps(contract, ensure_ascii=False) + ");\n"
         return tabs
     else:
-        tabs["prepare.js"] = renderer
-        tabs["controls.js"] = "module.exports = {};\n"
-    tabs["config.json"] = json.dumps({"visual_contract": contract, "bindings": bindings}, ensure_ascii=False, sort_keys=True)
+        source = bindings.get("source")
+        if isinstance(source, Mapping):
+            if not isinstance(source.get("meta"), Mapping) or not isinstance(source.get("sources_js"), str) or not isinstance(source.get("prepare_js"), str):
+                raise ValueError("source requires meta object, sources_js and prepare_js strings")
+            tabs["meta.json"] = json.dumps(source["meta"], ensure_ascii=False)
+            tabs["sources.js"] = source["sources_js"]
+            prepared = "(() => { const module = {exports: {}};\n" + source["prepare_js"] + "\nreturn module.exports; })()"
+        elif "prepared_data" in bindings and isinstance(bindings["prepared_data"], Mapping):
+            tabs["meta.json"] = "{}"
+            tabs["sources.js"] = "module.exports = {};\n"
+            prepared = json.dumps(bindings["prepared_data"], ensure_ascii=False)
+        else:
+            raise ValueError("Advanced recipe requires explicit source or prepared_data; no placeholder source is generated")
+        tabs["prepare.js"] = renderer + "\nmodule.exports = module.exports(" + prepared + ", " + json.dumps(contract, ensure_ascii=False) + ");\n"
+        tabs["controls.js"] = "module.exports = {controls: []};\n"
     return tabs
