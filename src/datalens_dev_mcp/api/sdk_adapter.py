@@ -131,11 +131,18 @@ class SdkAdapter:
                 builder = getattr(client.create.editor_chart, _editor_factory(str(draft.get("variant") or "")))(
                     name=name, location=location
                 )
+                tab_methods = {
+                    "meta.json": "meta", "params.js": "params", "sources.js": "sources",
+                    "prepare.js": "prepare", "controls.js": "controls", "config.js": "config",
+                }
                 for filename, content in draft["tabs"].items():
-                    tab = str(filename).split(".", 1)[0]
-                    method = getattr(builder, tab, None)
-                    if callable(method):
-                        method(str(content))
+                    tab = tab_methods.get(filename)
+                    method = getattr(builder, tab, None) if tab else None
+                    if not callable(method):
+                        raise ValueError(f"unsupported tab for selected Editor variant: {filename}")
+                    if not isinstance(content, str):
+                        raise ValueError(f"Editor tab must contain source text: {filename}")
+                    method(content)
                 value = builder.build()
             else:
                 snapshot = draft.get("snapshot")

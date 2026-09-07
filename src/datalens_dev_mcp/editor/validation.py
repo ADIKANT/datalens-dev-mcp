@@ -28,6 +28,11 @@ def validate_editor_draft(draft: Mapping[str, Any]) -> dict[str, Any]:
     missing = sorted(required - set(tabs))
     if missing:
         issues.append({"code": "editor_tabs_missing", "path": "tabs", "message": "missing required tabs: " + ", ".join(missing)})
+    if contract is not None:
+        unknown = sorted(set(tabs) - required)
+        if unknown:
+            issues.append({"code": "editor_tabs_unsupported", "path": "tabs",
+                           "message": "unsupported tabs for variant: " + ", ".join(unknown)})
     aliases = draft.get("source_aliases") or []
     if not isinstance(aliases, list) or any(not isinstance(alias, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", alias) for alias in aliases):
         issues.append({"code": "source_alias_invalid", "path": "source_aliases", "message": "source aliases must be JavaScript identifiers"})
