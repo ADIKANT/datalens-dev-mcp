@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "datalens-dev-mcp"
-version = "0.5.0"
-description = "Local MCP server for auditing, creating, validating, saving, and publishing Yandex DataLens objects through Codex, Claude, and other MCP clients."
+version = "1.0.0"
+description = "Typed domain plugin for developing and maintaining Yandex DataLens objects through Codex and MCP clients."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0 AND CC-BY-4.0"
@@ -37,7 +37,9 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
-dependencies = []
+dependencies = [
+  "datalens-sdk==0.9.0",
+]
 
 [project.optional-dependencies]
 yaml = [
@@ -68,13 +70,14 @@ datalens-dev-mcp = "datalens_dev_mcp.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+namespaces = false
+exclude = ["datalens_dev_mcp.assets.templates*"]
 
 [tool.setuptools.package-data]
 "datalens_dev_mcp" = [
-  "assets/**/*.json",
-  "assets/**/*.jsonl",
-  "assets/**/*.js",
-  "assets/**/*.md",
+  "schemas/*.json",
+  "assets/recipes/*.json",
+  "assets/recipes/*.js",
 ]
 
 [tool.setuptools.exclude-package-data]

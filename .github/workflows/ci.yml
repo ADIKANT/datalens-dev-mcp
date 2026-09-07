@@ -25,8 +25,6 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.13"
-    env:
-      PYTHONPATH: src
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -43,7 +41,7 @@ jobs:
           python -m pip install -e '.[test]'
 
       - name: Run offline acceptance
-        run: python scripts/run_offline_acceptance.py
+        run: python -m pytest tests/replacement -q
 
   distribution:
     name: Build and inspect distribution
@@ -74,11 +72,10 @@ jobs:
         run: python scripts/check_public_release.py dist/*.whl dist/*.tar.gz
 
       - name: Smoke-test the installed wheel from an unrelated directory
-        run: >-
-          python scripts/run_portable_wheel_smoke.py
-          --wheel dist/*.whl
-          --out /tmp/datalens-wheel-smoke.json
-          --cwd /tmp
+        run: |
+          python -m venv /tmp/datalens-wheel-smoke
+          /tmp/datalens-wheel-smoke/bin/python -m pip install dist/*.whl
+          env -u PYTHONPATH /tmp/datalens-wheel-smoke/bin/python scripts/installed_smoke.py
 
       - name: Generate checksums
         run: sha256sum dist/*.whl dist/*.tar.gz > dist/SHA256SUMS

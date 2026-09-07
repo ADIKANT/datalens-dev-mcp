@@ -1,79 +1,23 @@
-# datalens-dev-mcp documentation
+# datalens-dev-mcp 1.0 documentation
 
 [Русский](README.md) · **English** · [Project home](../README_en.md)
 
-[Quick start](../README_en.md#quick-start) · [DataLens access](access_en.md) · [Connect](codex_setup_en.md) · [Tools](tools_en.md) · [Interactive JS Cookbook](https://adikant.github.io/datalens-dev-mcp/?lang=en) · [Workflows](usage-flow_en.md) · [Sources](sources_en.md) · [Safety](local-only-safety-model_en.md) · [Русский](README.md)
+`datalens-dev-mcp` is a local Codex plugin and Python stdio backend for direct typed Yandex DataLens operations. The model selects one of five domain skills; the server contains no task compiler, journal, or workflow engine.
 
-`datalens-dev-mcp` is a local MCP server through which Codex, Claude, and other
-MCP clients work with the Yandex DataLens Public API. The user states the task
-in plain language, the client selects typed tools, and the server reads objects,
-validates changes, saves them, and publishes when requested with result
-readback.
+## Current contract
 
-It is not a standalone AI assistant or a DataLens interface. The guides below
-cover server installation, access, user workflows, supported operations, and
-responsibility boundaries.
+- [Installation](installation.md) — wheel, plugin manifest, and checkout-independent verification.
+- [25 MCP tools](tools_en.md) — the closed read, authoring, write, and maintenance surface.
+- [Visual property consumers](authoring-property-consumers.md) — where recipe properties are applied and what still needs runtime evidence.
+- [Supported SDK/API operations](../src/datalens_dev_mcp/schemas/supported-operations.json) — backend, version, and static boundary for each method.
+- [62-outcome coverage map](../src/datalens_dev_mcp/schemas/capability-coverage.json) — a direct owner and honest boundary, not an executable router.
 
-## Start here
+## Domain skills
 
-| Goal | Guide |
-| --- | --- |
-| Install the server | [Quick start](../README_en.md#quick-start) |
-| Prepare an IAM token, organization ID, and roles | [DataLens access](access_en.md) |
-| Connect Codex | [Codex setup](codex_setup_en.md) |
-| Connect Claude or another stdio client | [Client examples](../examples/clients/README.md) |
-| Start an autonomous task | [Guide to the 8 task-level tools](tools_en.md) |
-| Start from a ready JavaScript visualization | [Interactive JavaScript Visualization Cookbook](https://adikant.github.io/datalens-dev-mcp/?lang=en) |
-| Create or locally prepare an HTML Page | [HTML generation for DataLens](datalens/html_pages_en.md) |
-| Audit without writing | [Read-only audit](usage-flow_en.md#read-only-audit) |
-| Build a plan without applying it | [Plan without writing](usage-flow_en.md#plan-without-writing) |
-| Save without publishing | [Save without publishing](usage-flow_en.md#save-without-publishing) |
-| Apply and publish a change | [Normal save-and-publish change](usage-flow_en.md#normal-save-and-publish-change) |
-| Trace packaged reference data | [Official sources](sources_en.md) |
+- [Inspect](../skills/datalens-inspect/SKILL.md)
+- [Dataset and Wizard](../skills/datalens-dataset-wizard/SKILL.md)
+- [Editor](../skills/datalens-editor/SKILL.md)
+- [Dashboard](../skills/datalens-dashboard/SKILL.md)
+- [Maintenance](../skills/datalens-maintenance/SKILL.md)
 
-## How it works
-
-```text
-User
-  -> Codex / Claude / another MCP client
-  -> local datalens-dev-mcp
-  -> Yandex DataLens Public API
-
-project root
-  <- snapshots, plans, checks, readback, and reports
-```
-
-A normal change runs through a current object-and-relations read, planning,
-validation, save, saved readback, publish from verified saved state, and
-published readback. The request selects the stopping point: audits and
-diagnostics do not mutate DataLens, `plan-only` stops after planning, and
-`save-only` stops after saved readback. Arbitrary whole-object deletion is
-unavailable; a manifest `retire_legacy_objects` action requires separate
-confirmation of the unchanged plan.
-
-API readback verifies structure. Rendering is checked by the MCP client when a
-browser is available or is explicitly reported as unavailable.
-
-## Main guides
-
-- [DataLens access](access_en.md) — Yandex Cloud CLI, organization, IAM token, roles, env file, and access checks.
-- [Codex setup](codex_setup_en.md) — `config.toml`, `codex mcp add`, `/mcp`, and connection verification.
-- [Tool guide](tools_en.md) — eight autonomous calls, supported surfaces, and operation classes.
-- [Interactive JavaScript Visualization Cookbook](https://adikant.github.io/datalens-dev-mcp/?lang=en) — shared Tips, 34 recipes, three linked cases, synthetic previews, Sources contracts, and complete copy-ready Editor tab sets; the [Markdown catalog and source files](cookbook/README_en.md) remain in the repository.
-- [Workflows](usage-flow_en.md) — copyable sequences and prompts.
-- [Configuration](configuration_en.md) — local settings and hard-off switches.
-- [Safety](local-only-safety-model_en.md) — credential, revision, and deletion safeguards.
-- [Chart route policy](route-policy_en.md) — Wizard, Editor, and QL.
-- [HTML generation](datalens/html_pages_en.md) — Editor markup versus a
-  standalone page, sandbox rules, local validation, and guarded delivery.
-- [Safe apply](safe-apply_en.md) — save, readback, and publishing.
-
-## Technical documentation
-
-- [Architecture](architecture.md)
-- [Exact MCP catalog](mcp/tools.md)
-- [Response contracts](mcp/response_contracts.md)
-- [DataLens API coverage](datalens/api_contract_coverage.md)
-- [Reference-data provenance](source_provenance.md)
-
-The default `autonomous-v2` profile contains 8 tools; `legacy-v1` preserves the previous 39. Exact JSON schemas for the active surface are available through the MCP client and summarized in the [technical catalog](mcp/tools.md).
+The installed backend's `tools/list` is the canonical runtime contract. Older documents not linked from this index describe pre-1.0 versions and do not define the current surface or lifecycle.

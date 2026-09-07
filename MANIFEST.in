@@ -10,6 +10,7 @@ include SUPPORT.md
 include THIRD_PARTY_NOTICES.md
 recursive-include LICENSES *.txt
 recursive-include src/datalens_dev_mcp *.py *.json *.jsonl *.js *.md
+prune src/datalens_dev_mcp/assets/templates
 
 prune .metadata-fetch
 prune artifacts

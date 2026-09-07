@@ -1,35 +1,41 @@
 from __future__ import annotations
 
+import re
+
+
+def safe_error_text(error: BaseException) -> str:
+    text = str(error) or type(error).__name__
+    text = re.sub(r"(?i)bearer\s+[^\s,;\"']+", "Bearer <redacted>", text)
+    text = re.sub(
+        r"(?i)(DATALENS_IAM_TOKEN|YC_IAM_TOKEN|Authorization|x-dl-org-id)\s*[:=]\s*[^\s,;]+",
+        r"\1=<redacted>",
+        text,
+    )
+    return text[:600]
+
 
 class DataLensApiError(RuntimeError):
-    """Raised for sanitized DataLens API failures."""
+    """A secret-safe provider or transport error."""
 
     def __init__(
         self,
         message: str,
         *,
+        method: str = "",
         http_status: int | None = None,
-        remote_code: str = "",
-        request_phase: str = "",
         response_received: bool | None = None,
-        transport_category: str = "",
-        retry_attempts: int = 0,
-        retry_exhausted: bool | None = None,
-        failure_family: str = "",
-        retry_after_sec: float | None = None,
+        remote_code: str = "",
     ) -> None:
         super().__init__(message)
+        self.method = method
         self.http_status = http_status
-        self.remote_code = str(remote_code or "")
-        self.request_phase = str(request_phase or "")
         self.response_received = response_received
-        self.transport_category = str(transport_category or "")
-        self.retry_attempts = max(0, int(retry_attempts))
-        self.retry_exhausted = retry_exhausted
-        self.failure_family = str(failure_family or "")
-        self.retry_after_sec = max(0.0, float(retry_after_sec)) if retry_after_sec is not None else None
-        self.provider_method = ""
+        self.remote_code = remote_code
+
+
+class UncertainWriteError(DataLensApiError):
+    """A mutation may have reached DataLens but no response was received."""
 
 
 class DataLensSafetyError(RuntimeError):
-    """Raised when a guarded operation is blocked by policy."""
+    """The requested effect cannot be performed safely with the available evidence."""

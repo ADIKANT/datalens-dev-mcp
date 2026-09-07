@@ -1,0 +1,170 @@
+from __future__ import annotations
+
+from copy import deepcopy
+from typing import Any
+
+from datalens_dev_mcp.objects.write import semantic_merge
+
+RESERVED_PARAMETERS = frozenset(
+    {
+        "tab",
+        "state",
+        "mode",
+        "focus",
+        "grid",
+        "scale",
+        "tz",
+        "timezone",
+        "date",
+        "datetime",
+        "_action_params",
+        "_autoupdate",
+        "_opened_info",
+        "report_page",
+        "preview_mode",
+    }
+)
+
+
+def compose_dashboard_patch(current: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
+    """Apply only the requested mapping paths; arrays and geometry remain untouched unless supplied."""
+    return semantic_merge(current, patch)
+
+
+def validate_dashboard_contract(contract: dict[str, Any]) -> dict[str, Any]:
+    issues: list[dict[str, str]] = []
+    parameter_names: set[str] = set()
+    for index, parameter in enumerate(contract.get("parameters") or []):
+        name = str(parameter.get("name") or "") if isinstance(parameter, dict) else ""
+        if name in RESERVED_PARAMETERS:
+            issues.append(
+                {
+                    "code": "reserved_parameter",
+                    "path": f"parameters/{index}/name",
+                    "message": f"{name} is reserved by DataLens",
+                }
+            )
+        if name in parameter_names:
+            issues.append(
+                {
+                    "code": "parameter_duplicate",
+                    "path": f"parameters/{index}/name",
+                    "message": f"duplicate dashboard parameter: {name}",
+                }
+            )
+        elif name:
+            parameter_names.add(name)
+    widgets = contract.get("widgets") or {}
+    for index, selector in enumerate(contract.get("selectors") or []):
+        if not isinstance(selector, dict):
+            continue
+        param = str(selector.get("param_name") or "")
+        if not param or param not in parameter_names:
+            issues.append(
+                {
+                    "code": "selector_parameter_undeclared",
+                    "path": f"selectors/{index}/param_name",
+                    "message": f"selector parameter is not declared: {param or '<missing>'}",
+                }
+            )
+        if selector.get("empty_selection") not in {"all", "none", "error"}:
+            issues.append(
+                {
+                    "code": "selector_empty_semantics_missing",
+                    "path": f"selectors/{index}/empty_selection",
+                    "message": "selector must define empty selection as all, none or error",
+                }
+            )
+        consumers = selector.get("consumers") or []
+        if not consumers:
+            issues.append(
+                {
+                    "code": "selector_without_consumers",
+                    "path": f"selectors/{index}/consumers",
+                    "message": "selector must name every consumer",
+                }
+            )
+        for consumer in consumers:
+            widget = widgets.get(consumer) if isinstance(widgets, dict) else None
+            if not isinstance(widget, dict):
+                issues.append(
+                    {
+                        "code": "consumer_missing",
+                        "path": f"selectors/{index}/consumers",
+                        "message": f"unknown consumer {consumer}",
+                    }
+                )
+                continue
+            params = widget.get("params") or {}
+            if param and isinstance(params, dict) and param in params:
+                issues.append(
+                    {
+                        "code": "stale_consumer_override",
+                        "path": f"widgets/{consumer}/params/{param}",
+                        "message": "widget override would reset selector state",
+                    }
+                )
+    return {"ok": not issues, "issues": issues}
+
+
+def dependency_order(drafts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Stable unbounded topological order for a concrete create batch."""
+    by_ref: dict[str, dict[str, Any]] = {}
+    position: dict[str, int] = {}
+    for index, draft in enumerate(drafts):
+        ref = str(draft.get("client_ref") or "")
+        if not ref or ref in by_ref:
+            raise ValueError("every draft requires a unique client_ref")
+        by_ref[ref] = deepcopy(draft)
+        position[ref] = index
+    dependencies: dict[str, set[str]] = {}
+    for ref, draft in by_ref.items():
+        deps = {str(value) for value in (draft.get("depends_on") or [])} | object_references(draft)
+        draft["depends_on"] = sorted(deps)
+        missing = deps - by_ref.keys()
+        if missing:
+            raise ValueError(f"unknown dependency for {ref}: {sorted(missing)}")
+        dependencies[ref] = deps
+    ready = sorted((ref for ref, deps in dependencies.items() if not deps), key=position.get)
+    result: list[dict[str, Any]] = []
+    while ready:
+        ref = ready.pop(0)
+        result.append(deepcopy(by_ref[ref]))
+        for candidate in by_ref:
+            if ref in dependencies[candidate]:
+                dependencies[candidate].remove(ref)
+                if (
+                    not dependencies[candidate]
+                    and candidate not in {str(item["client_ref"]) for item in result}
+                    and candidate not in ready
+                ):
+                    ready.append(candidate)
+        ready.sort(key=position.get)
+    if len(result) != len(drafts):
+        raise ValueError("dependency cycle in create batch")
+    return result
+
+
+def object_references(value: Any) -> set[str]:
+    if isinstance(value, dict):
+        if "$object_ref" in value:
+            if set(value) != {"$object_ref"} or not isinstance(value["$object_ref"], str) or not value["$object_ref"]:
+                raise ValueError("object reference must contain only a nonempty $object_ref")
+            return {value["$object_ref"]}
+        return set().union(*(object_references(item) for item in value.values()))
+    if isinstance(value, list):
+        return set().union(*(object_references(item) for item in value))
+    return set()
+
+
+def bind_object_references(value: Any, ids: dict[str, str]) -> Any:
+    if isinstance(value, dict):
+        if "$object_ref" in value:
+            ref = value["$object_ref"]
+            if ref not in ids:
+                raise ValueError(f"object reference has no verified created ID: {ref}")
+            return ids[ref]
+        return {key: bind_object_references(item, ids) for key, item in value.items()}
+    if isinstance(value, list):
+        return [bind_object_references(item, ids) for item in value]
+    return value

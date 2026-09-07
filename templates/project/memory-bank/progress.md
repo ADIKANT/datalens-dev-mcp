@@ -1,3 +1,0 @@
-# Progress
-
-- Project scaffold created.

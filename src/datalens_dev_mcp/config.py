@@ -1,402 +1,94 @@
 from __future__ import annotations
 
 import os
-from contextlib import contextmanager
-from contextvars import ContextVar
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterator, Mapping
 
-DEFAULT_BASE_URL = "https://api.datalens.tech"
-DEFAULT_REQUEST_INTERVAL_SEC = 1.05
-DEFAULT_MAX_READ_CONCURRENCY = 3
-DEFAULT_READ_TRANSIENT_RETRIES = 2
-_API_DEFAULTS_CONTEXT: ContextVar[dict[str, Any]] = ContextVar("datalens_api_defaults", default={})
-EXECUTION_SWITCH_ENV_NAMES = frozenset(
-    {
-        "DATALENS_MCP_ENABLE_WRITES",
-        "DATALENS_MCP_LIVE_ALLOW_SAVE",
-        "DATALENS_MCP_LIVE_ALLOW_PUBLISH",
-    }
-)
+# Process-local credentials only. The configured credential is part of the key:
+# changing account, endpoint, or the token on disk invalidates the override.
+_RUNTIME_TOKENS: dict[tuple[str, str, str], str] = {}
 
 
-def env_flag(name: str, default: bool = False) -> bool:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    return raw.strip().lower() in {"1", "true", "yes", "on"}
-
-
-def load_env_file(
-    path: str | Path | None,
-    *,
-    override: bool = False,
-    skip_keys: frozenset[str] = frozenset(),
-) -> None:
-    if not path:
-        return
-    env_path = Path(path).expanduser()
-    if not env_path.is_file():
-        return
-    for line in env_path.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#") or "=" not in stripped:
-            continue
-        key, value = stripped.split("=", 1)
-        key = key.strip()
-        if not key or key in skip_keys or (key in os.environ and not override):
-            continue
-        os.environ[key] = value.strip().strip("'\"")
-
-
-def read_env_file(path: str | Path | None) -> dict[str, str]:
-    if not path:
-        return {}
-    env_path = Path(path).expanduser()
-    if not env_path.is_file():
-        return {}
+def _read_env_file(path: Path) -> dict[str, str]:
     values: dict[str, str] = {}
-    for line in env_path.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#") or "=" not in stripped:
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
             continue
-        key, value = stripped.split("=", 1)
-        key = key.strip()
-        if key:
-            values[key] = value.strip().strip("'\"")
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip().strip('"').strip("'")
     return values
 
 
 @dataclass(frozen=True)
 class DataLensConfig:
-    iam_token: str = ""
+    base_url: str = "https://api.datalens.tech"
     org_id: str = ""
-    base_url: str = DEFAULT_BASE_URL
-    write_enabled: bool = True
-    save_enabled: bool = True
-    publish_enabled: bool = True
-    delete_requires_confirmation: bool = True
-    expert_rpc_enabled: bool = False
-    request_interval_sec: float = DEFAULT_REQUEST_INTERVAL_SEC
+    iam_token: str = field(default="", repr=False)
     request_timeout_sec: float = 30.0
-    rate_limit_retries: int = 6
-    max_read_concurrency: int = DEFAULT_MAX_READ_CONCURRENCY
-    read_transient_retries: int = DEFAULT_READ_TRANSIENT_RETRIES
-    request_debug: bool = False
-    token_refresh_enabled: bool = False
-    token_refresh_timeout_sec: float = 15.0
-    yc_binary: str = "yc"
-    expert_unsafe_internal_name_override: bool = False
-    env_file_path: str = ""
-    env_file_loaded: bool = False
-    credential_source: str = "none"
-    org_id_source: str = "none"
-    env_file_reload_state: str = "not_reloaded"
-
-    def __post_init__(self) -> None:
-        if self.request_interval_sec < 0:
-            raise ValueError("request_interval_sec must be non-negative")
-        if self.request_timeout_sec <= 0:
-            raise ValueError("request_timeout_sec must be positive")
-        if self.rate_limit_retries < 0:
-            raise ValueError("rate_limit_retries must be non-negative")
-        if not 1 <= self.max_read_concurrency <= 3:
-            raise ValueError("max_read_concurrency must be between 1 and 3")
-        if not 0 <= self.read_transient_retries <= 2:
-            raise ValueError("read_transient_retries must be between 0 and 2")
-        if self.token_refresh_timeout_sec <= 0:
-            raise ValueError("token_refresh_timeout_sec must be positive")
+    read_retries: int = 2
+    credential_source: str = "explicit"
+    refresh_available: bool = False
+    _configured_token: str | None = field(default=None, repr=False, compare=False)
 
     @classmethod
     def from_env(
         cls,
-        env_file: str | Path | None = None,
+        env: Mapping[str, str] | None = None,
         *,
-        reload_state: str = "not_reloaded",
-    ) -> "DataLensConfig":
-        env_file_path = str(env_file or os.getenv("DATALENS_ENV_FILE") or "").strip()
-        file_values = read_env_file(env_file_path)
-        process_values = os.environ
-        iam_token, credential_source = _first_config_value(
-            ("DATALENS_IAM_TOKEN", "YC_IAM_TOKEN"),
-            file_values=file_values,
-            process_values=process_values,
-            prefer_file=bool(env_file_path),
-        )
-        org_id, org_source = _first_config_value(
-            ("DATALENS_ORG_ID",),
-            file_values=file_values,
-            process_values=process_values,
-            prefer_file=bool(env_file_path),
-        )
-        base_url, _ = _first_config_value(
-            ("DATALENS_BASE_URL", "DATALENS_API_BASE_URL"),
-            file_values=file_values,
-            process_values=process_values,
-            prefer_file=bool(env_file_path),
-            default=DEFAULT_BASE_URL,
-        )
-        api_defaults = dict(_API_DEFAULTS_CONTEXT.get())
-        default_interval = str(api_defaults.get("request_interval_sec", DEFAULT_REQUEST_INTERVAL_SEC))
-        default_timeout = str(api_defaults.get("request_timeout_sec", 30))
-        default_rate_limit_retries = str(api_defaults.get("rate_limit_retries", 6))
-        default_max_read_concurrency = str(
-            api_defaults.get("max_read_concurrency", DEFAULT_MAX_READ_CONCURRENCY)
-        )
-        default_read_transient_retries = str(
-            api_defaults.get("read_transient_retries", DEFAULT_READ_TRANSIENT_RETRIES)
-        )
+        env_file: str | Path | None = None,
+    ) -> DataLensConfig:
+        process = dict(os.environ if env is None else env)
+        configured_file = env_file or process.get("DATALENS_ENV_FILE")
+        file_values = _read_env_file(Path(configured_file).expanduser()) if configured_file else {}
+        values = {**process, **file_values}
+        token = values.get("DATALENS_IAM_TOKEN") or values.get("YC_IAM_TOKEN") or ""
+        source = "env_file" if token and file_values else "process_env" if token else "none"
+        refresh = values.get("DATALENS_ENABLE_TOKEN_REFRESH_ON_401", "").strip().lower() in {"1", "true", "yes"}
+        base_url = (values.get("DATALENS_API_BASE_URL") or "https://api.datalens.tech").rstrip("/")
+        org_id = values.get("DATALENS_ORG_ID", "").strip()
+        configured_token = token.strip()
+        active_token = _RUNTIME_TOKENS.get((base_url, org_id, configured_token), configured_token)
         return cls(
-            iam_token=iam_token,
+            base_url=base_url,
             org_id=org_id,
-            base_url=base_url.rstrip("/"),
-            write_enabled=_execution_flag(
-                "DATALENS_MCP_ENABLE_WRITES",
-                file_values=file_values,
-                process_values=process_values,
-                prefer_file=bool(env_file_path),
-                default=True,
-            ),
-            save_enabled=_execution_flag(
-                "DATALENS_MCP_LIVE_ALLOW_SAVE",
-                file_values=file_values,
-                process_values=process_values,
-                prefer_file=bool(env_file_path),
-                default=True,
-            ),
-            publish_enabled=_execution_flag(
-                "DATALENS_MCP_LIVE_ALLOW_PUBLISH",
-                file_values=file_values,
-                process_values=process_values,
-                prefer_file=bool(env_file_path),
-                default=True,
-            ),
-            delete_requires_confirmation=True,
-            expert_rpc_enabled=_config_flag(
-                "DATALENS_MCP_ENABLE_EXPERT_RPC",
-                file_values=file_values,
-                process_values=process_values,
-                prefer_file=bool(env_file_path),
-                default=False,
-            ),
-            request_interval_sec=float(
-                _config_value(
-                    "DATALENS_REQUEST_INTERVAL_SEC",
-                    file_values=file_values,
-                    process_values=process_values,
-                    prefer_file=bool(env_file_path),
-                    default=default_interval,
-                )
-                or default_interval
-            ),
-            request_timeout_sec=float(
-                _config_value(
-                    "DATALENS_REQUEST_TIMEOUT_SEC",
-                    file_values=file_values,
-                    process_values=process_values,
-                    prefer_file=bool(env_file_path),
-                    default=default_timeout,
-                )
-                or default_timeout
-            ),
-            rate_limit_retries=int(
-                _config_value(
-                    "DATALENS_RATE_LIMIT_RETRIES",
-                    file_values=file_values,
-                    process_values=process_values,
-                    prefer_file=bool(env_file_path),
-                    default=default_rate_limit_retries,
-                )
-                or default_rate_limit_retries
-            ),
-            max_read_concurrency=int(
-                _config_value(
-                    "DATALENS_MAX_READ_CONCURRENCY",
-                    file_values=file_values,
-                    process_values=process_values,
-                    prefer_file=bool(env_file_path),
-                    default=default_max_read_concurrency,
-                )
-                or default_max_read_concurrency
-            ),
-            read_transient_retries=int(
-                _config_value(
-                    "DATALENS_READ_TRANSIENT_RETRIES",
-                    file_values=file_values,
-                    process_values=process_values,
-                    prefer_file=bool(env_file_path),
-                    default=default_read_transient_retries,
-                )
-                or default_read_transient_retries
-            ),
-            request_debug=_config_flag(
-                "DATALENS_REQUEST_DEBUG",
-                file_values=file_values,
-                process_values=process_values,
-                prefer_file=bool(env_file_path),
-                default=False,
-            ),
-            token_refresh_enabled=_config_flag(
-                "DATALENS_ENABLE_TOKEN_REFRESH_ON_401",
-                file_values=file_values,
-                process_values=process_values,
-                prefer_file=bool(env_file_path),
-                default=False,
-            ),
-            token_refresh_timeout_sec=float(
-                _config_value(
-                    "DATALENS_TOKEN_REFRESH_TIMEOUT_SEC",
-                    file_values=file_values,
-                    process_values=process_values,
-                    prefer_file=bool(env_file_path),
-                    default="15",
-                )
-                or "15"
-            ),
-            yc_binary=_config_value(
-                "DATALENS_YC_BINARY",
-                file_values=file_values,
-                process_values=process_values,
-                prefer_file=bool(env_file_path),
-                default="yc",
-            )
-            or "yc",
-            expert_unsafe_internal_name_override=_config_flag(
-                "DATALENS_MCP_EXPERT_ALLOW_UNSAFE_INTERNAL_NAMES",
-                file_values=file_values,
-                process_values=process_values,
-                prefer_file=bool(env_file_path),
-                default=False,
-            ),
-            env_file_path=str(Path(env_file_path).expanduser()) if env_file_path else "",
-            env_file_loaded=bool(env_file_path and file_values),
-            credential_source=credential_source,
-            org_id_source=org_source,
-            env_file_reload_state=reload_state,
+            iam_token=active_token,
+            request_timeout_sec=float(values.get("DATALENS_REQUEST_TIMEOUT_SEC", "30")),
+            read_retries=int(values.get("DATALENS_READ_RETRIES", "2")),
+            credential_source="runtime_refresh" if active_token != configured_token else source,
+            refresh_available=refresh,
+            _configured_token=configured_token,
         )
 
-    def reload_canonical_env(self, *, reload_state: str = "reloaded_from_canonical_env") -> "DataLensConfig":
-        """Reload the configured canonical env file without changing explicit in-memory configs."""
+    def remember_refreshed_token(self, token: str) -> None:
+        if not token or any(character.isspace() for character in token):
+            raise ValueError("refresh returned an invalid credential")
+        original = self._configured_token if self._configured_token is not None else self.iam_token
+        _RUNTIME_TOKENS[(self.base_url, self.org_id, original)] = token
 
-        if not self.env_file_path:
-            return self
-        with use_api_defaults(
-            {
-                "request_interval_sec": self.request_interval_sec,
-                "request_timeout_sec": self.request_timeout_sec,
-                "rate_limit_retries": self.rate_limit_retries,
-                "max_read_concurrency": self.max_read_concurrency,
-                "read_transient_retries": self.read_transient_retries,
-            }
-        ):
-            return type(self).from_env(self.env_file_path, reload_state=reload_state)
+    def runtime_identity(self) -> tuple[object, ...]:
+        configured = self._configured_token if self._configured_token is not None else self.iam_token
+        return (
+            self.base_url,
+            self.org_id,
+            configured,
+            self.request_timeout_sec,
+            self.read_retries,
+            self.refresh_available,
+        )
 
     def require_auth(self) -> None:
-        from datalens_dev_mcp.api.errors import DataLensApiError
+        if not self.iam_token or not self.org_id:
+            from datalens_dev_mcp.api.errors import DataLensApiError
 
-        if not self.iam_token:
-            raise DataLensApiError(
-                "BLOCKED_LIVE_CREDENTIALS: Missing DATALENS_IAM_TOKEN or YC_IAM_TOKEN in environment or env file."
-            )
-        if not self.org_id:
-            raise DataLensApiError("BLOCKED_LIVE_CREDENTIALS: Missing DATALENS_ORG_ID in environment or env file.")
+            raise DataLensApiError("DataLens credentials are incomplete; configure token and organization id")
 
     def credential_report(self) -> dict[str, object]:
         return {
-            "credential_source": self.credential_source,
-            "org_id_source": self.org_id_source,
-            "env_file": {
-                "configured": bool(self.env_file_path),
-                "loaded": self.env_file_loaded,
-                "reload_state": self.env_file_reload_state,
-            },
-            "token_present": bool(self.iam_token),
+            "base_url": self.base_url,
             "org_id_set": bool(self.org_id),
-            "token_refresh_on_401": self.token_refresh_enabled,
-            "yc_binary_configured": bool(self.yc_binary),
-            "token_refresh_timeout_sec": self.token_refresh_timeout_sec,
-            "request_interval_sec": self.request_interval_sec,
-            "max_read_concurrency": self.max_read_concurrency,
-            "read_transient_retries": self.read_transient_retries,
+            "credential_source": self.credential_source,
+            "token_present": bool(self.iam_token),
+            "refresh_available": self.refresh_available,
         }
-
-
-@contextmanager
-def use_api_defaults(api_defaults: Mapping[str, Any] | None) -> Iterator[None]:
-    reset_handle = _API_DEFAULTS_CONTEXT.set(dict(api_defaults or {}))
-    try:
-        yield
-    finally:
-        _API_DEFAULTS_CONTEXT.reset(reset_handle)
-
-
-def _first_config_value(
-    keys: tuple[str, ...],
-    *,
-    file_values: Mapping[str, str],
-    process_values: Mapping[str, str],
-    prefer_file: bool,
-    default: str = "",
-) -> tuple[str, str]:
-    sources = ((file_values, "env_file"), (process_values, "process_env"))
-    if not prefer_file:
-        sources = tuple(reversed(sources))
-    for source, label in sources:
-        for key in keys:
-            value = str(source.get(key, "")).strip()
-            if value:
-                return value, label
-    return default, "default" if default else "none"
-
-
-def _config_value(
-    key: str,
-    *,
-    file_values: Mapping[str, str],
-    process_values: Mapping[str, str],
-    prefer_file: bool,
-    default: str = "",
-) -> str:
-    value, _ = _first_config_value((key,), file_values=file_values, process_values=process_values, prefer_file=prefer_file)
-    return value or default
-
-
-def _config_flag(
-    key: str,
-    *,
-    file_values: Mapping[str, str],
-    process_values: Mapping[str, str],
-    prefer_file: bool,
-    default: bool,
-) -> bool:
-    raw = _config_value(key, file_values=file_values, process_values=process_values, prefer_file=prefer_file)
-    if not raw:
-        return default
-    return raw.strip().lower() in {"1", "true", "yes", "on"}
-
-
-def _execution_flag(
-    key: str,
-    *,
-    file_values: Mapping[str, str],
-    process_values: Mapping[str, str],
-    prefer_file: bool,
-    default: bool,
-) -> bool:
-    """Resolve an execution switch while making every explicit off value authoritative."""
-
-    false_values = {"0", "false", "no", "off"}
-    explicit_values = (
-        str(file_values.get(key, "")).strip().lower(),
-        str(process_values.get(key, "")).strip().lower(),
-    )
-    if any(value in false_values for value in explicit_values):
-        return False
-    return _config_flag(
-        key,
-        file_values=file_values,
-        process_values=process_values,
-        prefer_file=prefer_file,
-        default=default,
-    )
