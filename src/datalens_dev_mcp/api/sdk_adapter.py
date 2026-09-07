@@ -84,7 +84,7 @@ class SdkAdapter:
     ) -> dict[str, Any]:
         value = self._get_domain(object_type, object_id, branch=branch, revision_id=revision_id)
         snapshot = _json_object(value)
-        if _canonical_object_type(object_type) in {"wizard_chart", "editor_chart", "ql_chart"}:
+        if _canonical_object_type(object_type) in {"chart", "wizard_chart", "editor_chart", "ql_chart"}:
             return _chart_entry(snapshot)
         return snapshot
 
@@ -381,11 +381,12 @@ class SdkAdapter:
 
 
 def _chart_entry(snapshot: dict[str, Any]) -> dict[str, Any]:
-    if "entry" not in snapshot:
-        return snapshot
-    if not isinstance(snapshot["entry"], dict):
-        raise ValueError("chart response entry must be an object")  # noqa: TRY004
-    entry = dict(snapshot["entry"])
+    if "entry" in snapshot:
+        if not isinstance(snapshot["entry"], dict):
+            raise ValueError("chart response entry must be an object")
+        entry = dict(snapshot["entry"])
+    else:
+        entry = dict(snapshot)
     key = entry.get("key")
     if not entry.get("name") and isinstance(key, str) and key.rsplit("/", 1)[-1]:
         entry["name"] = key.rsplit("/", 1)[-1]
@@ -439,13 +440,24 @@ def _canonical_object_type(value: str) -> str:
     aliases = {
         "advanced-chart_node": "editor_chart",
         "advanced_chart": "editor_chart",
+        "dash": "dashboard",
         "table_node": "editor_chart",
         "d3_node": "editor_chart",
         "markdown_node": "editor_chart",
         "control_node": "editor_chart",
+        "widget": "chart",
     }
     canonical = aliases.get(value, value)
-    if canonical not in {"workbook", "connection", "dataset", "wizard_chart", "editor_chart", "ql_chart", "dashboard"}:
+    if canonical not in {
+        "workbook",
+        "connection",
+        "dataset",
+        "chart",
+        "wizard_chart",
+        "editor_chart",
+        "ql_chart",
+        "dashboard",
+    }:
         raise ValueError(f"unsupported SDK mutation object type: {value}")
     return canonical
 
