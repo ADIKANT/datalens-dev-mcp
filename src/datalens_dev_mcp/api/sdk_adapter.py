@@ -64,7 +64,10 @@ class SdkAdapter:
         revision_id: str | None = None,
     ) -> dict[str, Any]:
         value = self._get_domain(object_type, object_id, branch=branch, revision_id=revision_id)
-        return _json_object(value)
+        snapshot = _json_object(value)
+        if _canonical_object_type(object_type) in {"wizard_chart", "editor_chart", "ql_chart"}:
+            return _chart_entry(snapshot)
+        return snapshot
 
     def _get_domain(
         self,
@@ -126,6 +129,7 @@ class SdkAdapter:
                     "meta.json": "meta", "params.js": "params", "sources.js": "sources",
                     "prepare.js": "prepare", "controls.js": "controls", "config.js": "config",
                 }
+                expected_tabs = {}
                 for filename, content in draft["tabs"].items():
                     tab = tab_methods.get(filename)
                     method = getattr(builder, tab, None) if tab else None
@@ -134,6 +138,8 @@ class SdkAdapter:
                     if not isinstance(content, str):
                         raise ValueError(f"Editor tab must contain source text: {filename}")
                     method(content)
+                    expected_tabs[tab] = content
+                expected_readback = {"data": expected_tabs}
                 value = builder.build()
             else:
                 snapshot = draft.get("snapshot")
@@ -240,6 +246,8 @@ class SdkAdapter:
             expected_revision = snapshot.get("revId") or snapshot.get("rev_id")
             if expected_revision:
                 latest = _json_object(target)
+                if canonical in {"wizard_chart", "editor_chart", "ql_chart"}:
+                    latest = _chart_entry(latest)
                 observed_revision = latest.get("revId") or latest.get("rev_id")
                 if observed_revision != expected_revision:
                     raise ValueError("saved revision changed during SDK target fetch; re-read before retry")
@@ -277,6 +285,14 @@ class SdkAdapter:
     def close(self) -> None:
         if self._client is not None and hasattr(self._client, "close"):
             self._client.close()
+
+
+def _chart_entry(snapshot: dict[str, Any]) -> dict[str, Any]:
+    if "entry" not in snapshot:
+        return snapshot
+    if not isinstance(snapshot["entry"], dict):
+        raise ValueError("chart response entry must be an object")
+    return dict(snapshot["entry"])
 
 
 def _provider_error(exc: Exception, method: str) -> DataLensApiError:

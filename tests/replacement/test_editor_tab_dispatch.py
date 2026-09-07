@@ -30,10 +30,11 @@ def test_supported_editor_tabs_are_forwarded_verbatim():
     client = SimpleNamespace(create=SimpleNamespace(editor_chart=SimpleNamespace(advanced_chart=lambda **_: builder)))
     tabs = {"meta.json": "{}", "params.js": "module.exports = {};", "sources.js": "module.exports = {};",
             "prepare.js": "module.exports = {};", "controls.js": "module.exports = [];"}
-    SdkAdapter(client=client).create({"name": "Synthetic", "object_type": "editor_chart",
+    result = SdkAdapter(client=client).create({"name": "Synthetic", "object_type": "editor_chart",
                                      "variant": "advanced-chart_node", "tabs": tabs}, {"workbook_id": "synthetic"})
     assert received == {filename.split(".")[0]: content for filename, content in tabs.items()}
     assert writes == [True]
+    assert result["expected_readback"] == {"data": received}
 
 
 def test_static_validation_does_not_approve_unhandled_config_tab():

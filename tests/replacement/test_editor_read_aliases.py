@@ -16,3 +16,9 @@ def test_editor_create_aliases_have_matching_readback_route(kind, branch):
     result = adapter.get_object(kind, "synthetic-chart", branch=branch)
     assert result["id"] == "synthetic-chart"
     assert calls == [{"by_id": "synthetic-chart", "branch": branch}]
+
+
+def test_chart_entry_envelope_does_not_hide_revision_or_tabs():
+    snapshot = {"entry": {"id": "synthetic-chart", "revId": "r1", "data": {"prepare": "synthetic"}}}
+    adapter = SdkAdapter(client=SimpleNamespace(get=SimpleNamespace(editor_chart=lambda **_: snapshot)))
+    assert adapter.get_object("editor_chart", "synthetic-chart") == snapshot["entry"]
