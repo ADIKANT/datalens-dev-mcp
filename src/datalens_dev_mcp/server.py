@@ -57,8 +57,9 @@ def dl_auth_check() -> dict[str, Any]:
 
 
 def dl_auth_refresh() -> dict[str, Any]:
+    config = DataLensConfig.from_env()
     token = refresh_iam_token_with_yc()
-    os.environ["DATALENS_IAM_TOKEN"] = token
+    config.remember_refreshed_token(token)
     return {"ok": True, "status": "refreshed", "token_exposed": False}
 
 
