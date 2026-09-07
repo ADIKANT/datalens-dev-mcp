@@ -31,22 +31,31 @@ def get_authoring_defaults(
     project = _read_config(project_path) if project_path else {}
     values = deepcopy(GENERIC_DEFAULTS)
     sources = ["generic"]
+    technology_source = "generic"
     for name, config in (("user", user), ("project", project)):
         if config:
-            values = _deep_merge(values, _config_values(config, family))
+            configured = _config_values(config, family)
+            values = _deep_merge(values, configured)
+            if "technology" in configured:
+                technology_source = name
             sources.append(name)
     if reference:
         values = _deep_merge(values, dict(reference))
         sources.append("reference")
+        if "technology" in reference:
+            technology_source = "reference"
     if explicit:
         values = _deep_merge(values, dict(explicit))
         sources.append("explicit")
+        if "technology" in explicit:
+            technology_source = "explicit"
     return {
         "ok": True,
         "family": family,
         "values": values,
         "precedence": ["generic", "user", "project", "reference", "explicit"],
         "applied_sources": sources,
+        "technology_source": technology_source,
         "config": {
             "user": str(user_path) if user else None,
             "project": str(project_path) if project and project_path else None,

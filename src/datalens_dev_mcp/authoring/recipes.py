@@ -64,10 +64,11 @@ def compile_recipe(
     values = defaults["values"]
     contract = _apply_profile(recipe["visual_contract"], values)
     contract = _bind_contract(contract, bindings)
-    technology = str(values.get("technology") or recipe["technology"])
-    if "technology" not in (presentation or {}) and "technology" not in (reference or {}):
-        configured = "technology" in values and values["technology"] != "wizard"
-        technology = str(values["technology"]) if configured else str(recipe["technology"])
+    technology = str(recipe["technology"] if defaults["technology_source"] == "generic" else values.get("technology"))
+    technology = {"advanced-chart_node": "advanced_chart", "control_node": "selector",
+                  "table_node": "table", "d3_node": "gravity", "markdown_node": "markdown"}.get(technology, technology)
+    if technology != recipe["technology"]:
+        raise ValueError(f"recipe {recipe_id} does not support technology {technology}; choose a matching recipe or author an explicit custom draft")
     draft: dict[str, Any] = {
         "recipe_id": recipe_id,
         "technology": technology,
