@@ -48,6 +48,10 @@ def test_version_statuses_and_ancestor_groups():
     }
     html = render("comparison_matrix", bindings, {"width": 900, "height": 500})
     assert "span 7;grid-row:2" not in html
+    assert "font-family:ui-monospace" in html
+    assert "white-space:nowrap;overflow:hidden;cursor:help" in html
+    assert "--g-color-text-positive" in html
+    assert "background-color:" in html and "position:absolute;inset:0" in html
     for color in ["#B8F6D6", "#FFF2B8", "#BBD8FF", "#FFE1D6"]:
         assert color in html
     assert ">NA<" in html and ">CONFIG ERROR<" in html and ">-<" in html

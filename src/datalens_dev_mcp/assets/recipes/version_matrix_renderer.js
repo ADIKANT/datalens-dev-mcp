@@ -15,13 +15,13 @@ module.exports = function renderVersionMatrix(data, config) {
         const palette = theme === 'dark'
           ? {surface: '#202124', header: '#303134', line: '#55595e', text: '#f1f3f5', muted: '#b0b5bc'}
           : theme === 'light'
-            ? {surface: '#ffffff', header: '#f4f7fb', line: '#dfe3e8', text: '#202124', muted: '#6b7280'}
+            ? {surface: '#ffffff', header: '#f4f7fb', line: '#C9D3E0', text: '#102A56', muted: '#667085'}
             : {
                 surface: 'var(--g-color-base-background,#ffffff)',
                 header: 'var(--g-color-base-generic,#f4f7fb)',
-                line: 'var(--g-color-line-generic,#dfe3e8)',
-                text: 'var(--g-color-text-primary,#202124)',
-                muted: 'var(--g-color-text-secondary,#6b7280)'
+                line: 'var(--g-color-line-generic,#C9D3E0)',
+                text: 'var(--g-color-text-primary,#102A56)',
+                muted: 'var(--g-color-text-secondary,#667085)'
               };
         const statusPalette = {
           noChange: 'var(--g-color-base-positive-light,#B8F6D6)',
@@ -35,6 +35,18 @@ module.exports = function renderVersionMatrix(data, config) {
           missing: 'transparent',
           manual_not_applicable: 'var(--g-color-base-neutral-light,#f8fafc)'
         };
+        const floating = theme === 'auto' ? 'var(--g-color-base-float,#ffffff)' : palette.surface;
+        const statusText = {
+          noChange: 'var(--g-color-text-positive,#237A57)',
+          hwChange: 'var(--g-color-text-warning,#8A5A00)',
+          swChange: 'var(--g-color-text-info,#0054B8)',
+          blChange: 'var(--g-color-text-danger,#B42318)',
+          config_error: 'var(--g-color-text-danger,#B42318)',
+          missing: palette.muted,
+          manual_not_applicable: palette.muted
+        };
+        const tinted = (color, content) => '<span aria-hidden="true" style="position:absolute;inset:0;background:'
+          + color + ';pointer-events:none"></span><span style="position:relative;z-index:1">' + content + '</span>';
         let columns = Array.isArray(prepared && prepared.columns) ? prepared.columns : [];
         let rows = Array.isArray(prepared && prepared.rows) ? prepared.rows : [];
         const numericComparison = !columns.length;
@@ -90,36 +102,58 @@ module.exports = function renderVersionMatrix(data, config) {
             let end = start + 1;
             while (end < columns.length && Array.from({length: level + 1}, (_, ancestor) => ancestor).every(ancestor =>
               String((columns[end].headers || [])[ancestor] ?? '—') === String((columns[start].headers || [])[ancestor] ?? '—'))) end += 1;
+            let tint = numericComparison ? palette.header : level === 0 ? statusPalette.manual_not_applicable
+              : level === 1 ? palette.header : null;
+            let textColor = palette.text;
+            if (!numericComparison && level === 3) {
+              const positive = ['approved', 'released'].includes(value.toLowerCase());
+              tint = positive ? statusPalette.noChange : statusPalette.manual_not_applicable;
+              textColor = positive ? statusText.noChange : palette.text;
+            }
+            if (!numericComparison && level === 4) {
+              const positive = value.toUpperCase().startsWith('Y');
+              const warning = value.toUpperCase() === 'N';
+              tint = positive ? statusPalette.noChange : warning ? statusPalette.hwChange : statusPalette.manual_not_applicable;
+              textColor = positive ? statusText.noChange : warning ? statusText.hwChange : palette.text;
+            }
+            let content = escape(value);
+            if (!numericComparison && level === 2) content = value.split(/\s*\/\s*|\n/).map(part => '<div>' + escape(part) + '</div>').join('');
+            if (!numericComparison && level === 5 && ['HW', 'SW', 'BL'].includes(value)) content += ' version';
+            if (tint) content = tinted(tint, content);
             headerRows.push('<div role="columnheader" style="position:sticky;top:' + headerTops[level]
               + 'px;z-index:' + (20 - level) + ';grid-column:' + (start + 2) + ' / span ' + (end - start)
               + ';grid-row:' + (level + 1) + ';box-sizing:border-box;height:' + headerHeight
-              + 'px;padding:6px 8px;background:' + palette.header + ';border-right:1px solid ' + palette.line
-              + ';border-bottom:1px solid ' + palette.line + ';color:' + palette.text
-              + ';font-size:' + (level === 2 ? 13 : 12) + 'px;line-height:16px;font-weight:700;overflow:hidden;display:flex;align-items:center">' + escape(value) + '</div>');
+              + 'px;padding:6px 10px;background-color:' + floating + ';border-right:1px solid ' + palette.line
+              + ';border-bottom:1px solid ' + palette.line + ';color:' + textColor
+              + ';font-size:' + (level === 2 ? 13 : 12) + 'px;line-height:' + (level === 2 ? 18 : 16)
+              + 'px;font-weight:' + (level >= 2 ? 800 : 700) + ';overflow:hidden;display:flex;'
+              + (level === 2 ? 'flex-direction:column;justify-content:center;align-items:flex-start' : 'align-items:center')
+              + '">' + content + '</div>');
             start = end;
           }
         }
         const firstHeader = headerLabels.map((label, level) => '<div role="rowheader" style="position:sticky;left:0;top:'
           + headerTops[level] + 'px;z-index:30;grid-column:1;grid-row:' + (level + 1)
-          + ';box-sizing:border-box;padding:7px 12px;background:' + palette.header
+          + ';box-sizing:border-box;padding:7px 12px;background:' + floating
           + ';border-right:1px solid ' + palette.line + ';border-bottom:1px solid ' + palette.line
           + ';color:' + palette.text + ';font-size:12px;line-height:16px;font-weight:800;overflow:hidden;white-space:nowrap">'
           + escape(label) + '</div>').join('');
         const body = rows.map((row, rowIndex) => {
           const rowNumber = headerLabels.length + rowIndex + 1;
           const label = '<div style="position:sticky;left:0;z-index:5;grid-column:1;grid-row:' + rowNumber
-            + ';box-sizing:border-box;padding:8px;background:' + palette.surface + ';border-right:1px solid '
+            + ';box-sizing:border-box;padding:8px 12px;background:' + palette.surface + ';border-right:1px solid '
             + palette.line + ';border-bottom:1px solid ' + palette.line + ';color:' + palette.text
-            + ';font-size:12px;font-weight:700;overflow-wrap:anywhere">' + escape(row.label) + '</div>';
+            + ';font-size:12px;line-height:16px;font-weight:700;color:var(--g-color-text-link,#0054B8);overflow-wrap:anywhere">' + escape(row.label) + '</div>';
           const cells = columns.map((column, columnIndex) => {
             const cell = (row.cells || [])[columnIndex] || {};
             const status = String(cell.status || 'missing');
             const display = status === 'manual_not_applicable' ? 'NA' : status === 'config_error' ? 'CONFIG ERROR' : status === 'missing' && !numericComparison ? '-' : format(cell.value);
             return '<div data-id="matrix-cell-' + rowIndex + '-' + columnIndex + '" style="grid-column:'
-              + (columnIndex + 2) + ';grid-row:' + rowNumber + ';box-sizing:border-box;padding:8px;background:'
+              + (columnIndex + 2) + ';grid-row:' + rowNumber + ';box-sizing:border-box;min-width:0;padding:7px 10px;background:'
               + (statusPalette[status] || statusPalette.missing) + ';border-right:1px solid ' + palette.line
-              + ';border-bottom:1px solid ' + palette.line + ';color:' + palette.text
-              + ';font-size:12px;overflow-wrap:anywhere;cursor:help">' + escape(display) + '</div>';
+              + ';border-bottom:1px solid ' + palette.line + ';color:' + (statusText[status] || palette.text)
+              + ';font-size:12px;line-height:16px;' + (numericComparison ? '' : 'font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;')
+              + (numericComparison ? 'overflow-wrap:anywhere;' : 'white-space:nowrap;overflow:hidden;') + 'cursor:help">' + escape(display) + '</div>';
           }).join('');
           return label + cells;
         }).join('');
@@ -127,13 +161,13 @@ module.exports = function renderVersionMatrix(data, config) {
         const legend = presentation.legend.mode === 'hidden' ? '' : '<div style="flex:0 0 auto;display:flex;gap:6px;flex-wrap:wrap;font-size:12px;line-height:16px;color:' + palette.text + '">' + legendItems.map(item => {
             const status = typeof item === 'object' && item ? String(item.status || '') : String(item);
             const label = typeof item === 'object' && item ? String(item.label || status) : String(item);
-            return '<span style="display:inline-flex;padding:2px 6px;border-radius:3px;font-weight:700;color:#17212b;background:'
+            return '<span style="display:inline-flex;padding:2px 6px;border-radius:3px;font-weight:700;color:' + (statusText[status] || palette.text) + ';background:'
               + (statusPalette[status] || palette.header) + '">' + escape(label) + '</span>';
           }).join('') + '</div>';
         outer += legend + '<div style="flex:1 1 auto;min-height:0;min-width:0;overflow:auto;border:1px solid '
           + palette.line + '"><div role="table" style="display:grid;grid-template-columns:' + gridColumns
           + ';grid-template-rows:' + headerHeights.map(h => h + 'px').join(' ') + ' repeat('
-          + rows.length + ', minmax(36px,auto));min-width:' + (firstWidth + columns.length * valueWidth)
+          + rows.length + ', minmax(34px,auto));min-width:' + (firstWidth + columns.length * valueWidth)
           + 'px;background:' + palette.surface + '">' + firstHeader + headerRows.join('') + body + '</div></div>';
         return Editor.generateHtml('<div style="box-sizing:border-box;height:100%;min-height:0;display:flex;flex-direction:column;gap:7px;font-family:Inter,Arial,sans-serif;padding:' + spacing
           + 'px;background:' + palette.surface + ';color:' + palette.text + ';overflow:hidden">' + outer + '</div>');
