@@ -5,6 +5,7 @@ from typing import Any
 
 import datalens_sdk
 import httpx
+from datalens_sdk.errors import DataLensAPIError as SdkApiError, DataLensTransportError as SdkTransportError
 
 from datalens_dev_mcp.api.errors import DataLensApiError, UncertainWriteError, safe_error_text
 from datalens_dev_mcp.config import DataLensConfig
@@ -82,7 +83,12 @@ class SdkAdapter:
             kwargs["branch"] = branch
         if revision_id and object_type != "workbook":
             kwargs["rev_id"] = revision_id
-        return getattr(self._sdk_client().get, getter_name)(**kwargs)
+        try:
+            return getattr(self._sdk_client().get, getter_name)(**kwargs)
+        except SdkApiError as exc:
+            raise _provider_error(exc, f"get:{object_type}") from exc
+        except (httpx.TransportError, SdkTransportError) as exc:
+            raise DataLensApiError("SDK read transport failed", method=f"get:{object_type}", response_received=False) from exc
 
     def create(self, draft: dict[str, Any], destination: dict[str, Any]) -> dict[str, Any]:
         """Execute one discriminated draft through the official SDK."""
@@ -139,12 +145,12 @@ class SdkAdapter:
             if expected_readback is not None:
                 result["expected_readback"] = expected_readback
             return result
-        except httpx.TransportError as exc:
+        except (httpx.TransportError, SdkTransportError) as exc:
             raise UncertainWriteError("SDK create outcome is uncertain", method=f"create:{object_type}") from exc
         except (ValueError, TypeError):
             raise
-        except Exception as exc:  # provider response or SDK validation is a definite error
-            raise DataLensApiError(safe_error_text(exc), method=f"create:{object_type}", response_received=True) from exc
+        except Exception as exc:
+            raise _provider_error(exc, f"create:{object_type}") from exc
 
     def update(self, object_type: str, object_id: str, snapshot: dict[str, Any]) -> dict[str, Any]:
         if object_type == "html_page":
@@ -180,10 +186,10 @@ class SdkAdapter:
             target = self._get_domain(_canonical_object_type(object_type), object_id, branch="saved")
             target.delete()
             return {"object_id": object_id, "deleted": True, "backend": "official_sdk"}
-        except httpx.TransportError as exc:
+        except (httpx.TransportError, SdkTransportError) as exc:
             raise UncertainWriteError("SDK delete outcome is uncertain", method=f"delete:{object_type}") from exc
         except Exception as exc:
-            raise DataLensApiError(safe_error_text(exc), method=f"delete:{object_type}", response_received=True) from exc
+            raise _provider_error(exc, f"delete:{object_type}") from exc
 
     def _html_create(self, draft: dict[str, Any], destination: dict[str, Any]) -> dict[str, Any]:
         from datalens_dev_mcp.api.client import DataLensApiClient
@@ -245,12 +251,12 @@ class SdkAdapter:
             else:
                 value = builder.execute()
             return {"object_id": _result_id(value) or object_id, "object": _json_object(value), "backend": "official_sdk"}
-        except httpx.TransportError as exc:
+        except (httpx.TransportError, SdkTransportError) as exc:
             raise UncertainWriteError("SDK write outcome is uncertain", method=f"replace:{canonical}") from exc
         except (ValueError, TypeError):
             raise
         except Exception as exc:
-            raise DataLensApiError(safe_error_text(exc), method=f"replace:{canonical}", response_received=True) from exc
+            raise _provider_error(exc, f"replace:{canonical}") from exc
 
     def describe_factory(self, resource: str, variant: str) -> dict[str, object]:
         supported = (
@@ -271,6 +277,16 @@ class SdkAdapter:
     def close(self) -> None:
         if self._client is not None and hasattr(self._client, "close"):
             self._client.close()
+
+
+def _provider_error(exc: Exception, method: str) -> DataLensApiError:
+    if isinstance(exc, DataLensApiError):
+        return exc
+    if isinstance(exc, SdkApiError):
+        return DataLensApiError(safe_error_text(ValueError(exc.context.message)), method=method,
+                                http_status=exc.context.status_code, response_received=True,
+                                remote_code=exc.context.code or "")
+    return DataLensApiError(safe_error_text(exc), method=method, response_received=None)
 
 
 def _json_object(value: Any) -> dict[str, Any]:
