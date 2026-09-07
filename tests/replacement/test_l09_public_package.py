@@ -74,10 +74,23 @@ def test_plugin_manifest_five_skills_and_active_guidance_match_replacement_runti
 
     active = "\n".join(
         path.read_text(encoding="utf-8")
-        for path in [base / "AGENTS.md", base / "README.md", base / "README_en.md", *skill_files]
+        for path in [
+            base / "AGENTS.md",
+            base / "README.md",
+            base / "README_en.md",
+            base / "docs/README.md",
+            base / "docs/README_en.md",
+            base / "docs/tools.md",
+            base / "docs/tools_en.md",
+            *skill_files,
+        ]
     ).lower()
     assert "eight public task tools" not in active
     assert "восемь public task" not in active
+    assert "8 task-level" not in active
+    assert "8 task" not in active
+    assert "autonomous-v2" not in active
+    assert "legacy-v1" not in active
     assert "final-only" not in active
     assert "safe apply" not in active
     assert "/users/alexandr" not in active

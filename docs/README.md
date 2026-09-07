@@ -1,80 +1,23 @@
-# Документация datalens-dev-mcp
+# Документация datalens-dev-mcp 1.0
 
 **Русский** · [English](README_en.md) · [Главная](../README.md)
 
-[Быстрый старт](../README.md#быстрый-старт) · [Доступ к DataLens](access.md) · [Подключение](codex_setup.md) · [Инструменты](tools.md) · [Интерактивный JS Cookbook](https://adikant.github.io/datalens-dev-mcp/?lang=ru) · [Сценарии](usage-flow.md) · [Источники](sources.md) · [Безопасность](local-only-safety-model.md) · [English](README_en.md)
+`datalens-dev-mcp` — локальный Codex plugin и Python stdio backend для прямых типизированных операций Yandex DataLens. Модель выбирает одну из пяти предметных skills; сервер не содержит task compiler, journal или workflow engine.
 
-`datalens-dev-mcp` — локальный MCP-сервер, через который Codex, Claude и
-другие MCP-клиенты работают с Yandex DataLens Public API. Пользователь
-формулирует задачу обычным языком в клиенте, клиент выбирает типизированные
-инструменты, а сервер читает объекты, проверяет изменения, сохраняет и при
-необходимости публикует их с контрольным чтением.
+## Актуальный контракт
 
-Это не отдельный AI-ассистент и не интерфейс DataLens. Документы ниже описывают
-установку сервера, доступ, пользовательские сценарии, поддерживаемые операции и
-границы ответственности.
+- [Установка](installation.md) — wheel, plugin manifest и проверка вне checkout.
+- [25 MCP-инструментов](tools.md) — закрытая поверхность чтения, authoring, записи и maintenance.
+- [Карта visual consumers](authoring-property-consumers.md) — где именно применяются свойства рецептов и какая проверка ещё нужна.
+- [Поддержанные SDK/API operations](../src/datalens_dev_mcp/schemas/supported-operations.json) — backend, версия и статическая граница каждого метода.
+- [Карта 62 пользовательских результатов](../src/datalens_dev_mcp/schemas/capability-coverage.json) — прямой владелец и честная boundary, не исполняемый router.
 
-## С чего начать
+## Предметные skills
 
-| Задача | Руководство |
-| --- | --- |
-| Установить сервер | [Быстрый старт](../README.md#быстрый-старт) |
-| Подготовить IAM-токен, ID организации и права | [Доступ к DataLens](access.md) |
-| Подключить Codex | [Настройка Codex](codex_setup.md) |
-| Подключить Claude или другой stdio-клиент | [Примеры конфигурации](../examples/clients/README.md) |
-| Запустить автономную задачу | [Справочник 8 task-level инструментов](tools.md) |
-| Взять готовую JavaScript-визуализацию | [Интерактивный JavaScript Visualization Cookbook](https://adikant.github.io/datalens-dev-mcp/?lang=ru) |
-| Создать или локально подготовить HTML Page | [Генерация HTML для DataLens](datalens/html_pages.md) |
-| Провести аудит без записи | [Сценарий аудита](usage-flow.md#аудит-без-записи) |
-| Составить план без применения | [Планирование](usage-flow.md#планирование-без-записи) |
-| Сохранить без публикации | [Сохранение без публикации](usage-flow.md#сохранение-без-публикации) |
-| Внести и опубликовать изменение | [Обычное изменение](usage-flow.md#обычное-изменение-с-сохранением-и-публикацией) |
-| Проверить происхождение справочных данных | [Официальные источники](sources.md) |
+- [Inspect](../skills/datalens-inspect/SKILL.md)
+- [Dataset и Wizard](../skills/datalens-dataset-wizard/SKILL.md)
+- [Editor](../skills/datalens-editor/SKILL.md)
+- [Dashboard](../skills/datalens-dashboard/SKILL.md)
+- [Maintenance](../skills/datalens-maintenance/SKILL.md)
 
-## Как это работает
-
-```text
-Пользователь
-  -> Codex / Claude / другой MCP-клиент
-  -> локальный datalens-dev-mcp
-  -> Yandex DataLens Public API
-
-project root
-  <- снимки, планы, проверки, readback и отчёты
-```
-
-Обычное изменение проходит через актуальное чтение объекта и связей,
-планирование, проверку, save, saved readback, publish из проверенной saved-версии
-и published readback. Запрос пользователя определяет точку остановки: аудит и
-диагностика не меняют DataLens, `plan-only` останавливается после плана,
-`save-only` — после saved readback. Произвольное удаление целого объекта
-недоступно; manifest action `retire_legacy_objects` требует отдельного
-подтверждения неизменившегося плана.
-
-API-readback подтверждает структуру. Проверка фактического отображения
-выполняется MCP-клиентом при наличии браузера либо явно отмечается как
-недоступная.
-
-## Основные руководства
-
-- [Доступ к DataLens](access.md) — Yandex Cloud CLI, организация, IAM-токен, роли, env-файл и проверка доступа.
-- [Настройка Codex](codex_setup.md) — `config.toml`, `codex mcp add`, `/mcp` и проверка подключения.
-- [Справочник инструментов](tools.md) — восемь автономных вызовов, профили совместимости и классы операций.
-- [Интерактивный JavaScript Visualization Cookbook](https://adikant.github.io/datalens-dev-mcp/?lang=ru) — Tips, 34 рецепта, три связанных кейса, синтетические preview, контракты Sources и полный набор вкладок Editor для копирования; [Markdown-каталог и исходники](cookbook/README.md) остаются в репозитории.
-- [Сценарии](usage-flow.md) — готовые последовательности и промпты.
-- [Конфигурация](configuration.md) — локальные настройки и выключатели записи.
-- [Безопасность](local-only-safety-model.md) — защита учётных данных, ревизий и удаления.
-- [Выбор технологии чарта](route-policy.md) — Wizard, Editor и QL.
-- [Генерация HTML](datalens/html_pages.md) — различие между
-  `Editor.generateHtml` и standalone page, sandbox и локальная проверка.
-- [Защищённое применение](safe-apply.md) — сохранение, контрольные чтения и публикация.
-
-## Техническая документация
-
-- [Архитектура](architecture.md)
-- [Точный каталог MCP](mcp/tools.md)
-- [Контракты ответов](mcp/response_contracts.md)
-- [Покрытие DataLens API](datalens/api_contract_coverage.md)
-- [Происхождение справочных данных](source_provenance.md)
-
-Профиль `autonomous-v2` по умолчанию содержит 8 инструментов; `legacy-v1` сохраняет прежние 39. Точные JSON-схемы активной поверхности доступны через MCP-клиент и описаны в [техническом каталоге](mcp/tools.md).
+Canonical runtime contract — `tools/list` установленного backend. Старые документы, не перечисленные в этом индексе, относятся к версиям до 1.0 и не определяют текущую поверхность или lifecycle.
