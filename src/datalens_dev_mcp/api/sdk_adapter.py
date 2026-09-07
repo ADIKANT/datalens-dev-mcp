@@ -220,6 +220,15 @@ class SdkAdapter:
         client = self._sdk_client()
         try:
             target = self._get_domain(canonical, object_id, branch="saved")
+            # This is a second read after the service merged its patch. Never
+            # attach that older snapshot to a newly observed revision. This
+            # preflight is not an atomic provider-side CAS guarantee.
+            expected_revision = snapshot.get("revId") or snapshot.get("rev_id")
+            if expected_revision:
+                latest = _json_object(target)
+                observed_revision = latest.get("revId") or latest.get("rev_id")
+                if observed_revision != expected_revision:
+                    raise ValueError("saved revision changed during SDK target fetch; re-read before retry")
             builder = getattr(client.raw.replace, canonical)(target=target, response_snapshot=snapshot)
             if canonical == "dashboard":
                 value = builder.execute(publish=publish)
