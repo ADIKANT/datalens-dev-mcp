@@ -178,6 +178,26 @@ class SdkAdapter:
                     expected_tabs[tab] = content
                 expected_readback = {"data": expected_tabs}
                 value = builder.build()
+            elif object_type == "dataset" and isinstance(draft.get("dataset"), dict):
+                from datalens_dev_mcp.authoring.typed_graph import dataset_builder
+
+                specification = draft["dataset"]
+                connection_id = specification.get("connection_id")
+                if not isinstance(connection_id, str) or not connection_id:
+                    raise ValueError("typed Dataset requires connection_id")
+                connection = client.get.connection(by_id=connection_id)
+                builder = dataset_builder(client, connection, specification, name=name, location=location)
+                expected_readback = {"name": name}
+                value = builder.build()
+            elif object_type == "dashboard" and isinstance(draft.get("dashboard"), dict):
+                from datalens_sdk.converter.dashboard import DashboardConverter
+
+                from datalens_dev_mcp.authoring.typed_graph import dashboard_builder
+
+                builder = dashboard_builder(client, draft["dashboard"], name=name, location=location)
+                payload = DashboardConverter.from_domain_create(builder.to_spec()).to_payload()
+                expected_readback = {"data": payload["entry"]["data"]}
+                value = builder.build()
             else:
                 snapshot = draft.get("snapshot")
                 if not isinstance(snapshot, dict):
