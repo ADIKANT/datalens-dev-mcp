@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from datalens_dev_mcp.api.errors import DataLensApiError, UncertainWriteError, safe_error_text
 from datalens_dev_mcp.operation_store import OperationStore
+from datalens_dev_mcp.authoring.artifacts import resolve_artifact
 
 
 class MutationBackend(Protocol):
@@ -75,7 +76,7 @@ class ObjectMutationService:
             raise ValueError("create delivery_mode must be 'save'; publish is an explicit later operation")
         from datalens_dev_mcp.dashboard.composition import dependency_order
 
-        drafts = dependency_order(drafts)
+        drafts = dependency_order([resolve_artifact(draft) for draft in drafts])
         _, record = self._record("create", {"drafts": drafts, "destination": destination}, operation_id)
         if record.get("status") == "completed":
             return record
@@ -113,6 +114,7 @@ class ObjectMutationService:
     ) -> dict[str, Any]:
         if delivery_mode != "save":
             raise ValueError("update delivery_mode must be 'save'; publish is an explicit later operation")
+        changes = [resolve_artifact(change) for change in changes]
         _, record = self._record("update", {"changes": changes}, operation_id)
         if record.get("status") == "completed":
             return record

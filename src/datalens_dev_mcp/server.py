@@ -172,7 +172,7 @@ def dl_compile_recipe(
     project_root: str | None = None,
     reference: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    return compile_recipe(
+    result = compile_recipe(
         recipe_id,
         bindings,
         presentation,
@@ -180,6 +180,12 @@ def dl_compile_recipe(
         project_root=project_root,
         reference=reference,
     )
+    if output_dir is not None:
+        # The local consumer reads the same artifact. Do not make the model
+        # receive and echo its renderer/large provider payload to create it.
+        result = {key: value for key, value in result.items() if key != "draft"}
+        result["draft_reference"] = {"artifact_path": result["files"]["draft.json"]}
+    return result
 
 
 def dl_editor_validate(draft: dict[str, Any]) -> dict[str, Any]:
@@ -489,7 +495,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_object_create",
-        "description": "Create typed DataLens drafts in dependency order, save them, and return per-object saved readbacks.",
+        "description": "Create typed DataLens drafts or local JSON artifact references ({artifact_path: absolute path}) in dependency order, save, and read back. References may override client_ref/depends_on only.",
         "inputSchema": {
             "type": "object",
             "properties": {
