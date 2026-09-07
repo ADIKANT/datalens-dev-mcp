@@ -7,7 +7,7 @@ from datalens_sdk import DataLensClientYC, Dataset, Workbook
 from datalens_sdk.converter.wizard import WizardChartConverter
 
 from datalens_dev_mcp.api.sdk_adapter import SDK_VERSION, WIZARD_VARIANTS
-from datalens_dev_mcp.dataset.contracts import TECHNICAL_MEASURES, validate_dataset_fields, wire_fields
+from datalens_dev_mcp.dataset.contracts import TECHNICAL_MEASURES, validate_dataset_fields, validate_visualization_fields, wire_fields
 
 
 def wizard_builder(client: Any, dataset: Dataset, specification: Mapping[str, Any], *, name: str, location: Any) -> Any:
@@ -26,6 +26,11 @@ def wizard_builder(client: Any, dataset: Dataset, specification: Mapping[str, An
     roles = specification.get("roles")
     if not isinstance(roles, dict) or not roles:
         raise ValueError("wizard.roles must contain explicit field GUID assignments")
+    used_guids = [guid for guids in roles.values() if isinstance(guids, list) for guid in guids]
+    used_guids.extend(order["field_guid"] for order in specification.get("sort", []))
+    report = validate_visualization_fields(list(dataset.result_schema), used_guids)
+    if not report["ok"]:
+        raise ValueError(report["issues"][0]["message"])
     builder = getattr(client.create.wizard_chart, visualization)(name=name, location=location).dataset(dataset)
     for role, guids in roles.items():
         if role not in {"x", "y", "y2", "columns", "rows", "measures", "colors", "labels", "size", "shapes"}:
@@ -107,6 +112,8 @@ def compile_wizard_create(
 ) -> dict[str, Any]:
     report = validate_dataset_fields(fields)
     issues = list(report["issues"])
+    selected = [guid for guids in roles.values() for guid in guids]
+    issues.extend(validate_visualization_fields(fields + (local_fields or []), selected)["issues"])
     if visualization not in WIZARD_VARIANTS:
         issues.append({"code": "wizard_visualization_unsupported", "path": "visualization", "message": f"unsupported SDK visualization: {visualization}"})
     field_rows = wire_fields(fields)

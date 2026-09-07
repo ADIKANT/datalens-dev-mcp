@@ -25,7 +25,6 @@ def validate_dataset_fields(fields: list[dict[str, Any]]) -> dict[str, Any]:
     issues: list[dict[str, str]] = []
     normalized: list[dict[str, Any]] = []
     seen: set[str] = set()
-    levels: set[str] = set()
     for index, raw in enumerate(fields):
         if not isinstance(raw, dict):
             issues.append({"code": "field_shape_invalid", "path": f"fields[{index}]", "message": "field must be an object"})
@@ -49,7 +48,6 @@ def validate_dataset_fields(fields: list[dict[str, Any]]) -> dict[str, Any]:
             continue
         seen.add(guid)
         level = calculation_level(raw)
-        levels.add(level)
         item = dict(raw)
         item["guid"] = guid
         item["title"] = title
@@ -57,17 +55,49 @@ def validate_dataset_fields(fields: list[dict[str, Any]]) -> dict[str, Any]:
         item.setdefault("calc_mode", "formula" if item.get("formula") else "direct")
         item["calculation_level"] = level
         normalized.append(item)
-    if "lod" in levels and "window" in levels:
+    return {
+        "ok": not issues,
+        "fields": normalized,
+        "issues": issues,
+        "limits": {"formula_validation": "known_field_rules_only", "provider_planner_required": True},
+    }
+
+
+def validate_visualization_fields(fields: list[dict[str, Any]], field_guids: list[str]) -> dict[str, Any]:
+    """Apply cross-field restrictions to used fields and their named dependencies.
+
+    This is a conservative local check, not the provider's formula parser.
+    Unused Dataset fields cannot make an otherwise independent chart invalid.
+    """
+    by_guid = {str(field.get("guid")): field for field in fields}
+    by_title = {str(field.get("title") or field.get("name")): str(field.get("guid")) for field in fields}
+    pending, visited = list(field_guids), set()
+    selected = []
+    while pending:
+        guid = pending.pop()
+        if guid in visited:
+            continue
+        visited.add(guid)
+        field = by_guid.get(guid)
+        if field is None:
+            continue
+        selected.append(field)
+        for title in re.findall(r"\[([^\]]+)\]", str(field.get("formula") or "")):
+            if title in by_title:
+                pending.append(by_title[title])
+    formulas = [str(field.get("formula") or "") for field in selected]
+    issues = []
+    if any(_LOD_RE.search(formula) for formula in formulas) and any(_TIME_RE.search(formula) for formula in formulas):
         issues.append(
             {
                 "code": "lod_with_time_intelligence",
-                "path": "fields",
+                "path": "visualization.fields",
                 "message": "DataLens does not support LOD in the same visualization as AGO or AT_DATE, even across fields",
             }
         )
     return {
         "ok": not issues,
-        "fields": normalized,
+        "field_guids": sorted(visited),
         "issues": issues,
         "limits": {"formula_validation": "known_cross-field_rules_only", "provider_planner_required": True},
     }

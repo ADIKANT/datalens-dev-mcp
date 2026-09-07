@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from datalens_dev_mcp.dataset.contracts import validate_dataset_fields
+from datalens_dev_mcp.dataset.contracts import validate_dataset_fields, validate_visualization_fields
 from datalens_dev_mcp.dataset.preview import DatasetPreviewService, compile_preview_request
 from datalens_dev_mcp.server import list_tools
 from datalens_dev_mcp.wizard.authoring import compile_wizard_create, inspect_wizard_shape
@@ -67,7 +67,8 @@ def test_lod_and_time_intelligence_are_rejected_across_fields() -> None:
         {"guid": "lod", "title": "LOD", "type": "MEASURE", "formula": "SUM([x] FIXED [region])"},
         {"guid": "ago", "title": "Previous", "type": "MEASURE", "formula": "AGO([lod], 'year')"},
     ]
-    result = validate_dataset_fields(fields)
+    assert validate_dataset_fields(fields)["ok"] is True
+    result = validate_visualization_fields(fields, ["lod", "ago"])
     assert result["ok"] is False
     assert any(issue["code"] == "lod_with_time_intelligence" for issue in result["issues"])
 
