@@ -67,6 +67,17 @@ class DataLensConfig:
         original = self._configured_token if self._configured_token is not None else self.iam_token
         _RUNTIME_TOKENS[(self.base_url, self.org_id, original)] = token
 
+    def runtime_identity(self) -> tuple[object, ...]:
+        configured = self._configured_token if self._configured_token is not None else self.iam_token
+        return (
+            self.base_url,
+            self.org_id,
+            configured,
+            self.request_timeout_sec,
+            self.read_retries,
+            self.refresh_available,
+        )
+
     def require_auth(self) -> None:
         if not self.iam_token or not self.org_id:
             from datalens_dev_mcp.api.errors import DataLensApiError

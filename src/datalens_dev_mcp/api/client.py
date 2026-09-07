@@ -77,18 +77,30 @@ class DataLensApiClient:
             "x-dl-api-version": "1",
         }
 
-    def read(self, method: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    def read(
+        self,
+        method: str,
+        payload: dict[str, Any] | None = None,
+        *,
+        allow_auth_refresh: bool = True,
+    ) -> dict[str, Any]:
         auth_refreshed = False
         transient_attempts = 0
         while True:
             try:
                 return self.transport.call(method, dict(payload or {}), self._headers())
             except DataLensApiError as exc:
-                if exc.http_status == 401 and not auth_refreshed and self.token_refresher is not None:
+                if (
+                    exc.http_status == 401
+                    and allow_auth_refresh
+                    and not auth_refreshed
+                    and self.token_refresher is not None
+                ):
                     token = self.token_refresher().strip()
                     if not token:
                         raise DataLensApiError("DataLens token refresh returned no credential", method=method) from exc
-                    self.config = replace(self.config, iam_token=token, credential_source="refreshed")
+                    if self.config.iam_token != token:
+                        self.config = replace(self.config, iam_token=token, credential_source="refreshed")
                     auth_refreshed = True
                     continue
                 if exc.http_status in {429, 500, 502, 503, 504} and transient_attempts < self.config.read_retries:

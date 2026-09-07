@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import asdict, is_dataclass
+from collections.abc import Callable
+from dataclasses import asdict, is_dataclass, replace
 from typing import Any
 
 import datalens_sdk
 import httpx
-from datalens_sdk.errors import DataLensAPIError as SdkApiError, DataLensTransportError as SdkTransportError
+from datalens_sdk.errors import DataLensAPIError as SdkApiError
+from datalens_sdk.errors import DataLensTransportError as SdkTransportError
 
 from datalens_dev_mcp.api.errors import DataLensApiError, UncertainWriteError, safe_error_text
 from datalens_dev_mcp.config import DataLensConfig
@@ -35,12 +37,29 @@ EDITOR_VARIANTS = {"advanced_chart", "gravity_charts", "markdown", "selector", "
 
 
 class SdkAdapter:
-    def __init__(self, config: DataLensConfig | None = None, *, client: Any | None = None) -> None:
+    def __init__(
+        self,
+        config: DataLensConfig | None = None,
+        *,
+        client: Any | None = None,
+        token_refresher: Callable[[], str] | None = None,
+    ) -> None:
         actual = getattr(datalens_sdk, "__version__", "")
         if actual != SDK_VERSION:
             raise RuntimeError(f"datalens-sdk version mismatch: expected {SDK_VERSION}, got {actual or '<unknown>'}")
         self._config = config
         self._client = client
+        self._token_refresher = token_refresher
+
+    @property
+    def config(self) -> DataLensConfig | None:
+        return self._config
+
+    def replace_config(self, config: DataLensConfig) -> None:
+        if self._client is not None and hasattr(self._client, "close"):
+            self._client.close()
+        self._config = config
+        self._client = None
 
     def _sdk_client(self) -> Any:
         if self._client is not None:
@@ -86,12 +105,29 @@ class SdkAdapter:
             kwargs["branch"] = branch
         if revision_id and object_type != "workbook":
             kwargs["rev_id"] = revision_id
-        try:
-            return getattr(self._sdk_client().get, getter_name)(**kwargs)
-        except SdkApiError as exc:
-            raise _provider_error(exc, f"get:{object_type}") from exc
-        except (httpx.TransportError, SdkTransportError) as exc:
-            raise DataLensApiError("SDK read transport failed", method=f"get:{object_type}", response_received=False) from exc
+        auth_refreshed = False
+        while True:
+            try:
+                return getattr(self._sdk_client().get, getter_name)(**kwargs)
+            except SdkApiError as exc:
+                if exc.context.status_code == 401 and not auth_refreshed and self._token_refresher is not None:
+                    token = self._token_refresher().strip()
+                    if not token:
+                        raise DataLensApiError(
+                            "DataLens token refresh returned no credential",
+                            method=f"get:{object_type}",
+                        ) from exc
+                    if self._config is not None and self._config.iam_token != token:
+                        self.replace_config(replace(self._config, iam_token=token, credential_source="runtime_refresh"))
+                    auth_refreshed = True
+                    continue
+                raise _provider_error(exc, f"get:{object_type}") from exc
+            except (httpx.TransportError, SdkTransportError) as exc:
+                raise DataLensApiError(
+                    "SDK read transport failed",
+                    method=f"get:{object_type}",
+                    response_received=False,
+                ) from exc
 
     def create(self, draft: dict[str, Any], destination: dict[str, Any]) -> dict[str, Any]:
         """Execute one discriminated draft through the official SDK."""
@@ -110,8 +146,9 @@ class SdkAdapter:
         expected_readback = None
         try:
             if object_type == "wizard_chart" and "wizard" in draft:
-                from datalens_dev_mcp.wizard.authoring import wizard_builder
                 from datalens_sdk.converter.wizard import WizardChartConverter
+
+                from datalens_dev_mcp.wizard.authoring import wizard_builder
 
                 specification = draft["wizard"]
                 if not isinstance(specification, dict):
@@ -134,9 +171,9 @@ class SdkAdapter:
                     tab = tab_methods.get(filename)
                     method = getattr(builder, tab, None) if tab else None
                     if not callable(method):
-                        raise ValueError(f"unsupported tab for selected Editor variant: {filename}")
+                        raise ValueError(f"unsupported tab for selected Editor variant: {filename}")  # noqa: TRY004
                     if not isinstance(content, str):
-                        raise ValueError(f"Editor tab must contain source text: {filename}")
+                        raise ValueError(f"Editor tab must contain source text: {filename}")  # noqa: TRY004
                     method(content)
                     expected_tabs[tab] = content
                 expected_readback = {"data": expected_tabs}
@@ -310,7 +347,7 @@ def _chart_entry(snapshot: dict[str, Any]) -> dict[str, Any]:
     if "entry" not in snapshot:
         return snapshot
     if not isinstance(snapshot["entry"], dict):
-        raise ValueError("chart response entry must be an object")
+        raise ValueError("chart response entry must be an object")  # noqa: TRY004
     return dict(snapshot["entry"])
 
 

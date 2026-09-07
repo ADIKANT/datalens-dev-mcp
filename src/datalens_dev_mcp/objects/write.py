@@ -7,8 +7,8 @@ from typing import Any, Protocol
 from uuid import uuid4
 
 from datalens_dev_mcp.api.errors import DataLensApiError, UncertainWriteError, safe_error_text
-from datalens_dev_mcp.operation_store import OperationStore
 from datalens_dev_mcp.authoring.artifacts import resolve_artifact
+from datalens_dev_mcp.operation_store import OperationStore
 
 
 class MutationBackend(Protocol):
@@ -74,7 +74,7 @@ class ObjectMutationService:
     ) -> dict[str, Any]:
         if delivery_mode != "save":
             raise ValueError("create delivery_mode must be 'save'; publish is an explicit later operation")
-        from datalens_dev_mcp.dashboard.composition import dependency_order, bind_object_references
+        from datalens_dev_mcp.dashboard.composition import bind_object_references, dependency_order
 
         drafts = dependency_order([resolve_artifact(draft) for draft in drafts])
         _, record = self._record("create", {"drafts": drafts, "destination": destination}, operation_id)
@@ -335,14 +335,14 @@ def _publish_content(snapshot: dict[str, Any]) -> dict[str, Any]:
 
 
 def default_mutation_service() -> ObjectMutationService:
-    from datalens_dev_mcp.api.client import DataLensApiClient
-    from datalens_dev_mcp.api.sdk_adapter import SdkAdapter
-    from datalens_dev_mcp.config import DataLensConfig
+    from datalens_dev_mcp.api.runtime import get_runtime
     from datalens_dev_mcp.objects.read import ObjectReadService
 
-    config = DataLensConfig.from_env()
-    sdk = SdkAdapter(config)
-    return ObjectMutationService(reader=ObjectReadService(api=DataLensApiClient(config), sdk=sdk), backend=sdk)
+    runtime = get_runtime()
+    return ObjectMutationService(
+        reader=ObjectReadService(api=runtime.api, sdk=runtime.sdk),
+        backend=runtime.sdk,
+    )
 
 
 def create_objects(

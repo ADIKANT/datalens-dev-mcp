@@ -7,15 +7,12 @@ from copy import deepcopy
 from typing import Any
 
 from datalens_dev_mcp import __version__
-from datalens_dev_mcp.api.auth import refresh_iam_token_with_yc
-from datalens_dev_mcp.api.client import DataLensApiClient
 from datalens_dev_mcp.api.errors import DataLensApiError, safe_error_text
+from datalens_dev_mcp.api.runtime import get_runtime
 from datalens_dev_mcp.api.schemas import OperationRegistry
-from datalens_dev_mcp.api.sdk_adapter import SdkAdapter
 from datalens_dev_mcp.authoring.profiles import get_authoring_defaults
 from datalens_dev_mcp.authoring.recipes import compile_recipe
 from datalens_dev_mcp.authoring.validation import validate_drafts
-from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.dataset.contracts import extract_dataset_fields, validate_dataset_fields
 from datalens_dev_mcp.dataset.preview import DatasetPreviewService
 from datalens_dev_mcp.editor.validation import validate_editor_draft
@@ -40,12 +37,12 @@ def dl_server_info() -> dict[str, Any]:
 
 
 def dl_auth_check() -> dict[str, Any]:
-    config = DataLensConfig.from_env()
-    report = config.credential_report()
-    if not config.iam_token or not config.org_id:
+    runtime = get_runtime()
+    report = runtime.config.credential_report()
+    if not runtime.config.org_id or (not runtime.config.iam_token and not runtime.config.refresh_available):
         return {"ok": False, "status": "not_configured", "credentials": report}
     try:
-        DataLensApiClient(config).read("getWorkbooksList", {"pageSize": 1})
+        runtime.probe_auth()
     except DataLensApiError as exc:
         return {
             "ok": False,
@@ -53,14 +50,18 @@ def dl_auth_check() -> dict[str, Any]:
             "credentials": report,
             "error": f"{type(exc).__name__}: {safe_error_text(exc)}",
         }
-    return {"ok": True, "status": "healthy", "credentials": report}
+    return {"ok": True, "status": "healthy", "credentials": runtime.config.credential_report()}
 
 
 def dl_auth_refresh() -> dict[str, Any]:
-    config = DataLensConfig.from_env()
-    token = refresh_iam_token_with_yc()
-    config.remember_refreshed_token(token)
-    return {"ok": True, "status": "refreshed", "token_exposed": False}
+    runtime = get_runtime()
+    runtime.refresh_and_probe()
+    return {
+        "ok": True,
+        "status": "refreshed_and_verified",
+        "credentials": runtime.config.credential_report(),
+        "token_exposed": False,
+    }
 
 
 def dl_method_schema(method: str) -> dict[str, Any]:
@@ -68,8 +69,8 @@ def dl_method_schema(method: str) -> dict[str, Any]:
 
 
 def _read_service() -> ObjectReadService:
-    config = DataLensConfig.from_env()
-    return ObjectReadService(api=DataLensApiClient(config), sdk=SdkAdapter(config))
+    runtime = get_runtime()
+    return ObjectReadService(api=runtime.api, sdk=runtime.sdk)
 
 
 def dl_workbooks_list(page_size: int = 100, max_pages: int = 100) -> dict[str, Any]:
@@ -141,8 +142,7 @@ def dl_dataset_preview(
     max_pages: int = 1,
     tie_breaker_guids: list[str] | None = None,
 ) -> dict[str, Any]:
-    config = DataLensConfig.from_env()
-    return DatasetPreviewService(DataLensApiClient(config)).preview(
+    return DatasetPreviewService(get_runtime().api).preview(
         dataset_id=dataset_id,
         fields=_dataset_fields(dataset_id, fields),
         columns=columns,
@@ -239,21 +239,20 @@ def dl_cleanup_preview(
     candidates: list[dict[str, Any]], preserve_roots: list[dict[str, Any]]
 ) -> dict[str, Any]:
     service = _read_service()
-    return CleanupService(reader=service, deleter=SdkAdapter(DataLensConfig.from_env())).preview(
+    return CleanupService(reader=service, deleter=get_runtime().sdk).preview(
         candidates, preserve_roots=preserve_roots
     )
 
 
 def dl_cleanup_apply(preview: dict[str, Any], confirmed_delete: list[dict[str, Any]]) -> dict[str, Any]:
     service = _read_service()
-    return CleanupService(reader=service, deleter=SdkAdapter(DataLensConfig.from_env())).apply(
+    return CleanupService(reader=service, deleter=get_runtime().sdk).apply(
         preview, confirmed_delete=confirmed_delete
     )
 
 
 def dl_admin_inventory() -> dict[str, Any]:
-    config = DataLensConfig.from_env()
-    api = DataLensApiClient(config)
+    api = get_runtime().api
     return {
         **admin_capabilities(),
         "licenses": api.read("getLicenses", {}),
@@ -262,7 +261,7 @@ def dl_admin_inventory() -> dict[str, Any]:
 
 
 def dl_admin_assign_licenses(assignments: list[dict[str, Any]]) -> dict[str, Any]:
-    result = DataLensApiClient(DataLensConfig.from_env()).write("assignLicenses", {"assignments": assignments})
+    result = get_runtime().api.write("assignLicenses", {"assignments": assignments})
     return {"ok": True, "operation": "assign", "revoke_supported": False, "result": result}
 
 
