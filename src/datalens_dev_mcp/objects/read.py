@@ -119,14 +119,17 @@ class ObjectReadService:
         self,
         object_id: str,
         *,
+        direction: str = "to",
         page_size: int = 100,
         max_pages: int = 100,
     ) -> dict[str, Any]:
+        if direction not in {"to", "from"}:
+            raise ValueError("relation direction must be to or from")
         entries: dict[str, dict[str, Any]] = {}
         token = ""
         pages = 0
         while pages < max_pages:
-            payload: dict[str, Any] = {"entryIds": [object_id], "limit": page_size}
+            payload: dict[str, Any] = {"entryIds": [object_id], "limit": page_size, "linkDirection": direction}
             if token:
                 payload["pageToken"] = token
             raw = self.api.read("getEntriesRelations", payload)

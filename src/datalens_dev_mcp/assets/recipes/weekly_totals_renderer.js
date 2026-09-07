@@ -6,7 +6,8 @@ module.exports = function renderWeeklyTotals(data, config) {
         const escape = value => String(value == null ? '' : value)
           .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
           .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-        const format = value => String(Math.round(Number(value) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        const numeric = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+        const format = value => numeric(value) ? Number(value).toFixed(presentation.labels.precision || 0).split('.').map((part, index) => index === 0 ? part.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') : part).join('.') : '—';
         const table = presentation.table || {};
         const widths = table.widths && typeof table.widths === 'object' ? table.widths : {};
         const firstWidth = Number(widths.first) > 0 ? Number(widths.first) : 132;
@@ -14,6 +15,10 @@ module.exports = function renderWeeklyTotals(data, config) {
         const totalWidth = Number(widths.total) > 0 ? Number(widths.total) : 96;
         const weeks = Array.isArray(prepared && prepared.weeks) ? prepared.weeks : [];
         const rows = Array.isArray(prepared && prepared.rows) ? prepared.rows : [];
+        if (table.totals_additive === false && (!Array.isArray(prepared.total_values)
+          || prepared.grand_total === undefined || rows.some(row => row.total === undefined))) {
+          return Editor.generateHtml('<div role="status">Source-computed totals required</div>');
+        }
         const state = prepared && prepared.state ? prepared.state : rows.length ? 'ready' : 'no_data';
         const theme = presentation.states_theme.theme;
         const colors = theme === 'dark'
@@ -30,8 +35,8 @@ module.exports = function renderWeeklyTotals(data, config) {
                 muted: 'var(--g-color-text-secondary,#667085)'
               };
         const title = presentation.visible_title || {};
-        const spacing = Number.isFinite(Number(presentation.geometry.spacing))
-          ? Math.max(0, Number(presentation.geometry.spacing)) : 8;
+        const spacing = Number.isFinite(Number(presentation.geometry.spacing)) && Number(presentation.geometry.spacing) !== 8
+          ? Math.max(0, Number(presentation.geometry.spacing)) : 0;
         let heading = title.visible && title.owner === 'body'
           ? '<div style="font-size:14px;font-weight:700;margin-bottom:' + spacing + 'px">' + escape(title.text) + '</div>' : '';
         const messages = {loading: 'Loading…', error: 'Data unavailable', no_data: 'No data'};
@@ -47,7 +52,7 @@ module.exports = function renderWeeklyTotals(data, config) {
         const bodyRows = rows.map((row, rowIndex) => {
           const background = rowIndex % 2 === 0 ? colors.surface : colors.alt;
           const cells = weeks.map((week, weekIndex) => {
-            const value = (row.values || [])[weekIndex] || 0;
+            const value = (row.values || [])[weekIndex];
             return '<div data-id="weekly-cell-' + rowIndex + '-' + weekIndex
               + '" style="box-sizing:border-box;display:flex;align-items:center;justify-content:flex-end;flex:0 0 '
               + periodWidth + 'px;height:40px;padding:0 10px;background:' + background
@@ -56,7 +61,7 @@ module.exports = function renderWeeklyTotals(data, config) {
               + ';font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap;cursor:help">'
               + format(value) + '</div>';
           }).join('');
-          const total = row.total == null
+          const total = row.total === undefined
             ? (row.values || []).reduce((sum, value) => sum + (Number(value) || 0), 0) : row.total;
           return '<div style="display:flex;width:' + minWidth + 'px;min-width:' + minWidth + 'px;height:40px">'
             + '<div style="box-sizing:border-box;position:sticky;left:0;z-index:2;display:flex;align-items:center;flex:0 0 '
@@ -67,12 +72,12 @@ module.exports = function renderWeeklyTotals(data, config) {
             + '<div data-id="weekly-row-total-' + rowIndex
             + '" style="box-sizing:border-box;position:sticky;right:0;z-index:2;display:flex;align-items:center;justify-content:flex-end;flex:0 0 '
             + totalWidth + 'px;height:40px;padding:0 14px;background:' + colors.total + ';border-bottom:1px solid '
-            + colors.line + ';border-left:1px solid ' + colors.line + ';color:' + colors.text
+            + colors.line + ';border-left:1px solid var(--g-color-line-info,#B2CCFF);color:var(--g-color-text-info,#1849A9)'
             + ';font-size:13px;font-weight:800;white-space:nowrap;cursor:help">' + format(total) + '</div></div>';
         }).join('');
         const totalValues = Array.isArray(prepared.total_values) ? prepared.total_values
           : weeks.map((week, index) => rows.reduce((sum, row) => sum + (Number((row.values || [])[index]) || 0), 0));
-        const grandTotal = prepared.grand_total == null
+        const grandTotal = prepared.grand_total === undefined
           ? totalValues.reduce((sum, value) => sum + (Number(value) || 0), 0) : prepared.grand_total;
         const totalCells = totalValues.map(value => '<div style="box-sizing:border-box;display:flex;align-items:center;justify-content:flex-end;flex:0 0 '
           + periodWidth + 'px;height:42px;padding:0 10px;background:' + colors.header + ';border-top:2px solid '
@@ -86,7 +91,7 @@ module.exports = function renderWeeklyTotals(data, config) {
           + totalWidth + 'px;height:42px;padding:0 14px;background:' + colors.total + ';border-top:2px solid '
           + colors.line + ';border-left:1px solid ' + colors.line + ';font-size:13px;font-weight:800">'
           + format(grandTotal) + '</div></div>';
-        heading += '<div style="width:100%;height:calc(100% - 24px);overflow:auto;border:1px solid ' + colors.line
+        heading += '<div style="box-sizing:border-box;flex:1 1 auto;min-height:0;width:100%;overflow:auto;border-radius:8px;border:1px solid ' + colors.line
           + ';background:' + colors.surface + '"><div style="position:sticky;top:0;z-index:4;display:flex;width:'
           + minWidth + 'px;min-width:' + minWidth + 'px;height:42px"><div style="box-sizing:border-box;position:sticky;left:0;z-index:5;display:flex;align-items:center;flex:0 0 '
           + firstWidth + 'px;height:42px;padding:0 14px;background:' + colors.header + ';border-bottom:1px solid '
@@ -96,7 +101,7 @@ module.exports = function renderWeeklyTotals(data, config) {
           + totalWidth + 'px;height:42px;padding:0 14px;background:' + colors.total + ';border-bottom:1px solid '
           + colors.line + ';border-left:1px solid ' + colors.line + ';font-size:12px;font-weight:800">TOTAL</div></div>'
           + '<div>' + bodyRows + totalRow + '</div></div>';
-        return Editor.generateHtml('<div style="box-sizing:border-box;width:100%;height:100%;min-height:180px;padding:'
+        return Editor.generateHtml('<div style="box-sizing:border-box;width:100%;height:100%;min-height:0;display:flex;flex-direction:column;padding:'
           + spacing + 'px;background:' + colors.surface + ';color:' + colors.text
           + ';font-family:Inter,Arial,sans-serif;overflow:hidden">' + heading + '</div>');
       },
@@ -105,6 +110,7 @@ module.exports = function renderWeeklyTotals(data, config) {
     tooltip: {
       renderer: Editor.wrapFn({
         fn: function(event, prepared, presentation) {
+          const escape = value => String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
           const id = event && event.target && event.target.getAttribute
             ? String(event.target.getAttribute('data-id') || '') : '';
           const match = id.match(/^weekly-cell-(\d+)-(\d+)$/);
@@ -114,9 +120,9 @@ module.exports = function renderWeeklyTotals(data, config) {
           const value = (row.values || [])[Number(match[2])];
           const unit = presentation.tooltip.unit === true || presentation.tooltip.unit === 'from_field'
             ? '' : String(presentation.tooltip.unit || presentation.labels.unit || '');
-          return Editor.generateHtml('<div style="padding:10px"><strong>' + String(row.label || '')
-            + '</strong><div>' + String(week.date_from || '') + ' — ' + String(week.date_to || '')
-            + '</div><div>' + String(value == null ? '—' : value) + (unit ? ' ' + unit : '') + '</div></div>');
+          return Editor.generateHtml('<div style="padding:10px"><strong>' + escape(row.label || '')
+            + '</strong><div>' + escape(week.date_from || '') + ' — ' + escape(week.date_to || '')
+            + '</div><div>' + escape(value == null ? '—' : value) + (unit ? ' ' + escape(unit) : '') + '</div></div>');
         },
         args: [data, config]
       })

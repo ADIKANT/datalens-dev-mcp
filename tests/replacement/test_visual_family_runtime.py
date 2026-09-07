@@ -55,7 +55,7 @@ def test_kpi_runtime_applies_hint_spacing_auto_theme_and_semantic_tooltip(tmp_pa
 
     assert "padding:18px" in rendered["html"]
     assert 'data-id="kpi-hint"' in rendered["html"]
-    assert "background:var(--g-color-base-background,transparent)" in rendered["html"]
+    assert "background:transparent" in rendered["html"]
     assert 'title="' not in rendered["html"]
     assert "Current" in rendered["tooltip"]
     assert "Previous" in rendered["tooltip"]

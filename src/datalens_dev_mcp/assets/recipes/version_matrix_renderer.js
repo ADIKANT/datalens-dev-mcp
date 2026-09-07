@@ -24,6 +24,11 @@ module.exports = function renderVersionMatrix(data, config) {
                 muted: 'var(--g-color-text-secondary,#6b7280)'
               };
         const statusPalette = {
+          noChange: 'var(--g-color-base-positive-light,#B8F6D6)',
+          hwChange: 'var(--g-color-base-warning-light,#FFF2B8)',
+          swChange: 'var(--g-color-base-info-light,#BBD8FF)',
+          blChange: 'var(--g-color-base-danger-light,#FFE1D6)',
+          config_error: 'var(--g-color-base-danger-light,#FFE1D6)',
           increase: 'var(--g-color-base-positive-light,#d9f2e6)',
           unchanged: 'var(--g-color-base-generic,#eef2f6)',
           decrease: 'var(--g-color-base-danger-light,#fde3e1)',
@@ -32,6 +37,7 @@ module.exports = function renderVersionMatrix(data, config) {
         };
         let columns = Array.isArray(prepared && prepared.columns) ? prepared.columns : [];
         let rows = Array.isArray(prepared && prepared.rows) ? prepared.rows : [];
+        const numericComparison = !columns.length;
         if (!columns.length && rows.length) {
           columns = [
             {key: 'current', headers: ['Current']},
@@ -67,33 +73,38 @@ module.exports = function renderVersionMatrix(data, config) {
           return Editor.generateHtml('<div role="status" style="box-sizing:border-box;height:100%;padding:' + spacing
             + 'px;background:' + palette.surface + ';color:' + palette.muted + '">' + outer + messages[state] + '</div>');
         }
-        const headerLabels = Array.isArray(table.header_rows) && table.header_rows.length
+        const headerLabels = numericComparison ? ['Metric'] : Array.isArray(table.header_rows) && table.header_rows.length
           ? table.header_rows : ['Column'];
-        const headerHeight = Number(table.header_height) > 0 ? Number(table.header_height) : 32;
+        const headerHeights = Array.isArray(table.header_heights) && table.header_heights.length === headerLabels.length
+          ? table.header_heights : headerLabels.map(() => Number(table.header_height) > 0 ? Number(table.header_height) : 32);
+        const headerTops = headerHeights.map((_, level) => headerHeights.slice(0, level).reduce((a, b) => a + b, 0));
         const firstWidth = Number(table.first_column_width) > 0 ? Number(table.first_column_width) : 150;
         const valueWidth = Number(table.value_column_width) > 0 ? Number(table.value_column_width) : 112;
         const gridColumns = firstWidth + 'px repeat(' + columns.length + ', ' + valueWidth + 'px)';
         const headerRows = [];
         for (let level = 0; level < headerLabels.length; level += 1) {
+          const headerHeight = headerHeights[level];
           let start = 0;
           while (start < columns.length) {
             const value = String((columns[start].headers || [])[level] == null ? '—' : (columns[start].headers || [])[level]);
             let end = start + 1;
-            while (end < columns.length && String((columns[end].headers || [])[level] == null ? '—' : (columns[end].headers || [])[level]) === value) end += 1;
-            headerRows.push('<div role="columnheader" style="position:sticky;top:' + (level * headerHeight)
+            while (end < columns.length && Array.from({length: level + 1}, (_, ancestor) => ancestor).every(ancestor =>
+              String((columns[end].headers || [])[ancestor] ?? '—') === String((columns[start].headers || [])[ancestor] ?? '—'))) end += 1;
+            headerRows.push('<div role="columnheader" style="position:sticky;top:' + headerTops[level]
               + 'px;z-index:' + (20 - level) + ';grid-column:' + (start + 2) + ' / span ' + (end - start)
               + ';grid-row:' + (level + 1) + ';box-sizing:border-box;height:' + headerHeight
               + 'px;padding:6px 8px;background:' + palette.header + ';border-right:1px solid ' + palette.line
               + ';border-bottom:1px solid ' + palette.line + ';color:' + palette.text
-              + ';font-size:11px;font-weight:700;overflow:hidden"><span style="color:' + palette.muted + '">'
-              + escape(headerLabels[level]) + ':</span> ' + escape(value) + '</div>');
+              + ';font-size:' + (level === 2 ? 13 : 12) + 'px;line-height:16px;font-weight:700;overflow:hidden;display:flex;align-items:center">' + escape(value) + '</div>');
             start = end;
           }
         }
-        const firstHeader = '<div role="columnheader" style="position:sticky;left:0;top:0;z-index:30;grid-column:1;grid-row:1 / span '
-          + headerLabels.length + ';box-sizing:border-box;padding:8px;background:' + palette.header
+        const firstHeader = headerLabels.map((label, level) => '<div role="rowheader" style="position:sticky;left:0;top:'
+          + headerTops[level] + 'px;z-index:30;grid-column:1;grid-row:' + (level + 1)
+          + ';box-sizing:border-box;padding:7px 12px;background:' + palette.header
           + ';border-right:1px solid ' + palette.line + ';border-bottom:1px solid ' + palette.line
-          + ';color:' + palette.text + ';font-size:12px;font-weight:800">' + escape(table.first_column_label || 'Item') + '</div>';
+          + ';color:' + palette.text + ';font-size:12px;line-height:16px;font-weight:800;overflow:hidden;white-space:nowrap">'
+          + escape(label) + '</div>').join('');
         const body = rows.map((row, rowIndex) => {
           const rowNumber = headerLabels.length + rowIndex + 1;
           const label = '<div style="position:sticky;left:0;z-index:5;grid-column:1;grid-row:' + rowNumber
@@ -103,7 +114,7 @@ module.exports = function renderVersionMatrix(data, config) {
           const cells = columns.map((column, columnIndex) => {
             const cell = (row.cells || [])[columnIndex] || {};
             const status = String(cell.status || 'missing');
-            const display = status === 'manual_not_applicable' ? 'NA' : format(cell.value);
+            const display = status === 'manual_not_applicable' ? 'NA' : status === 'config_error' ? 'CONFIG ERROR' : status === 'missing' && !numericComparison ? '-' : format(cell.value);
             return '<div data-id="matrix-cell-' + rowIndex + '-' + columnIndex + '" style="grid-column:'
               + (columnIndex + 2) + ';grid-row:' + rowNumber + ';box-sizing:border-box;padding:8px;background:'
               + (statusPalette[status] || statusPalette.missing) + ';border-right:1px solid ' + palette.line
@@ -112,20 +123,19 @@ module.exports = function renderVersionMatrix(data, config) {
           }).join('');
           return label + cells;
         }).join('');
-        const legendItems = Array.isArray(presentation.legend.items) ? presentation.legend.items : [];
-        const legend = presentation.legend.mode === 'hidden' ? '' : '<div style="display:flex;gap:12px;flex-wrap:wrap;padding-top:'
-          + spacing + 'px;font-size:11px;color:' + palette.muted + '">' + legendItems.map(item => {
+        const legendItems = numericComparison ? [{status:'increase',label:'Increase'},{status:'unchanged',label:'Unchanged'},{status:'decrease',label:'Decrease'},{status:'missing',label:'Missing'}] : Array.isArray(presentation.legend.items) ? presentation.legend.items : [];
+        const legend = presentation.legend.mode === 'hidden' ? '' : '<div style="flex:0 0 auto;display:flex;gap:6px;flex-wrap:wrap;font-size:12px;line-height:16px;color:' + palette.text + '">' + legendItems.map(item => {
             const status = typeof item === 'object' && item ? String(item.status || '') : String(item);
             const label = typeof item === 'object' && item ? String(item.label || status) : String(item);
-            return '<span><i style="display:inline-block;width:9px;height:9px;margin-right:4px;background:'
-              + (statusPalette[status] || statusPalette.missing) + '"></i>' + escape(label) + '</span>';
+            return '<span style="display:inline-flex;padding:2px 6px;border-radius:3px;font-weight:700;color:#17212b;background:'
+              + (statusPalette[status] || palette.header) + '">' + escape(label) + '</span>';
           }).join('') + '</div>';
-        outer += '<div style="overflow:auto;max-width:100%;max-height:calc(100% - 28px);border:1px solid '
+        outer += legend + '<div style="flex:1 1 auto;min-height:0;min-width:0;overflow:auto;border:1px solid '
           + palette.line + '"><div role="table" style="display:grid;grid-template-columns:' + gridColumns
-          + ';grid-template-rows:repeat(' + headerLabels.length + ', ' + headerHeight + 'px) repeat('
+          + ';grid-template-rows:' + headerHeights.map(h => h + 'px').join(' ') + ' repeat('
           + rows.length + ', minmax(36px,auto));min-width:' + (firstWidth + columns.length * valueWidth)
-          + 'px;background:' + palette.surface + '">' + firstHeader + headerRows.join('') + body + '</div></div>' + legend;
-        return Editor.generateHtml('<div style="box-sizing:border-box;height:100%;padding:' + spacing
+          + 'px;background:' + palette.surface + '">' + firstHeader + headerRows.join('') + body + '</div></div>';
+        return Editor.generateHtml('<div style="box-sizing:border-box;height:100%;min-height:0;display:flex;flex-direction:column;gap:7px;font-family:Inter,Arial,sans-serif;padding:' + spacing
           + 'px;background:' + palette.surface + ';color:' + palette.text + ';overflow:hidden">' + outer + '</div>');
       },
       args: [data, config]
@@ -133,6 +143,7 @@ module.exports = function renderVersionMatrix(data, config) {
     tooltip: {
       renderer: Editor.wrapFn({
         fn: function(event, prepared) {
+          const escape = value => String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
           const id = event && event.target && event.target.getAttribute
             ? String(event.target.getAttribute('data-id') || '') : '';
           const match = id.match(/^matrix-cell-(\d+)-(\d+)$/);
@@ -140,9 +151,9 @@ module.exports = function renderVersionMatrix(data, config) {
           const row = (prepared.rows || [])[Number(match[1])] || {};
           const column = (prepared.columns || [])[Number(match[2])] || {};
           const cell = (row.cells || [])[Number(match[2])] || {};
-          return Editor.generateHtml('<div style="padding:10px"><strong>' + String(row.label || '')
-            + '</strong><div>' + String((column.headers || []).join(' · ')) + '</div><div>'
-            + String(cell.value == null ? '—' : cell.value) + '</div></div>');
+          return Editor.generateHtml('<div style="padding:10px"><strong>' + escape(row.label || '')
+            + '</strong><div>' + escape((column.headers || []).join(' · ')) + '</div><div>'
+            + escape(cell.status === 'manual_not_applicable' ? 'NA' : cell.status === 'missing' ? '-' : cell.status === 'config_error' ? 'CONFIG ERROR' : cell.value) + '</div><div>' + escape(cell.status || '') + '</div><div>' + escape(cell.provenance || cell.tooltip || '') + '</div></div>');
         },
         args: [data]
       })
