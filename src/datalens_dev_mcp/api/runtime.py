@@ -20,10 +20,12 @@ class DataLensRuntime:
         *,
         api_transport: Transport | None = None,
         sdk_client: Any | None = None,
-        credential_refresher: Callable[[], str] = refresh_iam_token_with_yc,
+        credential_refresher: Callable[[], str] | None = None,
     ) -> None:
         self.config = config
-        self._credential_refresher = credential_refresher
+        self._credential_refresher = credential_refresher or (
+            lambda: refresh_iam_token_with_yc(yc_binary=config.yc_binary)
+        )
         token_refresher = self._refresh_credentials if config.refresh_available else None
         self.api = DataLensApiClient(config, transport=api_transport, token_refresher=token_refresher)
         self.sdk = SdkAdapter(config, client=sdk_client, token_refresher=token_refresher)

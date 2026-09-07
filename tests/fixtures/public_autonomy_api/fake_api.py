@@ -70,10 +70,7 @@ class PublicAutonomyApi:
                             "tabs": [
                                 {
                                     "id": "main",
-                                    "items": [
-                                        {"chartId": chart_id}
-                                        for chart_id in self.saved_charts
-                                    ],
+                                    "items": [{"chartId": chart_id} for chart_id in self.saved_charts],
                                 }
                             ]
                         },
@@ -83,9 +80,7 @@ class PublicAutonomyApi:
         if method == "getWorkbookEntries":
             dashboards = [{"entryId": "dash_demo", "scope": "dashboard", "displayKey": "Synthetic dashboard"}]
             if self.ambiguous_inventory:
-                dashboards.append(
-                    {"entryId": "dash_other", "scope": "dashboard", "displayKey": "Synthetic alternate"}
-                )
+                dashboards.append({"entryId": "dash_other", "scope": "dashboard", "displayKey": "Synthetic alternate"})
             entries = [
                 *dashboards,
                 *[
