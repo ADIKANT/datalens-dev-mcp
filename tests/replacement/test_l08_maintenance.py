@@ -20,7 +20,7 @@ class Reader:
 
     def object_get(self, object_type: str, object_id: str, *, branch="saved", revision_id=None):
         del revision_id
-        if object_id == "missing":
+        if object_id in {"missing", "orphan"}:
             raise DataLensApiError("synthetic missing", http_status=404, response_received=True)
         return self.objects[(object_type, object_id, branch)]
 
@@ -93,4 +93,3 @@ def test_admin_boundary_does_not_claim_license_revoke() -> None:
     assert result["license_assignment"] is True
     assert result["license_revoke"] is False
     assert result["html_page"]["browser_fallback"] is False
-

@@ -38,7 +38,10 @@ class CleanupService:
                     related = {"object_type": str(relation.get("type") or ""), "object_id": str(relation.get("id") or "")}
                     if related["object_id"] in by_id:
                         related = by_id[related["object_id"]]
+                    if related["object_id"]:
                         queue.append(related)
+                    else:
+                        complete = False
             except (DataLensApiError, ValueError, TypeError):
                 complete = False
         keep = [item for item in normalized if _key(item) in preserve]
@@ -47,6 +50,8 @@ class CleanupService:
         return {"ok": complete, **body, "preview_digest": _digest(body)}
 
     def apply(self, preview: dict[str, Any], *, confirmed_delete: list[dict[str, Any]]) -> dict[str, Any]:
+        if preview.get("complete") is not True:
+            raise ValueError("cleanup requires a complete dependency preview")
         expected = [{"object_type": _key(item)[0], "object_id": _key(item)[1]} for item in preview.get("delete") or []]
         confirmed = [{"object_type": _key(item)[0], "object_id": _key(item)[1]} for item in confirmed_delete]
         if confirmed != expected:
@@ -58,17 +63,24 @@ class CleanupService:
         for item in expected:
             try:
                 self.deleter.delete(item["object_type"], item["object_id"])
-                results.append({**item, "status": "deleted"})
+                try:
+                    self.reader.object_get(item["object_type"], item["object_id"], branch="saved")
+                except DataLensApiError as read_error:
+                    if read_error.http_status == 404 and read_error.response_received is True:
+                        results.append({**item, "status": "deleted", "absence_verified": True})
+                    else:
+                        results.append({**item, "status": "uncertain", "error": safe_error_text(read_error)})
+                else:
+                    results.append({**item, "status": "uncertain", "error": "object remains readable after delete"})
             except DataLensApiError as exc:
-                if exc.http_status == 404:
-                    results.append({**item, "status": "already_absent"})
+                if exc.http_status == 404 and exc.response_received is True:
+                    results.append({**item, "status": "already_absent", "absence_verified": True})
                 else:
                     results.append({**item, "status": "failed", "error": safe_error_text(exc)})
-        failed = any(item["status"] == "failed" for item in results)
+        failed = any(item["status"] in {"failed", "uncertain"} for item in results)
         absent = any(item["status"] == "already_absent" for item in results)
         return {"ok": not failed, "status": "failed" if failed else "completed_with_absent" if absent else "completed", "results": results}
 
 
 def _digest(value: Any) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-
