@@ -240,17 +240,26 @@ class SdkAdapter:
         client = self._sdk_client()
         try:
             target = self._get_domain(canonical, object_id, branch="saved")
+            latest = _json_object(target)
+            if canonical in {"wizard_chart", "editor_chart", "ql_chart"}:
+                latest = _chart_entry(latest)
             # This is a second read after the service merged its patch. Never
             # attach that older snapshot to a newly observed revision. This
             # preflight is not an atomic provider-side CAS guarantee.
             expected_revision = snapshot.get("revId") or snapshot.get("rev_id")
             if expected_revision:
-                latest = _json_object(target)
-                if canonical in {"wizard_chart", "editor_chart", "ql_chart"}:
-                    latest = _chart_entry(latest)
                 observed_revision = latest.get("revId") or latest.get("rev_id")
                 if observed_revision != expected_revision:
                     raise ValueError("saved revision changed during SDK target fetch; re-read before retry")
+            if not publish and "name" in snapshot and snapshot["name"] != latest.get("name"):
+                old_content = {key: value for key, value in latest.items() if key != "name"}
+                new_content = {key: value for key, value in snapshot.items() if key != "name"}
+                if old_content != new_content:
+                    raise ValueError("rename and content changes require separate explicit updates")
+                if not isinstance(snapshot["name"], str) or not snapshot["name"]:
+                    raise ValueError("object name must be a nonempty string")
+                value = target.rename(snapshot["name"])
+                return {"object_id": object_id, "object": _json_object(value), "backend": "official_sdk"}
             builder = getattr(client.raw.replace, canonical)(target=target, response_snapshot=snapshot)
             if canonical == "dashboard":
                 value = builder.execute(publish=publish)
