@@ -73,23 +73,8 @@ class SdkAdapter:
         branch: str = "saved",
         revision_id: str | None = None,
     ) -> Any:
-        getters = {
-            "workbook": "workbook",
-            "connection": "connection",
-            "dataset": "dataset",
-            "wizard_chart": "wizard_chart",
-            "editor_chart": "editor_chart",
-            "table_node": "editor_chart",
-            "d3_node": "editor_chart",
-            "markdown_node": "editor_chart",
-            "control_node": "editor_chart",
-            "advanced_chart": "editor_chart",
-            "ql_chart": "ql_chart",
-            "dashboard": "dashboard",
-        }
-        getter_name = getters.get(object_type)
-        if getter_name is None:
-            raise ValueError(f"unsupported SDK object type: {object_type}")
+        object_type = _canonical_object_type(object_type)
+        getter_name = object_type
         if branch not in {"saved", "published"}:
             raise ValueError("branch must be 'saved' or 'published'")
         kwargs: dict[str, Any] = {"by_id": object_id}
