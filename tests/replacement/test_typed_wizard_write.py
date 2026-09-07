@@ -54,7 +54,7 @@ def test_typed_expected_content_is_checked_and_persisted(tmp_path):
         rb("wizard_chart", "synthetic-chart", "r1", {"data": {"datasetsIds": ["wrong-dataset"]}})]})
     backend = FakeBackend([{"object_id": "synthetic-chart", "expected_readback": expected}])
     writer = service(tmp_path, reader, backend)
-    result = writer.create_objects([{"object_type": "wizard_chart", "name": "Synthetic", "wizard": {
+    result = writer.create_objects([{"client_ref": "table", "object_type": "wizard_chart", "name": "Synthetic", "wizard": {
         "dataset_id": "synthetic-dataset", "visualization": "flat_table",
         "roles": {"columns": ["date-guid"]}}}], {"workbook_id": "synthetic-workbook"}, operation_id="typed-create")
     assert result["results"][0]["status"] == "uncertain"
