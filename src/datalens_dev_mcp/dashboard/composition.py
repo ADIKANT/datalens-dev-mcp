@@ -52,11 +52,12 @@ def dependency_order(drafts: list[dict[str, Any]]) -> list[dict[str, Any]]:
         ref = str(draft.get("client_ref") or "")
         if not ref or ref in by_ref:
             raise ValueError("every draft requires a unique client_ref")
-        by_ref[ref] = draft
+        by_ref[ref] = deepcopy(draft)
         position[ref] = index
     dependencies: dict[str, set[str]] = {}
     for ref, draft in by_ref.items():
-        deps = {str(value) for value in (draft.get("depends_on") or [])}
+        deps = {str(value) for value in (draft.get("depends_on") or [])} | object_references(draft)
+        draft["depends_on"] = sorted(deps)
         missing = deps - by_ref.keys()
         if missing:
             raise ValueError(f"unknown dependency for {ref}: {sorted(missing)}")
@@ -76,3 +77,27 @@ def dependency_order(drafts: list[dict[str, Any]]) -> list[dict[str, Any]]:
         raise ValueError("dependency cycle in create batch")
     return result
 
+
+def object_references(value: Any) -> set[str]:
+    if isinstance(value, dict):
+        if "$object_ref" in value:
+            if set(value) != {"$object_ref"} or not isinstance(value["$object_ref"], str) or not value["$object_ref"]:
+                raise ValueError("object reference must contain only a nonempty $object_ref")
+            return {value["$object_ref"]}
+        return set().union(*(object_references(item) for item in value.values()))
+    if isinstance(value, list):
+        return set().union(*(object_references(item) for item in value))
+    return set()
+
+
+def bind_object_references(value: Any, ids: dict[str, str]) -> Any:
+    if isinstance(value, dict):
+        if "$object_ref" in value:
+            ref = value["$object_ref"]
+            if ref not in ids:
+                raise ValueError(f"object reference has no verified created ID: {ref}")
+            return ids[ref]
+        return {key: bind_object_references(item, ids) for key, item in value.items()}
+    if isinstance(value, list):
+        return [bind_object_references(item, ids) for item in value]
+    return value

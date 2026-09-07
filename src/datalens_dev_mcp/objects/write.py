@@ -74,7 +74,7 @@ class ObjectMutationService:
     ) -> dict[str, Any]:
         if delivery_mode != "save":
             raise ValueError("create delivery_mode must be 'save'; publish is an explicit later operation")
-        from datalens_dev_mcp.dashboard.composition import dependency_order
+        from datalens_dev_mcp.dashboard.composition import dependency_order, bind_object_references
 
         drafts = dependency_order([resolve_artifact(draft) for draft in drafts])
         _, record = self._record("create", {"drafts": drafts, "destination": destination}, operation_id)
@@ -91,6 +91,9 @@ class ObjectMutationService:
                 self._save(record)
                 continue
             try:
+                ids = {key: row["target"]["object_id"] for key, row in by_key.items()
+                       if row["status"] == "completed" and row.get("target")}
+                draft = bind_object_references(draft, ids)
                 item["desired"] = deepcopy(draft.get("snapshot") or draft.get("draft") or {})
                 self._begin(record, item)
                 response = self.backend.create(draft, destination)
