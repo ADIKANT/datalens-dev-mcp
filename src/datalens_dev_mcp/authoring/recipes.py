@@ -75,6 +75,8 @@ def compile_recipe(
         draft.update(_native_table_draft(bindings, contract))
     if recipe_id == "categorical_bar" and technology == "wizard":
         draft.update(_categorical_bar_draft(bindings, contract))
+    if recipe_id == "cross_tab_totals" and technology == "wizard":
+        draft.update(_pivot_draft(bindings, contract))
     renderer_name = recipe.get("renderer")
     renderer_text = ""
     if renderer_name:
@@ -107,6 +109,36 @@ def compile_recipe(
             "datalens_writes": 0,
         },
         "defaults": defaults,
+    }
+
+
+def _pivot_draft(bindings: Mapping[str, Any], contract: Mapping[str, Any]) -> dict[str, Any]:
+    dataset_id = bindings.get("dataset_id")
+    name = contract["object_name"]["value"]
+    if not isinstance(dataset_id, str) or not dataset_id.strip() or not name:
+        raise ValueError("cross_tab_totals requires dataset_id and object_name")
+    roles = {}
+    for source, role in (("rows", "rows"), ("columns", "columns"), ("measures", "y")):
+        values = bindings[source]
+        if not isinstance(values, list) or not values:
+            raise ValueError(f"cross_tab_totals requires nonempty {source}")
+        if any(not isinstance(v, Mapping) or not isinstance(v.get("field_guid"), str) or not v["field_guid"] for v in values):
+            raise ValueError(f"{source} require field_guid from Dataset readback")
+        roles[role] = [v["field_guid"] for v in values]
+    title, table = contract["visible_title"], contract["table"]
+    if table.get("total_position") not in {"bottom_and_right", "none"}:
+        raise ValueError("cross_tab_totals supports bottom_and_right or none")
+    return {
+        "name": name, "client_ref": str(bindings.get("client_ref") or "cross_tab_totals"),
+        "wizard": {
+            "visualization": "pivot_table", "dataset_id": dataset_id, "roles": roles,
+            "title": str(title.get("text") or name),
+            "title_mode": "show" if title.get("visible") and title.get("owner") == "chart" else "hide",
+            "subtotals": [roles["rows"][0], roles["columns"][0]] if table.get("total_position") != "none" else [],
+            "table": {"pagination": table.get("pagination", True), "page_size": table.get("page_size", 100),
+                      "size": table.get("size", "m")},
+            "sort": deepcopy(bindings.get("sort") or []),
+        },
     }
 
 

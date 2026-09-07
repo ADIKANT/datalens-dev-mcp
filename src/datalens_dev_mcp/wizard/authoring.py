@@ -20,7 +20,7 @@ def wizard_builder(client: Any, dataset: Dataset, specification: Mapping[str, An
     if visualization not in WIZARD_VARIANTS:
         raise ValueError(f"unsupported Wizard visualization: {visualization}")
     allowed = {"dataset_id", "visualization", "roles", "title", "title_mode", "table", "sort", "column_titles",
-               "grid", "legend", "labels_position"}
+               "grid", "legend", "labels_position", "subtotals"}
     if set(specification) - allowed:
         raise ValueError(f"unsupported Wizard settings: {sorted(set(specification) - allowed)}")
     roles = specification.get("roles")
@@ -50,15 +50,18 @@ def wizard_builder(client: Any, dataset: Dataset, specification: Mapping[str, An
         builder.add_sort(dataset.fields.by_guid(order["field_guid"]), direction=order["direction"])
     table = specification.get("table")
     if table is not None:
-        if visualization != "flat_table" or not isinstance(table, dict):
-            raise ValueError("table settings currently require flat_table")
+        if visualization not in {"flat_table", "pivot_table"} or not isinstance(table, dict):
+            raise ValueError("table settings require flat_table or pivot_table")
         if set(table) - {"pagination", "page_size", "totals", "size", "freeze_columns"}:
             raise ValueError("unsupported native table setting")
         page_size = table.get("page_size", 100)
         if type(page_size) is not int or page_size < 1:
             raise ValueError("page_size must be a positive integer")
         builder.pagination(enabled=bool(table.get("pagination", True)), limit=page_size)
-        builder.totals(enabled=bool(table.get("totals", False)))
+        if visualization == "flat_table":
+            builder.totals(enabled=bool(table.get("totals", False)))
+        elif "totals" in table:
+            raise ValueError("pivot totals are per-dimension subtotals, not flat table totals")
         size = table.get("size", "m")
         if size not in {"s", "m", "l"}:
             raise ValueError("table size must be s, m or l")
@@ -68,6 +71,10 @@ def wizard_builder(client: Any, dataset: Dataset, specification: Mapping[str, An
             if type(count) is not int or count < 0:
                 raise ValueError("freeze_columns must be a nonnegative integer")
             builder.freeze_columns(count=count)
+    for guid in specification.get("subtotals", []):
+        if visualization != "pivot_table" or guid not in roles.get("rows", []) + roles.get("columns", []):
+            raise ValueError("subtotals require a pivot row or column field")
+        builder.subtotals(dataset.fields.by_guid(guid), enabled=True)
     for guid, title in specification.get("column_titles", {}).items():
         if visualization != "flat_table":
             raise ValueError("column_titles require flat_table")
