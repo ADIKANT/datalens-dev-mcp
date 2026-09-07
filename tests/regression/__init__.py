@@ -1,1 +1,0 @@
-"""Sanitized session regression corpus."""
