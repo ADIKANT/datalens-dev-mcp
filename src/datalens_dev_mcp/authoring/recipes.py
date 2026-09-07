@@ -47,6 +47,9 @@ def compile_recipe(
     if recipe_id == "comparison_matrix" and bindings.get("dataset_id") and "source" not in bindings:
         from datalens_dev_mcp.authoring.dataset_source import matrix_dataset_source
         bindings = {**bindings, "source": matrix_dataset_source(bindings)}
+    if recipe_id == "kpi_sparkline" and bindings.get("dataset_id") and "source" not in bindings:
+        from datalens_dev_mcp.authoring.dataset_source import kpi_dataset_source
+        bindings = {**bindings, "source": kpi_dataset_source(bindings)}
     recipe = recipes[recipe_id]
     missing = [key for key in recipe["required_bindings"] if key not in bindings]
     if missing:

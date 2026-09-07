@@ -41,3 +41,29 @@ module.exports = {rows: rows.map(row => ({
 }))};
 """
     return {"meta": {"links": {"dataset": bindings["dataset_id"]}}, "sources_js": sources, "prepare_js": prepare}
+
+
+def kpi_dataset_source(bindings: Mapping[str, Any]) -> dict[str, Any]:
+    mode = bindings.get("value_mode")
+    if mode not in {"last", "sum"}:
+        raise ValueError("KPI Dataset binding requires explicit value_mode: last or sum")
+    if mode == "sum" and (bindings.get("metric") or {}).get("additive") is not True:
+        raise ValueError("sum requires an explicitly additive metric")
+    source = matrix_dataset_source({**bindings, "rows": [bindings.get("date")]})
+    transform = source["prepare_js"]
+    source["prepare_js"] = "const prepared = (() => { const module = {exports: {}};\n" + transform + "\nreturn module.exports; })();\n"
+    source["prepare_js"] += "const mode = " + json.dumps(mode) + ";\n"
+    source["prepare_js"] += """const rows = prepared.rows.map(row => ({...row, timestamp: Date.parse(row.label)}));
+if (rows.some(row => !Number.isFinite(row.timestamp))) throw new Error('KPI dates must be parseable dates');
+rows.sort((a, b) => a.timestamp - b.timestamp);
+if (new Set(rows.map(row => row.timestamp)).size !== rows.length) throw new Error('KPI requires one row per date');
+const summary = key => {
+  if (!rows.length) return null;
+  if (mode === 'last') return rows[rows.length - 1][key];
+  if (rows.some(row => row[key] === null)) return null;
+  return rows.reduce((total, row) => total + row[key], 0);
+};
+module.exports = {value: summary('current'), previous: summary('previous'),
+  points: rows.map(row => ({date: row.label, value: row.current}))};
+"""
+    return source
