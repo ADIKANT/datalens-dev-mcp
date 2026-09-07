@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
 from collections.abc import Callable
 from copy import deepcopy
@@ -15,6 +14,7 @@ from datalens_dev_mcp.api.schemas import OperationRegistry
 from datalens_dev_mcp.api.sdk_adapter import SdkAdapter
 from datalens_dev_mcp.authoring.profiles import get_authoring_defaults
 from datalens_dev_mcp.authoring.recipes import compile_recipe
+from datalens_dev_mcp.authoring.validation import validate_drafts
 from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.dataset.contracts import extract_dataset_fields, validate_dataset_fields
 from datalens_dev_mcp.dataset.preview import DatasetPreviewService
@@ -189,8 +189,13 @@ def dl_compile_recipe(
     return result
 
 
-def dl_editor_validate(draft: dict[str, Any]) -> dict[str, Any]:
-    return validate_editor_draft(draft)
+def dl_editor_validate(
+    draft: dict[str, Any] | None = None,
+    drafts: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    if (draft is None) == (drafts is None):
+        raise ValueError("provide exactly one of draft or drafts")
+    return validate_drafts(drafts) if drafts is not None else validate_editor_draft(draft)
 
 
 def dl_object_diff(object_type: str, object_id: str, patch: dict[str, Any]) -> dict[str, Any]:
@@ -473,8 +478,11 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "description": "Validate one Editor variant, required tabs, aliases and known constrained-runtime errors without execution.",
         "inputSchema": {
             "type": "object",
-            "properties": {"draft": {"type": "object"}},
-            "required": ["draft"],
+            "properties": {
+                "draft": {"type": ["object", "null"]},
+                "drafts": {"type": ["array", "null"], "items": {"type": "object"}},
+            },
+            "oneOf": [{"required": ["draft"]}, {"required": ["drafts"]}],
             "additionalProperties": False,
         },
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},

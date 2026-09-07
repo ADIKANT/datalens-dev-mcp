@@ -14,4 +14,7 @@ class DraftBundle(TypedDict):
 
 class ValidationResult(TypedDict):
     ok: bool
-    issues: list[dict[str, str]]
+    items: list[dict[str, Any]]
+    errors: list[dict[str, str]]
+    provider_writes: int
+    proof_level: str
