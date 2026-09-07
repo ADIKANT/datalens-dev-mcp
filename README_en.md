@@ -16,7 +16,7 @@ python3 -m venv .venv
 .venv/bin/datalens-dev-mcp --version
 ```
 
-The stdio connection is declared in [.mcp.json](.mcp.json). For live access, provide your own `DATALENS_ORG_ID` and `DATALENS_IAM_TOKEN`; credential values are never returned by tools.
+The stdio connection is declared in [.mcp.json](.mcp.json). For live access, provide your own `DATALENS_ORG_ID` and `DATALENS_IAM_TOKEN` in the process environment or the protected `${XDG_CONFIG_HOME:-~/.config}/datalens-dev-mcp/credentials.env` file; an explicit `DATALENS_ENV_FILE` takes precedence. Credential values are never returned by tools.
 
 ## Domain path
 

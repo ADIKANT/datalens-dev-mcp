@@ -10,6 +10,12 @@ from pathlib import Path
 _RUNTIME_TOKENS: dict[tuple[str, str, str], str] = {}
 
 
+def _default_env_file(process: Mapping[str, str]) -> Path | None:
+    base = Path(process["XDG_CONFIG_HOME"]).expanduser() if process.get("XDG_CONFIG_HOME") else Path.home() / ".config"
+    candidate = base / "datalens-dev-mcp/credentials.env"
+    return candidate if candidate.is_file() else None
+
+
 def _read_env_file(path: Path) -> dict[str, str]:
     values: dict[str, str] = {}
     for raw_line in path.read_text(encoding="utf-8").splitlines():
@@ -40,7 +46,7 @@ class DataLensConfig:
         env_file: str | Path | None = None,
     ) -> DataLensConfig:
         process = dict(os.environ if env is None else env)
-        configured_file = env_file or process.get("DATALENS_ENV_FILE")
+        configured_file = env_file or process.get("DATALENS_ENV_FILE") or _default_env_file(process)
         file_values = _read_env_file(Path(configured_file).expanduser()) if configured_file else {}
         values = {**process, **file_values}
         token = values.get("DATALENS_IAM_TOKEN") or values.get("YC_IAM_TOKEN") or ""

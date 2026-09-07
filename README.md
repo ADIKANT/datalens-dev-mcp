@@ -16,7 +16,7 @@ python3 -m venv .venv
 .venv/bin/datalens-dev-mcp --version
 ```
 
-Подключение stdio описано в [.mcp.json](.mcp.json). Для live-доступа задайте собственные `DATALENS_ORG_ID` и `DATALENS_IAM_TOKEN`; значения credentials никогда не возвращаются инструментами.
+Подключение stdio описано в [.mcp.json](.mcp.json). Для live-доступа задайте собственные `DATALENS_ORG_ID` и `DATALENS_IAM_TOKEN` в окружении либо в защищённом файле `${XDG_CONFIG_HOME:-~/.config}/datalens-dev-mcp/credentials.env`; явный `DATALENS_ENV_FILE` имеет приоритет. Значения credentials никогда не возвращаются инструментами.
 
 ## Предметный маршрут
 
