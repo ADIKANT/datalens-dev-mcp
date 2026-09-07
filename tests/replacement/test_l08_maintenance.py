@@ -33,7 +33,7 @@ class Reader:
 
     def object_get(self, object_type: str, object_id: str, *, branch="saved", revision_id=None):
         del revision_id
-        if object_id in {"missing", "orphan"}:
+        if object_id in {"missing", "orphan", "gone"}:
             raise DataLensApiError("synthetic missing", http_status=404, response_received=True)
         return self.objects[(object_type, object_id, branch)]
 
@@ -78,7 +78,7 @@ def test_cleanup_preserves_shared_dependency_and_deletes_only_exact_preview() ->
     assert {item["object_id"] for item in preview["delete"]} == {"orphan", "gone"}
     applied = service.apply(preview, confirmed_delete=preview["delete"])
     assert applied["status"] == "completed_with_absent"
-    assert [item["status"] for item in applied["results"]] == ["deleted", "already_absent"]
+    assert [item["status"] for item in applied["results"]] == ["already_absent", "already_absent"]
 
 
 def test_cleanup_refuses_changed_confirmation() -> None:

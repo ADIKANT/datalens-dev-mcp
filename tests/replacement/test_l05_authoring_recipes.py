@@ -13,6 +13,7 @@ from datalens_dev_mcp.server import list_tools
 
 REQUIRED_RECIPES = {
     "kpi_sparkline",
+    "period_series",
     "time_comparison",
     "categorical_bar",
     "comparison_matrix",

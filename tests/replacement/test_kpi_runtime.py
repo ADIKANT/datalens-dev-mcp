@@ -19,7 +19,7 @@ def test_kpi_zero_is_not_no_data_and_missing_points_break_line():
     html = render({"value": 0, "previous": 0, "points": [0, 1, None, 2, 0]})
     assert "No data" not in html
     assert "Undefined: previous = 0" in html
-    assert html.count(" M") == 2
+    assert html.count('data-id="sparkline-area"') == 2
     assert "NaN" not in html and "Infinity" not in html
 
 

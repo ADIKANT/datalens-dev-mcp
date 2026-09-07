@@ -319,6 +319,12 @@ def _bind_contract(contract: Mapping[str, Any], bindings: Mapping[str, Any]) -> 
             result["visible_title"]["text"] = str(metric.get("label") or "")
         result["labels"]["unit"] = metric.get("unit") or result["labels"].get("unit")
         result["tooltip"]["unit"] = metric.get("unit") or True
+    if isinstance(metric.get("precision"), int):
+        result["labels"]["precision"] = max(0, min(10, metric["precision"]))
+    semantics = str(metric.get("aggregation") or metric.get("role") or "sum").lower()
+    result["table"]["totals_additive"] = semantics not in {
+        "ratio", "average", "avg", "count_distinct", "unique", "uniq", "uniqexact"
+    }
     comparison = bindings.get("comparison") if isinstance(bindings.get("comparison"), Mapping) else {}
     if comparison:
         result["comparison"] = _deep_merge(result["comparison"], comparison)
@@ -444,6 +450,32 @@ def _editor_tabs(
 def _validate_prepared_data(recipe_id: str, bindings: Mapping[str, Any]) -> None:
     prepared = bindings.get("prepared_data")
     if not isinstance(prepared, Mapping) or not prepared:
+        return
+    if recipe_id == "weekly_totals_table":
+        metric = bindings.get("metric") or {}
+        semantics = str(metric.get("aggregation") or metric.get("role") or "sum").lower()
+        if semantics in {"ratio", "average", "avg", "count_distinct", "unique", "uniq", "uniqexact"} and (
+            "total_values" not in prepared or "grand_total" not in prepared or any(
+                "total" not in row for row in prepared.get("rows", [])
+            )
+        ):
+            raise ValueError("non-additive weekly measures require source-computed totals")
+        return
+    if recipe_id == "period_series":
+        categories, series = prepared.get("categories"), prepared.get("series")
+        if not isinstance(categories, list) or not isinstance(series, list):
+            raise ValueError("period_series requires aligned categories and series")
+        for item in series:
+            if not isinstance(item, Mapping) or item.get("type") not in {"line", "bar"}:
+                raise ValueError("period_series requires line/bar series")
+            for key in ("values", "comparisonValues"):
+                if (key == "values" or key in item) and (
+                    not isinstance(item.get(key), list) or len(item[key]) != len(categories)
+                ):
+                    raise ValueError("period_series values must be aligned with categories")
+        for key in ("comparisonCategories", "currentRanges", "comparisonRanges"):
+            if key in prepared and (not isinstance(prepared[key], list) or len(prepared[key]) != len(categories)):
+                raise ValueError("period_series periods must be aligned with categories")
         return
     if recipe_id == "kpi_sparkline":
         required = {"value", "previous", "points"}
