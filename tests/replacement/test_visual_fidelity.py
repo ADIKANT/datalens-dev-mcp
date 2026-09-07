@@ -189,3 +189,19 @@ def test_kpi_fractional_precision_groups_only_integer_part():
         {"width": 640, "height": 260},
     )
     assert "1 234.5678" in html and "1 000.1234" in html
+
+
+def test_kpi_previous_keeps_metric_unit_without_inventing_missing_value():
+    bindings = {
+        "metric": {"label": "Conversion", "unit": "%", "precision": 2},
+        "date": {},
+        "comparison": {},
+        "prepared_data": {"value": 84.21, "previous": 80.15, "points": []},
+    }
+    html = render("kpi_sparkline", bindings, {"width": 320, "height": 180})
+    previous = html.split('data-id="kpi-previous"', 1)[1].split('</div>', 1)[0]
+    assert '80.15 <small>%</small>' in previous
+    bindings["prepared_data"]["previous"] = None
+    missing = render("kpi_sparkline", bindings, {"width": 320, "height": 180})
+    previous = missing.split('data-id="kpi-previous"', 1)[1].split('</div>', 1)[0]
+    assert '>—' in previous and '%' not in previous
