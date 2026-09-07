@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import tempfile
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -35,14 +36,21 @@ class OperationStore:
     def put(self, record: dict[str, Any]) -> dict[str, Any]:
         operation_id = str(record.get("operation_id") or "")
         path = self._path(operation_id)
-        self.root.mkdir(parents=True, exist_ok=True)
-        temporary = path.with_suffix(".tmp")
-        temporary.write_text(json.dumps(record, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8")
-        temporary.replace(path)
+        self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
+        descriptor, filename = tempfile.mkstemp(prefix=f".{operation_id}-", suffix=".tmp", dir=self.root)
+        temporary = Path(filename)
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+                json.dump(record, stream, ensure_ascii=False, sort_keys=True, indent=2)
+                stream.write("\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            temporary.replace(path)
+        finally:
+            temporary.unlink(missing_ok=True)
         return deepcopy(record)
 
     def _path(self, operation_id: str) -> Path:
         if not _SAFE_ID.fullmatch(operation_id):
             raise ValueError("operation_id must contain only letters, digits, dot, underscore or hyphen")
         return self.root / f"{operation_id}.json"
-

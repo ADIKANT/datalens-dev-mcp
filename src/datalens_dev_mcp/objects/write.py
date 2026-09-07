@@ -76,7 +76,7 @@ class ObjectMutationService:
         from datalens_dev_mcp.dashboard.composition import dependency_order
 
         drafts = dependency_order(drafts)
-        oid, record = self._record("create", {"drafts": drafts, "destination": destination}, operation_id)
+        _, record = self._record("create", {"drafts": drafts, "destination": destination}, operation_id)
         if record.get("status") == "completed":
             return record
         items = self._items(record, drafts, lambda d, i: str(d.get("client_ref") or f"create-{i}"))
@@ -84,19 +84,25 @@ class ObjectMutationService:
             item = items[index]
             if item.get("status") in {"completed", "uncertain"}:
                 continue
+            by_key = {row["key"]: row for row in items}
+            if any(by_key[dep]["status"] != "completed" for dep in draft.get("depends_on", [])):
+                item.update(status="pending", code="dependency_not_completed")
+                self._save(record)
+                continue
             try:
+                item["desired"] = deepcopy(draft.get("snapshot") or draft.get("draft") or {})
+                self._begin(record, item)
                 response = self.backend.create(draft, destination)
                 object_id = str(response.get("object_id") or response.get("id") or "")
                 if not object_id:
                     raise UncertainWriteError("create returned no object id")
                 item["target"] = {"object_type": str(draft["object_type"]), "object_id": object_id}
-                item["desired"] = deepcopy(draft.get("snapshot") or draft.get("draft") or {})
-                item["readback"] = self.reader.object_get(str(draft["object_type"]), object_id, branch="saved")
-                item["status"] = "completed"
+                self._returned(record, item, response)
+                self._verify_readback(item, branch="saved")
             except UncertainWriteError as exc:
                 item.update(status="uncertain", error=safe_error_text(exc), code="write_outcome_unknown")
             except (DataLensApiError, ValueError, TypeError) as exc:
-                item.update(status="failed", error=safe_error_text(exc), code="write_failed")
+                self._failure(item, exc)
             self._save(record)
         return self._save(record)
 
@@ -105,7 +111,7 @@ class ObjectMutationService:
     ) -> dict[str, Any]:
         if delivery_mode != "save":
             raise ValueError("update delivery_mode must be 'save'; publish is an explicit later operation")
-        oid, record = self._record("update", {"changes": changes}, operation_id)
+        _, record = self._record("update", {"changes": changes}, operation_id)
         if record.get("status") == "completed":
             return record
         items = self._items(record, changes, lambda c, i: f"{c.get('object_type')}:{c.get('object_id')}")
@@ -115,7 +121,7 @@ class ObjectMutationService:
                 continue
             object_type, object_id = str(change["object_type"]), str(change["object_id"])
             try:
-                current = deepcopy(change.get("current")) or self.reader.object_get(object_type, object_id, branch="saved")
+                current = self.reader.object_get(object_type, object_id, branch="saved")
                 actual_revision = str(current.get("identity", {}).get("revision_id") or "")
                 expected = str(change.get("expected_revision") or "")
                 if expected and actual_revision != expected:
@@ -132,18 +138,19 @@ class ObjectMutationService:
                     expected_revision=actual_revision or None,
                     changes=semantic_diff(current["object"], proposed),
                 )
-                self.backend.update(object_type, object_id, proposed)
-                item["readback"] = self.reader.object_get(object_type, object_id, branch="saved")
-                item["status"] = "completed"
+                self._begin(record, item)
+                response = self.backend.update(object_type, object_id, proposed)
+                self._returned(record, item, response)
+                self._verify_readback(item, branch="saved")
             except UncertainWriteError as exc:
                 item.update(status="uncertain", error=safe_error_text(exc), code="write_outcome_unknown")
             except (DataLensApiError, ValueError, TypeError) as exc:
-                item.update(status="failed", error=safe_error_text(exc), code="write_failed")
+                self._failure(item, exc)
             self._save(record)
         return self._save(record)
 
     def publish_objects(self, targets: list[dict[str, Any]], *, operation_id: str | None = None) -> dict[str, Any]:
-        oid, record = self._record("publish", {"targets": targets}, operation_id)
+        _, record = self._record("publish", {"targets": targets}, operation_id)
         if record.get("status") == "completed":
             return record
         items = self._items(record, targets, lambda t, i: f"{t.get('object_type')}:{t.get('object_id')}")
@@ -160,6 +167,10 @@ class ObjectMutationService:
                 saved = self.reader.object_get(object_type, object_id, branch="saved")
                 observed = str(saved.get("identity", {}).get("revision_id") or "")
                 expected = str(target.get("expected_saved_revision") or "")
+                if not observed:
+                    item.update(status="blocked", code="saved_revision_missing")
+                    self._save(record)
+                    continue
                 if expected and observed != expected:
                     item.update(status="blocked", code="revision_changed", expected_revision=expected, observed_revision=observed)
                     self._save(record)
@@ -167,15 +178,16 @@ class ObjectMutationService:
                 item.update(
                     target={"object_type": object_type, "object_id": object_id},
                     expected_revision=observed or None,
-                    desired={"published_from_saved_revision": observed},
+                    desired=_publish_content(saved["object"]),
                 )
-                self.backend.publish(object_type, object_id, saved)
-                item["readback"] = self.reader.object_get(object_type, object_id, branch="published")
-                item["status"] = "completed"
+                self._begin(record, item)
+                response = self.backend.publish(object_type, object_id, saved)
+                self._returned(record, item, response)
+                self._verify_readback(item, branch="published")
             except UncertainWriteError as exc:
                 item.update(status="uncertain", error=safe_error_text(exc), code="write_outcome_unknown")
             except (DataLensApiError, ValueError, TypeError) as exc:
-                item.update(status="failed", error=safe_error_text(exc), code="write_failed")
+                self._failure(item, exc)
             self._save(record)
         return self._save(record)
 
@@ -198,16 +210,67 @@ class ObjectMutationService:
                 item["code"] = "identity_lookup_unavailable"
                 continue
             branch = "published" if record.get("effect") == "publish" else "saved"
-            readback = self.reader.object_get(object_type, object_id, branch=branch)
-            item["readback"] = readback
-            desired = item.get("desired") or {}
-            if record.get("effect") == "publish" or _contains(readback.get("object") or {}, desired):
-                item.update(status="completed", code="reconciled_applied")
-            else:
-                item.update(status="failed", code="reconciled_not_applied")
+            try:
+                self._verify_readback(item, branch=branch)
+                if item["status"] == "completed":
+                    item["code"] = "reconciled_applied"
+            except (DataLensApiError, ValueError, TypeError) as exc:
+                item.update(status="uncertain", code="readback_unavailable", error=safe_error_text(exc))
         result = self._save(record)
         result["write_replayed"] = False
         return result
+
+    def _begin(self, record: dict[str, Any], item: dict[str, Any]) -> None:
+        # Persist before crossing the network boundary. A killed process cannot
+        # subsequently mistake an in-flight mutation for an unattempted one.
+        item.update(status="uncertain", code="write_outcome_unknown", write_returned=False)
+        item.pop("error", None)
+        self._save(record)
+
+    def _returned(self, record: dict[str, Any], item: dict[str, Any], response: dict[str, Any]) -> None:
+        item.update(write_returned=True, code="readback_pending")
+        value = response.get("object") or {}
+        item["returned_revision"] = value.get("revId") or value.get("rev_id")
+        self._save(record)
+
+    def _verify_readback(self, item: dict[str, Any], *, branch: str) -> None:
+        target = item["target"]
+        readback = self.reader.object_get(target["object_type"], target["object_id"], branch=branch)
+        item["readback"] = readback
+        identity = readback.get("identity") or {}
+        allowed_branch = "unbranched" if target["object_type"] in {"dataset", "connection", "workbook"} else branch
+        correct_identity = (
+            identity.get("object_id") == target["object_id"]
+            and identity.get("object_type") == target["object_type"]
+            and identity.get("branch") == allowed_branch
+        )
+        desired = item.get("desired") or {}
+        content_matches = _contains(readback.get("object") or {}, desired)
+        returned_revision = item.get("returned_revision")
+        revision_matches = not returned_revision or returned_revision == identity.get("revision_id")
+        if readback.get("ok") and correct_identity and content_matches and revision_matches:
+            item.update(status="completed", code="readback_verified", observed_revision=identity.get("revision_id"))
+            item.pop("error", None)
+        else:
+            # An old or different snapshot cannot prove rejection: the write
+            # may still be in flight, or a later edit may have superseded it.
+            item.update(status="uncertain", code="readback_mismatch")
+
+    @staticmethod
+    def _failure(item: dict[str, Any], exc: Exception) -> None:
+        rejected = isinstance(exc, (ValueError, TypeError)) or (
+            isinstance(exc, DataLensApiError)
+            and exc.response_received is True
+            and exc.http_status is not None
+            and 400 <= exc.http_status < 500
+            and exc.http_status not in {408, 409}
+        )
+        uncertain = item.get("write_returned") or (item.get("status") == "uncertain" and not rejected)
+        item.update(
+            status="uncertain" if uncertain else "failed",
+            error=safe_error_text(exc),
+            code="write_outcome_unknown" if uncertain else "write_failed",
+        )
 
     def _record(self, effect: str, request: dict[str, Any], operation_id: str | None) -> tuple[str, dict[str, Any]]:
         oid = operation_id or str(uuid4())
@@ -253,6 +316,15 @@ def _contains(actual: Any, expected: Any) -> bool:
     if isinstance(expected, dict):
         return isinstance(actual, dict) and all(key in actual and _contains(actual[key], value) for key, value in expected.items())
     return actual == expected
+
+
+def _publish_content(snapshot: dict[str, Any]) -> dict[str, Any]:
+    # Response identity/audit fields do not belong to the mutable document.
+    keys = ("data", "meta", "annotation", "content")
+    content = {key: deepcopy(snapshot[key]) for key in keys if key in snapshot}
+    if not content:
+        raise ValueError("saved readback lacks publishable content")
+    return content
 
 
 def default_mutation_service() -> ObjectMutationService:

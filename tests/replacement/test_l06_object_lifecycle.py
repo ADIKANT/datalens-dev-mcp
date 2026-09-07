@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -57,7 +56,7 @@ def service(tmp_path: Path, reader: FakeReader, backend: FakeBackend) -> ObjectM
 
 
 def test_save_only_reads_saved_and_never_publishes(tmp_path: Path) -> None:
-    reader = FakeReader({("editor_chart", "chart-1", "saved"): [rb("editor_chart", "chart-1", "r1", {"id": "chart-1"})]})
+    reader = FakeReader({("editor_chart", "chart-1", "saved"): [rb("editor_chart", "chart-1", "r1", {"id": "chart-1", "data": {}})]})
     backend = FakeBackend([{"object_id": "chart-1"}])
     result = service(tmp_path, reader, backend).create_objects(
         [{"client_ref": "c1", "object_type": "editor_chart", "name": "Synthetic", "snapshot": {"data": {}}}],
@@ -71,7 +70,7 @@ def test_save_only_reads_saved_and_never_publishes(tmp_path: Path) -> None:
 
 
 def test_completed_operation_is_returned_without_duplicate_create(tmp_path: Path) -> None:
-    reader = FakeReader({("wizard_chart", "chart-1", "saved"): [rb("wizard_chart", "chart-1", "r1", {"id": "chart-1"})]})
+    reader = FakeReader({("wizard_chart", "chart-1", "saved"): [rb("wizard_chart", "chart-1", "r1", {"id": "chart-1", "data": {}})]})
     backend = FakeBackend([{"object_id": "chart-1"}])
     writer = service(tmp_path, reader, backend)
     args = ([{"client_ref": "c1", "object_type": "wizard_chart", "name": "Synthetic", "snapshot": {"data": {}}}], {"workbook_id": "wb-1"})
@@ -118,7 +117,7 @@ def test_partial_batch_resumes_without_repeating_first_effect(tmp_path: Path) ->
         ("editor_chart", "one", "saved"): [rb("editor_chart", "one", "r1", {"id": "one"})],
         ("editor_chart", "two", "saved"): [rb("editor_chart", "two", "r1", {"id": "two"})],
     })
-    backend = FakeBackend([{"object_id": "one"}, DataLensApiError("synthetic rejected"), {"object_id": "two"}])
+    backend = FakeBackend([{"object_id": "one"}, DataLensApiError("synthetic rejected", http_status=400, response_received=True), {"object_id": "two"}])
     writer = service(tmp_path, reader, backend)
     drafts = [
         {"client_ref": "one", "object_type": "editor_chart", "name": "One", "snapshot": {}},
@@ -132,7 +131,10 @@ def test_partial_batch_resumes_without_repeating_first_effect(tmp_path: Path) ->
 
 
 def test_unknown_outcome_is_persisted_and_reconcile_only_reads(tmp_path: Path) -> None:
-    reader = FakeReader({("dashboard", "dash-1", "saved"): [rb("dashboard", "dash-1", "r2", {"id": "dash-1", "name": "New"})]})
+    reader = FakeReader({("dashboard", "dash-1", "saved"): [
+        rb("dashboard", "dash-1", "r1", {"id": "dash-1", "name": "Old"}),
+        rb("dashboard", "dash-1", "r2", {"id": "dash-1", "name": "New"}),
+    ]})
     backend = FakeBackend([UncertainWriteError("lost response", method="updateDashboard")])
     writer = service(tmp_path, reader, backend)
     result = writer.update_objects(
