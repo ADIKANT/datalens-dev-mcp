@@ -15,6 +15,7 @@ REQUIRED_RECIPES = {
     "categorical_bar",
     "comparison_matrix",
     "cross_tab_totals",
+    "weekly_totals_table",
     "native_detail_table",
     "selector",
 }

@@ -17,9 +17,10 @@
   },
   "recipes": {
     "kpi_sparkline": {
+      "reference_family": "standalone_kpi_with_sparkline",
       "technology": "advanced_chart",
       "object_type": "advanced-chart_node",
-      "renderer": "advanced_renderer.js",
+      "renderer": "kpi_sparkline_renderer.js",
       "required_bindings": ["metric", "date", "comparison"],
       "visual_contract": {"visible_title": {"owner": "body"}, "legend": {"mode": "hidden"}, "kpi": {"separate_object": true, "value": true, "comparison_label": true, "sparkline": true}, "geometry": {"width": 6, "height": 4}},
       "example": {"data_class": "synthetic", "states": ["value", "loading", "error", "no_data", "business_zero"]}
@@ -41,11 +42,12 @@
       "example": {"data_class": "synthetic", "states": ["positive", "zero", "missing", "long_label"]}
     },
     "comparison_matrix": {
+      "reference_family": "multi_level_version_matrix",
       "technology": "advanced_chart",
       "object_type": "advanced-chart_node",
-      "renderer": "matrix_renderer.js",
+      "renderer": "version_matrix_renderer.js",
       "required_bindings": ["rows", "metric"],
-      "visual_contract": {"legend": {"mode": "fixed_semantic", "items": ["increase", "unchanged", "decrease", "missing"]}, "table": {"total_position": "none"}, "geometry": {"width": 12, "height": 10}},
+      "visual_contract": {"legend": {"mode": "fixed_semantic", "items": [{"status": "increase", "label": "Increase"}, {"status": "unchanged", "label": "Unchanged"}, {"status": "decrease", "label": "Decrease"}, {"status": "missing", "label": "Missing"}, {"status": "manual_not_applicable", "label": "Manual N/A"}]}, "table": {"total_position": "none", "header_rows": ["Scope", "Target", "Version", "Status", "Assembly", "Type"], "first_column_label": "Item", "first_column_width": 150, "value_column_width": 112, "header_height": 32}, "geometry": {"width": 12, "height": 10}},
       "example": {"data_class": "synthetic", "states": ["increase", "unchanged", "decrease", "missing"]}
     },
     "cross_tab_totals": {
@@ -55,6 +57,15 @@
       "required_bindings": ["rows", "columns", "measures"],
       "visual_contract": {"table": {"total_position": "bottom_and_right", "pagination": true}, "legend": {"mode": "hidden"}},
       "example": {"data_class": "synthetic", "states": ["detail", "subtotal", "grand_total"]}
+    },
+    "weekly_totals_table": {
+      "reference_family": "iso_week_totals_table",
+      "technology": "advanced_chart",
+      "object_type": "advanced-chart_node",
+      "renderer": "weekly_totals_renderer.js",
+      "required_bindings": ["group", "date", "metric"],
+      "visual_contract": {"visible_title": {"owner": "body"}, "legend": {"mode": "hidden"}, "table": {"total_position": "bottom_and_right", "first_column_label": "Group", "widths": {"first": 132, "period": 82, "total": 96}, "header": "pinned", "internal_scroll": true}, "geometry": {"width": 12, "height": 10, "preserve_manual": true}},
+      "example": {"data_class": "synthetic", "states": ["iso_weeks", "empty", "bottom_total", "right_total"]}
     },
     "native_detail_table": {
       "technology": "wizard",

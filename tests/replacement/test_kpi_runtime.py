@@ -6,7 +6,7 @@ from datalens_dev_mcp.authoring.recipes import list_recipes
 
 
 def render(data):
-    source = files("datalens_dev_mcp.assets.recipes").joinpath("advanced_renderer.js").read_text()
+    source = files("datalens_dev_mcp.assets.recipes").joinpath("kpi_sparkline_renderer.js").read_text()
     config = list_recipes()["kpi_sparkline"]["visual_contract"]
     script = "const vm = require('node:vm'); const Editor = {generateHtml: x => x, wrapFn: x => x};\n" + source
     script += "\nconst result = module.exports(" + json.dumps(data) + "," + json.dumps(config) + ");"
