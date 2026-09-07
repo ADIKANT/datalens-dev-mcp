@@ -23,7 +23,7 @@ python3 -m venv .venv
 - Inspect: точные ID, saved/published revision, pagination и прямые relations.
 - Dataset/Wizard: реальные GUID, aggregation/formula restrictions и bounded `getDatasetData` preview.
 - Editor: отдельные contracts для Table, Gravity, Advanced, Markdown и Selector; локальная проверка не выдаётся за browser runtime.
-- Authoring: восемь versioned recipes — KPI, time comparison, bar, dynamic matrix, weekly totals, cross-tab, native table и selector. Большой JS берётся из canonical packaged renderer, а bindings/defaults остаются компактными. [Карта применяющих consumers](https://github.com/ADIKANT/datalens-dev-mcp/blob/main/docs/authoring-property-consumers.md) отделяет наличие настройки от runtime-доказательства.
+- Authoring: восемь versioned recipes — KPI, time comparison, bar, dynamic matrix, weekly totals, cross-tab, native table и selector. Большой JS берётся из canonical packaged renderer и сохраняется в локальный artifact; MCP по умолчанию возвращает компактный `draft_reference`. [Карта применяющих consumers](https://github.com/ADIKANT/datalens-dev-mcp/blob/main/docs/authoring-property-consumers.md) отделяет наличие настройки от runtime-доказательства.
 - Delivery: create/update всегда заканчиваются saved readback. Publish — отдельная операция только из свежей saved revision с published readback.
 - Maintenance: snapshot export честно помечен как не доказанный full restore; cleanup требует неизменившийся exact delete set.
 

@@ -44,9 +44,9 @@ rendering, tests, and exports outside the DataLens shell.
   `light` as the deterministic default and preserve `var(--g-color-*)` CSS
   variables so the host theme can still resolve them.
 
-## DAGS Checker Table Pattern
+## Operational Status Table Pattern
 
-The DAGS Checker table code is the table-style reference pattern. Table cells
+The neutral operational status table is the table-style reference pattern. Table cells
 and headers must use DataLens/Gravity CSS variables such as:
 
 - `var(--g-color-text-primary, inherit)`

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from types import SimpleNamespace
 
+import pytest
 from datalens_sdk import Connection, DataLensClientYC, EntryLocation
-from datalens_sdk.converter.dashboard import DashboardConverter
 from datalens_sdk.converter.dataset import DatasetConverter
 from test_l06_object_lifecycle import FakeBackend, FakeReader, rb, service
 
@@ -56,6 +57,7 @@ DASHBOARD_SPEC = {
                     "title": "Region",
                     "item_id": "selector",
                     "at": [0, 0, 36, 2],
+                    "defaults": {"region_filter": []},
                 },
                 {"kind": "chart", "chart_id": "kpi-id", "title": "KPI", "item_id": "kpi", "at": [0, 2, 12, 8]},
                 {"kind": "chart", "chart_id": "trend-id", "title": "Trend", "item_id": "trend", "at": [12, 2, 12, 8]},
@@ -104,12 +106,30 @@ def test_dashboard_builder_places_three_distinct_charts_and_external_selector() 
             name="Synthetic dashboard",
             location=EntryLocation.workbook("workbook"),
         )
-        payload = DashboardConverter.from_domain_create(builder.to_spec()).to_payload()
+        payload = getattr(builder, "response_snapshot", None)
+        assert payload is not None
 
     items = payload["entry"]["data"]["tabs"][0]["items"]
     assert [item["type"] for item in items] == ["control", "widget", "widget", "widget"]
     assert items[0]["data"]["source"]["chartId"] == "selector-id"
+    assert items[0]["defaults"] == {"region_filter": []}
     assert [item["data"]["tabs"][0]["chartId"] for item in items[1:]] == ["kpi-id", "trend-id", "table-id"]
+
+
+def test_dashboard_builder_rejects_external_selector_without_registered_defaults() -> None:
+    specification = deepcopy(DASHBOARD_SPEC)
+    specification["tabs"][0]["items"][0].pop("defaults")
+
+    with (
+        DataLensClientYC(auth=None) as client,
+        pytest.raises(ValueError, match="external selector requires nonempty defaults"),
+    ):
+        dashboard_builder(
+            client,
+            specification,
+            name="Synthetic dashboard",
+            location=EntryLocation.workbook("workbook"),
+        )
 
 
 def test_sdk_adapter_typed_dataset_and_dashboard_create_call_build_once() -> None:
@@ -122,9 +142,12 @@ def test_sdk_adapter_typed_dataset_and_dashboard_create_call_build_once() -> Non
             return builder
 
         def dashboard_factory(**kwargs):
-            builder = official.create.dashboard(**kwargs)
-            builder.build = lambda: built.append("dashboard") or {"id": "dashboard-id", "entry": {"data": {}}}
-            return builder
+            return official.create.dashboard(**kwargs)
+
+        def raw_dashboard_factory(**_kwargs):
+            return SimpleNamespace(
+                build=lambda: built.append("dashboard") or {"id": "dashboard-id", "entry": {"data": {}}}
+            )
 
         connection = Connection(id="connection-existing", type="clickhouse", installation="yacloud")
         client = SimpleNamespace(
@@ -134,6 +157,7 @@ def test_sdk_adapter_typed_dataset_and_dashboard_create_call_build_once() -> Non
                 dataset=dataset_factory,
                 dashboard=dashboard_factory,
             ),
+            raw=SimpleNamespace(create=SimpleNamespace(dashboard=raw_dashboard_factory)),
         )
         adapter = SdkAdapter(client=client)
         dataset = adapter.create(
@@ -148,7 +172,9 @@ def test_sdk_adapter_typed_dataset_and_dashboard_create_call_build_once() -> Non
     assert built == ["dataset", "dashboard"]
     assert dataset["object_id"] == "dataset-id"
     assert dashboard["object_id"] == "dashboard-id"
-    assert "expected_readback" in dashboard
+    assert set(dashboard["expected_readback"]) == {"entry"}
+    assert len(dashboard["expected_readback"]["entry"]["data"]["tabs"]) == 1
+    assert dashboard["expected_readback"]["entry"]["data"]["tabs"][0]["items"][0]["defaults"] == {"region_filter": []}
 
 
 def test_dependency_batch_binds_dataset_three_charts_selector_and_dashboard_ids(tmp_path) -> None:
@@ -218,7 +244,9 @@ def test_dependency_batch_binds_dataset_three_charts_selector_and_dashboard_ids(
                                 "kind": "external_selector",
                                 "chart_id": {"$object_ref": "selector"},
                                 "title": "Region",
+                                "item_id": "selector",
                                 "at": [0, 0, 36, 2],
+                                "defaults": {"region_filter": []},
                             },
                             {"kind": "chart", "chart_id": {"$object_ref": "kpi"}, "title": "KPI", "at": [0, 2, 12, 8]},
                             {

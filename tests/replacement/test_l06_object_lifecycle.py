@@ -119,6 +119,36 @@ def test_title_only_patch_uses_one_object_read_and_preserves_unknown_fields(tmp_
     assert reader.calls == [("dashboard", "dash-1", "saved"), ("dashboard", "dash-1", "saved")]
 
 
+def test_update_accepts_fresh_readback_when_sdk_returns_prewrite_revision(tmp_path: Path) -> None:
+    reader = FakeReader(
+        {
+            ("dataset", "dataset-1", "saved"): [
+                rb("dataset", "dataset-1", "r1", {"id": "dataset-1", "revId": "r1", "name": "Old"}),
+                rb("dataset", "dataset-1", "r2", {"id": "dataset-1", "revId": "r2", "name": "New"}),
+            ]
+        }
+    )
+    for value in reader.replies[("dataset", "dataset-1", "saved")]:
+        value["identity"]["branch"] = "unbranched"
+    backend = FakeBackend([{"object_id": "dataset-1", "object": {"revId": "r1"}}])
+
+    result = service(tmp_path, reader, backend).update_objects(
+        [
+            {
+                "object_type": "dataset",
+                "object_id": "dataset-1",
+                "expected_revision": "r1",
+                "patch": {"name": "New"},
+            }
+        ],
+        operation_id="op-stale-sdk-revision",
+    )
+
+    assert result["status"] == "completed"
+    assert result["results"][0]["observed_revision"] == "r2"
+    assert result["results"][0]["returned_revision"] == "r1"
+
+
 def test_revision_drift_blocks_write(tmp_path: Path) -> None:
     reader = FakeReader(
         {("dashboard", "dash-1", "saved"): [rb("dashboard", "dash-1", "r2", {"id": "dash-1", "name": "Manual"})]}
@@ -206,6 +236,32 @@ def test_publish_uses_fresh_saved_revision_then_published_readback(tmp_path: Pat
     assert result["status"] == "completed"
     assert backend.calls[0][1]["saved"]["identity"]["revision_id"] == "r7"
     assert reader.calls[-1] == ("dashboard", "dash-1", "published")
+
+
+def test_publish_accepts_dashboard_content_nested_under_entry(tmp_path: Path) -> None:
+    saved = rb(
+        "dashboard",
+        "dash-1",
+        "r7",
+        {"entry": {"entryId": "dash-1", "savedId": "r7", "data": {"tabs": [{"id": "main"}]}}},
+    )
+    published = rb(
+        "dashboard",
+        "dash-1",
+        "r8",
+        {"entry": {"entryId": "dash-1", "publishedId": "r8", "data": {"tabs": [{"id": "main"}]}}},
+    )
+    published["identity"]["branch"] = "published"
+    reader = FakeReader({("dashboard", "dash-1", "saved"): [saved], ("dashboard", "dash-1", "published"): [published]})
+    backend = FakeBackend([{"object_id": "dash-1"}])
+
+    result = service(tmp_path, reader, backend).publish_objects(
+        [{"object_type": "dashboard", "object_id": "dash-1", "expected_saved_revision": "r7"}],
+        operation_id="op-publish-nested",
+    )
+
+    assert result["status"] == "completed"
+    assert result["results"][0]["desired"] == {"entry": {"data": {"tabs": [{"id": "main"}]}}}
 
 
 def test_l06_exposes_only_direct_lifecycle_tools() -> None:

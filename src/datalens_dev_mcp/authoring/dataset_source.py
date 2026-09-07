@@ -51,6 +51,7 @@ def _dataset_query(bindings: Mapping[str, Any], guids: list[str], titles: list[s
             {
                 "param_name": name,
                 "column": str(by_guid[guid].get("title") or ""),
+                "type": "title",
                 "operation": operation,
                 "empty_selection": empty,
             }
@@ -74,11 +75,14 @@ def _dataset_query(bindings: Mapping[str, Any], guids: list[str], titles: list[s
     sources += "const params = Editor.getParams();\nconst where = [];\n"
     sources += "const selectorContracts = " + json.dumps(selector_contracts, ensure_ascii=False) + ";\n"
     sources += "for (const selector of selectorContracts) {\n"
+    sources += "  const rawValue = params[selector.param_name];\n"
     sources += (
-        "  const values = Array.isArray(params[selector.param_name]) ? params[selector.param_name].map(String) : [];\n"
+        "  const rawValues = Array.isArray(rawValue) ? rawValue : [rawValue];\n"
+        "  const values = rawValues.filter(value => value !== null && value !== undefined && value !== '')"
+        ".map(String);\n"
     )
     sources += "  if (!values.length && selector.empty_selection === 'error') throw new Error('selector value is required: ' + selector.param_name);\n"
-    sources += "  if (values.length || selector.empty_selection === 'none') where.push({column: selector.column, operation: selector.operation, values});\n}\n"
+    sources += "  if (values.length || selector.empty_selection === 'none') where.push({column: selector.column, type: selector.type, operation: selector.operation, values});\n}\n"
     sources += "const datasetParameters = " + json.dumps(parameter_contracts, ensure_ascii=False) + ".map(item => {\n"
     sources += "  const values = Array.isArray(params[item.param_name]) ? params[item.param_name] : [];\n"
     sources += "  return values.length ? {id: item.id, value: String(values[0])} : null;\n}).filter(Boolean);\n"
@@ -92,10 +96,7 @@ def _dataset_query(bindings: Mapping[str, Any], guids: list[str], titles: list[s
     prelude = "const loaded = Editor.getLoadedData();\n"
     prelude += "if (!loaded || !Object.prototype.hasOwnProperty.call(loaded, 'source')) throw new Error('source alias is missing: source');\n"
     prelude += "const sourceEvents = loaded.source;\n"
-    prelude += "if (!Array.isArray(sourceEvents)) throw new Error('source response is malformed: source');\n"
-    prelude += (
-        "if (sourceEvents.some(item => item && item.event === 'error')) throw new Error('source failed: source');\n"
-    )
+    prelude += "if (Array.isArray(sourceEvents) && sourceEvents.some(item => item && item.event === 'error')) throw new Error('source failed: source');\n"
     return {
         "meta": {"links": {"dataset": bindings["dataset_id"]}},
         "sources_js": sources,
@@ -172,6 +173,72 @@ module.exports = {value: summary('current'), previous: summary('previous'),
   state: rows.length ? 'ready' : 'no_data'};
 """
     return source
+
+
+def weekly_dataset_source(bindings: Mapping[str, Any]) -> dict[str, Any]:
+    by_guid = _field_index(bindings)
+    references = [bindings.get("group"), bindings.get("date"), bindings.get("metric")]
+    guids, titles = [], []
+    for reference in references:
+        if not isinstance(reference, Mapping) or reference.get("field_guid") not in by_guid:
+            raise ValueError("weekly Dataset binding requires known group, date and metric field GUIDs")
+        guid = reference["field_guid"]
+        title = by_guid[guid].get("title")
+        if not isinstance(title, str) or not title:
+            raise ValueError("Dataset field readback must include title")
+        guids.append(guid)
+        titles.append(title)
+    if len(set(titles)) != len(titles):
+        raise ValueError("weekly Dataset binding requires distinct field titles")
+    query = _dataset_query(bindings, guids, titles)
+    prepare = query["prepare_prelude"] + "const Dataset = require('libs/dataset/v2');\n"
+    prepare += "const names = " + json.dumps(titles, ensure_ascii=False) + ";\n"
+    prepare += """const sourceRows = Dataset.getDatasetRows({datasetName: 'source'});
+const isoDate = date => date.toISOString().slice(0, 10);
+const isoWeek = value => {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) throw new Error('weekly dates must be parseable dates');
+  const monday = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const weekday = monday.getUTCDay() || 7;
+  monday.setUTCDate(monday.getUTCDate() - weekday + 1);
+  const thursday = new Date(monday);
+  thursday.setUTCDate(thursday.getUTCDate() + 3);
+  const firstThursday = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 4));
+  const firstWeekday = firstThursday.getUTCDay() || 7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstWeekday + 4);
+  const number = 1 + Math.round((thursday - firstThursday) / 604800000);
+  const key = thursday.getUTCFullYear() + '-W' + String(number).padStart(2, '0');
+  const sunday = new Date(monday);
+  sunday.setUTCDate(sunday.getUTCDate() + 6);
+  return {key, label: key, date_from: isoDate(monday), date_to: isoDate(sunday)};
+};
+const weekByKey = new Map();
+const valueByGroup = new Map();
+for (const row of sourceRows) {
+  const week = isoWeek(row[names[1]]);
+  const group = row[names[0]] == null ? '—' : String(row[names[0]]);
+  const metric = Number(row[names[2]]);
+  if (!Number.isFinite(metric)) throw new Error('weekly metric must be numeric');
+  weekByKey.set(week.key, week);
+  if (!valueByGroup.has(group)) valueByGroup.set(group, new Map());
+  const values = valueByGroup.get(group);
+  values.set(week.key, (values.get(week.key) || 0) + metric);
+}
+const weeks = Array.from(weekByKey.values()).sort((a, b) => a.key.localeCompare(b.key));
+const rows = Array.from(valueByGroup.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([label, values]) => {
+  const aligned = weeks.map(week => values.get(week.key) || 0);
+  return {label, values: aligned, total: aligned.reduce((sum, value) => sum + value, 0)};
+});
+const total_values = weeks.map((week, index) => rows.reduce((sum, row) => sum + row.values[index], 0));
+const grand_total = total_values.reduce((sum, value) => sum + value, 0);
+module.exports = {weeks, rows, total_values, grand_total, state: rows.length ? 'ready' : 'no_data'};
+"""
+    return {
+        "meta": query["meta"],
+        "sources_js": query["sources_js"],
+        "params": query["params"],
+        "prepare_js": prepare,
+    }
 
 
 def compile_direct_source(binding: Mapping[str, Any]) -> dict[str, Any]:

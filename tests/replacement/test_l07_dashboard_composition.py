@@ -71,6 +71,29 @@ def test_fixed_matrix_legend_and_cumulative_comparison_are_not_invalidated() -> 
     assert result["ok"] is True
 
 
+def test_typed_external_selector_requires_dashboard_defaults_for_runtime_dispatch() -> None:
+    result = validate_dashboard_contract(
+        {
+            "tabs": [
+                {
+                    "title": "Overview",
+                    "items": [
+                        {
+                            "kind": "external_selector",
+                            "chart_id": "selector-id",
+                            "title": "Priority",
+                            "item_id": "priority-selector",
+                            "at": [0, 0, 36, 2],
+                        }
+                    ],
+                }
+            ]
+        }
+    )
+
+    assert {issue["code"] for issue in result["issues"]} == {"external_selector_defaults_missing"}
+
+
 def test_dependency_order_supports_more_than_25_objects_and_is_stable() -> None:
     drafts = [{"client_ref": f"chart-{index}", "depends_on": ["dataset"]} for index in range(30)] + [
         {"client_ref": "dataset", "depends_on": ["connection"]},

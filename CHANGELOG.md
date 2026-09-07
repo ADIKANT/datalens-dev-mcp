@@ -13,14 +13,14 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Replaced the internal task compiler, journal, workflow engine, and generic executors with direct typed DataLens domain operations.
 - Added the official `datalens-sdk==0.9.0` path for supported objects and retained narrow Public API adapters only where needed.
 - Added eight reusable visual recipes, canonical renderer assets, and automatic generic/user/project/reference/explicit defaults.
-- Added typed Dataset-from-existing-source and DashboardTab graph builders, selector/source contracts, batch draft validation, and compact operation responses with explicit detailed readback.
+- Added typed Dataset-from-existing-source and DashboardTab graph builders, selector/source contracts, artifact-aware batch draft validation, compact recipe handles, and compact operation responses with explicit detailed readback.
 - Added saved and published readbacks, revision drift guards, compact uncertain-write reconciliation, and resumable per-object batches.
 - Added explicit snapshot backup, dependency-safe cleanup, HTML Page, workbook, and license capability boundaries.
 
 ### Added
 
 - Five scoped Codex skills for inspection, Dataset/Wizard work, Editor authoring, dashboard composition, and maintenance.
-- A closed 25-tool JSON Schema surface and a direct owner/boundary map for the 62 public use cases.
+- A closed 25-tool JSON Schema surface and an implementation-status/owner/boundary map for the 62 public use cases.
 - Installed-wheel import and stdio smoke checks that run from an unrelated directory without `PYTHONPATH`.
 
 ### Removed

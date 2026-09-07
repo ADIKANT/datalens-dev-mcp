@@ -10,6 +10,26 @@ from datalens_dev_mcp.api.errors import DataLensApiError, UncertainWriteError, s
 from datalens_dev_mcp.authoring.artifacts import resolve_artifact
 from datalens_dev_mcp.operation_store import OperationStore
 
+_EDITOR_ARTIFACT_TYPES = frozenset(
+    {
+        "editor_chart",
+        "advanced-chart_node",
+        "advanced_chart",
+        "table_node",
+        "d3_node",
+        "markdown_node",
+        "control_node",
+    }
+)
+_EDITOR_ARTIFACT_TABS = {
+    "meta.json": "meta",
+    "params.js": "params",
+    "sources.js": "sources",
+    "prepare.js": "prepare",
+    "controls.js": "controls",
+    "config.js": "config",
+}
+
 
 class MutationBackend(Protocol):
     def create(self, draft: dict[str, Any], destination: dict[str, Any]) -> dict[str, Any]: ...
@@ -122,7 +142,7 @@ class ObjectMutationService:
     ) -> dict[str, Any]:
         if delivery_mode != "save":
             raise ValueError("update delivery_mode must be 'save'; publish is an explicit later operation")
-        changes = [resolve_artifact(change) for change in changes]
+        changes = [_resolve_update_change(change) for change in changes]
         _, record = self._record("update", {"changes": changes}, operation_id)
         if record.get("status") == "completed":
             return record
@@ -267,7 +287,15 @@ class ObjectMutationService:
         desired = item.get("desired") or {}
         content_matches = _contains(readback.get("object") or {}, desired)
         returned_revision = item.get("returned_revision")
-        revision_matches = not returned_revision or returned_revision == identity.get("revision_id")
+        # Some official SDK update builders return their pre-write target
+        # snapshot even though the provider has already advanced the object.
+        # That revision is evidence about the input precondition, not the
+        # resulting revision. A different third revision still remains
+        # ambiguous and must not be accepted or replayed.
+        revision_matches = not returned_revision or returned_revision in {
+            identity.get("revision_id"),
+            item.get("expected_revision"),
+        }
         if readback.get("ok") and correct_identity and content_matches and revision_matches:
             item.update(status="completed", code="readback_verified", observed_revision=identity.get("revision_id"))
             item.pop("error", None)
@@ -336,6 +364,38 @@ class ObjectMutationService:
         return self.store.put(record)
 
 
+def _resolve_update_change(change: dict[str, Any]) -> dict[str, Any]:
+    if "artifact_path" not in change:
+        return deepcopy(change)
+    allowed = {"artifact_path", "object_type", "object_id", "expected_revision"}
+    if set(change) - allowed:
+        raise ValueError("artifact updates allow only artifact_path, object_type, object_id and expected_revision")
+    object_type, object_id = change.get("object_type"), change.get("object_id")
+    if not isinstance(object_type, str) or not object_type or not isinstance(object_id, str) or not object_id:
+        raise ValueError("artifact update requires nonempty object_type and object_id")
+    draft = resolve_artifact({"artifact_path": change["artifact_path"]})
+    if object_type not in _EDITOR_ARTIFACT_TYPES or draft.get("object_type") not in _EDITOR_ARTIFACT_TYPES:
+        raise ValueError("artifact update currently supports compiled Editor drafts only")
+    tabs = draft.get("tabs")
+    if not isinstance(tabs, dict) or not tabs:
+        raise ValueError("compiled Editor artifact requires nonempty tabs")
+    data: dict[str, str] = {}
+    for filename, content in tabs.items():
+        key = _EDITOR_ARTIFACT_TABS.get(filename)
+        if key is None or not isinstance(content, str):
+            raise ValueError(f"unsupported compiled Editor tab: {filename}")
+        data[key] = content
+    patch: dict[str, Any] = {"data": data}
+    if isinstance(draft.get("name"), str) and draft["name"]:
+        patch["name"] = draft["name"]
+    return {
+        "object_type": object_type,
+        "object_id": object_id,
+        "expected_revision": change.get("expected_revision"),
+        "patch": patch,
+    }
+
+
 def _digest(value: Any) -> str:
     encoded = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
@@ -351,6 +411,9 @@ def _contains(actual: Any, expected: Any) -> bool:
 
 def _publish_content(snapshot: dict[str, Any]) -> dict[str, Any]:
     # Response identity/audit fields do not belong to the mutable document.
+    entry = snapshot.get("entry")
+    if isinstance(entry, dict):
+        return {"entry": _publish_content(entry)}
     keys = ("data", "meta", "annotation", "content")
     content = {key: deepcopy(snapshot[key]) for key in keys if key in snapshot}
     if not content:

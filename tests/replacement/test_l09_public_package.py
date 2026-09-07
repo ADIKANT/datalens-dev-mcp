@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import tomllib
 from pathlib import Path
@@ -17,6 +18,7 @@ EXPECTED_CASES = {
     *(f"G{i:02d}" for i in range(1, 11)),
     *(f"H{i:02d}" for i in range(1, 5)),
 }
+IMPLEMENTED_BOUNDARY_CASES = {"C10", "H02", "H04"}
 
 
 def root() -> Path:
@@ -33,6 +35,20 @@ def test_all_62_authoritative_cases_have_direct_owner_and_boundary() -> None:
     for case_id, record in coverage.items():
         assert record["owner"] in public_tools | {"codex_host", "skill", "unsupported_public_api"}, case_id
         assert record["boundary"], case_id
+        assert record["implementation_status"] in {
+            "implemented",
+            "implemented_with_boundary",
+            "host_owned",
+            "documented_boundary",
+        }, case_id
+        if record["owner"] == "codex_host":
+            assert record["implementation_status"] == "host_owned", case_id
+        elif record["owner"] == "unsupported_public_api":
+            assert record["implementation_status"] == "documented_boundary", case_id
+        elif case_id in IMPLEMENTED_BOUNDARY_CASES:
+            assert record["implementation_status"] == "implemented_with_boundary", case_id
+        else:
+            assert record["implementation_status"] == "implemented", case_id
 
 
 def test_tracked_runtime_contains_no_legacy_orchestrator_owners() -> None:
@@ -93,7 +109,7 @@ def test_plugin_manifest_five_skills_and_active_guidance_match_replacement_runti
     assert "legacy-v1" not in active
     assert "final-only" not in active
     assert "safe apply" not in active
-    assert "/users/alexandr" not in active
+    assert re.search(r"/(users|home)/[^/\s]+/", active) is None
 
 
 def test_ci_and_release_only_reference_tracked_scripts() -> None:

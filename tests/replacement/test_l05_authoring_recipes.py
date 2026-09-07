@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from datalens_dev_mcp.authoring.profiles import get_authoring_defaults
 from datalens_dev_mcp.authoring.recipes import compile_recipe, list_recipes
 from datalens_dev_mcp.editor.validation import validate_editor_draft
@@ -103,6 +105,37 @@ def test_compile_kpi_materializes_visual_fields_and_reuses_renderer(tmp_path: Pa
     renderer = Path(result["files"]["renderer.js"])
     assert result["draft"]["tabs"]["prepare.js"].startswith(renderer.read_text(encoding="utf-8"))
     assert "Synthetic revenue" not in renderer.read_text(encoding="utf-8")
+
+
+def test_kpi_prepared_data_rejects_table_shape_before_provider_write() -> None:
+    with pytest.raises(ValueError, match="kpi_sparkline prepared_data requires value, previous and points"):
+        compile_recipe(
+            "kpi_sparkline",
+            bindings={
+                "prepared_data": {
+                    "columns": ["day", "issues", "previous"],
+                    "rows": [["2026-09-01", 10, 8], ["2026-09-02", 12, 10]],
+                },
+                "metric": "issues",
+                "date": "day",
+                "comparison": "previous",
+            },
+        )
+
+
+def test_matrix_prepared_data_rejects_positional_rows_before_provider_write() -> None:
+    with pytest.raises(ValueError, match="comparison_matrix prepared_data rows must contain objects"):
+        compile_recipe(
+            "comparison_matrix",
+            bindings={
+                "prepared_data": {
+                    "columns": ["priority", "issues"],
+                    "rows": [["Blocker", 3], ["Critical", 7], ["Major", 11]],
+                },
+                "rows": ["priority"],
+                "metric": "issues",
+            },
+        )
 
 
 def test_recipe_bindings_change_config_not_canonical_renderer() -> None:
