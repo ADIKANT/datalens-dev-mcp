@@ -10,6 +10,39 @@ from datalens_dev_mcp.api.sdk_adapter import SDK_VERSION, WIZARD_VARIANTS
 from datalens_dev_mcp.dataset.contracts import TECHNICAL_MEASURES, validate_dataset_fields, wire_fields
 
 
+def wizard_builder(client: Any, dataset: Dataset, specification: Mapping[str, Any], *, name: str, location: Any) -> Any:
+    """Configure the official builder using GUIDs resolved from Dataset readback.
+
+    Returning a builder is local work; only its caller may invoke build().
+    Role names are deliberately not arbitrary SDK method names.
+    """
+    visualization = str(specification.get("visualization") or "")
+    if visualization not in WIZARD_VARIANTS:
+        raise ValueError(f"unsupported Wizard visualization: {visualization}")
+    allowed = {"dataset_id", "visualization", "roles", "title"}
+    if set(specification) - allowed:
+        raise ValueError(f"unsupported Wizard settings: {sorted(set(specification) - allowed)}")
+    roles = specification.get("roles")
+    if not isinstance(roles, dict) or not roles:
+        raise ValueError("wizard.roles must contain explicit field GUID assignments")
+    builder = getattr(client.create.wizard_chart, visualization)(name=name, location=location).dataset(dataset)
+    for role, guids in roles.items():
+        if role not in {"x", "y", "y2", "columns", "rows", "measures", "colors", "labels", "size", "shapes"}:
+            raise ValueError(f"unsupported Wizard field role: {role}")
+        method = getattr(builder, role, None)
+        if not callable(method) or not isinstance(guids, list) or not guids:
+            raise ValueError(f"{visualization} requires a supported nonempty field role: {role}")
+        resolved = []
+        for guid in guids:
+            if not isinstance(guid, str) or guid.lower() in TECHNICAL_MEASURES:
+                raise ValueError("Wizard field roles require Dataset GUIDs, not technical measures")
+            resolved.append(dataset.fields.by_guid(guid))
+        method(resolved)
+    if specification.get("title"):
+        builder.chart_title(text=str(specification["title"]), mode="show")
+    return builder
+
+
 def compile_wizard_create(
     *,
     visualization: str,

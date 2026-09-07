@@ -113,8 +113,21 @@ class SdkAdapter:
         location = _entry_location(destination)
         name = _draft_name(draft)
         client = self._sdk_client()
+        expected_readback = None
         try:
-            if object_type == "editor_chart" and isinstance(draft.get("tabs"), dict):
+            if object_type == "wizard_chart" and "wizard" in draft:
+                from datalens_dev_mcp.wizard.authoring import wizard_builder
+                from datalens_sdk.converter.wizard import WizardChartConverter
+
+                specification = draft["wizard"]
+                if not isinstance(specification, dict):
+                    raise ValueError("draft.wizard must be an object")
+                dataset = client.get.dataset(by_id=str(specification["dataset_id"]))
+                builder = wizard_builder(client, dataset, specification, name=name, location=location)
+                payload = WizardChartConverter.from_domain_create(builder.to_spec()).to_payload()
+                expected_readback = {"data": payload["data"]}
+                value = builder.build()
+            elif object_type == "editor_chart" and isinstance(draft.get("tabs"), dict):
                 builder = getattr(client.create.editor_chart, _editor_factory(str(draft.get("variant") or "")))(
                     name=name, location=location
                 )
@@ -130,7 +143,10 @@ class SdkAdapter:
                     raise ValueError("draft.snapshot is required for this object type")
                 factory = getattr(client.raw.create, object_type)
                 value = factory(response_snapshot=snapshot, name=name, location=location).build()
-            return {"object_id": _result_id(value), "object": _json_object(value), "backend": "official_sdk"}
+            result = {"object_id": _result_id(value), "object": _json_object(value), "backend": "official_sdk"}
+            if expected_readback is not None:
+                result["expected_readback"] = expected_readback
+            return result
         except httpx.TransportError as exc:
             raise UncertainWriteError("SDK create outcome is uncertain", method=f"create:{object_type}") from exc
         except (ValueError, TypeError):

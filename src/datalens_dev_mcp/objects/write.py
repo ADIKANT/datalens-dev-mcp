@@ -97,6 +97,8 @@ class ObjectMutationService:
                 if not object_id:
                     raise UncertainWriteError("create returned no object id")
                 item["target"] = {"object_type": str(draft["object_type"]), "object_id": object_id}
+                if isinstance(response.get("expected_readback"), dict):
+                    item["desired"] = deepcopy(response["expected_readback"])
                 self._returned(record, item, response)
                 self._verify_readback(item, branch="saved")
             except UncertainWriteError as exc:
