@@ -71,6 +71,8 @@ def compile_recipe(
         "visual_contract": contract,
         "example": deepcopy(recipe["example"]),
     }
+    if recipe_id == "native_detail_table" and technology == "wizard":
+        draft.update(_native_table_draft(bindings, contract))
     renderer_name = recipe.get("renderer")
     renderer_text = ""
     if renderer_name:
@@ -103,6 +105,41 @@ def compile_recipe(
             "datalens_writes": 0,
         },
         "defaults": defaults,
+    }
+
+
+def _native_table_draft(bindings: Mapping[str, Any], contract: Mapping[str, Any]) -> dict[str, Any]:
+    dataset_id = bindings.get("dataset_id")
+    name = contract["object_name"]["value"]
+    if not isinstance(dataset_id, str) or not dataset_id.strip() or not name:
+        raise ValueError("native_detail_table requires dataset_id and object_name")
+    columns = bindings["columns"]
+    if not isinstance(columns, list) or not columns:
+        raise ValueError("native_detail_table requires nonempty columns with field_guid")
+    guids, titles = [], {}
+    for column in columns:
+        if not isinstance(column, Mapping) or not isinstance(column.get("field_guid"), str) or not column["field_guid"]:
+            raise ValueError("each native table column requires field_guid from Dataset readback")
+        guid = column["field_guid"]
+        if guid in guids:
+            raise ValueError("native table columns must have distinct field GUIDs")
+        guids.append(guid)
+        if column.get("label"):
+            titles[guid] = str(column["label"])
+    title = contract["visible_title"]
+    table = contract["table"]
+    return {
+        "name": name,
+        "client_ref": str(bindings.get("client_ref") or "native_detail_table"),
+        "wizard": {
+            "visualization": "flat_table", "dataset_id": dataset_id,
+            "roles": {"columns": guids}, "column_titles": titles,
+            "title": str(title.get("text") or name),
+            "title_mode": "show" if title.get("visible") and title.get("owner") == "chart" else "hide",
+            "table": {"pagination": table.get("pagination", True), "page_size": table.get("page_size", 100),
+                      "totals": table.get("total_position") == "bottom", "size": table.get("size", "m")},
+            "sort": deepcopy(bindings.get("sort") or []),
+        },
     }
 
 

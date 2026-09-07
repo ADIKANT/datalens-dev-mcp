@@ -19,7 +19,7 @@ def wizard_builder(client: Any, dataset: Dataset, specification: Mapping[str, An
     visualization = str(specification.get("visualization") or "")
     if visualization not in WIZARD_VARIANTS:
         raise ValueError(f"unsupported Wizard visualization: {visualization}")
-    allowed = {"dataset_id", "visualization", "roles", "title"}
+    allowed = {"dataset_id", "visualization", "roles", "title", "title_mode", "table", "sort", "column_titles"}
     if set(specification) - allowed:
         raise ValueError(f"unsupported Wizard settings: {sorted(set(specification) - allowed)}")
     roles = specification.get("roles")
@@ -38,8 +38,39 @@ def wizard_builder(client: Any, dataset: Dataset, specification: Mapping[str, An
                 raise ValueError("Wizard field roles require Dataset GUIDs, not technical measures")
             resolved.append(dataset.fields.by_guid(guid))
         method(resolved)
-    if specification.get("title"):
-        builder.chart_title(text=str(specification["title"]), mode="show")
+    if specification.get("title") or "title_mode" in specification:
+        mode = specification.get("title_mode", "show")
+        if mode not in {"show", "hide"}:
+            raise ValueError("title_mode must be show or hide")
+        builder.chart_title(text=str(specification.get("title") or ""), mode=mode)
+    for order in specification.get("sort", []):
+        if order.get("direction") not in {"asc", "desc"}:
+            raise ValueError("sort direction must be asc or desc")
+        builder.add_sort(dataset.fields.by_guid(order["field_guid"]), direction=order["direction"])
+    table = specification.get("table")
+    if table is not None:
+        if visualization != "flat_table" or not isinstance(table, dict):
+            raise ValueError("table settings currently require flat_table")
+        if set(table) - {"pagination", "page_size", "totals", "size", "freeze_columns"}:
+            raise ValueError("unsupported native table setting")
+        page_size = table.get("page_size", 100)
+        if type(page_size) is not int or page_size < 1:
+            raise ValueError("page_size must be a positive integer")
+        builder.pagination(enabled=bool(table.get("pagination", True)), limit=page_size)
+        builder.totals(enabled=bool(table.get("totals", False)))
+        size = table.get("size", "m")
+        if size not in {"s", "m", "l"}:
+            raise ValueError("table size must be s, m or l")
+        builder.table_size(size=size)
+        if "freeze_columns" in table:
+            count = table["freeze_columns"]
+            if type(count) is not int or count < 0:
+                raise ValueError("freeze_columns must be a nonnegative integer")
+            builder.freeze_columns(count=count)
+    for guid, title in specification.get("column_titles", {}).items():
+        if visualization != "flat_table":
+            raise ValueError("column_titles require flat_table")
+        builder.column_title(dataset.fields.by_guid(guid), title=str(title))
     return builder
 
 
