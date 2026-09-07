@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from types import SimpleNamespace
 
 import datalens_sdk
 import pytest
 from datalens_sdk.errors import APIErrorContext, UnauthorizedError
 
 from datalens_dev_mcp import server
+from datalens_dev_mcp.api import auth as auth_module
+from datalens_dev_mcp.api import runtime as runtime_module
+from datalens_dev_mcp.api.auth import refresh_iam_token_with_yc
 from datalens_dev_mcp.api.errors import DataLensApiError
 from datalens_dev_mcp.api.runtime import DataLensRuntime, RuntimeRegistry
 from datalens_dev_mcp.config import DataLensConfig
@@ -102,6 +106,58 @@ def test_refresh_enabled_runtime_can_bootstrap_a_missing_token_before_probe() ->
     assert runtime.probe_auth() == {"entries": []}
     assert len(transport.calls) == 1
     assert runtime.config.iam_token == "fresh-synthetic"
+
+
+def test_runtime_refresh_uses_configured_yc_binary(monkeypatch) -> None:
+    seen: list[str] = []
+    config = _config(token="")
+    config = DataLensConfig(
+        base_url=config.base_url,
+        org_id=config.org_id,
+        iam_token=config.iam_token,
+        read_retries=config.read_retries,
+        yc_binary="/synthetic/yc",
+        refresh_available=True,
+        _configured_token="",
+    )
+    monkeypatch.setattr(
+        runtime_module,
+        "refresh_iam_token_with_yc",
+        lambda *, yc_binary: seen.append(yc_binary) or "fresh-synthetic",
+    )
+    runtime = DataLensRuntime(config, api_transport=SequenceTransport([{"entries": []}]))
+
+    assert runtime.probe_auth() == {"entries": []}
+    assert seen == ["/synthetic/yc"]
+
+
+def test_yc_refresh_restores_system_paths_needed_by_desktop_processes(monkeypatch) -> None:
+    seen: dict[str, object] = {}
+
+    def fake_run(command, **kwargs):
+        seen["command"] = command
+        seen["env"] = kwargs["env"]
+        return SimpleNamespace(returncode=0, stdout="fresh-synthetic\n")
+
+    monkeypatch.setenv("PATH", "/usr/bin:/bin")
+    monkeypatch.setattr(auth_module.subprocess, "run", fake_run)
+
+    assert refresh_iam_token_with_yc(yc_binary="/synthetic/bin/yc") == "fresh-synthetic"
+    assert seen["command"] == [
+        "/synthetic/bin/yc",
+        "iam",
+        "create-token",
+        "--no-browser",
+        "--no-user-output",
+    ]
+    assert str(seen["env"]["PATH"]).split(":") == [
+        "/synthetic/bin",
+        "/usr/bin",
+        "/bin",
+        "/usr/local/bin",
+        "/usr/sbin",
+        "/sbin",
+    ]
 
 
 def test_server_reads_and_auth_probe_use_the_same_runtime_clients(monkeypatch) -> None:

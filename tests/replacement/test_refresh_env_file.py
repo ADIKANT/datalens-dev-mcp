@@ -11,7 +11,8 @@ def test_fresh_process_loads_standard_user_credential_file_without_manifest_env(
     path = tmp_path / "datalens-dev-mcp/credentials.env"
     path.parent.mkdir()
     path.write_text(
-        "DATALENS_ORG_ID=synthetic-org\nDATALENS_IAM_TOKEN=synthetic-token\nDATALENS_ENABLE_TOKEN_REFRESH_ON_401=true\n"
+        "DATALENS_ORG_ID=synthetic-org\nDATALENS_IAM_TOKEN=synthetic-token\n"
+        "DATALENS_ENABLE_TOKEN_REFRESH_ON_401=true\nDATALENS_YC_BINARY=/synthetic/yc\n"
     )
 
     config = DataLensConfig.from_env({"XDG_CONFIG_HOME": str(tmp_path)})
@@ -20,6 +21,7 @@ def test_fresh_process_loads_standard_user_credential_file_without_manifest_env(
     assert config.iam_token == "synthetic-token"
     assert config.credential_source == "env_file"
     assert config.refresh_available is True
+    assert config.yc_binary == "/synthetic/yc"
 
 
 def test_explicit_refresh_survives_next_config_read_without_rewriting_file(tmp_path, monkeypatch):
