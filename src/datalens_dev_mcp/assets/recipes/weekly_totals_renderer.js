@@ -26,7 +26,7 @@ module.exports = function renderWeeklyTotals(data, config) {
           : theme === 'light'
             ? {surface: '#ffffff', alt: '#f9fafb', header: '#f8fafc', total: '#eef4ff', line: '#d0d5dd', text: '#101828', muted: '#667085'}
             : {
-                surface: 'var(--g-color-base-background,transparent)',
+                surface: 'var(--g-color-base-background,#ffffff)',
                 alt: 'var(--g-color-base-generic-ultralight,#f9fafb)',
                 header: 'var(--g-color-base-generic,#f8fafc)',
                 total: 'var(--g-color-base-info-light,#eef4ff)',
@@ -34,6 +34,8 @@ module.exports = function renderWeeklyTotals(data, config) {
                 text: 'var(--g-color-text-primary,#101828)',
                 muted: 'var(--g-color-text-secondary,#667085)'
               };
+        // Theme tints can be translucent; sticky cells need an opaque base.
+        const backgroundFill = tint => 'linear-gradient(' + tint + ',' + tint + '),' + colors.surface;
         const title = presentation.visible_title || {};
         const spacing = Number.isFinite(Number(presentation.geometry.spacing)) && Number(presentation.geometry.spacing) !== 8
           ? Math.max(0, Number(presentation.geometry.spacing)) : 0;
@@ -45,8 +47,8 @@ module.exports = function renderWeeklyTotals(data, config) {
             + 'px;background:' + colors.surface + ';color:' + colors.muted + '">' + heading + messages[state] + '</div>');
         }
         const minWidth = firstWidth + weeks.length * periodWidth + totalWidth;
-        const weekHeaders = weeks.map(week => '<div style="box-sizing:border-box;display:flex;align-items:center;justify-content:flex-end;flex:0 0 '
-          + periodWidth + 'px;height:42px;padding:0 10px;background:' + colors.header + ';border-bottom:1px solid '
+        const weekHeaders = weeks.map(week => '<div title="' + escape(week.label) + '" style="box-sizing:border-box;display:flex;align-items:center;justify-content:flex-end;min-width:0;overflow:hidden;flex:0 0 '
+          + periodWidth + 'px;height:42px;padding:0 10px;background:' + backgroundFill(colors.header) + ';border-bottom:1px solid '
           + colors.line + ';border-right:1px solid ' + colors.line + ';color:' + colors.muted
           + ';font-size:12px;font-weight:800;white-space:nowrap">' + escape(week.label) + '</div>').join('');
         const bodyRows = rows.map((row, rowIndex) => {
@@ -54,8 +56,8 @@ module.exports = function renderWeeklyTotals(data, config) {
           const cells = weeks.map((week, weekIndex) => {
             const value = (row.values || [])[weekIndex];
             return '<div data-id="weekly-cell-' + rowIndex + '-' + weekIndex
-              + '" style="box-sizing:border-box;display:flex;align-items:center;justify-content:flex-end;flex:0 0 '
-              + periodWidth + 'px;height:40px;padding:0 10px;background:' + background
+              + '" title="' + escape(format(value)) + '" style="box-sizing:border-box;display:flex;align-items:center;justify-content:flex-end;min-width:0;overflow:hidden;flex:0 0 '
+              + periodWidth + 'px;height:40px;padding:0 10px;background:' + backgroundFill(background)
               + ';border-bottom:1px solid ' + colors.line + ';border-right:1px solid ' + colors.line
               + ';color:' + (Number(value) === 0 ? colors.muted : colors.text)
               + ';font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap;cursor:help">'
@@ -64,14 +66,14 @@ module.exports = function renderWeeklyTotals(data, config) {
           const total = row.total === undefined
             ? (row.values || []).reduce((sum, value) => sum + (Number(value) || 0), 0) : row.total;
           return '<div style="display:flex;width:' + minWidth + 'px;min-width:' + minWidth + 'px;height:40px">'
-            + '<div style="box-sizing:border-box;position:sticky;left:0;z-index:2;display:flex;align-items:center;flex:0 0 '
-            + firstWidth + 'px;height:40px;padding:0 14px;background:' + background + ';border-bottom:1px solid '
+            + '<div style="box-sizing:border-box;position:sticky;left:0;z-index:2;display:flex;align-items:center;min-width:0;overflow:hidden;flex:0 0 '
+            + firstWidth + 'px;height:40px;padding:0 14px;background:' + backgroundFill(background) + ';border-bottom:1px solid '
             + colors.line + ';border-right:1px solid ' + colors.line + ';color:' + colors.text
             + ';font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
             + escape(row.label) + '</div>' + cells
             + '<div data-id="weekly-row-total-' + rowIndex
-            + '" style="box-sizing:border-box;position:sticky;right:0;z-index:2;display:flex;align-items:center;justify-content:flex-end;flex:0 0 '
-            + totalWidth + 'px;height:40px;padding:0 14px;background:' + colors.total + ';border-bottom:1px solid '
+            + '" title="' + escape(format(total)) + '" style="box-sizing:border-box;position:sticky;right:0;z-index:2;display:flex;align-items:center;justify-content:flex-end;min-width:0;overflow:hidden;flex:0 0 '
+            + totalWidth + 'px;height:40px;padding:0 14px;background:' + backgroundFill(colors.total) + ';border-bottom:1px solid '
             + colors.line + ';border-left:1px solid var(--g-color-line-info,#B2CCFF);color:var(--g-color-text-info,#1849A9)'
             + ';font-size:13px;font-weight:800;white-space:nowrap;cursor:help">' + format(total) + '</div></div>';
         }).join('');
@@ -79,26 +81,26 @@ module.exports = function renderWeeklyTotals(data, config) {
           : weeks.map((week, index) => rows.reduce((sum, row) => sum + (Number((row.values || [])[index]) || 0), 0));
         const grandTotal = prepared.grand_total === undefined
           ? totalValues.reduce((sum, value) => sum + (Number(value) || 0), 0) : prepared.grand_total;
-        const totalCells = totalValues.map(value => '<div style="box-sizing:border-box;display:flex;align-items:center;justify-content:flex-end;flex:0 0 '
-          + periodWidth + 'px;height:42px;padding:0 10px;background:' + colors.header + ';border-top:2px solid '
+        const totalCells = totalValues.map(value => '<div title="' + escape(format(value)) + '" style="box-sizing:border-box;display:flex;align-items:center;justify-content:flex-end;min-width:0;overflow:hidden;flex:0 0 '
+          + periodWidth + 'px;height:42px;padding:0 10px;background:' + backgroundFill(colors.header) + ';border-top:2px solid '
           + colors.line + ';border-right:1px solid ' + colors.line + ';color:' + colors.text
           + ';font-size:13px;font-weight:800;white-space:nowrap">' + format(value) + '</div>').join('');
         const totalRow = '<div style="display:flex;width:' + minWidth + 'px;min-width:' + minWidth + 'px;height:42px">'
-          + '<div style="box-sizing:border-box;position:sticky;left:0;z-index:2;display:flex;align-items:center;flex:0 0 '
-          + firstWidth + 'px;height:42px;padding:0 14px;background:' + colors.header + ';border-top:2px solid '
+          + '<div style="box-sizing:border-box;position:sticky;left:0;z-index:2;display:flex;align-items:center;min-width:0;overflow:hidden;flex:0 0 '
+          + firstWidth + 'px;height:42px;padding:0 14px;background:' + backgroundFill(colors.header) + ';border-top:2px solid '
           + colors.line + ';border-right:1px solid ' + colors.line + ';font-size:13px;font-weight:800">TOTAL</div>'
-          + totalCells + '<div style="box-sizing:border-box;position:sticky;right:0;z-index:2;display:flex;align-items:center;justify-content:flex-end;flex:0 0 '
-          + totalWidth + 'px;height:42px;padding:0 14px;background:' + colors.total + ';border-top:2px solid '
+          + totalCells + '<div title="' + escape(format(grandTotal)) + '" style="box-sizing:border-box;position:sticky;right:0;z-index:2;display:flex;align-items:center;justify-content:flex-end;min-width:0;overflow:hidden;flex:0 0 '
+          + totalWidth + 'px;height:42px;padding:0 14px;background:' + backgroundFill(colors.total) + ';border-top:2px solid '
           + colors.line + ';border-left:1px solid ' + colors.line + ';font-size:13px;font-weight:800">'
           + format(grandTotal) + '</div></div>';
         heading += '<div style="box-sizing:border-box;flex:1 1 auto;min-height:0;width:100%;overflow:auto;border-radius:8px;border:1px solid ' + colors.line
           + ';background:' + colors.surface + '"><div style="position:sticky;top:0;z-index:4;display:flex;width:'
-          + minWidth + 'px;min-width:' + minWidth + 'px;height:42px"><div style="box-sizing:border-box;position:sticky;left:0;z-index:5;display:flex;align-items:center;flex:0 0 '
-          + firstWidth + 'px;height:42px;padding:0 14px;background:' + colors.header + ';border-bottom:1px solid '
+          + minWidth + 'px;min-width:' + minWidth + 'px;height:42px"><div style="box-sizing:border-box;position:sticky;left:0;z-index:5;display:flex;align-items:center;min-width:0;overflow:hidden;flex:0 0 '
+          + firstWidth + 'px;height:42px;padding:0 14px;background:' + backgroundFill(colors.header) + ';border-bottom:1px solid '
           + colors.line + ';border-right:1px solid ' + colors.line + ';font-size:12px;font-weight:800">'
           + escape(table.first_column_label || 'Group') + '</div>' + weekHeaders
-          + '<div style="box-sizing:border-box;position:sticky;right:0;z-index:5;display:flex;align-items:center;justify-content:flex-end;flex:0 0 '
-          + totalWidth + 'px;height:42px;padding:0 14px;background:' + colors.total + ';border-bottom:1px solid '
+          + '<div style="box-sizing:border-box;position:sticky;right:0;z-index:5;display:flex;align-items:center;justify-content:flex-end;min-width:0;overflow:hidden;flex:0 0 '
+          + totalWidth + 'px;height:42px;padding:0 14px;background:' + backgroundFill(colors.total) + ';border-bottom:1px solid '
           + colors.line + ';border-left:1px solid ' + colors.line + ';font-size:12px;font-weight:800">TOTAL</div></div>'
           + '<div>' + bodyRows + totalRow + '</div></div>';
         return Editor.generateHtml('<div style="box-sizing:border-box;width:100%;height:100%;min-height:0;display:flex;flex-direction:column;padding:'

@@ -112,6 +112,45 @@ def test_weekly_shell_keeps_manual_height_and_missing_values():
     assert "right:0" in html and "left:0" in html
 
 
+def test_weekly_fixed_columns_clip_long_labels_and_cover_scrolled_content():
+    from html.parser import HTMLParser
+
+    html = render(
+        "weekly_totals_table",
+        {
+            "metric": {},
+            "date": {},
+            "group": {},
+            "prepared_data": {
+                "weeks": [{"label": "2026-W01"}, {"label": "A very long second week"}],
+                "rows": [{"label": "Campaign A", "values": [1200, 1600], "total": 123456789}],
+            },
+        },
+        {"width": 334, "height": 190},
+    )
+
+    class Cells(HTMLParser):
+        count = 0
+
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            style = attrs.get("style", "")
+            if "flex:0 0 " in style:
+                self.count += 1
+                assert "min-width:0" in style
+                assert "overflow:hidden" in style
+                assert "linear-gradient(" in style
+                assert ",var(--g-color-base-background,#ffffff)" in style
+
+    cells = Cells()
+    cells.feed(html)
+    assert cells.count == 12
+    assert 'title="A very long second week"' in html
+    assert 'title="123 456 789"' in html
+    assert 'title="1 200"' in html
+    assert 'title="2 800"' in html
+
+
 def test_nonadditive_weekly_requires_source_totals():
     import pytest
 
@@ -199,9 +238,9 @@ def test_kpi_previous_keeps_metric_unit_without_inventing_missing_value():
         "prepared_data": {"value": 84.21, "previous": 80.15, "points": []},
     }
     html = render("kpi_sparkline", bindings, {"width": 320, "height": 180})
-    previous = html.split('data-id="kpi-previous"', 1)[1].split('</div>', 1)[0]
-    assert '80.15 <small>%</small>' in previous
+    previous = html.split('data-id="kpi-previous"', 1)[1].split("</div>", 1)[0]
+    assert "80.15 <small>%</small>" in previous
     bindings["prepared_data"]["previous"] = None
     missing = render("kpi_sparkline", bindings, {"width": 320, "height": 180})
-    previous = missing.split('data-id="kpi-previous"', 1)[1].split('</div>', 1)[0]
-    assert '>—' in previous and '%' not in previous
+    previous = missing.split('data-id="kpi-previous"', 1)[1].split("</div>", 1)[0]
+    assert ">—" in previous and "%" not in previous
