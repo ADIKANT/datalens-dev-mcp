@@ -86,6 +86,9 @@ def compile_recipe(
         variant = draft["object_type"]
         draft["variant"] = variant
         draft["tabs"] = _editor_tabs(str(variant), renderer_text, contract, bindings)
+        if variant == "control_node":
+            draft["name"] = contract["object_name"]["value"] or str(bindings["parameter"]["name"])
+            draft["client_ref"] = str(bindings.get("client_ref") or "selector")
     file_map: dict[str, str] = {}
     if output_dir is not None:
         destination = Path(output_dir).expanduser().resolve()
@@ -315,7 +318,38 @@ def _editor_tabs(
     if variant != "control_node":
         tabs["sources.js"] = "module.exports = {source: {kind: 'binding'}};\n"
     if variant == "control_node":
-        tabs["controls.js"] = renderer
+        parameter = bindings.get("parameter") or {}
+        name = parameter.get("name")
+        if not isinstance(name, str) or not name:
+            raise ValueError("selector requires a parameter name")
+        options = bindings.get("options")
+        if not isinstance(options, list):
+            raise ValueError("selector requires explicit options; dynamic sources need a source-backed draft")
+        normalized = []
+        for option in options:
+            if isinstance(option, Mapping):
+                if "value" not in option or "title" not in option:
+                    raise ValueError("selector options require title and value")
+                normalized.append({"title": str(option["title"]), "value": str(option["value"])})
+            elif isinstance(option, (str, int, float)) and not isinstance(option, bool):
+                normalized.append({"title": str(option), "value": str(option)})
+            else:
+                raise ValueError("selector option must be a scalar or title/value object")
+        if len({option["value"] for option in normalized}) != len(normalized):
+            raise ValueError("selector option values must be unique")
+        default = parameter.get("default")
+        defaults = default if isinstance(default, list) else ([] if default is None else [default])
+        defaults = [str(value) for value in defaults]
+        if any(value not in {option["value"] for option in normalized} for value in defaults):
+            raise ValueError("selector default must be present in options")
+        if contract["selector"]["mode"] != "multi" and len(defaults) > 1:
+            raise ValueError("single selector cannot have multiple defaults")
+        if not contract["selector"]["clear"] and not defaults:
+            raise ValueError("required selector needs a default")
+        tabs["meta.json"] = "{}"
+        tabs["params.js"] = "module.exports = " + json.dumps({name: defaults}, ensure_ascii=False) + ";\n"
+        tabs["controls.js"] = renderer + "\nmodule.exports = module.exports(" + json.dumps(normalized, ensure_ascii=False) + ", " + json.dumps(contract, ensure_ascii=False) + ");\n"
+        return tabs
     else:
         tabs["prepare.js"] = renderer
         tabs["controls.js"] = "module.exports = {};\n"

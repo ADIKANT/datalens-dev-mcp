@@ -116,6 +116,7 @@ def test_selector_recipe_has_parameter_and_consumer_contract() -> None:
         "selector",
         bindings={
             "parameter": {"name": "region", "type": "string", "default": "all"},
+            "options": ["all", "north", "south"],
             "consumers": ["chart-a", "chart-b"],
         },
     )
