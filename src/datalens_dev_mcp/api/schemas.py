@@ -16,7 +16,9 @@ class OperationRegistry:
 
     def get(self, method: str) -> dict[str, Any]:
         try:
-            return dict(self._operations[method])
+            result = dict(self._operations[method])
+            result.setdefault("contract_kind", "operation_metadata")
+            return result
         except KeyError as exc:
             raise KeyError(f"unsupported documented DataLens method: {method}") from exc
 

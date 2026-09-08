@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from copy import deepcopy
 from dataclasses import asdict, is_dataclass, replace
 from typing import Any
 
@@ -330,8 +331,29 @@ class SdkAdapter:
                     value = target.rename(snapshot["name"])
                     return {"object_id": object_id, "object": _json_object(value), "backend": "official_sdk"}
                 rename_to = snapshot["name"]
-            builder = getattr(client.raw.replace, canonical)(target=target, response_snapshot=snapshot)
-            if canonical == "dashboard":
+            if canonical == "dataset":
+                # SDK 0.9.0 raw replacement applies create-time stripping and
+                # drops revision_id. Its domain update preserves this state.
+                # Keep the same v2 envelope through the existing direct adapter.
+                from datalens_dev_mcp.api.client import DataLensApiClient
+
+                content = snapshot.get("dataset")
+                observed = latest.get("dataset")
+                revision = content.get("revision_id") if isinstance(content, dict) else None
+                if not isinstance(revision, str) or not revision:
+                    raise ValueError("Dataset update requires the observed dataset.revision_id")
+                if not isinstance(observed, dict) or observed.get("revision_id") != revision:
+                    raise ValueError("Dataset revision changed during target fetch; re-read before retry")
+                if self._config is None:
+                    raise RuntimeError("DataLensConfig is required for Dataset update")
+                value = DataLensApiClient(self._config).write(
+                    "updateDataset", {"datasetId": object_id, "data": {"dataset": deepcopy(content)}}
+                )
+            else:
+                builder = getattr(client.raw.replace, canonical)(target=target, response_snapshot=snapshot)
+            if canonical == "dataset":
+                pass
+            elif canonical == "dashboard":
                 value = builder.execute(publish=publish)
             elif canonical in {"wizard_chart", "editor_chart", "ql_chart"}:
                 value = builder.mode("publish" if publish else "save").execute()
@@ -350,10 +372,12 @@ class SdkAdapter:
             return {
                 "object_id": _result_id(value) or object_id,
                 "object": _json_object(value),
-                "backend": "official_sdk",
+                "backend": "public_api_adapter" if canonical == "dataset" else "official_sdk",
             }
         except (httpx.TransportError, SdkTransportError) as exc:
             raise UncertainWriteError("SDK write outcome is uncertain", method=f"replace:{canonical}") from exc
+        except DataLensApiError:
+            raise
         except (ValueError, TypeError):
             raise
         except Exception as exc:

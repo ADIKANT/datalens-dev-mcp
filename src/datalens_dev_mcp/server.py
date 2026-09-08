@@ -72,7 +72,12 @@ def dl_auth_refresh() -> dict[str, Any]:
 
 
 def dl_method_schema(method: str) -> dict[str, Any]:
-    return {"ok": True, "operation": OperationRegistry.load().get(method)}
+    registry = OperationRegistry.load()
+    try:
+        return {"ok": True, "operation": registry.get(method)}
+    except KeyError:
+        return {"ok": False, "status": "not_found", "method": method,
+                "available_methods": [item["method"] for item in registry.list()]}
 
 
 def _read_service() -> ObjectReadService:
