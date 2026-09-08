@@ -117,7 +117,13 @@ def compile_recipe(
         )
         variant = draft["object_type"]
         draft["variant"] = variant
-        draft["tabs"] = _editor_tabs(str(variant), renderer_text, contract, bindings)
+        renderer_contract = contract
+        if recipe_id == "kpi_sparkline":
+            renderer_contract = deepcopy(contract)
+            renderer_contract["hint"]["enabled"] = (
+                bool(contract["hint"].get("enabled")) and contract["hint"].get("owner") == "body"
+            )
+        draft["tabs"] = _editor_tabs(str(variant), renderer_text, renderer_contract, bindings)
         draft["name"] = contract["object_name"]["value"] or str(
             (bindings.get("parameter") or {}).get("name") or recipe_id
         )
