@@ -10,7 +10,7 @@
 | `saved readback` | Контрольное чтение сохранённой версии после save |
 | `publish from saved` | Публикация, построенная из проверенной saved-версии |
 | `published readback` | Контрольное чтение опубликованной версии после publish |
-| `delete confirmation` | Подтверждение manifest action `retire_legacy_objects` с точными ID и hash неизменившегося плана |
+| `delete confirmation` | Машинный scope для manifest action `retire_legacy_objects` с точными ID и hash неизменившегося плана; уже однозначное поручение не требует новой реплики человека |
 | `project manifest` | Файл проекта с точными командами, целями, именами переменных окружения и ожидаемыми отчётами |
 | `validation coverage` | Перечень реально проверенных файлов, запросов, объектов и отчётов; пустая проверка не считается успешной |
 | `proof level` | Тип подтверждения результата: статическая проверка, чтение API, saved readback, published readback или проверка интерфейса |
