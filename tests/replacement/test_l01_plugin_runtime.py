@@ -4,9 +4,11 @@ import json
 import os
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+EXPECTED_VERSION = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
 EXPECTED_SKILLS = {
     "datalens-inspect",
     "datalens-dataset-wizard",
@@ -35,7 +37,7 @@ def _rpc(message_id: int, method: str, params: dict | None = None) -> str:
 def test_plugin_manifest_loads_bundled_skills_and_stdio_backend() -> None:
     manifest = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
     assert manifest["name"] == "datalens-dev-mcp"
-    assert manifest["version"] == "1.0.0"
+    assert manifest["version"] == EXPECTED_VERSION
     assert manifest["skills"] == "./skills/"
     assert manifest["mcpServers"] == "./.mcp.json"
 
@@ -79,12 +81,12 @@ def test_stdio_starts_without_writing_to_arbitrary_project(tmp_path: Path) -> No
 
     assert responses[0]["result"]["serverInfo"] == {
         "name": "datalens-dev-mcp",
-        "version": "1.0.0",
+        "version": EXPECTED_VERSION,
     }
     names = {tool["name"] for tool in responses[1]["result"]["tools"]}
     assert "dl_server_info" in names
     assert not names & REMOVED_TASK_TOOLS
     info = json.loads(responses[2]["result"]["content"][0]["text"])
-    assert info["version"] == "1.0.0"
+    assert info["version"] == EXPECTED_VERSION
     assert info["architecture"] == "domain-plugin"
     assert list(tmp_path.iterdir()) == []
