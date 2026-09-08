@@ -201,13 +201,17 @@ def weekly_dataset_source(bindings: Mapping[str, Any]) -> dict[str, Any]:
         str(value).lower() for value in (field.get("aggregation"), metric.get("aggregation"))
         if value is not None
     ]
-    if not aggregations or any(value not in {"sum", "count"} for value in aggregations) or metric.get("additive") is False:
+    if (
+        len(set(aggregations)) != 1
+        or aggregations[0] not in {"sum", "count"}
+        or metric.get("additive") is False
+    ):
         raise ValueError(
             "weekly Dataset auto-sum requires known sum/count aggregation across group/date rows; "
             "use explicit source or prepared_data with source-computed totals for non-additive or unknown measures"
         )
     missing = metric.get("missing_combinations", "unknown")
-    if missing not in {"unknown", "zero"} or (missing == "zero" and "count" not in aggregations):
+    if missing not in {"unknown", "zero"} or (missing == "zero" and aggregations[0] != "count"):
         raise ValueError("weekly missing_combinations must be unknown, or zero for a count measure")
     query = _dataset_query(bindings, guids, titles)
     prepare = query["prepare_prelude"] + "const Dataset = require('libs/dataset/v2');\n"

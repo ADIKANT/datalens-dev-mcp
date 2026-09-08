@@ -351,3 +351,27 @@ def test_dataset_parameter_multiple_defaults_are_rejected(tmp_path):
     binding["dataset_parameters"] = [{"id": "parameter-id", "param_name": "priority", "default": [0, False]}]
     with pytest.raises(ValueError, match="one default value"):
         _compiled_weekly(tmp_path, binding)
+
+
+@pytest.mark.parametrize("field_aggregation,binding_aggregation", [("sum", "count"), ("count", "sum")])
+def test_weekly_rejects_conflicting_additive_aggregations(tmp_path, field_aggregation, binding_aggregation):
+    binding = _weekly_binding(field_aggregation)
+    binding["metric"].update(aggregation=binding_aggregation, missing_combinations="zero")
+    with pytest.raises(ValueError, match="source-computed totals"):
+        _compiled_weekly(tmp_path, binding)
+
+
+@pytest.mark.parametrize("aggregation", ["sum", "count"])
+@pytest.mark.parametrize("origin", ["field", "binding", "both"])
+def test_weekly_consistent_aggregation_sources_remain_additive(tmp_path, aggregation, origin):
+    binding = _weekly_binding(aggregation if origin != "binding" else None)
+    if origin != "field":
+        binding["metric"]["aggregation"] = aggregation
+    if aggregation == "count":
+        binding["metric"]["missing_combinations"] = "zero"
+    prepared = _weekly_prepared(tmp_path, [
+        {"Group": "A", "Day": "2026-09-01", "Value": 10},
+        {"Group": "B", "Day": "2026-09-08", "Value": 20},
+    ], binding)
+    assert prepared["rows"][0]["values"] == [10, 0 if aggregation == "count" else None]
+    assert prepared["grand_total"] == (30 if aggregation == "count" else None)
