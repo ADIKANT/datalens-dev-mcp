@@ -117,7 +117,7 @@ def test_weekly_recipe_compiles_dataset_rows_to_iso_week_totals(tmp_path) -> Non
             "fields": [
                 {"guid": "day", "title": "Day", "type": "DIMENSION"},
                 {"guid": "priority", "title": "Priority", "type": "DIMENSION"},
-                {"guid": "current", "title": "Current issues", "type": "MEASURE"},
+                {"guid": "current", "title": "Current issues", "type": "MEASURE", "aggregation": "sum"},
             ],
             "group": {"field_guid": "priority", "label": "Priority"},
             "date": {"field_guid": "day", "label": "ISO week"},
@@ -148,9 +148,9 @@ def test_weekly_recipe_compiles_dataset_rows_to_iso_week_totals(tmp_path) -> Non
             }
         ],
         "rows": [
-            {"label": "High", "values": [12], "total": 12},
-            {"label": "Low", "values": [5], "total": 5},
-            {"label": "Medium", "values": [8], "total": 8},
+            {"label": "High", "values": [12], "value_states": ["value"], "total": 12},
+            {"label": "Low", "values": [5], "value_states": ["value"], "total": 5},
+            {"label": "Medium", "values": [8], "value_states": ["value"], "total": 8},
         ],
         "total_values": [25],
         "grand_total": 25,
@@ -206,3 +206,172 @@ def test_recipe_accepts_short_direct_source_binding_and_declares_params(tmp_path
     assert json.loads(tabs["meta.json"])["links"]["connection"] == "connection-synthetic"
     assert "region_filter" in tabs["params.js"]
     assert "qlConnectionId" in tabs["sources.js"]
+
+
+def _weekly_binding(aggregation="sum"):
+    return {
+        "dataset_id": "dataset-synthetic",
+        "fields": [
+            {"guid": "group", "title": "Group"},
+            {"guid": "date", "title": "Day"},
+            {"guid": "value", "title": "Value", "aggregation": aggregation},
+        ],
+        "group": {"field_guid": "group"},
+        "date": {"field_guid": "date"},
+        "metric": {"field_guid": "value"},
+    }
+
+
+def _compiled_weekly(tmp_path, binding):
+    return compile_recipe("weekly_totals_table", binding, user_config_path=tmp_path / "absent.json")["draft"]
+
+
+def _weekly_prepared(tmp_path, rows, binding=None):
+    draft = _compiled_weekly(tmp_path, binding or _weekly_binding())
+    script = "const Editor={getLoadedData:()=>({source:{status:'loaded'}}),wrapFn:x=>x};\n"
+    script += "const require=()=>({getDatasetRows:()=>" + json.dumps(rows) + "});\n"
+    # Execute the public emitted tab, capture the actual prepared argument passed to the renderer.
+    script += draft["tabs"]["prepare.js"]
+    script += "console.log(JSON.stringify(module.exports.render.args));"
+    return json.loads(subprocess.check_output(["node", "-e", script], text=True))[0]
+
+
+def test_weekly_additive_sum_uses_readback_semantics(tmp_path):
+    prepared = _weekly_prepared(tmp_path, [
+        {"Group": "A", "Day": "2026-09-01", "Value": 10},
+        {"Group": "A", "Day": "2026-09-02", "Value": 20},
+    ])
+    assert prepared["rows"][0]["values"] == [30]
+    assert prepared["grand_total"] == 30
+
+
+@pytest.mark.parametrize("aggregation", ["avg", "ratio", "count_distinct", "none", None])
+def test_weekly_dataset_refuses_unproven_additive_totals(tmp_path, aggregation):
+    with pytest.raises(ValueError, match="source-computed totals"):
+        _compiled_weekly(tmp_path, _weekly_binding(aggregation))
+
+
+@pytest.mark.parametrize("unknown", [None, "", "   "])
+def test_weekly_unknown_does_not_become_zero_or_partial_total(tmp_path, unknown):
+    prepared = _weekly_prepared(tmp_path, [
+        {"Group": "A", "Day": "2026-09-01", "Value": unknown},
+        {"Group": "A", "Day": "2026-09-02", "Value": 10},
+        {"Group": "B", "Day": "2026-09-08", "Value": 0},
+    ])
+    assert prepared["rows"][0]["values"] == [None, None]
+    assert prepared["rows"][0]["value_states"] == ["unknown", "missing"]
+    assert prepared["rows"][1]["values"] == [None, 0]
+    assert prepared["rows"][1]["value_states"] == ["missing", "value"]
+    assert prepared["rows"][0]["total"] is None
+    assert prepared["total_values"] == [None, None]
+    assert prepared["grand_total"] is None
+
+
+def test_weekly_declared_count_missing_combinations_zero_keeps_explicit_unknown(tmp_path):
+    binding = _weekly_binding("count")
+    binding["metric"]["missing_combinations"] = "zero"
+    prepared = _weekly_prepared(tmp_path, [
+        {"Group": "A", "Day": "2026-09-01", "Value": None},
+        {"Group": "B", "Day": "2026-09-08", "Value": 0},
+    ], binding)
+    assert prepared["rows"][0]["values"] == [None, 0]
+    assert prepared["rows"][1]["values"] == [0, 0]
+    assert prepared["total_values"] == [None, 0]
+    assert prepared["grand_total"] is None
+
+
+@pytest.mark.parametrize("value,expected", [("High", "High"), (0, "0"), (False, "false")])
+def test_dataset_parameter_scalar_and_singleton_preserve_value(tmp_path, value, expected):
+    binding = _weekly_binding()
+    binding["dataset_parameters"] = [{"id": "parameter-id", "param_name": "priority"}]
+    source = _compiled_weekly(tmp_path, binding)["bindings"]["source"]
+    for raw in (value, [value]):
+        query = _run_sources(source, {"priority": raw})
+        assert query["parameters"] == [{"id": "parameter-id", "value": expected}]
+        assert query["where"] == []
+
+
+@pytest.mark.parametrize("params", [{}, {"priority": None}, {"priority": ""}, {"priority": []}, {"priority": [""]}, {"priority": [None]}])
+def test_dataset_parameter_clear_is_omitted(tmp_path, params):
+    binding = _weekly_binding()
+    binding["dataset_parameters"] = [{"id": "parameter-id", "param_name": "priority"}]
+    source = _compiled_weekly(tmp_path, binding)["bindings"]["source"]
+    assert _run_sources(source, params)["parameters"] == []
+
+
+def test_dataset_parameter_rejects_multiple_values(tmp_path):
+    binding = _weekly_binding()
+    binding["dataset_parameters"] = [{"id": "parameter-id", "param_name": "priority"}]
+    source = _compiled_weekly(tmp_path, binding)["bindings"]["source"]
+    with pytest.raises(subprocess.CalledProcessError):
+        _run_sources(source, {"priority": ["High", "Low"]})
+
+
+@pytest.mark.parametrize("route", ["prepared_data", "source"])
+def test_weekly_ratio_preserves_source_computed_totals(tmp_path, route):
+    binding = _weekly_binding("avg")
+    binding["metric"]["aggregation"] = "ratio"
+    prepared = {
+        "weeks": [{"key": "2026-W36", "label": "2026-W36"}],
+        "rows": [
+            {"label": "A", "values": [0.8], "total": 0.8},
+            {"label": "B", "values": [0.9], "total": 0.9},
+        ],
+        "total_values": [26 / 30], "grand_total": 26 / 30,
+    }
+    if route == "prepared_data":
+        binding[route] = prepared
+    else:
+        binding[route] = {"meta": {}, "sources_js": "module.exports = {};",
+                          "prepare_js": "module.exports = " + json.dumps(prepared) + ";"}
+    draft = _compiled_weekly(tmp_path, binding)
+    script = "const Editor={wrapFn:x=>x};\n" + draft["tabs"]["prepare.js"]
+    script += "console.log(JSON.stringify(module.exports.render.args[0]));"
+    actual = json.loads(subprocess.check_output(["node", "-e", script], text=True))
+    assert actual == prepared
+    assert actual["grand_total"] == pytest.approx(0.8666666666666667)
+
+
+def test_dataset_parameter_default_false_has_runtime_spelling(tmp_path):
+    binding = _weekly_binding()
+    binding["dataset_parameters"] = [{"id": "parameter-id", "param_name": "priority", "default": False}]
+    source = _compiled_weekly(tmp_path, binding)["bindings"]["source"]
+    assert _run_sources(source, source["params"])["parameters"] == [{"id": "parameter-id", "value": "false"}]
+
+
+def test_weekly_binding_cannot_override_nonadditive_field(tmp_path):
+    binding = _weekly_binding("avg")
+    binding["metric"].update(aggregation="sum", additive=True)
+    with pytest.raises(ValueError, match="source-computed totals"):
+        _compiled_weekly(tmp_path, binding)
+
+
+def test_dataset_parameter_multiple_defaults_are_rejected(tmp_path):
+    binding = _weekly_binding()
+    binding["dataset_parameters"] = [{"id": "parameter-id", "param_name": "priority", "default": [0, False]}]
+    with pytest.raises(ValueError, match="one default value"):
+        _compiled_weekly(tmp_path, binding)
+
+
+@pytest.mark.parametrize("field_aggregation,binding_aggregation", [("sum", "count"), ("count", "sum")])
+def test_weekly_rejects_conflicting_additive_aggregations(tmp_path, field_aggregation, binding_aggregation):
+    binding = _weekly_binding(field_aggregation)
+    binding["metric"].update(aggregation=binding_aggregation, missing_combinations="zero")
+    with pytest.raises(ValueError, match="source-computed totals"):
+        _compiled_weekly(tmp_path, binding)
+
+
+@pytest.mark.parametrize("aggregation", ["sum", "count"])
+@pytest.mark.parametrize("origin", ["field", "binding", "both"])
+def test_weekly_consistent_aggregation_sources_remain_additive(tmp_path, aggregation, origin):
+    binding = _weekly_binding(aggregation if origin != "binding" else None)
+    if origin != "field":
+        binding["metric"]["aggregation"] = aggregation
+    if aggregation == "count":
+        binding["metric"]["missing_combinations"] = "zero"
+    prepared = _weekly_prepared(tmp_path, [
+        {"Group": "A", "Day": "2026-09-01", "Value": 10},
+        {"Group": "B", "Day": "2026-09-08", "Value": 20},
+    ], binding)
+    assert prepared["rows"][0]["values"] == [10, 0 if aggregation == "count" else None]
+    assert prepared["grand_total"] == (30 if aggregation == "count" else None)

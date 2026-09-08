@@ -191,15 +191,30 @@ def dashboard_builder(client: Any, specification: Mapping[str, Any], *, name: st
                 chart_id = item.get("chart_id")
                 if not isinstance(chart_id, str) or not chart_id or not isinstance(title, str) or not title:
                     raise ValueError("dashboard chart requires chart_id and title")
+                presentation = item.get("presentation") or {}
+                if not isinstance(presentation, Mapping):
+                    raise TypeError("dashboard chart presentation must be an object")
+                selected_title = presentation.get("visible_title") or {}
+                selected_hint = presentation.get("hint") or {}
+                show_title = bool(selected_title.get("visible", True)) and selected_title.get("owner", "widget") == "widget"
+                hint = (
+                    selected_hint.get("text")
+                    if (
+                        selected_hint.get("enabled", True)
+                        and selected_hint.get("owner") == "widget"
+                        and isinstance(selected_hint.get("text"), str)
+                    )
+                    else None
+                )
                 tab.add_chart(
                     chart_id,
                     title=title,
                     item_id=item_id,
                     at=at,
                     size=_tuple(item.get("size"), length=2, name="item.size", optional=True),
-                    show_title=bool(item.get("show_title", True)),
+                    show_title=bool(item.get("show_title", show_title)),
                     auto_height=bool(item.get("auto_height", False)),
-                    hint=str(item["hint"]) if item.get("hint") is not None else None,
+                    hint=str(item.get("hint", hint)) if item.get("hint", hint) is not None else None,
                 )
             elif kind == "external_selector":
                 chart_id = item.get("chart_id")

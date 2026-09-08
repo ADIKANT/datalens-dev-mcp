@@ -56,7 +56,12 @@ def compile_recipe(
         from datalens_dev_mcp.authoring.dataset_source import kpi_dataset_source
 
         bindings = {**bindings, "source": kpi_dataset_source(bindings)}
-    if recipe_id == "weekly_totals_table" and bindings.get("dataset_id") and "source" not in bindings:
+    if (
+        recipe_id == "weekly_totals_table"
+        and bindings.get("dataset_id")
+        and "source" not in bindings
+        and "prepared_data" not in bindings
+    ):
         from datalens_dev_mcp.authoring.dataset_source import weekly_dataset_source
 
         bindings = {**bindings, "source": weekly_dataset_source(bindings)}
@@ -112,7 +117,13 @@ def compile_recipe(
         )
         variant = draft["object_type"]
         draft["variant"] = variant
-        draft["tabs"] = _editor_tabs(str(variant), renderer_text, contract, bindings)
+        renderer_contract = contract
+        if recipe_id == "kpi_sparkline":
+            renderer_contract = deepcopy(contract)
+            renderer_contract["hint"]["enabled"] = (
+                bool(contract["hint"].get("enabled")) and contract["hint"].get("owner") == "body"
+            )
+        draft["tabs"] = _editor_tabs(str(variant), renderer_text, renderer_contract, bindings)
         draft["name"] = contract["object_name"]["value"] or str(
             (bindings.get("parameter") or {}).get("name") or recipe_id
         )

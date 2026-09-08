@@ -30,6 +30,9 @@ def get_authoring_defaults(
     user = _read_config(user_path)
     project = _read_config(project_path) if project_path else {}
     values = deepcopy(GENERIC_DEFAULTS)
+    if family == "kpi_sparkline":
+        # The standalone KPI renderer has always supplied its own hint target.
+        values["hint"]["owner"] = "body"
     sources = ["generic"]
     technology_source = "generic"
     for name, config in (("user", user), ("project", project)):

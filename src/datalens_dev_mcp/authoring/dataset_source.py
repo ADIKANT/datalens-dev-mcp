@@ -69,7 +69,10 @@ def _dataset_query(bindings: Mapping[str, Any], guids: list[str], titles: list[s
             raise ValueError("Dataset parameter binding requires id and param_name")
         default = parameter.get("default")
         values = default if isinstance(default, list) else ([] if default is None else [default])
-        params[name] = [str(value) for value in values]
+        values = [value for value in values if value is not None and value != ""]
+        if len(values) > 1:
+            raise ValueError(f"Dataset parameter requires one default value: {name}")
+        params[name] = [str(value).lower() if isinstance(value, bool) else str(value) for value in values]
         parameter_contracts.append({"id": identifier, "param_name": name})
     sources = "const {buildSource} = require('libs/dataset/v2');\n"
     sources += "const params = Editor.getParams();\nconst where = [];\n"
@@ -84,7 +87,9 @@ def _dataset_query(bindings: Mapping[str, Any], guids: list[str], titles: list[s
     sources += "  if (!values.length && selector.empty_selection === 'error') throw new Error('selector value is required: ' + selector.param_name);\n"
     sources += "  if (values.length || selector.empty_selection === 'none') where.push({column: selector.column, type: selector.type, operation: selector.operation, values});\n}\n"
     sources += "const datasetParameters = " + json.dumps(parameter_contracts, ensure_ascii=False) + ".map(item => {\n"
-    sources += "  const values = Array.isArray(params[item.param_name]) ? params[item.param_name] : [];\n"
+    sources += "  const raw = params[item.param_name];\n"
+    sources += "  const values = (Array.isArray(raw) ? raw : [raw]).filter(value => value !== null && value !== undefined && value !== '');\n"
+    sources += "  if (values.length > 1) throw new Error('Dataset parameter requires one value: ' + item.param_name);\n"
     sources += "  return values.length ? {id: item.id, value: String(values[0])} : null;\n}).filter(Boolean);\n"
     query = {
         "columns": titles,
@@ -190,8 +195,27 @@ def weekly_dataset_source(bindings: Mapping[str, Any]) -> dict[str, Any]:
         titles.append(title)
     if len(set(titles)) != len(titles):
         raise ValueError("weekly Dataset binding requires distinct field titles")
+    metric = bindings["metric"]
+    field = by_guid[metric["field_guid"]]
+    aggregations = [
+        str(value).lower() for value in (field.get("aggregation"), metric.get("aggregation"))
+        if value is not None
+    ]
+    if (
+        len(set(aggregations)) != 1
+        or aggregations[0] not in {"sum", "count"}
+        or metric.get("additive") is False
+    ):
+        raise ValueError(
+            "weekly Dataset auto-sum requires known sum/count aggregation across group/date rows; "
+            "use explicit source or prepared_data with source-computed totals for non-additive or unknown measures"
+        )
+    missing = metric.get("missing_combinations", "unknown")
+    if missing not in {"unknown", "zero"} or (missing == "zero" and aggregations[0] != "count"):
+        raise ValueError("weekly missing_combinations must be unknown, or zero for a count measure")
     query = _dataset_query(bindings, guids, titles)
     prepare = query["prepare_prelude"] + "const Dataset = require('libs/dataset/v2');\n"
+    prepare += "const missingValue = " + ("0" if missing == "zero" else "null") + ";\n"
     prepare += "const names = " + json.dumps(titles, ensure_ascii=False) + ";\n"
     prepare += """const sourceRows = Dataset.getDatasetRows({datasetName: 'source'});
 const isoDate = date => date.toISOString().slice(0, 10);
@@ -217,20 +241,24 @@ const valueByGroup = new Map();
 for (const row of sourceRows) {
   const week = isoWeek(row[names[1]]);
   const group = row[names[0]] == null ? '—' : String(row[names[0]]);
-  const metric = Number(row[names[2]]);
-  if (!Number.isFinite(metric)) throw new Error('weekly metric must be numeric');
+  const raw = row[names[2]];
+  const metric = raw == null || (typeof raw === 'string' && raw.trim() === '') ? null : Number(raw);
+  if (metric !== null && !Number.isFinite(metric)) throw new Error('weekly metric must be numeric');
   weekByKey.set(week.key, week);
   if (!valueByGroup.has(group)) valueByGroup.set(group, new Map());
   const values = valueByGroup.get(group);
-  values.set(week.key, (values.get(week.key) || 0) + metric);
+  const previous = values.has(week.key) ? values.get(week.key) : 0;
+  values.set(week.key, previous === null || metric === null ? null : previous + metric);
 }
+const sum = values => values.some(value => value === null) ? null : values.reduce((total, value) => total + value, 0);
 const weeks = Array.from(weekByKey.values()).sort((a, b) => a.key.localeCompare(b.key));
 const rows = Array.from(valueByGroup.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([label, values]) => {
-  const aligned = weeks.map(week => values.get(week.key) || 0);
-  return {label, values: aligned, total: aligned.reduce((sum, value) => sum + value, 0)};
+  const aligned = weeks.map(week => values.has(week.key) ? values.get(week.key) : missingValue);
+  const value_states = weeks.map(week => !values.has(week.key) ? 'missing' : values.get(week.key) === null ? 'unknown' : 'value');
+  return {label, values: aligned, value_states, total: sum(aligned)};
 });
-const total_values = weeks.map((week, index) => rows.reduce((sum, row) => sum + row.values[index], 0));
-const grand_total = total_values.reduce((sum, value) => sum + value, 0);
+const total_values = weeks.map((week, index) => sum(rows.map(row => row.values[index])));
+const grand_total = sum(total_values);
 module.exports = {weeks, rows, total_values, grand_total, state: rows.length ? 'ready' : 'no_data'};
 """
     return {
