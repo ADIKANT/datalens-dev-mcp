@@ -56,7 +56,12 @@ def compile_recipe(
         from datalens_dev_mcp.authoring.dataset_source import kpi_dataset_source
 
         bindings = {**bindings, "source": kpi_dataset_source(bindings)}
-    if recipe_id == "weekly_totals_table" and bindings.get("dataset_id") and "source" not in bindings:
+    if (
+        recipe_id == "weekly_totals_table"
+        and bindings.get("dataset_id")
+        and "source" not in bindings
+        and "prepared_data" not in bindings
+    ):
         from datalens_dev_mcp.authoring.dataset_source import weekly_dataset_source
 
         bindings = {**bindings, "source": weekly_dataset_source(bindings)}
