@@ -111,22 +111,31 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
           return Number.isFinite(numeric) ? numeric : null;
         }
 
-        let primaryMax = 1;
-        let secondaryMax = 1;
+        let primaryMax = 0;
+        let secondaryMax = 0;
+        let primaryMin = 0;
+        let secondaryMin = 0;
         if (data.stacked) {
           categories.forEach((_category, index) => {
-            let stackedValue = 0;
+            let positive = 0, negative = 0;
             bars.forEach(item => {
               const numeric = finiteValue(item.values?.[index]);
-              if (numeric !== null) stackedValue += Math.max(0, numeric);
+              if (numeric !== null) {
+                if (numeric >= 0) positive += numeric;
+                else negative += numeric;
+              }
             });
-            primaryMax = Math.max(primaryMax, stackedValue);
+            primaryMax = Math.max(primaryMax, positive);
+            primaryMin = Math.min(primaryMin, negative);
           });
         } else {
           bars.forEach(item => {
             (item.values || []).forEach(value => {
               const numeric = finiteValue(value);
-              if (numeric !== null) primaryMax = Math.max(primaryMax, numeric);
+              if (numeric !== null) {
+                primaryMax = Math.max(primaryMax, numeric);
+                primaryMin = Math.min(primaryMin, numeric);
+              }
             });
           });
         }
@@ -134,12 +143,30 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
           (item.values || []).concat(item.comparisonValues || []).forEach(value => {
             const numericValue = finiteValue(value);
             if (numericValue === null) return;
-            if (item.axis === 'right') secondaryMax = Math.max(secondaryMax, numericValue);
-            else primaryMax = Math.max(primaryMax, numericValue);
+            if (item.axis === 'right') {
+              secondaryMax = Math.max(secondaryMax, numericValue);
+              secondaryMin = Math.min(secondaryMin, numericValue);
+            } else {
+              primaryMax = Math.max(primaryMax, numericValue);
+              primaryMin = Math.min(primaryMin, numericValue);
+            }
           });
         });
 
-        function niceScale(maxValue, requestedMax) {
+        function niceScale(maxValue, requestedMax, minValue = 0) {
+          if (minValue < 0) {
+            // Reuse the accepted tick spacing, extending the domain on both sides of zero.
+            const positiveLimit = finiteValue(requestedMax);
+            const upper = positiveLimit !== null && positiveLimit > 0 ? positiveLimit : maxValue;
+            const span = niceScale(upper - minValue, null);
+            const step = span.ticks[1] - span.ticks[0];
+            const min = Math.floor(minValue / step) * step;
+            const max = Math.ceil(upper / step) * step;
+            return {min, max, ticks: Array.from(
+              {length: Math.round((max - min) / step) + 1},
+              (_unused, index) => min + index * step
+            )};
+          }
           const explicitMax = finiteValue(requestedMax);
           if (explicitMax !== null && explicitMax > 0) {
             const explicitStep = explicitMax / 4;
@@ -169,10 +196,8 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
             ticks: Array.from({length: tickCount + 1}, (_unused, index) => index * step)
           };
         }
-        const primaryScale = niceScale(primaryMax, data.primaryScaleMax);
-        const secondaryScale = niceScale(secondaryMax, data.secondaryScaleMax);
-        const primaryScaleMax = primaryScale.max;
-        const secondaryScaleMax = secondaryScale.max;
+        const primaryScale = niceScale(primaryMin < 0 ? primaryMax : Math.max(1, primaryMax), data.primaryScaleMax, primaryMin);
+        const secondaryScale = niceScale(secondaryMin < 0 ? secondaryMax : Math.max(1, secondaryMax), data.secondaryScaleMax, secondaryMin);
         function primaryTickValues() {
           return primaryScale.ticks;
         }
@@ -192,7 +217,20 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
         };
         const plotWidth = Math.max(120, width - plot.left - plot.right);
         const plotHeight = Math.max(80, height - plot.top - plot.bottom);
-        const spacing = plotWidth / Math.max(1, categories.length);
+        function scaleY(value, scale = primaryScale) {
+          const min = scale.min || 0;
+          return plot.top + plotHeight - ((value - min) / (scale.max - min)) * plotHeight;
+        }
+        const zeroY = scaleY(0);
+        const times = data.time_mode === 'temporal' && Array.isArray(data.timestamps) ? data.timestamps : [];
+        const temporal = times.length === categories.length && times.length > 1 && times.every(Number.isFinite);
+        const duration = temporal ? times[times.length - 1] - times[0] : 0;
+        const step = temporal ? Math.min(...times.slice(1).map((time, i) => time - times[i])) : 0;
+        const spacing = temporal && duration > 0 ? plotWidth * step / (duration + step)
+          : plotWidth / Math.max(1, categories.length);
+        const centerAt = index => temporal && duration > 0
+          ? plot.left + spacing / 2 + (times[index] - times[0]) / duration * (plotWidth - spacing)
+          : plot.left + spacing * index + spacing / 2;
         let marks = '';
         let valueLabels = '';
 
@@ -272,57 +310,62 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
         const dataLabelCapacity = categories.length <= 14 || spacing >= 48
           ? categories.length
           : Math.max(4, Math.floor(plotWidth / 58));
-        const stackedTotals = categories.map((_category, index) =>
+        const barLabelMagnitudes = categories.map((_category, index) =>
           bars.reduce((total, item) => {
             const numeric = finiteValue(item.values?.[index]);
-            return numeric === null ? total : total + Math.max(0, numeric);
+            return numeric === null ? total : total + Math.abs(numeric);
           }, 0)
         );
-        const barLabelIndices = valueLabelIndexSet(stackedTotals, dataLabelCapacity);
+        const barLabelIndices = valueLabelIndexSet(barLabelMagnitudes, dataLabelCapacity);
 
         categories.forEach((_category, categoryIndex) => {
-          const centerX = plot.left + spacing * categoryIndex + spacing / 2;
+          const centerX = centerAt(categoryIndex);
           if (data.stacked) {
-            let stackedHeight = 0;
-            let stackedTotal = 0;
+            let positiveTotal = 0;
+            let negativeTotal = 0;
             const renderedBarWidth = Math.max(8, Math.min(38, spacing * 0.38));
             bars.forEach(item => {
               const itemColor = themedColor(item.color);
               const numeric = finiteValue(item.values?.[categoryIndex]);
               if (numeric === null) return;
-              const value = Math.max(0, numeric);
-              const barHeight = (value / primaryScaleMax) * plotHeight;
-              const y = plot.top + plotHeight - stackedHeight - barHeight;
+              const value = numeric;
+              const start = value >= 0 ? positiveTotal : negativeTotal;
+              const end = start + value;
+              const barHeight = Math.abs(scaleY(end) - scaleY(start));
+              const y = Math.min(scaleY(start), scaleY(end));
               marks += `<rect x="${(centerX - renderedBarWidth / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${renderedBarWidth.toFixed(1)}" height="${Math.max(0, barHeight).toFixed(1)}" rx="3" fill="${itemColor}" opacity="0.90" />`;
-              if (item.showBarLabels !== false && value > 0 && barHeight >= 17 && barLabelIndices[categoryIndex]) {
+              if (item.showBarLabels !== false && value !== 0 && barHeight >= 17 && barLabelIndices[categoryIndex]) {
                 const segmentTextColor = item.color === '#D0D5DD' ? theme.textSecondary : '#FFFFFF';
                 valueLabels += `<text x="${centerX.toFixed(1)}" y="${(y + barHeight / 2 + 4).toFixed(1)}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="600" letter-spacing="0" fill="${segmentTextColor}">${esc(numberText(value, item.format || data.primaryFormat || 'integer', item.labelUnit !== undefined ? item.labelUnit : ''))}</text>`;
               }
-              stackedHeight += barHeight;
-              stackedTotal += value;
+              if (value >= 0) positiveTotal = end;
+              else negativeTotal = end;
             });
-            if (stackedTotal > 0 && bars.length > 1 && barLabelIndices[categoryIndex]) {
-              valueLabels += `<text x="${centerX.toFixed(1)}" y="${Math.max(13, plot.top + plotHeight - stackedHeight - 7).toFixed(1)}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="600" letter-spacing="0" fill="${theme.textSecondary}" style="paint-order:stroke;stroke:${theme.halo};stroke-width:3px;stroke-linejoin:round;">${esc(numberText(stackedTotal, data.primaryFormat || 'integer', ''))}</text>`;
-            }
+            [positiveTotal, negativeTotal].forEach(stackedTotal => {
+              if (stackedTotal === 0 || bars.length <= 1 || !barLabelIndices[categoryIndex]) return;
+              const labelY = stackedTotal > 0 ? Math.max(13, scaleY(stackedTotal) - 7)
+                : Math.min(height - plot.bottom + 16, scaleY(stackedTotal) + 15);
+              valueLabels += `<text x="${centerX.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="600" letter-spacing="0" fill="${theme.textSecondary}" style="paint-order:stroke;stroke:${theme.halo};stroke-width:3px;stroke-linejoin:round;">${esc(numberText(stackedTotal, data.primaryFormat || 'integer', ''))}</text>`;
+            });
           } else {
             const barWidth = Math.max(7, Math.min(34, spacing * 0.46 / Math.max(1, bars.length)));
             bars.forEach((item, barIndex) => {
               const itemColor = themedColor(item.color);
               const numeric = finiteValue(item.values?.[categoryIndex]);
               if (numeric === null) return;
-              const value = Math.max(0, numeric);
-              const barHeight = (value / primaryScaleMax) * plotHeight;
+              const value = numeric;
+              const barHeight = Math.abs(scaleY(value) - zeroY);
               const x = centerX - (barWidth * bars.length) / 2 + barWidth * barIndex;
-              const y = plot.top + plotHeight - barHeight;
+              const y = Math.min(zeroY, scaleY(value));
               marks += `<rect x="${(x + 2).toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(3, barWidth - 4).toFixed(1)}" height="${Math.max(0, barHeight).toFixed(1)}" rx="3" fill="${itemColor}" opacity="0.90" />`;
-              if (item.showBarLabels !== false && value > 0 && barLabelIndices[categoryIndex]) {
-                valueLabels += `<text x="${(x + barWidth / 2).toFixed(1)}" y="${Math.max(13, y - 7).toFixed(1)}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="600" letter-spacing="0" fill="${theme.textSecondary}" style="paint-order:stroke;stroke:${theme.halo};stroke-width:3px;stroke-linejoin:round;">${esc(numberText(value, item.format || data.primaryFormat || 'integer', item.labelUnit !== undefined ? item.labelUnit : item.unit || ''))}</text>`;
+              if (item.showBarLabels !== false && value !== 0 && barLabelIndices[categoryIndex]) {
+                valueLabels += `<text x="${(x + barWidth / 2).toFixed(1)}" y="${(value >= 0 ? Math.max(13, y - 7) : Math.min(height - plot.bottom + 16, y + barHeight + 15)).toFixed(1)}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="600" letter-spacing="0" fill="${theme.textSecondary}" style="paint-order:stroke;stroke:${theme.halo};stroke-width:3px;stroke-linejoin:round;">${esc(numberText(value, item.format || data.primaryFormat || 'integer', item.labelUnit !== undefined ? item.labelUnit : item.unit || ''))}</text>`;
               }
             });
           }
         });
 
-        function pointSegments(values, maxValue) {
+        function pointSegments(values, scale) {
           const segments = [];
           let currentSegment = [];
           (values || []).forEach((value, index) => {
@@ -332,8 +375,8 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
               currentSegment = [];
               return;
             }
-            const x = plot.left + spacing * index + spacing / 2;
-            const y = plot.top + plotHeight - (numeric / maxValue) * plotHeight;
+            const x = centerAt(index);
+            const y = scaleY(numeric, scale);
             currentSegment.push({x, y, value: numeric, index});
           });
           if (currentSegment.length) segments.push(currentSegment);
@@ -343,11 +386,11 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
         lines.forEach((item, lineIndex) => {
           const itemColor = themedColor(item.color);
           const comparisonColor = themedColor(item.comparisonColor || item.color);
-          const maxValue = item.axis === 'right' ? secondaryScaleMax : primaryScaleMax;
-          const segments = pointSegments(item.values || [], maxValue);
+          const scale = item.axis === 'right' ? secondaryScale : primaryScale;
+          const segments = pointSegments(item.values || [], scale);
           const comparisonSegments = item.showComparisonLine === false
             ? []
-            : pointSegments(item.comparisonValues || [], maxValue);
+            : pointSegments(item.comparisonValues || [], scale);
           comparisonSegments.forEach(segment => {
             if (segment.length < 2) return;
             marks += `<polyline fill="none" stroke="${comparisonColor}" opacity="0.50" stroke-width="2.2" stroke-dasharray="6 5" stroke-linecap="round" stroke-linejoin="round" points="${segment.map(point => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ')}" />`;
@@ -383,21 +426,22 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
               if (isLocalMinimum) adjustedLabelOffset = 18 + lineIndex * 10;
               else if (isLocalMaximum) adjustedLabelOffset = -10 - lineIndex * 10;
               if (bars.length) {
-                let nearestBarTop = plot.top + plotHeight;
+                let nearestBarTop = zeroY;
+                const belowZero = point.y > zeroY;
                 if (data.stacked) {
                   const stackedValue = bars.reduce((total, bar) => {
                     const numeric = finiteValue(bar.values?.[point.index]);
-                    return numeric === null ? total : total + Math.max(0, numeric);
+                    if (numeric === null || (belowZero ? numeric >= 0 : numeric < 0)) return total;
+                    return total + numeric;
                   }, 0);
-                  nearestBarTop = plot.top + plotHeight - (stackedValue / primaryScaleMax) * plotHeight;
+                  nearestBarTop = scaleY(stackedValue);
                 } else {
                   bars.forEach(bar => {
                     const numeric = finiteValue(bar.values?.[point.index]);
                     if (numeric === null) return;
-                    nearestBarTop = Math.min(
-                      nearestBarTop,
-                      plot.top + plotHeight - (Math.max(0, numeric) / primaryScaleMax) * plotHeight
-                    );
+                    nearestBarTop = belowZero
+                      ? Math.max(nearestBarTop, scaleY(numeric))
+                      : Math.min(nearestBarTop, scaleY(numeric));
                   });
                 }
                 if (Math.abs(point.y - nearestBarTop) < 24) {
@@ -411,7 +455,7 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
         });
 
         const grid = primaryTicks.map(value => {
-          const y = plot.top + plotHeight - (value / primaryScaleMax) * plotHeight;
+          const y = scaleY(value);
           return `
             <line x1="${plot.left}" y1="${y}" x2="${width - plot.right}" y2="${y}" stroke="${theme.grid}" stroke-width="1" />
             <text x="${plot.left - 9}" y="${y + 4}" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="500" letter-spacing="0" fill="${theme.textSecondary}">${esc(numberText(value, data.primaryFormat || 'integer', ''))}</text>
@@ -423,7 +467,7 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
         const xLabelIndices = labelIndexSet(categories.length, maxXAxisLabels);
         const xLabels = categories.map((category, index) => {
           if (!xLabelIndices[index]) return '';
-          const x = plot.left + spacing * index + spacing / 2;
+          const x = centerAt(index);
           const rawLabel = String(category);
           let label = rawLabel;
           if (/^\d{4}-\d{2}-\d{2}/.test(rawLabel)) {
@@ -440,7 +484,7 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
           <line x1="${plot.left}" y1="${xAxisY}" x2="${width - plot.right}" y2="${xAxisY}" stroke="${theme.border}" stroke-width="1" />
           ${categories.map((_category, index) => {
             if (!xLabelIndices[index]) return '';
-            const x = plot.left + spacing * index + spacing / 2;
+            const x = centerAt(index);
             return `<line x1="${x}" y1="${xAxisY}" x2="${x}" y2="${xAxisY + 4}" stroke="${theme.border}" stroke-width="1" />`;
           }).join('')}
         `;
@@ -457,8 +501,9 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
           return primary + comparison;
         }).join('');
         const hoverZones = categories.map((_category, index) => {
-          const x = plot.left + spacing * index;
-          return `<rect x="${x.toFixed(2)}" y="${plot.top}" width="${spacing.toFixed(2)}" height="${(plotHeight + plot.bottom).toFixed(2)}" fill="#FFFFFF" opacity="0.001" pointer-events="all" data-id="combo-bucket-${index}" />`;
+          const x = index === 0 ? plot.left : (centerAt(index - 1) + centerAt(index)) / 2;
+          const right = index === categories.length - 1 ? plot.left + plotWidth : (centerAt(index) + centerAt(index + 1)) / 2;
+          return `<rect x="${x.toFixed(2)}" y="${plot.top}" width="${(right - x).toFixed(2)}" height="${(plotHeight + plot.bottom).toFixed(2)}" fill="#FFFFFF" opacity="0.001" pointer-events="all" data-id="combo-bucket-${index}" />`;
         }).join('');
 
         return `

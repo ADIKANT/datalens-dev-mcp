@@ -1,5 +1,7 @@
 # Safety model
 
+> Archived pre-1.0 runtime documentation. Its manifest/task lifecycle is not the current contract. Use [direct operations](usage-flow_en.md) and the installed `tools/list`.
+
 [Русский](local-only-safety-model.md) · **English** · [Project home](../README_en.md) · [Safe Apply](safe-apply_en.md)
 
 `datalens-dev-mcp` runs locally over stdio and inherits the permissions of the user and MCP client. It opens outbound connections only to the configured DataLens API and does not start a network listener.
@@ -38,11 +40,13 @@ A revision conflict, object lock, uniqueness conflict, or unknown write outcome 
 
 ## Deletion
 
+These historical manifest fields describe a machine handshake, not a fresh human-reply requirement. An already explicit deletion request authorizes its exact scope. Revalidate a changed plan against that scope and preservation constraints; ask only for an unresolved conflict or expanded scope. Current typed cleanup uses exact `confirmed_delete` with fresh dependency preview.
+
 Arbitrary whole-object deletion is unsupported. Only a project-manifest
-`retire_legacy_objects` action uses separate confirmation: the first call
+`retire_legacy_objects` action uses a separate machine handshake: the first call
 returns exact IDs, relations, and the plan hash, and the second passes
-`confirm_delete=true` for that same plan. A changed plan must be confirmed
-again. Whole-object QL deletion is unsupported.
+`confirm_delete=true` for that same plan. A changed plan must be revalidated
+against the authorized scope. Whole-object QL deletion is unsupported.
 
 Removing an element inside an object, such as a legend, filter, column, tab, or widget, is an update. Object moves, permission changes, and credential mutations are unsupported.
 

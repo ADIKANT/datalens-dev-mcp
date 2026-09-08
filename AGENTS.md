@@ -7,9 +7,11 @@ This repository owns the local `datalens-dev-mcp` Python stdio server.
 - Work from the exact dashboard project or subproject root. Use its local context; do not substitute the server repository.
 - Use the installed DataLens domain skills and typed public tools. Do not read server source or run server tests for an ordinary dashboard request.
 - Use scoped API reads, save/readback, publish-from-saved, and published readback. When rendered evidence is required, use Browser read-only after API and applicable data checks.
-- Read-only analysis does not need confirmation. Show one compact plan before a substantial mutation; one confirmation covers the unchanged plan. Destructive actions always require exact-object confirmation.
+- An explicit request authorizes its clear target, scope, and delivery steps. Show a compact plan for substantial changes and continue without repeated plan/save/publish questions. Read-only means no writes; save-only means no publish. Stop for an unresolved target, conflicting constraints, expanded scope, or a real access boundary.
+- Scoped cleanup retains fresh dependency preview, exact machine `confirmed_delete`, preserve checks, and readback. A clear request for those deletions is authorization; the machine scope is not proof of a new human reply. Reconcile preview drift and ask only if it creates a real scope conflict.
 - Preserve an existing object's technology. Use Wizard for new standard charts, Editor/JavaScript only by direct request or a documented gap, and QL only by direct request.
-- Never guess IDs, expose secrets, change permissions, or write to production or unowned objects.
+- Never guess IDs or expose secrets. Work on user-authorized DataLens objects within current technical rights, including working dashboards. A dashboard request does not authorize ACL changes, upstream production database writes, or changes to unowned objects.
+- Distinguish a model question, native permission event, and automatic reviewer result. `outcome=allow` is not a pending human prompt. Respect real host restrictions; do not change global approval settings or external skills to bypass them.
 
 ## Server maintenance
 

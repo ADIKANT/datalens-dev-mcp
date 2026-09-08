@@ -1,8 +1,31 @@
 /* Standalone KPI with comparison and sparkline. Data loading stays in Prepare. */
 module.exports = function renderKpi(data, config) {
+  // Compute one serializable semantic model for both isolated Editor callbacks.
+  const numeric = value => typeof value === 'number' && Number.isFinite(value);
+  const semantic = config.kpi || {};
+  const scale = semantic.value_scale === 'fraction' ? 100 : 1;
+  const unit = ['from_field', 'count'].includes(config.labels.unit) ? '' : String(config.labels.unit || '');
+  const precision = Number.isInteger(config.labels.precision) ? Math.max(0, Math.min(10, config.labels.precision)) : 0;
+  const format = value => numeric(value) ? (value * scale).toFixed(precision).split('.').map((part, index) => index === 0 ? part.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') : part).join('.') : '—';
+  const valid = numeric(data && data.value) && numeric(data && data.previous);
+  const difference = valid ? data.value - data.previous : null;
+  const kind = semantic.delta_kind || 'relative';
+  // Relative change deliberately uses abs(previous), including negative baselines.
+  const delta = !valid ? null : kind === 'relative' ? (data.previous === 0 ? null : difference / Math.abs(data.previous) * 100) : difference * scale;
+  const deltaUnit = kind === 'relative' ? '%' : kind === 'percentage_points' ? ' pp' : unit ? ' ' + unit : '';
+  const rounded = numeric(delta) ? kind === 'absolute' ? delta.toFixed(precision) : String(Math.round(delta * 10) / 10) : null;
+  const deltaText = rounded === null ? 'n/a' : (delta > 0 ? '+' : '') + rounded + deltaUnit;
+  const direction = semantic.direction === 'higher_is_better' ? 1 : semantic.direction === 'lower_is_better' ? -1 : 0;
+  const model = {
+    value: format(data && data.value), previous: format(data && data.previous), unit,
+    deltaText, assessment: numeric(delta) ? Math.sign(delta) * direction : 0,
+    reason: !valid ? 'Missing comparison' : !numeric(delta) ? 'Undefined: previous = 0' : deltaText,
+    rawValue: numeric(data && data.value) ? String(data.value) + (semantic.value_scale === 'fraction' ? ' (fraction)' : unit ? ' ' + unit : '') : '—',
+    rawPrevious: numeric(data && data.previous) ? String(data.previous) + (semantic.value_scale === 'fraction' ? ' (fraction)' : unit ? ' ' + unit : '') : '—'
+  };
   return {
     render: Editor.wrapFn({
-      fn: function(options, prepared, presentation) {
+      fn: function(options, prepared, presentation, model) {
         const escape = value => String(value == null ? '' : value)
           .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
           .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -38,25 +61,22 @@ module.exports = function renderKpi(data, config) {
         if (messages[state]) {
           html += '<div role="status">' + messages[state] + '</div>';
         } else {
-          const valid = numeric(prepared.value) && numeric(prepared.previous);
-          const delta = valid ? prepared.value - prepared.previous : null;
-          const pct = valid && prepared.previous !== 0 ? Math.round(delta / Math.abs(prepared.previous) * 1000) / 10 : null;
-          const deltaText = pct === null ? 'n/a' : (pct > 0 ? '+' : '') + String(pct) + '%';
-          const positive = pct !== null && pct > 0, negative = pct !== null && pct < 0;
+          const deltaText = model.deltaText;
+          const positive = model.assessment > 0, negative = model.assessment < 0;
           const bg = positive ? '#E6F4EA' : negative ? '#FDECEC' : '#F3F4F6';
           const fg = positive ? '#0B8043' : negative ? '#B3261E' : '#5F6368';
           html += '<div style="display:flex;flex-direction:column;gap:' + (dense ? 2 : 4) + 'px">'
             + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:' + (dense ? 10 : 14) + 'px">'
             + '<div data-id="kpi-value" style="font-size:' + valueSize + 'px;line-height:' + valueLine
-            + 'px;font-weight:700;letter-spacing:-0.03em;white-space:nowrap;cursor:help">' + escape(format(prepared.value))
+            + 'px;font-weight:700;letter-spacing:-0.03em;white-space:nowrap;cursor:help">' + escape(model.value)
             + (unit && numeric(prepared.value) ? ' <small>' + escape(unit) + '</small>' : '') + '</div>'
-            + '<div data-id="kpi-delta" aria-label="' + escape(!valid ? 'Missing comparison' : prepared.previous === 0 ? 'Undefined: previous = 0' : deltaText) + '" style="padding:' + (dense ? '5px 8px' : '6px 10px') + ';border-radius:' + (dense ? 10 : 14)
+            + '<div data-id="kpi-delta" aria-label="' + escape(model.reason) + '" style="padding:' + (dense ? '5px 8px' : '6px 10px') + ';border-radius:' + (dense ? 10 : 14)
             + 'px;background:' + bg + ';color:' + fg + ';font-size:' + deltaSize + 'px;line-height:' + (deltaSize + 2)
             + 'px;font-weight:800;white-space:nowrap;letter-spacing:-0.02em;flex:0 0 auto">' + escape(deltaText) + '</div></div>'
             + '<div style="font-size:' + labelSize + 'px;line-height:' + (labelSize + 2) + 'px;color:' + muted
             + ';text-transform:uppercase;letter-spacing:0.08em;font-weight:800">' + escape(presentation.comparison.label || 'VS PREV WINDOW') + '</div>'
             + '<div data-id="kpi-previous" style="font-size:' + previousSize + 'px;line-height:' + (previousSize + 2)
-            + 'px;color:' + muted + ';font-weight:700;letter-spacing:-0.02em">' + escape(format(prepared.previous))
+            + 'px;color:' + muted + ';font-weight:700;letter-spacing:-0.02em">' + escape(model.previous)
             + (unit && numeric(prepared.previous) ? ' <small>' + escape(unit) + '</small>' : '') + '</div></div>';
           const points = Array.isArray(prepared.points) ? prepared.points : [];
           const values = points.map(p => p && typeof p === 'object' ? p.value : p);
@@ -66,16 +86,20 @@ module.exports = function renderKpi(data, config) {
             const sh = Math.max(34, Math.min(dense ? 52 : 82, height - reserved));
             const sw = Math.max(120, width - px * 2), base = sh - 3;
             const low = Math.min(0, ...finite), high = Math.max(1, ...finite), span = high - low;
+            const zero = base + low * (sh - 6) / span;
+            const times = points.map(p => p && p.timestamp);
+            const temporal = prepared.time_mode === 'temporal' && times.every(numeric);
+            const t0 = times[0], t1 = times[times.length - 1];
             const segments = []; let segment = [];
             values.forEach((v, i) => {
               if (!numeric(v)) { if (segment.length) segments.push(segment); segment = []; return; }
-              segment.push({x: 3 + (values.length === 1 ? (sw - 6) / 2 : i * (sw - 6) / (values.length - 1)), y: base - (v - low) * (sh - 6) / span, i: i});
+              segment.push({x: 3 + (values.length === 1 ? (sw - 6) / 2 : temporal && t1 !== t0 ? (times[i] - t0) * (sw - 6) / (t1 - t0) : i * (sw - 6) / (values.length - 1)), y: base - (v - low) * (sh - 6) / span, i: i});
             });
             if (segment.length) segments.push(segment);
             const marks = segments.map(seg => {
               const coordinates = seg.map(p => p.x.toFixed(2) + ',' + p.y.toFixed(2)).join(' ');
               return '<polyline data-id="sparkline-area" fill="' + accent + '" fill-opacity="' + (dense ? '.08' : '.10')
-                + '" stroke="none" points="' + seg[0].x + ',' + base + ' ' + coordinates + ' ' + seg[seg.length - 1].x + ',' + base + '" />'
+                + '" stroke="none" points="' + seg[0].x + ',' + zero + ' ' + coordinates + ' ' + seg[seg.length - 1].x + ',' + zero + '" />'
                 + '<polyline fill="none" stroke="' + accent + '" stroke-width="' + (dense ? 2 : 2.5) + '" stroke-linecap="round" stroke-linejoin="round" points="' + coordinates + '" />'
                 + seg.map(p => '<circle data-id="sparkline-point-' + p.i + '" cx="' + p.x + '" cy="' + p.y + '" r="' + (seg.length === 1 ? 2 : 5) + '" fill="' + (seg.length === 1 ? accent : 'transparent') + '" />').join('');
             }).join('');
@@ -87,11 +111,11 @@ module.exports = function renderKpi(data, config) {
           + 'px;background:transparent;border:none;border-radius:0;box-shadow:none;font-family:Inter,Arial,sans-serif;color:' + text
           + ';display:flex;flex-direction:column;gap:' + gap + 'px;overflow:hidden">' + html + '</div>');
       },
-      args: [data, config]
+      args: [data, config, model]
     }),
     tooltip: {
       renderer: Editor.wrapFn({
-        fn: function(event, prepared, presentation) {
+        fn: function(event, prepared, presentation, model) {
           const escape = value => String(value == null ? '' : value)
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -101,8 +125,8 @@ module.exports = function renderKpi(data, config) {
           const format = value => numeric(value) ? value.toFixed(precision).split('.').map((part, index) => index === 0 ? part.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') : part).join('.') : '—';
           const id = event && event.target && event.target.getAttribute
             ? String(event.target.getAttribute('data-id') || '') : '';
-          const unit = presentation.tooltip.unit === true || presentation.tooltip.unit === 'from_field'
-            ? '' : String(presentation.tooltip.unit || presentation.labels.unit || '');
+          const unit = model.unit;
+          const scale = presentation.kpi.value_scale === 'fraction' ? 100 : 1;
           if (id === 'kpi-hint') {
             const text = presentation.hint.text
               || (Array.isArray(presentation.hint.content) ? presentation.hint.content.join(' · ') : '');
@@ -115,22 +139,22 @@ module.exports = function renderKpi(data, config) {
             const value = point && typeof point === 'object' ? point.value : point;
             const period = point && typeof point === 'object' ? (point.date || point.period || '') : '';
             return Editor.generateHtml('<div style="padding:10px"><strong>' + escape(period)
-              + '</strong><div>' + escape(format(value)) + (unit ? ' ' + escape(unit) : '') + '</div></div>');
+              + '</strong><div>' + escape(format(numeric(value) ? value * scale : value)) + (unit ? ' ' + escape(unit) : '') + '</div></div>');
           }
-          if (id !== 'kpi-value' && id !== 'kpi-delta') return '';
+          if (id !== 'kpi-value' && id !== 'kpi-delta' && id !== 'kpi-previous') return '';
           const value = prepared.value;
           const previous = prepared.previous;
-          const delta = numeric(value) && numeric(previous) ? value - previous : null;
-          const relative = numeric(delta) && previous !== 0 ? delta / Math.abs(previous) * 100 : null;
           return Editor.generateHtml('<div style="padding:10px;min-width:220px">'
             + '<div><strong>Current</strong> ' + escape(prepared.current_period || '') + ': '
-            + escape(format(value)) + (unit ? ' ' + escape(unit) : '') + '</div>'
+            + escape(model.value) + (unit ? ' ' + escape(unit) : '') + '</div>'
             + '<div><strong>Previous</strong> ' + escape(prepared.previous_period || '') + ': '
-            + escape(format(previous)) + (unit ? ' ' + escape(unit) : '') + '</div>'
-            + '<div><strong>Change</strong>: ' + escape(format(delta)) + ' · '
-            + (relative === null ? 'Undefined' : escape(format(relative)) + '%') + '</div></div>');
+            + escape(model.previous) + (unit ? ' ' + escape(unit) : '') + '</div>'
+            + '<div><strong>Change</strong>: ' + escape(model.deltaText) + '</div>'
+            + '<div>' + escape(model.reason) + '</div>'
+            + '<div><strong>Raw current</strong>: ' + escape(model.rawValue) + '</div>'
+            + '<div><strong>Raw previous</strong>: ' + escape(model.rawPrevious) + '</div></div>');
         },
-        args: [data, config]
+        args: [data, config, model]
       })
     }
   };

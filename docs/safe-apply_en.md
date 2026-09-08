@@ -1,5 +1,7 @@
 # Safe Apply
 
+> Archived pre-1.0 runtime documentation. Its manifest/task lifecycle is not the current contract. Use [direct operations](usage-flow_en.md) and the installed `tools/list`.
+
 [Русский](safe-apply.md) · **English** · [Workflows](usage-flow_en.md) · [Safety](local-only-safety-model_en.md)
 
 Safe Apply connects the original user request, exact target, current revision, DataLens API request, and readback results.
@@ -29,7 +31,7 @@ An explicit create, fix, update, enhance, or redesign request for a known object
 | plan-only, dry-run | Plan without writing |
 | save-only, no-publish, draft | Save and saved readback |
 | create, fix, update, enhance, redesign | Save, saved readback, publish-from-saved, published readback |
-| manifest action `retire_legacy_objects` | Deletion plan and separate confirmation |
+| manifest action `retire_legacy_objects` | Deletion plan and exact machine scope |
 
 The mode is stored in the plan and inherited by publish-from-saved. Publishing does not run when the original request was `save-only` or `no-publish`.
 
@@ -158,6 +160,8 @@ readback returns aggregate `status=partial` instead of being flattened into a
 no-write failure.
 
 ## Delete a complete object
+
+These historical manifest fields describe a machine handshake, not a fresh human-reply requirement. An already explicit deletion request authorizes its exact scope. Revalidate a changed plan against that scope and preservation constraints; ask only for an unresolved conflict or expanded scope. Current typed cleanup uses exact `confirmed_delete` with fresh dependency preview.
 
 Arbitrary whole-object deletion is not part of the standard lifecycle surface.
 The only supported path is a project-manifest `retire_legacy_objects` action.

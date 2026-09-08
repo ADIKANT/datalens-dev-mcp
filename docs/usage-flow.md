@@ -1,336 +1,37 @@
-# Сценарии использования
-
-**Русский** · [English](usage-flow_en.md) · [Главная](../README.md)
-
-[Быстрый старт](../README.md#быстрый-старт) · [Доступ к DataLens](access.md) · [Подключение](codex_setup.md) · [Инструменты](tools.md) · **Сценарии** · [Источники](sources.md) · [Безопасность](local-only-safety-model.md) · [English](usage-flow_en.md)
-
-Codex, Claude и другие stdio-клиенты используют один и тот же цикл. Отличается только способ регистрации сервера. По умолчанию клиент видит восемь task-level инструментов `autonomous-v2`; перечисленные ниже low-level шаги сервер выполняет внутри workflow.
-
-## Автономный task-workflow
-
-```text
-dl_task_start(request, run_until="plan_ready")
-  -> dl_task_status / dl_inspect при необходимости
-  -> dl_plan для явного повторного чтения hash-bound плана
-  -> dl_execute(task_id, plan_hash) для задач с записью
-     или dl_task_resume для продолжения server-owned workflow
-  -> dl_verify
-  -> dl_evidence для одного bounded artifact
-```
-
-`dl_task_start` компилирует неизменяемые target, reference, technology,
-delivery, evidence и browser-policy и возвращает компактный `execution_brief` с
-полностью заполненным `next_call`. Mutation обычно останавливается в
-`PLAN_VALIDATED` для одного подтверждения. Обычная поправка передаётся простой
-строкой `follow_up`; сервер сам определяет её связь с текущей task.
-`dl_task_resume` сохраняет task ID и инвалидирует только зависящие artifacts.
-Review, audit, diagnose и plan-only завершаются без записи. `dl_execute`
-исполняет только сохранённый Safe Apply plan и не принимает произвольный payload.
-
-До материализации плана server-owned workflow обнаруживает зависимости dataset и выполняет bounded `getDatasetData` `context_probe`. Он связывает с планом реальные GUID полей, наблюдаемые диапазоны дат, candidate roles для measure/dimension/selector, sampled domains и ограничения полноты. На стадии `dl_verify` выполняется отдельный fresh `assertion_probe`; unexpected empty переводит workflow в bounded diagnostics. Endpoint не имеет `rev_id` и branch semantics, поэтому server не приписывает ему saved/published доказательство. При недоступности endpoint остаются `source_static`, `fallback_kind` и schema-only limitations, а не ложный live success. Raw rows не возвращаются inline.
-
-Полные планы, receipts и доказательства читаются через `datalens://tasks/<TASK_ID>/...`; inline-ответ остаётся компактным. Для существующих клиентов можно локально включить `DATALENS_MCP_TOOL_SURFACE=legacy-v1`, но новый автономный цикл не требует прямого вызова внутренних инструментов.
-
-Регрессионная проверка разделена точно по назначению. `tests/regression/policy_matrix/` — статическая synthetic matrix для schemas, invariants и privacy. `tests/regression/behavior_traces/` — 40 sanitized behavior families / 80 исполняемых variants, которые проходят только через публичный JSON-RPC `tools/call` в профиле `autonomous-v2`. Raw session archive используется только offline builder-ом и не входит в package. Проверки запускаются `scripts/validate_behavior_trace_corpus.py` и `scripts/run_public_autonomy_acceptance.py`.
-
-Финальный live-proof не смешивается с offline regression. После фиксации
-исходников установленный wheel проходит один dedicated-target canary через
-публичный stdio: save один раз, restart, resume, publish один раз, typed data
-proof и stale-plan negative без записи. Точный контракт и команда приведены в
-[`public-autonomy-canary.md`](public-autonomy-canary.md).
-
-### Создание набора объектов в известном воркбуке
-
-Для `create` передайте `context.workbook_id` и относительный к `project_root`
-путь `context.create_manifest`. Manifest версии 1 содержит до 25 объектов с
-типизированными маршрутами, относительными JSON payload-файлами и явными
-зависимостями. Ссылка `${object:<key>}` разрешается только после подтверждённого
-saved readback предыдущего объекта. Server хеширует manifest и payload до первой
-записи, сверяет свежий inventory воркбука и сохраняет progress для безопасного
-resume без повторного create.
-
-Поддерживаются `dataset`, `wizard_chart`, `editor_chart`, `editor_markdown` и
-`dashboard`; `ql_chart` допустим только при прямом запросе QL. Absolute/path
-escape, дрейф payload, неверный порядок зависимостей и неоднозначный resume
-блокируются до следующей записи. Dataset проходит save/readback, но не publish;
-остальные publishable-объекты публикуются только после успешной saved-фазы всей
-связанной группы.
-
-## Полный цикл
-
-```text
-подключение MCP-клиента
-  -> проверка локальных настроек
-  -> проверка реального доступа к DataLens
-  -> поиск воркбука
-  -> чтение целевого объекта и связей
-  -> планирование изменения
-  -> проверка объекта и проекта
-  -> сохранение
-  -> контрольное чтение сохранённой версии
-  -> публикация из сохранённой версии
-  -> контрольное чтение опубликованной версии
-  -> проверка результата в интерфейсе DataLens
-```
-
-Формулировка задачи выбирает точку остановки. Перед существенной mutation
-сервер возвращает один компактный план; подтверждение покрывает неизменённые
-save и publish. Destructive cleanup доступен только для точных run-owned
-объектов с ownership receipt и требует отдельного exact-object token.
-
-## Подключение и проверка
-
-1. Установите пакет по [быстрому старту](../README.md#быстрый-старт).
-2. Настройте `yc`, ID организации, IAM-токен и роли по [руководству доступа](access.md).
-3. Зарегистрируйте stdio-сервер в клиенте. Для Codex используйте [пошаговую инструкцию](codex_setup.md).
-4. Перезапустите клиент и проверьте подключение.
-5. Вызовите `dl_runtime_status`, затем `dl_auth_probe`.
-
-Промпт:
-
-> Используй DataLens MCP. Покажи результат `dl_runtime_status`: project root, версию API, наличие учётных данных без значений, доступность записи, сохранения, публикации и обновления токена. Затем вызови `dl_auth_probe`. На этом шаге ничего не изменяй.
-
-`dl_runtime_status` проверяет локальную конфигурацию. `dl_auth_probe` обращается к `getWorkbooksList` и при необходимости получает или обновляет IAM-токен через настроенный `yc`.
-
-## Аудит без записи
+# Прямые операции DataLens
 
-Используйте этот режим, когда нужно понять устройство дашборда, найти проблему или подготовить рекомендации.
+[English](usage-flow_en.md) · [Подключение](codex_setup.md) · [25 инструментов](tools.md) · [Документация](README.md)
 
-```text
-dl_runtime_status
-  -> dl_auth_probe
-  -> dl_list_workbooks
-  -> dl_get_workbook_entries
-  -> dl_snapshot_dashboard
-  -> dl_read_object
-  -> dl_get_entries_relations
-  -> dl_diagnose или dl_reference при необходимости
-```
-
-Для существующего дашборда `dl_snapshot_dashboard` сохраняет снимок самого
-дашборда и связанных объектов. Поле `completion.status` различает `complete`,
-`partial` и `unsafe`; `coverage.scope=dashboard_dependency_graph` не является
-заявлением о полноте всего пространства или организации.
-`dl_get_entries_relations` показывает зависимости, которые нужно учесть перед
-изменением.
+Работайте из точного dashboard project/subproject через установленные domain skills. Текущий backend предоставляет прямые типизированные операции. Модель выбирает нужный skill и вызывает его инструменты; точные schemas аргументов возвращает установленный `tools/list`.
 
-Промпт:
+## Чтение и выбор
 
-> Проведи аудит дашборда `<DASHBOARD_ID>` в воркбуке `<WORKBOOK_ID>`. Прочитай актуальную сохранённую версию, создай снимок со связанными объектами, проверь связи и найди риски. Верни краткие выводы и пути к отчётам. Ничего не сохраняй и не публикуй.
+Начинайте с указанного URL или точного объекта. Используйте `dl_server_info` для версии runtime и `dl_auth_check`, когда нужна безопасная проверка доступа. Читайте объект через `dl_object_get`, явно выбирая saved или published branch, а нужные зависимости — через `dl_object_relations`. `dl_workbooks_list` и `dl_workbook_entries` нужны для inventory; проходите страницы и явно отмечайте неполноту.
 
-## Быстрая генерация и доставка отдельной HTML-страницы
+Read-only анализ завершается отчётом без mutation и создания файлов проекта. Target и visual reference — разные объекты. Сохраняйте текущую технологию, ручную геометрию и изменения за пределами поручения.
 
-Сначала используйте один локальный цикл для самодостаточного документа:
+## Authoring и доставка
 
-```text
-dl_generate_editor_bundle с html_page
-  -> dl_validate_editor_runtime_contract для созданного .html
-  -> готовый локальный artifact
-```
+Выберите [Dataset/Wizard](../skills/datalens-dataset-wizard/SKILL.md), [Editor](../skills/datalens-editor/SKILL.md) или [Dashboard](../skills/datalens-dashboard/SKILL.md). Для нового стандартного чарта предпочтителен Wizard; существующий Editor или Wizard сохраняет технологию. QL требует прямого запроса.
 
-Генератор возвращает путь, размер, hash и результат проверки, но не дублирует
-HTML в MCP-ответе и сам не выполняет live-запись. Для доставки в известный
-воркбук передайте проверенный `content` в обычный lifecycle:
-
-```text
-dl_plan_object_create с object_type=html_page
-  -> dl_create_safe_apply_plan
-  -> dl_execute_safe_apply:
-       createHtmlPage
-       getHtmlPage(saved)
-       updateHtmlPage(entryId, revId, mode=publish)
-       getHtmlPage(published)
-```
-
-Обновление использует `updateHtmlPage` с новым content для save и только
-проверенный saved `revId` для publish. `deleteHtmlPage` остаётся закрыт общей
-политикой whole-object deletion. Ограничения и sandbox-контракт описаны в
-[руководстве по HTML-страницам](datalens/html_pages.md).
-
-Промпт:
-
-> Создай самодостаточную HTML-страницу в воркбуке `<WORKBOOK_ID>`: `<ТРЕБОВАНИЕ>`. Сначала сгенерируй и проверь локальный artifact, затем создай `html_page` через Safe Apply, прочитай saved-версию, опубликуй её по `revId` и проверь published-версию.
-
-## Планирование без записи
-
-Используйте `plan-only`, чтобы увидеть будущий запрос к API и результаты проверок.
-
-```text
-актуальное чтение
-  -> dl_plan_object_create или dl_plan_object_update
-  -> dl_validate_object
-  -> dl_validate_editor_runtime_contract при работе с Editor
-  -> dl_validate_project
-  -> dl_build_payload_plan
-  -> dl_create_safe_apply_plan
-  -> остановка без dl_execute_safe_apply
-```
-
-Для изменения модели датасета используйте `dl_plan_guarded_dataset_update`, для одной вкладки дашборда — `dl_plan_dashboard_tab_update`.
-
-Промпт:
-
-> Составь план изменения `<OBJECT_TYPE>` `<OBJECT_ID>`: `<ТРЕБОВАНИЕ>`. Прочитай актуальную сохранённую версию и связи, покажи выбранный метод API, изменяемые поля, сохраняемую ревизию и результаты проверок. Режим plan-only: ничего не сохраняй и не публикуй.
-
-## Сохранение без публикации
-
-Формулировки `save-only`, `no-publish` и «сохрани без публикации» останавливают цикл после чтения сохранённой версии.
-
-```text
-актуальное чтение и проверка
-  -> dl_create_safe_apply_plan
-  -> dl_execute_safe_apply
-  -> dl_readback_and_report для saved
-  -> остановка
-```
-
-Промпт:
-
-> Обнови `<OBJECT_TYPE>` `<OBJECT_ID>`: `<ТРЕБОВАНИЕ>`. Прочитай актуальную сохранённую версию, проверь изменение, сохрани его и выполни контрольное чтение saved-версии. Режим save-only: не публикуй.
-
-Если публикация жёстко отключена через `DATALENS_MCP_LIVE_ALLOW_PUBLISH=0`, сервер выполняет разрешённое сохранение и возвращает состояние `saved_not_published`.
-
-## Обычное изменение с сохранением и публикацией
-
-Команды «создай», «исправь», «обнови», «улучши» и «переработай» запускают полный цикл для известного объекта.
-
-```text
-актуальное чтение и связи
-  -> планирование и проверка
-  -> dl_create_safe_apply_plan
-  -> один dl_execute_safe_apply:
-       save всей группы
-       saved readback всей группы
-       единый preflight публикации
-       publish всей группы
-       published readback всей группы
-  -> один browser QA pass для изменённой области
-```
-
-Публикация создаётся из результата контрольного чтения saved-версии. Сервер сверяет ID, ревизию и сохранённую версию перед каждым запросом записи.
-`dl_create_publish_from_saved_plan` нужен для явного возобновления уже
-остановленного цикла из сохранённого artifact, а не для штатного второго plan.
-
-Промпт:
-
-> Исправь `<OBJECT_TYPE>` `<OBJECT_ID>` в воркбуке `<WORKBOOK_ID>`: `<ТРЕБОВАНИЕ>`. Прочитай актуальную сохранённую версию и связи объекта, составь и проверь изменение, сохрани его, выполни контрольное чтение, опубликуй сохранённую версию и проверь опубликованный результат. Не запрашивай отдельное подтверждение перед сохранением или публикацией. Если проверка интерфейса недоступна, явно укажи это в результате.
-
-Для видимого изменения чарта или дашборда итоговая проверка должна охватывать изменённую вкладку или объект. Контрольное чтение API подтверждает структуру; проверка интерфейса подтверждает отображение.
-
-## Стандартный путь сборки дашборда
-
-Для create и full redesign сервер по умолчанию использует
-`standard_dashboard`; alias `strict_dashboard` указывает на тот же профиль.
-Он сначала фиксирует Wizard-first решения, а для прямо выбранных
-Editor-объектов применяет защищённый renderer того же профиля. Исторические
-имена профилей являются только входными aliases: они нормализуются в
-`standard_dashboard`, поэтому и новый, и существующий дашборд всегда
-собираются по одному актуальному контракту.
-
-```text
-один актуальный scoped baseline
-  -> Wizard-first решения и Renderer Visual Spec
-  -> один dl_generate_editor_bundle:
-       authoring_profile=strict_dashboard
-       chart_specs=[все виджеты]
-       dashboard_composition.version=2
-  -> dl_validate_project + final_payload_attestation
-  -> один attested payload/safe-apply plan
-  -> saved readback
-  -> один publish из проверенного saved state через dl_execute_safe_apply
-  -> published readback
-  -> применимые validateDataset/getDatasetData diagnostics
-  -> final read-only Browser QA exact published dashboard
-```
-
-`chart_specs` принимает до 100 уникальных виджетов. Полные bundles и tabs
-сохраняются в artifacts; MCP-ответ возвращает компактные статусы, пути и hashes,
-а не повторяет сгенерированный код.
-
-Контракт фиксирует точный `display_title` и `title_mode`, защищённый renderer,
-селекторы с label слева и строками ровно 94%, 36-колоночную геометрию без
-неописанных gap, одинаковую высоту соседей и максимум три стандартных KPI в
-строке. После validation любое изменение route, runtime, title, selector,
-layout или payload аннулирует attestation.
-
-Final Browser QA запускается только после publish/readback и API-first
-diagnostics. Он проверяет каждую required вкладку сверху до фактического низа,
-lazy initialization, clipping/overlap, title/hint, tooltip, legend, comparison
-context и runtime errors. Default acceptance не меняет selectors/filters;
-interaction testing является отдельной explicit cell с baseline/restore.
-Неатрибутированная видимая ошибка оставляет acceptance открытым. Publish не
-зависит от Browser; `done` требует published readback и проверяемые per-tab
-Browser receipts exact target.
-
-## Быстрый путь для объединения селекторов дат
-
-Если известны ID селектора и дашборда, два статических date-контрола можно
-объединить через
-`maintenance_contract.kind=date_range_selector_merge`.
-
-```text
-exact saved-read селектора + exact saved-read дашборда
-  -> один dl_create_safe_apply_plan с maintenance_contract
-  -> один dl_execute_safe_apply с saved/published readbacks
-  -> один целевой browser smoke и один capture
-```
-
-Контракт принимает пути к двум readback artifacts, точные object IDs,
-`param_from`/`param_to`, label, defaults, `option_source=none`, reset policy и
-необязательный `mounted_control_id`. Без явного mount ID допускается только
-единственное совпадение по source selector ID. План блокируется до записи при
-динамическом или неоднозначном JS, несовпавшем ID/revision, нескольких mounts,
-расхождении Params/defaults или `updateControlsOnChange: true` у канонического
-диапазона.
-
-Бюджет режима: два исходных exact-read, не более 14 RPC вместе с
-save/readback/publish/readback, один plan и один executor.
-`dl_snapshot_dashboard`, workbook inventory, dataset live validation и
-reference search в этот путь не входят. Runtime smoke должен увидеть один
-диапазон, применить обе границы, проверить их после перерисовки и reload,
-убедиться в отсутствии DOM/console errors и сохранить один capture.
-
-## Удаление целого объекта
-
-Стандартные lifecycle-инструменты не выполняют произвольное удаление целого объекта. Поддерживаемый путь — только объявленное в project manifest действие `retire_legacy_objects`, которое проходит в два вызова:
-
-1. `dl_run_project_live_apply` строит план, возвращает точные ID и hash со статусом `delete_confirmation_required`;
-2. пользователь подтверждает тот же неизменившийся план, после чего вызов повторяется с `confirm_delete=true`.
-
-Если цель или план изменились, подтверждение не применяется. Удаление элемента внутри объекта — например легенды, фильтра, колонки, вкладки или виджета — выполняется как обычное обновление. Удаление целого QL-объекта не поддерживается.
-
-Промпт:
-
-> Выполни объявленное в project manifest действие `retire_legacy_objects`. Сначала покажи точные ID и hash плана. Выполни тот же план только после моего отдельного подтверждения.
-
-## Работа с проектным manifest
-
-Если проект уже содержит команды проверки и применения, сервер использует описанный в проекте процесс:
-
-```text
-dl_detect_project_live_workflows
-  -> dl_plan_project_manifest при отсутствии manifest
-  -> dl_plan_project_live_workflow
-  -> dl_run_project_live_dry_run
-  -> dl_read_project_live_summary
-  -> dl_run_project_live_apply
-  -> dl_read_project_live_summary
-```
-
-Manifest фиксирует команды, идентификаторы объектов, допустимые имена переменных окружения, ожидаемые отчёты и проверки. Сервер запускает только объявленные действия.
-
-## Если цикл остановился
-
-| Состояние | Что проверить |
-| --- | --- |
-| `missing_credentials` | Путь `DATALENS_ENV_FILE`, ID организации и настройку `yc` |
-| `expired_token` | Авторизацию `yc` и `DATALENS_ENABLE_TOKEN_REFRESH_ON_401=1` |
-| `organization_access_denied` | Организацию и роль на целевой воркбук |
-| Устаревшая ревизия | Повторить актуальное чтение и пересобрать план |
-| Конфликт блокировки или уникальности | Сверить текущее состояние объекта; не повторять запись вслепую |
-| `saved_not_published` | Publish выключен или запрос содержит `save-only`/`no-publish` |
-| Нет проверки интерфейса | Выполнить проверку в DataLens или передать результат с явным ограничением |
-
-## Другие MCP-клиенты
-
-Claude Code, Claude Desktop и другие stdio-клиенты запускают ту же команду с тем же `DATALENS_ENV_FILE` и `--project-root`. Примеры находятся в [`examples/clients/`](../examples/clients/). После подключения используйте те же сценарии и формулируйте желаемую точку остановки прямо в задаче.
+Используйте реальные Dataset GUID и применимые проверки `dl_dataset_validate` / `dl_dataset_preview`. Для зарегистрированного recipe вызовите `dl_authoring_defaults`, затем `dl_compile_recipe` с typed bindings и presentation. Приоритет defaults: generic → user → project → explicit reference → explicit call. Передавайте компактный `draft_reference` в validation/create; для update используйте его artifact path с точным target и свежей revision. Не переписывайте и не возвращайте целиком packaged renderer.
+
+Проверьте draft batch через `dl_editor_validate`; используйте `dl_object_diff`, если нужно сравнение точечного изменения. Создавайте зависимости по порядку через `dl_object_create` либо обновляйте целевой объект через `dl_object_update`. Оба выполняют saved readback. Когда публикация запрошена и поддержана для этого типа объекта, вызовите `dl_object_publish` из свежей saved revision и проверьте published readback. Dataset и Connection не получают выдуманный publish lifecycle.
+
+При размещении нового recipe chart передавайте compiled `visual_contract` в dashboard item `presentation`. Сохраняйте явно выбранного owner title/hint и ручной layout. Для семантики KPI, времени, шкал и принятой композиции читайте только нужные разделы [visualization decisions](../skills/datalens-dashboard/references/decision-quality.md).
+
+Однозначное поручение разрешает предусмотренную доставку без повторных вопросов plan/save/publish. Краткий план информирует пользователя. Read-only запрещает запись; save-only заканчивается saved readback. Уточнение требуется только при неразрешённом конфликте target/scope или реальной границе доступа. Пример:
+
+> Обнови этот chart, сохрани соседние widgets, сохрани и опубликуй изменение, проверь результат.
+
+## Проверка и reconciliation
+
+Разделяйте Dataset query result, provider acceptance, saved/published identity и реальное отображение. Browser применяется read-only, когда требуется rendered evidence, после API/readback и применимых data checks. Offline validator или наличие настройки не доказывают отображение.
+
+Записи возвращают компактные operation results. Используйте `dl_operation_get` для деталей и `dl_operation_reconcile` при неопределённом результате. Потеря ответа не разрешает слепой повтор записи.
+
+## Backup и scoped cleanup
+
+Используйте [Maintenance](../skills/datalens-maintenance/SKILL.md). `dl_backup_export` экспортирует snapshots и не заявляет проверенный full restore. Для порученного cleanup `dl_cleanup_preview` получает dependency/preservation evidence; `dl_cleanup_apply` принимает неизменённый точный `confirmed_delete` и заново проверяет scope перед записью. Однозначный запрос на эти удаления уже является разрешением; машинный scope не означает новую реплику человека. Изменившийся preview сверяется с запросом; конфликт сохранности соседей или расширение scope требуют остановки. Failed/uncertain deletion останавливает оставшиеся объекты.
+
+Запрос только показать список не разрешает удаление. Сохраняйте явно оставленные объекты. Dashboard-задача не разрешает ACL changes, upstream production database writes или чужие объекты. См. [границы поручения и доставки](../skills/datalens-dashboard/references/authorized-scope.md).

@@ -1,136 +1,37 @@
-# Codex setup
+# Connect DataLens to Codex
 
-[Русский](codex_setup.md) · **English** · [Project home](../README_en.md)
+[Русский](codex_setup.md) · [Installation](installation.md) · [Usage](usage-flow_en.md)
 
-[Quick start](../README_en.md#quick-start) · [DataLens access](access_en.md) · **Connect** · [Tools](tools_en.md) · [Workflows](usage-flow_en.md) · [Sources](sources_en.md) · [Safety](local-only-safety-model_en.md) · [Русский](codex_setup.md)
-
-Codex starts `datalens-dev-mcp` as a local stdio server. Codex app, CLI, and IDE extension use the same `config.toml` format. Current MCP settings are documented in the [official Codex MCP guide](https://learn.chatgpt.com/docs/extend/mcp).
-
-## 1. Install the server
+Python 3.11+ is required. Install the backend into a stable environment. From the repository checkout:
 
 ```bash
-git clone https://github.com/ADIKANT/datalens-dev-mcp.git
-cd datalens-dev-mcp
 python3 -m venv .venv
-.venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install .
-.venv/bin/python scripts/install_datalens_skill.py
 .venv/bin/datalens-dev-mcp --version
-python3 scripts/smoke_mcp_stdio.py
+.venv/bin/python scripts/installed_smoke.py
 ```
 
-The last command checks the MCP protocol locally without contacting DataLens.
+The smoke script checks import from `site-packages` without `PYTHONPATH`, version identity, stdio initialization, and the closed 25-tool surface from a temporary directory. This is offline installation evidence, not live access or rendered acceptance.
 
-## 2. Prepare the workspace and access
+Install or enable the repository plugin through the host's supported plugin installation flow. Its [manifest](../.codex-plugin/plugin.json) loads five domain skills and [.mcp.json](../.mcp.json). The bundled stdio configuration is:
 
-Create a directory where the server can store plans, snapshots, and reports:
-
-```bash
-mkdir -p /absolute/path/to/your/dashboard-project
+```json
+{
+  "mcpServers": {
+    "datalens": {
+      "command": "datalens-dev-mcp",
+      "args": ["stdio"]
+    }
+  }
+}
 ```
 
-`--project-root` selects this directory. It does not select a DataLens workbook or dashboard.
+The installed executable must be on the MCP process `PATH`. If registering stdio manually, use the absolute path to the installed executable and the single `stdio` argument. A manual server registration alone does not install the domain skills. Keep a single intended server registration to avoid accidentally using an older backend.
 
-Then follow [DataLens access](access_en.md): install `yc`, get the organization ID, check roles, and create a protected env file.
+For live access, supply `DATALENS_ORG_ID` and `DATALENS_IAM_TOKEN` through the process environment or the protected `${XDG_CONFIG_HOME:-~/.config}/datalens-dev-mcp/credentials.env` file. Explicit `DATALENS_ENV_FILE` takes precedence. Preserve existing credentials and never paste their values into prompts or diagnostics.
 
-## 3. Add the server to `config.toml`
+After updating the backend and plugin snapshot, start a fresh ordinary task from the exact dashboard project or subproject. Verify the connected runtime with `dl_server_info`, inspect its `tools/list` schemas, and use `dl_auth_check` for a harmless live access probe. Runtime identity, successful authentication, object-specific permissions, and rendering are separate checks.
 
-The global Codex configuration is `~/.codex/config.toml`. A trusted project can use `.codex/config.toml` in its root.
+A clear scoped request authorizes its requested save/readback and publish/readback steps. A compact plan does not add another approval pause; read-only and save-only limits remain binding. Native permission events remain host-controlled. An automatic reviewer allow is not a pending human reply; do not change global approval settings or external skills to bypass a restriction. See [authorized scope](../skills/datalens-dashboard/references/authorized-scope.md).
 
-```toml
-[mcp_servers.datalens_dev]
-command = "/absolute/path/to/datalens-dev-mcp/.venv/bin/datalens-dev-mcp"
-args = ["stdio", "--project-root", "/absolute/path/to/your/dashboard-project"]
-cwd = "/absolute/path/to/your/dashboard-project"
-env = { DATALENS_ENV_FILE = "/absolute/path/to/home/.config/datalens-dev-mcp/env", DATALENS_MCP_TASKS_DIR = "/absolute/path/to/home/.local/state/datalens-dev-mcp/tasks" }
-default_tools_approval_mode = "approve"
-startup_timeout_sec = 20
-tool_timeout_sec = 120
-```
-
-Use absolute paths. `default_tools_approval_mode = "approve"` permits transport
-calls to the server; the task workflow still returns one compact plan and waits
-for confirmation before a substantial mutation. An unchanged continuation of a
-confirmed task does not ask again. Destructive cleanup requires a separate
-exact-object token.
-
-Copyable file: [`examples/clients/codex.toml`](../examples/clients/codex.toml).
-
-## 4. Alternative: register with the CLI
-
-```bash
-codex mcp add datalens_dev \
-  --env DATALENS_ENV_FILE=/absolute/path/to/home/.config/datalens-dev-mcp/env \
-  --env DATALENS_MCP_TASKS_DIR=/absolute/path/to/home/.local/state/datalens-dev-mcp/tasks \
-  -- /absolute/path/to/datalens-dev-mcp/.venv/bin/datalens-dev-mcp \
-  stdio --project-root /absolute/path/to/your/dashboard-project
-```
-
-The command creates the server entry. Then open `~/.codex/config.toml` and add these values to `[mcp_servers.datalens_dev]`:
-
-```toml
-default_tools_approval_mode = "approve"
-startup_timeout_sec = 20
-tool_timeout_sec = 120
-```
-
-Verify registration:
-
-```bash
-codex mcp list
-```
-
-## 5. Restart Codex
-
-After installing the package or changing `config.toml`, restart Codex app, the CLI session, or the IDE extension. Open `/mcp` in a new task and confirm that `datalens_dev` is connected and exposes 8 `autonomous-v2` tools.
-
-## 6. Check configuration and access
-
-Send this prompt:
-
-> Use the DataLens MCP server. Call `dl_runtime_status` and show the selected project root, API version, organization-ID and token presence without values, and write, save, publish, and token-refresh availability. Then call `dl_auth_probe`. Do not change anything in this step.
-
-Expected result:
-
-- `project_root` matches the selected directory;
-- write, save, and publish are available;
-- the canonical env file is found;
-- `dl_auth_probe` completes a minimal `getWorkbooksList` call.
-
-A successful workbook-list probe proves general authorization. Access to a particular chart, dataset, or dashboard is checked when that object is read or changed.
-
-## 7. Start working
-
-Read-only audit:
-
-> Audit dashboard `<DASHBOARD_ID>` in workbook `<WORKBOOK_ID>`. Read the current saved version, related objects, and their relations. Show issues and generated report paths. Do not save or publish anything.
-
-Normal change:
-
-> Fix `<OBJECT_TYPE>` `<OBJECT_ID>` in workbook `<WORKBOOK_ID>`: `<REQUIREMENT>`. Read current saved state and relations, show one compact plan for confirmation, save the change, verify saved state, publish from the saved version, and verify the published result.
-
-See [usage workflows](usage-flow_en.md) for more variants.
-
-## 8. Update and troubleshoot
-
-After updating the checkout, reinstall and restart Codex:
-
-```bash
-cd /absolute/path/to/datalens-dev-mcp
-.venv/bin/python -m pip install .
-.venv/bin/python scripts/install_datalens_skill.py
-python3 scripts/smoke_mcp_stdio.py
-codex mcp list
-```
-
-| Problem | Check |
-| --- | --- |
-| Server does not start | Run `--version`, verify absolute paths, and run `scripts/smoke_mcp_stdio.py` |
-| `/mcp` shows an old list | Reinstall the package and fully restart Codex |
-| Wrong workspace | Fix `args` and `cwd` in `config.toml` |
-| No DataLens access | Follow the error table in [DataLens access](access_en.md#access-error-categories) |
-| Codex prompts for every tool | Check `default_tools_approval_mode = "approve"` in this server table and restart Codex |
-| A change does not save | Use `dl_runtime_status` to confirm write and save are available, then inspect the exact blocker |
-| A change saves but does not publish | Check publish in `dl_runtime_status` and remove `save-only` or `no-publish` from the task |
-
-Transport contract: [`docs/mcp/local_stdio_contract.md`](mcp/local_stdio_contract.md).
+If startup fails, check the installed executable path and process environment. If a live probe fails, report the exact authentication or access boundary without exposing credentials. If the runtime exposes a different surface, resolve the backend/plugin version mismatch before writing. Use the [current tools](tools_en.md) and [domain usage](usage-flow_en.md), with exact arguments from the installed schema.

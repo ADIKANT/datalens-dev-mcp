@@ -22,7 +22,7 @@
       "object_type": "advanced-chart_node",
       "renderer": "kpi_sparkline_renderer.js",
       "required_bindings": ["metric", "date", "comparison"],
-      "visual_contract": {"visible_title": {"owner": "body"}, "legend": {"mode": "hidden"}, "kpi": {"separate_object": true, "value": true, "comparison_label": true, "sparkline": true}, "geometry": {"width": 6, "height": 4}, "labels": {"precision": 0}},
+      "visual_contract": {"visible_title": {"owner": "body"}, "legend": {"mode": "hidden"}, "kpi": {"direction": "neutral", "delta_kind": "relative", "value_scale": null, "relative_denominator": "absolute_previous", "separate_object": true, "value": true, "comparison_label": true, "sparkline": true}, "geometry": {"width": 6, "height": 4}, "labels": {"precision": 0}},
       "example": {"data_class": "synthetic", "states": ["value", "loading", "error", "no_data", "business_zero"]}
     },
     "time_comparison": {

@@ -79,6 +79,8 @@ def compile_recipe(
     values = defaults["values"]
     contract = _apply_profile(recipe["visual_contract"], values)
     contract = _bind_contract(contract, bindings)
+    if recipe_id == "kpi_sparkline":
+        contract = _kpi_semantics(contract, bindings, values)
     technology = str(recipe["technology"] if defaults["technology_source"] == "generic" else values.get("technology"))
     technology = {
         "advanced-chart_node": "advanced_chart",
@@ -123,7 +125,7 @@ def compile_recipe(
             renderer_contract["hint"]["enabled"] = (
                 bool(contract["hint"].get("enabled")) and contract["hint"].get("owner") == "body"
             )
-        draft["tabs"] = _editor_tabs(str(variant), renderer_text, renderer_contract, bindings)
+        draft["tabs"] = _editor_tabs(str(variant), renderer_text, renderer_contract, bindings, recipe_id=recipe_id)
         draft["name"] = contract["object_name"]["value"] or str(
             (bindings.get("parameter") or {}).get("name") or recipe_id
         )
@@ -320,6 +322,29 @@ def _apply_profile(contract: Mapping[str, Any], values: Mapping[str, Any]) -> di
     return result
 
 
+def _kpi_semantics(contract: Mapping[str, Any], bindings: Mapping[str, Any], values: Mapping[str, Any]) -> dict[str, Any]:
+    """Metric semantics seed defaults; accepted profiles/reference/explicit values win."""
+    result = deepcopy(dict(contract))
+    metric = bindings.get("metric") if isinstance(bindings.get("metric"), Mapping) else {}
+    configured = values.get("kpi") if isinstance(values.get("kpi"), Mapping) else {}
+    allowed = {
+        "direction": {"higher_is_better", "lower_is_better", "neutral"},
+        "delta_kind": {"relative", "absolute", "percentage_points"},
+        "value_scale": {"fraction", "percent", None},
+    }
+    for key, choices in allowed.items():
+        value = configured.get(key, metric.get(key, result["kpi"].get(key)))
+        if not isinstance(value, (str, type(None))) or value not in choices:
+            raise ValueError(f"kpi {key} must be one of {sorted(str(item) for item in choices)}")
+        result["kpi"][key] = value
+    if result["kpi"]["delta_kind"] == "percentage_points" and not result["kpi"]["value_scale"]:
+        raise ValueError("kpi percentage_points requires value_scale fraction or percent")
+    if result["kpi"]["value_scale"]:
+        result["labels"]["unit"] = "%"
+        result["tooltip"]["unit"] = "%"
+    return result
+
+
 def _bind_contract(contract: Mapping[str, Any], bindings: Mapping[str, Any]) -> dict[str, Any]:
     result = deepcopy(dict(contract))
     metric = bindings.get("metric") if isinstance(bindings.get("metric"), Mapping) else {}
@@ -375,6 +400,8 @@ def _editor_tabs(
     renderer: str,
     contract: Mapping[str, Any],
     bindings: Mapping[str, Any],
+    *,
+    recipe_id: str | None = None,
 ) -> dict[str, str]:
     tabs = {
         "meta.json": json.dumps({"variant": variant}, sort_keys=True),
@@ -445,6 +472,16 @@ def _editor_tabs(
         else:
             raise ValueError(
                 "Advanced recipe requires explicit source or prepared_data; no placeholder source is generated"
+            )
+        if recipe_id in {"kpi_sparkline", "period_series"}:
+            temporal = files("datalens_dev_mcp.assets.recipes").joinpath("temporal_prepare.js").read_text(encoding="utf-8")
+            date = dict(bindings.get("date") or {})
+            if (bindings.get("comparison") or {}).get("alignment") == "ordinal":
+                date.setdefault("mode", "ordinal")
+            prepared = (
+                "(() => { const module = {exports: {}};\n" + temporal
+                + "\nreturn module.exports(" + prepared + ", " + json.dumps(date)
+                + ", " + json.dumps(recipe_id) + "); })()"
             )
         tabs["prepare.js"] = (
             renderer

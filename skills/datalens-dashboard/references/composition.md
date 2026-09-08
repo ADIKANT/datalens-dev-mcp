@@ -74,7 +74,8 @@ from datalens_dev_mcp.sdk import compile_recipe
 
 kpi = compile_recipe("kpi_sparkline", bindings={
     "object_name": "Orders KPI",
-    "metric": {"field_guid": "orders", "label": "Orders", "unit": "count"},
+    "metric": {"field_guid": "orders", "label": "Orders", "unit": "count",
+               "direction": "higher_is_better"},
     "date": {"field_guid": "order_day"},
     "comparison": {"field_guid": "previous_orders", "method": "previous_period",
                    "label": "Previous period"},
