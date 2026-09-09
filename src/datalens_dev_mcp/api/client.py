@@ -124,11 +124,14 @@ class DataLensApiClient:
                 ) from exc
 
     def write(self, method: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        # Local preparation is distinct from a failure after dispatch.
+        request_payload = dict(payload or {})
+        headers = self._headers(method)
         try:
-            return self.transport.call(method, dict(payload or {}), self._headers(method))
+            return self.transport.call(method, request_payload, headers)
         except DataLensApiError:
             raise
-        except (TimeoutError, ConnectionError, OSError) as exc:
+        except (TimeoutError, ConnectionError, OSError, ValueError, TypeError) as exc:
             raise UncertainWriteError(
                 f"{method} outcome is uncertain; reconcile before retrying",
                 method=method,

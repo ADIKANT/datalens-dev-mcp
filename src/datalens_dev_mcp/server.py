@@ -7,8 +7,10 @@ from collections.abc import Callable
 from copy import deepcopy
 from typing import Any
 
+from jsonschema import Draft202012Validator
+
 from datalens_dev_mcp import __version__
-from datalens_dev_mcp.api.errors import DataLensApiError, safe_error_text
+from datalens_dev_mcp.api.errors import DataLensApiError, error_response, safe_error_text
 from datalens_dev_mcp.api.runtime import get_runtime
 from datalens_dev_mcp.api.schemas import OperationRegistry
 from datalens_dev_mcp.authoring.artifacts import (
@@ -28,6 +30,19 @@ from datalens_dev_mcp.objects.cleanup import CleanupService
 from datalens_dev_mcp.objects.read import ObjectReadService
 from datalens_dev_mcp.objects.write import default_mutation_service
 from datalens_dev_mcp.operation_store import compact_operation
+from datalens_dev_mcp.runtime_identity import runtime_identity
+from datalens_dev_mcp.schemas.tool_inputs import (
+    CHANGE,
+    DESTINATION,
+    DRAFT,
+    FIELD,
+    FILTER,
+    PARAM,
+    READ_FIELDS,
+    READ_VIEW,
+    SORT,
+    TARGET,
+)
 
 MCP_PROTOCOL_VERSION = "2025-06-18"
 ToolHandler = Callable[..., dict[str, Any]]
@@ -40,6 +55,7 @@ def dl_server_info() -> dict[str, Any]:
         "version": __version__,
         "architecture": "domain-plugin",
         "execution_path": "typed-domain-services",
+        **runtime_identity(),
     }
 
 
@@ -74,7 +90,9 @@ def dl_auth_refresh() -> dict[str, Any]:
 def dl_method_schema(method: str) -> dict[str, Any]:
     registry = OperationRegistry.load()
     try:
-        return {"ok": True, "operation": registry.get(method)}
+        operation = registry.get(method)
+        return {"ok": True, "operation": operation,
+                "schema_kind": operation["contract_kind"], "full_payload_schema": False}
     except KeyError:
         return {"ok": False, "status": "not_found", "method": method,
                 "available_methods": [item["method"] for item in registry.list()]}
@@ -98,12 +116,17 @@ def dl_object_get(
     object_id: str,
     branch: str = "saved",
     revision_id: str | None = None,
+    view: str = "full",
+    fields: list[str] | None = None,
 ) -> dict[str, Any]:
-    return _read_service().object_get(object_type, object_id, branch=branch, revision_id=revision_id)
+    return _read_service().object_get(object_type, object_id, branch=branch, revision_id=revision_id,
+                                      view=view, fields=fields)
 
 
-def dl_object_relations(object_id: str, page_size: int = 100, max_pages: int = 100) -> dict[str, Any]:
-    return _read_service().object_relations(object_id, page_size=page_size, max_pages=max_pages)
+def dl_object_relations(
+    object_id: str, page_size: int = 100, max_pages: int = 100, page_token: str | None = None,
+) -> dict[str, Any]:
+    return _read_service().object_relations(object_id, page_size=page_size, max_pages=max_pages, page_token=page_token)
 
 
 def dl_dashboard_snapshot(
@@ -111,12 +134,18 @@ def dl_dashboard_snapshot(
     branch: str = "saved",
     revision_id: str | None = None,
     reference_dashboard_id: str | None = None,
+    page_size: int = 100,
+    max_pages: int = 100,
+    continuation: str | None = None,
+    view: str = "full",
+    fields: list[str] | None = None,
 ) -> dict[str, Any]:
     return _read_service().dashboard_snapshot(
         dashboard_id,
         branch=branch,
         revision_id=revision_id,
         reference_dashboard_id=reference_dashboard_id,
+        page_size=page_size, max_pages=max_pages, continuation=continuation, view=view, fields=fields,
     )
 
 
@@ -322,7 +351,7 @@ TOOLS: dict[str, ToolHandler] = {
 TOOL_SCHEMAS: list[dict[str, Any]] = [
     {
         "name": "dl_server_info",
-        "description": "Return the installed backend version and architecture without accessing DataLens or the project.",
+        "description": "Return active process/package identity, capability revision and installed version comparison without accessing DataLens or the project.",
         "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
         "annotations": {
             "readOnlyHint": True,
@@ -397,6 +426,8 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
                 "object_id": {"type": "string", "minLength": 1},
                 "branch": {"type": "string", "enum": ["saved", "published"], "default": "saved"},
                 "revision_id": {"type": ["string", "null"]},
+                "view": READ_VIEW,
+                "fields": READ_FIELDS,
             },
             "required": ["object_type", "object_id"],
             "additionalProperties": False,
@@ -410,6 +441,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             "type": "object",
             "properties": {
                 "object_id": {"type": "string", "minLength": 1},
+                "page_token": {"type": ["string", "null"]},
                 "page_size": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
                 "max_pages": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
             },
@@ -427,7 +459,12 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
                 "dashboard_id": {"type": "string", "minLength": 1},
                 "branch": {"type": "string", "enum": ["saved", "published"], "default": "saved"},
                 "revision_id": {"type": ["string", "null"]},
+                "view": READ_VIEW,
+                "fields": READ_FIELDS,
                 "reference_dashboard_id": {"type": ["string", "null"]},
+                "page_size": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
+                "max_pages": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
+                "continuation": {"type": ["string", "null"]},
             },
             "required": ["dashboard_id"],
             "additionalProperties": False,
@@ -441,7 +478,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             "type": "object",
             "properties": {
                 "dataset_id": {"type": "string"},
-                "fields": {"type": ["array", "null"], "items": {"type": "object"}},
+                "fields": {"type": ["array", "null"], "minItems": 1, "items": FIELD},
             },
             "anyOf": [{"required": ["dataset_id"]}, {"required": ["fields"]}],
             "additionalProperties": False,
@@ -456,10 +493,10 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             "properties": {
                 "dataset_id": {"type": "string", "minLength": 1},
                 "columns": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-                "fields": {"type": ["array", "null"], "items": {"type": "object"}},
-                "filters": {"type": ["array", "null"], "items": {"type": "object"}},
-                "sort": {"type": ["array", "null"], "items": {"type": "object"}},
-                "params": {"type": ["array", "null"], "items": {"type": "object"}},
+                "fields": {"type": ["array", "null"], "minItems": 1, "items": FIELD},
+                "filters": {"type": ["array", "null"], "items": FILTER},
+                "sort": {"type": ["array", "null"], "items": SORT},
+                "params": {"type": ["array", "null"], "items": PARAM},
                 "limit": {"type": "integer", "minimum": 1, "maximum": 100000, "default": 100},
                 "offset": {"type": "integer", "minimum": 0, "default": 0},
                 "max_pages": {"type": "integer", "minimum": 1, "maximum": 100, "default": 1},
@@ -543,8 +580,8 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "drafts": {"type": "array", "minItems": 1, "items": {"type": "object"}},
-                "destination": {"type": "object", "minProperties": 1},
+                "drafts": {"type": "array", "minItems": 1, "items": DRAFT},
+                "destination": DESTINATION,
                 "delivery_mode": {"type": "string", "enum": ["save"], "default": "save"},
                 "operation_id": {"type": ["string", "null"]},
             },
@@ -564,7 +601,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "changes": {"type": "array", "minItems": 1, "items": {"type": "object"}},
+                "changes": {"type": "array", "minItems": 1, "items": CHANGE},
                 "delivery_mode": {"type": "string", "enum": ["save"], "default": "save"},
                 "operation_id": {"type": ["string", "null"]},
             },
@@ -573,7 +610,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         },
         "annotations": {
             "readOnlyHint": False,
-            "destructiveHint": False,
+            "destructiveHint": True,
             "idempotentHint": False,
             "openWorldHint": True,
         },
@@ -584,7 +621,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "targets": {"type": "array", "minItems": 1, "items": {"type": "object"}},
+                "targets": {"type": "array", "minItems": 1, "items": TARGET},
                 "operation_id": {"type": ["string", "null"]},
             },
             "required": ["targets"],
@@ -592,7 +629,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         },
         "annotations": {
             "readOnlyHint": False,
-            "destructiveHint": False,
+            "destructiveHint": True,
             "idempotentHint": False,
             "openWorldHint": True,
         },
@@ -628,7 +665,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "targets": {"type": "array", "minItems": 1, "items": {"type": "object"}},
+                "targets": {"type": "array", "minItems": 1, "items": TARGET},
                 "output_dir": {"type": "string", "minLength": 1},
             },
             "required": ["targets", "output_dir"],
@@ -697,7 +734,26 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, A
     handler = TOOLS.get(name)
     if handler is None:
         raise ValueError(f"unknown tool: {name}")
-    result = handler(**dict(arguments or {}))
+    schema = next(tool for tool in TOOL_SCHEMAS if tool["name"] == name)
+    supplied = {} if arguments is None else arguments
+    invalid = next(Draft202012Validator(schema["inputSchema"]).iter_errors(supplied), None)
+    if invalid is not None:
+        # Do not echo the offending payload: it may contain source or credentials.
+        path = ".".join(str(part) for part in invalid.absolute_path) or "arguments"
+        result = error_response(ValueError(f"{path}: invalid {invalid.validator}; see this tool's inputSchema"))
+        result["argument_path"] = path
+        if name == "dl_dataset_preview":
+            result["example"] = {"dataset_id": "synthetic-dataset", "columns": ["synthetic-guid"]}
+    else:
+        try:
+            result = handler(**supplied)
+        except Exception as exc:  # noqa: BLE001 - failures belong to CallToolResult, not JSON-RPC parsing.
+            effect_possible = name in {"dl_object_create", "dl_object_update", "dl_object_publish",
+                                       "dl_cleanup_apply", "dl_admin_assign_licenses"}
+            result = error_response(exc, effect_possible=effect_possible)
+        if not result.get("ok", True) and "issues" in result and "status" not in result:
+            result = {**result, "status": "input_error", "code": "input_error",
+                      "next_action": "Correct the listed field or argument issues before another provider request."}
     return {
         "content": [{"type": "text", "text": json.dumps(result, ensure_ascii=False, sort_keys=True)}],
         "structuredContent": result,
@@ -734,6 +790,8 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any] | None:
         return _success(message_id, {"tools": list_tools()})
     if method == "tools/call":
         params = request.get("params") or {}
+        if not isinstance(params, dict) or not isinstance(params.get("name"), str):
+            return _error(message_id, -32602, "tools/call params must contain a string tool name")
         try:
             return _success(message_id, call_tool(str(params.get("name") or ""), params.get("arguments")))
         except (TypeError, ValueError) as exc:
@@ -751,7 +809,10 @@ def serve_stdio() -> None:
     for line in sys.stdin:
         try:
             request = json.loads(line)
-            response = handle_request(request)
+            response = (
+                handle_request(request) if isinstance(request, dict)
+                else _error(None, -32600, "JSON-RPC request must be an object")
+            )
         except (TypeError, ValueError, json.JSONDecodeError) as exc:
             response = _error(None, -32700, str(exc))
         if response is not None:

@@ -5,9 +5,12 @@ import os
 import re
 import tempfile
 import time
+from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
+
+from datalens_dev_mcp.api.errors import DataLensSafetyError, InputContractError, UncertainWriteError
 
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
@@ -43,7 +46,55 @@ class OperationStore:
             raise TypeError(f"invalid operation record: {operation_id}")
         return value
 
+    @contextmanager
+    def _locked(self):
+        try:
+            import fcntl
+        except ImportError as exc:
+            raise DataLensSafetyError("durable mutation admission requires POSIX file locking on this host") from exc
+        self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
+        # Short filesystem transactions only: never held across provider calls.
+        with (self.root / ".store.lock").open("a+b") as stream:
+            fcntl.flock(stream.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+
+    def claim(self, record: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
+        with self._locked():
+            existing = self.get(record["operation_id"])
+            if existing is not None:
+                if any(existing.get(key) != record.get(key) for key in ("effect", "request_digest")):
+                    raise InputContractError("operation_id is already bound to a different request")
+                items = existing.get("results") or []
+                resumable_pending = (
+                    existing.get("status") == "pending"
+                    and bool(items)
+                    and all(item.get("status") in {"pending", "completed", "failed"} for item in items)
+                )
+                if existing.get("status") in {"partial", "failed"} or resumable_pending:
+                    # Only confirmed rejected/unattempted items are resumable.
+                    # Reserve the resumed batch before releasing the transaction.
+                    existing["status"] = "pending"
+                    existing["ok"] = False
+                    existing["store_version"] = int(existing.get("store_version", 0)) + 1
+                    return True, self._write(existing)
+                return False, existing
+            record["store_version"] = 1
+            return True, self._write(record)
+
     def put(self, record: dict[str, Any]) -> dict[str, Any]:
+        with self._locked():
+            existing = self.get(str(record.get("operation_id") or ""))
+            if existing is not None and existing.get("store_version", 0) != record.get("store_version", 0):
+                raise UncertainWriteError("operation receipt changed concurrently; re-read and reconcile")
+            record["store_version"] = int(record.get("store_version", 0)) + 1
+            result = self._write(record)
+            self._prune(keep=self._path(record["operation_id"]))
+            return result
+
+    def _write(self, record: dict[str, Any]) -> dict[str, Any]:
         operation_id = str(record.get("operation_id") or "")
         path = self._path(operation_id)
         self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -58,7 +109,11 @@ class OperationStore:
             temporary.replace(path)
         finally:
             temporary.unlink(missing_ok=True)
-        self._prune(keep=path)
+        directory = os.open(self.root, os.O_RDONLY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
         return deepcopy(record)
 
     def _prune(self, *, keep: Path) -> None:
@@ -75,7 +130,7 @@ class OperationStore:
             if status not in {"completed", "failed"}:
                 continue
             if path != keep and now - mtime > self.max_age_seconds:
-                path.unlink(missing_ok=True)
+                self._compact_receipt(value)
                 continue
             terminal.append((mtime, path))
         terminal.sort(key=lambda item: item[0])
@@ -87,12 +142,20 @@ class OperationStore:
             candidate = next((path for _, path in live if path != keep), None)
             if candidate is None:
                 break
-            candidate.unlink(missing_ok=True)
+            self._compact_receipt(json.loads(candidate.read_text(encoding="utf-8")))
             terminal = [(mtime, path) for mtime, path in live if path != candidate]
+
+    def _compact_receipt(self, record: dict[str, Any]) -> None:
+        # Retain identity/digest forever: forgetting a successful claim permits
+        # the same operation ID to cause another external effect after pruning.
+        compact = compact_operation(record)
+        compact.update({key: record[key] for key in ("request_digest", "store_version") if key in record})
+        compact["detail_pruned"] = True
+        self._write(compact)
 
     def _path(self, operation_id: str) -> Path:
         if not _SAFE_ID.fullmatch(operation_id):
-            raise ValueError("operation_id must contain only letters, digits, dot, underscore or hyphen")
+            raise InputContractError("operation_id must contain only letters, digits, dot, underscore or hyphen")
         return self.root / f"{operation_id}.json"
 
 
@@ -102,7 +165,7 @@ def compact_operation(record: dict[str, Any]) -> dict[str, Any]:
         return deepcopy(record)
     result: dict[str, Any] = {
         key: deepcopy(record[key])
-        for key in ("ok", "operation_id", "effect", "status", "write_replayed")
+        for key in ("ok", "operation_id", "effect", "status", "write_replayed", "next_action", "detail_pruned")
         if key in record
     }
     compact_items = []
@@ -121,6 +184,7 @@ def compact_operation(record: dict[str, Any]) -> dict[str, Any]:
                     "expected_revision",
                     "returned_revision",
                     "error",
+                    "next_action",
                 )
                 if key in item
             }

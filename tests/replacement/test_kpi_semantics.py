@@ -11,7 +11,7 @@ def render(value, previous, **semantics):
     config = list_recipes()['kpi_sparkline']['visual_contract']
     config['kpi'].update(semantics)
     config['labels'].update(unit='%' if semantics.get('value_scale') else 'ms', precision=1)
-    data = dict(value=value, previous=previous, points=[dict(date='day', value=value)])
+    data = {'value': value, 'previous': previous, 'points': [{'date': 'day', 'value': value}]}
     source = files('datalens_dev_mcp.assets.recipes').joinpath('kpi_sparkline_renderer.js').read_text()
     script = "const vm=require('node:vm'); const Editor={wrapFn:x=>x,generateHtml:x=>x};" + source
     script += '\nconst r=module.exports('+json.dumps(data)+','+json.dumps(config)+');'

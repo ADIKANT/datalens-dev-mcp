@@ -10,7 +10,13 @@ import httpx
 from datalens_sdk.errors import DataLensAPIError as SdkApiError
 from datalens_sdk.errors import DataLensTransportError as SdkTransportError
 
-from datalens_dev_mcp.api.errors import DataLensApiError, UncertainWriteError, safe_error_text
+from datalens_dev_mcp.api.errors import (
+    DataLensApiError,
+    InputContractError,
+    UncertainWriteError,
+    WritePreconditionError,
+    safe_error_text,
+)
 from datalens_dev_mcp.config import DataLensConfig
 
 SDK_VERSION = "0.9.0"
@@ -149,6 +155,7 @@ class SdkAdapter:
         name = _draft_name(draft)
         client = self._sdk_client()
         expected_readback = None
+        effect_started = False
         try:
             if object_type == "wizard_chart" and "wizard" in draft:
                 from datalens_sdk.converter.wizard import WizardChartConverter
@@ -162,6 +169,7 @@ class SdkAdapter:
                 builder = wizard_builder(client, dataset, specification, name=name, location=location)
                 payload = WizardChartConverter.from_domain_create(builder.to_spec()).to_payload()
                 expected_readback = {"data": payload["data"]}
+                effect_started = True
                 value = builder.build()
             elif object_type == "editor_chart" and isinstance(draft.get("tabs"), dict):
                 builder = getattr(client.create.editor_chart, _editor_factory(str(draft.get("variant") or "")))(
@@ -186,6 +194,7 @@ class SdkAdapter:
                     method(content)
                     expected_tabs[tab] = content
                 expected_readback = {"data": expected_tabs}
+                effect_started = True
                 value = builder.build()
             elif object_type == "dataset" and isinstance(draft.get("dataset"), dict):
                 from datalens_dev_mcp.authoring.typed_graph import dataset_builder
@@ -197,6 +206,7 @@ class SdkAdapter:
                 connection = client.get.connection(by_id=connection_id)
                 builder = dataset_builder(client, connection, specification, name=name, location=location)
                 expected_readback = {"name": name}
+                effect_started = True
                 value = builder.build()
             elif object_type == "dashboard" and isinstance(draft.get("dashboard"), dict):
                 from datalens_sdk.converter.dashboard import DashboardConverter
@@ -208,20 +218,25 @@ class SdkAdapter:
                 if payload is None:
                     payload = DashboardConverter.from_domain_create(builder.to_spec()).to_payload()
                 expected_readback = {"entry": {"data": payload["entry"]["data"]}}
+                effect_started = True
                 value = builder.build()
             else:
                 snapshot = draft.get("snapshot")
                 if not isinstance(snapshot, dict):
                     raise ValueError("draft.snapshot is required for this object type")
                 factory = getattr(client.raw.create, object_type)
-                value = factory(response_snapshot=snapshot, name=name, location=location).build()
+                builder = factory(response_snapshot=snapshot, name=name, location=location)
+                effect_started = True
+                value = builder.build()
             result = {"object_id": _result_id(value), "object": _json_object(value), "backend": "official_sdk"}
             if expected_readback is not None:
                 result["expected_readback"] = expected_readback
             return result
         except (httpx.TransportError, SdkTransportError) as exc:
             raise UncertainWriteError("SDK create outcome is uncertain", method=f"create:{object_type}") from exc
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, KeyError) as exc:
+            if not effect_started:
+                raise InputContractError(safe_error_text(exc)) from exc
             raise
         except Exception as exc:
             raise _provider_error(exc, f"create:{object_type}") from exc
@@ -320,7 +335,7 @@ class SdkAdapter:
             if expected_revision:
                 observed_revision = _saved_revision(latest)
                 if observed_revision != expected_revision:
-                    raise ValueError("saved revision changed during SDK target fetch; re-read before retry")
+                    raise WritePreconditionError("saved revision changed during SDK target fetch; re-read before retry")
             rename_to = None
             if not publish and "name" in snapshot and snapshot["name"] != latest.get("name"):
                 old_content = {key: value for key, value in latest.items() if key != "name"}
@@ -341,9 +356,9 @@ class SdkAdapter:
                 observed = latest.get("dataset")
                 revision = content.get("revision_id") if isinstance(content, dict) else None
                 if not isinstance(revision, str) or not revision:
-                    raise ValueError("Dataset update requires the observed dataset.revision_id")
+                    raise WritePreconditionError("Dataset update requires the observed dataset.revision_id")
                 if not isinstance(observed, dict) or observed.get("revision_id") != revision:
-                    raise ValueError("Dataset revision changed during target fetch; re-read before retry")
+                    raise WritePreconditionError("Dataset revision changed during target fetch; re-read before retry")
                 if self._config is None:
                     raise RuntimeError("DataLensConfig is required for Dataset update")
                 value = DataLensApiClient(self._config).write(
@@ -482,7 +497,7 @@ def _canonical_object_type(value: str) -> str:
         "ql_chart",
         "dashboard",
     }:
-        raise ValueError(f"unsupported SDK mutation object type: {value}")
+        raise InputContractError(f"unsupported SDK mutation object type: {value}")
     return canonical
 
 
@@ -494,9 +509,12 @@ def _entry_location(destination: dict[str, Any]) -> Any:
     ]
     selected = [(kind, str(value)) for kind, value in values if value]
     if len(selected) != 1:
-        raise ValueError("destination must contain exactly one of workbook_id, collection_id or path")
+        raise InputContractError("destination must contain exactly one of workbook_id, collection_id or path")
     kind, value = selected[0]
-    return getattr(datalens_sdk.EntryLocation, kind)(value)
+    try:
+        return getattr(datalens_sdk.EntryLocation, kind)(value)
+    except (ValueError, TypeError) as exc:
+        raise InputContractError(safe_error_text(exc)) from exc
 
 
 def _draft_name(draft: dict[str, Any]) -> str:
@@ -505,7 +523,7 @@ def _draft_name(draft: dict[str, Any]) -> str:
         contract = draft.get("visual_contract") or draft.get("config") or {}
         name = str(((contract.get("object_name") or {}).get("value")) or "") if isinstance(contract, dict) else ""
     if not name:
-        raise ValueError("draft.name or visual_contract.object_name.value is required")
+        raise InputContractError("draft.name or visual_contract.object_name.value is required")
     return name
 
 
@@ -523,7 +541,7 @@ def _editor_factory(variant: str) -> str:
         "table": "table",
     }
     if variant not in mapping:
-        raise ValueError(f"unsupported editor variant: {variant}")
+        raise InputContractError(f"unsupported editor variant: {variant}")
     return mapping[variant]
 
 

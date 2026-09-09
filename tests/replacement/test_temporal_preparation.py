@@ -63,6 +63,7 @@ def test_existing_grain_fills_days_and_preserves_normalized_month_comparison():
 
 def test_irregular_actual_render_x_uses_elapsed_time_and_daily_gap_breaks_line():
     import re
+
     from test_visual_fidelity import render
 
     data = {'categories': ['2026-09-01', '2026-09-02', '2026-09-10'],

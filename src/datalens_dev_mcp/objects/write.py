@@ -6,8 +6,15 @@ from copy import deepcopy
 from typing import Any, Protocol
 from uuid import uuid4
 
-from datalens_dev_mcp.api.errors import DataLensApiError, UncertainWriteError, safe_error_text
+from datalens_dev_mcp.api.errors import (
+    DataLensApiError,
+    InputContractError,
+    UncertainWriteError,
+    error_response,
+    safe_error_text,
+)
 from datalens_dev_mcp.authoring.artifacts import resolve_artifact
+from datalens_dev_mcp.objects.relations import object_identity
 from datalens_dev_mcp.operation_store import OperationStore
 
 _EDITOR_ARTIFACT_TYPES = frozenset(
@@ -95,12 +102,15 @@ class ObjectMutationService:
         operation_id: str | None = None,
     ) -> dict[str, Any]:
         if delivery_mode != "save":
-            raise ValueError("create delivery_mode must be 'save'; publish is an explicit later operation")
+            raise InputContractError("create delivery_mode must be 'save'; publish is an explicit later operation")
         from datalens_dev_mcp.dashboard.composition import bind_object_references, dependency_order
 
-        drafts = dependency_order([resolve_artifact(draft) for draft in drafts])
-        _, record = self._record("create", {"drafts": drafts, "destination": destination}, operation_id)
-        if record.get("status") == "completed":
+        try:
+            drafts = dependency_order([resolve_artifact(draft) for draft in drafts])
+        except (ValueError, TypeError) as exc:
+            raise InputContractError(safe_error_text(exc)) from exc
+        admitted, record = self._record("create", {"drafts": drafts, "destination": destination}, operation_id)
+        if not admitted:
             return record
         items = self._items(record, drafts, lambda d, i: str(d.get("client_ref") or f"create-{i}"))
         for index, draft in enumerate(drafts):
@@ -131,7 +141,7 @@ class ObjectMutationService:
                 self._returned(record, item, response)
                 self._verify_readback(item, branch="saved")
             except UncertainWriteError as exc:
-                item.update(status="uncertain", error=safe_error_text(exc), code="write_outcome_unknown")
+                self._failure(item, exc)
             except (DataLensApiError, ValueError, TypeError) as exc:
                 self._failure(item, exc)
             self._save(record)
@@ -141,10 +151,13 @@ class ObjectMutationService:
         self, changes: list[dict[str, Any]], *, delivery_mode: str = "save", operation_id: str | None = None
     ) -> dict[str, Any]:
         if delivery_mode != "save":
-            raise ValueError("update delivery_mode must be 'save'; publish is an explicit later operation")
-        changes = [_resolve_update_change(change) for change in changes]
-        _, record = self._record("update", {"changes": changes}, operation_id)
-        if record.get("status") == "completed":
+            raise InputContractError("update delivery_mode must be 'save'; publish is an explicit later operation")
+        try:
+            changes = [_resolve_update_change(change) for change in changes]
+        except (ValueError, TypeError) as exc:
+            raise InputContractError(safe_error_text(exc)) from exc
+        admitted, record = self._record("update", {"changes": changes}, operation_id)
+        if not admitted:
             return record
         items = self._items(record, changes, lambda c, i: f"{c.get('object_type')}:{c.get('object_id')}")
         for index, change in enumerate(changes):
@@ -154,6 +167,14 @@ class ObjectMutationService:
             object_type, object_id = str(change["object_type"]), str(change["object_id"])
             try:
                 current = self.reader.object_get(object_type, object_id, branch="saved")
+                if not _usable_full_read(current):
+                    item.update(
+                        status="blocked",
+                        code="full_read_required",
+                        next_action="Read a complete full saved target before preparing replacement.",
+                    )
+                    self._save(record)
+                    continue
                 actual_revision = str(current.get("identity", {}).get("revision_id") or "")
                 expected = str(change.get("expected_revision") or "")
                 if expected and actual_revision != expected:
@@ -178,15 +199,15 @@ class ObjectMutationService:
                 self._returned(record, item, response)
                 self._verify_readback(item, branch="saved")
             except UncertainWriteError as exc:
-                item.update(status="uncertain", error=safe_error_text(exc), code="write_outcome_unknown")
+                self._failure(item, exc)
             except (DataLensApiError, ValueError, TypeError) as exc:
                 self._failure(item, exc)
             self._save(record)
         return self._save(record)
 
     def publish_objects(self, targets: list[dict[str, Any]], *, operation_id: str | None = None) -> dict[str, Any]:
-        _, record = self._record("publish", {"targets": targets}, operation_id)
-        if record.get("status") == "completed":
+        admitted, record = self._record("publish", {"targets": targets}, operation_id)
+        if not admitted:
             return record
         items = self._items(record, targets, lambda t, i: f"{t.get('object_type')}:{t.get('object_id')}")
         for index, target in enumerate(targets):
@@ -200,6 +221,14 @@ class ObjectMutationService:
                 continue
             try:
                 saved = self.reader.object_get(object_type, object_id, branch="saved")
+                if not _usable_full_read(saved):
+                    item.update(
+                        status="blocked",
+                        code="full_read_required",
+                        next_action="Read a complete full saved target before publishing.",
+                    )
+                    self._save(record)
+                    continue
                 observed = str(saved.get("identity", {}).get("revision_id") or "")
                 expected = str(target.get("expected_saved_revision") or "")
                 if not observed:
@@ -225,7 +254,7 @@ class ObjectMutationService:
                 self._returned(record, item, response)
                 self._verify_readback(item, branch="published")
             except UncertainWriteError as exc:
-                item.update(status="uncertain", error=safe_error_text(exc), code="write_outcome_unknown")
+                self._failure(item, exc)
             except (DataLensApiError, ValueError, TypeError) as exc:
                 self._failure(item, exc)
             self._save(record)
@@ -263,7 +292,12 @@ class ObjectMutationService:
     def _begin(self, record: dict[str, Any], item: dict[str, Any]) -> None:
         # Persist before crossing the network boundary. A killed process cannot
         # subsequently mistake an in-flight mutation for an unattempted one.
-        item.update(status="uncertain", code="write_outcome_unknown", write_returned=False)
+        item.update(
+            status="uncertain",
+            code="write_outcome_unknown",
+            write_returned=False,
+            next_action="Inspect this operation_id and reconcile exact target readback; do not replay the write.",
+        )
         item.pop("error", None)
         self._save(record)
 
@@ -284,8 +318,13 @@ class ObjectMutationService:
             and identity.get("object_type") == target["object_type"]
             and identity.get("branch") == allowed_branch
         )
+        payload = readback.get("object") or {}
+        payload_id, _ = object_identity(payload)
+        correct_identity = correct_identity and (not payload_id or payload_id == target["object_id"])
         desired = item.get("desired") or {}
-        content_matches = _readback_contains(readback.get("object") or {}, desired)
+        content_matches = _readback_contains(
+            readback.get("object") or {}, _readback_intent(target["object_type"], desired)
+        )
         returned_revision = item.get("returned_revision")
         # Some official SDK update builders return their pre-write target
         # snapshot even though the provider has already advanced the object.
@@ -296,46 +335,51 @@ class ObjectMutationService:
             identity.get("revision_id"),
             item.get("expected_revision"),
         }
-        if readback.get("ok") and correct_identity and content_matches and revision_matches:
+        if _usable_full_read(readback) and correct_identity and content_matches and revision_matches:
             item.update(status="completed", code="readback_verified", observed_revision=identity.get("revision_id"))
             item.pop("error", None)
+            item.pop("next_action", None)
         else:
             # An old or different snapshot cannot prove rejection: the write
             # may still be in flight, or a later edit may have superseded it.
-            item.update(status="uncertain", code="readback_mismatch")
+            item.update(
+                status="uncertain",
+                code="readback_mismatch",
+                next_action="Reconcile exact target identity, branch and business content; do not replay the write.",
+            )
 
     @staticmethod
     def _failure(item: dict[str, Any], exc: Exception) -> None:
-        rejected = isinstance(exc, (ValueError, TypeError)) or (
-            isinstance(exc, DataLensApiError)
-            and exc.response_received is True
-            and exc.http_status is not None
-            and 400 <= exc.http_status < 500
-            and exc.http_status not in {408, 409}
-        )
-        uncertain = item.get("write_returned") or (item.get("status") == "uncertain" and not rejected)
+        effect_possible = item.get("status") == "uncertain" or bool(item.get("write_returned"))
+        # A rejection during readback cannot undo an already returned write.
+        detail = error_response(exc, effect_possible=effect_possible)
+        uncertain = bool(item.get("write_returned")) or detail["code"] == "write_outcome_unknown"
+        if uncertain:
+            detail = error_response(UncertainWriteError(safe_error_text(exc)))
         item.update(
             status="uncertain" if uncertain else "failed",
-            error=safe_error_text(exc),
-            code="write_outcome_unknown" if uncertain else "write_failed",
+            error=detail["error"],
+            code=detail["code"],
+            next_action=detail["next_action"],
         )
 
-    def _record(self, effect: str, request: dict[str, Any], operation_id: str | None) -> tuple[str, dict[str, Any]]:
+    def _record(self, effect: str, request: dict[str, Any], operation_id: str | None) -> tuple[bool, dict[str, Any]]:
         oid = operation_id or str(uuid4())
-        digest = _digest(request)
-        existing = self.store.get(oid)
-        if existing is not None:
-            if existing.get("effect") != effect or existing.get("request_digest") != digest:
-                raise ValueError("operation_id is already bound to a different request")
-            return oid, existing
-        return oid, {
-            "ok": True,
-            "operation_id": oid,
-            "effect": effect,
-            "request_digest": digest,
-            "status": "pending",
-            "results": [],
-        }
+        try:
+            digest = _digest(request)
+        except (ValueError, TypeError) as exc:
+            raise InputContractError(safe_error_text(exc)) from exc
+        return self.store.claim(
+            {
+                "ok": False,
+                "operation_id": oid,
+                "effect": effect,
+                "request_digest": digest,
+                "status": "pending",
+                "next_action": "Inspect the existing receipt; an active or interrupted claim must not be replayed.",
+                "results": [],
+            }
+        )
 
     @staticmethod
     def _items(record: dict[str, Any], values: list[dict[str, Any]], key_fn: Any) -> list[dict[str, Any]]:
@@ -361,29 +405,47 @@ class ObjectMutationService:
             status = "pending"
         record["status"] = status
         record["ok"] = status == "completed"
-        return self.store.put(record)
+        if status == "completed":
+            record.pop("next_action", None)
+        try:
+            return self.store.put(record)
+        except OSError as exc:
+            if any(
+                item.get("status") == "uncertain" or item.get("write_returned") for item in record.get("results", [])
+            ):
+                raise UncertainWriteError(
+                    "operation persistence failed; inspect the durable receipt and reconcile"
+                ) from exc
+            raise
 
 
 def _resolve_update_change(change: dict[str, Any]) -> dict[str, Any]:
+    patch = change.get("patch")
+    if isinstance(patch, dict) and (patch.get("full_state") is False or patch.get("read_view", "full") != "full"):
+        raise InputContractError(
+            "replacement requires fresh full state; summary/projection envelopes are not write payloads"
+        )
     if "artifact_path" not in change:
         return deepcopy(change)
     allowed = {"artifact_path", "object_type", "object_id", "expected_revision"}
     if set(change) - allowed:
-        raise ValueError("artifact updates allow only artifact_path, object_type, object_id and expected_revision")
+        raise InputContractError(
+            "artifact updates allow only artifact_path, object_type, object_id and expected_revision"
+        )
     object_type, object_id = change.get("object_type"), change.get("object_id")
     if not isinstance(object_type, str) or not object_type or not isinstance(object_id, str) or not object_id:
-        raise ValueError("artifact update requires nonempty object_type and object_id")
+        raise InputContractError("artifact update requires nonempty object_type and object_id")
     draft = resolve_artifact({"artifact_path": change["artifact_path"]})
     if object_type not in _EDITOR_ARTIFACT_TYPES or draft.get("object_type") not in _EDITOR_ARTIFACT_TYPES:
-        raise ValueError("artifact update currently supports compiled Editor drafts only")
+        raise InputContractError("artifact update currently supports compiled Editor drafts only")
     tabs = draft.get("tabs")
     if not isinstance(tabs, dict) or not tabs:
-        raise ValueError("compiled Editor artifact requires nonempty tabs")
+        raise InputContractError("compiled Editor artifact requires nonempty tabs")
     data: dict[str, str] = {}
     for filename, content in tabs.items():
         key = _EDITOR_ARTIFACT_TABS.get(filename)
         if key is None or not isinstance(content, str):
-            raise ValueError(f"unsupported compiled Editor tab: {filename}")
+            raise InputContractError(f"unsupported compiled Editor tab: {filename}")
         data[key] = content
     patch: dict[str, Any] = {"data": data}
     if isinstance(draft.get("name"), str) and draft["name"]:
@@ -407,6 +469,32 @@ def _contains(actual: Any, expected: Any) -> bool:
             key in actual and _contains(actual[key], value) for key, value in expected.items()
         )
     return actual == expected
+
+
+def _usable_full_read(readback: dict[str, Any]) -> bool:
+    """Only complete full provider state may authorize replacement or prove it."""
+    payload = readback.get("object")
+    if readback.get("ok") is not True or not isinstance(payload, dict):
+        return False
+    return all(
+        value.get("ok") is not False
+        and value.get("complete") is not False
+        and value.get("full_state") is not False
+        and value.get("read_view", "full") == "full"
+        for value in (readback, payload)
+    )
+
+
+def _readback_intent(object_type: str, desired: dict[str, Any]) -> dict[str, Any]:
+    intent = deepcopy(desired)
+    if object_type == "dataset":
+        # Exact provider-owned preconditions, not recursive business-field filtering.
+        intent.pop("revId", None)
+        intent.pop("rev_id", None)
+        dataset = intent.get("dataset")
+        if isinstance(dataset, dict):
+            dataset.pop("revision_id", None)
+    return intent
 
 
 def _readback_contains(actual: Any, expected: Any) -> bool:
