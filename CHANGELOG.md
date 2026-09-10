@@ -6,6 +6,19 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Optional compact object projections, resumable dashboard dependency reads, and active runtime fingerprints (local 1.1.0 candidate).
+- Interprocess operation admission bound to request content, with durable unknown-outcome recovery.
+
+### Fixed
+
+- Full Dataset updates verify business intent separately from provider-owned revision preconditions.
+- Partial relation scans and failed dependencies remain partial when composing dashboard snapshots.
+- Nested public tool arguments are validated before dispatch; tool errors preserve effect certainty and actionable recovery.
+- Retention skips already compacted operation receipts instead of repeatedly rewriting them under the admission lock.
+- Scoped skills describe selective reads, continuation notes, complete multi-object coverage, and separate save/data/visual evidence.
+
 ## [1.0.0] - 2026-09-07
 
 ### Changed

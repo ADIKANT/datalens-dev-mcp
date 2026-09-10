@@ -3,7 +3,6 @@ import re
 import xml.etree.ElementTree as ET
 
 import pytest
-
 from test_visual_fidelity import render
 
 
@@ -15,7 +14,7 @@ def chart(series, **options):
         }},
         {"width": 900, "height": 420},
     )
-    return ET.fromstring(re.search(r"<svg\b.*?</svg>", html, re.S).group())
+    return ET.fromstring(re.search(r"<svg\b.*?</svg>", html, re.DOTALL).group())
 
 
 def bar(values, color="#123456"):

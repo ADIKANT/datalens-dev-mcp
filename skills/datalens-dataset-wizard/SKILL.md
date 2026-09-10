@@ -7,6 +7,8 @@ description: Use when creating, updating, validating, or previewing DataLens dat
 
 Read [references/dataset-wizard-contracts.md](references/dataset-wizard-contracts.md) before validating fields, previewing data, or authoring Wizard charts.
 
+Use this skill for Dataset schema/data work and native Wizard charts. Route dashboard placement to `datalens-dashboard`, JavaScript Editor variants to `datalens-editor`, read-only object discovery to `datalens-inspect`, and backup or cleanup to `datalens-maintenance`. Load the contracts below and only the dashboard decision section needed for a visual choice.
+
 Use exact Dataset field GUIDs from current readback. Treat row expressions, aggregates, windows and LOD as different calculation levels. Prefer Wizard for a new standard visualization unless the user requires another technology; preserve an existing object's technology. Compile field roles with the pinned official SDK and do not call `.build()` for preview.
 
 Preserve field GUIDs and distinguish dataset-global fields from chart-local fields. For a new Dataset, use the short typed `dataset` draft with top-level `object_type`, `name`, and `client_ref`, plus an existing `connection_id`, source, and fields inside the nested `dataset` object. Do not move those three members to the draft root and do not synthesize a raw provider snapshot. Bind real fields to supported Wizard roles and sections. Treat Measure Names and Measure Values as chart technical fields, never physical dataset columns. Validate provider acceptance separately from the rendered result.

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "datalens-dev-mcp"
-version = "1.0.0+codex.20260908101800"
+version = "1.1.0+codex.20260910071145"
 description = "Typed domain plugin for developing and maintaining Yandex DataLens objects through Codex and MCP clients."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -39,6 +39,7 @@ classifiers = [
 ]
 dependencies = [
   "datalens-sdk==0.9.0",
+  "jsonschema>=4.21,<5",
 ]
 
 [project.optional-dependencies]

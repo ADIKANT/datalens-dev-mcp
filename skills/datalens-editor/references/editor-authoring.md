@@ -19,6 +19,8 @@ Pure title, hint, spacing, color or layout changes do not require a Dataset quer
 
 A synthetic scenario may explicitly use prepared data. It proves composition, not live business-source connectivity. Inspect normal/compact viewport, hover, scroll, and saved/published runtime; successful compilation or a profile name is not visual acceptance.
 
+Across recipes, preserve source semantics: NULL or unknown stays missing rather than zero; a KPI with no denominator remains undefined; polarity stays neutral unless declared; non-additive totals come from the source rather than summing cells; signed series retain negative observations and a zero baseline. Treat a historical fixed defect as current only after reproducing it on the active source/runtime.
+
 ## KPI and calendar inputs
 
 KPI presentation uses `kpi.direction` (`higher_is_better`, `lower_is_better`, `neutral`), `kpi.delta_kind` (`relative`, `absolute`, `percentage_points`), and `kpi.value_scale` (`null`, `fraction`, `percent`). The same keys on the `metric` binding seed semantics; selected profile/reference values and explicit presentation overrides take precedence. Keep known accepted metric polarity explicit; unknown direction remains neutral. Relative delta is `(current - previous) / abs(previous)`; a zero base is undefined, never Infinity. Absolute delta retains metric units; percentage points respect fraction/percent scale. Preserve raw point precision when formatting body and tooltip.

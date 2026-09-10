@@ -112,6 +112,7 @@ def test_store_prunes_old_completed_records_but_preserves_uncertain_recovery(tmp
 
     store.put({"operation_id": "new-complete", "status": "completed"})
 
-    assert not (tmp_path / "old-complete.json").exists()
+    assert store.get("old-complete")["detail_pruned"] is True
+    assert store.get("old-complete")["status"] == "completed"
     assert (tmp_path / "old-uncertain.json").exists()
     assert (tmp_path / "new-complete.json").exists()

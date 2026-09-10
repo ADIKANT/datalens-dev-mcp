@@ -149,4 +149,12 @@ def extract_dataset_fields(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
     for value in candidates:
         if isinstance(value, (list, tuple)):
             return [dict(item) for item in value if isinstance(item, Mapping)]
+    # The full API-v2 Dataset state may be inside data.dataset (or result.data).
+    # Follow only known response envelopes, never arbitrary business objects.
+    for key in ("dataset", "entry", "data", "result", "response"):
+        nested = payload.get(key)
+        if isinstance(nested, Mapping):
+            fields = extract_dataset_fields(nested)
+            if fields:
+                return fields
     return []
