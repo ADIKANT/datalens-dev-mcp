@@ -16,6 +16,7 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Full Dataset updates verify business intent separately from provider-owned revision preconditions.
 - Partial relation scans and failed dependencies remain partial when composing dashboard snapshots.
 - Nested public tool arguments are validated before dispatch; tool errors preserve effect certainty and actionable recovery.
+- Retention skips already compacted operation receipts instead of repeatedly rewriting them under the admission lock.
 - Scoped skills describe selective reads, continuation notes, complete multi-object coverage, and separate save/data/visual evidence.
 
 ## [1.0.0] - 2026-09-07

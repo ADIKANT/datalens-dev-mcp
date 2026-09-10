@@ -76,6 +76,7 @@ class OperationStore:
                 if existing.get("status") in {"partial", "failed"} or resumable_pending:
                     # Only confirmed rejected/unattempted items are resumable.
                     # Reserve the resumed batch before releasing the transaction.
+                    existing.pop("detail_pruned", None)
                     existing["status"] = "pending"
                     existing["ok"] = False
                     existing["store_version"] = int(existing.get("store_version", 0)) + 1
@@ -128,6 +129,10 @@ class OperationStore:
                 continue
             # Pending, partial, blocked and uncertain records are recovery state.
             if status not in {"completed", "failed"}:
+                continue
+            # Tombstones retain claim bindings, but no longer consume detail
+            # retention limits or need another durable rewrite under this lock.
+            if value.get("detail_pruned"):
                 continue
             if path != keep and now - mtime > self.max_age_seconds:
                 self._compact_receipt(value)

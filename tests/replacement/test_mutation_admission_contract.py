@@ -9,6 +9,7 @@ import httpx
 import pytest
 from test_dataset_update_wire import snapshot
 
+from datalens_dev_mcp.api.errors import InputContractError
 from datalens_dev_mcp.api.sdk_adapter import SdkAdapter
 from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.objects.read import ObjectReadService
@@ -218,6 +219,54 @@ def test_receipt_pruning_retains_claims_and_recovery_state(tmp_path):
     admitted, previous = store.claim({"operation_id": "old", "request_digest": "old", "effect": "create"})
     assert admitted is False
     assert previous["status"] == "completed"
+
+
+@pytest.mark.parametrize("limit", ["max_records", "max_bytes", "max_age_seconds"])
+def test_pruning_does_not_rewrite_existing_tombstones(tmp_path, monkeypatch, limit):
+    store = OperationStore(tmp_path)
+    for index in range(4):
+        store._compact_receipt({
+            "operation_id": f"old-{index}", "request_digest": f"digest-{index}",
+            "effect": "create", "status": "completed", "results": [],
+        })
+    before = {path.name: path.read_bytes() for path in tmp_path.glob("*.json")}
+    setattr(store, limit, 0)
+    compacted = []
+    original = store._compact_receipt
+
+    def track_compaction(record):
+        compacted.append(record["operation_id"])
+        original(record)
+
+    monkeypatch.setattr(store, "_compact_receipt", track_compaction)
+    pending = store.put({"operation_id": "active", "status": "pending", "results": []})
+    store.put(pending)
+    assert compacted == []
+    assert all((tmp_path / name).read_bytes() == contents for name, contents in before.items())
+    admitted, previous = store.claim({
+        "operation_id": "old-0", "request_digest": "digest-0", "effect": "create",
+    })
+    assert admitted is False and previous["status"] == "completed"
+    with pytest.raises(InputContractError, match="different request"):
+        store.claim({"operation_id": "old-0", "request_digest": "changed", "effect": "create"})
+
+
+def test_resumed_compact_failure_can_prune_new_detail(tmp_path):
+    store = OperationStore(tmp_path, max_bytes=1)
+    identity = {"operation_id": "retry", "request_digest": "same", "effect": "create"}
+    store._compact_receipt({**identity, "status": "failed", "results": []})
+    admitted, resumed = store.claim(identity)
+    assert admitted is True
+    assert not resumed.get("detail_pruned")
+    resumed.update({"status": "completed", "results": [{
+        "key": "chart", "status": "completed", "desired": {"data": "x" * 10000},
+    }]})
+    store.put(resumed)
+    store.put({"operation_id": "next", "status": "pending", "results": []})
+    compact = store.get("retry")
+    assert compact["detail_pruned"] is True
+    assert "desired" not in compact["results"][0]
+    assert store.claim(identity)[0] is False
 
 
 def test_claim_crash_and_conflicting_request_never_replay(tmp_path):
