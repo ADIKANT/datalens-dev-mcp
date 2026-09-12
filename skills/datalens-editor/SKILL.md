@@ -1,18 +1,14 @@
 ---
 name: datalens-editor
-description: Use when authoring or diagnosing DataLens JavaScript Editor table, Gravity, Advanced, Markdown, or selector charts.
+description: Use when authoring or diagnosing DataLens JavaScript Editor table, Gravity, Advanced, Markdown, selector charts, or HTML inside an Editor chart. Not for standalone HTML Pages, native Wizard charts, or independent SDK scripts.
 ---
 
 # DataLens Editor
 
-Read [references/editor-authoring.md](references/editor-authoring.md) before compiling or validating Editor objects.
+Read [Editor authoring](references/editor-authoring.md) for the actual runtime variant (`table_node`, `d3_node`, `advanced-chart_node`, `markdown_node` or `control_node`). Preserve that technology, untouched tabs, Meta aliases and source bindings. Diagnose missing aliases, upstream errors and valid empty results separately.
 
-Use this skill only for the selected Editor runtime variant. Route native Wizard work to `datalens-dataset-wizard`, dashboard composition to `datalens-dashboard`, read-only discovery to `datalens-inspect`, and backup or cleanup to `datalens-maintenance`. Load the authoring reference and only the relevant visualization-decision section.
+Use `dl_compile_recipe` for registered visual families, adjusting bindings and permitted presentation values. Its compact `draft_reference` addresses the complete private draft: pass it to validation/create; for update combine its `artifact_path` with exact target identity and fresh revision. Reuse packaged renderers rather than reproducing their JavaScript.
 
-Select the actual Editor variant (`table_node`, `d3_node`, `advanced-chart_node`, `markdown_node`, or `control_node`) and preserve it on update. Use `dl_compile_recipe` for a registered visual family so the canonical renderer is reused; change bindings and allowed presentation values instead of regenerating large JavaScript. The tool materializes the complete draft in private local state and returns a compact `draft_reference`; pass that reference directly to validation/create, or combine its `artifact_path` only with update target identity and fresh revision, instead of reading and echoing the renderer. Use `dl_editor_validate` for static tabs, aliases and constrained-runtime checks. Report browser/live evidence separately.
+`dl_editor_validate` checks static tabs, aliases and constrained-runtime rules. Verify changed runtime/visual behavior in Browser separately. HTML generated inside an Editor/table cell follows that Editor contract; standalone Page CSP and host messaging do not apply.
 
-Preserve the existing Editor technology. Resolve declared Meta aliases, Sources, Prepare, Config, Controls, Params, and wrapped render functions according to the selected chart type. Use short Dataset or direct QL/API source bindings where applicable. Keep missing alias, upstream error, and a valid empty result distinct. Use packaged reusable recipes for repeated visual families; do not regenerate their large JavaScript implementation for each task.
-
-Follow [authorized scope and delivery](../datalens-dashboard/references/authorized-scope.md) for mutations: explicit scoped work continues without repeated permission questions; read-only and save-only limits remain binding.
-
-For new visual or semantic decisions, consult only the relevant part of [visualization decisions](../datalens-dashboard/references/decision-quality.md); preserve the accepted reference and infer routine context without a mandatory questionnaire.
+Follow [authorized scope and delivery](../datalens-dashboard/references/authorized-scope.md) and the relevant [visualization decision](../datalens-dashboard/references/decision-quality.md). Route Wizard to `datalens-dataset-wizard`, placement to `datalens-dashboard`, discovery to `datalens-inspect`, and standalone Page/backup/cleanup to `datalens-maintenance`.

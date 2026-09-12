@@ -75,3 +75,20 @@ The raw skill, its template, and its test corpus are not redistributed. The
 project contains a compact independent implementation and retains a pinned
 source URL and content hash for provenance. No endorsement by the upstream
 project is implied.
+
+
+## Selectively adapted DataLens guidance
+
+Copyright 2026 YANDEX LLC. Licensed under the Apache License, Version 2.0; a copy is supplied in [LICENSE](LICENSE).
+
+The following references were rewritten and selectively adapted for this plugin from `datalens-tech/datalens-skills` commit `603fe462891f99ab6949eec033cb9fcbcf376824`:
+
+- `skills/datalens-inspect/references/installation-and-sdk.md`: installation/object model and installed-version documentation discovery.
+- `skills/datalens-inspect/references/cloud-rls-resolution.md`: cloud organization-scoped RLS identity lookup.
+- `skills/datalens-maintenance/references/html-pages.md`: standalone HTML Page runtime constraints.
+
+Modifications narrow interface routing and capabilities, preserve typed mutation safeguards, remove automatic environment/auth changes, and retain business-semantic and Browser verification. No upstream executable scripts or templates are included. SDK documentation at tag `v3.0.0`, commit `9114d148ed9ffa2524933988831384184d9db01b`, also informs installed-version documentation discovery under the same copyright/license. Neither selected Apache upstream tree contains a separate NOTICE file.
+
+Exact source paths, commit/tag identities, applicability and deliberate exclusions are recorded in [upstream provenance](skills/datalens-inspect/references/upstream-provenance.md).
+
+The MIT-licensed `datalens-tech/datalens-mcp` README at commit `3638be038284484de8c7320901f745d0c00a0a6f` supplied architectural inspiration for selective schema discovery only; no code, text or bundled dependencies were copied from it.

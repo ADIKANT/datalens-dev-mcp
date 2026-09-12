@@ -21,10 +21,14 @@ Use an existing project `AGENTS.md` or `CONTEXT.md` for a long handoff only when
 
 After compaction, restore that short note and revalidate mutable facts selectively. A new revision or manual edit invalidates the affected object's saved state; a runtime change invalidates active-runtime evidence; a scope change invalidates the coverage boundary. Keep stable decisions and already verified independent objects.
 
-For multiple objects, maintain one row per requested target:
+When the user narrows or cancels effects during a pending operation, stop dispatching newly cancelled writes. Cancellation of a UI call is not proof that a remote effect was cancelled or undone. Preserve the operation ID and receipt; reconcile an already dispatched effect using `dl_operation_get`, `dl_operation_reconcile` and exact readback before deciding what happened. Continue independent authorized reads. Do not clear receipts, repeat an unknown write after compaction, or claim rollback without evidence.
 
-| Object | Required change | Evidence | Remaining |
+For multiple workbooks/projects, keep each project's exact root, workbook and object identities separate. Track every requested target from the start; a missing dependency in one does not block independent authorized work in the others. For a request covering six workbooks, account for all six before reporting the result. Maintain one row per requested target:
+
+| Project / workbook / object | Required change | Evidence | Remaining |
 | --- | --- | --- | --- |
-| `synthetic-chart-a` | Rename title | saved readback at current revision | publish only if requested |
+| `project-a / workbook-a / chart-a` | Rename title | saved readback at current revision | publish only if requested |
 
 Do not claim overall completion until every target has a row and no required remainder. Keep API save/readback, publish/readback, data proof, and Browser proof as separate evidence. A visible selector, Editor, or layout change needs relevant rendered verification; a metadata-only update does not require a full Browser tour.
+
+Scale the final response to the request: a single rename needs the result and relevant readback, while a multi-project task needs per-target change, save/readback, requested publish/render and exact remainder. A status question or compaction continues the existing task unless the user changes it; keep accepted formulas and units rather than asking again.

@@ -1,16 +1,14 @@
 ---
 name: datalens-dashboard
-description: Use when composing or updating DataLens dashboards, widgets, tabs, selectors, parameters, relations, styles, or layout.
+description: Use when composing, updating, or visually verifying DataLens dashboard tabs, widgets, selectors, parameters, relations, styles, or layout. Not for standalone HTML Pages, SDK scripts, or metadata-only inspection.
 ---
 
 # DataLens Dashboard
 
-Separate object name, visible title, hint, and geometry. Apply explicit requirements first, then an explicit reference, project defaults, user defaults, and the generic recipe. For new recipe charts, carry the compiled `visual_contract` into item `presentation` so the selected title and hint owner survives placement; see the canonical example in the composition reference. On update, preserve live tabs, widgets, relations, and manual layout outside the requested change.
+Apply explicit requirements, then the explicit reference, project defaults, user defaults and the generic recipe. Keep object name, visible title, hint and geometry separate. Preserve current tabs, widgets, relations and manual layout outside the requested change.
 
-Use this skill when the requested result is a dashboard composition or layout change. Route Dataset fields and native Wizard authoring to `datalens-dataset-wizard`, Editor runtime work to `datalens-editor`, read-only discovery to `datalens-inspect`, and backup or cleanup to `datalens-maintenance`. Load only the reference named for the current decision.
+Read [composition](references/composition.md) for selector bindings, typed dashboard drafts and dependency order. Validate the complete draft batch with `dl_editor_validate(drafts=...)`; carry a compiled recipe's `visual_contract` into item `presentation`. Retain raw snapshots for exact imports or documented adapter gaps.
 
-Read [references/composition.md](references/composition.md) before composing selectors, parameters, or multi-object dashboards. Validate the full batch with `dl_editor_validate(drafts=...)`, then create dependencies in explicit order. Use the typed `dashboard` draft for ordinary tabs/widgets and retain raw snapshots for exact imports or documented SDK gaps.
+Follow [authorized scope and delivery](references/authorized-scope.md) for mutations, continuation and completion across projects. For a visual or semantic choice, load the relevant part of [visualization decisions](references/decision-quality.md). Check the changed rendered state with Browser after API and applicable data checks; a correct readback alone does not prove correct layout.
 
-Follow [authorized scope and delivery](references/authorized-scope.md) for mutations: explicit scoped work continues without repeated permission questions; read-only and save-only limits remain binding.
-
-For new visual or semantic decisions, consult only the relevant part of [visualization decisions](references/decision-quality.md); preserve the accepted reference and infer routine context without a mandatory questionnaire.
+Route field/native chart changes to `datalens-dataset-wizard`, JavaScript runtime changes to `datalens-editor`, discovery to `datalens-inspect`, and backup/cleanup or standalone Page work to `datalens-maintenance`.
