@@ -615,6 +615,7 @@ def _result_id(value: Any) -> str:
 def _validate_editor_changes(snapshot: dict[str, Any], latest: dict[str, Any]) -> None:
     """Raw SDK replacement preserves unknown state but does not validate tabs."""
     from datalens_sdk._generated import dto
+    from pydantic import TypeAdapter, ValidationError
 
     carriers = {
         "table_node": "TableNodeNodeUpdateDataDTO",
@@ -626,11 +627,17 @@ def _validate_editor_changes(snapshot: dict[str, Any], latest: dict[str, Any]) -
     carrier = getattr(dto, carriers.get(str(snapshot.get("type")), ""), None)
     if carrier is None:
         raise InputContractError("Unsupported Editor renderer in SDK 3.0.0 installation contract")
-    allowed = {field.alias or name for name, field in carrier.model_fields.items()}
+    allowed = {field.alias or name: field for name, field in carrier.model_fields.items()}
     data, previous = snapshot.get("data") or {}, latest.get("data") or {}
     for key, value in data.items():
-        if key not in allowed and (key not in previous or previous[key] != value):
+        if key in previous and previous[key] == value:
+            continue
+        if key not in allowed:
             raise InputContractError(f"Unsupported Editor tab or UI-managed field: {key}; no public SDK setter")
+        try:
+            TypeAdapter(allowed[key].rebuild_annotation()).validate_python(value)
+        except ValidationError as exc:
+            raise InputContractError(f"Editor tab {key} has an invalid value type for its SDK carrier") from exc
 
 
 def _validate_dashboard_snapshot(snapshot: dict[str, Any], *, from_artifact: bool = False) -> None:

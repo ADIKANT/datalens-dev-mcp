@@ -162,3 +162,28 @@ before the fix. The follow-up focused contour passed **59 tests**, including all
 publication, wrong description and unbranched-publication negative controls.
 All attempts remain recorded; the first commit alone is insufficient for this
 Wizard save case. Integration must include this follow-up before its final suite.
+
+### Final integration review corrections
+
+The integration full suite exposed four recipe failures (446 passed). A focused
+reproduction confirmed three stale V2 wire assertions and one product defect:
+the pivot recipe still emitted the removed `y` measure role. It now emits the
+SDK V1 `measures` role. The four recipe tests assert exact dataset/GUID bindings,
+slot order, dimension subtotals and display settings from the real SDK converter.
+This extends D-S03 coverage; no chart formula or field identity is inferred.
+
+Independent review also supplied two reproducible input/readback gaps. Four
+public Editor update cases accepted non-string changed tabs before the fix.
+Changed values now validate against the generated renderer carrier's field
+type before dispatch; unchanged unknown state remains intact (D-S04). Preview
+now requires each page's returned schema GUIDs and order to match the requested
+columns before accepting its rows (D-S06). Three negative transport cases cover
+wrong GUIDs, reordered columns and second-page drift; a positive two-page case
+checks values and offsets. The initial preview test setup lacked the required
+deterministic pagination sort; after correcting that fixture, all three cases
+reproduced false success before the implementation change.
+
+The final focused/affected contour passed **102 tests**, including **51 real-SDK
+transport cases**, the four recipe suites, L04/L05, typed Wizard and Editor
+alias/tab dispatch tests. The preview component fixture now includes its schema.
+No additional full suite, build or live provider operation was run by this worker.

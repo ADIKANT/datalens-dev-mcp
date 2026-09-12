@@ -138,7 +138,7 @@ class DatasetPreviewService:
         for page_index in range(int(compiled["max_pages"])):
             request["offset"] = int(compiled["request"]["offset"]) + page_index * int(request["limit"])
             raw = self.dataset_query(request) if self.dataset_query is not None else self.api.read("getDatasetData", request)
-            page_rows = _rows(raw)
+            page_rows = _rows(raw, columns=request["columns"])
             if len(page_rows) > int(request["limit"]) or any(
                 not isinstance(row, list) or len(row) != len(request["columns"]) for row in page_rows
             ):
@@ -157,7 +157,7 @@ class DatasetPreviewService:
         }
 
 
-def _rows(raw: Mapping[str, Any]) -> list[Any]:
+def _rows(raw: Mapping[str, Any], *, columns: list[str]) -> list[Any]:
     value: Any = raw
     while isinstance(value, Mapping) and isinstance(value.get("result"), Mapping):
         value = value["result"]
@@ -166,4 +166,9 @@ def _rows(raw: Mapping[str, Any]) -> list[Any]:
     rows = value.get("rows") if isinstance(value, Mapping) else None
     if not isinstance(rows, list):
         raise TypeError("getDatasetData response must contain a rows array; malformed is not empty")
+    schema = value.get("schema")
+    if not isinstance(schema, list) or any(not isinstance(column, Mapping) for column in schema):
+        raise TypeError("getDatasetData response must contain a column schema")
+    if [column.get("guid") for column in schema] != columns:
+        raise ValueError("getDatasetData response schema must match requested column GUIDs and order")
     return list(rows)

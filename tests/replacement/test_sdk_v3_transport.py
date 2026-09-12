@@ -284,6 +284,7 @@ def editor_state():
 
 def test_public_editor_one_tab_preserves_others_and_strips_secrets(install_runtime):
     provider = Provider(editor_state())
+    provider.state["data"]["futureTab"] = {"manual": "preserve"}
     install_runtime(provider)
     result = update("editor_chart", "synthetic-editor", {"data": {"prepare": "module.exports=[1];"}})
     assert result["results"][0]["status"] == "completed", json.dumps(result, indent=2)
@@ -291,6 +292,7 @@ def test_public_editor_one_tab_preserves_others_and_strips_secrets(install_runti
     assert data["meta"] == editor_state()["data"]["meta"]
     assert data["sources"] == editor_state()["data"]["sources"]
     assert data["params"] == ""
+    assert data["futureTab"] == {"manual": "preserve"}
     assert "secrets" not in data
     assert "NEVER-TRANSMIT" not in json.dumps(result)
 
@@ -301,6 +303,48 @@ def test_public_editor_activities_rejected_before_network_write(install_runtime)
     result = update("editor_chart", "synthetic-editor", {"data": {"activities": "module.exports={};"}})
     assert result["results"][0]["code"] == "input_error", json.dumps(result, indent=2)
     assert not provider.writes
+
+
+@pytest.mark.parametrize("value", [{"not": "a source string"}, ["source"], 42, None])
+def test_public_editor_changed_tab_requires_generated_carrier_type(install_runtime, value):
+    provider = Provider(editor_state())
+    install_runtime(provider)
+    result = update("editor_chart", "synthetic-editor", {"data": {"prepare": value}})
+    assert result["results"][0]["code"] == "input_error", json.dumps(result, indent=2)
+    assert not provider.writes
+
+
+@pytest.mark.parametrize("drift", ["guid", "order", "second_page", "none"])
+def test_public_preview_rejects_schema_drift_on_every_page(install_runtime, drift):
+    class PreviewProvider(Provider):
+        def handle(self, request):
+            self.requests.append(json.loads(request.content))
+            guids = ["one", "two"]
+            if drift == "guid":
+                guids = ["two", "two"]
+            elif drift == "order" or (drift == "second_page" and len(self.requests) == 2):
+                guids = ["two", "one"]
+            return httpx.Response(200, json={
+                "schema": [{"guid": guid, "name": "Duplicate", "type": "string"} for guid in guids],
+                "rows": [["value", 99]],
+            })
+
+    provider = PreviewProvider({})
+    install_runtime(provider)
+    result = call_tool("dl_dataset_preview", {
+        "dataset_id": "synthetic-dataset", "columns": ["one", "two"],
+        "fields": dataset_state()["dataset"]["result_schema"], "limit": 1, "max_pages": 2,
+        "sort": [{"guid": "one", "direction": "asc"}], "tie_breaker_guids": ["one"],
+    })
+    if drift == "none":
+        assert result["ok"] is True, result
+        assert result["columns"] == ["one", "two"]
+        assert result["rows"] == [["value", 99], ["value", 99]]
+        assert [request["offset"] for request in provider.requests] == [0, 1]
+    else:
+        assert result["ok"] is False, result
+        assert "rows" not in result
+        assert len(provider.requests) == (2 if drift == "second_page" else 1)
 
 
 def test_preview_malformed_response_is_not_empty_success(install_runtime):

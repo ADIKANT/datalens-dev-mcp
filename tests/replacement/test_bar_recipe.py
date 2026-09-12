@@ -35,8 +35,13 @@ def test_categorical_bar_uses_horizontal_roles_and_compiles_display_settings(tmp
             location=EntryLocation.workbook("synthetic"),
         )
         data = WizardChartConverter.from_domain_create(builder.to_spec()).to_payload()["data"]
-    placeholders = {p["id"]: p for p in data["visualization"]["placeholders"]}
-    assert placeholders["x"]["items"][0]["guid"] == "amount"
-    assert placeholders["y"]["items"][0]["guid"] == "category"
-    assert data["labels"][0]["guid"] == "amount"
-    assert data["extraSettings"]["legendMode"] == "hide"
+    assert data["sources"] == {"datasetsIds": ["synthetic-dataset"]}
+    visual = data["visualization"]
+    assert visual["type"] == "bar"
+    assert visual["x"]["items"] == [{"guid": "amount", "datasetId": "synthetic-dataset"}]
+    assert visual["y"]["items"] == [{"guid": "category", "datasetId": "synthetic-dataset"}]
+    assert visual["x"]["settings"]["grid"] == "on"
+    assert visual["y"]["settings"]["grid"] == "off"
+    assert visual["labels"]["items"] == [{"guid": "amount", "datasetId": "synthetic-dataset"}]
+    assert visual["labels"]["settings"]["labelsPosition"] == "outside"
+    assert visual["chartSettings"]["legendMode"] == "hide"

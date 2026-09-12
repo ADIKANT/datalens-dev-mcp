@@ -98,7 +98,11 @@ def test_preview_requires_real_guids_and_deterministic_multipage_sort() -> None:
 
 
 def test_preview_executes_bounded_pages_with_stable_offsets() -> None:
-    api = FakeApi([{"rows": [["2026-01-01", 10], ["2026-01-02", 20]]}, {"rows": []}])
+    schema = [{"guid": "date-guid"}, {"guid": "revenue-guid"}]
+    api = FakeApi([
+        {"schema": schema, "rows": [["2026-01-01", 10], ["2026-01-02", 20]]},
+        {"schema": schema, "rows": []},
+    ])
     result = DatasetPreviewService(api).preview(
         dataset_id="dataset-1",
         fields=FIELDS,

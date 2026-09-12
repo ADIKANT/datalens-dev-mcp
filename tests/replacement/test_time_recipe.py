@@ -30,10 +30,18 @@ def test_time_comparison_compiles_two_explicit_series_without_inventing_formula(
             location=EntryLocation.workbook("synthetic"),
         )
         data = WizardChartConverter.from_domain_create(builder.to_spec()).to_payload()["data"]
-    placeholders = {p["id"]: p for p in data["visualization"]["placeholders"]}
-    assert [v["guid"] for v in placeholders["y"]["items"]] == ["revenue-guid", "prior-guid"]
-    assert data["sort"][0]["guid"] == "date-guid"
-    assert data["extraSettings"]["legendMode"] == "show"
+    assert data["sources"] == {"datasetsIds": ["synthetic-dataset"]}
+    visual = data["visualization"]
+    assert visual["type"] == "line"
+    assert visual["x"]["items"] == [{"guid": "date-guid", "datasetId": "synthetic-dataset"}]
+    assert visual["y"]["items"] == [
+        {"guid": "revenue-guid", "datasetId": "synthetic-dataset"},
+        {"guid": "prior-guid", "datasetId": "synthetic-dataset"},
+    ]
+    assert visual["sort"]["items"] == [
+        {"guid": "date-guid", "datasetId": "synthetic-dataset", "direction": "ASC"}
+    ]
+    assert visual["chartSettings"]["legendMode"] == "show"
     assert draft["visual_contract"]["comparison"]["alignment"] == "calendar"
 
 

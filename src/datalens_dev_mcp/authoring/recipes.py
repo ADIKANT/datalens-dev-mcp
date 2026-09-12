@@ -197,7 +197,7 @@ def _pivot_draft(bindings: Mapping[str, Any], contract: Mapping[str, Any]) -> di
     if not isinstance(dataset_id, str) or not dataset_id.strip() or not name:
         raise ValueError("cross_tab_totals requires dataset_id and object_name")
     roles = {}
-    for source, role in (("rows", "rows"), ("columns", "columns"), ("measures", "y")):
+    for source, role in (("rows", "rows"), ("columns", "columns"), ("measures", "measures")):
         values = bindings[source]
         if not isinstance(values, list) or not values:
             raise ValueError(f"cross_tab_totals requires nonempty {source}")

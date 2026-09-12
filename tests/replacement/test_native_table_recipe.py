@@ -34,13 +34,21 @@ def test_native_table_recipe_produces_executable_typed_draft(tmp_path):
             location=EntryLocation.workbook("synthetic"),
         )
         payload = WizardChartConverter.from_domain_create(builder.to_spec()).to_payload()
-    assert payload["data"]["datasetsIds"] == ["synthetic-dataset"]
-    settings = payload["data"]["extraSettings"]
+    assert payload["data"]["sources"] == {"datasetsIds": ["synthetic-dataset"]}
+    visual = payload["data"]["visualization"]
+    assert visual["type"] == "flatTable"
+    assert visual["columns"]["items"] == [
+        {"guid": "date-guid", "datasetId": "synthetic-dataset", "fakeTitle": "Date"},
+        {"guid": "revenue-guid", "datasetId": "synthetic-dataset"},
+    ]
+    settings = visual["chartSettings"]
     assert settings["pagination"] == "on"
     assert settings["limit"] == 25
     assert settings["totals"] == "on"
     assert settings["titleMode"] == "hide"
-    assert payload["data"]["sort"][0]["guid"] == "date-guid"
+    assert visual["sort"]["items"] == [
+        {"guid": "date-guid", "datasetId": "synthetic-dataset", "direction": "ASC"}
+    ]
 
 
 def test_native_table_recipe_rejects_unresolved_source(tmp_path):
