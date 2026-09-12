@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1
+
+- Use stable MAJOR.MINOR.PATCH releases. The pyproject version is the release source; an explicit validation/sync step keeps the runtime and plugin aligned.
+- Keep SDK 0.9.0 and the existing operation-store format unchanged. Build/process identity remains separate from the release number.
+
 All notable changes to this project are documented in this file. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the
 project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
