@@ -43,7 +43,7 @@ jobs:
           python -m pip install -e '.[test]'
 
       - name: Validate release versions
-        run: python scripts/release_version.py --check-git
+        run: python scripts/release_version.py --check-git --allow-tagged-head
 
       - name: Run offline acceptance
         run: python -m pytest tests/replacement -q

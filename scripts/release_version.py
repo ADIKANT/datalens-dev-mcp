@@ -51,10 +51,11 @@ def validate(root: Path, *, previous: list[str], tag: str | None, existing_tags:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
-    parser.add_argument('--previous', action='append', default=[])
+    parser.add_argument('--previous', action='append', default=['1.1.0+codex.20260910071145'])
     parser.add_argument('--tag')
     parser.add_argument('--existing-tag', action='append', default=[])
     parser.add_argument('--sync', action='store_true')
+    parser.add_argument('--allow-tagged-head', action='store_true', help='Inspect an existing release without preparing a new one')
     parser.add_argument('--check-git', action='store_true', help='Validate against all fetched release tags')
     args = parser.parse_args()
     try:
@@ -62,6 +63,10 @@ def main() -> int:
             result = subprocess.run(['git', '-C', str(args.root), 'tag', '--list'], check=True,
                                     capture_output=True, text=True)
             tags = [t for t in result.stdout.splitlines() if re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+(?:\+[^ ]+)?', t)]
+            if args.allow_tagged_head:
+                if args.sync:
+                    raise ValueError('--sync cannot reuse a released version')
+                args.tag = 'v' + tomllib.loads((args.root / 'pyproject.toml').read_text())['project']['version']
             if args.tag in tags:
                 tagged = subprocess.check_output(['git', '-C', str(args.root), 'rev-parse', args.tag + '^{}'], text=True).strip()
                 head = subprocess.check_output(['git', '-C', str(args.root), 'rev-parse', 'HEAD'], text=True).strip()

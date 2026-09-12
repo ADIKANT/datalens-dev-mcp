@@ -9,7 +9,9 @@ manifest; neither installation nor MCP startup changes source or receipts:
 python scripts/release_version.py --sync --previous PREVIOUS_VERSION --check-git
 ```
 
-Fetch all tags before validation. `--existing-tag` accepts explicit inventory
+Fetch all tags before validation. The initial legacy version is always a lower
+bound, even before the first stable tag exists. CI uses `--allow-tagged-head`
+to inspect an unchanged released commit; this mode cannot be used with `--sync`. `--existing-tag` accepts explicit inventory
 entries for disconnected checks. Without `--sync`, validation is read-only.
 `--tag vX.Y.Z --check-git` additionally validates an existing release tag against
 HEAD; it never permits reusing a tag pointing to another commit. Create release

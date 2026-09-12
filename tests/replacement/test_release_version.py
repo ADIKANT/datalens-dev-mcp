@@ -72,6 +72,8 @@ def test_git_tag_inventory_and_existing_release_checkout(tmp_path):
     git('tag', 'v1.1.1')
     assert run(root, '--check-git').returncode == 1
     assert run(root, '--check-git', '--tag', 'v1.1.1').returncode == 0
+    assert run(root, '--check-git', '--allow-tagged-head').returncode == 0
+    assert run(root, '--check-git', '--allow-tagged-head', '--sync').returncode == 1
     git('-c', 'user.name=Synthetic', '-c', 'user.email=synthetic@example.invalid', 'commit', '--allow-empty', '-m', 'changed')
     assert run(root, '--check-git', '--tag', 'v1.1.1').returncode == 1
 
@@ -91,3 +93,9 @@ def test_archive_audit_rejects_version_content_mismatch(tmp_path):
         archive.writestr('datalens_dev_mcp-1.1.1.dist-info/METADATA', 'Name: datalens-dev-mcp\nVersion: 1.1.1\n')
     with pytest.raises(ValueError, match='version'):
         module.audit(wheel)
+
+
+def test_ci_rejects_legacy_downgrade_without_tags(tmp_path):
+    root = source(tmp_path, '1.1.0', '1.1.0', '1.1.0')
+    subprocess.run(['git', '-C', str(root), 'init'], check=True, capture_output=True)
+    assert run(root, '--check-git').returncode == 1
