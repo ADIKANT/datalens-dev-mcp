@@ -31,7 +31,7 @@ Default precedence is generic → user → project → explicit reference → ex
 
 ## SDK and API
 
-The official `datalens-sdk==0.9.0` handles supported typed operations. A narrow Public API adapter remains for `getDatasetData`, relations, HTML Page, and license endpoints. MCP and `datalens_dev_mcp.sdk` call the same services.
+The official `datalens-sdk==3.0.0` handles supported typed operations. A narrow Public API adapter remains for full-state Dataset updates, relations, verified HTML Page metadata/revision operations, and license endpoints. MCP and `datalens_dev_mcp.sdk` call the same services. See [SDK compatibility](docs/testing/sdk-v3-compatibility.md) for legacy snapshot and HTML content boundaries.
 
 `.build()` and `.execute()` perform external writes. Pure authoring (`dl_compile_recipe`) makes no network call. SDK raw replace is used only after a fresh read and narrow semantic merge; no general server-side CAS or batch transaction is claimed.
 

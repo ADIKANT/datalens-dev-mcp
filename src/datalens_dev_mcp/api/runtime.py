@@ -31,6 +31,8 @@ class DataLensRuntime:
         self.sdk = SdkAdapter(config, client=sdk_client, token_refresher=token_refresher)
 
     def _refresh_credentials(self) -> str:
+        if self.config.installation != "yacloud":
+            raise ValueError("YC IAM refresh is unavailable for Enterprise")
         token = self._credential_refresher().strip()
         self.config.remember_refreshed_token(token)
         self.config = replace(self.config, iam_token=token, credential_source="runtime_refresh")

@@ -19,7 +19,7 @@ from datalens_dev_mcp.api.errors import (
 )
 from datalens_dev_mcp.config import DataLensConfig
 
-SDK_VERSION = "0.9.0"
+SDK_VERSION = "3.0.0"
 
 WIZARD_VARIANTS = {
     "area",
@@ -74,11 +74,13 @@ class SdkAdapter:
         if self._config is None:
             raise RuntimeError("DataLensConfig is required for SDK operations")
         self._config.require_auth()
-        auth = datalens_sdk.StaticYCIAMAuthProvider(org_id=self._config.org_id, token=self._config.iam_token)
-        self._client = datalens_sdk.DataLensClientYC(
-            auth=auth,
-            base_url=self._config.base_url,
-        )
+        if self._config.installation == "enterprise":
+            auth = datalens_sdk.AuthorizationTokenAuthProvider(token=self._config.iam_token, token_type="Bearer")
+            client_type = datalens_sdk.DataLensClientEnterprise
+        else:
+            auth = datalens_sdk.StaticYCIAMAuthProvider(org_id=self._config.org_id, token=self._config.iam_token)
+            client_type = datalens_sdk.DataLensClientYC
+        self._client = client_type(auth=auth, base_url=self._config.base_url)
         return self._client
 
     def get_object(
@@ -135,6 +137,37 @@ class SdkAdapter:
                     method=f"get:{object_type}",
                     response_received=False,
                 ) from exc
+
+    def get_dataset_data(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Execute the bounded preview query through the installed v3 DTO."""
+        auth_refreshed = False
+        while True:
+            try:
+                value = self._sdk_client().data.get_dataset_data(
+                    dataset_id=payload["datasetId"], columns=payload["columns"],
+                    filters=[datalens_sdk.DatasetDataFilter(field=item["guid"], operation=item["operation"].upper(),
+                             values=tuple(item.get("values", []))) for item in payload.get("filters", [])],
+                    params=[datalens_sdk.DatasetDataParameter(field=item["guid"], value=item["value"])
+                            for item in payload.get("params", [])],
+                    sort=[datalens_sdk.DatasetDataSort(field=item["guid"], direction=item["direction"])
+                          for item in payload.get("sort", [])],
+                    limit=payload["limit"], offset=payload.get("offset"),
+                )
+                return {"schema": [asdict(column) for column in value.schema], "rows": [list(row) for row in value.rows]}
+            except SdkApiError as exc:
+                if exc.context.status_code == 401 and not auth_refreshed and self._token_refresher is not None:
+                    token = self._token_refresher().strip()
+                    if not token:
+                        raise DataLensApiError("DataLens token refresh returned no credential", method="getDatasetData") from exc
+                    if self._config is not None and self._config.iam_token != token:
+                        self.replace_config(replace(self._config, iam_token=token, credential_source="runtime_refresh"))
+                    auth_refreshed = True
+                    continue
+                raise _provider_error(exc, "getDatasetData") from exc
+            except (httpx.TransportError, SdkTransportError) as exc:
+                raise DataLensApiError("SDK preview transport failed", method="getDatasetData", response_received=False) from exc
+            except Exception as exc:
+                raise _provider_error(exc, "getDatasetData") from exc
 
     def create(self, draft: dict[str, Any], destination: dict[str, Any]) -> dict[str, Any]:
         """Execute one discriminated draft through the official SDK."""
@@ -224,6 +257,12 @@ class SdkAdapter:
                 snapshot = draft.get("snapshot")
                 if not isinstance(snapshot, dict):
                     raise ValueError("draft.snapshot is required for this object type")
+                if object_type == "dashboard":
+                    _validate_dashboard_snapshot(snapshot, from_artifact=True)
+                if object_type == "editor_chart":
+                    _validate_editor_changes(_chart_entry(snapshot), {"data": {}})
+                if object_type == "wizard_chart":
+                    _validate_wizard_snapshot(_chart_entry(snapshot))
                 factory = getattr(client.raw.create, object_type)
                 builder = factory(response_snapshot=snapshot, name=name, location=location)
                 effect_started = True
@@ -281,42 +320,31 @@ class SdkAdapter:
             raise _provider_error(exc, f"delete:{object_type}") from exc
 
     def _html_create(self, draft: dict[str, Any], destination: dict[str, Any]) -> dict[str, Any]:
-        from datalens_dev_mcp.api.client import DataLensApiClient
-        from datalens_dev_mcp.maintenance import validate_html_content
-
-        if self._config is None:
-            raise RuntimeError("DataLensConfig is required for HTML operations")
-        content = draft.get("content")
-        validation = validate_html_content(content)
-        if not validation["ok"]:
-            raise ValueError(validation["issues"][0]["message"])
-        payload = {"name": _draft_name(draft), "content": content}
-        if destination.get("workbook_id"):
-            payload["workbookId"] = destination["workbook_id"]
-        result = DataLensApiClient(self._config).write("createHtmlPage", payload)
-        return {
-            "object_id": str(result.get("entryId") or result.get("id") or ""),
-            "object": result,
-            "backend": "public_api_adapter",
-        }
+        raise InputContractError(
+            "HTML Page content readback is unavailable in the verified API v3 contract; "
+            "retain a local HTML artifact. Page content create/update is unsupported by this adapter."
+        )
 
     def _html_update(self, object_id: str, snapshot: dict[str, Any], *, publish: bool) -> dict[str, Any]:
         from datalens_dev_mcp.api.client import DataLensApiClient
 
+        if not publish:
+            return self._html_create(snapshot, {})
         if self._config is None:
             raise RuntimeError("DataLensConfig is required for HTML operations")
-        payload: dict[str, Any] = {"entryId": object_id, "mode": "publish" if publish else "save"}
-        revision = snapshot.get("revId") or snapshot.get("rev_id")
-        if revision:
-            payload["revId"] = revision
-        if not publish:
-            if not isinstance(snapshot.get("content"), str):
-                raise ValueError("HTML Page update requires content string")
-            payload["content"] = snapshot["content"]
-            if snapshot.get("name"):
-                payload["name"] = snapshot["name"]
-        result = DataLensApiClient(self._config).write("updateHtmlPage", payload)
-        return {"object_id": object_id, "object": result, "backend": "public_api_adapter"}
+        revision = _saved_revision(snapshot)
+        if not revision:
+            raise WritePreconditionError("HTML Page publication requires the observed saved revision")
+        api = DataLensApiClient(self._config)
+        latest = api.read("getHtmlPage", {"entryId": object_id, "branch": "saved"})
+        if latest.get("entryId") != object_id or _saved_revision(latest) != revision:
+            raise WritePreconditionError("HTML Page saved identity/revision changed; re-read before publishing")
+        if latest.get("branch", "saved") != "saved":
+            raise WritePreconditionError("HTML Page target is not the saved branch")
+        result = api.write("updateHtmlPage", {"entryId": object_id, "mode": "publish", "revId": revision})
+        entry = result.get("entry") if isinstance(result.get("entry"), dict) else result
+        return {"object_id": object_id, "object": entry, "backend": "public_api_adapter",
+                "publication_semantics": "existing_revision"}
 
     def _replace(self, object_type: str, object_id: str, snapshot: dict[str, Any], *, publish: bool) -> dict[str, Any]:
         canonical = _canonical_object_type(object_type)
@@ -336,6 +364,27 @@ class SdkAdapter:
                 observed_revision = _saved_revision(latest)
                 if observed_revision != expected_revision:
                     raise WritePreconditionError("saved revision changed during SDK target fetch; re-read before retry")
+            from datalens_dev_mcp.objects.relations import object_identity
+
+            for state in (latest, snapshot):
+                observed_id, _ = object_identity(state)
+                entry = state.get("entry") if isinstance(state.get("entry"), dict) else state
+                if observed_id and observed_id != object_id:
+                    raise WritePreconditionError("SDK target identity changed; re-read the exact target")
+                if canonical not in {"dataset", "connection", "workbook"} and entry.get("branch", "saved") != "saved":
+                    raise WritePreconditionError("SDK target branch changed; re-read the saved target")
+            if canonical == "editor_chart":
+                _validate_editor_changes(snapshot, latest)
+            if canonical == "wizard_chart":
+                _validate_wizard_snapshot(snapshot)
+            if canonical == "dashboard":
+                _validate_dashboard_snapshot(snapshot)
+            if publish and canonical in {"dashboard", "wizard_chart"}:
+                if not expected_revision:
+                    raise WritePreconditionError("Publish requires an observed saved revision")
+                value = target.publish_revision(rev_id=expected_revision)
+                return {"object_id": object_id, "object": _json_object(value), "backend": "official_sdk",
+                        "publication_semantics": "existing_revision"}
             rename_to = None
             if not publish and "name" in snapshot and snapshot["name"] != latest.get("name"):
                 old_content = {key: value for key, value in latest.items() if key != "name"}
@@ -347,9 +396,9 @@ class SdkAdapter:
                     return {"object_id": object_id, "object": _json_object(value), "backend": "official_sdk"}
                 rename_to = snapshot["name"]
             if canonical == "dataset":
-                # SDK 0.9.0 raw replacement applies create-time stripping and
-                # drops revision_id. Its domain update preserves this state.
-                # Keep the same v2 envelope through the existing direct adapter.
+                # SDK 3.0.0 raw replacement still strips dataset.revision_id.
+                # Keep one narrow full-state API v3 adapter with both revision
+                # guards; see docs/testing/sdk-v3-compatibility.md.
                 from datalens_dev_mcp.api.client import DataLensApiClient
 
                 content = snapshot.get("dataset")
@@ -365,7 +414,17 @@ class SdkAdapter:
                     "updateDataset", {"datasetId": object_id, "data": {"dataset": deepcopy(content)}}
                 )
             else:
-                builder = getattr(client.raw.replace, canonical)(target=target, response_snapshot=snapshot)
+                replacement_target = target
+                if canonical == "wizard_chart" and not publish:
+                    # SDK 3.0 raw replacement copies target.raw.revId into the
+                    # request, selecting an existing revision instead of saving
+                    # content. The preflight above owns the old revision. Pass a
+                    # separate public domain handle without this protocol field;
+                    # keep the captured target and complete desired state intact.
+                    replacement_target = replace(
+                        target, raw={key: value for key, value in target.raw.items() if key != "revId"}
+                    )
+                builder = getattr(client.raw.replace, canonical)(target=replacement_target, response_snapshot=snapshot)
             if canonical == "dataset":
                 pass
             elif canonical == "dashboard":
@@ -551,3 +610,59 @@ def _result_id(value: Any) -> str:
         return str(direct)
     raw = _json_object(value)
     return str(raw.get("id") or raw.get("entryId") or raw.get("entry_id") or "")
+
+
+def _validate_editor_changes(snapshot: dict[str, Any], latest: dict[str, Any]) -> None:
+    """Raw SDK replacement preserves unknown state but does not validate tabs."""
+    from datalens_sdk._generated import dto
+    from pydantic import TypeAdapter, ValidationError
+
+    carriers = {
+        "table_node": "TableNodeNodeUpdateDataDTO",
+        "d3_node": "D3NodeNodeUpdateDataDTO",
+        "markdown_node": "MarkdownNodeNodeUpdateDataDTO",
+        "advanced-chart_node": "AdvancedChartNodeNodeUpdateDataDTO",
+        "control_node": "ControlNodeNodeUpdateDataDTO",
+    }
+    carrier = getattr(dto, carriers.get(str(snapshot.get("type")), ""), None)
+    if carrier is None:
+        raise InputContractError("Unsupported Editor renderer in SDK 3.0.0 installation contract")
+    allowed = {field.alias or name: field for name, field in carrier.model_fields.items()}
+    data, previous = snapshot.get("data") or {}, latest.get("data") or {}
+    for key, value in data.items():
+        if key in previous and previous[key] == value:
+            continue
+        if key not in allowed:
+            raise InputContractError(f"Unsupported Editor tab or UI-managed field: {key}; no public SDK setter")
+        try:
+            TypeAdapter(allowed[key].rebuild_annotation()).validate_python(value)
+        except ValidationError as exc:
+            raise InputContractError(f"Editor tab {key} has an invalid value type for its SDK carrier") from exc
+
+
+def _validate_dashboard_snapshot(snapshot: dict[str, Any], *, from_artifact: bool = False) -> None:
+    entry = snapshot.get("entry") if isinstance(snapshot.get("entry"), dict) else snapshot
+    version = entry.get("version")
+    if (version is not None and version != 2) or (from_artifact and version != 2):
+        raise InputContractError(
+            "Dashboard snapshot requires document version 2 (36-column layout). "
+            "Re-export through API v3 or explicitly migrate the legacy artifact; coordinates are never guessed or scaled."
+        )
+    data = entry.get("data") or {}
+    tabs = data.get("tabs")
+    if not isinstance(tabs, list) or not tabs:
+        raise InputContractError("Dashboard requires at least one tab")
+    for tab in tabs:
+        for item in tab.get("layout", []):
+            x, width = item.get("x"), item.get("w")
+            if type(x) not in (int, float) or type(width) not in (int, float) or x < 0 or width < 1 or x + width > 36:
+                raise InputContractError("Dashboard V2 layout must fit its existing 36-column grid")
+
+
+def _validate_wizard_snapshot(snapshot: dict[str, Any]) -> None:
+    data = snapshot.get("data") or {}
+    if snapshot.get("version", 1) != 1 or "datasetsPartialFields" in data or "datasetsIds" in data:
+        raise InputContractError(
+            "Legacy Wizard V2 artifact is incompatible with SDK 3.0.0 document V1. "
+            "Re-export through API v3 or rebuild with the typed Wizard recipe using exact Dataset GUIDs."
+        )

@@ -17,7 +17,7 @@ revision, and the separately observed installed distribution version. An existin
 process can still run old code after a wheel upgrade; `pip show` alone is not an
 active-process check. Build commit is explicitly unknown when it was not embedded
 in the package; the server never substitutes the caller directory's Git HEAD.
-The local 1.1.0 candidate keeps the SDK pinned at 0.9.0. Its operation store uses
+The 1.2.0 release pins SDK 3.0.0 and API version 3. Its operation store uses
 OS file locks on macOS/Linux; lock release after a crash never permits replay of
 an uncertain write. Compact terminal receipts retain operation ID bindings after
 detail pruning; size limits bound retained detail, not the number of ID bindings.
@@ -27,3 +27,19 @@ prints `structuredContent` once, falling back to compatibility text, and exits
 nonzero for tool/protocol errors. MCP itself retains both wire representations.
 
 If a separately installed dashboard entrypoint still references the retired task tools, update only that entrypoint to route to the current domain skills, preserving its user rules about exact project roots, technology, target/reference identity, readback and browser acceptance. Do not remove the entire user skills directory or change unrelated plugins.
+
+
+Package releases use stable versions; see [release validation and rollback](testing/stable-releases.md).
+Refresh the selected plugin with the same stable manifest version, preserving its
+launcher and credential configuration. Include the five skills and their relative
+references, LICENSE, NOTICE, THIRD_PARTY_NOTICES.md and LICENSES/CC-BY-4.0.txt in
+the staged plugin. Do not append a timestamp or replace unrelated plugins.
+
+The default installation remains Yandex Cloud with its existing organization and
+IAM credential settings. Enterprise requires explicit `DATALENS_INSTALLATION=enterprise`,
+its deployment's `DATALENS_API_BASE_URL` and `DATALENS_TOKEN`; it does not use YC
+refresh or a cloud organization header. Configure only the selected installation,
+reuse known settings, and do not infer the API endpoint from a UI URL. See
+[SDK compatibility](testing/sdk-v3-compatibility.md) for exact contracts and legacy
+artifact migration. `dl_server_info` now distinguishes active SDK version from the
+separately installed SDK version, as well as active and installed MCP versions.

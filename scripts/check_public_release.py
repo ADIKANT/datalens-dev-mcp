@@ -6,12 +6,12 @@ This structural check is not a substitute for a synthetic-fixture/privacy review
 from __future__ import annotations
 
 import ast
-from email.parser import Parser
 import json
-import tomllib
 import sys
 import tarfile
+import tomllib
 import zipfile
+from email.parser import Parser
 from pathlib import Path
 
 

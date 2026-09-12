@@ -8,8 +8,8 @@ import argparse
 import ast
 import json
 import re
-import sys
 import subprocess
+import sys
 import tomllib
 from pathlib import Path
 

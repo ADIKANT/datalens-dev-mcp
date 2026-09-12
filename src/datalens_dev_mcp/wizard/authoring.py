@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from datalens_sdk import DataLensClientYC, Dataset, Workbook
+from datalens_sdk import DataLensClientYC, Dataset, WizardLocalField, Workbook
 from datalens_sdk.converter.wizard import WizardChartConverter
 
 from datalens_dev_mcp.api.sdk_adapter import SDK_VERSION, WIZARD_VARIANTS
@@ -65,7 +65,7 @@ def wizard_builder(client: Any, dataset: Dataset, specification: Mapping[str, An
         mode = specification.get("title_mode", "show")
         if mode not in {"show", "hide"}:
             raise ValueError("title_mode must be show or hide")
-        builder.chart_title(text=str(specification.get("title") or ""), mode=mode)
+        _setter(builder, "chart_title")(text=str(specification.get("title") or ""), mode=mode)
     for order in specification.get("sort", []):
         if order.get("direction") not in {"asc", "desc"}:
             raise ValueError("sort direction must be asc or desc")
@@ -108,11 +108,11 @@ def wizard_builder(client: Any, dataset: Dataset, specification: Mapping[str, An
     if "legend" in specification:
         if specification["legend"] not in {"show", "hide"}:
             raise ValueError("legend must be show or hide")
-        builder.legend(mode=specification["legend"])
+        _setter(builder, "legend")(mode=specification["legend"])
     if "labels_position" in specification:
         if specification["labels_position"] not in {"inside", "outside", "auto"}:
             raise ValueError("labels_position must be inside, outside or auto")
-        builder.labels_position(mode=specification["labels_position"])
+        _setter(builder, "labels_position")(mode=specification["labels_position"])
     return builder
 
 
@@ -184,14 +184,15 @@ def compile_wizard_create(
                 }
             method([dataset.fields.by_guid(guid) for guid in guids])
         for item in local_fields or []:
-            builder.add_local_field(
+            builder.add_local_field(WizardLocalField(
                 title=str(item["title"]),
                 formula=str(item["formula"]),
                 guid=str(item["guid"]),
                 cast=str(item.get("cast") or "float"),
-                measure=bool(item.get("measure")),
-                aggregation=str(item["aggregation"]) if item.get("aggregation") else None,
-            )
+                type="MEASURE" if item.get("measure") else "DIMENSION",
+                autoaggregated=False,
+                aggregation=str(item.get("aggregation") or "none"),
+            ))
         if title and hasattr(builder, "chart_title"):
             builder.chart_title(text=title, mode="show")
         payload = WizardChartConverter.from_domain_create(builder.to_spec()).to_payload()
@@ -220,9 +221,18 @@ def inspect_wizard_shape(data: Mapping[str, Any]) -> dict[str, Any]:
         shape = "flat"
     else:
         shape = "mixed"
+    current = isinstance(data.get("sources"), Mapping) and isinstance(data["sources"].get("datasetsIds"), list)
     return {
         "sdk_version": SDK_VERSION,
+        "document_schema": "V1" if current else "legacy_or_unknown",
         "partial_fields_shape": shape,
-        "update_safe": shape in {"nested", "flat", "empty"},
-        "policy": "preserve_existing_shape_on_update",
+        "update_safe": current and shape == "missing",
+        "policy": "preserve_v1_guid_handles_and_slot_order; re-export_legacy_via_api_v3",
     }
+
+
+def _setter(builder: Any, name: str) -> Any:
+    method = getattr(builder, name, None)
+    if not callable(method):
+        raise ValueError(f"SDK 3.0.0 does not support {name} for this Wizard visualization")  # noqa: TRY004
+    return method

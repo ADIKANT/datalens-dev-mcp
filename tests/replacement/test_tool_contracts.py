@@ -23,14 +23,14 @@ class PreviewTransport:
         self.calls.append((method, payload))
         if self.error:
             raise self.error
-        return {"rows": [[7]]}
+        return {"schema": [{"guid": "synthetic-guid", "name": "Value", "type": "integer"}], "rows": [[7]]}
 
 
 def runtime(monkeypatch, error=None):
     transport = PreviewTransport(error)
     api = DataLensApiClient(DataLensConfig(org_id="synthetic-org", iam_token="synthetic-token", read_retries=0),
                             transport=transport)
-    monkeypatch.setattr(server, "get_runtime", lambda: SimpleNamespace(api=api))
+    monkeypatch.setattr(server, "get_runtime", lambda: SimpleNamespace(api=api, sdk=SimpleNamespace(get_dataset_data=lambda payload: api.read("getDatasetData", payload))))
     return transport
 
 
@@ -60,6 +60,7 @@ def test_documented_guid_example_uses_real_preview_and_transport(monkeypatch):
     assert not result["isError"]
     assert transport.calls[0][1]["columns"] == ["synthetic-guid"]
     assert result["structuredContent"]["rows"] == [[7]]
+    assert result["structuredContent"]["columns"] == ["synthetic-guid"]
     assert json.loads(result["content"][0]["text"]) == result["structuredContent"]
 
 
@@ -169,4 +170,5 @@ def test_preview_resolves_fields_from_nested_full_dataset_before_query(monkeypat
     result = server.call_tool("dl_dataset_preview", {"dataset_id": "synthetic-dataset", "columns": ["synthetic-guid"]})
     assert not result["isError"]
     assert result["structuredContent"]["rows"] == [[7]]
+    assert result["structuredContent"]["columns"] == ["synthetic-guid"]
     assert len(transport.calls) == 1

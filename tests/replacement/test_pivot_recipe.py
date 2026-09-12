@@ -36,10 +36,16 @@ def test_pivot_recipe_compiles_dimension_subtotals_and_measure_role(tmp_path):
             location=EntryLocation.workbook("synthetic"),
         )
         data = WizardChartConverter.from_domain_create(builder.to_spec()).to_payload()["data"]
-    assert draft["wizard"]["roles"]["y"] == ["amount"]
+    assert draft["wizard"]["roles"]["measures"] == ["amount"]
     assert draft["wizard"]["subtotals"] == ["region", "category"]
-    assert data["extraSettings"]["pagination"] == "on"
-    items = [item for p in data["visualization"]["placeholders"] for item in p["items"]]
-    by_guid = {item["guid"]: item for item in items}
-    assert by_guid["region"]["subTotalsSettings"]["enabled"] is True
-    assert by_guid["category"]["subTotalsSettings"]["enabled"] is True
+    assert data["sources"] == {"datasetsIds": ["synthetic"]}
+    visual = data["visualization"]
+    assert visual["type"] == "pivotTable"
+    assert visual["chartSettings"]["pagination"] == "on"
+    assert visual["rows"]["items"] == [
+        {"guid": "region", "datasetId": "synthetic", "subTotalsSettings": {"enabled": True}}
+    ]
+    assert visual["columns"]["items"] == [
+        {"guid": "category", "datasetId": "synthetic", "subTotalsSettings": {"enabled": True}}
+    ]
+    assert visual["measures"]["items"] == [{"guid": "amount", "datasetId": "synthetic"}]

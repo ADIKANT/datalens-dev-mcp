@@ -1,12 +1,14 @@
 ---
 name: datalens-inspect
-description: Use when inspecting DataLens authentication, workbooks, dashboards, charts, datasets, connections, relations, or current errors without mutation.
+description: Use when reading DataLens metadata, authentication, workbook inventory, relations, current errors, or cloud RLS subject identities without changing objects or access. Not for authoring, backup, or independent SDK scripts.
 ---
 
 # DataLens Inspect
 
-Use direct scoped reads. Start from an exact URL or object ID, read only required dependencies, distinguish saved from published state, and report partial inventory explicitly. A legacy manifest is never required. Never create project files during an audit. For direct-source Editor charts, report static/source validation separately from live result validation.
+Start from the exact project and target URL or ID. Reuse its configured installation, API endpoint and organization; consult [installation and interfaces](references/installation-and-sdk.md) when those are unclear or the request concerns SDK scripting. Read only dependencies needed for the question. A metadata audit needs neither new project files nor an SDK bootstrap; a legacy manifest is not required.
 
-Use this skill for inspection without mutation. If the request changes a Dataset/Wizard, dashboard, Editor chart, or maintenance scope, route to that domain skill after discovery and load only its addressed reference.
+Use [direct reads](references/direct-reads.md) for tool selection, compact projections, pagination and completeness. Distinguish saved and published branches, target and reference, source/static validation and live data or Browser evidence. A rendered-result request can use read-only Browser inspection after scoped API and applicable data checks.
 
-Read [references/direct-reads.md](references/direct-reads.md) before selecting operations or claiming completeness.
+For cloud identity lookup load [RLS resolution](references/cloud-rls-resolution.md). For changes route to `datalens-dataset-wizard`, `datalens-editor` or `datalens-dashboard`; backup, standalone HTML Page and cleanup belong to `datalens-maintenance`. Load only the addressed reference.
+
+[Upstream provenance](references/upstream-provenance.md) records the selectively adapted sources; load it only for a version/provenance question.

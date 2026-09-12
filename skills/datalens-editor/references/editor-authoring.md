@@ -10,6 +10,10 @@ Dataset-backed matrix, KPI, and weekly-total recipes accept `dataset_id`, exact 
 
 Pure title, hint, spacing, color or layout changes do not require a Dataset query. A direct-source Editor chart must not receive a fictitious Dataset or a fabricated data-proof pass.
 
+## HTML inside an Editor chart
+
+Use the selected Editor runtime's supported `Editor.generateHtml`/table rendering contract and current source bindings. Diagnose empty Prepare output separately from invalid cell content or a render error. Standalone HTML Page iframe CSP, resource allowlists and parent-message protocol are not Editor rules. A standalone Page request belongs to the maintenance skill; do not migrate an existing Editor chart merely because it contains HTML.
+
 ## Exact reusable compositions
 
 - `kpi_sparkline`: independent responsive KPI, uppercase body label and inline hint, current value plus rounded delta badge, large previous-value block, filled trend with missing-point gaps. Bind `metric`, `date`, `comparison` and either `source` or `prepared_data` (`value`, `previous`, `points` of date/value). Use `labels.precision` for fractional/currency metrics; counts default to zero decimals. Comparison method and dates come from the source; cumulative lag is not a previous non-overlapping window.

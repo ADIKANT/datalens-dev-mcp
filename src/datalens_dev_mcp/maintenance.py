@@ -28,5 +28,6 @@ def admin_capabilities() -> dict[str, Any]:
         "license_assignment": True,
         "license_revoke": False,
         "workbook_lifecycle": "official_sdk",
-        "html_page": {"backend": "public_api_adapter", "content": "single_string", "browser_fallback": False},
+        "html_page": {"backend": "public_api_adapter", "content": "local_artifact_only", "content_authoring": "unsupported_content_readback",
+                      "publish": "existing_saved_revision_only", "browser_fallback": False},
     }

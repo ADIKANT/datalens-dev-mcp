@@ -256,7 +256,7 @@ def test_unknown_outcome_is_persisted_and_reconcile_only_reads(tmp_path: Path) -
 
 def test_publish_uses_fresh_saved_revision_then_published_readback(tmp_path: Path) -> None:
     saved = rb("dashboard", "dash-1", "r7", {"id": "dash-1", "revId": "r7", "data": {"tabs": []}})
-    published = rb("dashboard", "dash-1", "r8", {"id": "dash-1", "revId": "r8", "data": {"tabs": []}})
+    published = rb("dashboard", "dash-1", "r7", {"id": "dash-1", "revId": "r7", "data": {"tabs": []}})
     published["identity"]["branch"] = "published"
     reader = FakeReader({("dashboard", "dash-1", "saved"): [saved], ("dashboard", "dash-1", "published"): [published]})
     backend = FakeBackend([{"object_id": "dash-1"}])
@@ -279,8 +279,8 @@ def test_publish_accepts_dashboard_content_nested_under_entry(tmp_path: Path) ->
     published = rb(
         "dashboard",
         "dash-1",
-        "r8",
-        {"entry": {"entryId": "dash-1", "publishedId": "r8", "data": {"tabs": [{"id": "main"}]}}},
+        "r7",
+        {"entry": {"entryId": "dash-1", "publishedId": "r7", "data": {"tabs": [{"id": "main"}]}}},
     )
     published["identity"]["branch"] = "published"
     reader = FakeReader({("dashboard", "dash-1", "saved"): [saved], ("dashboard", "dash-1", "published"): [published]})

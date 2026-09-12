@@ -62,7 +62,9 @@ def dl_server_info() -> dict[str, Any]:
 def dl_auth_check() -> dict[str, Any]:
     runtime = get_runtime()
     report = runtime.config.credential_report()
-    if not runtime.config.org_id or (not runtime.config.iam_token and not runtime.config.refresh_available):
+    if (runtime.config.installation == "yacloud" and not runtime.config.org_id) or (
+        not runtime.config.iam_token and not runtime.config.refresh_available
+    ):
         return {"ok": False, "status": "not_configured", "credentials": report}
     try:
         runtime.probe_auth()
@@ -183,7 +185,8 @@ def dl_dataset_preview(
     max_pages: int = 1,
     tie_breaker_guids: list[str] | None = None,
 ) -> dict[str, Any]:
-    return DatasetPreviewService(get_runtime().api).preview(
+    runtime = get_runtime()
+    return DatasetPreviewService(runtime.api, dataset_query=runtime.sdk.get_dataset_data).preview(
         dataset_id=dataset_id,
         fields=_dataset_fields(dataset_id, fields),
         columns=columns,

@@ -43,7 +43,7 @@ def test_wizard_create_uses_official_typed_factory_and_live_field_lookup():
     assert result["object_id"] == "synthetic-chart"
     assert reads == [{"by_id": "synthetic-dataset"}]
     assert len(specs) == 1
-    assert result["expected_readback"]["data"]["datasetsIds"] == ["synthetic-dataset"]
+    assert result["expected_readback"]["data"]["sources"]["datasetsIds"] == ["synthetic-dataset"]
 
 
 def test_wizard_role_cannot_invoke_build_during_configuration():

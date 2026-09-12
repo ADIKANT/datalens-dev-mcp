@@ -1,18 +1,14 @@
 ---
 name: datalens-dataset-wizard
-description: Use when creating, updating, validating, or previewing DataLens datasets and native Wizard charts.
+description: Use when creating, updating, validating, or previewing DataLens datasets and native Wizard charts. Not for metadata-only reads, cloud identity lookup, standalone HTML, or independent SDK scripting.
 ---
 
 # DataLens Dataset and Wizard
 
-Read [references/dataset-wizard-contracts.md](references/dataset-wizard-contracts.md) before validating fields, previewing data, or authoring Wizard charts.
+Use [Dataset/Wizard contracts](references/dataset-wizard-contracts.md) for typed drafts, field roles, preview and revision-safe updates. Use current field GUIDs; ambiguous labels cannot identify fields. Preserve dataset-global versus chart-local fields, calculation levels, field order and the existing object's technology. Prefer Wizard for new standard charts unless the user requests another route or a documented gap requires it.
 
-Use this skill for Dataset schema/data work and native Wizard charts. Route dashboard placement to `datalens-dashboard`, JavaScript Editor variants to `datalens-editor`, read-only object discovery to `datalens-inspect`, and backup or cleanup to `datalens-maintenance`. Load the contracts below and only the dashboard decision section needed for a visual choice.
+A new `dataset` draft keeps `object_type`, `name` and `client_ref` at its root; `connection_id`, source and fields belong inside `dataset`. Use typed public operations; the backend compiles against its pinned SDK. Measure Names and Measure Values are chart technical fields, not physical columns.
 
-Use exact Dataset field GUIDs from current readback. Treat row expressions, aggregates, windows and LOD as different calculation levels. Prefer Wizard for a new standard visualization unless the user requires another technology; preserve an existing object's technology. Compile field roles with the pinned official SDK and do not call `.build()` for preview.
+Follow [authorized scope and delivery](../datalens-dashboard/references/authorized-scope.md). Load [visualization decisions](../datalens-dashboard/references/decision-quality.md) only for the relevant semantic choice. Preview establishes bounded data evidence; provider acceptance and rendered results require their own checks.
 
-Preserve field GUIDs and distinguish dataset-global fields from chart-local fields. For a new Dataset, use the short typed `dataset` draft with top-level `object_type`, `name`, and `client_ref`, plus an existing `connection_id`, source, and fields inside the nested `dataset` object. Do not move those three members to the draft root and do not synthesize a raw provider snapshot. Bind real fields to supported Wizard roles and sections. Treat Measure Names and Measure Values as chart technical fields, never physical dataset columns. Validate provider acceptance separately from the rendered result.
-
-Follow [authorized scope and delivery](../datalens-dashboard/references/authorized-scope.md) for mutations: explicit scoped work continues without repeated permission questions; read-only and save-only limits remain binding.
-
-For new visual or semantic decisions, consult only the relevant part of [visualization decisions](../datalens-dashboard/references/decision-quality.md); preserve the accepted reference and infer routine context without a mandatory questionnaire.
+Route placement to `datalens-dashboard`, JavaScript variants to `datalens-editor`, metadata or RLS identity lookup to `datalens-inspect`, and backup/cleanup to `datalens-maintenance`.

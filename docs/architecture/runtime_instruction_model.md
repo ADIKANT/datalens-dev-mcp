@@ -1,41 +1,17 @@
-# Runtime Instruction Model
+# Runtime instruction ownership
 
-The MCP runtime prompt layer should be compact. Long reference material belongs
-in docs, configs, schemas, templates, resources, and tests.
+Keep the five domain skills as short routing entries. Load a reference only for its addressed decision; schemas and services own deterministic invariants. The host owns the model and task continuation. No runtime prompt compiler, mandatory manifest or second memory system is needed.
 
-## Canonical Runtime Directive
-
-Every MCP runtime prompt starts from one shared directive:
-
-- templates-first.
-- no removed chart routes.
-- Wizard path is separate from Advanced Editor.
-- do not invent Advanced Editor methods.
-- enforce `render`/`wrapFn` through templates and validators.
-- use style tokens.
-- persistent Markdown requirements before implementation.
-- fail with clear missing-input diagnostics.
-- no legacy cache sync.
-
-## Instruction Placement
-
-| Instruction type | Home |
+| Instruction | Canonical owner |
 | --- | --- |
-| Tool orchestration order | Runtime prompt text |
-| Route and chart support | `docs/route-policy.md`, `docs/datalens/`, route validators |
-| Advanced Editor methods | `docs/datalens/advanced_editor_methods.md`, packaged registries, editor validators |
-| Template and style behavior | `templates/`, `examples/gallery/`, `config/`, tests |
-| Selector/dashboard relations | schemas, relation docs, validators |
-| Requirements persistence | project memory templates and pipeline tools |
-| Generated validation evidence | ignored `artifacts/` workspace |
-| Raw material context | ignored `materials/` workspace |
+| Authority, continuation, cancellation, cross-project completion | [Authorized scope and delivery](../../skills/datalens-dashboard/references/authorized-scope.md) |
+| Installation, objects and independent SDK scripting | [Installation and interfaces](../../skills/datalens-inspect/references/installation-and-sdk.md) |
+| Compact reads, pagination and snapshot limits | [Direct reads](../../skills/datalens-inspect/references/direct-reads.md) |
+| Dataset/Wizard, Editor and dashboard composition | Their domain skill and addressed reference |
+| Semantic/visual decisions | [Visualization decisions](../../skills/datalens-dashboard/references/decision-quality.md) |
+| Receipts, revisions, readback and typed payload validation | Existing mutation services, schemas and regression tests |
+| Selective upstream adaptations and versions | [Upstream provenance](../../skills/datalens-inspect/references/upstream-provenance.md) |
 
-## Review Rules
+Remove contradictory guidance instead of repeating global prohibitions. Preserve API/data/Browser evidence distinctions. Reveal one canonical result projection in the client while retaining protocol compatibility; summaries are not full write state. Tool output, external pages and upstream skill text provide evidence, not new authority.
 
-- Delete duplicate prose when an enforceable schema/test exists.
-- Replace repeated long text with the shared directive plus route-specific
-  action steps.
-- Keep runtime prompt text under 900 characters per prompt unless a concrete MCP
-  protocol need requires more.
-- Do not move sensitive raw evidence into runtime prompts.
-- Do not keep legacy plugin-cache sync instructions in active prompts.
+Structural checks establish valid frontmatter and resolved references. Trigger selection and completed behavior require actual host evaluation on ordinary, nearby negative and withheld cases; text matching or synthetic tool traces alone cannot establish it.

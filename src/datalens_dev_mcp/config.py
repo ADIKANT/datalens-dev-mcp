@@ -29,6 +29,7 @@ def _read_env_file(path: Path) -> dict[str, str]:
 
 @dataclass(frozen=True)
 class DataLensConfig:
+    installation: str = "yacloud"
     base_url: str = "https://api.datalens.tech"
     org_id: str = ""
     iam_token: str = field(default="", repr=False)
@@ -38,6 +39,14 @@ class DataLensConfig:
     credential_source: str = "explicit"
     refresh_available: bool = False
     _configured_token: str | None = field(default=None, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        if self.installation not in {"yacloud", "enterprise"}:
+            raise ValueError("DATALENS_INSTALLATION must be yacloud or enterprise")
+        if self.installation == "enterprise" and (not self.base_url or self.base_url.rstrip("/") == "https://api.datalens.tech"):
+            raise ValueError("Enterprise requires its explicit API endpoint; cloud fallback is disabled")
+        if self.installation == "enterprise" and self.refresh_available:
+            raise ValueError("YC IAM refresh is unavailable for Enterprise; configure its deployment credential")
 
     @classmethod
     def from_env(
@@ -50,7 +59,10 @@ class DataLensConfig:
         configured_file = env_file or process.get("DATALENS_ENV_FILE") or _default_env_file(process)
         file_values = _read_env_file(Path(configured_file).expanduser()) if configured_file else {}
         values = {**process, **file_values}
-        token = values.get("DATALENS_IAM_TOKEN") or values.get("YC_IAM_TOKEN") or ""
+        installation = values.get("DATALENS_INSTALLATION", "yacloud").strip().lower()
+        token = (values.get("DATALENS_TOKEN") or "") if installation == "enterprise" else (
+            values.get("DATALENS_IAM_TOKEN") or values.get("YC_IAM_TOKEN") or ""
+        )
         source = "env_file" if token and file_values else "process_env" if token else "none"
         refresh = values.get("DATALENS_ENABLE_TOKEN_REFRESH_ON_401", "").strip().lower() in {"1", "true", "yes"}
         base_url = (values.get("DATALENS_API_BASE_URL") or "https://api.datalens.tech").rstrip("/")
@@ -58,6 +70,7 @@ class DataLensConfig:
         configured_token = token.strip()
         active_token = _RUNTIME_TOKENS.get((base_url, org_id, configured_token), configured_token)
         return cls(
+            installation=installation,
             base_url=base_url,
             org_id=org_id,
             iam_token=active_token,
@@ -78,6 +91,7 @@ class DataLensConfig:
     def runtime_identity(self) -> tuple[object, ...]:
         configured = self._configured_token if self._configured_token is not None else self.iam_token
         return (
+            self.installation,
             self.base_url,
             self.org_id,
             configured,
@@ -88,13 +102,15 @@ class DataLensConfig:
         )
 
     def require_auth(self) -> None:
-        if not self.iam_token or not self.org_id:
+        if not self.iam_token or (self.installation == "yacloud" and not self.org_id):
             from datalens_dev_mcp.api.errors import DataLensApiError
 
             raise DataLensApiError("DataLens credentials are incomplete; configure token and organization id")
 
     def credential_report(self) -> dict[str, object]:
         return {
+            "installation": self.installation,
+            "api_version": "3",
             "base_url": self.base_url,
             "org_id_set": bool(self.org_id),
             "credential_source": self.credential_source,
