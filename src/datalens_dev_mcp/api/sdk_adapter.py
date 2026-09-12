@@ -414,7 +414,17 @@ class SdkAdapter:
                     "updateDataset", {"datasetId": object_id, "data": {"dataset": deepcopy(content)}}
                 )
             else:
-                builder = getattr(client.raw.replace, canonical)(target=target, response_snapshot=snapshot)
+                replacement_target = target
+                if canonical == "wizard_chart" and not publish:
+                    # SDK 3.0 raw replacement copies target.raw.revId into the
+                    # request, selecting an existing revision instead of saving
+                    # content. The preflight above owns the old revision. Pass a
+                    # separate public domain handle without this protocol field;
+                    # keep the captured target and complete desired state intact.
+                    replacement_target = replace(
+                        target, raw={key: value for key, value in target.raw.items() if key != "revId"}
+                    )
+                builder = getattr(client.raw.replace, canonical)(target=replacement_target, response_snapshot=snapshot)
             if canonical == "dataset":
                 pass
             elif canonical == "dashboard":

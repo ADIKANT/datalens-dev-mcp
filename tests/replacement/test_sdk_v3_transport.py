@@ -78,7 +78,10 @@ class Provider:
             elif method == "createWizardChart":
                 self.state = wizard_state(payload["data"])
             elif method == "updateWizardChart":
-                self.state["data"] = deepcopy(payload["data"])
+                # revId selects an existing revision; it is not a save CAS.
+                # Ordinary saves must omit it to persist their proposed data.
+                if "revId" not in payload:
+                    self.state["data"] = deepcopy(payload["data"])
                 self.state["revId"] = payload.get("revId", "S3")
                 if payload.get("mode") == "publish":
                     self.state["publishedId"] = self.state["revId"]
@@ -361,6 +364,8 @@ def test_public_dashboard_v2_geometry_unchanged(install_runtime):
     result = update("dashboard", "synthetic-dashboard", {"entry": {"annotation": {"description": "after"}}})
     assert result["results"][0]["status"] == "completed", json.dumps(result, indent=2)
     assert provider.writes[0][1]["entry"]["data"] == initial["entry"]["data"]
+    assert "revId" not in provider.writes[0][1]["entry"]
+    assert provider.writes[0][1]["mode"] == "save"
     assert [tab["id"] for tab in provider.state["entry"]["data"]["tabs"]] == ["first", "second"]
 
 
@@ -689,3 +694,80 @@ def test_preview_refresh_uses_runtime_owner_once(monkeypatch):
     assert refreshes == [1]
     assert calls == ["Bearer synthetic-expired", "Bearer synthetic-fresh"]
     runtime.close()
+
+
+def test_public_wizard_update_keeps_guid_bindings_and_order(install_runtime):
+    data = {
+        "sources": {"datasetsIds": ["synthetic-dataset"]},
+        "visualization": {
+            "type": "flatTable",
+            "columns": {
+                "items": [
+                    {"guid": "one", "datasetId": "synthetic-dataset"},
+                    {"guid": "two", "datasetId": "synthetic-dataset"},
+                ]
+            },
+            "colors": {"items": [], "settings": {}},
+            "sort": {"items": []},
+        },
+        "future": {"keep": True, "revision": "business-revision"},
+    }
+    provider = Provider(wizard_state(data))
+    install_runtime(provider)
+    requested = list(reversed(data["visualization"]["columns"]["items"]))
+    result = update("wizard_chart", "synthetic-chart", {"data": {"visualization": {"columns": {"items": requested}}}})
+    assert result["results"][0]["status"] == "completed", result
+    payload = provider.writes[0][1]
+    assert payload["data"]["visualization"]["columns"]["items"] == requested
+    assert payload["data"]["future"] == {"keep": True, "revision": "business-revision"}
+    assert payload["data"]["sources"] == data["sources"]
+    assert payload["mode"] == "save"
+    assert "revId" not in payload
+
+
+def test_public_wizard_duplicate_label_is_not_a_guid(install_runtime):
+    provider = Provider(dataset_state())
+    install_runtime(provider)
+    result = call_tool(
+        "dl_object_create",
+        {
+            "drafts": [
+                {
+                    "client_ref": "ambiguous",
+                    "object_type": "wizard_chart",
+                    "name": "Synthetic",
+                    "wizard": {
+                        "dataset_id": "synthetic-dataset",
+                        "visualization": "flat_table",
+                        "roles": {"columns": ["Duplicate"]},
+                    },
+                }
+            ],
+            "destination": {"workbook_id": "synthetic-workbook"},
+            "operation_id": "ambiguous-guid",
+        },
+    )
+    assert result["results"][0]["code"] == "input_error", result
+    assert not provider.writes
+
+
+def test_public_dataset_wrong_description_at_new_revision_is_mismatch(install_runtime):
+    provider = Provider(dataset_state())
+    install_runtime(provider)
+    provider.after_write = lambda p: p.state["dataset"].update(description="wrong")
+    result = update("dataset", "synthetic-dataset", {"dataset": {"description": "requested"}})
+    assert result["results"][0]["code"] == "readback_mismatch"
+    assert provider.state["revId"] == "A2"
+    assert provider.state["dataset"]["revision_id"] == "I2"
+
+
+@pytest.mark.parametrize("object_type", ["dataset", "connection", "workbook"])
+def test_public_unbranched_type_has_no_publish_dispatch(install_runtime, object_type):
+    provider = Provider(dataset_state())
+    install_runtime(provider)
+    result = call_tool(
+        "dl_object_publish",
+        {"targets": [{"object_type": object_type, "object_id": "synthetic"}], "operation_id": "no-publish"},
+    )
+    assert result["results"][0]["code"] == "object_has_no_publish_branch"
+    assert not provider.requests

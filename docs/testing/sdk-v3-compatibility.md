@@ -63,6 +63,20 @@ arrays, and empty strings are preserved. Only protocol revision locations are
 excluded from business readback matching: a nested business `revision` field
 remains significant. Preflight is not an atomic provider-side CAS guarantee.
 
+The SDK raw Wizard replacement has a second verified gap:
+`domain/raw_resource.py:_init_raw_chart_replace` copies `target.raw.revId` into
+`RawReplaceSpec.target_revision_id`, and
+`converter/wizard/converter.py:from_raw_replace` sends that revision even in save
+mode. A revision selects existing state; it is not an ordinary-save CAS field.
+The adapter performs its unchanged identity/branch/revision preflight first, then
+passes a separate `dataclasses.replace` copy of the public `WizardChart` handle
+without the root protocol `raw.revId` to the official `client.raw.replace` path.
+The fetched target, desired snapshot, nested business revision fields, unknown
+state, aliases and GUID bindings remain unchanged. No SDK private builder state
+or transport is patched. Exact publication returns through `publish_revision`
+before this save-only adaptation. Dashboard raw ordinary-save requests were
+independently checked and already omit `entry.revId`.
+
 ## Compatibility boundaries
 
 - A legacy Wizard V2 snapshot cannot be copied into the V1 wire schema. Re-export
@@ -103,9 +117,9 @@ used. Provider fixtures are synthetic and contain explicit negative controls.
 
 | Acceptance | Tests in `tests/replacement/` |
 |---|---|
-| D-S01 | `test_sdk_v3_transport.py`: `test_public_dataset_full_state_and_reconcile` (both installations), `test_public_dataset_wrong_business_revision_is_mismatch`; existing `test_dataset_update_wire.py` |
+| D-S01 | `test_sdk_v3_transport.py`: `test_public_dataset_full_state_and_reconcile` (both installations), `test_public_dataset_wrong_business_revision_is_mismatch`, `test_public_dataset_wrong_description_at_new_revision_is_mismatch`; existing `test_dataset_update_wire.py` |
 | D-S02 | `test_public_dataset_stale_then_fresh_patch_preserves_manual_filter`, `test_second_sdk_fetch_rejects_wrong_target_or_branch_before_write`; existing `test_sdk_revision_guard.py` |
-| D-S03 | `test_public_wizard_guid_payload_v1_and_unsupported_setter`, `test_wizard_legacy_v2_artifact_rejected_locally`; updated `test_l04_dataset_wizard.py`, `test_typed_wizard_write.py` |
+| D-S03 | `test_public_wizard_guid_payload_v1_and_unsupported_setter`, `test_public_wizard_update_keeps_guid_bindings_and_order`, `test_public_wizard_duplicate_label_is_not_a_guid`, `test_wizard_legacy_v2_artifact_rejected_locally`; updated `test_l04_dataset_wizard.py`, `test_typed_wizard_write.py` |
 | D-S04 | `test_public_editor_one_tab_preserves_others_and_strips_secrets`, `test_public_editor_activities_rejected_before_network_write`, `test_raw_editor_create_cannot_bypass_activities_contract` |
 | D-S05 | `test_public_dashboard_v2_geometry_unchanged`, `test_public_dashboard_legacy_layout_requires_explicit_migration`, `test_public_raw_dashboard_create_requires_tab_and_known_schema`; `test_typed_dashboard_graph.py` |
 | D-S06 | `test_public_preview_real_sdk_bounded_and_distinct`, `test_preview_refresh_uses_runtime_owner_once`, `test_public_relations_preserve_unknown_scope_and_page_cursor`, `test_sdk_navigation_unknown_request_scope_rejected_before_transport` |
@@ -134,3 +148,17 @@ regressions and existing concurrency, interruption, and continuation cases.
 Changed Python files passed Ruff. Final full repository, build/install, active native runtime and host evaluation
 are integration checks, recorded separately by the release owner. Live mutation,
 rendering and business acceptance were **not run** by this migration worker.
+
+### Follow-up ordinary-save regression
+
+A late additional Wizard update test failed after the first commit because its
+ordinary-save DTO still contained `revId`. With synthetic existing-revision
+semantics, readback remained unchanged and correctly reported a mismatch. The
+save-only domain-handle adaptation above corrected the wire request; the test
+now proves changed slot order, preserved dataset/GUID associations and an unknown
+nested business `revision`. Dashboard ordinary save passed its no-`revId` control
+before the fix. The follow-up focused contour passed **59 tests**, including all
+43 new transport cases, revision preflight, typed Wizard authoring, exact
+publication, wrong description and unbranched-publication negative controls.
+All attempts remain recorded; the first commit alone is insufficient for this
+Wizard save case. Integration must include this follow-up before its final suite.
