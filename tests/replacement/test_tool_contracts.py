@@ -23,7 +23,7 @@ class PreviewTransport:
         self.calls.append((method, payload))
         if self.error:
             raise self.error
-        return {"rows": [[7]]}
+        return {"schema": [{"guid": "synthetic-guid", "name": "Value", "type": "integer"}], "rows": [[7]]}
 
 
 def runtime(monkeypatch, error=None):
@@ -60,6 +60,7 @@ def test_documented_guid_example_uses_real_preview_and_transport(monkeypatch):
     assert not result["isError"]
     assert transport.calls[0][1]["columns"] == ["synthetic-guid"]
     assert result["structuredContent"]["rows"] == [[7]]
+    assert result["structuredContent"]["columns"] == ["synthetic-guid"]
     assert json.loads(result["content"][0]["text"]) == result["structuredContent"]
 
 
@@ -169,4 +170,5 @@ def test_preview_resolves_fields_from_nested_full_dataset_before_query(monkeypat
     result = server.call_tool("dl_dataset_preview", {"dataset_id": "synthetic-dataset", "columns": ["synthetic-guid"]})
     assert not result["isError"]
     assert result["structuredContent"]["rows"] == [[7]]
+    assert result["structuredContent"]["columns"] == ["synthetic-guid"]
     assert len(transport.calls) == 1
