@@ -21,7 +21,7 @@ def source(tmp_path, version='1.1.1', manifest='1.1.1', runtime='1.1.1'):
 
 
 def run(root, *args):
-    return subprocess.run([sys.executable, str(SCRIPT), '--root', str(root), *args], capture_output=True, text=True)
+    return subprocess.run([sys.executable, str(SCRIPT), '--root', str(root), *args], capture_output=True, text=True, check=False)
 
 
 def test_stable_release_is_newer_than_legacy_and_validation_is_read_only(tmp_path):
@@ -81,8 +81,8 @@ def test_git_tag_inventory_and_existing_release_checkout(tmp_path):
 
 
 def test_archive_audit_rejects_version_content_mismatch(tmp_path):
-    import zipfile
     import importlib.util
+    import zipfile
     spec = importlib.util.spec_from_file_location('release_audit', SCRIPT.with_name('check_public_release.py'))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
