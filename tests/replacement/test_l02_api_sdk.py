@@ -37,6 +37,8 @@ def _config() -> DataLensConfig:
 def test_config_report_never_contains_credentials() -> None:
     report = _config().credential_report()
     assert report == {
+        "installation": "yacloud",
+        "api_version": "3",
         "base_url": "https://api.datalens.test",
         "org_id_set": True,
         "credential_source": "explicit",
@@ -62,8 +64,8 @@ def test_read_uses_documented_api_version_per_method() -> None:
     client.read("getWorkbooksList", {"pageSize": 10})
     client.read("getDatasetData", {"datasetId": "dataset-synthetic"})
 
-    assert transport.calls[0][2]["x-dl-api-version"] == "1"
-    assert transport.calls[1][2]["x-dl-api-version"] == "2"
+    assert transport.calls[0][2]["x-dl-api-version"] == "3"
+    assert transport.calls[1][2]["x-dl-api-version"] == "3"
 
 
 def test_write_transport_failure_is_uncertain_and_never_replayed() -> None:
@@ -96,19 +98,19 @@ def test_read_auth_refresh_has_one_owner_and_one_retry() -> None:
 
 def test_operation_registry_records_real_sdk_coverage() -> None:
     registry = OperationRegistry.load()
-    assert SDK_VERSION == "0.9.0"
+    assert SDK_VERSION == "3.0.0"
     assert registry.get("createWizardChart")["backend"] == "official_sdk"
     assert registry.get("createEditorChart")["backend"] == "official_sdk"
     assert registry.get("createDashboard")["backend"] == "official_sdk"
     assert registry.get("getDatasetData")["backend"] == "public_api_adapter"
-    assert registry.get("getDatasetData")["api_version"] == "2"
-    assert registry.get("publishDashboard")["readback_required"] is True
+    assert registry.get("getDatasetData")["api_version"] == "3"
+    assert registry.get("updateDashboard")["backend"] == "official_sdk"
 
 
 def test_sdk_adapter_exposes_versioned_factories_without_executing_them() -> None:
     adapter = SdkAdapter()
     assert adapter.describe_factory("wizard", "flat_table") == {
-        "sdk_version": "0.9.0",
+        "sdk_version": "3.0.0",
         "resource": "wizard",
         "variant": "flat_table",
         "supported": True,
@@ -124,7 +126,7 @@ def test_l02_tools_expose_auth_and_versioned_schema_without_generic_rpc() -> Non
     assert "dl_rpc_expert" not in names
     result = call_tool("dl_method_schema", {"method": "createWizardChart"})["structuredContent"]
     assert result["operation"]["backend"] == "official_sdk"
-    assert result["operation"]["verified"] == "sdk_0.9.0"
+    assert result["operation"]["verified"] == "sdk_3.0.0"
 
 
 def test_create_tool_describes_nested_typed_dataset_contract() -> None:

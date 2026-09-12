@@ -249,6 +249,8 @@ class ObjectMutationService:
                     expected_revision=observed or None,
                     desired=_recordable(_publish_content(saved["object"])),
                 )
+                if object_type in {"dashboard", "wizard_chart", "html_page"}:
+                    item["required_published_revision"] = observed
                 self._begin(record, item)
                 response = self.backend.publish(object_type, object_id, saved)
                 self._returned(record, item, response)
@@ -335,6 +337,9 @@ class ObjectMutationService:
             identity.get("revision_id"),
             item.get("expected_revision"),
         }
+        required_revision = item.get("required_published_revision")
+        if required_revision and identity.get("revision_id") != required_revision:
+            revision_matches = False
         if _usable_full_read(readback) and correct_identity and content_matches and revision_matches:
             item.update(status="completed", code="readback_verified", observed_revision=identity.get("revision_id"))
             item.pop("error", None)

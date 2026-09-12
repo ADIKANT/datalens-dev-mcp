@@ -46,7 +46,7 @@ def test_dataset_wire_preserves_inner_revision_and_content():
     desired['dataset']['description'] = 'after'
     original = copy.deepcopy(desired)
     writes = run_update(desired)
-    assert writes == [({'datasetId': 'synthetic-dataset', 'data': {'dataset': desired['dataset']}}, '2')]
+    assert writes == [({'datasetId': 'synthetic-dataset', 'data': {'dataset': desired['dataset']}}, '3')]
     assert desired == original
 
 

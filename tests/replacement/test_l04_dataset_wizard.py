@@ -136,20 +136,14 @@ def test_official_sdk_compiles_current_multi_measure_wizard_shape() -> None:
         title="Revenue and orders by day",
     )
     assert result["ok"] is True
-    assert result["sdk_version"] == "0.9.0"
-    assert result["payload"]["data"]["datasetsIds"] == ["dataset-1"]
-    assert result["payload"]["data"]["datasetsPartialFields"] == [
-        [
-            {"guid": "date-guid", "title": "Day", "calc_mode": "direct"},
-            {"guid": "revenue-guid", "title": "Revenue", "calc_mode": "formula"},
-            {"guid": "orders-guid", "title": "Orders", "calc_mode": "formula"},
-        ]
-    ]
-    placeholders = result["payload"]["data"]["visualization"]["placeholders"]
-    assert [item["guid"] for item in next(item for item in placeholders if item["id"] == "y")["items"]] == [
-        "revenue-guid",
-        "orders-guid",
-    ]
+    assert result["sdk_version"] == "3.0.0"
+    assert result["payload"]["data"]["sources"]["datasetsIds"] == ["dataset-1"]
+    slots = result["payload"]["data"]["visualization"]
+    assert [item["guid"] for item in slots["y"]["items"]] == ["revenue-guid", "orders-guid"]
+    assert all(item["datasetId"] == "dataset-1" for item in slots["y"]["items"])
+    assert "placeholders" not in slots
+    assert "datasetsPartialFields" not in result["payload"]["data"]
+
 
 
 def test_chart_local_field_stays_out_of_dataset_contract() -> None:
@@ -171,7 +165,7 @@ def test_chart_local_field_stays_out_of_dataset_contract() -> None:
     )
     assert result["ok"] is True
     assert all(field["guid"] != "avg-check-local" for field in result["dataset_fields"])
-    assert any(field["guid"] == "avg-check-local" for field in result["payload"]["data"]["datasetsPartialFields"][0])
+    assert any(update["field"]["guid"] == "avg-check-local" for update in result["payload"]["data"]["sources"]["updates"])
 
 
 def test_existing_wizard_shape_is_detected_not_reinvented() -> None:

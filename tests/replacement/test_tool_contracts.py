@@ -30,7 +30,7 @@ def runtime(monkeypatch, error=None):
     transport = PreviewTransport(error)
     api = DataLensApiClient(DataLensConfig(org_id="synthetic-org", iam_token="synthetic-token", read_retries=0),
                             transport=transport)
-    monkeypatch.setattr(server, "get_runtime", lambda: SimpleNamespace(api=api))
+    monkeypatch.setattr(server, "get_runtime", lambda: SimpleNamespace(api=api, sdk=SimpleNamespace(get_dataset_data=lambda payload: api.read("getDatasetData", payload))))
     return transport
 
 

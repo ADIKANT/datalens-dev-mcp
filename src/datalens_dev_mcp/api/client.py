@@ -72,16 +72,18 @@ class DataLensApiClient:
     def _headers(self, method: str) -> dict[str, str]:
         self.config.require_auth()
         try:
-            api_version = str(self.operation_registry.get(method).get("api_version", "1"))
+            api_version = str(self.operation_registry.get(method).get("api_version", "3"))
         except KeyError:
-            api_version = "1"
-        return {
+            api_version = "3"
+        headers = {
             "accept": "application/json",
             "content-type": "application/json",
             "authorization": f"Bearer {self.config.iam_token}",
-            "x-dl-org-id": self.config.org_id,
             "x-dl-api-version": api_version,
         }
+        if self.config.installation == "yacloud":
+            headers["x-dl-org-id"] = self.config.org_id
+        return headers
 
     def read(
         self,

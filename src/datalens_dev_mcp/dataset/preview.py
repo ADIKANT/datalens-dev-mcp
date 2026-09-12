@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from copy import deepcopy
 from typing import Any, Protocol
 
@@ -124,8 +124,9 @@ def compile_preview_request(
 
 
 class DatasetPreviewService:
-    def __init__(self, api: PreviewApi) -> None:
+    def __init__(self, api: PreviewApi, *, dataset_query: Callable[[dict[str, Any]], dict[str, Any]] | None = None) -> None:
         self.api = api
+        self.dataset_query = dataset_query
 
     def preview(self, **kwargs: Any) -> dict[str, Any]:
         compiled = compile_preview_request(**kwargs)
@@ -136,8 +137,12 @@ class DatasetPreviewService:
         pages = 0
         for page_index in range(int(compiled["max_pages"])):
             request["offset"] = int(compiled["request"]["offset"]) + page_index * int(request["limit"])
-            raw = self.api.read("getDatasetData", request)
+            raw = self.dataset_query(request) if self.dataset_query is not None else self.api.read("getDatasetData", request)
             page_rows = _rows(raw)
+            if len(page_rows) > int(request["limit"]) or any(
+                not isinstance(row, list) or len(row) != len(request["columns"]) for row in page_rows
+            ):
+                raise ValueError("getDatasetData response exceeds the requested rows/columns bound")
             rows.extend(page_rows)
             pages += 1
             if len(page_rows) < int(request["limit"]):
@@ -158,5 +163,7 @@ def _rows(raw: Mapping[str, Any]) -> list[Any]:
         value = value["result"]
     if isinstance(value, Mapping) and isinstance(value.get("data"), Mapping):
         value = value["data"]
-    rows = value.get("rows") if isinstance(value, Mapping) else []
-    return list(rows) if isinstance(rows, list) else []
+    rows = value.get("rows") if isinstance(value, Mapping) else None
+    if not isinstance(rows, list):
+        raise TypeError("getDatasetData response must contain a rows array; malformed is not empty")
+    return list(rows)
