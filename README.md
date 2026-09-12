@@ -31,7 +31,7 @@ python3 -m venv .venv
 
 ## SDK и API
 
-Официальный `datalens-sdk==0.9.0` используется для поддержанных typed операций. Точечный Public API adapter остаётся для `getDatasetData`, relations, HTML Page и license endpoints. MCP и публичный модуль `datalens_dev_mcp.sdk` вызывают одни и те же сервисы.
+Официальный `datalens-sdk==3.0.0` используется для поддержанных typed операций. Точечный Public API adapter остаётся для full-state Dataset update, relations, проверенных HTML Page metadata/revision операций и license endpoints. MCP и публичный модуль `datalens_dev_mcp.sdk` вызывают одни и те же сервисы. Границы SDK, старых snapshots и HTML content описаны в [совместимости SDK](docs/testing/sdk-v3-compatibility.md).
 
 `.build()` и `.execute()` выполняют внешнюю запись. Pure authoring (`dl_compile_recipe`) сети не вызывает. SDK raw replace применяется только после fresh read и narrow semantic merge; серверной общей CAS/транзакции для batch не обещается.
 

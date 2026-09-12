@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0
+
+- Migrate to pinned DataLens SDK 3.0.0 and API v3 through the existing typed services, with explicit Cloud/Enterprise configuration.
+- Preserve full Dataset state and independent revisions, validate changed Editor tabs, retain V2 Dashboard geometry, and publish exact saved Dashboard/Wizard revisions.
+- Use typed bounded preview requests and distinguish empty results from errors. Report the active SDK independently of the installed SDK.
+- Adapt the five domain skills for scoped continuation, complete multi-object delivery, HTML/Editor routing and read-only org-scoped RLS resolution.
+- Correct unsupported capability claims: Page content authoring requires a verified content readback path and currently rejects before dispatch. Legacy Wizard V2 and Dashboard V1 imports require explicit re-export/migration; Editor/QL publication retains its documented content-publish semantics. See the SDK compatibility note.
+
+
 ## 1.1.1
 
 - Use stable MAJOR.MINOR.PATCH releases. The pyproject version is the release source; an explicit validation/sync step keeps the runtime and plugin aligned.
