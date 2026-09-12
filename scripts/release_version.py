@@ -59,13 +59,13 @@ def main() -> int:
     parser.add_argument('--check-git', action='store_true', help='Validate against all fetched release tags')
     args = parser.parse_args()
     try:
+        if args.allow_tagged_head and (args.sync or not args.check_git):
+            raise ValueError('--allow-tagged-head requires --check-git and cannot be used with --sync')
         if args.check_git:
             result = subprocess.run(['git', '-C', str(args.root), 'tag', '--list'], check=True,
                                     capture_output=True, text=True)
             tags = [t for t in result.stdout.splitlines() if re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+(?:\+[^ ]+)?', t)]
             if args.allow_tagged_head:
-                if args.sync:
-                    raise ValueError('--sync cannot reuse a released version')
                 args.tag = 'v' + tomllib.loads((args.root / 'pyproject.toml').read_text())['project']['version']
             if args.tag in tags:
                 tagged = subprocess.check_output(['git', '-C', str(args.root), 'rev-parse', args.tag + '^{}'], text=True).strip()

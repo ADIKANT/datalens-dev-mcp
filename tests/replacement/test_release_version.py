@@ -74,6 +74,8 @@ def test_git_tag_inventory_and_existing_release_checkout(tmp_path):
     assert run(root, '--check-git', '--tag', 'v1.1.1').returncode == 0
     assert run(root, '--check-git', '--allow-tagged-head').returncode == 0
     assert run(root, '--check-git', '--allow-tagged-head', '--sync').returncode == 1
+    assert run(root, '--allow-tagged-head', '--sync').returncode == 1
+    assert run(root, '--allow-tagged-head').returncode == 1
     git('-c', 'user.name=Synthetic', '-c', 'user.email=synthetic@example.invalid', 'commit', '--allow-empty', '-m', 'changed')
     assert run(root, '--check-git', '--tag', 'v1.1.1').returncode == 1
 
