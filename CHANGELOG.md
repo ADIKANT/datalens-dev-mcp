@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.3
+
+- Follow numeric pages for workbook and entry inventories, and stop on repeated continuation tokens with an explicit partial result.
+- Retain names, chart renderer subtypes, typed object identities, container membership and revisions in compact inventory and relation results.
+- Enforce the provider's workbook-entry page-size bound before dispatch.
+
 ## 1.2.2
 
 - Classify credential-helper launch failures, unknown-cause timeouts and explicit login instructions without exposing captured output. Distinguish API authentication failures (401) from scope denials (403).

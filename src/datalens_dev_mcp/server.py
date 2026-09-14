@@ -406,12 +406,12 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_workbook_entries",
-        "description": "List compact workbook objects with bounded full pagination and an explicit completeness marker.",
+        "description": "List workbook entries across numeric pages (up to 200 per page), retaining scope, renderer subtype, typed identity and completeness.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "workbook_id": {"type": "string", "minLength": 1},
-                "page_size": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
+                "page_size": {"type": "integer", "minimum": 1, "maximum": 200, "default": 100},
                 "max_pages": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
             },
             "required": ["workbook_id"],
