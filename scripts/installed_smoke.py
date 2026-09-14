@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 
 PROBE = r"""
 import importlib.metadata
@@ -14,16 +15,20 @@ import json
 from pathlib import Path
 import datalens_dev_mcp
 from datalens_dev_mcp.server import dl_server_info, list_tools
+from datalens_dev_mcp.api.sdk_adapter import SdkAdapter
+SdkAdapter()  # Admit the installed SDK against the adapter's actual pin; no HTTP.
 location = Path(datalens_dev_mcp.__file__).resolve()
 assert "site-packages" in location.parts, str(location)
 tools = list_tools()
 names = [tool["name"] for tool in tools]
-assert len(names) == len(set(names)) == 25, names
-assert not any(name.startswith("dl_task_") for name in names)
+assert names and len(names) == len(set(names)), names
+assert not any(name.startswith("dl_task_") or "execute" in name or "prompt" in name for name in names)
+assert "dl_rpc_expert" not in names
 assert importlib.metadata.version("datalens-dev-mcp") == datalens_dev_mcp.__version__
 info = dl_server_info()
 assert info['runtime']['import_kind'] == 'site-packages'
 assert info['active_version_matches_installed'] is True
+assert info['active_sdk_matches_installed'] is True
 assert info['capability_revision']
 assert len(info['build']['package_content_sha256']) == 64
 assert info['build']['source_commit'] is None
@@ -34,7 +39,17 @@ print(json.dumps({"version": datalens_dev_mcp.__version__, "tools": names, 'acti
 def main() -> None:
     env = {key: value for key, value in os.environ.items() if key != "PYTHONPATH"}
     with tempfile.TemporaryDirectory(prefix="datalens-installed-") as directory:
-        subprocess.run([sys.executable, "-I", "-c", PROBE], cwd=directory, env=env, check=True)
+        probe = subprocess.run([sys.executable, "-I", "-c", PROBE], cwd=directory, env=env,
+                               check=True, capture_output=True, text=True, timeout=20)
+        installed = json.loads(probe.stdout)
+        root = Path(__file__).resolve().parents[1]
+        manifest = json.loads((root / ".codex-plugin/plugin.json").read_text())
+        assert manifest["version"] == installed["version"]
+        assert manifest["name"] == "datalens-dev-mcp"
+        skill_root = root / manifest["skills"]
+        assert list(skill_root.glob("*/SKILL.md")), "plugin has no skills"
+        server_map = json.loads((root / manifest["mcpServers"]).read_text())
+        assert server_map == {"mcpServers": {"datalens": {"command": "datalens-dev-mcp", "args": ["stdio"]}}}
         requests = [
             {
                 "jsonrpc": "2.0",
@@ -66,15 +81,21 @@ def main() -> None:
         )
         replies = [json.loads(line) for line in result.stdout.splitlines()]
         assert [reply["id"] for reply in replies] == [1, 2, 3, 4], replies
-        assert len(replies[1]["result"]["tools"]) == 25, replies
+        assert {tool["name"] for tool in replies[1]["result"]["tools"]} == set(installed["tools"])
         info = replies[2]['result']['structuredContent']
         assert info['runtime']['import_kind'] == 'site-packages'
         assert info['active_version_matches_installed'] is True
-        assert info['version'] == replies[0]['result']['serverInfo']['version']
+        assert info['version'] == replies[0]['result']['serverInfo']['version'] == installed['version']
+        assert info['runtime']['sdk_version'] == installed['active']['runtime']['sdk_version']
+        assert info['build']['package_content_sha256'] == installed['active']['build']['package_content_sha256']
         invalid = replies[3]['result']
         assert invalid['isError'] and invalid['structuredContent']['status'] == 'input_error'
-        print(json.dumps({'stdio_active': info, 'invalid_input': 'rejected_before_provider'}))
-        from pathlib import Path
+        assert invalid['structuredContent']['argument_path'] == 'columns.0'
+        assert invalid['structuredContent']['expected'] == 'type="string"'
+        print(json.dumps({'version': info['version'], 'sdk': info['runtime']['sdk_version'],
+                          'import_kind': info['runtime']['import_kind'], 'tools': len(installed['tools']),
+                          'package_content_sha256': info['build']['package_content_sha256'],
+                          'invalid_input': 'rejected_before_provider'}))
 
         assert list(Path(directory).iterdir()) == [], "stdio wrote to the caller directory"
     print("Installed package import and stdio smoke passed (offline only)")

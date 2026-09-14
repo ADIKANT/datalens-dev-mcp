@@ -190,10 +190,18 @@ def compact_operation(record: dict[str, Any]) -> dict[str, Any]:
                     "returned_revision",
                     "error",
                     "next_action",
+                    "evidence",
                 )
                 if key in item
             }
         )
+        if "changes" in item:
+            paths = [change["path"] for change in item["changes"]]
+            compact_items[-1].update(changed_fields=paths[:50], changed_field_count=len(paths))
+        elif "changed_fields" in item:
+            # Preserve the projection when compacting a retained tombstone again.
+            compact_items[-1].update(changed_fields=deepcopy(item["changed_fields"]),
+                                     changed_field_count=item["changed_field_count"])
     result["results"] = compact_items
     if result.get("operation_id"):
         result["detail_reference"] = {"operation_id": result["operation_id"], "include_detail": True}

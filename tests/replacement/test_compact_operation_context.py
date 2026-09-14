@@ -26,6 +26,8 @@ def test_compact_operation_keeps_actionable_result_without_payload_or_javascript
                 "observed_revision": "r1",
                 "desired": {"data": {"prepare": large_js}},
                 "readback": {"object": {"data": {"prepare": large_js}}},
+                "changes": [{"path": "/data/prepare", "before": "", "after": large_js}],
+                "evidence": "saved_readback",
             }
         ],
     }
@@ -36,6 +38,8 @@ def test_compact_operation_keeps_actionable_result_without_payload_or_javascript
     assert compact["detail_reference"] == {"operation_id": "op-1", "include_detail": True}
     assert "desired" not in compact["results"][0]
     assert "readback" not in compact["results"][0]
+    assert compact["results"][0]["changed_fields"] == ["/data/prepare"]
+    assert compact_operation(compact) == compact
     assert len(json.dumps(compact)) < 800
 
 
@@ -62,6 +66,9 @@ def test_public_write_wrappers_are_compact_and_full_record_is_explicit(monkeypat
     assert "desired" not in created["results"][0]
     assert "desired" not in server.dl_operation_get("op-1")["results"][0]
     assert server.dl_operation_get("op-1", include_detail=True) is full
+    wire = server.call_tool("dl_operation_get", {"operation_id": "op-1", "include_detail": True})
+    assert wire["structuredContent"] is full
+    assert "large" not in wire["content"][0]["text"]
 
 
 def test_operation_records_redact_credentials_before_persistence(tmp_path) -> None:

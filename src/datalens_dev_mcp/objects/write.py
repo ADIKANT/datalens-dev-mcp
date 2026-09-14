@@ -73,8 +73,20 @@ def semantic_diff(current: Any, proposed: Any, path: str = "") -> list[dict[str,
                 changes.extend(semantic_diff(current[key], proposed[key], child))
         return changes
     return (
-        [] if current == proposed else [{"path": path or "/", "before": deepcopy(current), "after": deepcopy(proposed)}]
+        [] if _json_equal(current, proposed) else [{"path": path or "/", "before": deepcopy(current), "after": deepcopy(proposed)}]
     )
+
+
+def _json_equal(current: Any, proposed: Any) -> bool:
+    # Python equates True with 1, including inside lists. These are different
+    # JSON values and cannot authorize skipping a requested change.
+    if type(current) is not type(proposed):
+        return False
+    if isinstance(current, dict):
+        return current.keys() == proposed.keys() and all(_json_equal(value, proposed[key]) for key, value in current.items())
+    if isinstance(current, list):
+        return len(current) == len(proposed) and all(_json_equal(a, b) for a, b in zip(current, proposed))
+    return current == proposed
 
 
 class ObjectMutationService:
@@ -83,15 +95,19 @@ class ObjectMutationService:
         self.backend = backend
         self.store = store or OperationStore()
 
-    def diff(self, object_type: str, object_id: str, patch: dict[str, Any]) -> dict[str, Any]:
+    def diff(
+        self, object_type: str, object_id: str, patch: dict[str, Any], *, include_proposed: bool = False
+    ) -> dict[str, Any]:
         current = self.reader.object_get(object_type, object_id, branch="saved")
         proposed = semantic_merge(current["object"], patch)
-        return {
+        result = {
             "ok": True,
             "identity": current["identity"],
             "changes": semantic_diff(current["object"], proposed),
-            "proposed": proposed,
         }
+        if include_proposed:
+            result["proposed"] = proposed
+        return result
 
     def create_objects(
         self,
@@ -192,8 +208,22 @@ class ObjectMutationService:
                     target={"object_type": object_type, "object_id": object_id},
                     desired=_recordable(patch),
                     expected_revision=actual_revision or None,
-                    changes=semantic_diff(current["object"], proposed),
+                    changes=semantic_diff(_recordable(current["object"]), _recordable(proposed)),
                 )
+                if _json_equal(current["object"], proposed):
+                    identity = current.get("identity") or {}
+                    branch = "unbranched" if object_type in {"dataset", "connection", "workbook"} else "saved"
+                    if any(identity.get(key) != value for key, value in {
+                        "object_type": object_type, "object_id": object_id, "branch": branch
+                    }.items()):
+                        raise InputContractError("no-op requires the exact saved target identity and branch")
+                    item.update(status="completed", code="no_change", write_returned=False,
+                                observed_revision=actual_revision or None, readback=_recordable(current),
+                                evidence="fresh_saved_read_no_write")
+                    item.pop("error", None)
+                    item.pop("next_action", None)
+                    self._save(record)
+                    continue
                 self._begin(record, item)
                 response = self.backend.update(object_type, object_id, proposed)
                 self._returned(record, item, response)
@@ -342,6 +372,7 @@ class ObjectMutationService:
             revision_matches = False
         if _usable_full_read(readback) and correct_identity and content_matches and revision_matches:
             item.update(status="completed", code="readback_verified", observed_revision=identity.get("revision_id"))
+            item["evidence"] = f"{allowed_branch}_readback"
             item.pop("error", None)
             item.pop("next_action", None)
         else:
