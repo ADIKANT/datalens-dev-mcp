@@ -42,10 +42,12 @@ def run_update(desired, current=None):
 
 
 def test_dataset_wire_preserves_inner_revision_and_content():
-    desired = snapshot()
+    current = snapshot()
+    current['dataset']['revision_id'] = None
+    desired = copy.deepcopy(current)
     desired['dataset']['description'] = 'after'
     original = copy.deepcopy(desired)
-    writes = run_update(desired)
+    writes = run_update(desired, current)
     assert writes == [({'datasetId': 'synthetic-dataset', 'data': {'dataset': desired['dataset']}}, '3')]
     assert desired == original
 
