@@ -14,6 +14,14 @@ Use the exact dashboard subproject's current configuration and installed tool ca
 
 If the API endpoint or target organization remains unresolved after scoped configuration reads, ask for that missing value. Never fall back to cloud merely because another installation is unavailable. An upstream example does not certify this installation's endpoint, API version or capability.
 
+## Authentication recovery
+
+`dl_auth_check` makes a minimal API read. Distinguish a helper that cannot start, explicit interactive-login evidence, a timeout of unknown cause, an API 401 (`authentication_failed`) and a scope 403 (`permission_denied`). None establishes that a workbook is missing. Helper errors expose only an allowlisted code, exit status and diagnostic ID; never print captured stdout/stderr or tokens.
+
+After a failed automatic helper attempt the current runtime retains the failure, so inspecting the next object does not start the same refresh again. Use `dl_auth_refresh` for one deliberate recovery attempt after addressing the cause. Success updates both API and SDK clients in the running process and verifies API access; it requires no reinstall. Resume the original read afterward. A changed configured credential/runtime identity also gets its own recovery state.
+
+For `interactive_login_required`, follow the installed `yc` CLI's supported sign-in for the same configured account/profile, requesting human login/MFA only when needed. For `credential_refresh_timeout`, first inspect bounded executable/launch and network evidence; do not infer login from elapsed time alone. For an unclassified helper failure, use safe local diagnostics to establish the cause. A successful UI login is not an API probe. Do not retry a write with unknown outcome during auth recovery; reconcile its operation and target first.
+
 ## Objects and containers
 
 A connection supplies source access; a dataset models fields, joins, parameters and row access; a chart visualizes data; a dashboard arranges charts and selectors. Wizard usually binds a dataset; QL queries a connection; Editor uses JavaScript and its declared sources. Preserve an existing chart's technology and use QL only when requested.

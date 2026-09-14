@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from pathlib import Path
 
-from datalens_dev_mcp.api.errors import DataLensApiError
+from datalens_dev_mcp.api.errors import CredentialRefreshError
 
 
 def refresh_iam_token_with_yc(*, yc_binary: str = "yc", timeout_sec: float = 15.0) -> str:
@@ -28,12 +29,21 @@ def refresh_iam_token_with_yc(*, yc_binary: str = "yc", timeout_sec: float = 15.
             env=env,
         )
     except subprocess.TimeoutExpired as exc:
-        raise DataLensApiError("yc IAM token refresh timed out") from exc
+        raise CredentialRefreshError("credential_refresh_timeout") from exc
     except OSError as exc:
-        raise DataLensApiError("yc IAM token refresh could not start") from exc
+        raise CredentialRefreshError("credential_helper_unavailable") from exc
     if result.returncode != 0:
-        raise DataLensApiError("yc IAM token refresh failed; authenticate interactively and retry")
+        # Only an explicit helper instruction establishes interactive recovery.
+        # Inspect stderr locally, but never return it (or stdout) to callers.
+        login_required = re.search(
+            r"(?im)\b(?:please|you (?:must|need to))\s+(?:run|execute)\s+[`'\"]?yc\s+init\b",
+            result.stderr or "",
+        ) is not None
+        raise CredentialRefreshError(
+            "interactive_login_required" if login_required else "credential_refresh_failed",
+            exit_status=result.returncode,
+        )
     token = result.stdout.strip()
     if not token or any(character.isspace() for character in token):
-        raise DataLensApiError("yc IAM token refresh returned an invalid credential")
+        raise CredentialRefreshError("credential_invalid")
     return token

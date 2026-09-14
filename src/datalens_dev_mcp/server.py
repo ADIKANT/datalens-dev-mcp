@@ -70,10 +70,8 @@ def dl_auth_check() -> dict[str, Any]:
         runtime.probe_auth()
     except DataLensApiError as exc:
         return {
-            "ok": False,
-            "status": "probe_failed",
+            **error_response(exc),
             "credentials": report,
-            "error": f"{type(exc).__name__}: {safe_error_text(exc)}",
         }
     return {"ok": True, "status": "healthy", "credentials": runtime.config.credential_report()}
 
@@ -367,13 +365,13 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_auth_check",
-        "description": "Run one harmless DataLens authentication probe and return a secret-free status.",
+        "description": "Run a harmless API probe and return classified secret-free authentication or scope errors; reuse a failed automatic refresh until explicit recovery.",
         "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
     },
     {
         "name": "dl_auth_refresh",
-        "description": "Refresh the process IAM credential once through the configured yc profile without returning the token.",
+        "description": "Retry IAM refresh once through the same configured yc profile after addressing its failure; update API/SDK runtime credentials and verify API access without returning the token.",
         "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
         "annotations": {
             "readOnlyHint": False,

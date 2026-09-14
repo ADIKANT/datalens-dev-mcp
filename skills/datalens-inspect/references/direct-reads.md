@@ -9,3 +9,17 @@
 Reuse an already sufficient addressed read while its source and scope remain current. Do not follow a projection with a broad snapshot unless the task needs more evidence. Full object reads return provider payloads in `structuredContent`; text carries a short identity summary. `dl_object_diff` reads only its target and returns changed paths/values; request `include_proposed=true` only for the full merged snapshot. A metadata edit does not require a dashboard snapshot. Summaries and projections stay compact and identify their view, completeness and full-read address. Do not write audit artifacts into the working project; if a large payload must be retained, the user or calling host chooses an explicit output path.
 
 Dataset query success is data evidence, not proof of a saved or published chart. Editor source/static checks are distinct from browser runtime behavior. Report unsupported scope, incomplete relations, tenant denial, and branch uncertainty as limitations rather than inventing evidence.
+
+## Retain full state without dumping it
+
+Prefer the tool's summary/projection views for inspection. When a full snapshot is needed for preservation, retain `structuredContent` in the caller's private state or authorized output file, then select model-facing fields **before** calling `text()` or serializing a wrapper. Emit identity/revision, selected bindings, completeness and errors once; do not print both `content` and `structuredContent`. Printing a full payload and truncating afterward loses evidence and context. Keep full reads and saved/published readback available for safe writes.
+
+In a host with `store`/`text`, for a successful full object read already held as `result`:
+
+```javascript
+const value = result.structuredContent;
+store("targetFullState", value);
+text({ok: value.ok, identity: value.identity, full_state: value.full_state});
+```
+
+Select the actual fields needed for the next decision separately; return a failed tool's compact error rather than treating missing state as an empty object. Private state is not durable backup across a process restart.

@@ -7,6 +7,7 @@ from typing import Any
 
 from datalens_dev_mcp.api.auth import refresh_iam_token_with_yc
 from datalens_dev_mcp.api.client import DataLensApiClient, Transport
+from datalens_dev_mcp.api.errors import CredentialRefreshError, DataLensApiError
 from datalens_dev_mcp.api.sdk_adapter import SdkAdapter
 from datalens_dev_mcp.config import DataLensConfig
 
@@ -23,6 +24,7 @@ class DataLensRuntime:
         credential_refresher: Callable[[], str] | None = None,
     ) -> None:
         self.config = config
+        self._refresh_failure: DataLensApiError | None = None
         self._credential_refresher = credential_refresher or (
             lambda: refresh_iam_token_with_yc(yc_binary=config.yc_binary)
         )
@@ -33,7 +35,17 @@ class DataLensRuntime:
     def _refresh_credentials(self) -> str:
         if self.config.installation != "yacloud":
             raise ValueError("YC IAM refresh is unavailable for Enterprise")
-        token = self._credential_refresher().strip()
+        if self._refresh_failure is not None:
+            raise self._refresh_failure
+        try:
+            token = self._credential_refresher().strip()
+            if not token or any(character.isspace() for character in token):
+                raise CredentialRefreshError("credential_invalid")
+        except DataLensApiError as exc:
+            # Retain the safe diagnostic across object reads in this runtime.
+            # Explicit recovery (or changed credential identity) permits a retry.
+            self._refresh_failure = exc
+            raise
         self.config.remember_refreshed_token(token)
         self.config = replace(self.config, iam_token=token, credential_source="runtime_refresh")
         self.api.config = self.config
@@ -46,8 +58,14 @@ class DataLensRuntime:
         return self.api.read("getWorkbooksList", {"pageSize": 1})
 
     def refresh_and_probe(self) -> dict[str, Any]:
+        self._refresh_failure = None
         self._refresh_credentials()
-        return self.api.read("getWorkbooksList", {"pageSize": 1}, allow_auth_refresh=False)
+        try:
+            return self.api.read("getWorkbooksList", {"pageSize": 1}, allow_auth_refresh=False)
+        except DataLensApiError as exc:
+            if exc.http_status == 401:
+                self._refresh_failure = exc
+            raise
 
     def close(self) -> None:
         self.sdk.close()
