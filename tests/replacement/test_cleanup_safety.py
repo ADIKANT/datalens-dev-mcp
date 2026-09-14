@@ -48,8 +48,37 @@ def test_alias_preserve_identity_and_its_dependencies():
 
 def test_consumer_first_even_with_reversed_inventory():
     p, service = setup()
+    get = p.object_get
+    reads = 0
+    ordered_fields = ["first", "second"]
+
+    def read(kind, identity, **kwargs):
+        nonlocal reads
+        snapshot = get(kind, identity, **kwargs)
+        if kind == "dataset":
+            reads += 1
+            choices = ["first", "second"] if reads % 2 else ["second", "first"]
+            snapshot["object"].update({
+                "dataset": {"result_schema": list(ordered_fields), "result_schema_aux": {
+                    "inter_dependencies": {"deps": [{"ref_field_ids": choices}]},
+                }},
+                "options": {
+                    "sources": {"compatible_types": [{"source_type": value} for value in choices]},
+                    "join": {"types": choices},
+                    "connections": {"items": [{"replacement_types": [{"conn_type": value} for value in choices]}]},
+                },
+            })
+        return snapshot
+
+    p.object_get = read
     preview = service.preview([obj("dataset", "data"), obj("widget", "chart"), obj("dash", "board")], preserve_roots=[])
     assert [x["object_id"] for x in preview["delete"]] == ["board", "chart", "data"]
+    fresh = service.preview(preview["candidates"], preserve_roots=[])
+    assert fresh["dependency_fingerprint"] == preview["dependency_fingerprint"]
+    ordered_fields.reverse()
+    assert service.apply(preview, confirmed_delete=preview["delete"])["status"] == "preview_changed"
+    assert p.calls == []
+    ordered_fields.reverse()
     assert service.apply(preview, confirmed_delete=preview["delete"])["ok"]
     assert p.calls == ["board", "chart", "data"]
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import deque
+from copy import deepcopy
 from typing import Any
 
 from datalens_dev_mcp.api.errors import DataLensApiError, UncertainWriteError, safe_error_text
@@ -124,7 +125,10 @@ class CleanupService:
             "preserve_roots": roots,
             "preserve": [item for item in normalized if item["object_id"] in preserve],
             "delete": [by_id[identity] for identity in order],
-            "dependency_fingerprint": _digest({"graph": graph, "consumers": consumers, "snapshots": snapshots}),
+            "dependency_fingerprint": _digest({
+                "graph": graph, "consumers": consumers,
+                "snapshots": {key: _cleanup_snapshot(value) for key, value in snapshots.items()},
+            }),
             "issues": issues,
             "scope": "exact candidates and API-visible relations; no tenant-wide inventory claim",
         }
@@ -203,3 +207,31 @@ class CleanupService:
 
 def _digest(value: Any) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def _cleanup_snapshot(snapshot: Any) -> Any:
+    """Canonicalize only Dataset lists whose provider order is not semantic."""
+    result = deepcopy(snapshot)
+    payload = result.get("object") if isinstance(result, dict) else None
+    if not isinstance(payload, dict) or not isinstance(payload.get("dataset"), dict):
+        return result
+
+    def sort_list_at(value: Any, *path: str) -> None:
+        for key in path[:-1]:
+            value = value.get(key) if isinstance(value, dict) else None
+        if isinstance(value, dict) and isinstance(value.get(path[-1]), list):
+            value[path[-1]].sort(key=_digest)
+
+    options = payload.get("options")
+    sort_list_at(options, "sources", "compatible_types")
+    sort_list_at(options, "join", "types")
+    connections = options.get("connections") if isinstance(options, dict) else None
+    items = connections.get("items") if isinstance(connections, dict) else None
+    for item in items if isinstance(items, list) else []:
+        sort_list_at(item, "replacement_types")
+    auxiliary = payload["dataset"].get("result_schema_aux")
+    dependencies = auxiliary.get("inter_dependencies") if isinstance(auxiliary, dict) else None
+    deps = dependencies.get("deps") if isinstance(dependencies, dict) else None
+    for dependency in deps if isinstance(deps, list) else []:
+        sort_list_at(dependency, "ref_field_ids")
+    return result
