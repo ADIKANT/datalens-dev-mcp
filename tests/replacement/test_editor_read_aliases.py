@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from datalens_dev_mcp.api.sdk_adapter import SdkAdapter
+from datalens_dev_mcp.objects.read import ObjectReadService
 
 
 @pytest.mark.parametrize(
@@ -11,15 +12,22 @@ from datalens_dev_mcp.api.sdk_adapter import SdkAdapter
 @pytest.mark.parametrize("branch", ["saved", "published"])
 def test_editor_create_aliases_have_matching_readback_route(kind, branch):
     calls = []
+    wire_type = "advanced-chart_node" if kind == "advanced_chart" else kind
 
     def get_editor(**kwargs):
         calls.append(kwargs)
-        return {"id": "synthetic-chart", "revId": "synthetic-revision"}
+        return {"id": "synthetic-chart", "revId": "synthetic-revision", "scope": "widget", "type": wire_type}
 
     adapter = SdkAdapter(client=SimpleNamespace(get=SimpleNamespace(editor_chart=get_editor)))
-    result = adapter.get_object(kind, "synthetic-chart", branch=branch)
-    assert result["id"] == "synthetic-chart"
+    reader = ObjectReadService(api=None, sdk=adapter)
+    result = reader.object_get(kind, "synthetic-chart", branch=branch)
+    assert result["object"]["id"] == "synthetic-chart"
+    assert result["identity"]["object_type"] == kind
+    assert result["identity"]["branch"] == branch
     assert calls == [{"by_id": "synthetic-chart", "branch": branch}]
+    wire_type = "table_node" if wire_type != "table_node" else "control_node"
+    with pytest.raises(ValueError, match="subtype mismatch"):
+        reader.object_get(kind, "synthetic-chart", branch=branch)
 
 
 def test_chart_entry_envelope_does_not_hide_revision_or_tabs():

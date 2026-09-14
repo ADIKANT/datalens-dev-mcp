@@ -209,6 +209,9 @@ def test_editor_variants_have_distinct_required_tabs_and_runtime_limits() -> Non
         result = validate_editor_draft({"variant": variant, "tabs": tabs, "source_aliases": []})
         assert result["ok"] is True, (variant, result)
         assert result["runtime"]["live_result_checked"] is False
+        if variant == "control_node":
+            with_sources = {**tabs, "sources.js": "module.exports = {};"}
+            assert validate_editor_draft({"variant": variant, "tabs": with_sources})["ok"] is True
     assert (
         validate_editor_draft({"variant": "table_node", "tabs": {"prepare.js": "module.exports = {};"}})["ok"] is False
     )

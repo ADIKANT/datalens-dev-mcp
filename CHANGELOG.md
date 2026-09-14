@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.6
+
+- Match Editor subtype reads against the provider chart family while retaining exact subtype checks and receipt identity. Existing successful subtype creates can reconcile without replaying writes.
+- Accept the SDK-supported optional Sources tab for selector drafts.
+
 ## 1.2.5
 
 - Derive recovery guidance from confirmed item outcomes for saved results and historical receipt reads. Preserve uncertain effects, exact request bindings and individual batch outcomes.
