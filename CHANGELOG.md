@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.4
+
+- Allow Dataset updates when API v3 explicitly returns a null inner revision, preserving it and requiring the independently checked outer saved revision. Missing and changed revisions still fail before dispatch.
+
 ## 1.2.3
 
 - Follow numeric pages for workbook and entry inventories, and stop on repeated continuation tokens with an explicit partial result.

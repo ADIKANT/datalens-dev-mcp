@@ -61,7 +61,7 @@ mutation path, with API v3 headers and both preconditions; it does not introduce
 second writer or receipt system. Unknown Dataset fields, explicit null, empty
 arrays, and empty strings are preserved. Only protocol revision locations are
 excluded from business readback matching: a nested business `revision` field
-remains significant. Preflight is not an atomic provider-side CAS guarantee.
+remains significant. An explicit null `dataset.revision_id` is preserved when the fresh read also returns null and the independently checked outer revision is present. Missing or changed inner revisions still fail before dispatch; the outer revision is never copied into the inner field. Preflight is not an atomic provider-side CAS guarantee.
 
 The SDK raw Wizard replacement has a second verified gap:
 `domain/raw_resource.py:_init_raw_chart_replace` copies `target.raw.revId` into

@@ -404,10 +404,17 @@ class SdkAdapter:
                 content = snapshot.get("dataset")
                 observed = latest.get("dataset")
                 revision = content.get("revision_id") if isinstance(content, dict) else None
-                if not isinstance(revision, str) or not revision:
+                if (not isinstance(content, dict) or "revision_id" not in content
+                        or (revision is not None and (not isinstance(revision, str) or not revision))):
                     raise WritePreconditionError("Dataset update requires the observed dataset.revision_id")
-                if not isinstance(observed, dict) or observed.get("revision_id") != revision:
+                if (not isinstance(observed, dict) or "revision_id" not in observed
+                        or observed["revision_id"] != revision):
                     raise WritePreconditionError("Dataset revision changed during target fetch; re-read before retry")
+                # API v3 can explicitly return null for the inner revision.
+                # Preserve it, but require the independently checked outer revision;
+                # an absent inner field is not equivalent to an observed null.
+                if revision is None and not expected_revision:
+                    raise WritePreconditionError("Dataset update with null inner revision requires the saved revision")
                 if self._config is None:
                     raise RuntimeError("DataLensConfig is required for Dataset update")
                 value = DataLensApiClient(self._config).write(
