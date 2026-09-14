@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.7
+
+- Keep cleanup previews stable when Dataset reads reorder known unordered capability and dependency-reference lists. Preserve revision, content, relation, and ordered field checks before deletion.
+
 ## 1.2.6
 
 - Match Editor subtype reads against the provider chart family while retaining exact subtype checks and receipt identity. Existing successful subtype creates can reconcile without replaying writes.
