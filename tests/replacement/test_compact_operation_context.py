@@ -17,6 +17,7 @@ def test_compact_operation_keeps_actionable_result_without_payload_or_javascript
         "operation_id": "op-1",
         "effect": "create",
         "status": "completed",
+        "next_action": "Inspect the existing receipt; an active or interrupted claim must not be replayed.",
         "results": [
             {
                 "key": "chart",
@@ -34,6 +35,8 @@ def test_compact_operation_keeps_actionable_result_without_payload_or_javascript
 
     compact = compact_operation(full)
 
+    assert "next_action" not in compact
+    assert "next_action" in full  # Historical storage remains unchanged.
     assert compact["results"][0]["target"]["object_id"] == "chart-id"
     assert compact["detail_reference"] == {"operation_id": "op-1", "include_detail": True}
     assert "desired" not in compact["results"][0]

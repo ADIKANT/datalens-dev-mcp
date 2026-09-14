@@ -1,5 +1,15 @@
 # Third-party notices
 
+## DataLens entry-name interoperability contract
+
+The cloud entry-name character sets in `authoring/validation.py` are adapted
+from `KEY_REG` and `verifyEntryName` in
+[DataLens US validation](https://github.com/datalens-tech/datalens-us/blob/55105285b95a689efb86146743168796399b1756/src/components/validation-schema-compiler.ts).
+Copyright YANDEX LLC. Apache License 2.0; see [LICENSE](LICENSE).
+The adaptation uses explicit Python character ranges and reports the offending
+character. It is limited to the verified cloud entry routes; it does not impose
+this contract on workbook names, Page content or custom installations.
+
 The project source code, project-authored documentation, configuration,
 schemas, templates, and tests are licensed under the Apache License 2.0 unless
 a file or the notice below says otherwise.

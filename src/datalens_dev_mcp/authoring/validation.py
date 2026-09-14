@@ -2,16 +2,48 @@
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from typing import Any
+from urllib.parse import urlparse
 
+from datalens_dev_mcp.api.errors import InputContractError
 from datalens_dev_mcp.authoring.artifacts import resolve_artifact
 from datalens_dev_mcp.authoring.models import ValidationResult
 from datalens_dev_mcp.dashboard.composition import object_references, validate_dashboard_contract
 from datalens_dev_mcp.dataset.contracts import TECHNICAL_MEASURES, extract_dataset_fields, validate_dataset_fields
 from datalens_dev_mcp.editor.validation import validate_editor_draft
+
+# DataLens US verifyEntryName / KEY_REG; confirmed by the cloud provider.
+# Explicit ASCII ranges preserve JavaScript \w semantics, unlike Python \w.
+_ENTRY_EDGE = r"A-Za-zА-Яа-яЁё0-9_@()%"
+_ENTRY_INNER = _ENTRY_EDGE + r".,:;'\u00A0\u180E\u2000-\u200B\u202F\u205F\u3000\uFEFF| \-–—−$*&"
+_CLOUD_ENTRY_TYPES = frozenset({
+    "dataset", "connection", "wizard_chart", "editor_chart", "ql_chart", "dashboard",
+    "advanced-chart_node", "advanced_chart", "table_node", "d3_node", "markdown_node", "control_node",
+})
+
+
+def validate_entry_name(name: str, object_type: str, *, installation: str, base_url: str) -> None:
+    """Check only the verified cloud entry route, not workbook or custom servers."""
+    if (installation != "yacloud" or urlparse(base_url).hostname != "api.datalens.tech"
+            or object_type not in _CLOUD_ENTRY_TYPES):
+        return
+    if not isinstance(name, str) or not name:
+        raise InputContractError("entry name must be a nonempty string")
+    for index, character in enumerate(name):
+        boundary = index in {0, len(name) - 1}
+        allowed = _ENTRY_EDGE if boundary else _ENTRY_INNER
+        if re.fullmatch(f"[{allowed}]", character) is None:
+            position = " at the start/end" if boundary else ""
+            raise InputContractError(
+                f"entry name contains invalid character {character!r} (U+{ord(character):04X}){position}; "
+                "choose an allowed entry name before provider dispatch. "
+                "Start/end: A-Za-zА-Яа-яЁё0-9_@()%; interior also permits "
+                "spaces and .,:;'|-–—−$*&. The name was not changed."
+            )
 
 EDITOR_OBJECT_TYPES = frozenset(
     {"editor_chart", "advanced-chart_node", "table_node", "d3_node", "markdown_node", "control_node"}
@@ -57,7 +89,9 @@ SUPPORTED_OBJECT_TYPES = frozenset({"dataset", "wizard_chart", "dashboard", *EDI
 KNOWN_NOT_CHECKED_TYPES = frozenset({"connection", "workbook", "ql_chart", "html_page"})
 
 
-def validate_drafts(drafts: Sequence[Mapping[str, Any]]) -> ValidationResult:
+def validate_drafts(
+    drafts: Sequence[Mapping[str, Any]], *, installation: str = "", base_url: str = ""
+) -> ValidationResult:
     """Validate a concrete authoring batch without contacting DataLens."""
     if not isinstance(drafts, Sequence) or isinstance(drafts, (str, bytes, bytearray)):
         raise TypeError("drafts must be a sequence of inline objects or artifact references")
@@ -133,13 +167,21 @@ def validate_drafts(drafts: Sequence[Mapping[str, Any]]) -> ValidationResult:
         if draft is None:
             continue
         object_type = item["object_type"]
+        contract = draft.get("visual_contract")
+        object_name = contract.get("object_name") if isinstance(contract, Mapping) else None
+        name = draft.get("name") or (object_name.get("value") if isinstance(object_name, Mapping) else None)
+        if name is not None:
+            try:
+                validate_entry_name(name, object_type, installation=installation, base_url=base_url)
+            except InputContractError as exc:
+                item["errors"].append(_error("entry_name_invalid", f"drafts/{item['index']}/name", str(exc)))
         if object_type in SUPPORTED_OBJECT_TYPES:
             errors, checks = _validate_supported_draft(draft, object_type)
             item["errors"].extend(errors)
             item["checks"].extend(checks)
             item["status"] = "invalid" if item["errors"] else "valid"
         elif object_type in KNOWN_NOT_CHECKED_TYPES:
-            item["status"] = "not_checked"
+            item["status"] = "invalid" if item["errors"] else "not_checked"
             item["warnings"].append(
                 _error(
                     "object_type_not_checked",
