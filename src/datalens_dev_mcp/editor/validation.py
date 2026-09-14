@@ -18,7 +18,11 @@ EDITOR_CONTRACTS = {
         "runtime": "advanced_chart",
     },
     "markdown_node": {"required_tabs": {"meta.json", "params.js", "prepare.js"}, "runtime": "markdown"},
-    "control_node": {"required_tabs": {"meta.json", "params.js", "controls.js"}, "runtime": "selector"},
+    "control_node": {
+        "required_tabs": {"meta.json", "params.js", "controls.js"},
+        "optional_tabs": {"sources.js"},
+        "runtime": "selector",
+    },
 }
 
 
@@ -46,7 +50,7 @@ def validate_editor_draft(draft: Mapping[str, Any]) -> dict[str, Any]:
             {"code": "editor_tabs_missing", "path": "tabs", "message": "missing required tabs: " + ", ".join(missing)}
         )
     if contract is not None:
-        unknown = sorted(set(tabs) - required)
+        unknown = sorted(set(tabs) - required - set(contract.get("optional_tabs", set())))
         if unknown:
             issues.append(
                 {

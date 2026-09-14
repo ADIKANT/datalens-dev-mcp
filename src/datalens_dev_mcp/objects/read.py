@@ -6,7 +6,7 @@ import re
 from collections.abc import Mapping
 from typing import Any, Protocol
 
-from datalens_dev_mcp.objects.relations import compact_object_index, object_identity, relation_entries
+from datalens_dev_mcp.objects.relations import EDITOR_SUBTYPES, compact_object_index, object_identity, relation_entries
 
 
 class ReadApi(Protocol):
@@ -128,9 +128,19 @@ class ObjectReadService:
             "html_page",
             "workbook",
         }
-        if observed_type in known_types and observed_type != object_type:
+        # Editor draft aliases carry a renderer subtype, while provider identity
+        # reports the editor_chart family. Keep the requested identity in the
+        # envelope so existing operation receipts can reconcile without replay.
+        requested_subtype = "advanced-chart_node" if object_type == "advanced_chart" else object_type
+        requested_type = "editor_chart" if requested_subtype in EDITOR_SUBTYPES else object_type
+        requested_type = "dashboard" if requested_type == "dash" else requested_type
+        if observed_type in known_types and observed_type != requested_type:
             raise ValueError("provider object type mismatch; re-read the exact target")
         entry = payload.get("entry") if isinstance(payload.get("entry"), Mapping) else {}
+        observed_subtype = payload.get("type") or entry.get("type")
+        if (requested_subtype in EDITOR_SUBTYPES and observed_subtype in EDITOR_SUBTYPES
+                and observed_subtype != requested_subtype):
+            raise ValueError("provider Editor subtype mismatch; re-read the exact target")
         observed_branch = payload.get("branch") or entry.get("branch")
         if object_type not in {"workbook", "connection", "dataset"} and observed_branch and observed_branch != branch:
             raise ValueError("provider object branch mismatch; re-read the exact branch")
