@@ -164,10 +164,75 @@ class OperationStore:
         return self.root / f"{operation_id}.json"
 
 
+def normalize_operation(record: dict[str, Any]) -> dict[str, Any]:
+    """Derive recovery guidance from receipt facts, including historical receipts.
+
+    This is a view, not admission or another provider attempt. Never clear an
+    uncertain outcome merely because a later read reported a rejection.
+    """
+    result = deepcopy(record)
+    items = [item for item in result.get("results", []) if isinstance(item, dict)]
+    if not items:
+        if result.get("status") == "completed":
+            result.pop("next_action", None)
+        elif result.get("status") in {"failed", "blocked", "partial"}:
+            result["next_action"] = (
+                "Inspect the retained failure details and effect evidence before continuing; "
+                "a changed request requires a new operation_id."
+            )
+        return result
+    for item in items:
+        if item.get("status") == "completed":
+            item.pop("next_action", None)
+        if item.get("write_returned") and item.get("status") != "completed":
+            item["status"] = "uncertain"
+        if item.get("status") == "uncertain":
+            item["next_action"] = (
+                "Inspect this operation_id and reconcile exact target readback; do not replay the write."
+            )
+    statuses = {item.get("status", "pending") for item in items}
+    # An overall unknown outcome is itself evidence; do not downgrade it on read.
+    if "uncertain" in statuses or record.get("status") == "uncertain":
+        status = "uncertain"
+        action = "Reconcile unknown items using this operation_id and exact target readback; the write must not be replayed."
+    elif statuses == {"completed"}:
+        status, action = "completed", None
+    elif "blocked" in statuses:
+        status, action = "blocked", "Resolve the stated preconditions for blocked items."
+    elif "completed" in statuses:
+        status, action = "partial", "Inspect individual item outcomes; do not repeat the entire batch."
+    elif "failed" in statuses:
+        status, action = "failed", "Correct the stated rejection before a new attempt."
+    else:
+        status = "pending"
+        action = "Inspect the existing receipt and dependencies before continuing unattempted items."
+    if status in {"failed", "blocked", "partial"}:
+        details = []
+        for item in items:
+            if item.get("status") not in {"failed", "blocked"}:
+                continue
+            if item.get("code") in {"revision_changed", "revision_conflict", "saved_revision_missing"}:
+                detail = "Read the exact current full target, preserve intervening edits and recompute the patch."
+            else:
+                detail = item.get("next_action") or "Resolve the stated item precondition before dispatch."
+            if detail not in details:
+                details.append(detail)
+        prefix = [action] if status == "partial" else []
+        action = " ".join([*prefix, *details, "A changed request requires a new operation_id."])
+    if len(statuses) > 1 and status != "partial":
+        action = f"{action} Preserve completed items and distinguish unattempted, rejected and unknown items; do not repeat the entire batch."
+    result.update(status=status, ok=status == "completed")
+    result.pop("next_action", None)
+    if action:
+        result["next_action"] = action
+    return result
+
+
 def compact_operation(record: dict[str, Any]) -> dict[str, Any]:
     """Project a durable operation record onto the default public response."""
     if record.get("status") == "not_found":
         return deepcopy(record)
+    record = normalize_operation(record)
     result: dict[str, Any] = {
         key: deepcopy(record[key])
         for key in ("ok", "operation_id", "effect", "status", "write_replayed", "next_action", "detail_pruned")
@@ -191,6 +256,7 @@ def compact_operation(record: dict[str, Any]) -> dict[str, Any]:
                     "error",
                     "next_action",
                     "evidence",
+                    "write_returned",
                 )
                 if key in item
             }

@@ -191,6 +191,8 @@ def test_revision_drift_blocks_write(tmp_path: Path) -> None:
     )
     assert result["status"] == "blocked"
     assert result["results"][0]["code"] == "revision_changed"
+    assert "Read the exact current full target" in result["next_action"]
+    assert "active or interrupted" not in result["next_action"]
     assert backend.calls == []
 
 
@@ -216,7 +218,9 @@ def test_partial_batch_resumes_without_repeating_first_effect(tmp_path: Path) ->
     first = writer.create_objects(drafts, {"workbook_id": "wb-1"}, operation_id="op-batch")
     second = writer.create_objects(drafts, {"workbook_id": "wb-1"}, operation_id="op-batch")
     assert first["status"] == "partial"
+    assert "do not repeat the entire batch" in first["next_action"]
     assert second["status"] == "completed"
+    assert "next_action" not in second
     assert [payload["draft"]["client_ref"] for effect, payload in backend.calls if effect == "create"] == [
         "one",
         "two",

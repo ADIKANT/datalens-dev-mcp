@@ -100,6 +100,11 @@ def test_full_dataset_public_update_advancing_revisions(tmp_path, mode):
             )
         )
         assert result["status"] == expected
+        if expected in {"failed", "blocked"}:
+            assert "active or interrupted" not in result["next_action"]
+            assert "new operation_id" in result["next_action"]
+        if expected == "uncertain":
+            assert "must not be replayed" in result["next_action"]
         if expected != "failed":
             assert dl_object_update(args, operation_id="dataset-full")["status"] == expected
         reconciled = writer.reconcile("dataset-full")

@@ -21,6 +21,7 @@ from datalens_dev_mcp.authoring.artifacts import (
 from datalens_dev_mcp.authoring.profiles import get_authoring_defaults
 from datalens_dev_mcp.authoring.recipes import compile_recipe
 from datalens_dev_mcp.authoring.validation import validate_drafts
+from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.dataset.contracts import extract_dataset_fields, validate_dataset_fields
 from datalens_dev_mcp.dataset.preview import DatasetPreviewService
 from datalens_dev_mcp.editor.validation import validate_editor_draft
@@ -252,7 +253,10 @@ def dl_editor_validate(
 ) -> dict[str, Any]:
     if (draft is None) == (drafts is None):
         raise ValueError("provide exactly one of draft or drafts")
-    return validate_drafts(drafts) if drafts is not None else validate_editor_draft(resolve_artifact(draft))
+    if drafts is not None:
+        config = DataLensConfig.from_env()
+        return validate_drafts(drafts, installation=config.installation, base_url=config.base_url)
+    return validate_editor_draft(resolve_artifact(draft))
 
 
 def dl_object_diff(

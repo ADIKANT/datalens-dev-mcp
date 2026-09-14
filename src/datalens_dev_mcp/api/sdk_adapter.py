@@ -17,6 +17,7 @@ from datalens_dev_mcp.api.errors import (
     WritePreconditionError,
     safe_error_text,
 )
+from datalens_dev_mcp.authoring.validation import validate_entry_name
 from datalens_dev_mcp.config import DataLensConfig
 
 SDK_VERSION = "3.0.0"
@@ -186,6 +187,8 @@ class SdkAdapter:
         object_type = _canonical_object_type(requested_type)
         location = _entry_location(destination)
         name = _draft_name(draft)
+        if self._config is not None:
+            validate_entry_name(name, object_type, installation=self._config.installation, base_url=self._config.base_url)
         client = self._sdk_client()
         expected_readback = None
         effect_started = False
@@ -391,6 +394,9 @@ class SdkAdapter:
                 new_content = {key: value for key, value in snapshot.items() if key != "name"}
                 if not isinstance(snapshot["name"], str) or not snapshot["name"]:
                     raise ValueError("object name must be a nonempty string")
+                if self._config is not None:
+                    validate_entry_name(snapshot["name"], canonical,
+                                        installation=self._config.installation, base_url=self._config.base_url)
                 if old_content == new_content:
                     value = target.rename(snapshot["name"])
                     return {"object_id": object_id, "object": _json_object(value), "backend": "official_sdk"}

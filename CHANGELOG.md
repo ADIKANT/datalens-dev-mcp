@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.5
+
+- Derive recovery guidance from confirmed item outcomes for saved results and historical receipt reads. Preserve uncertain effects, exact request bindings and individual batch outcomes.
+- Reject invalid cloud entry names before create or rename dispatch using the verified entry contract. Other installations and custom endpoints retain provider validation.
+
 ## 1.2.4
 
 - Allow Dataset updates when API v3 explicitly returns a null inner revision, preserving it and requiring the independently checked outer saved revision. Missing and changed revisions still fail before dispatch.

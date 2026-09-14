@@ -15,7 +15,7 @@ from datalens_dev_mcp.api.errors import (
 )
 from datalens_dev_mcp.authoring.artifacts import resolve_artifact
 from datalens_dev_mcp.objects.relations import object_identity
-from datalens_dev_mcp.operation_store import OperationStore
+from datalens_dev_mcp.operation_store import OperationStore, normalize_operation
 
 _EDITOR_ARTIFACT_TYPES = frozenset(
     {
@@ -296,7 +296,7 @@ class ObjectMutationService:
         value = self.store.get(operation_id)
         if value is None:
             return {"ok": False, "status": "not_found", "operation_id": operation_id}
-        return value
+        return normalize_operation(value)
 
     def reconcile(self, operation_id: str) -> dict[str, Any]:
         record = self.store.get(operation_id)
@@ -441,7 +441,11 @@ class ObjectMutationService:
             status = "pending"
         record["status"] = status
         record["ok"] = status == "completed"
-        if status == "completed":
+        normalized = normalize_operation(record)
+        for key in ("status", "ok", "next_action"):
+            if key in normalized:
+                record[key] = normalized[key]
+        if record["status"] == "completed":
             record.pop("next_action", None)
         try:
             return self.store.put(record)

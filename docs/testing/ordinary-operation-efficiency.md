@@ -1,5 +1,23 @@
 # Ordinary operation efficiency
 
+## Recovery guidance and cloud entry names
+
+Receipt presentation derives its next action from item outcomes. Confirmed
+rejections direct the caller to correct the specific cause with a new operation
+ID for changed input; revision conflicts require a fresh exact target read.
+Unknown effects retain reconciliation guidance and request identity. Mixed
+batches preserve individual completed, unattempted, rejected and unknown items.
+Historical reads normalize their returned view without rewriting stored files
+or making another provider attempt. Admission and digest bindings are unchanged.
+
+Cloud entry create and rename validate the verified DataLens US name character
+sets before dispatch, including the provider's Unicode spaces. SDK 3.0.0 only
+checks a nonempty name and slash handling for path locations. This additional
+guard applies to the standard cloud endpoint and supported entry types; custom
+endpoints, Enterprise, workbooks and HTML Page remain outside this rule.
+Descriptions, field titles, formulas and Editor source are not entry names.
+See [contract provenance](../../THIRD_PARTY_NOTICES.md).
+
 This change keeps the direct reader, adapter and durable operation store. It adds no task runtime, cache, evaluator or test file. New pytest cases were not added. Validation below separates local guards from observed installed behavior.
 
 ## Addressed check audit
