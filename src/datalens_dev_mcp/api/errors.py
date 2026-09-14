@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import uuid
 from typing import Any
 
 
@@ -36,6 +37,16 @@ class DataLensApiError(RuntimeError):
 
 class UncertainWriteError(DataLensApiError):
     """A mutation may have reached DataLens but no response was received."""
+
+
+class CredentialRefreshError(DataLensApiError):
+    """Allowlisted helper diagnostics, never captured credential output."""
+
+    def __init__(self, code: str, *, exit_status: int | None = None) -> None:
+        super().__init__(f"Credential refresh: {code}")
+        self.code = code
+        self.exit_status = exit_status
+        self.diagnostic_id = uuid.uuid4().hex
 
 
 class DataLensSafetyError(RuntimeError):
@@ -74,12 +85,22 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
     elif isinstance(error, UncertainWriteError) or (effect_possible and not is_confirmed_rejection(error)):
         code = "write_outcome_unknown"
         action = "Inspect the existing operation_id and reconcile exact target readback; do not replay the write."
+    elif isinstance(error, CredentialRefreshError):
+        code = error.code
+        action = {
+            "credential_helper_unavailable": "Check the configured yc executable and its launch permissions, then call dl_auth_refresh.",
+            "interactive_login_required": "Complete the configured yc profile's interactive login in the same account, then call dl_auth_refresh to verify API access and resume the original read.",
+            "credential_refresh_timeout": "The timeout cause is unknown. Check bounded helper availability and network reachability before calling dl_auth_refresh; login is not established as necessary.",
+            "credential_refresh_failed": "The helper failed without confirmed login evidence. Check its safe exit status and local diagnostics, then call dl_auth_refresh.",
+            "credential_invalid": "The helper returned no valid credential. Check the configured helper, then call dl_auth_refresh.",
+        }[code]
     elif isinstance(error, DataLensApiError):
-        code = {401: "permission_denied", 403: "permission_denied", 404: "not_found",
+        code = {401: "authentication_failed", 403: "permission_denied", 404: "not_found",
                 409: "revision_conflict", 412: "revision_conflict"}.get(status)
         code = code or ("provider_rejected" if is_confirmed_rejection(error) else "provider_error")
         action = {
-            "permission_denied": "Check authentication and access to the exact target.",
+            "authentication_failed": "The API rejected the credential. Use dl_auth_check and the configured authentication recovery; verify API access before resuming the original read.",
+            "permission_denied": "The API denied this scope. Check access to the exact target; a 403 alone does not require login or credential refresh.",
             "not_found": "Check the exact object type, ID and branch before continuing.",
             "revision_conflict": "Read the current full target, preserve manual changes, then recompute the patch.",
             "provider_rejected": "Correct the rejected request using its reference contract before a new attempt.",
@@ -93,4 +114,7 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
                               "error": safe_error_text(error), "next_action": action}
     if status is not None:
         result["http_status"] = status
+    if isinstance(error, CredentialRefreshError):
+        result["diagnostic_id"] = error.diagnostic_id
+        result["helper_exit_status"] = error.exit_status
     return result

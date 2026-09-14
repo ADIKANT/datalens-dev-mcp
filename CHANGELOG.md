@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.2
+
+- Classify credential-helper launch failures, unknown-cause timeouts and explicit login instructions without exposing captured output. Distinguish API authentication failures (401) from scope denials (403).
+- Retain failed automatic refresh attempts in the existing runtime; explicit auth recovery retries once and updates both API and SDK credentials without reinstalling.
+- Clarify exact-workbook inventory, chart subtype discovery, authorized Editor creation and caller-side projection of privately retained full snapshots.
+
 ## 1.2.0
 
 - Migrate to pinned DataLens SDK 3.0.0 and API v3 through the existing typed services, with explicit Cloud/Enterprise configuration.
