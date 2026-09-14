@@ -55,8 +55,8 @@ def test_workbook_entries_follow_all_pages_and_report_completeness() -> None:
     assert result["page_count"] == 2
     assert [item["id"] for item in result["objects"]] == ["a", "b"]
     assert api.calls == [
-        ("getWorkbookEntries", {"workbookId": "wb-1", "pageSize": 1}),
-        ("getWorkbookEntries", {"workbookId": "wb-1", "pageSize": 1, "pageToken": "next-1"}),
+        ("getWorkbookEntries", {"workbookId": "wb-1", "pageSize": 1, "page": 0}),
+        ("getWorkbookEntries", {"workbookId": "wb-1", "pageSize": 1, "page": 1}),
     ]
 
 
@@ -184,7 +184,7 @@ def test_compact_index_does_not_inline_payloads() -> None:
     result = compact_object_index(
         [{"entryId": "chart-1", "scope": "wizard", "name": "Synthetic chart", "data": {"large": "x" * 1000}}]
     )
-    assert result == [{"id": "chart-1", "type": "wizard", "name": "Synthetic chart"}]
+    assert result == [{"id": "chart-1", "type": "wizard", "object_type": "wizard_chart", "name": "Synthetic chart"}]
 
 
 def test_l03_tools_are_direct_and_closed() -> None:

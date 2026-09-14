@@ -54,17 +54,20 @@ class ObjectReadService:
         page_size: int,
         max_pages: int,
     ) -> dict[str, Any]:
-        if not 1 <= page_size <= 1000:
-            raise ValueError("page_size must be between 1 and 1000")
+        page_limit = 200 if method == "getWorkbookEntries" else 1000
+        if not 1 <= page_size <= page_limit:
+            raise ValueError(f"page_size must be between 1 and {page_limit}")
         if not 1 <= max_pages <= 1000:
             raise ValueError("max_pages must be between 1 and 1000")
         objects: dict[str, dict[str, Any]] = {}
         token = ""
         pages = 0
+        seen_tokens: set[str] = set()
+        partial_reason = "page_limit_reached"
         while pages < max_pages:
-            payload = {**base_payload, "pageSize": page_size}
-            if token:
-                payload["pageToken"] = token
+            # Both workbook endpoints use zero-based numeric pages.
+            # Relation endpoints retain their separate opaque-token contract.
+            payload = {**base_payload, "pageSize": page_size, "page": pages}
             raw = self.api.read(method, payload)
             page = _unwrap(raw)
             values = page.get("entries") or page.get("workbooks") or []
@@ -79,11 +82,15 @@ class ObjectReadService:
             token = str(page.get("nextPageToken") or "").strip()
             if not token:
                 break
+            if token in seen_tokens:
+                partial_reason = "repeated_page_token"
+                break
+            seen_tokens.add(token)
         complete = not token
         return {
             "ok": True,
             "complete": complete,
-            "partial_reason": "" if complete else "page_limit_reached",
+            "partial_reason": "" if complete else partial_reason,
             "page_count": pages,
             "object_count": len(objects),
             "next_page_token": token or None,
