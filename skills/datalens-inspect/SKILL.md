@@ -5,7 +5,7 @@ description: Use when reading DataLens metadata, authentication, workbook invent
 
 # DataLens Inspect
 
-Start from the exact project and target URL or ID. Reuse its configured installation, API endpoint and organization; consult [installation and interfaces](references/installation-and-sdk.md) when those are unclear or the request concerns SDK scripting. Read only dependencies needed for the question. A metadata audit needs neither new project files nor an SDK bootstrap; a legacy manifest is not required.
+Start from the exact project and target URL or ID. Reuse its configured installation, API endpoint and organization; consult [installation and interfaces](references/installation-and-sdk.md) when those are unclear or the request concerns SDK scripting. Read only dependencies needed for the question. Reuse already established runtime identity; SDK documentation is needed only for an unknown contract or changed version, not after each call. A metadata audit needs neither new project files nor an SDK bootstrap; a legacy manifest is not required.
 
 Use [direct reads](references/direct-reads.md) for tool selection, compact projections, pagination and completeness. Distinguish saved and published branches, target and reference, source/static validation and live data or Browser evidence. A rendered-result request can use read-only Browser inspection after scoped API and applicable data checks.
 

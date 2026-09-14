@@ -5,7 +5,7 @@ description: Use when creating, updating, validating, or previewing DataLens dat
 
 # DataLens Dataset and Wizard
 
-Use [Dataset/Wizard contracts](references/dataset-wizard-contracts.md) for typed drafts, field roles, preview and revision-safe updates. Use current field GUIDs; ambiguous labels cannot identify fields. Preserve dataset-global versus chart-local fields, calculation levels, field order and the existing object's technology. Prefer Wizard for new standard charts unless the user requests another route or a documented gap requires it.
+Work from the exact dashboard project/subproject. A description-only edit needs a narrow patch and saved readback. Field, formula, filter or source changes also need applicable field validation and bounded data preview; JSON alone cannot prove metric meaning. Use [Dataset/Wizard contracts](references/dataset-wizard-contracts.md) for typed drafts, field roles, preview and revision-safe updates. Use current field GUIDs; ambiguous labels cannot identify fields. Preserve dataset-global versus chart-local fields, calculation levels, field order and the existing object's technology. Prefer Wizard for new standard charts unless the user requests another route or a documented gap requires it.
 
 A new `dataset` draft keeps `object_type`, `name` and `client_ref` at its root; `connection_id`, source and fields belong inside `dataset`. Use typed public operations; the backend compiles against its pinned SDK. Measure Names and Measure Values are chart technical fields, not physical columns.
 

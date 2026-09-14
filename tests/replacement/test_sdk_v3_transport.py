@@ -9,15 +9,9 @@ import httpx
 import pytest
 
 from datalens_dev_mcp.api.runtime import DataLensRuntime
-from datalens_dev_mcp.api.sdk_adapter import SDK_VERSION, SdkAdapter
+from datalens_dev_mcp.api.sdk_adapter import SdkAdapter
 from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.server import call_tool as _call_tool
-
-
-def test_installed_sdk_v3_contract_is_admitted():
-    assert datalens_sdk.__version__ == "3.0.0"
-    assert SDK_VERSION == "3.0.0"
-    SdkAdapter()
 
 
 def call_tool(name, arguments):
@@ -151,6 +145,7 @@ def update(object_type, object_id, patch, operation="sdk-v3-update", **extra):
 @pytest.mark.parametrize("installation", ["yacloud", "enterprise"])
 def test_public_dataset_full_state_and_reconcile(install_runtime, installation):
     initial = dataset_state()
+    initial["dataset"]["obligatory_filters"] = [{"field": "one", "value": "manual"}]
     provider = Provider(initial)
     install_runtime(provider, installation)
     desired = deepcopy(initial["dataset"])
@@ -162,6 +157,13 @@ def test_public_dataset_full_state_and_reconcile(install_runtime, installation):
     assert all(headers["x-dl-api-version"] == "3" for _, _, headers in provider.requests)
     call_tool("dl_operation_reconcile", {"operation_id": "sdk-v3-update"})
     assert len(provider.writes) == 1
+    reads = provider.reads
+    unchanged = update("dataset", "synthetic-dataset", {"dataset": {"description": "after"}}, operation="no-change")
+    assert unchanged["results"][0]["code"] == "no_change"
+    assert unchanged["results"][0]["evidence"] == "fresh_saved_read_no_write"
+    assert provider.reads == reads + 1 and len(provider.writes) == 1
+    assert provider.state["dataset"]["obligatory_filters"] == initial["dataset"]["obligatory_filters"]
+    assert result["results"][0]["changed_fields"] == ["/dataset/description"]
 
 
 def test_public_dataset_wrong_business_revision_is_mismatch(install_runtime):

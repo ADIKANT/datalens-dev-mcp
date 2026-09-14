@@ -257,8 +257,10 @@ def dl_editor_validate(
     return validate_drafts(drafts) if drafts is not None else validate_editor_draft(resolve_artifact(draft))
 
 
-def dl_object_diff(object_type: str, object_id: str, patch: dict[str, Any]) -> dict[str, Any]:
-    return default_mutation_service().diff(object_type, object_id, patch)
+def dl_object_diff(
+    object_type: str, object_id: str, patch: dict[str, Any], include_proposed: bool = False
+) -> dict[str, Any]:
+    return default_mutation_service().diff(object_type, object_id, patch, include_proposed=include_proposed)
 
 
 def dl_object_create(
@@ -564,13 +566,14 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_object_diff",
-        "description": "Read one saved object and return the narrow semantic diff for a typed patch without mutation.",
+        "description": "Read one saved object and return changed paths/values without mutation or dependency traversal. Set include_proposed=true only when the full merged snapshot is needed.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "object_type": {"type": "string", "minLength": 1},
                 "object_id": {"type": "string", "minLength": 1},
                 "patch": {"type": "object"},
+                "include_proposed": {"type": "boolean", "default": False},
             },
             "required": ["object_type", "object_id", "patch"],
             "additionalProperties": False,
@@ -600,7 +603,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_object_update",
-        "description": "Apply narrow saved-object patches with revision checks and per-object saved readback. A compiled Editor artifact update places artifact_path beside object_type/object_id/expected_revision; its tabs are mapped into saved data without echoing renderer source.",
+        "description": "Apply narrow saved-object patches with revision checks and per-object saved readback; exact no-ops return no_change without writing. Results include changed paths and a private receipt address. A compiled Editor artifact update places artifact_path beside object_type/object_id/expected_revision; its tabs are mapped into saved data without echoing renderer source.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -733,6 +736,45 @@ def list_tools() -> list[dict[str, Any]]:
     return deepcopy(TOOL_SCHEMAS)
 
 
+def _argument_error(invalid: Any) -> dict[str, Any]:
+    path = ".".join(str(part) for part in invalid.absolute_path) or "arguments"
+    rule, value = invalid.validator, invalid.validator_value
+    if rule == "required":
+        missing = [key for key in value if key not in invalid.instance]
+        expected = "required fields: " + ", ".join(missing)
+    elif rule in {"oneOf", "anyOf"}:
+        options = [" + ".join(option.get("required", [])) for option in value]
+        expected = ("exactly one of: " if rule == "oneOf" else "at least one of: ") + "; ".join(options)
+    elif rule == "additionalProperties":
+        expected = "only fields: " + ", ".join(invalid.schema.get("properties", {}))
+    else:
+        expected = f"{rule}={json.dumps(value, ensure_ascii=False)}"
+    result = error_response(ValueError(f"{path}: expected {expected}"))
+    result.update(argument_path=path, expected=expected,
+                  next_action=f"Correct {path} to satisfy {expected}; no provider request was sent.")
+    return result
+
+
+def _text_result(name: str, result: dict[str, Any]) -> dict[str, Any]:
+    """Keep structured data intact; do not echo full snapshots in the text channel."""
+    if name == "dl_operation_get" and "results" in result:
+        return compact_operation(result)
+    if not result.get("ok", True):
+        return result
+    if name not in {"dl_object_get", "dl_dashboard_snapshot", "dl_object_diff"}:
+        return result
+    summary = {key: result[key] for key in (
+        "ok", "identity", "read_view", "full_state", "complete", "partial_reason", "graph_consistency"
+    ) if key in result}
+    if name == "dl_dashboard_snapshot":
+        summary["identity"] = result.get("target", {}).get("identity")
+    if "changes" in result:
+        summary["changed_fields"] = [change["path"] for change in result["changes"]][:50]
+        summary["changed_field_count"] = len(result["changes"])
+    summary["payload_location"] = "structuredContent"
+    return summary
+
+
 def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
     handler = TOOLS.get(name)
     if handler is None:
@@ -742,11 +784,7 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, A
     invalid = next(Draft202012Validator(schema["inputSchema"]).iter_errors(supplied), None)
     if invalid is not None:
         # Do not echo the offending payload: it may contain source or credentials.
-        path = ".".join(str(part) for part in invalid.absolute_path) or "arguments"
-        result = error_response(ValueError(f"{path}: invalid {invalid.validator}; see this tool's inputSchema"))
-        result["argument_path"] = path
-        if name == "dl_dataset_preview":
-            result["example"] = {"dataset_id": "synthetic-dataset", "columns": ["synthetic-guid"]}
+        result = _argument_error(invalid)
     else:
         try:
             result = handler(**supplied)
@@ -758,7 +796,7 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, A
             result = {**result, "status": "input_error", "code": "input_error",
                       "next_action": "Correct the listed field or argument issues before another provider request."}
     return {
-        "content": [{"type": "text", "text": json.dumps(result, ensure_ascii=False, sort_keys=True)}],
+        "content": [{"type": "text", "text": json.dumps(_text_result(name, result), ensure_ascii=False, sort_keys=True)}],
         "structuredContent": result,
         "isError": not bool(result.get("ok", True)),
     }

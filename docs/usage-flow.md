@@ -1,37 +1,26 @@
 # Прямые операции DataLens
 
-[English](usage-flow_en.md) · [Подключение](codex_setup.md) · [25 инструментов](tools.md) · [Документация](README.md)
+[English](usage-flow_en.md) · [Подключение](codex_setup.md) · [Инструменты](tools.md)
 
-Работайте из точного dashboard project/subproject через установленные domain skills. Текущий backend предоставляет прямые типизированные операции. Модель выбирает нужный skill и вызывает его инструменты; точные schemas аргументов возвращает установленный `tools/list`.
+Работайте из точного dashboard project/subproject через установленный domain skill. Начните с указанного объекта; используйте уже известные installation и runtime. `dl_server_info` нужен при неизвестном или изменившемся runtime, `dl_auth_check` — для проверки доступа. SDK/reference читайте адресно при неизвестном контракте или версии.
 
-## Чтение и выбор
+| Задача | Короткий маршрут и достаточная проверка |
+| --- | --- |
+| Вопрос о metadata | `dl_object_get` с summary/projection нужных полей → ответ. Inventory и relations только по необходимости |
+| Описание или другая точечная metadata-правка | Полный saved target → узкий patch через `dl_object_update` → saved readback из результата операции |
+| Dataset: поле, формула, фильтр, source | [Dataset/Wizard](../skills/datalens-dataset-wizard/SKILL.md): сохранить неизвестные поля и обе revision; применимые validation/preview → update/readback |
+| Одна вкладка Editor | [Editor](../skills/datalens-editor/SKILL.md): сохранить остальные tabs/aliases → validation изменённого source → update/readback → Browser при изменении поведения или вида |
+| Dashboard filter/layout/composition | [Dashboard](../skills/datalens-dashboard/SKILL.md): прочитать затронутые bindings/dependencies, сохранить соседей → validate/update/readback → проверить фильтр/геометрию в Browser |
+| Shared renderer | Изменять в его source project в разрешённом scope; проверить затронутое семейство и потребителей. Не применять этот цикл к одиночной metadata-правке |
 
-Начинайте с указанного URL или точного объекта. Используйте `dl_server_info` для версии runtime и `dl_auth_check`, когда нужна безопасная проверка доступа. Читайте объект через `dl_object_get`, явно выбирая saved или published branch, а нужные зависимости — через `dl_object_relations`. `dl_workbooks_list` и `dl_workbook_entries` нужны для inventory; проходите страницы и явно отмечайте неполноту.
+Для нового стандартного чарта предпочтителен Wizard; существующая технология сохраняется. Для зарегистрированного Editor recipe используйте `dl_authoring_defaults` → `dl_compile_recipe`; передавайте компактный `draft_reference` в validation/create, а artifact path с точной identity/revision — в update. Не воспроизводите packaged JavaScript в ответе. При новой композиции проверьте batch через `dl_editor_validate`, создайте зависимости по порядку и передайте `visual_contract` в item `presentation`.
 
-Read-only анализ завершается отчётом без mutation и создания файлов проекта. Target и visual reference — разные объекты. Сохраняйте текущую технологию, ручную геометрию и изменения за пределами поручения.
+`dl_object_diff` опционален: он читает один target и возвращает изменённые пути/значения. `include_proposed=true` добавляет полный proposed snapshot, если он действительно нужен. Полные данные в MCP находятся в `structuredContent`; text для object/snapshot/diff содержит краткое описание. Не запускайте workbook graph scan после точечного update.
 
-## Authoring и доставка
+Operation result содержит identity, status, изменённые поля, revision и границу readback. `no_change` означает совпадение намерения со свежим saved state без внешней записи. Полные redacted детали доступны по `detail_reference` через `dl_operation_get(include_detail=true)`. Повторное чтение нужно при неразрешённой детали или drift, а не автоматически для получения уже подтверждённой revision.
 
-Выберите [Dataset/Wizard](../skills/datalens-dataset-wizard/SKILL.md), [Editor](../skills/datalens-editor/SKILL.md) или [Dashboard](../skills/datalens-dashboard/SKILL.md). Для нового стандартного чарта предпочтителен Wizard; существующий Editor или Wizard сохраняет технологию. QL требует прямого запроса.
+Правила разрешения, save-only, публикации и unknown write находятся в [границах поручения и доставки](../skills/datalens-dashboard/references/authorized-scope.md). Запрошенная публикация выполняется через `dl_object_publish` из saved revision и подтверждается published readback. Dataset/Connection не имеют отдельной publish branch. Неопределённый результат требует `dl_operation_reconcile`, а не повторной записи.
 
-Используйте реальные Dataset GUID и применимые проверки `dl_dataset_validate` / `dl_dataset_preview`. Для зарегистрированного recipe вызовите `dl_authoring_defaults`, затем `dl_compile_recipe` с typed bindings и presentation. Приоритет defaults: generic → user → project → explicit reference → explicit call. Передавайте компактный `draft_reference` в validation/create; для update используйте его artifact path с точным target и свежей revision. Не переписывайте и не возвращайте целиком packaged renderer.
+JSON/static validation доказывает локальный контракт, но не смысл метрики и render. Data preview нужен при затронутых данных; Browser read-only — при затронутом отображении/поведении, после API и применимых data checks. Metadata-only, read-only и packaging не требуют визуального цикла. Для KPI, времени, шкал и композиции читайте только применимый раздел [visualization decisions](../skills/datalens-dashboard/references/decision-quality.md).
 
-Проверьте draft batch через `dl_editor_validate`; используйте `dl_object_diff`, если нужно сравнение точечного изменения. Создавайте зависимости по порядку через `dl_object_create` либо обновляйте целевой объект через `dl_object_update`. Оба выполняют saved readback. Когда публикация запрошена и поддержана для этого типа объекта, вызовите `dl_object_publish` из свежей saved revision и проверьте published readback. Dataset и Connection не получают выдуманный publish lifecycle.
-
-При размещении нового recipe chart передавайте compiled `visual_contract` в dashboard item `presentation`. Сохраняйте явно выбранного owner title/hint и ручной layout. Для семантики KPI, времени, шкал и принятой композиции читайте только нужные разделы [visualization decisions](../skills/datalens-dashboard/references/decision-quality.md).
-
-Однозначное поручение разрешает предусмотренную доставку без повторных вопросов plan/save/publish. Краткий план информирует пользователя. Read-only запрещает запись; save-only заканчивается saved readback. Уточнение требуется только при неразрешённом конфликте target/scope или реальной границе доступа. Пример:
-
-> Обнови этот chart, сохрани соседние widgets, сохрани и опубликуй изменение, проверь результат.
-
-## Проверка и reconciliation
-
-Разделяйте Dataset query result, provider acceptance, saved/published identity и реальное отображение. Browser применяется read-only, когда требуется rendered evidence, после API/readback и применимых data checks. Offline validator или наличие настройки не доказывают отображение.
-
-Записи возвращают компактные operation results. Используйте `dl_operation_get` для деталей и `dl_operation_reconcile` при неопределённом результате. Потеря ответа не разрешает слепой повтор записи.
-
-## Backup и scoped cleanup
-
-Используйте [Maintenance](../skills/datalens-maintenance/SKILL.md). `dl_backup_export` экспортирует snapshots и не заявляет проверенный full restore. Для порученного cleanup `dl_cleanup_preview` получает dependency/preservation evidence; `dl_cleanup_apply` принимает неизменённый точный `confirmed_delete` и заново проверяет scope перед записью. Однозначный запрос на эти удаления уже является разрешением; машинный scope не означает новую реплику человека. Изменившийся preview сверяется с запросом; конфликт сохранности соседей или расширение scope требуют остановки. Failed/uncertain deletion останавливает оставшиеся объекты.
-
-Запрос только показать список не разрешает удаление. Сохраняйте явно оставленные объекты. Dashboard-задача не разрешает ACL changes, upstream production database writes или чужие объекты. См. [границы поручения и доставки](../skills/datalens-dashboard/references/authorized-scope.md).
+Backup, scoped cleanup и standalone HTML Page относятся к [Maintenance](../skills/datalens-maintenance/SKILL.md). Page content create/update остаётся недоступным без доказанного content readback. Пакетный smoke и fake-HTTP сценарии — локальная защита контракта; фактически пройденная DataLens-задача требует наблюдаемого результата на разрешённом объекте. Недоступную live-проверку укажите отдельно.

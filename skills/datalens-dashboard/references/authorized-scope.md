@@ -1,6 +1,6 @@
 # Authorized scope and delivery
 
-The current request defines target, effect, and stopping point. A clear instruction to edit and deliver authorizes the necessary scoped reads, validation, save/readback and requested publish/readback. A compact plan informs the user; it does not add a pause. Resolve routine details from project context, fresh readback and schemas.
+Work from the exact dashboard project/subproject and reuse its configured installation. The current request defines target, effect, and stopping point. A clear instruction to edit and deliver authorizes the necessary scoped reads, validation, save/readback and requested publish/readback. A compact plan informs the user; it does not add a pause. Resolve routine details from project context, fresh readback and schemas.
 
 | Request | Continue through |
 | --- | --- |
@@ -29,6 +29,6 @@ For multiple workbooks/projects, keep each project's exact root, workbook and ob
 | --- | --- | --- | --- |
 | `project-a / workbook-a / chart-a` | Rename title | saved readback at current revision | publish only if requested |
 
-Do not claim overall completion until every target has a row and no required remainder. Keep API save/readback, publish/readback, data proof, and Browser proof as separate evidence. A visible selector, Editor, or layout change needs relevant rendered verification; a metadata-only update does not require a full Browser tour.
+Do not claim overall completion until every target has a row and no required remainder. Use compact operation results (changed fields, revision and readback boundary); open `dl_operation_get(include_detail=true)` only for an unresolved detail. `no_change` means a fresh saved read matched the patch and no write was sent. Keep API save/readback, publish/readback, data proof, and Browser proof as separate evidence. A visible selector, Editor, or layout change needs relevant rendered verification; a metadata-only update does not require a full Browser tour.
 
 Scale the final response to the request: a single rename needs the result and relevant readback, while a multi-project task needs per-target change, save/readback, requested publish/render and exact remainder. A status question or compaction continues the existing task unless the user changes it; keep accepted formulas and units rather than asking again.

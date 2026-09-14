@@ -51,6 +51,9 @@ def test_bad_nested_preview_is_actionable_before_provider(monkeypatch, invalid):
     assert result["isError"]
     assert result["structuredContent"]["status"] == "input_error"
     assert result["structuredContent"]["next_action"]
+    assert result["structuredContent"]["argument_path"]
+    assert result["structuredContent"]["expected"]
+    assert "inputSchema" not in result["structuredContent"]["next_action"]
     assert transport.calls == []
 
 
