@@ -10,3 +10,5 @@ Read [maintenance boundaries](references/boundaries.md) for backup completeness,
 Work from the exact project/subproject. For backup or cleanup, inventory the requested scope completely and retain partial/unresolved results. An administration inventory or Page metadata question needs only addressed reads; do not start a cleanup or visual cycle.
 
 Follow [authorized scope and delivery](../datalens-dashboard/references/authorized-scope.md) for effects and multi-object completion. Route ordinary reads and cloud RLS subject resolution to `datalens-inspect`, dashboard composition to `datalens-dashboard`, native fields/charts to `datalens-dataset-wizard`, and HTML inside JavaScript charts to `datalens-editor`.
+
+For unknown effects follow [repeat-effect recovery](../datalens-dashboard/references/authorized-scope.md#unknown-outcomes-and-repeat-effects): only proven non-application or separate informed repeat authorization permits another attempt. Failed reconciliation, absent inventory and a new operation_id do not make a retry safe.

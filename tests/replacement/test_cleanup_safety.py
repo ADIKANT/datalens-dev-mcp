@@ -94,7 +94,8 @@ def test_failure_stops_dependencies_and_reports_skips(failure):
     assert not result["ok"]
     assert p.calls == ["board"]
     assert [x["status"] for x in result["results"]][1:] == ["skipped", "skipped"]
-    assert result["results"][0]["status"] == ("uncertain" if isinstance(failure, UncertainWriteError) else "failed")
+    assert result["results"][0]["status"] == result["status"] == "uncertain"
+    assert "not replay" in result["next_action"]
 
 
 def test_fresh_preserve_closure_invalidates_old_preview_without_writes():

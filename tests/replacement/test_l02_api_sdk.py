@@ -134,3 +134,55 @@ def test_create_tool_describes_nested_typed_dataset_contract() -> None:
 
     assert "dataset.connection_id/source/fields" in create_tool["description"]
     assert "top-level object_type/name/client_ref" in create_tool["description"]
+
+
+@pytest.mark.parametrize("body,code", [(b"x" * 1025, "response_too_large"), (b"<html>private login</html>", "invalid_json"),
+                                      (b"\xff", "invalid_json"), (b"[]", "invalid_response")])
+def test_http_response_is_bounded_closed_and_not_echoed(monkeypatch, body, code):
+    from io import BytesIO
+
+    from datalens_dev_mcp.api.client import HttpJsonTransport
+
+    response = BytesIO(body)
+    monkeypatch.setattr("datalens_dev_mcp.api.client.request.urlopen", lambda *a, **k: response)
+    with pytest.raises(DataLensApiError) as caught:
+        HttpJsonTransport("https://example.invalid", max_response_bytes=1024).call("getDataset", {}, {})
+    assert response.closed
+    assert caught.value.remote_code == code
+    assert "private login" not in str(caught.value)
+
+
+def test_http_error_body_is_not_read_and_retry_after_is_bounded(monkeypatch):
+    from io import BytesIO
+    from urllib.error import HTTPError
+
+    from datalens_dev_mcp.api.client import HttpJsonTransport
+
+    class UnreadBody(BytesIO):
+        def read(self, *args):
+            raise AssertionError("error body must not be read")
+
+    body = UnreadBody(b"private" * 1000)
+    failure = HTTPError("https://example.invalid", 429, "private", {"Retry-After": "120"}, body)
+
+    def fail(*args, **kwargs):
+        raise failure
+
+    monkeypatch.setattr("datalens_dev_mcp.api.client.request.urlopen", fail)
+    client = DataLensApiClient(_config(), transport=HttpJsonTransport("https://example.invalid"))
+    with pytest.raises(DataLensApiError) as caught:
+        client.read("getWorkbooksList")
+    assert body.closed and caught.value.retry_after_sec == 120
+    assert "private" not in str(caught.value)
+
+
+def test_safe_read_backoff_and_budget_do_not_retry_local_os_errors(monkeypatch):
+    delays = []
+    monkeypatch.setattr("datalens_dev_mcp.api.client.time.sleep", delays.append)
+    transport = SequenceTransport([DataLensApiError("busy", http_status=429, retry_after_sec=1), {"workbooks": []}])
+    assert DataLensApiClient(_config(), transport=transport).read("getWorkbooksList") == {"workbooks": []}
+    assert delays == [1]
+    transport = SequenceTransport([PermissionError("local permission")])
+    with pytest.raises(PermissionError):
+        DataLensApiClient(_config(), transport=transport).read("getWorkbooksList")
+    assert len(transport.calls) == 1

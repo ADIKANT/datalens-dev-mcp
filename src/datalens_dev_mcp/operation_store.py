@@ -188,7 +188,9 @@ def normalize_operation(record: dict[str, Any]) -> dict[str, Any]:
             item["status"] = "uncertain"
         if item.get("status") == "uncertain":
             item["next_action"] = (
-                "Inspect this operation_id and reconcile exact target readback; do not replay the write."
+                "Inspect this operation_id and reconcile exact target readback; do not replay the write. "
+                "An unavailable reconciliation, missing ID or empty inventory is not not_applied evidence; "
+                "a new operation_id does not make a repeat safe."
             )
     statuses = {item.get("status", "pending") for item in items}
     # An overall unknown outcome is itself evidence; do not downgrade it on read.
@@ -257,6 +259,9 @@ def compact_operation(record: dict[str, Any]) -> dict[str, Any]:
                     "next_action",
                     "evidence",
                     "write_returned",
+                    "dispatch_state",
+                    "effect_outcome",
+                    "intent",
                 )
                 if key in item
             }

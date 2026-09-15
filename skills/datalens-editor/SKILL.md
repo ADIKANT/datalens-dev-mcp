@@ -14,3 +14,5 @@ Use `dl_compile_recipe` for registered visual families, adjusting bindings and p
 `dl_editor_validate` checks static tabs, aliases and constrained-runtime rules. Verify changed runtime/visual behavior in Browser separately. HTML generated inside an Editor/table cell follows that Editor contract; standalone Page CSP and host messaging do not apply.
 
 Follow [authorized scope and delivery](../datalens-dashboard/references/authorized-scope.md) and, for a visual/semantic change, the relevant [visualization decision](../datalens-dashboard/references/decision-quality.md). Route Wizard to `datalens-dataset-wizard`, placement to `datalens-dashboard`, discovery to `datalens-inspect`, and standalone Page/backup/cleanup to `datalens-maintenance`.
+
+For unknown effects follow [repeat-effect recovery](../datalens-dashboard/references/authorized-scope.md#unknown-outcomes-and-repeat-effects): only proven non-application or separate informed repeat authorization permits another attempt. Failed reconciliation, absent inventory and a new operation_id do not make a retry safe.

@@ -12,9 +12,13 @@ TARGET = {
 CHANGE = {
     "type": "object",
     "properties": {"object_type": STRING, "object_id": STRING, "expected_revision": STRING,
-                   "patch": {"type": "object", "minProperties": 1}, "artifact_path": STRING},
+                   "patch": {"type": "object", "minProperties": 1}, "artifact_path": STRING,
+                   "remove_global_params": {"type": "array", "minItems": 1, "maxItems": 50,
+                                            "uniqueItems": True, "items": STRING}},
     "required": ["object_type", "object_id"],
-    "oneOf": [{"required": ["patch"]}, {"required": ["artifact_path"]}],
+    "oneOf": [{"required": ["patch"]}, {"required": ["artifact_path"]},
+              {"required": ["remove_global_params", "expected_revision"],
+               "properties": {"object_type": {"const": "dashboard"}}}],
     "additionalProperties": False,
 }
 FIELD = {

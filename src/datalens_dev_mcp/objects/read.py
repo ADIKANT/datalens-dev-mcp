@@ -6,6 +6,7 @@ import re
 from collections.abc import Mapping
 from typing import Any, Protocol
 
+from datalens_dev_mcp.api.errors import DataLensApiError, error_response
 from datalens_dev_mcp.objects.relations import EDITOR_SUBTYPES, compact_object_index, object_identity, relation_entries
 
 
@@ -64,38 +65,75 @@ class ObjectReadService:
         pages = 0
         seen_tokens: set[str] = set()
         partial_reason = "page_limit_reached"
+        failure = None
+        complete = False
+        container = "entries" if method == "getWorkbookEntries" else "workbooks"
         while pages < max_pages:
-            # Both workbook endpoints use zero-based numeric pages.
-            # Relation endpoints retain their separate opaque-token contract.
+            # Numeric workbook pages and opaque relation tokens have separate contracts.
             payload = {**base_payload, "pageSize": page_size, "page": pages}
-            raw = self.api.read(method, payload)
-            page = _unwrap(raw)
-            values = page.get("entries") or page.get("workbooks") or []
-            if not isinstance(values, list):
-                raise TypeError(f"{method} response does not contain a list")
-            for item in values:
-                if isinstance(item, Mapping):
-                    object_id, _ = object_identity(item)
-                    if object_id:
-                        objects[object_id] = dict(item)
+            try:
+                raw = self.api.read(method, payload)
+                if not isinstance(raw, Mapping):
+                    raise TypeError("response must be an object")
+                page = _unwrap(raw)
+                values = page.get(container)
+                if not isinstance(values, list):
+                    raise TypeError(f"response.{container} must be a list, including when empty")
+                invalid = []
+                for index, item in enumerate(values):
+                    identity_keys = ("entryId", "id", "objectId", "workbookId")
+                    if not isinstance(item, Mapping):
+                        invalid.append(index)
+                        continue
+                    raw_id = next((item[key] for key in identity_keys if key in item), None)
+                    if (not isinstance(raw_id, str) or not raw_id.strip()
+                            or any(key in item and not isinstance(item[key], str) for key in ("scope", "type", "subtype"))):
+                        invalid.append(index)
+                        continue
+                    if method == "getWorkbookEntries" and item.get("workbookId", base_payload["workbookId"]) != base_payload["workbookId"]:
+                        invalid.append(index)
+                        continue
+                    object_id, object_type = object_identity(item)
+                    if object_id in objects and object_identity(objects[object_id])[1] != object_type:
+                        invalid.append(index)
+                        continue
+                    objects[object_id] = dict(item)
+                next_token = page.get("nextPageToken")
+                if next_token is not None and not isinstance(next_token, str):
+                    raise ValueError("response.nextPageToken must be a string or null")
+                token = next_token.strip() if next_token else ""
+                if invalid:
+                    raise ValueError(f"response.{container} has invalid items at indexes {invalid[:20]}")
+            except (DataLensApiError, ValueError, TypeError) as exc:
+                if not isinstance(exc, DataLensApiError):
+                    exc = DataLensApiError(f"{method}: {exc}", method=method, remote_code="invalid_response")
+                failure = error_response(exc)
+                partial_reason = failure["code"]
+                break
             pages += 1
-            token = str(page.get("nextPageToken") or "").strip()
             if not token:
+                complete = True
                 break
             if token in seen_tokens:
                 partial_reason = "repeated_page_token"
                 break
             seen_tokens.add(token)
-        complete = not token
-        return {
-            "ok": True,
+        result = {
+            "ok": failure is None,
             "complete": complete,
             "partial_reason": "" if complete else partial_reason,
             "page_count": pages,
             "object_count": len(objects),
             "next_page_token": token or None,
+            "next_page": None if complete else pages,
             "objects": compact_object_index(objects.values()),
         }
+        if failure:
+            result.update(error=failure["error"], code=failure["code"], next_action=failure["next_action"],
+                          failed_page=pages, method=method)
+            result.update({key: failure[key] for key in ("diagnostic_id", "helper_exit_status", "stage",
+                                                        "elapsed_sec", "http_status") if key in failure})
+        return result
 
     def object_get(
         self,

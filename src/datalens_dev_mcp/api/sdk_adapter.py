@@ -58,6 +58,8 @@ class SdkAdapter:
         self._config = config
         self._client = client
         self._token_refresher = token_refresher
+        self._write_dispatches = 0
+        self._tracks_dispatch = False
 
     @property
     def config(self) -> DataLensConfig | None:
@@ -81,8 +83,44 @@ class SdkAdapter:
         else:
             auth = datalens_sdk.StaticYCIAMAuthProvider(org_id=self._config.org_id, token=self._config.iam_token)
             client_type = datalens_sdk.DataLensClientYC
-        self._client = client_type(auth=auth, base_url=self._config.base_url)
+        self._client = client_type(auth=auth, base_url=self._config.base_url,
+                                   event_hooks={"request": [self._observe_dispatch]})
+        self._tracks_dispatch = True
         return self._client
+
+    def _observe_dispatch(self, request: httpx.Request) -> None:
+        from datalens_dev_mcp.api.schemas import OperationRegistry
+
+        method = request.url.path.rsplit("/", 1)[-1]
+        try:
+            readonly = OperationRegistry.load().get(method)["effect"] == "read"
+        except KeyError:
+            readonly = False
+        if not readonly:
+            # HTTPX calls request hooks after encoding/auth, just before send.
+            self._write_dispatches += 1
+
+    def _mutation_error(self, exc: Exception, method: str, *, effect_started: bool,
+                        dispatch_before: int, direct: bool = False) -> Exception:
+        count = self._write_dispatches - dispatch_before
+        before_dispatch = not effect_started or (self._tracks_dispatch and count == 0 and not direct)
+        if isinstance(exc, UncertainWriteError):
+            return exc
+        if direct and count == 0 and (isinstance(exc, InputContractError)
+                                     or getattr(exc, "dispatch_state", None) == "not_dispatched"):
+            return exc
+        if before_dispatch:
+            if isinstance(exc, (InputContractError, WritePreconditionError)):
+                return exc
+            if isinstance(exc, (ValueError, TypeError, KeyError)):
+                return InputContractError(safe_error_text(exc))
+            failure = _provider_error(exc, method)
+            failure.dispatch_state = "not_dispatched"
+            return failure
+        if count > 1 or isinstance(exc, (httpx.TransportError, SdkTransportError, ValueError, TypeError)):
+            return UncertainWriteError("SDK mutation may have applied; do not replay", method=method,
+                                       http_status=getattr(exc, "http_status", None))
+        return _provider_error(exc, method)
 
     def get_object(
         self,
@@ -175,25 +213,23 @@ class SdkAdapter:
         requested_type = str(draft.get("object_type") or "")
         if requested_type == "html_page":
             return self._html_create(draft, destination)
-        if requested_type == "workbook":
-            client = self._sdk_client()
-            collection = (
-                datalens_sdk.EntryLocation.collection(str(destination["collection_id"]))
-                if destination.get("collection_id")
-                else None
-            )
-            value = client.create.workbook(name=_draft_name(draft), collection=collection).build()
-            return {"object_id": _result_id(value), "object": _json_object(value), "backend": "official_sdk"}
         object_type = _canonical_object_type(requested_type)
-        location = _entry_location(destination)
+        location = _entry_location(destination) if requested_type != "workbook" else None
         name = _draft_name(draft)
         if self._config is not None:
             validate_entry_name(name, object_type, installation=self._config.installation, base_url=self._config.base_url)
-        client = self._sdk_client()
         expected_readback = None
         effect_started = False
+        dispatch_before = self._write_dispatches
         try:
-            if object_type == "wizard_chart" and "wizard" in draft:
+            client = self._sdk_client()
+            if requested_type == "workbook":
+                collection = (datalens_sdk.EntryLocation.collection(str(destination["collection_id"]))
+                              if destination.get("collection_id") else None)
+                builder = client.create.workbook(name=name, collection=collection)
+                effect_started = True
+                value = builder.build()
+            elif object_type == "wizard_chart" and "wizard" in draft:
                 from datalens_sdk.converter.wizard import WizardChartConverter
 
                 from datalens_dev_mcp.wizard.authoring import wizard_builder
@@ -274,30 +310,32 @@ class SdkAdapter:
             if expected_readback is not None:
                 result["expected_readback"] = expected_readback
             return result
-        except (httpx.TransportError, SdkTransportError) as exc:
-            raise UncertainWriteError("SDK create outcome is uncertain", method=f"create:{object_type}") from exc
-        except (ValueError, TypeError, KeyError) as exc:
-            if not effect_started:
-                raise InputContractError(safe_error_text(exc)) from exc
-            raise
         except Exception as exc:
-            raise _provider_error(exc, f"create:{object_type}") from exc
+            raise self._mutation_error(exc, f"create:{object_type}", effect_started=effect_started,
+                                       dispatch_before=dispatch_before) from exc
 
     def update(self, object_type: str, object_id: str, snapshot: dict[str, Any]) -> dict[str, Any]:
         if object_type == "html_page":
             return self._html_update(object_id, snapshot, publish=False)
         if object_type == "workbook":
-            target = self._get_domain("workbook", object_id)
-            builder = target.update
-            changed = False
-            for field in ("name", "description"):
-                if field in snapshot:
-                    getattr(builder, field)(str(snapshot[field]))
-                    changed = True
-            if not changed:
-                raise ValueError("workbook update supports name and description")
-            value = builder.execute()
-            return {"object_id": object_id, "object": _json_object(value), "backend": "official_sdk"}
+            effect_started = False
+            dispatch_before = self._write_dispatches
+            try:
+                target = self._get_domain("workbook", object_id)
+                builder = target.update
+                changed = False
+                for field in ("name", "description"):
+                    if field in snapshot:
+                        getattr(builder, field)(str(snapshot[field]))
+                        changed = True
+                if not changed:
+                    raise InputContractError("workbook update supports name and description")
+                effect_started = True
+                value = builder.execute()
+                return {"object_id": object_id, "object": _json_object(value), "backend": "official_sdk"}
+            except Exception as exc:
+                raise self._mutation_error(exc, "update:workbook", effect_started=effect_started,
+                                           dispatch_before=dispatch_before) from exc
         return self._replace(object_type, object_id, snapshot, publish=False)
 
     def publish(self, object_type: str, object_id: str, saved: dict[str, Any]) -> dict[str, Any]:
@@ -313,14 +351,16 @@ class SdkAdapter:
             if self._config is None:
                 raise RuntimeError("DataLensConfig is required for HTML operations")
             return DataLensApiClient(self._config).write("deleteHtmlPage", {"entryId": object_id})
+        effect_started = False
+        dispatch_before = self._write_dispatches
         try:
             target = self._get_domain(_canonical_object_type(object_type), object_id, branch="saved")
+            effect_started = True
             target.delete()
             return {"object_id": object_id, "deleted": True, "backend": "official_sdk"}
-        except (httpx.TransportError, SdkTransportError) as exc:
-            raise UncertainWriteError("SDK delete outcome is uncertain", method=f"delete:{object_type}") from exc
         except Exception as exc:
-            raise _provider_error(exc, f"delete:{object_type}") from exc
+            raise self._mutation_error(exc, f"delete:{object_type}", effect_started=effect_started,
+                                       dispatch_before=dispatch_before) from exc
 
     def _html_create(self, draft: dict[str, Any], destination: dict[str, Any]) -> dict[str, Any]:
         raise InputContractError(
@@ -339,7 +379,11 @@ class SdkAdapter:
         if not revision:
             raise WritePreconditionError("HTML Page publication requires the observed saved revision")
         api = DataLensApiClient(self._config)
-        latest = api.read("getHtmlPage", {"entryId": object_id, "branch": "saved"})
+        try:
+            latest = api.read("getHtmlPage", {"entryId": object_id, "branch": "saved"})
+        except DataLensApiError as exc:
+            exc.dispatch_state = "not_dispatched"
+            raise
         if latest.get("entryId") != object_id or _saved_revision(latest) != revision:
             raise WritePreconditionError("HTML Page saved identity/revision changed; re-read before publishing")
         if latest.get("branch", "saved") != "saved":
@@ -353,9 +397,12 @@ class SdkAdapter:
         canonical = _canonical_object_type(object_type)
         if publish and canonical in {"connection", "dataset", "workbook"}:
             raise ValueError(f"{canonical} has no publish branch")
-        client = self._sdk_client()
+        effect_started = False
+        direct = False
+        dispatch_before = self._write_dispatches
         try:
             target = self._get_domain(canonical, object_id, branch="saved")
+            client = self._sdk_client()
             latest = _json_object(target)
             if canonical in {"wizard_chart", "editor_chart", "ql_chart"}:
                 latest = _chart_entry(latest)
@@ -385,6 +432,7 @@ class SdkAdapter:
             if publish and canonical in {"dashboard", "wizard_chart"}:
                 if not expected_revision:
                     raise WritePreconditionError("Publish requires an observed saved revision")
+                effect_started = True
                 value = target.publish_revision(rev_id=expected_revision)
                 return {"object_id": object_id, "object": _json_object(value), "backend": "official_sdk",
                         "publication_semantics": "existing_revision"}
@@ -398,6 +446,7 @@ class SdkAdapter:
                     validate_entry_name(snapshot["name"], canonical,
                                         installation=self._config.installation, base_url=self._config.base_url)
                 if old_content == new_content:
+                    effect_started = True
                     value = target.rename(snapshot["name"])
                     return {"object_id": object_id, "object": _json_object(value), "backend": "official_sdk"}
                 rename_to = snapshot["name"]
@@ -423,6 +472,8 @@ class SdkAdapter:
                     raise WritePreconditionError("Dataset update with null inner revision requires the saved revision")
                 if self._config is None:
                     raise RuntimeError("DataLensConfig is required for Dataset update")
+                effect_started = True
+                direct = True
                 value = DataLensApiClient(self._config).write(
                     "updateDataset", {"datasetId": object_id, "data": {"dataset": deepcopy(content)}}
                 )
@@ -441,10 +492,14 @@ class SdkAdapter:
             if canonical == "dataset":
                 pass
             elif canonical == "dashboard":
+                effect_started = True
                 value = builder.execute(publish=publish)
             elif canonical in {"wizard_chart", "editor_chart", "ql_chart"}:
-                value = builder.mode("publish" if publish else "save").execute()
+                builder = builder.mode("publish" if publish else "save")
+                effect_started = True
+                value = builder.execute()
             else:
+                effect_started = True
                 value = builder.execute()
             if rename_to is not None:
                 try:
@@ -454,21 +509,16 @@ class SdkAdapter:
                     # The save already returned. Even a definite rename rejection
                     # is a partial object update, never a safe-to-replay failure.
                     raise UncertainWriteError(
-                        "content saved; rename not confirmed; reconcile before retrying", method=f"rename:{canonical}"
+                        "content saved; rename not confirmed; preserve the operation and do not replay", method=f"rename:{canonical}"
                     ) from exc
             return {
                 "object_id": _result_id(value) or object_id,
                 "object": _json_object(value),
                 "backend": "public_api_adapter" if canonical == "dataset" else "official_sdk",
             }
-        except (httpx.TransportError, SdkTransportError) as exc:
-            raise UncertainWriteError("SDK write outcome is uncertain", method=f"replace:{canonical}") from exc
-        except DataLensApiError:
-            raise
-        except (ValueError, TypeError):
-            raise
         except Exception as exc:
-            raise _provider_error(exc, f"replace:{canonical}") from exc
+            raise self._mutation_error(exc, f"replace:{canonical}", effect_started=effect_started,
+                                       dispatch_before=dispatch_before, direct=direct) from exc
 
     def describe_factory(self, resource: str, variant: str) -> dict[str, object]:
         supported = (

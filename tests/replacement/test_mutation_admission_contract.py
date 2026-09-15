@@ -457,3 +457,55 @@ def test_public_sdk_validation_is_definite_input_failure(tmp_path, invalid):
     assert result["status"] == "failed"
     assert result["results"][0]["code"] == "input_error"
     assert requests == []
+
+
+def test_create_preflight_receipt_retains_intent_and_safe_failure(tmp_path):
+    requests = []
+
+    def handle(request):
+        requests.append(request)
+        raise httpx.ReadTimeout("synthetic read timeout", request=request)
+
+    client = datalens_sdk.DataLensClientYC(auth=None, base_url="https://synthetic.invalid",
+                                          transport=httpx.MockTransport(handle))
+    sdk = SdkAdapter(client=client)
+    store = OperationStore(tmp_path)
+    writer = ObjectMutationService(reader=ObjectReadService(api=None, sdk=sdk), backend=sdk, store=store)
+    draft = {"object_type": "dataset", "name": "Synthetic", "client_ref": "source",
+             "dataset": {"connection_id": "synthetic-connection"}}
+    result = writer.create_objects([draft], {"workbook_id": "synthetic"}, operation_id="prepared")
+    assert result["status"] == "failed"
+    item = result["results"][0]
+    assert item["dispatch_state"] == "not_dispatched" and item["effect_outcome"] == "not_applied"
+    assert item["desired"] == {"name": "Synthetic"}
+    assert item["intent"]["destination"] == {"workbook_id": "synthetic"}
+    assert item["intent"]["bindings"] == {"connection_id": "synthetic-connection"}
+    assert len(item["intent"]["content_sha256"]) == 64
+    assert requests and all(request.url.path.endswith("/getConnection") for request in requests)
+    assert "reconcile" not in result["next_action"].lower()
+    client.close()
+
+
+def test_named_dashboard_parameter_removal_preserves_neighbors_and_verifies_absence(tmp_path):
+    from test_l06_object_lifecycle import FakeBackend, FakeReader, rb, service
+
+    before = {"entry": {"data": {"settings": {"globalParams": {"remove": [], "keep": ["value"]},
+                                             "unrelated": True}, "tabs": [{"id": "tab"}]}}}
+    after = copy.deepcopy(before)
+    del after["entry"]["data"]["settings"]["globalParams"]["remove"]
+    for mode in ("applied", "still_present", "stale"):
+        reader = FakeReader({("dashboard", "synthetic", "saved"): [
+            rb("dashboard", "synthetic", "r1", before),
+            rb("dashboard", "synthetic", "r2", after if mode == "applied" else before),
+        ]})
+        backend = FakeBackend([{"object_id": "synthetic", "object": {"revId": "r2"}}])
+        writer = service(tmp_path / mode, reader, backend)
+        result = writer.update_objects([{"object_type": "dashboard", "object_id": "synthetic",
+                                         "expected_revision": "old" if mode == "stale" else "r1",
+                                         "remove_global_params": ["remove"]}])
+        assert result["status"] == {"applied": "completed", "still_present": "uncertain", "stale": "blocked"}[mode]
+        if mode != "stale":
+            assert result["results"][0]["changes"] == [
+                {"path": "/entry/data/settings/globalParams/remove", "before": [], "after": None}]
+        else:
+            assert backend.calls == []

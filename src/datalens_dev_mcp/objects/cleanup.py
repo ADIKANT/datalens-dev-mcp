@@ -6,7 +6,7 @@ from collections import deque
 from copy import deepcopy
 from typing import Any
 
-from datalens_dev_mcp.api.errors import DataLensApiError, UncertainWriteError, safe_error_text
+from datalens_dev_mcp.api.errors import DataLensApiError, UncertainWriteError, error_response, safe_error_text
 from datalens_dev_mcp.api.sdk_adapter import _canonical_object_type
 
 
@@ -158,10 +158,12 @@ class CleanupService:
                 results.append({**item, "status": "skipped"})
                 continue
             mutation_returned = False
+            delete_attempted = False
             try:
                 if self._already_absent(item):
                     results.append({**item, "status": "already_absent", "absence_verified": True})
                     continue
+                delete_attempted = True
                 self.deleter.delete(item["object_type"], item["object_id"])
                 mutation_returned = True
                 if self._already_absent(item):
@@ -180,18 +182,27 @@ class CleanupService:
                         else {**item, "status": "uncertain", "error": "delete 404 without verified object absence"}
                     )
                 else:
-                    uncertain = (
-                        mutation_returned or isinstance(exc, UncertainWriteError) or exc.response_received is not True
-                    )
-                    result = {**item, "status": "uncertain" if uncertain else "failed", "error": safe_error_text(exc)}
-            except Exception as exc:  # noqa: BLE001 - preserve partial effects after an unexpected write failure
-                result = {**item, "status": "uncertain", "error": safe_error_text(exc)}
+                    detail = error_response(exc, effect_possible=delete_attempted)
+                    if not delete_attempted:
+                        detail.update(dispatch_state="not_dispatched", effect_outcome="not_applied")
+                    uncertain = mutation_returned or detail["code"] == "write_outcome_unknown"
+                    if uncertain:
+                        detail = error_response(UncertainWriteError(safe_error_text(exc)))
+                    result = {**item, **detail, "status": "uncertain" if uncertain else "failed"}
+            except Exception as exc:  # noqa: BLE001 - retain partial effects
+                detail = error_response(exc, effect_possible=delete_attempted)
+                uncertain = mutation_returned or detail["code"] == "write_outcome_unknown"
+                result = {**item, **detail, "status": "uncertain" if uncertain else "failed"}
             results.append(result)
             stopped = result["status"] in {"failed", "uncertain"}
         absent = any(item["status"] == "already_absent" for item in results)
         return {
             "ok": not stopped,
-            "status": "failed" if stopped else "completed_with_absent" if absent else "completed",
+            "status": ("uncertain" if any(row["status"] == "uncertain" for row in results)
+                       else "failed" if stopped else "completed_with_absent" if absent else "completed"),
+            **({"next_action": next((row.get("next_action") for row in results if row.get("next_action")),
+                                     "Inspect the failed item and exact absence evidence; do not replay an unknown delete.")}
+               if stopped else {}),
             "results": results,
         }
 

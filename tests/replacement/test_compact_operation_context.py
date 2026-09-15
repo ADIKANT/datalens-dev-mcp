@@ -126,3 +126,18 @@ def test_store_prunes_old_completed_records_but_preserves_uncertain_recovery(tmp
     assert store.get("old-complete")["status"] == "completed"
     assert (tmp_path / "old-uncertain.json").exists()
     assert (tmp_path / "new-complete.json").exists()
+
+
+def test_diff_compares_full_source_but_bounds_values_and_paths(tmp_path):
+    before = {"data": {"prepare": "before" * 10000}, **{f"field-{i}": i for i in range(60)}}
+    patch = {"data": {"prepare": "after" * 10000}, **{f"field-{i}": i + 1 for i in range(60)}}
+    reader = FakeReader({("editor_chart", "synthetic", "saved"): [rb("editor_chart", "synthetic", "r1", before)]})
+    writer = service(tmp_path, reader, FakeBackend([]))
+    result = writer.diff("editor_chart", "synthetic", patch)
+    assert result["changed_field_count"] == 61 and result["diff_complete"] is False
+    assert len(result["changes"]) == 50
+    source = next(row for row in result["changes"] if row["path"] == "/data/prepare")
+    assert source["before"]["value_omitted"] and source["after"]["value_omitted"]
+    assert source["before"]["sha256"] != source["after"]["sha256"]
+    assert "beforebefore" not in json.dumps(result)
+    assert writer.backend.calls == []

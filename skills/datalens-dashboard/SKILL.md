@@ -14,3 +14,5 @@ For a single metadata field, read the exact object and send a narrow patch; no g
 Follow [authorized scope and delivery](references/authorized-scope.md) for mutations, continuation and completion across projects. For a visual or semantic choice, load the relevant part of [visualization decisions](references/decision-quality.md). For visible changes, check the affected rendered state with Browser after API and applicable data checks; a correct readback alone does not prove correct layout.
 
 Route field/native chart changes to `datalens-dataset-wizard`, JavaScript runtime changes to `datalens-editor`, discovery to `datalens-inspect`, and backup/cleanup or standalone Page work to `datalens-maintenance`.
+
+For unknown effects follow [repeat-effect recovery](references/authorized-scope.md#unknown-outcomes-and-repeat-effects): only proven non-application or separate informed repeat authorization permits another attempt. Failed reconciliation, absent inventory and a new operation_id do not make a retry safe.
