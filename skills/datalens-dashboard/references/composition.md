@@ -95,3 +95,7 @@ item = {
 Place `item` in `dashboard.tabs[].items[]` after its chart dependency. Validate
 and create the complete batch. For this example, the assembled widget hides its
 native title and hint; the rendered body has one heading and one hint target.
+
+For an affected selector/control, inspect the actual saved container and its layout representation. Check the sum of child widths/heights and all gaps against available geometry; checking each child separately is insufficient. Read exact field GUIDs and data types before choosing date/time operators.
+
+For deleting only explicitly named `settings.globalParams` keys, use `dl_object_update` with `object_type="dashboard"`, `object_id`, fresh `expected_revision` and `remove_global_params=["synthetic_unused_key"]`. First inspect current bindings and usage; the server verifies the exact container and absence after saving. This route preserves neighboring parameters and settings. Do not send an entire dashboard for a single-key removal. For normal values use the existing narrow patch; for compiled Editor tabs use the verified artifact reference. A host refusal before dispatch proves no write was sent, but is not permission to bypass review with an opaque payload or shell write.

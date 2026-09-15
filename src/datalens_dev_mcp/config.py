@@ -35,12 +35,21 @@ class DataLensConfig:
     iam_token: str = field(default="", repr=False)
     request_timeout_sec: float = 30.0
     read_retries: int = 2
+    read_budget_sec: float = 60.0
+    max_response_bytes: int = 32 * 1024 * 1024
     yc_binary: str = "yc"
     credential_source: str = "explicit"
     refresh_available: bool = False
     _configured_token: str | None = field(default=None, repr=False, compare=False)
 
     def __post_init__(self) -> None:
+        import math
+
+        if (not math.isfinite(self.request_timeout_sec) or not 0 < self.request_timeout_sec <= 300
+                or not math.isfinite(self.read_budget_sec) or not 0 < self.read_budget_sec <= 300
+                or not 0 <= self.read_retries <= 5
+                or not 1024 <= self.max_response_bytes <= 256 * 1024 * 1024):
+            raise ValueError("Invalid bounded read timeout, retries, budget or response limit")
         if self.installation not in {"yacloud", "enterprise"}:
             raise ValueError("DATALENS_INSTALLATION must be yacloud or enterprise")
         if self.installation == "enterprise" and (not self.base_url or self.base_url.rstrip("/") == "https://api.datalens.tech"):
@@ -76,6 +85,8 @@ class DataLensConfig:
             iam_token=active_token,
             request_timeout_sec=float(values.get("DATALENS_REQUEST_TIMEOUT_SEC", "30")),
             read_retries=int(values.get("DATALENS_READ_RETRIES", "2")),
+            read_budget_sec=float(values.get("DATALENS_READ_BUDGET_SEC", "60")),
+            max_response_bytes=int(values.get("DATALENS_MAX_RESPONSE_BYTES", str(32 * 1024 * 1024))),
             yc_binary=values.get("DATALENS_YC_BINARY", "yc").strip() or "yc",
             credential_source="runtime_refresh" if active_token != configured_token else source,
             refresh_available=refresh,
@@ -96,6 +107,8 @@ class DataLensConfig:
             self.org_id,
             configured,
             self.request_timeout_sec,
+            self.read_budget_sec,
+            self.max_response_bytes,
             self.read_retries,
             self.yc_binary,
             self.refresh_available,

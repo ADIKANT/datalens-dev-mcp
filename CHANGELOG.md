@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.8
+
+- Distinguish preparation failures from dispatched and composite mutation outcomes. Retain compact create intent before dispatch and require positive non-application evidence before repeating unknown effects.
+- Validate inventory containers and identities, retaining partial results and numeric continuation on errors. Bound direct HTTP responses and safe-read budgets, with backoff and Retry-After; writes remain single-attempt.
+- Add secret-free credential stage/duration diagnostics, compact full-state diffs, and revision-guarded removal of named dashboard global parameters with absence readback.
+
 ## 1.2.7
 
 - Keep cleanup previews stable when Dataset reads reorder known unordered capability and dependency-reference lists. Preserve revision, content, relation, and ordered field checks before deletion.

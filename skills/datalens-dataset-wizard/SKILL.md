@@ -12,3 +12,5 @@ A new `dataset` draft keeps `object_type`, `name` and `client_ref` at its root; 
 Follow [authorized scope and delivery](../datalens-dashboard/references/authorized-scope.md). Load [visualization decisions](../datalens-dashboard/references/decision-quality.md) only for the relevant semantic choice. Preview establishes bounded data evidence; provider acceptance and rendered results require their own checks.
 
 Route placement to `datalens-dashboard`, JavaScript variants to `datalens-editor`, metadata or RLS identity lookup to `datalens-inspect`, and backup/cleanup to `datalens-maintenance`.
+
+For unknown effects follow [repeat-effect recovery](../datalens-dashboard/references/authorized-scope.md#unknown-outcomes-and-repeat-effects): only proven non-application or separate informed repeat authorization permits another attempt. Failed reconciliation, absent inventory and a new operation_id do not make a retry safe.

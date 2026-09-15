@@ -7,6 +7,8 @@ from typing import Any
 
 def safe_error_text(error: BaseException) -> str:
     text = str(error) or type(error).__name__
+    if re.search(r"(?i)<(?:!doctype\s+html|html|body)\b", text):
+        return "Provider returned an HTML response; inspect the configured API endpoint and authentication."
     text = re.sub(r"(?i)bearer\s+[^\s,;\"']+", "Bearer <redacted>", text)
     text = re.sub(
         r"(?i)(DATALENS_IAM_TOKEN|YC_IAM_TOKEN|Authorization|x-dl-org-id)\s*[:=]\s*[^\s,;]+",
@@ -27,25 +29,32 @@ class DataLensApiError(RuntimeError):
         http_status: int | None = None,
         response_received: bool | None = None,
         remote_code: str = "",
+        dispatch_state: str | None = None,
+        retry_after_sec: float | None = None,
     ) -> None:
         super().__init__(message)
         self.method = method
         self.http_status = http_status
         self.response_received = response_received
         self.remote_code = remote_code
+        self.dispatch_state = dispatch_state
+        self.retry_after_sec = retry_after_sec
 
 
 class UncertainWriteError(DataLensApiError):
-    """A mutation may have reached DataLens but no response was received."""
+    """A mutation may have applied, including a partial composite effect."""
 
 
 class CredentialRefreshError(DataLensApiError):
     """Allowlisted helper diagnostics, never captured credential output."""
 
-    def __init__(self, code: str, *, exit_status: int | None = None) -> None:
+    def __init__(self, code: str, *, exit_status: int | None = None,
+                 stage: str = "credential_helper", elapsed_sec: float | None = None) -> None:
         super().__init__(f"Credential refresh: {code}")
         self.code = code
         self.exit_status = exit_status
+        self.stage = stage
+        self.elapsed_sec = elapsed_sec
         self.diagnostic_id = uuid.uuid4().hex
 
 
@@ -74,6 +83,9 @@ def is_confirmed_rejection(error: BaseException) -> bool:
 def error_response(error: BaseException, *, effect_possible: bool = False) -> dict[str, Any]:
     """Describe an error by effect evidence, never by exception class alone."""
     status = getattr(error, "http_status", None)
+    not_dispatched = (isinstance(error, (InputContractError, DataLensSafetyError, WritePreconditionError))
+                      or getattr(error, "dispatch_state", None) == "not_dispatched")
+    effect_possible = effect_possible and not not_dispatched
     if isinstance(error, InputContractError):
         code = "input_error"
         action = "Correct the stated input contract; the request was rejected before provider dispatch."
@@ -97,7 +109,8 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
     elif isinstance(error, DataLensApiError):
         code = {401: "authentication_failed", 403: "permission_denied", 404: "not_found",
                 409: "revision_conflict", 412: "revision_conflict"}.get(status)
-        code = code or ("provider_rejected" if is_confirmed_rejection(error) else "provider_error")
+        code = code or (error.remote_code if error.remote_code in {"response_too_large", "invalid_json", "invalid_response", "read_budget_exhausted"}
+                        else "provider_rejected" if is_confirmed_rejection(error) else "provider_error")
         action = {
             "authentication_failed": "The API rejected the credential. Use dl_auth_check and the configured authentication recovery; verify API access before resuming the original read.",
             "permission_denied": "The API denied this scope. Check access to the exact target; a 403 alone does not require login or credential refresh.",
@@ -105,6 +118,10 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
             "revision_conflict": "Read the current full target, preserve manual changes, then recompute the patch.",
             "provider_rejected": "Correct the rejected request using its reference contract before a new attempt.",
             "provider_error": "Retry the scoped read when the provider is available.",
+            "response_too_large": "Use a smaller page or bounded query. For a required full object, configure a reviewed larger response limit; no truncated state is usable for writes.",
+            "invalid_json": "Check the selected API endpoint and response contract; no response body is echoed.",
+            "invalid_response": "Check the exact endpoint response contract; incomplete state cannot prove absence.",
+            "read_budget_exhausted": "The bounded read budget expired; resume the exact safe read when the provider is available.",
         }[code]
     elif isinstance(error, (ValueError, TypeError)):
         code, action = "input_error", "Correct the indicated argument using tools/list inputSchema; no provider call is needed."
@@ -112,9 +129,15 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
         code, action = "internal_error", "Inspect the local failure before continuing."
     result: dict[str, Any] = {"ok": False, "status": code, "code": code,
                               "error": safe_error_text(error), "next_action": action}
+    if not_dispatched:
+        result.update(dispatch_state="not_dispatched", effect_outcome="not_applied")
+    elif effect_possible or isinstance(error, UncertainWriteError):
+        result.update(dispatch_state="dispatched", effect_outcome="not_applied" if is_confirmed_rejection(error) else "unknown")
     if status is not None:
         result["http_status"] = status
     if isinstance(error, CredentialRefreshError):
         result["diagnostic_id"] = error.diagnostic_id
         result["helper_exit_status"] = error.exit_status
+        result["stage"] = error.stage
+        result["elapsed_sec"] = error.elapsed_sec
     return result

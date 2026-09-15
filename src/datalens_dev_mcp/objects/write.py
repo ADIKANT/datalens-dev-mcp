@@ -100,10 +100,13 @@ class ObjectMutationService:
     ) -> dict[str, Any]:
         current = self.reader.object_get(object_type, object_id, branch="saved")
         proposed = semantic_merge(current["object"], patch)
+        changes = semantic_diff(current["object"], proposed)
         result = {
             "ok": True,
             "identity": current["identity"],
-            "changes": semantic_diff(current["object"], proposed),
+            "changes": _compact_diff(changes),
+            "changed_field_count": len(changes),
+            "diff_complete": len(changes) <= 50,
         }
         if include_proposed:
             result["proposed"] = proposed
@@ -145,7 +148,8 @@ class ObjectMutationService:
                     if row["status"] == "completed" and row.get("target")
                 }
                 draft = bind_object_references(draft, ids)
-                item["desired"] = _recordable(draft.get("snapshot") or draft.get("draft") or {})
+                item["intent"] = _create_intent(draft, destination)
+                item["desired"] = _create_desired(draft)
                 self._begin(record, item)
                 response = self.backend.create(draft, destination)
                 object_id = str(response.get("object_id") or response.get("id") or "")
@@ -204,10 +208,12 @@ class ObjectMutationService:
                     continue
                 patch = deepcopy(change.get("patch") or {})
                 proposed = semantic_merge(current["object"], patch)
+                absent_paths = _remove_dashboard_params(proposed, change)
                 item.update(
                     target={"object_type": object_type, "object_id": object_id},
                     desired=_recordable(patch),
                     expected_revision=actual_revision or None,
+                    absent_paths=absent_paths,
                     changes=semantic_diff(_recordable(current["object"]), _recordable(proposed)),
                 )
                 if _json_equal(current["object"], proposed):
@@ -328,13 +334,15 @@ class ObjectMutationService:
             status="uncertain",
             code="write_outcome_unknown",
             write_returned=False,
+            dispatch_state="dispatch_pending",
+            effect_outcome="unknown",
             next_action="Inspect this operation_id and reconcile exact target readback; do not replay the write.",
         )
         item.pop("error", None)
         self._save(record)
 
     def _returned(self, record: dict[str, Any], item: dict[str, Any], response: dict[str, Any]) -> None:
-        item.update(write_returned=True, code="readback_pending")
+        item.update(write_returned=True, code="readback_pending", dispatch_state="dispatched", effect_outcome="unknown")
         value = response.get("object") or {}
         item["returned_revision"] = value.get("revId") or value.get("rev_id")
         self._save(record)
@@ -357,6 +365,7 @@ class ObjectMutationService:
         content_matches = _readback_contains(
             readback.get("object") or {}, _readback_intent(target["object_type"], desired)
         )
+        content_matches = content_matches and all(_path_absent(payload, path) for path in item.get("absent_paths", []))
         returned_revision = item.get("returned_revision")
         # Some official SDK update builders return their pre-write target
         # snapshot even though the provider has already advanced the object.
@@ -373,6 +382,7 @@ class ObjectMutationService:
         if _usable_full_read(readback) and correct_identity and content_matches and revision_matches:
             item.update(status="completed", code="readback_verified", observed_revision=identity.get("revision_id"))
             item["evidence"] = f"{allowed_branch}_readback"
+            item["effect_outcome"] = "applied"
             item.pop("error", None)
             item.pop("next_action", None)
         else:
@@ -389,9 +399,12 @@ class ObjectMutationService:
         effect_possible = item.get("status") == "uncertain" or bool(item.get("write_returned"))
         # A rejection during readback cannot undo an already returned write.
         detail = error_response(exc, effect_possible=effect_possible)
+        if not effect_possible:
+            detail.update(dispatch_state="not_dispatched", effect_outcome="not_applied")
         uncertain = bool(item.get("write_returned")) or detail["code"] == "write_outcome_unknown"
         if uncertain:
             detail = error_response(UncertainWriteError(safe_error_text(exc)))
+        item.update({key: detail[key] for key in ("dispatch_state", "effect_outcome") if key in detail})
         item.update(
             status="uncertain" if uncertain else "failed",
             error=detail["error"],
@@ -457,6 +470,73 @@ class ObjectMutationService:
                     "operation persistence failed; inspect the durable receipt and reconcile"
                 ) from exc
             raise
+
+
+def _create_intent(draft: dict[str, Any], destination: dict[str, Any]) -> dict[str, Any]:
+    # Keep private source in the existing receipt only; compact identity and a
+    # digest survive lost create IDs without pretending to be provider idempotency.
+    result = {key: draft[key] for key in ("object_type", "name", "client_ref", "variant")
+              if isinstance(draft.get(key), str)}
+    result["destination"] = {key: destination[key] for key in ("workbook_id", "collection_id", "path") if key in destination}
+    result["content_sha256"] = _digest(_recordable(draft))
+    result["content_fields"] = sorted(_recordable(draft))
+    for kind in ("dataset", "wizard"):
+        specification = draft.get(kind)
+        if isinstance(specification, dict):
+            result["bindings"] = {key: specification[key] for key in ("connection_id", "dataset_id")
+                                  if isinstance(specification.get(key), str)}
+    return result
+
+
+def _create_desired(draft: dict[str, Any]) -> dict[str, Any]:
+    snapshot = draft.get("snapshot") or draft.get("draft")
+    if isinstance(snapshot, dict) and snapshot:
+        return _recordable(snapshot)
+    desired = {"name": draft["name"]} if draft.get("name") else {}
+    tabs = draft.get("tabs")
+    if isinstance(tabs, dict):
+        desired["data"] = {_EDITOR_ARTIFACT_TABS[key]: value for key, value in tabs.items() if key in _EDITOR_ARTIFACT_TABS}
+    return _recordable(desired)
+
+
+def _compact_diff(changes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def compact(value: Any) -> Any:
+        encoded = json.dumps(value, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        if len(encoded) <= 300:
+            return deepcopy(value)
+        return {"value_omitted": True, "json_bytes": len(encoded), "sha256": hashlib.sha256(encoded).hexdigest()}
+    return [{"path": row["path"], "before": compact(row["before"]), "after": compact(row["after"])}
+            for row in changes[:50]]
+
+
+def _remove_dashboard_params(proposed: dict[str, Any], change: dict[str, Any]) -> list[list[str]]:
+    names = change.get("remove_global_params")
+    if names is None:
+        return []
+    if (change.get("object_type") != "dashboard" or not change.get("expected_revision")
+            or not isinstance(names, list) or not names
+            or any(not isinstance(name, str) or not name for name in names)):
+        raise InputContractError("remove_global_params requires a dashboard, named keys and fresh expected_revision")
+    entry = proposed.get("entry", proposed)
+    if not isinstance(entry, dict) or not isinstance(entry.get("data"), dict):
+        raise InputContractError("Dashboard data container is unavailable")
+    settings = entry["data"].get("settings")
+    params = settings.get("globalParams") if isinstance(settings, dict) else None
+    if not isinstance(params, dict):
+        raise InputContractError("Dashboard settings.globalParams must be an object")
+    prefix = ["entry"] if "entry" in proposed else []
+    for name in names:
+        params.pop(name, None)
+    return [prefix + ["data", "settings", "globalParams", name] for name in names]
+
+
+def _path_absent(payload: dict[str, Any], path: list[str]) -> bool:
+    value = payload
+    for key in path[:-1]:
+        if not isinstance(value, dict) or key not in value:
+            return False
+        value = value[key]
+    return isinstance(value, dict) and path[-1] not in value
 
 
 def _resolve_update_change(change: dict[str, Any]) -> dict[str, Any]:

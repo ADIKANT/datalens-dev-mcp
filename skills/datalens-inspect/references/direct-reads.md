@@ -23,3 +23,9 @@ text({ok: value.ok, identity: value.identity, full_state: value.full_state});
 ```
 
 Select the actual fields needed for the next decision separately; return a failed tool's compact error rather than treating missing state as an empty object. Private state is not durable backup across a process restart.
+
+Inventory validates its endpoint-specific container and item identities. A malformed page returns `ok=false`, `complete=false`, prior valid objects and numeric `failed_page`/`next_page`; it cannot prove emptiness or absence. Keep numeric workbook continuation separate from opaque relation tokens. Reuse a complete current inventory across independent reads; refresh only for changed scope/revisions, stale evidence, or the relevant mutation preflight.
+
+The direct HTTP reader bounds response bytes and read time, closes responses, and returns explicit size/JSON failures without login HTML or silent truncation. Use smaller inventory pages or a bounded Dataset query when possible. For a required full object exceeding the configured limit, stop replacement and review a larger `DATALENS_MAX_RESPONSE_BYTES` limit (default 32 MiB, maximum 256 MiB). Projections are formed after a full provider read and cannot bypass a transport limit. `DATALENS_READ_BUDGET_SEC` bounds safe-read attempts (default 60 seconds); only transient read errors get bounded backoff/Retry-After. Writes are never retried by this path.
+
+`dl_object_diff` compares the complete target locally and returns up to 50 paths; large values are represented by byte counts and hashes. `changed_field_count` and `diff_complete` describe coverage. Request `include_proposed=true` only when full local state is actually needed, and select model-facing evidence before emitting it. Server writes still compare and verify the complete state.

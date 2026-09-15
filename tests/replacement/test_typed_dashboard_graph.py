@@ -186,7 +186,15 @@ def test_dependency_batch_binds_dataset_three_charts_selector_and_dashboard_ids(
         ("editor_chart", "selector-id"),
         ("dashboard", "dashboard-id"),
     ]
-    replies = {(kind, object_id, "saved"): [rb(kind, object_id, "r1", {})] for kind, object_id in identities}
+    names = ["Synthetic", "KPI", "Trend", "Table", "Selector", "Dashboard"]
+    replies = {(kind, object_id, "saved"): [rb(kind, object_id, "r1", {"name": name})]
+               for (kind, object_id), name in zip(identities, names)}
+    replies[("editor_chart", "table-id", "saved")][0]["object"]["data"] = {
+        "meta": "{}", "params": "module.exports={};", "sources": "", "prepare": "", "controls": "",
+    }
+    replies[("editor_chart", "selector-id", "saved")][0]["object"]["data"] = {
+        "meta": "{}", "params": "module.exports={};", "controls": "",
+    }
     replies[("dataset", "dataset-id", "saved")][0]["identity"]["branch"] = "unbranched"
     reader = FakeReader(replies)
     id_by_ref = {

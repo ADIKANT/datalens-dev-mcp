@@ -605,7 +605,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_object_update",
-        "description": "Apply narrow saved-object patches with revision checks and per-object saved readback; exact no-ops return no_change without writing. Results include changed paths and a private receipt address. A compiled Editor artifact update places artifact_path beside object_type/object_id/expected_revision; its tabs are mapped into saved data without echoing renderer source.",
+        "description": "Apply narrow saved-object patches with revision checks and per-object saved readback; exact no-ops return no_change without writing. Results include changed paths and a private receipt address. For removal of only named dashboard settings.globalParams keys use remove_global_params with expected_revision. A compiled Editor artifact update places artifact_path beside object_type/object_id/expected_revision; its tabs are mapped into saved data without echoing renderer source.",
         "inputSchema": {
             "type": "object",
             "properties": {

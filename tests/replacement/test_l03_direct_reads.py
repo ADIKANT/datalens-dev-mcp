@@ -208,3 +208,24 @@ def test_inspect_skill_routes_reads_without_legacy_state() -> None:
     assert "legacy manifest" in skill
     assert "dl_dashboard_snapshot" in reference
     assert "target" in reference and "reference" in reference
+
+
+@pytest.mark.parametrize("page", [{}, {"entries": None}, {"entries": False}, {"workbooks": []},
+                                   {"entries": [None, {}]}, {"entries": [{"id": 7}]},
+                                   {"entries": [], "nextPageToken": 1}])
+def test_invalid_inventory_retains_partial_results_and_numeric_continuation(page):
+    api = FakeApi({"getWorkbookEntries": [
+        {"entries": [{"entryId": "kept", "scope": "dataset"}], "nextPageToken": "next"}, page,
+    ]})
+    result = ObjectReadService(api=api, sdk=FakeSdk({})).workbook_entries("synthetic")
+    assert result["ok"] is False and result["complete"] is False
+    assert result["code"] == "invalid_response"
+    assert result["failed_page"] == result["next_page"] == 1
+    assert result["objects"][0]["id"] == "kept"
+
+
+@pytest.mark.parametrize("method,container", [("getWorkbookEntries", "entries"), ("getWorkbooksList", "workbooks")])
+def test_valid_empty_inventory_is_complete(method, container):
+    reader = ObjectReadService(api=FakeApi({method: [{container: []}]}), sdk=FakeSdk({}))
+    result = reader.workbook_entries("synthetic") if container == "entries" else reader.workbooks_list()
+    assert result["ok"] is True and result["complete"] is True and result["object_count"] == 0

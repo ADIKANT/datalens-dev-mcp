@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+import time
 from pathlib import Path
 
 from datalens_dev_mcp.api.errors import CredentialRefreshError
@@ -18,6 +19,7 @@ def refresh_iam_token_with_yc(*, yc_binary: str = "yc", timeout_sec: float = 15.
         if system_path not in path_entries:
             path_entries.append(system_path)
     env["PATH"] = os.pathsep.join(dict.fromkeys(path_entries))
+    started = time.monotonic()
     try:
         result = subprocess.run(
             [yc_binary, "iam", "create-token", "--no-browser", "--no-user-output"],
@@ -29,9 +31,10 @@ def refresh_iam_token_with_yc(*, yc_binary: str = "yc", timeout_sec: float = 15.
             env=env,
         )
     except subprocess.TimeoutExpired as exc:
-        raise CredentialRefreshError("credential_refresh_timeout") from exc
+        raise CredentialRefreshError("credential_refresh_timeout", elapsed_sec=round(time.monotonic() - started, 3)) from exc
     except OSError as exc:
-        raise CredentialRefreshError("credential_helper_unavailable") from exc
+        raise CredentialRefreshError("credential_helper_unavailable", stage="helper_launch",
+                                     elapsed_sec=round(time.monotonic() - started, 3)) from exc
     if result.returncode != 0:
         # Only an explicit helper instruction establishes interactive recovery.
         # Inspect stderr locally, but never return it (or stdout) to callers.
@@ -41,9 +44,10 @@ def refresh_iam_token_with_yc(*, yc_binary: str = "yc", timeout_sec: float = 15.
         ) is not None
         raise CredentialRefreshError(
             "interactive_login_required" if login_required else "credential_refresh_failed",
-            exit_status=result.returncode,
+            exit_status=result.returncode, elapsed_sec=round(time.monotonic() - started, 3),
         )
     token = result.stdout.strip()
     if not token or any(character.isspace() for character in token):
-        raise CredentialRefreshError("credential_invalid")
+        raise CredentialRefreshError("credential_invalid", stage="credential_validation",
+                                     elapsed_sec=round(time.monotonic() - started, 3))
     return token

@@ -15,6 +15,14 @@ Ask only when the target or effect remains ambiguous, the solution materially ex
 
 Native permission events remain host-controlled. Automatic reviewer `outcome=allow` is not a pending human response. Do not bypass a refusal, modify global configuration, or edit external skills. An external design process remains external; do not attribute its requirements to this plugin or introduce a second domain approval ceremony.
 
+## Unknown outcomes and repeat effects
+
+A retry requires a result: reliable `not_applied` evidence or a confirmed rejection before dispatch, or separate informed user authorization for another possible effect after explaining the duplicate risk. An attempted but unsuccessful reconcile, `identity_lookup_unavailable`, a lost object ID, and absence from inventory or name search do not prove non-application. A new `operation_id` does not make a repeat safe; general workbook authorization does not accept duplicate risk.
+
+Keep the original operation ID and receipt. Inspect its prepared identity/destination, client reference, significant fields and content hash; do not print full source. Reconcile exact targets when available. If reliable identity is unavailable, retain unknown and continue independent authorized work. Do not recreate the missing-ID object to finish a batch. A documented provider idempotency guarantee can permit replay with the same key, but the presence of an operation_id in this plugin is only a local receipt binding and is not such a guarantee.
+
+`not_dispatched` / `not_applied` describes a proven preparation failure. A provider rejection after one dispatch is distinct from a missing response or possible composite effect. Inspect both per-item and overall outcomes; never replay completed items in a partial batch. Historical unknown receipts remain unknown without new evidence.
+
 ## Compact continuation
 
 Use an existing project `AGENTS.md` or `CONTEXT.md` for a long handoff only when continuation needs it. Record the current scope; exact targets and branches; accepted decision and source version; verified results; uncertain operation IDs; remaining objects; and the conditions that require a fresh read. A current bounded request is authority for that scope; an old plan is context, not authority for a new write, publish, or cleanup.

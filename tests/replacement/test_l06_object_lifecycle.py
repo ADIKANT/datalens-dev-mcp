@@ -199,8 +199,8 @@ def test_revision_drift_blocks_write(tmp_path: Path) -> None:
 def test_partial_batch_resumes_without_repeating_first_effect(tmp_path: Path) -> None:
     reader = FakeReader(
         {
-            ("editor_chart", "one", "saved"): [rb("editor_chart", "one", "r1", {"id": "one"})],
-            ("editor_chart", "two", "saved"): [rb("editor_chart", "two", "r1", {"id": "two"})],
+            ("editor_chart", "one", "saved"): [rb("editor_chart", "one", "r1", {"id": "one", "name": "One"})],
+            ("editor_chart", "two", "saved"): [rb("editor_chart", "two", "r1", {"id": "two", "name": "Two"})],
         }
     )
     backend = FakeBackend(
