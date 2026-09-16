@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.9
+
+- Route known targets to addressed reads, reserving workbook inventory for discovery and completeness claims. Clarify bounded handoffs and model-facing projections in the existing skills and tool help.
+- Document current-connection readiness, array/key semantics and grain checks before upstream-dependent metric changes, while completing independent authorized work.
+- Show subtype-specific Editor tab projection without replacing the provider snapshot. Make publication scope and restoration of only the caller's own delta explicit; retain existing readback and uncertain-effect guarantees.
+
 ## 1.2.8
 
 - Distinguish preparation failures from dispatched and composite mutation outcomes. Retain compact create intent before dispatch and require positive non-application evidence before repeating unknown effects.

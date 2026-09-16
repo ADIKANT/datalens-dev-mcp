@@ -410,7 +410,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_workbook_entries",
-        "description": "List workbook entries across numeric pages (up to 200 per page), retaining scope, renderer subtype, typed identity and completeness.",
+        "description": "Discover workbook entries or establish inventory completeness across numeric pages (up to 200 per page). Retains scope, renderer subtype, typed identity and completeness. A known target uses dl_object_get directly; a partial listing cannot prove absence.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -425,7 +425,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_object_get",
-        "description": "Read one typed DataLens object by exact type, ID, branch and optional revision.",
+        "description": "Read one known DataLens target by exact type, ID, branch and optional revision; no preceding workbook inventory is needed. Use summary/projection for scoped inspection and retain full state for preservation or replacement.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -554,7 +554,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_editor_validate",
-        "description": "Validate one Editor draft or a mixed typed draft batch, including artifact references, without execution.",
+        "description": "Validate one Editor draft or a mixed typed draft batch, including artifact references, without execution. An Editor draft uses the observed variant and filename-keyed tabs (meta.json, params.js, etc.), not raw provider data keys. Required tabs depend on subtype; a static draft does not replace the full saved snapshot.",
         "inputSchema": {
             "type": "object",
             "properties": {

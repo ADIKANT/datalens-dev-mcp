@@ -7,7 +7,7 @@ description: Use when composing, updating, or visually verifying DataLens dashbo
 
 Apply explicit requirements, then the explicit reference, project defaults, user defaults and the generic recipe. Keep object name, visible title, hint and geometry separate. Preserve current tabs, widgets, relations and manual layout outside the requested change.
 
-For an explicitly supplied workbook, establish its live card and complete paginated inventory before selecting a dashboard or creating a group. Use the actual chart subtype/renderer to route dependencies; preserve unknown types for addressed discovery. Project examples and browser tabs supply context, never a replacement target.
+If the dashboard is known, confirm its current identity, parent and affected bindings through addressed reads; a supplied workbook URL does not add a full inventory step. Establish the workbook card and complete inventory when the target or requested group must be discovered, or completeness/absence must be proved. Reuse sufficient current evidence. Route dependencies by actual subtype/renderer; keep unknown types explicit. Project examples and browser tabs supply context, never a replacement target.
 
 For a single metadata field, read the exact object and send a narrow patch; no graph traversal or Browser tour is needed. For selector/layout or dependency changes, read [composition](references/composition.md) and only the affected bindings. For new composition, validate the complete draft batch with `dl_editor_validate(drafts=...)`; carry a compiled recipe's `visual_contract` into item `presentation`. Retain raw snapshots for exact imports or documented adapter gaps.
 

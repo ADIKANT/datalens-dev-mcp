@@ -1,5 +1,7 @@
 # Direct reads
 
+Choose the smallest sufficient scope. Read an exact known object first; discover an unknown target with inventory of its requested workbook. Complete inventory is necessary for completeness/absence claims, large-set discovery and the applicable cleanup contract, not for every known-target edit. Read current project `AGENTS.md`/`CONTEXT.md` when present and only their relevant sources; a project manifest is navigation, never a mandatory runtime input.
+
 - Use `dl_auth_check` only for a harmless access probe. It does not inspect a workbook graph.
 - Use `dl_workbooks_list` or `dl_workbook_entries` for inventory. These tools traverse numeric pages internally up to `max_pages`; a returned `next_page_token` means the result is still partial, not a token accepted by these tools. Use a sufficient page bound for complete inventory. A repeated-token result is a provider/contract diagnostic, not a reason to keep raising the bound. Entry pages contain at most 200 objects. `type` retains the provider scope; `object_type` gives the typed read route and `subtype` preserves the actual renderer. Unknown subtypes stay explicit. To inspect a workbook itself, use `dl_object_get(object_type="workbook", object_id=...)`: its name, description and revision belong to the workbook object. An entry listing describes its contents; even a complete empty listing does not verify workbook metadata or its current revision.
 - Use `dl_object_get` with an exact object type and ID. Set `branch` explicitly when saved versus published state matters, and use `revision_id` only when the user supplied or a prior read returned it. Use `view="summary"` for identity/version/completeness, or `view="projection"` with RFC 6901 `fields` such as `["/dataset/description"]` for exact paths. A non-full result has `full_state=false` and supplies `full_read`; follow that exact tool address before replacement. Never pass summary/projection output to a full-object update. `view="full"` remains backward compatible.
@@ -12,7 +14,7 @@ Dataset query success is data evidence, not proof of a saved or published chart.
 
 ## Retain full state without dumping it
 
-Prefer the tool's summary/projection views for inspection. When a full snapshot is needed for preservation, retain `structuredContent` in the caller's private state or authorized output file, then select model-facing fields **before** calling `text()` or serializing a wrapper. Emit identity/revision, selected bindings, completeness and errors once; do not print both `content` and `structuredContent`. Printing a full payload and truncating afterward loses evidence and context. Keep full reads and saved/published readback available for safe writes.
+Prefer the tool's summary/projection views for inspection. When a full snapshot is needed for preservation, retain `structuredContent` in the caller's private state or authorized output file, then select model-facing fields **before** calling `text()` or serializing a wrapper. Emit identity/revision, the changed fragment or selected bindings, completeness and errors once; do not print both `content` and `structuredContent`. Several bounded replies can still exceed the output budget when combined: compare/filter each result programmatically and bound the combined projection before returning it to the model. Keep complete payloads/JavaScript in private state or files. Printing a full payload and truncating afterward loses evidence; truncated JSON is not a complete snapshot. Keep full reads and saved/published readback available for safe writes.
 
 In a host with `store`/`text`, for a successful full object read already held as `result`:
 
@@ -23,6 +25,8 @@ text({ok: value.ok, identity: value.identity, full_state: value.full_state});
 ```
 
 Select the actual fields needed for the next decision separately; return a failed tool's compact error rather than treating missing state as an empty object. Private state is not durable backup across a process restart.
+
+Use the current schema of the needed tool for argument names, shapes and bounds; do not print the whole tool catalogue or copy a historical limit into a different host. Correct an alias/shape error from its exact field path before dispatch. Independent reads may share an unchanged credential when the host supports concurrency; inspect every result. Serialize credential refresh, same-target writes and dependent batches. Do not add a concurrent dispatcher or timeout change without evidence of a relevant failure or benefit.
 
 Inventory validates its endpoint-specific container and item identities. A malformed page returns `ok=false`, `complete=false`, prior valid objects and numeric `failed_page`/`next_page`; it cannot prove emptiness or absence. Keep numeric workbook continuation separate from opaque relation tokens. Reuse a complete current inventory across independent reads; refresh only for changed scope/revisions, stale evidence, or the relevant mutation preflight.
 
