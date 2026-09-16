@@ -96,10 +96,22 @@ class ObjectMutationService:
         self.store = store or OperationStore()
 
     def diff(
-        self, object_type: str, object_id: str, patch: dict[str, Any], *, include_proposed: bool = False
+        self, object_type: str, object_id: str, patch: dict[str, Any] | None = None, *,
+        dashboard_patch: dict[str, Any] | None = None, include_proposed: bool = False
     ) -> dict[str, Any]:
+        if (patch is None) == (dashboard_patch is None):
+            raise InputContractError("Supply exactly one of patch or dashboard_patch")
+        if dashboard_patch is not None and object_type != "dashboard":
+            raise InputContractError("dashboard_patch requires object_type dashboard")
         current = self.reader.object_get(object_type, object_id, branch="saved")
-        proposed = semantic_merge(current["object"], patch)
+        if dashboard_patch is not None:
+            from datalens_dev_mcp.dashboard.composition import apply_dashboard_patch
+
+            if not _usable_full_read(current):
+                raise InputContractError("dashboard_patch requires complete full saved state")
+            proposed, _ = apply_dashboard_patch(current["object"], dashboard_patch)
+        else:
+            proposed = semantic_merge(current["object"], patch)
         changes = semantic_diff(current["object"], proposed)
         result = {
             "ok": True,
@@ -208,6 +220,11 @@ class ObjectMutationService:
                     continue
                 patch = deepcopy(change.get("patch") or {})
                 proposed = semantic_merge(current["object"], patch)
+                if "dashboard_patch" in change:
+                    from datalens_dev_mcp.dashboard.composition import apply_dashboard_patch
+
+                    proposed, patch = apply_dashboard_patch(current["object"], change["dashboard_patch"])
+                    item["exact_dashboard_tabs"] = True
                 absent_paths = _remove_dashboard_params(proposed, change)
                 item.update(
                     target={"object_type": object_type, "object_id": object_id},
@@ -366,6 +383,13 @@ class ObjectMutationService:
             readback.get("object") or {}, _readback_intent(target["object_type"], desired)
         )
         content_matches = content_matches and all(_path_absent(payload, path) for path in item.get("absent_paths", []))
+        if item.get("exact_dashboard_tabs"):
+            expected_entry = desired.get("entry", desired)
+            actual_entry = payload.get("entry", payload)
+            actual_data = actual_entry.get("data") if isinstance(actual_entry, dict) else None
+            content_matches = content_matches and isinstance(actual_data, dict) and _json_equal(
+                actual_data.get("tabs"), expected_entry["data"]["tabs"]
+            )
         returned_revision = item.get("returned_revision")
         # Some official SDK update builders return their pre-write target
         # snapshot even though the provider has already advanced the object.
@@ -540,6 +564,15 @@ def _path_absent(payload: dict[str, Any], path: list[str]) -> bool:
 
 
 def _resolve_update_change(change: dict[str, Any]) -> dict[str, Any]:
+    if "dashboard_patch" in change:
+        from jsonschema import Draft202012Validator
+
+        from datalens_dev_mcp.schemas.tool_inputs import CHANGE
+
+        invalid = next(Draft202012Validator(CHANGE).iter_errors(change), None)
+        if invalid is not None:
+            path = "/".join(str(part) for part in invalid.path) or "change"
+            raise InputContractError(f"Invalid dashboard_patch at {path} ({invalid.validator}); use dl_object_update schema")
     patch = change.get("patch")
     if isinstance(patch, dict) and (patch.get("full_state") is False or patch.get("read_view", "full") != "full"):
         raise InputContractError(

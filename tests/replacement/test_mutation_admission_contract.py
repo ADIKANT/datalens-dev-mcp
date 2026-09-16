@@ -509,3 +509,149 @@ def test_named_dashboard_parameter_removal_preserves_neighbors_and_verifies_abse
                 {"path": "/entry/data/settings/globalParams/remove", "before": [], "after": None}]
         else:
             assert backend.calls == []
+
+
+def compact_dashboard_case():
+    before = {"entry": {"data": {"settings": {"keep": True}, "tabs": [
+        {"id": "overview", "title": "Overview", "aliases": {"default": [["period"]]},
+         "items": [{"id": "manual", "type": "future_widget", "data": {"body": "x" * 210_000}},
+                   {"id": "remove", "type": "text", "data": {"text": "temporary"}}],
+         "layout": [{"i": "manual", "x": 1, "y": 4, "w": 10, "h": 8, "parent": "fixed"},
+                    {"i": "remove", "x": 1, "y": 12, "w": 10, "h": 2}],
+         "connections": [{"from": "selector", "to": "remove", "kind": "ignore"}],
+         "unknown": {"preserve": [True, 1]}},
+        {"id": "neighbor", "title": "Untouched", "items": [{"id": "other", "data": {"keep": True}}]},
+    ]}}}
+    new_item = {"id": "new", "type": "widget", "data": {"chartId": "synthetic-chart"}}
+    new_layout = {"i": "new", "x": 1, "y": 20, "w": 10, "h": 8}
+    new_connection = {"from": "selector", "to": "new", "kind": "ignore"}
+    delta = {"tabs": [{"id": "overview", "patch": {"aliases": {"default": [["period", "new_period"]]}},
+                      "items": {"add": [new_item], "remove": ["remove"]},
+                      "layout": {"add": [new_layout], "update": [{"i": "manual", "patch": {"y": 6}}],
+                                 "remove": ["remove"]},
+                      "connections": {"add": [new_connection], "remove": [{"from": "selector", "to": "remove"}]}}]}
+    after = copy.deepcopy(before)
+    tab = after["entry"]["data"]["tabs"][0]
+    tab["aliases"]["default"][0].append("new_period")
+    tab["items"] = [tab["items"][0], new_item]
+    tab["layout"] = [{**tab["layout"][0], "y": 6}, new_layout]
+    tab["connections"] = [new_connection]
+    change = {"object_type": "dashboard", "object_id": "synthetic", "expected_revision": "r1",
+              "dashboard_patch": delta}
+    return before, after, change
+
+
+@pytest.mark.parametrize("mode", ["applied", "stale", "missing_neighbor", "wrong_type", "partial", "lost_response"])
+def test_compact_dashboard_update_preserves_complete_tabs_and_existing_lifecycle(tmp_path, mode):
+    from test_l06_object_lifecycle import FakeBackend, FakeReader, rb, service
+
+    from datalens_dev_mcp.api.errors import UncertainWriteError
+    from datalens_dev_mcp.server import call_tool
+
+    before, wanted, change = compact_dashboard_case()
+    observed = copy.deepcopy(wanted)
+    if mode == "stale":
+        change["expected_revision"] = "stale"
+    elif mode == "missing_neighbor":
+        observed["entry"]["data"]["tabs"].pop()
+    elif mode == "wrong_type":
+        observed["entry"]["data"]["tabs"][0]["unknown"]["preserve"][0] = 1
+    readback = rb("dashboard", "synthetic", "r2", observed)
+    if mode == "partial":
+        readback["full_state"] = False
+    reader = FakeReader({("dashboard", "synthetic", "saved"): [
+        rb("dashboard", "synthetic", "r1", before), readback]})
+    backend = FakeBackend([UncertainWriteError("lost response") if mode == "lost_response"
+                           else {"object_id": "synthetic", "object": {"revId": "r2"}}])
+    writer = service(tmp_path, reader, backend)
+    with patch("datalens_dev_mcp.server.default_mutation_service", return_value=writer):
+        result = call_tool("dl_object_update", {"changes": [change], "operation_id": "compact"})["structuredContent"]
+    assert result["status"] == {"applied": "completed", "stale": "blocked"}.get(mode, "uncertain")
+    assert len(json.dumps(change).encode()) < 2000
+    assert len(json.dumps(before).encode()) > 200_000
+    if mode == "stale":
+        assert backend.calls == []
+    else:
+        assert len(backend.calls) == 1
+        assert backend.calls[0][1]["snapshot"] == wanted
+        # Receipt replay, including unknown writes, never dispatches again.
+        assert writer.update_objects([change], operation_id="compact")["status"] == result["status"]
+        assert len(backend.calls) == 1
+
+
+@pytest.mark.parametrize("invalid", ["no_revision", "wrong_object", "mixed_modes", "mixed_no_revision",
+                                     "mixed_wrong_object", "tab_array", "empty_delta", "identity_patch"])
+def test_compact_dashboard_update_schema_rejects_ambiguous_requests_before_reads(invalid):
+    from datalens_dev_mcp.server import call_tool
+
+    _, _, change = compact_dashboard_case()
+    if invalid == "no_revision":
+        del change["expected_revision"]
+    elif invalid == "wrong_object":
+        change["object_type"] = "editor_chart"
+    elif invalid.startswith("mixed_"):
+        change["patch"] = {"name": "not allowed"}
+        if invalid == "mixed_no_revision":
+            del change["expected_revision"]
+        elif invalid == "mixed_wrong_object":
+            change["object_type"] = "editor_chart"
+    elif invalid == "tab_array":
+        change["dashboard_patch"]["tabs"][0]["patch"]["items"] = []
+    elif invalid == "identity_patch":
+        change["dashboard_patch"]["tabs"][0]["layout"]["update"][0]["patch"]["i"] = "other"
+    else:
+        change["dashboard_patch"]["tabs"][0] = {"id": "overview"}
+    with patch("datalens_dev_mcp.server.default_mutation_service") as service_mock:
+        result = call_tool("dl_object_update", {"changes": [change]})["structuredContent"]
+    assert result["code"] == "input_error"
+    service_mock.assert_not_called()
+
+
+@pytest.mark.parametrize("invalid", ["missing_tab", "duplicate_tab", "missing_item", "duplicate_item", "mixed_identity"])
+def test_compact_dashboard_addresses_fail_before_dispatch(tmp_path, invalid):
+    from test_l06_object_lifecycle import FakeBackend, FakeReader, rb, service
+
+    from datalens_dev_mcp.server import call_tool
+
+    before, _, change = compact_dashboard_case()
+    tab = change["dashboard_patch"]["tabs"][0]
+    if invalid == "missing_tab":
+        tab["id"] = "missing"
+    elif invalid == "duplicate_tab":
+        before["entry"]["data"]["tabs"].append(copy.deepcopy(before["entry"]["data"]["tabs"][0]))
+    elif invalid == "missing_item":
+        tab["items"]["remove"] = ["missing"]
+    elif invalid == "duplicate_item":
+        tab["items"]["add"][0]["id"] = "manual"
+    else:
+        tab["layout"]["remove"].append("manual")
+    reader = FakeReader({("dashboard", "synthetic", "saved"): [rb("dashboard", "synthetic", "r1", before)]})
+    backend = FakeBackend([])
+    with patch("datalens_dev_mcp.server.default_mutation_service", return_value=service(tmp_path, reader, backend)):
+        result = call_tool("dl_object_update", {"changes": [change]})["structuredContent"]
+    assert result["results"][0]["code"] == "input_error"
+    assert result["results"][0]["effect_outcome"] == "not_applied"
+    assert backend.calls == []
+
+
+def test_compact_dashboard_diff_and_no_change_do_not_write(tmp_path):
+    from test_l06_object_lifecycle import FakeBackend, FakeReader, rb, service
+
+    from datalens_dev_mcp.server import call_tool
+
+    before, wanted, change = compact_dashboard_case()
+    reader = FakeReader({("dashboard", "synthetic", "saved"): [rb("dashboard", "synthetic", "r1", before)]})
+    backend = FakeBackend([])
+    writer = service(tmp_path, reader, backend)
+    with patch("datalens_dev_mcp.server.default_mutation_service", return_value=writer):
+        result = call_tool("dl_object_diff", {"object_type": "dashboard", "object_id": "synthetic",
+                           "dashboard_patch": change["dashboard_patch"]})["structuredContent"]
+        assert result["ok"] and result["changes"][0]["after"]["value_omitted"]
+        assert len(json.dumps(result)) < 1500
+        full = call_tool("dl_object_diff", {"object_type": "dashboard", "object_id": "synthetic",
+                         "dashboard_patch": change["dashboard_patch"], "include_proposed": True})["structuredContent"]
+        assert full["proposed"] == wanted
+        change["dashboard_patch"] = {"tabs": [{"id": "overview", "patch": {"title": "Overview"}}]}
+        result = call_tool("dl_object_update", {"changes": [change]})["structuredContent"]
+    assert result["results"][0]["code"] == "no_change"
+    assert backend.calls == []

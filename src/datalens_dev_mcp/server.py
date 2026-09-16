@@ -34,6 +34,7 @@ from datalens_dev_mcp.operation_store import compact_operation
 from datalens_dev_mcp.runtime_identity import runtime_identity
 from datalens_dev_mcp.schemas.tool_inputs import (
     CHANGE,
+    DASHBOARD_PATCH,
     DESTINATION,
     DRAFT,
     FIELD,
@@ -260,9 +261,12 @@ def dl_editor_validate(
 
 
 def dl_object_diff(
-    object_type: str, object_id: str, patch: dict[str, Any], include_proposed: bool = False
+    object_type: str, object_id: str, patch: dict[str, Any] | None = None, include_proposed: bool = False,
+    dashboard_patch: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    return default_mutation_service().diff(object_type, object_id, patch, include_proposed=include_proposed)
+    return default_mutation_service().diff(
+        object_type, object_id, patch, dashboard_patch=dashboard_patch, include_proposed=include_proposed
+    )
 
 
 def dl_object_create(
@@ -568,16 +572,19 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_object_diff",
-        "description": "Read one saved object and return changed paths/values without mutation or dependency traversal. Set include_proposed=true only when the full merged snapshot is needed.",
+        "description": "Read one saved object and return a compact diff without mutation. Supply patch or, for native dashboard tabs, dashboard_patch with addressed items/layout/connections. Set include_proposed=true only when the full merged snapshot is needed.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "object_type": {"type": "string", "minLength": 1},
                 "object_id": {"type": "string", "minLength": 1},
                 "patch": {"type": "object"},
+                "dashboard_patch": DASHBOARD_PATCH,
                 "include_proposed": {"type": "boolean", "default": False},
             },
-            "required": ["object_type", "object_id", "patch"],
+            "required": ["object_type", "object_id"],
+            "oneOf": [{"required": ["patch"]}, {"required": ["dashboard_patch"],
+                       "properties": {"object_type": {"const": "dashboard"}}}],
             "additionalProperties": False,
         },
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
@@ -605,7 +612,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_object_update",
-        "description": "Apply narrow saved-object patches with revision checks and per-object saved readback; exact no-ops return no_change without writing. Results include changed paths and a private receipt address. For removal of only named dashboard settings.globalParams keys use remove_global_params with expected_revision. A compiled Editor artifact update places artifact_path beside object_type/object_id/expected_revision; its tabs are mapped into saved data without echoing renderer source.",
+        "description": "Apply narrow saved-object patches with revision checks and readback; exact no-ops do not write. For existing dashboard tabs use dashboard_patch plus expected_revision: items keyed by id, layout by i, connections by from/to, with add/update/remove and small tab metadata patches. Send only changed records, not whole tabs. Named global parameter removal uses remove_global_params. Compiled Editor updates use artifact_path. Writes retain private receipts; unknown effects are not replayed.",
         "inputSchema": {
             "type": "object",
             "properties": {
