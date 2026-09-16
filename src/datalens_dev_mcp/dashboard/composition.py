@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from datalens_dev_mcp.api.errors import InputContractError
 from datalens_dev_mcp.objects.write import semantic_merge
 
 RESERVED_PARAMETERS = frozenset(
@@ -29,6 +30,73 @@ RESERVED_PARAMETERS = frozenset(
 def compose_dashboard_patch(current: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
     """Apply only the requested mapping paths; arrays and geometry remain untouched unless supplied."""
     return semantic_merge(current, patch)
+
+
+def apply_dashboard_patch(current: dict[str, Any], patch: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Edit addressed native tab records without resending or replacing their neighbors."""
+    from jsonschema import Draft202012Validator
+
+    from datalens_dev_mcp.schemas.tool_inputs import DASHBOARD_PATCH
+
+    invalid = next(Draft202012Validator(DASHBOARD_PATCH).iter_errors(patch), None)
+    if invalid is not None:
+        path = "/".join(str(part) for part in invalid.path) or "tabs"
+        raise InputContractError(f"Invalid dashboard_patch/{path} ({invalid.validator}); use the typed tool schema")
+    proposed = deepcopy(current)
+    entry = proposed.get("entry", proposed)
+    data = entry.get("data") if isinstance(entry, dict) else None
+    tabs = data.get("tabs") if isinstance(data, dict) else None
+    if not isinstance(tabs, list) or any(not isinstance(tab, dict) for tab in tabs):
+        raise InputContractError("dashboard_patch requires a complete native data.tabs array")
+    touched: set[str] = set()
+    for change in patch["tabs"]:
+        tab_id = change["id"]
+        if tab_id in touched:
+            raise InputContractError("dashboard_patch contains repeated tab IDs; combine their changes")
+        touched.add(tab_id)
+        matches = [index for index, tab in enumerate(tabs) if tab.get("id") == tab_id]
+        if len(matches) != 1:
+            raise InputContractError("dashboard_patch tab ID must resolve to exactly one current tab")
+        tab = semantic_merge(tabs[matches[0]], change.get("patch", {}))
+        for name, keys in (("items", ("id",)), ("layout", ("i",)), ("connections", ("from", "to"))):
+            if name in change:
+                tab[name] = _edit_dashboard_collection(tab.get(name, []), change[name], keys, name)
+        tabs[matches[0]] = tab
+    # Keep the complete intended array privately for normal saved readback and
+    # reconciliation. Only the compact identity-addressed delta enters the tool call.
+    desired: dict[str, Any] = {"data": {"tabs": deepcopy(tabs)}}
+    if "entry" in proposed:
+        desired = {"entry": desired}
+    return proposed, desired
+
+
+def _edit_dashboard_collection(
+    current: list[dict[str, Any]], change: dict[str, Any], keys: tuple[str, ...], name: str
+) -> list[dict[str, Any]]:
+    if not isinstance(current, list) or any(not isinstance(row, dict) for row in current):
+        raise InputContractError(f"dashboard_patch {name} must be a native array of objects")
+    result = deepcopy(current)
+    touched: set[tuple[str, ...]] = set()
+    for operation in ("add", "update", "remove"):
+        for row in change.get(operation, []):
+            identity = (row,) if isinstance(row, str) else tuple(row[key] for key in keys)
+            if identity in touched:
+                raise InputContractError(f"dashboard_patch {name} repeats an identity across changes")
+            touched.add(identity)
+            matches = [index for index, value in enumerate(result)
+                       if tuple(value.get(key) for key in keys) == identity]
+            if operation == "add":
+                if matches:
+                    raise InputContractError(f"dashboard_patch {name}.add identity already exists; re-read the target")
+                result.append(deepcopy(row))
+            else:
+                if len(matches) != 1:
+                    raise InputContractError(f"dashboard_patch {name}.{operation} must match exactly one current record")
+                if operation == "remove":
+                    result.pop(matches[0])
+                else:
+                    result[matches[0]] = semantic_merge(result[matches[0]], row["patch"])
+    return result
 
 
 def validate_dashboard_contract(contract: dict[str, Any]) -> dict[str, Any]:

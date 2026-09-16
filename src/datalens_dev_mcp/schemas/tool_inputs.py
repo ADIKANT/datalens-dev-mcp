@@ -1,6 +1,47 @@
 """Stable plugin-owned input shapes; provider payloads remain extensible."""
 
 STRING = {"type": "string", "minLength": 1}
+
+
+def _dashboard_collection_change(*keys: str) -> dict:
+    identity = {key: STRING for key in keys}
+    return {
+        "type": "object", "minProperties": 1, "additionalProperties": False,
+        "properties": {
+            "add": {"type": "array", "minItems": 1, "items": {
+                "type": "object", "properties": identity, "required": list(keys)}},
+            "update": {"type": "array", "minItems": 1, "items": {
+                "type": "object", "properties": {**identity, "patch": {
+                    "type": "object", "minProperties": 1,
+                    "not": {"anyOf": [{"required": [key]} for key in keys]}}},
+                "required": [*keys, "patch"], "additionalProperties": False}},
+            "remove": {"type": "array", "minItems": 1, "uniqueItems": True,
+                       "items": STRING if len(keys) == 1 else {
+                           "type": "object", "properties": identity, "required": list(keys),
+                           "additionalProperties": False}},
+        },
+    }
+
+
+DASHBOARD_PATCH = {
+    "type": "object", "properties": {"tabs": {
+        "type": "array", "minItems": 1, "items": {
+            "type": "object", "required": ["id"], "additionalProperties": False,
+            "anyOf": [{"required": [key]} for key in ("patch", "items", "layout", "connections")],
+            "properties": {
+                "id": STRING,
+                "patch": {"type": "object", "minProperties": 1, "additionalProperties": False,
+                          "properties": {"title": STRING, "aliases": {"type": "object"},
+                                         "settings": {"type": "object"}}},
+                "items": _dashboard_collection_change("id"),
+                "layout": _dashboard_collection_change("i"),
+                "connections": _dashboard_collection_change("from", "to"),
+            },
+        },
+    }},
+    "required": ["tabs"], "additionalProperties": False,
+}
+
 TARGET = {
     "type": "object",
     "properties": {"object_type": STRING, "object_id": STRING,
@@ -13,12 +54,19 @@ CHANGE = {
     "type": "object",
     "properties": {"object_type": STRING, "object_id": STRING, "expected_revision": STRING,
                    "patch": {"type": "object", "minProperties": 1}, "artifact_path": STRING,
+                   "dashboard_patch": DASHBOARD_PATCH,
                    "remove_global_params": {"type": "array", "minItems": 1, "maxItems": 50,
                                             "uniqueItems": True, "items": STRING}},
     "required": ["object_type", "object_id"],
     "oneOf": [{"required": ["patch"]}, {"required": ["artifact_path"]},
+              {"required": ["dashboard_patch", "expected_revision"],
+               "properties": {"object_type": {"const": "dashboard"}}},
               {"required": ["remove_global_params", "expected_revision"],
                "properties": {"object_type": {"const": "dashboard"}}}],
+    "dependentSchemas": {"dashboard_patch": {
+        "required": ["expected_revision"],
+        "properties": {"object_type": {"const": "dashboard"}, "patch": False,
+                       "artifact_path": False, "remove_global_params": False}}},
     "additionalProperties": False,
 }
 FIELD = {

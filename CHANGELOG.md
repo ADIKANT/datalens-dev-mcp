@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.10
+
+- Add compact, revision-guarded dashboard tab edits by widget, layout and connection identity. Preserve complete saved state and verify untouched tabs through the existing writer and receipts without resending whole tabs in tool arguments.
+- Support the same compact delta in read-only diffs. Reject missing, ambiguous or repeated identities before dispatch and retain unknown-effect recovery rules.
+- Keep dashboard Browser inspection read-only unless UI editing is explicitly requested; route oversized updates through the typed compact tool contract.
+
 ## 1.2.9
 
 - Route known targets to addressed reads, reserving workbook inventory for discovery and completeness claims. Clarify bounded handoffs and model-facing projections in the existing skills and tool help.

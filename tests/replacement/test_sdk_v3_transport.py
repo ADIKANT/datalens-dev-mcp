@@ -415,6 +415,48 @@ def test_public_dashboard_v2_geometry_unchanged(install_runtime):
     assert [tab["id"] for tab in provider.state["entry"]["data"]["tabs"]] == ["first", "second"]
 
 
+@pytest.mark.parametrize("concurrent_edit", [False, True])
+def test_compact_dashboard_delta_uses_guarded_sdk_save(install_runtime, concurrent_edit):
+    initial = dashboard_state()
+    tab = initial["entry"]["data"]["tabs"][0]
+    tab["future"] = {"preserve": [True, 1, None]}
+    added = {**deepcopy(tab["items"][1]), "id": "added"}
+    placement = {**deepcopy(tab["layout"][1]), "i": "added", "y": 10}
+    relation = {"from": "selector", "to": "added", "kind": "ignore"}
+    expected = deepcopy(initial["entry"]["data"])
+    wanted = expected["tabs"][0]
+    wanted["items"].append(added)
+    wanted["layout"][1]["y"] = 3
+    wanted["layout"].append(placement)
+    wanted["connections"].append(relation)
+    provider = Provider(initial)
+    if concurrent_edit:
+        def drift(p, count):
+            if count == 2:
+                p.state["entry"]["revId"] = "manual-revision"
+        provider.before_read = drift
+    install_runtime(provider)
+    result = call_tool("dl_object_update", {"changes": [{
+        "object_type": "dashboard", "object_id": "synthetic-dashboard", "expected_revision": "S2",
+        "dashboard_patch": {"tabs": [{
+            "id": "first", "items": {"add": [added]},
+            "layout": {"add": [placement], "update": [{"i": "manual", "patch": {"y": 3}}]},
+            "connections": {"add": [relation]},
+        }]},
+    }], "operation_id": "compact-sdk-save"})
+    if concurrent_edit:
+        assert result["results"][0]["code"] == "revision_conflict", result
+        assert provider.writes == []
+    else:
+        assert result["status"] == "completed", result
+        assert len(provider.writes) == 1
+        method, payload = provider.writes[0]
+        assert method == "updateDashboard" and payload["mode"] == "save"
+        assert "revId" not in payload["entry"]
+        assert payload["entry"]["data"] == expected
+        assert provider.state["entry"]["data"] == expected
+
+
 def test_public_dashboard_legacy_layout_requires_explicit_migration(install_runtime):
     provider = Provider(dashboard_state(version=1))
     install_runtime(provider)

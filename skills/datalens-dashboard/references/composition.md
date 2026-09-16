@@ -47,6 +47,58 @@
 - A fixed semantic matrix status legend is not a dynamic series legend and remains visible. Cumulative comparison may intentionally overlap periods.
 - Create object graphs in explicit `depends_on` order. There is no fixed 25-object ceiling and no claim of batch atomicity.
 
+## Compact edits to existing tabs
+
+Use `dashboard_patch` in `dl_object_update` for existing native tabs. Read the
+current saved identity, revision and affected records first. The server reads the
+complete saved object, checks `expected_revision`, applies the addressed delta
+and saves through the existing writer. It verifies the complete resulting tabs,
+including untouched neighbors, against saved readback. The full array stays out
+of the tool arguments.
+
+```json
+{
+  "changes": [{
+    "object_type": "dashboard",
+    "object_id": "dashboard-id",
+    "expected_revision": "observed-saved-revision",
+    "dashboard_patch": {
+      "tabs": [{
+        "id": "overview",
+        "items": {
+          "update": [{"id": "revenue", "patch": {"data": {"title": "Revenue by month"}}}]
+        },
+        "layout": {
+          "update": [{"i": "revenue", "patch": {"y": 4, "h": 10}}]
+        },
+        "connections": {
+          "add": [{"from": "region-selector", "to": "revenue", "kind": "ignore"}]
+        }
+      }]
+    }
+  }],
+  "operation_id": "dashboard-layout-edit"
+}
+```
+
+IDs and the native item payload above are synthetic; inspect the actual widget
+subtype before choosing its fields. `items` uses `id`, `layout` uses `i`, and
+`connections` uses the ordered pair `from`/`to`. Each collection supports `add`
+(complete new native records), `update` (identity plus a narrow `patch`), and
+`remove` (ID strings, or `{ "from": "…", "to": "…" }` pairs). Adds append;
+updates preserve position and unknown fields. Missing/ambiguous targets, existing
+add identities and repeated identities in one request fail before dispatch.
+Patches cannot change identity keys. Widget deletion does not cascade: include
+the requested layout and connection removals explicitly.
+
+A tab's `patch` supports `title`, `aliases` and `settings`. Mapping values merge;
+explicitly supplied nested arrays replace their addressed value, so preserve
+every required member when changing an alias group. This route does not add,
+remove or reorder tabs. Do not combine it with `patch`, `artifact_path` or
+`remove_global_params` in the same change. `dl_object_diff` accepts the same
+`dashboard_patch` for a compact read-only preview. Save/readback and publication
+remain separate steps with their existing revision and unknown-outcome guards.
+
 ## Recipe title and hint ownership
 
 For a newly compiled recipe, pass `draft.visual_contract` as the chart item's
