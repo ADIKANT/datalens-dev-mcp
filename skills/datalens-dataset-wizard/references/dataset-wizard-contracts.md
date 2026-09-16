@@ -50,3 +50,19 @@
 - Summarize changes with paths, counts and source references; return complete source arrays only when requested. API-only source changes need update/readback checks, not a Browser render check. Read applicable local `reference_files` when a visual component is requested; those paths are not automatically interpreted as visual settings.
 
 Before changing a formula or relative-date filter, read the exact field GUIDs and provider data types, validate the expression and preview the relevant values. A load-date-like name does not establish time semantics: `date` and `timestamp` are different. Resolve the supported relative-date syntax before saving, not afterward.
+
+## Current source readiness
+
+For upstream-dependent metrics, establish the contract in the connection actually used by the target. A repository column, merge, release promotion or green CI is implementation evidence, not proof of a changed physical source. Use addressed metadata and a small real query; report a missing query capability or denied access as unverified, not as an absent field.
+
+| Evidence | Establish before depending on it |
+| --- | --- |
+| Physical source and connection | Current connection identity and source/query used by the Dataset or direct-source Editor |
+| Fields | Physical names/types, current Dataset GUIDs and formulas, scalar versus array, business key versus display label |
+| Freshness and missingness | Actual data dates/load timestamp and expected NULL, empty arrays, historical gaps and unresolved keys |
+| Grain and units | Row key, booking/entity versus day or allocation, duration unit and aggregation; compare the requested totals |
+| Filter binding | Exact bound field/parameter, selected values and NULL behavior; check totals before/after and affected UI |
+
+For booking format and Insight-style driver dimensions, inspect their actual values and relationship to customers/teams. A multi-select label, user picker and object identifier can be different fields despite similar names. Resolve IDs through the declared key relationship; never pair two arrays by incidental order. Do not explode arrays or add many-to-many joins that duplicate hours or booking counts. Check the grain before/after the join or filter, including an actual NULL/empty case when available; name coverage gaps when no such case exists. A materially different metric definition, such as allocating one booking's hours among multiple drivers, requires the business rule rather than a cosmetic patch.
+
+If only part of the source is ready, complete independent authorized UI/metadata changes and identify each dependent item and the evidence needed to unblock it. Do not substitute invented zeros, a temporary Dataset or another source with different semantics. Retain upstream errors as errors; a valid empty query is different from a missing source or an invalid KPI. The ready subset does not complete the whole request.
