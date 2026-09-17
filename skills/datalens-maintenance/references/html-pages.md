@@ -6,7 +6,7 @@ First identify the consumer from current object type and the request. A standalo
 
 ## Capability before delivery
 
-The SDK 3.0.0 API exposes Page method names, but `GetHtmlPageResult` returns metadata and `meta.objectId`, not HTML content. This adapter therefore rejects standalone Page creation and content updates before provider dispatch: it cannot verify their required content readback. Do not treat a metadata response, successful upload or local lint as proof of saved HTML.
+The SDK 3.0.0 API exposes Page method names. The inspected API v3 `GetHtmlPageResult` includes metadata, `meta.objectId` and arbitrary `data`, but does not document source HTML retrieval. This adapter therefore rejects standalone Page creation and content updates before provider dispatch: it cannot verify their required content readback. Do not treat arbitrary data, a metadata response, successful upload or local lint as proof of saved HTML.
 
 Metadata reads remain available. Publishing an existing saved Page revision uses the validated update revision/mode contract only when explicitly requested; it does not establish that this adapter authored or inspected that revision's HTML. Verify exact saved/published revision identity and report the content-verification limit separately.
 

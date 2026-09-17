@@ -4,10 +4,70 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
+from datalens_dev_mcp.api.errors import DataLensApiError, InputContractError, safe_diagnostic_id
+
 TECHNICAL_MEASURES = frozenset({"measure names", "measure values"})
 _LOD_RE = re.compile(r"\b(FIXED|INCLUDE|EXCLUDE)\b", re.IGNORECASE)
 _TIME_RE = re.compile(r"\b(AGO|AT_DATE)\s*\(", re.IGNORECASE)
 _AGG_RE = re.compile(r"\b(SUM|AVG|MIN|MAX|COUNT|COUNTD|COUNTUNIQUE)\s*\(", re.IGNORECASE)
+
+
+def dataset_validation_summary(dataset: Mapping[str, Any]) -> dict[str, Any]:
+    """Provider metadata only; never echo component messages, SQL or data."""
+    sources, fields = dataset.get("sources"), dataset.get("result_schema")
+    errors = dataset.get("component_errors")
+    items = errors.get("items") if isinstance(errors, Mapping) else None
+    if not isinstance(sources, list) or not isinstance(fields, list) or not isinstance(items, list):
+        return {"status": "unverified", "evidence": "provider_metadata_only"}
+    codes = set()
+    count = 0
+    for item in items:
+        if not isinstance(item, Mapping) or not isinstance(item.get("errors"), list):
+            return {"status": "unverified", "evidence": "provider_metadata_only"}
+        for error in item["errors"]:
+            count += 1
+            code = safe_diagnostic_id(error.get("code")) if isinstance(error, Mapping) else None
+            if code:
+                codes.add(code)
+    invalid_sources = sum(isinstance(source, Mapping) and source.get("valid") is False for source in sources)
+    invalid_fields = sum(isinstance(field, Mapping) and field.get("valid") is False for field in fields)
+    valid_flags = bool(sources and fields) and all(
+        isinstance(item, Mapping) and item.get("valid") is True for item in [*sources, *fields]
+    )
+    status = "invalid" if count or invalid_sources or invalid_fields else "valid" if valid_flags else "unverified"
+    return {"status": status, "error_count": count, "error_codes": sorted(codes)[:20],
+            "invalid_source_count": invalid_sources, "invalid_field_count": invalid_fields,
+            "evidence": "provider_metadata_only"}
+
+
+def validate_provider_dataset(api: Any, readback: dict[str, Any], *, refresh_source_ids: list[str] | None = None,
+                              include_state: bool = False) -> dict[str, Any]:
+    """Validate current saved state and optionally refresh exact source schemas without saving."""
+    identity, snapshot = readback["identity"], readback["object"]
+    dataset = snapshot.get("dataset")
+    if not isinstance(dataset, dict) or not isinstance(dataset.get("sources"), list):
+        raise InputContractError("Provider validation requires a full Dataset read")
+    sources = {source["id"] for source in dataset["sources"] if isinstance(source, Mapping) and "id" in source}
+    if refresh_source_ids is not None and (not isinstance(refresh_source_ids, list)
+            or not refresh_source_ids or any(not isinstance(value, str) or value not in sources
+                                             for value in refresh_source_ids)
+            or len(set(refresh_source_ids)) != len(refresh_source_ids)):
+        raise InputContractError("refresh_source_ids must be distinct source IDs from this Dataset")
+    data: dict[str, Any] = {"dataset": dataset}
+    if refresh_source_ids:
+        data["updates"] = [{"action": "refresh_source", "source": {"id": value, "force_update_fields": False}}
+                           for value in refresh_source_ids]
+    response = api.read("validateDataset", {"datasetId": identity["object_id"], "data": data})
+    state = response.get("dataset") if isinstance(response, Mapping) else None
+    if not isinstance(state, dict):
+        raise DataLensApiError("validateDataset response.dataset must be an object", method="validateDataset",
+                               remote_code="invalid_response", stage="response_validation")
+    validation = dataset_validation_summary(state)
+    result = {"ok": validation["status"] == "valid", "identity": identity, "validation": validation,
+              "proof_level": "provider_validation_only", "persisted": False, "provider_writes": 0}
+    if include_state:
+        result["validated_dataset"] = state
+    return result
 
 
 def calculation_level(field: Mapping[str, Any]) -> str:

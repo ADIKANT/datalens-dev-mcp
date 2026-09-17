@@ -6,7 +6,7 @@ import re
 from collections.abc import Mapping
 from typing import Any, Protocol
 
-from datalens_dev_mcp.api.errors import DataLensApiError, error_response
+from datalens_dev_mcp.api.errors import ERROR_DIAGNOSTIC_FIELDS, DataLensApiError, InputContractError, error_response
 from datalens_dev_mcp.objects.relations import EDITOR_SUBTYPES, compact_object_index, object_identity, relation_entries
 
 
@@ -29,6 +29,63 @@ class ObjectReadService:
     def __init__(self, *, api: ReadApi, sdk: ReadSdk) -> None:
         self.api = api
         self.sdk = sdk
+
+    def object_revisions(
+        self, entry_id: str, *, page_size: int = 25, page_token: str | None = None,
+        rev_ids: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Read one provider-ordered history page; flags are not a multi-page snapshot."""
+        if not isinstance(entry_id, str) or not entry_id.strip():
+            raise InputContractError("entry_id must be a nonempty string")
+        if type(page_size) is not int or not 1 <= page_size <= 1000:
+            raise InputContractError("page_size must be between 1 and 1000")
+        if page_token is not None and not isinstance(page_token, str):
+            raise InputContractError("page_token must be the opaque string returned by getRevisions")
+        if rev_ids is not None and (not isinstance(rev_ids, list) or not 1 <= len(rev_ids) <= 1000
+                                    or any(not isinstance(value, str) or not value for value in rev_ids)):
+            raise InputContractError("rev_ids must contain between 1 and 1000 nonempty revision IDs")
+        payload: dict[str, Any] = {"entryId": entry_id, "pageSize": page_size}
+        if page_token is not None:
+            payload["pageToken"] = page_token
+        if rev_ids is not None:
+            payload["revIds"] = rev_ids
+        result: dict[str, Any] = {
+            "identity": {"entry_id": entry_id}, "entries": [], "complete": False,
+            "coverage": {"page_size": page_size, "page_token": page_token, "rev_ids": rev_ids,
+                         "order": "provider", "snapshot_consistency": "unverified"},
+            "next_page_token": None,
+        }
+        try:
+            raw = self.api.read("getRevisions", payload)
+            if not isinstance(raw, Mapping):
+                raise TypeError("response must be an object")
+            page = _unwrap(raw)
+            entries = page.get("entries")
+            if not isinstance(entries, list):
+                raise TypeError("response.entries must be a list, including when empty")
+            if len(entries) > page_size:
+                raise ValueError("response.entries exceeds the requested page size")
+            for index, item in enumerate(entries):
+                if (not isinstance(item, Mapping)
+                        or any(not isinstance(item.get(key), str) or not item[key]
+                               for key in ("revId", "updatedAt", "updatedBy"))
+                        or any(type(item.get(key)) is not bool for key in ("isSaved", "isPublished"))):
+                    raise ValueError(f"response.entries has an invalid revision at index {index}")
+            token = page.get("nextPageToken")
+            if "nextPageToken" in page and not isinstance(token, str):
+                raise TypeError("response.nextPageToken must be a string when present")
+            if token and token == page_token:
+                raise ValueError("response.nextPageToken repeats the requested token")
+            result.update(ok=True, entries=[{key: item[key] for key in
+                          ("revId", "updatedAt", "updatedBy", "isSaved", "isPublished")} for item in entries],
+                          complete=not token, next_page_token=token or None)
+            result["coverage"]["revision_count"] = len(entries)
+        except (DataLensApiError, ValueError, TypeError) as exc:
+            if not isinstance(exc, DataLensApiError):
+                exc = DataLensApiError(f"getRevisions: {exc}", method="getRevisions",
+                                       remote_code="invalid_response", stage="response_validation")
+            result.update(error_response(exc))
+        return result
 
     def workbooks_list(self, *, page_size: int = 100, max_pages: int = 100) -> dict[str, Any]:
         return self._paginate("getWorkbooksList", {}, page_size=page_size, max_pages=max_pages)
@@ -131,8 +188,8 @@ class ObjectReadService:
         if failure:
             result.update(error=failure["error"], code=failure["code"], next_action=failure["next_action"],
                           failed_page=pages, method=method)
-            result.update({key: failure[key] for key in ("diagnostic_id", "helper_exit_status", "stage",
-                                                        "elapsed_sec", "http_status") if key in failure})
+            result.update({key: failure[key] for key in (*ERROR_DIAGNOSTIC_FIELDS, "diagnostic_id", "helper_exit_status",
+                                                        "elapsed_sec") if key in failure and failure[key] is not None})
         return result
 
     def object_get(

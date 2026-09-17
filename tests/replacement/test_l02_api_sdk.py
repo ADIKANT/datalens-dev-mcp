@@ -102,7 +102,7 @@ def test_operation_registry_records_real_sdk_coverage() -> None:
     assert registry.get("createWizardChart")["backend"] == "official_sdk"
     assert registry.get("createEditorChart")["backend"] == "official_sdk"
     assert registry.get("createDashboard")["backend"] == "official_sdk"
-    assert registry.get("getDatasetData")["backend"] == "public_api_adapter"
+    assert registry.get("getDatasetData")["backend"] == "official_sdk"
     assert registry.get("getDatasetData")["api_version"] == "3"
     assert registry.get("updateDashboard")["backend"] == "official_sdk"
 

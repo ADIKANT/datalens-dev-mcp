@@ -4,6 +4,19 @@ import re
 import uuid
 from typing import Any
 
+ERROR_DIAGNOSTIC_FIELDS = ("stage", "method", "http_status", "provider_code", "request_id", "trace_id")
+
+
+def safe_diagnostic_id(value: Any) -> str | None:
+    """Only short identifier-shaped provider metadata, never arbitrary response text."""
+    return value if isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}", value) else None
+
+
+def response_diagnostics(headers: Any) -> dict[str, str | None]:
+    # Read this allowlist only; do not copy response headers or parse login/error bodies.
+    return {"request_id": safe_diagnostic_id(headers.get("x-request-id")) if headers else None,
+            "trace_id": safe_diagnostic_id(headers.get("x-trace-id")) if headers else None}
+
 
 def safe_error_text(error: BaseException) -> str:
     text = str(error) or type(error).__name__
@@ -31,14 +44,20 @@ class DataLensApiError(RuntimeError):
         remote_code: str = "",
         dispatch_state: str | None = None,
         retry_after_sec: float | None = None,
+        stage: str = "provider_request",
+        request_id: str | None = None,
+        trace_id: str | None = None,
     ) -> None:
         super().__init__(message)
-        self.method = method
+        self.method = safe_diagnostic_id(method)
         self.http_status = http_status
         self.response_received = response_received
-        self.remote_code = remote_code
+        self.remote_code = safe_diagnostic_id(remote_code) or ""
         self.dispatch_state = dispatch_state
         self.retry_after_sec = retry_after_sec
+        self.stage = safe_diagnostic_id(stage)
+        self.request_id = safe_diagnostic_id(request_id)
+        self.trace_id = safe_diagnostic_id(trace_id)
 
 
 class UncertainWriteError(DataLensApiError):
@@ -135,6 +154,9 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
         result.update(dispatch_state="dispatched", effect_outcome="not_applied" if is_confirmed_rejection(error) else "unknown")
     if status is not None:
         result["http_status"] = status
+    if isinstance(error, DataLensApiError):
+        result.update(stage=error.stage, method=error.method, provider_code=error.remote_code or None,
+                      request_id=error.request_id, trace_id=error.trace_id)
     if isinstance(error, CredentialRefreshError):
         result["diagnostic_id"] = error.diagnostic_id
         result["helper_exit_status"] = error.exit_status

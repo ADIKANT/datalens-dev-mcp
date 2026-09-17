@@ -10,7 +10,12 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from datalens_dev_mcp.api.errors import DataLensSafetyError, InputContractError, UncertainWriteError
+from datalens_dev_mcp.api.errors import (
+    ERROR_DIAGNOSTIC_FIELDS,
+    DataLensSafetyError,
+    InputContractError,
+    UncertainWriteError,
+)
 
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
@@ -248,6 +253,7 @@ def compact_operation(record: dict[str, Any]) -> dict[str, Any]:
             {
                 key: deepcopy(item[key])
                 for key in (
+                    *ERROR_DIAGNOSTIC_FIELDS,
                     "key",
                     "status",
                     "code",
@@ -262,6 +268,7 @@ def compact_operation(record: dict[str, Any]) -> dict[str, Any]:
                     "dispatch_state",
                     "effect_outcome",
                     "intent",
+                    "dataset_validation",
                 )
                 if key in item
             }
