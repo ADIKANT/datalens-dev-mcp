@@ -9,7 +9,7 @@ from email.utils import parsedate_to_datetime
 from typing import Any, Protocol
 from urllib import error, request
 
-from datalens_dev_mcp.api.errors import DataLensApiError, InputContractError, UncertainWriteError
+from datalens_dev_mcp.api.errors import DataLensApiError, InputContractError, UncertainWriteError, response_diagnostics
 from datalens_dev_mcp.api.schemas import OperationRegistry
 from datalens_dev_mcp.config import DataLensConfig
 
@@ -51,36 +51,42 @@ class HttpJsonTransport:
                                    remote_code="read_budget_exhausted", dispatch_state="not_dispatched")
         try:
             with request.urlopen(req, timeout=min(self.timeout_sec, remaining)) as response:
+                diagnostics = response_diagnostics(getattr(response, "headers", None))
                 chunks = []
                 size = 0
                 read = getattr(response, "read1", response.read)
                 while True:
                     if time.monotonic() >= deadline:
                         raise DataLensApiError("Response read budget expired", method=method,
-                                               remote_code="read_budget_exhausted", response_received=True)
+                                               remote_code="read_budget_exhausted", response_received=True,
+                                               stage="response_read", **diagnostics)
                     chunk = read(min(65536, self.max_response_bytes + 1 - size))
                     size += len(chunk)
                     if size > self.max_response_bytes:
                         raise DataLensApiError(f"{method} response exceeds {self.max_response_bytes} bytes; no state returned",
-                                               method=method, remote_code="response_too_large", response_received=True)
+                                               method=method, remote_code="response_too_large", response_received=True,
+                                               stage="response_read", **diagnostics)
                     if not chunk:
                         break
                     chunks.append(chunk)
                 raw = b"".join(chunks)
         except error.HTTPError as exc:
-            # Status and Retry-After suffice. Never buffer or expose an error/login body.
+            # Keep only allowlisted correlation metadata; never buffer an error/login body.
             retry_after = _retry_after(exc.headers.get("Retry-After") if exc.headers else None)
+            diagnostics = response_diagnostics(exc.headers)
             exc.close()
             raise DataLensApiError(f"{method} failed with HTTP {exc.code}", method=method, http_status=exc.code,
-                                   response_received=True, retry_after_sec=retry_after) from exc
+                                   response_received=True, retry_after_sec=retry_after,
+                                   stage="provider_response", **diagnostics) from exc
         try:
             result = json.loads(raw)
         except (ValueError, UnicodeError, RecursionError) as exc:
             raise DataLensApiError(f"{method} returned invalid JSON", method=method, remote_code="invalid_json",
-                                   response_received=True) from exc
+                                   response_received=True, stage="response_decode", **diagnostics) from exc
         if not isinstance(result, dict):
             raise DataLensApiError(f"{method} returned a non-object response", method=method,
-                                   remote_code="invalid_response", response_received=True)
+                                   remote_code="invalid_response", response_received=True,
+                                   stage="response_validation", **diagnostics)
         return result
 
 
@@ -133,7 +139,7 @@ class DataLensApiClient:
                 failure = exc
             except (TimeoutError, ConnectionError, error.URLError) as exc:
                 failure = DataLensApiError(f"{method} failed before an HTTP response", method=method,
-                                           response_received=False)
+                                           response_received=False, stage="transport")
                 failure.__cause__ = exc
             if transient_attempts >= self.config.read_retries:
                 raise failure
@@ -159,7 +165,7 @@ class DataLensApiClient:
             raise
         except (TimeoutError, ConnectionError, OSError, ValueError, TypeError) as exc:
             raise UncertainWriteError(f"{method} outcome is unknown; preserve the operation and do not replay",
-                                       method=method, response_received=False) from exc
+                                       method=method, response_received=False, stage="transport") from exc
 
     def rpc_readonly(self, method: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         return self.read(method, payload)

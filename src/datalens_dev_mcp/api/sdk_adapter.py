@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import asdict, is_dataclass, replace
 from typing import Any
+from urllib.parse import urlsplit
 
 import datalens_sdk
 import httpx
@@ -55,6 +57,9 @@ class SdkAdapter:
         actual = getattr(datalens_sdk, "__version__", "")
         if actual != SDK_VERSION:
             raise RuntimeError(f"datalens-sdk version mismatch: expected {SDK_VERSION}, got {actual or '<unknown>'}")
+        # SDK 3.0.0 logs raw provider message/details (including SQL or HTML).
+        # Keep failures in our sanitized tool results; do not duplicate bodies on stderr.
+        logging.getLogger("datalens_sdk.http").disabled = True
         self._config = config
         self._client = client
         self._token_refresher = token_refresher
@@ -118,8 +123,10 @@ class SdkAdapter:
             failure.dispatch_state = "not_dispatched"
             return failure
         if count > 1 or isinstance(exc, (httpx.TransportError, SdkTransportError, ValueError, TypeError)):
-            return UncertainWriteError("SDK mutation may have applied; do not replay", method=method,
-                                       http_status=getattr(exc, "http_status", None))
+            failure = _provider_error(exc, method)
+            return UncertainWriteError("SDK mutation may have applied; do not replay", method=failure.method or method,
+                                       http_status=failure.http_status, remote_code=failure.remote_code,
+                                       stage=failure.stage, request_id=failure.request_id, trace_id=failure.trace_id)
         return _provider_error(exc, method)
 
     def get_object(
@@ -571,14 +578,20 @@ def _provider_error(exc: Exception, method: str) -> DataLensApiError:
     if isinstance(exc, DataLensApiError):
         return exc
     if isinstance(exc, SdkApiError):
+        # The SDK message/details can contain SQL, data or an entire HTML body.
+        # Its documented context exposes a separate provider request identifier.
+        provider_method = urlsplit(exc.context.request_url or "").path.rsplit("/", 1)[-1] or method
         return DataLensApiError(
-            safe_error_text(ValueError(exc.context.message)),
-            method=method,
+            f"DataLens request failed with HTTP {exc.context.status_code}",
+            method=provider_method,
             http_status=exc.context.status_code,
             response_received=True,
             remote_code=exc.context.code or "",
+            stage="provider_response",
+            request_id=exc.context.request_id,
         )
-    return DataLensApiError(safe_error_text(exc), method=method, response_received=None)
+    return DataLensApiError("SDK operation failed without a classified provider response", method=method,
+                           response_received=None, stage="sdk_operation")
 
 
 def _json_object(value: Any) -> dict[str, Any]:

@@ -131,6 +131,12 @@ def dl_object_relations(
     return _read_service().object_relations(object_id, page_size=page_size, max_pages=max_pages, page_token=page_token)
 
 
+def dl_object_revisions(
+    entry_id: str, page_size: int = 25, page_token: str | None = None, rev_ids: list[str] | None = None,
+) -> dict[str, Any]:
+    return _read_service().object_revisions(entry_id, page_size=page_size, page_token=page_token, rev_ids=rev_ids)
+
+
 def dl_dashboard_snapshot(
     dashboard_id: str,
     branch: str = "saved",
@@ -161,7 +167,23 @@ def _dataset_fields(dataset_id: str, fields: list[dict[str, Any]] | None) -> lis
 def dl_dataset_validate(
     dataset_id: str = "",
     fields: list[dict[str, Any]] | None = None,
+    provider: bool = False,
+    refresh_source_ids: list[str] | None = None,
+    include_provider_state: bool = False,
 ) -> dict[str, Any]:
+    if provider:
+        from datalens_dev_mcp.api.errors import InputContractError
+        from datalens_dev_mcp.dataset.contracts import validate_provider_dataset
+
+        if not dataset_id or fields is not None:
+            raise InputContractError("Provider validation requires dataset_id and reads its current fields")
+        readback = _read_service().object_get("dataset", dataset_id)
+        return validate_provider_dataset(get_runtime().api, readback, refresh_source_ids=refresh_source_ids,
+                                         include_state=include_provider_state)
+    if refresh_source_ids is not None or include_provider_state:
+        from datalens_dev_mcp.api.errors import InputContractError
+
+        raise InputContractError("Source refresh and provider state require provider=true")
     resolved = _dataset_fields(dataset_id, fields)
     result = validate_dataset_fields(resolved)
     result["dataset_id"] = dataset_id or None
@@ -340,6 +362,7 @@ TOOLS: dict[str, ToolHandler] = {
     "dl_workbook_entries": dl_workbook_entries,
     "dl_object_get": dl_object_get,
     "dl_object_relations": dl_object_relations,
+    "dl_object_revisions": dl_object_revisions,
     "dl_dashboard_snapshot": dl_dashboard_snapshot,
     "dl_dataset_validate": dl_dataset_validate,
     "dl_dataset_preview": dl_dataset_preview,
@@ -446,6 +469,23 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
     },
     {
+        "name": "dl_object_revisions",
+        "description": "Read one bounded provider-ordered revision page for a known entry, optionally restricted to known revision IDs. Use the returned opaque continuation unchanged. Current saved/published flags are not a multi-page snapshot; absence in limited history cannot prove a write did not apply.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "entry_id": {"type": "string", "minLength": 1},
+                "page_size": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 25},
+                "page_token": {"type": ["string", "null"]},
+                "rev_ids": {"type": ["array", "null"], "minItems": 1, "maxItems": 1000,
+                            "items": {"type": "string", "minLength": 1}},
+            },
+            "required": ["entry_id"],
+            "additionalProperties": False,
+        },
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    },
+    {
         "name": "dl_object_relations",
         "description": "Read compact direct relations for one exact DataLens object ID.",
         "inputSchema": {
@@ -484,12 +524,16 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_dataset_validate",
-        "description": "Validate Dataset field GUIDs, calculation levels and known cross-field formula restrictions without mutation.",
+        "description": "Validate Dataset fields locally, or set provider=true to validate a saved Dataset through the provider without saving. Optional exact refresh_source_ids refresh source schemas without forcing field replacement. include_provider_state returns the full validation candidate for an explicit revision-guarded save; this is not a saved result or chart execution.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "dataset_id": {"type": "string"},
                 "fields": {"type": ["array", "null"], "minItems": 1, "items": FIELD},
+                "provider": {"type": "boolean", "default": False},
+                "refresh_source_ids": {"type": ["array", "null"], "minItems": 1, "maxItems": 100,
+                                       "uniqueItems": True, "items": {"type": "string", "minLength": 1}},
+                "include_provider_state": {"type": "boolean", "default": False},
             },
             "anyOf": [{"required": ["dataset_id"]}, {"required": ["fields"]}],
             "additionalProperties": False,

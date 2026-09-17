@@ -59,8 +59,8 @@ Dataset raw replacement in SDK 3.0.0 still invokes
 regress the inner-revision contract. It therefore remains a single existing
 mutation path, with API v3 headers and both preconditions; it does not introduce a
 second writer or receipt system. Unknown Dataset fields, explicit null, empty
-arrays, and empty strings are preserved. Only protocol revision locations are
-excluded from business readback matching: a nested business `revision` field
+arrays, and empty strings are preserved. Protocol revision locations and the documented read-only Dataset
+`sources[].parameter_hash` are excluded from business readback matching: a nested business `revision` field
 remains significant. An explicit null `dataset.revision_id` is preserved when the fresh read also returns null and the independently checked outer revision is present. Missing or changed inner revisions still fail before dispatch; the outer revision is never copied into the inner field. Preflight is not an atomic provider-side CAS guarantee.
 
 The SDK raw Wizard replacement has a second verified gap:

@@ -7,6 +7,7 @@ from typing import Any, Protocol
 from uuid import uuid4
 
 from datalens_dev_mcp.api.errors import (
+    ERROR_DIAGNOSTIC_FIELDS,
     DataLensApiError,
     InputContractError,
     UncertainWriteError,
@@ -376,11 +377,15 @@ class ObjectMutationService:
             and identity.get("branch") == allowed_branch
         )
         payload = readback.get("object") or {}
+        if target["object_type"] == "dataset" and isinstance(payload.get("dataset"), dict):
+            from datalens_dev_mcp.dataset.contracts import dataset_validation_summary
+
+            item["dataset_validation"] = dataset_validation_summary(payload["dataset"])
         payload_id, _ = object_identity(payload)
         correct_identity = correct_identity and (not payload_id or payload_id == target["object_id"])
         desired = item.get("desired") or {}
         content_matches = _readback_contains(
-            readback.get("object") or {}, _readback_intent(target["object_type"], desired)
+            _readback_intent(target["object_type"], payload), _readback_intent(target["object_type"], desired)
         )
         content_matches = content_matches and all(_path_absent(payload, path) for path in item.get("absent_paths", []))
         if item.get("exact_dashboard_tabs"):
@@ -427,8 +432,11 @@ class ObjectMutationService:
             detail.update(dispatch_state="not_dispatched", effect_outcome="not_applied")
         uncertain = bool(item.get("write_returned")) or detail["code"] == "write_outcome_unknown"
         if uncertain:
-            detail = error_response(UncertainWriteError(safe_error_text(exc)))
-        item.update({key: detail[key] for key in ("dispatch_state", "effect_outcome") if key in detail})
+            unknown = error_response(UncertainWriteError(detail["error"]))
+            detail.update({key: unknown[key] for key in
+                           ("code", "next_action", "dispatch_state", "effect_outcome")})
+        item.update({key: detail[key] for key in (*ERROR_DIAGNOSTIC_FIELDS, "dispatch_state", "effect_outcome")
+                     if key in detail})
         item.update(
             status="uncertain" if uncertain else "failed",
             error=detail["error"],
@@ -641,12 +649,20 @@ def _usable_full_read(readback: dict[str, Any]) -> bool:
 def _readback_intent(object_type: str, desired: dict[str, Any]) -> dict[str, Any]:
     intent = deepcopy(desired)
     if object_type == "dataset":
+        # Receipts omit sensitive keys, including keys nested in provider error
+        # arrays. Apply that same projection to actual state before comparison.
+        intent = _recordable(intent)
         # Exact provider-owned preconditions, not recursive business-field filtering.
         intent.pop("revId", None)
         intent.pop("rev_id", None)
         dataset = intent.get("dataset")
         if isinstance(dataset, dict):
             dataset.pop("revision_id", None)
+            # DataSource.parameter_hash is explicitly readOnly in OpenAPI v3;
+            # changing source parameters makes the provider recompute it.
+            for source in dataset.get("sources", []):
+                if isinstance(source, dict):
+                    source.pop("parameter_hash", None)
     return intent
 
 

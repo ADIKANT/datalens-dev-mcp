@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.11
+
+- Add one bounded, read-only revision-history tool with provider order, exact revision filtering and opaque continuation. Distinguish malformed pages from valid empty history without weakening unknown-write recovery.
+- Preserve allowlisted provider error identifiers, method, stage and status in compact results and mutation receipts; suppress provider bodies and SDK message/details without adding write retries.
+- Exclude the provider-owned Dataset source parameter hash from authored-state readback matching. Report Dataset validity separately and support explicit provider validation/source-schema refresh without saving.
+- Refresh selected API v3 operation metadata and scoped references for Wizard multi-dataset diagnosis, canonical routes and HTML Page/mailing-list boundaries. Published rendering remains separate from save/publish evidence.
+
 ## 1.2.10
 
 - Add compact, revision-guarded dashboard tab edits by widget, layout and connection identity. Preserve complete saved state and verify untouched tabs through the existing writer and receipts without resending whole tabs in tool arguments.
