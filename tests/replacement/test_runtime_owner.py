@@ -108,8 +108,9 @@ def test_refresh_enabled_runtime_can_bootstrap_a_missing_token_before_probe() ->
     assert runtime.config.iam_token == "fresh-synthetic"
 
 
-def test_runtime_refresh_uses_configured_yc_binary(monkeypatch) -> None:
-    seen: list[str] = []
+@pytest.mark.parametrize("allow_browser", [None, True, False])
+def test_runtime_refresh_uses_configured_yc_binary(monkeypatch, allow_browser) -> None:
+    seen: list[tuple[str, bool]] = []
     config = _config(token="")
     config = DataLensConfig(
         base_url=config.base_url,
@@ -123,33 +124,45 @@ def test_runtime_refresh_uses_configured_yc_binary(monkeypatch) -> None:
     monkeypatch.setattr(
         runtime_module,
         "refresh_iam_token_with_yc",
-        lambda *, yc_binary: seen.append(yc_binary) or "fresh-synthetic",
+        lambda *, yc_binary, allow_browser: seen.append((yc_binary, allow_browser)) or "fresh-synthetic",
     )
     runtime = DataLensRuntime(config, api_transport=SequenceTransport([{"entries": []}]))
 
-    assert runtime.probe_auth() == {"entries": []}
-    assert seen == ["/synthetic/yc"]
+    if allow_browser is None:
+        assert runtime.probe_auth() == {"entries": []}
+    else:
+        monkeypatch.setattr(server, "get_runtime", lambda: runtime)
+        result = server.dl_auth_refresh() if allow_browser else server.dl_auth_refresh(allow_browser=False)
+        assert result["status"] == "refreshed_and_verified"
+        assert result["browser_allowed"] is allow_browser
+    assert seen == [("/synthetic/yc", bool(allow_browser))]
+    assert runtime.api.config is runtime.sdk.config is runtime.config
 
 
-def test_yc_refresh_restores_system_paths_needed_by_desktop_processes(monkeypatch) -> None:
+@pytest.mark.parametrize("allow_browser", [False, True])
+def test_yc_refresh_restores_system_paths_needed_by_desktop_processes(monkeypatch, allow_browser) -> None:
     seen: dict[str, object] = {}
 
     def fake_run(command, **kwargs):
         seen["command"] = command
         seen["env"] = kwargs["env"]
+        seen["timeout"] = kwargs["timeout"]
+        assert kwargs["capture_output"] is True
+        assert kwargs["stdin"] is auth_module.subprocess.DEVNULL
         return SimpleNamespace(returncode=0, stdout="fresh-synthetic\n")
 
     monkeypatch.setenv("PATH", "/usr/bin:/bin")
     monkeypatch.setattr(auth_module.subprocess, "run", fake_run)
 
-    assert refresh_iam_token_with_yc(yc_binary="/synthetic/bin/yc") == "fresh-synthetic"
+    assert refresh_iam_token_with_yc(yc_binary="/synthetic/bin/yc", allow_browser=allow_browser) == "fresh-synthetic"
     assert seen["command"] == [
         "/synthetic/bin/yc",
         "iam",
         "create-token",
-        "--no-browser",
+        *([] if allow_browser else ["--no-browser"]),
         "--no-user-output",
     ]
+    assert seen["timeout"] == (120.0 if allow_browser else 15.0)
     assert str(seen["env"]["PATH"]).split(":") == [
         "/synthetic/bin",
         "/usr/bin",

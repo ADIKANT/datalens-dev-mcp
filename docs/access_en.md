@@ -69,24 +69,13 @@ Pass the absolute file path to the MCP client as `DATALENS_ENV_FILE`. The [DataL
 
 ### Automatic token bootstrap and refresh
 
-With `DATALENS_ENABLE_TOKEN_REFRESH_ON_401=1`, the server runs the configured `yc iam create-token --no-browser --no-user-output` command when:
+With `DATALENS_ENABLE_TOKEN_REFRESH_ON_401=1`, an initial API probe without a token and a read after HTTP 401 may run `yc iam create-token --no-browser --no-user-output` once (up to 15 seconds). A failure is retained in the current runtime so later reads do not repeat the same failed attempt.
 
-1. `dl_auth_probe` cannot find an initial token in the canonical env file;
-2. DataLens returns HTTP 401 for an expired token.
+Use `dl_auth_refresh` for token renewal. It defaults to `allow_browser=true`: the configured `yc` can open **the system external browser** for its existing profile/SSO sign-in and wait up to 120 seconds. A valid browser session may authenticate automatically; the user supplies a password or MFA only when required. `allow_browser=false` keeps the noninteractive mode. A background timeout alone does not establish a login prohibition or network failure.
 
-The new value is written atomically to `DATALENS_ENV_FILE`, the file mode is set to `0600`, and the original request is retried once. Updating the token in the canonical env file does not require a client restart because the server reloads that file. Restart the client after changing MCP process settings.
+The token stays in process memory, updates both API and SDK clients, and is not written to the credentials file. Successful `dl_auth_refresh` also verifies access with a harmless API read. Do not transfer tokens manually, copy callback URLs into an embedded browser, or replay an unknown write during recovery. The account, profile and permissions stay unchanged.
 
-Background refresh never opens a browser or reads interactive input. If the `yc` profile requires reauthentication, run the canonical command from the current checkout:
-
-```bash
-scripts/codex_mcp_launch.sh --recover-credentials
-```
-
-It first retries safe background token creation and, when required, runs `yc init` through the same interpreter/launcher contour. The new token is written atomically only to the canonical `DATALENS_ENV_FILE`; the file is then reloaded and `dl_auth_probe` is executed. The result never contains the token value, and work continues in the same Codex task without finding an older task. A `127.0.0.1` callback URL is one-time: it stops working after the `yc` process that created it exits or is terminated.
-
-If `yc` is not on the MCP process `PATH`, set its absolute path in `DATALENS_YC_BINARY`. The `refresh_available` field from `dl_runtime_status` confirms that the refresh command was resolved.
-
-For manual token management, keep refresh disabled and replace `DATALENS_IAM_TOKEN` with the output of `yc iam create-token` when it expires.
+If `yc` is absent from the MCP process PATH, set an absolute `DATALENS_YC_BINARY`. `dl_auth_check` returns a safe configuration/access report. After one failed browser-enabled attempt, inspect pending password/MFA, helper launch and network evidence; do not keep repeating an unchanged failure.
 
 ## 6. Connect the MCP client
 

@@ -78,13 +78,14 @@ def dl_auth_check() -> dict[str, Any]:
     return {"ok": True, "status": "healthy", "credentials": runtime.config.credential_report()}
 
 
-def dl_auth_refresh() -> dict[str, Any]:
+def dl_auth_refresh(allow_browser: bool = True) -> dict[str, Any]:
     runtime = get_runtime()
-    runtime.refresh_and_probe()
+    runtime.refresh_and_probe(allow_browser=allow_browser)
     return {
         "ok": True,
         "status": "refreshed_and_verified",
         "credentials": runtime.config.credential_report(),
+        "browser_allowed": allow_browser,
         "token_exposed": False,
     }
 
@@ -402,8 +403,12 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_auth_refresh",
-        "description": "Retry IAM refresh once through the same configured yc profile after addressing its failure; update API/SDK runtime credentials and verify API access without returning the token.",
-        "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+        "description": "Refresh IAM once using the existing yc account/profile. By default yc may open the system external browser for its configured SSO sign-in (up to 120 seconds); cached sign-in can finish automatically. Update API/SDK credentials and verify API access without returning tokens or login URLs. Set allow_browser=false only when browser sign-in is disallowed (15-second noninteractive attempt).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"allow_browser": {"type": "boolean", "default": True}},
+            "additionalProperties": False,
+        },
         "annotations": {
             "readOnlyHint": False,
             "destructiveHint": False,

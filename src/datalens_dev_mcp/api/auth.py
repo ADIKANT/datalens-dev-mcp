@@ -9,7 +9,18 @@ from pathlib import Path
 from datalens_dev_mcp.api.errors import CredentialRefreshError
 
 
-def refresh_iam_token_with_yc(*, yc_binary: str = "yc", timeout_sec: float = 15.0) -> str:
+def refresh_iam_token_with_yc(
+    *, yc_binary: str = "yc", allow_browser: bool = False, timeout_sec: float | None = None,
+) -> str:
+    # Background reads stay noninteractive. Explicit recovery lets yc complete
+    # its own external-browser/SSO callback without exposing a login URL or token.
+    if timeout_sec is None:
+        timeout_sec = 120.0 if allow_browser else 15.0
+    command = [yc_binary, "iam", "create-token"]
+    if not allow_browser:
+        command.append("--no-browser")
+    command.append("--no-user-output")
+    stage = "browser_credential_helper" if allow_browser else "credential_helper"
     env = os.environ.copy()
     path_entries = [entry for entry in env.get("PATH", "").split(os.pathsep) if entry]
     binary_path = Path(yc_binary)
@@ -22,7 +33,7 @@ def refresh_iam_token_with_yc(*, yc_binary: str = "yc", timeout_sec: float = 15.
     started = time.monotonic()
     try:
         result = subprocess.run(
-            [yc_binary, "iam", "create-token", "--no-browser", "--no-user-output"],
+            command,
             stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
@@ -31,7 +42,8 @@ def refresh_iam_token_with_yc(*, yc_binary: str = "yc", timeout_sec: float = 15.
             env=env,
         )
     except subprocess.TimeoutExpired as exc:
-        raise CredentialRefreshError("credential_refresh_timeout", elapsed_sec=round(time.monotonic() - started, 3)) from exc
+        raise CredentialRefreshError("credential_refresh_timeout", stage=stage,
+                                     elapsed_sec=round(time.monotonic() - started, 3)) from exc
     except OSError as exc:
         raise CredentialRefreshError("credential_helper_unavailable", stage="helper_launch",
                                      elapsed_sec=round(time.monotonic() - started, 3)) from exc
@@ -44,7 +56,7 @@ def refresh_iam_token_with_yc(*, yc_binary: str = "yc", timeout_sec: float = 15.
         ) is not None
         raise CredentialRefreshError(
             "interactive_login_required" if login_required else "credential_refresh_failed",
-            exit_status=result.returncode, elapsed_sec=round(time.monotonic() - started, 3),
+            exit_status=result.returncode, stage=stage, elapsed_sec=round(time.monotonic() - started, 3),
         )
     token = result.stdout.strip()
     if not token or any(character.isspace() for character in token):
