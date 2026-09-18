@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.12
+
+- Let explicit IAM refresh use the configured YC profile's external browser sign-in with a bounded two-minute wait. Keep automatic refresh noninteractive and provide an explicit browser-disabled option.
+- Distinguish browser-enabled recovery from background timeouts, retain secret-free API verification and clarify authorized same-account SSO recovery without changing host permissions or replaying writes.
+
 ## 1.2.11
 
 - Add one bounded, read-only revision-history tool with provider order, exact revision filtering and opaque continuation. Distinguish malformed pages from valid empty history without weakening unknown-write recovery.

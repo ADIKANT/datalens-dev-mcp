@@ -11,6 +11,8 @@ For a known target confirmed by the current project and API, read that object an
 
 Use [direct reads](references/direct-reads.md) for tool selection, compact projections, pagination and completeness. Distinguish saved and published branches, target and reference, source/static validation and live data or Browser evidence. A rendered-result request can use read-only Browser inspection after scoped API and applicable data checks.
 
+For token renewal or a credential failure, follow [authentication recovery](references/installation-and-sdk.md#authentication-recovery): `dl_auth_refresh` supports the existing profile's external-browser sign-in. A noninteractive timeout alone is not a login prohibition.
+
 For cloud identity lookup load [RLS resolution](references/cloud-rls-resolution.md). For changes route to `datalens-dataset-wizard`, `datalens-editor` or `datalens-dashboard`; backup, standalone HTML Page and cleanup belong to `datalens-maintenance`. Load only the addressed reference.
 
 [Upstream provenance](references/upstream-provenance.md) records the selectively adapted sources; load it only for a version/provenance question.

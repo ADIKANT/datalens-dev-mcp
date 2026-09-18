@@ -120,8 +120,12 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
         code = error.code
         action = {
             "credential_helper_unavailable": "Check the configured yc executable and its launch permissions, then call dl_auth_refresh.",
-            "interactive_login_required": "Complete the configured yc profile's interactive login in the same account, then call dl_auth_refresh to verify API access and resume the original read.",
-            "credential_refresh_timeout": "The timeout cause is unknown. Check bounded helper availability and network reachability before calling dl_auth_refresh; login is not established as necessary.",
+            "interactive_login_required": "Use dl_auth_refresh for the existing yc profile's external-browser sign-in and API verification; the user handles any required password or MFA. If yc still requires profile setup, follow its supported same-account login.",
+            "credential_refresh_timeout": (
+                "The browser-enabled yc attempt timed out. Check whether external-browser sign-in or MFA is pending, and bounded helper/network evidence; do not repeat an unchanged failure."
+                if error.stage == "browser_credential_helper" else
+                "The noninteractive yc attempt timed out; this alone does not establish a network failure or login requirement. For authorized sign-in use dl_auth_refresh once with its default external-browser recovery."
+            ),
             "credential_refresh_failed": "The helper failed without confirmed login evidence. Check its safe exit status and local diagnostics, then call dl_auth_refresh.",
             "credential_invalid": "The helper returned no valid credential. Check the configured helper, then call dl_auth_refresh.",
         }[code]

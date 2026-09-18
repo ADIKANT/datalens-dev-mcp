@@ -68,7 +68,7 @@ DATALENS_MCP_ENABLE_EXPERT_RPC=0
 
 Pass its absolute path as `DATALENS_ENV_FILE`. The canonical file is reloaded during access checks and before write operations. For write/save/publish, a value of `0` in either the file or the process environment always takes precedence over `1`.
 
-If `yc` is missing from the MCP process `PATH`, set `DATALENS_YC_BINARY`. `dl_runtime_status` reports `refresh_available` without exposing token paths or values. Automatic refresh runs `yc iam create-token --no-browser --no-user-output`; complete any interactive `yc` profile reauthentication separately in a terminal.
+If `yc` is missing from the MCP process `PATH`, set `DATALENS_YC_BINARY`. `dl_auth_check` reports `refresh_available` without exposing tokens. Background refresh does not open a browser. Use `dl_auth_refresh` for the existing profile’s supported sign-in: by default it allows the system external browser and waits up to 120 seconds, then verifies API access. `allow_browser=false` retains the 15-second noninteractive mode. The token stays in process memory; see [authentication recovery](access_en.md#automatic-token-bootstrap-and-refresh).
 
 ## API request scheduler
 

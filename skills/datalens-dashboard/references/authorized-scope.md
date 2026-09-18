@@ -15,6 +15,8 @@ Ask only when the target or effect remains ambiguous, the solution materially ex
 
 Native permission events remain host-controlled. Automatic reviewer `outcome=allow` is not a pending human response. Do not bypass a refusal, modify global configuration, or edit external skills. An external design process remains external; do not attribute its requirements to this plugin or introduce a second domain approval ceremony.
 
+For expired credentials, follow [authentication recovery](../../datalens-inspect/references/installation-and-sdk.md#authentication-recovery) through `dl_auth_refresh`. Its configured external-browser sign-in is distinct from editing dashboard content through Browser. Reuse current same-account login authorization; pause only for an actual host denial, required user password/MFA or unresolved scope.
+
 ## Choose the affected path
 
 This is a decision map, not a sequence to execute in full for every task. Metadata-only changes take the short branch; source checks apply when the requested metric or fields depend on them.

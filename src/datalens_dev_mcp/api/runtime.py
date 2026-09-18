@@ -25,20 +25,19 @@ class DataLensRuntime:
     ) -> None:
         self.config = config
         self._refresh_failure: DataLensApiError | None = None
-        self._credential_refresher = credential_refresher or (
-            lambda: refresh_iam_token_with_yc(yc_binary=config.yc_binary)
-        )
+        self._credential_refresher = credential_refresher
         token_refresher = self._refresh_credentials if config.refresh_available else None
         self.api = DataLensApiClient(config, transport=api_transport, token_refresher=token_refresher)
         self.sdk = SdkAdapter(config, client=sdk_client, token_refresher=token_refresher)
 
-    def _refresh_credentials(self) -> str:
+    def _refresh_credentials(self, *, allow_browser: bool = False) -> str:
         if self.config.installation != "yacloud":
             raise ValueError("YC IAM refresh is unavailable for Enterprise")
         if self._refresh_failure is not None:
             raise self._refresh_failure
         try:
-            token = self._credential_refresher().strip()
+            token = (self._credential_refresher() if self._credential_refresher else
+                     refresh_iam_token_with_yc(yc_binary=self.config.yc_binary, allow_browser=allow_browser)).strip()
             if not token or any(character.isspace() for character in token):
                 raise CredentialRefreshError("credential_invalid")
         except DataLensApiError as exc:
@@ -57,9 +56,9 @@ class DataLensRuntime:
             self._refresh_credentials()
         return self.api.read("getWorkbooksList", {"pageSize": 1})
 
-    def refresh_and_probe(self) -> dict[str, Any]:
+    def refresh_and_probe(self, *, allow_browser: bool = True) -> dict[str, Any]:
         self._refresh_failure = None
-        self._refresh_credentials()
+        self._refresh_credentials(allow_browser=allow_browser)
         try:
             return self.api.read("getWorkbooksList", {"pageSize": 1}, allow_auth_refresh=False)
         except DataLensApiError as exc:
