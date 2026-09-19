@@ -1,6 +1,6 @@
 {
   "name": "datalens-dev-mcp",
-  "version": "1.2.13",
+  "version": "1.2.14",
   "description": "Develop and maintain Yandex DataLens objects with typed operations and reusable visual recipes.",
   "author": {
     "name": "ADIKANT",

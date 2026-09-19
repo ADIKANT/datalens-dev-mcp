@@ -455,13 +455,13 @@ def _editor_tabs(
         if not contract["selector"]["clear"] and not defaults:
             raise ValueError("required selector needs a default")
         tabs["meta.json"] = "{}"
-        tabs["params.js"] = "module.exports = " + json.dumps({name: defaults}, ensure_ascii=False) + ";\n"
+        tabs["params.js"] = "module.exports = " + json.dumps({name: defaults}, ensure_ascii=False, sort_keys=True) + ";\n"
         tabs["controls.js"] = (
             renderer
             + "\nmodule.exports = module.exports("
-            + json.dumps(normalized, ensure_ascii=False)
+            + json.dumps(normalized, ensure_ascii=False, sort_keys=True)
             + ", "
-            + json.dumps(contract, ensure_ascii=False)
+            + json.dumps(contract, ensure_ascii=False, sort_keys=True)
             + ");\n"
         )
         return tabs
@@ -474,11 +474,11 @@ def _editor_tabs(
                 or not isinstance(source.get("prepare_js"), str)
             ):
                 raise TypeError("source requires meta object, sources_js and prepare_js strings")
-            tabs["meta.json"] = json.dumps(source["meta"], ensure_ascii=False)
+            tabs["meta.json"] = json.dumps(source["meta"], ensure_ascii=False, sort_keys=True)
             source_params = source.get("params") or {}
             if not isinstance(source_params, Mapping):
                 raise TypeError("source params must be an object")
-            tabs["params.js"] = "module.exports = " + json.dumps(dict(source_params), ensure_ascii=False) + ";\n"
+            tabs["params.js"] = "module.exports = " + json.dumps(dict(source_params), ensure_ascii=False, sort_keys=True) + ";\n"
             tabs["sources.js"] = source["sources_js"]
             prepared = (
                 "(() => { const module = {exports: {}};\n" + source["prepare_js"] + "\nreturn module.exports; })()"
@@ -486,7 +486,7 @@ def _editor_tabs(
         elif "prepared_data" in bindings and isinstance(bindings["prepared_data"], Mapping):
             tabs["meta.json"] = "{}"
             tabs["sources.js"] = "module.exports = {};\n"
-            prepared = json.dumps(bindings["prepared_data"], ensure_ascii=False)
+            prepared = json.dumps(bindings["prepared_data"], ensure_ascii=False, sort_keys=True)
         else:
             raise ValueError(
                 "Advanced recipe requires explicit source or prepared_data; no placeholder source is generated"
@@ -498,7 +498,7 @@ def _editor_tabs(
                 date.setdefault("mode", "ordinal")
             prepared = (
                 "(() => { const module = {exports: {}};\n" + temporal
-                + "\nreturn module.exports(" + prepared + ", " + json.dumps(date)
+                + "\nreturn module.exports(" + prepared + ", " + json.dumps(date, sort_keys=True)
                 + ", " + json.dumps(recipe_id) + "); })()"
             )
         tabs["prepare.js"] = (
@@ -506,7 +506,7 @@ def _editor_tabs(
             + "\nmodule.exports = module.exports("
             + prepared
             + ", "
-            + json.dumps(contract, ensure_ascii=False)
+            + json.dumps(contract, ensure_ascii=False, sort_keys=True)
             + ");\n"
         )
         tabs["controls.js"] = "module.exports = {controls: []};\n"

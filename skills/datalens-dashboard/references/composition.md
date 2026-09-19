@@ -133,8 +133,9 @@ Use actual Dataset field readback. Manual members use `param_name` and `options`
 instead of `dataset_id`/`field`. Members support SDK selector options, stable IDs,
 `default_value`, `affects`, `hint`, and left titles by default. A date interval is
 `{"start": "2026-01-01", "end": "2026-01-31"}`; add `relative: true` for SDK
-relative intervals. Preserve wrapper `show_on_tabs`, apply/reset settings and
-member order. Tab `aliases` is an array of field/parameter-name arrays;
+relative intervals. An interval default enables range selection; explicit
+`is_range: false` conflicts with it. Preserve wrapper `show_on_tabs`, apply/reset
+settings and member order. Tab `aliases` is an array of field/parameter-name arrays;
 `connections` contains `from`, `to`, optional `mutual` ignore edges. Empty
 connections retain the native broadcast behavior. Chart `params` must not mask
 selector defaults. External Editor selectors stay standalone: the provider does
