@@ -3,6 +3,7 @@
 ## 1.2.14
 
 - Serialize generated Editor recipe configuration deterministically so saved artifacts pass source validation after JSON key reordering. Preserve rejection of actual source changes.
+- Enable native selector range mode for interval defaults and reject an explicit conflicting single-date mode before writing.
 
 ## 1.2.13
 

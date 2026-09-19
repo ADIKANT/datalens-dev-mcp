@@ -330,6 +330,9 @@ def _add_selector_group(tab: DashboardTab, item: Mapping[str, Any], *, at: tuple
 
             if set(default) - {"start", "end", "relative"} or not {"start", "end"} <= set(default):
                 raise ValueError("selector_group/member/default_value requires start/end and optional relative")
+            if kwargs.get("is_range") is False:
+                raise ValueError("selector_group/member/is_range conflicts with an interval default_value")
+            kwargs.setdefault("is_range", True)
             interval = RelativeDateInterval if default.get("relative") else DateInterval
             kwargs["default_value"] = interval(start=default["start"], end=default["end"])
         if isinstance(kwargs.get("affects"), list):
