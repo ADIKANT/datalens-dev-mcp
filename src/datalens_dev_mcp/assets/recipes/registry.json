@@ -22,7 +22,7 @@
       "object_type": "advanced-chart_node",
       "renderer": "kpi_sparkline_renderer.js",
       "required_bindings": ["metric", "date", "comparison"],
-      "visual_contract": {"visible_title": {"owner": "body"}, "legend": {"mode": "hidden"}, "kpi": {"direction": "neutral", "delta_kind": "relative", "value_scale": null, "relative_denominator": "absolute_previous", "separate_object": true, "value": true, "comparison_label": true, "sparkline": true}, "geometry": {"width": 6, "height": 4}, "labels": {"precision": 0}},
+      "visual_contract": {"visible_title": {"owner": "widget"}, "legend": {"mode": "hidden"}, "kpi": {"direction": "neutral", "delta_kind": "relative", "value_scale": null, "relative_denominator": "absolute_previous", "separate_object": true, "value": true, "comparison_label": true, "sparkline": true}, "geometry": {"width": 6, "height": 4}, "labels": {"precision": 0}},
       "example": {"data_class": "synthetic", "states": ["value", "loading", "error", "no_data", "business_zero"]}
     },
     "time_comparison": {
@@ -30,7 +30,7 @@
       "object_type": "wizard_chart",
       "wizard_visualization": "line",
       "required_bindings": ["date", "metric", "comparison"],
-      "visual_contract": {"axes_gridlines": {"x_grid": false, "y_grid": true}, "legend": {"mode": "dynamic_series"}, "comparison": {"method": "current_vs_explicit_period"}},
+      "visual_contract": {"axes_gridlines": {"x_grid": false, "y_grid": false}, "legend": {"mode": "dynamic_series"}, "comparison": {"method": "current_vs_explicit_period"}},
       "example": {"data_class": "synthetic", "states": ["current_and_previous", "partial_period", "missing"]}
     },
     "categorical_bar": {
@@ -38,7 +38,7 @@
       "object_type": "wizard_chart",
       "wizard_visualization": "bar",
       "required_bindings": ["category", "metric"],
-      "visual_contract": {"axes_gridlines": {"x_grid": true, "y_grid": false, "zero_baseline": true}, "labels": {"visible": true, "position": "outside"}, "legend": {"mode": "hidden"}},
+      "visual_contract": {"axes_gridlines": {"x_grid": false, "y_grid": false, "zero_baseline": true}, "labels": {"visible": true, "position": "outside"}, "legend": {"mode": "hidden"}},
       "example": {"data_class": "synthetic", "states": ["positive", "zero", "missing", "long_label"]}
     },
     "comparison_matrix": {
@@ -64,7 +64,7 @@
       "object_type": "advanced-chart_node",
       "renderer": "weekly_totals_renderer.js",
       "required_bindings": ["group", "date", "metric"],
-      "visual_contract": {"visible_title": {"owner": "body"}, "legend": {"mode": "hidden"}, "table": {"total_position": "bottom_and_right", "first_column_label": "Group", "widths": {"first": 132, "period": 82, "total": 96}, "header": "pinned", "internal_scroll": true}, "geometry": {"width": 12, "height": 10, "preserve_manual": true}},
+      "visual_contract": {"visible_title": {"owner": "widget"}, "legend": {"mode": "hidden"}, "table": {"total_position": "bottom_and_right", "first_column_label": "Group", "widths": {"first": 132, "period": 82, "total": 96}, "header": "pinned", "internal_scroll": true}, "geometry": {"width": 12, "height": 10, "preserve_manual": true}},
       "example": {"data_class": "synthetic", "states": ["iso_weeks", "empty", "bottom_total", "right_total"]}
     },
     "native_detail_table": {
@@ -89,7 +89,7 @@
       "object_type": "advanced-chart_node",
       "renderer": "period_series_renderer.js",
       "required_bindings": ["metric", "date", "comparison"],
-      "visual_contract": {"visible_title": {"owner": "body"}, "legend": {"mode": "fixed_semantic"}, "geometry": {"width": 24, "height": 12, "preserve_manual": true}},
+      "visual_contract": {"visible_title": {"owner": "widget"}, "legend": {"mode": "fixed_semantic"}, "geometry": {"width": 24, "height": 12, "preserve_manual": true}},
       "example": {"data_class": "synthetic", "states": ["current", "comparison", "missing_point", "no_data"]}
     }
   }

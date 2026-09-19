@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Mapping
+from copy import deepcopy
 from typing import Any
 
 from datalens_sdk import DataLensClientYC, Dataset, WizardLocalField, Workbook
 from datalens_sdk.converter.wizard import WizardChartConverter
 
 from datalens_dev_mcp.api.sdk_adapter import SDK_VERSION, WIZARD_VARIANTS
+from datalens_dev_mcp.authoring.profiles import get_authoring_defaults
 from datalens_dev_mcp.dataset.contracts import (
     TECHNICAL_MEASURES,
     validate_dataset_fields,
@@ -21,6 +24,7 @@ def wizard_builder(client: Any, dataset: Dataset, specification: Mapping[str, An
     Returning a builder is local work; only its caller may invoke build().
     Role names are deliberately not arbitrary SDK method names.
     """
+    specification, profile = resolve_wizard_presentation(specification)
     visualization = str(specification.get("visualization") or "")
     if visualization not in WIZARD_VARIANTS:
         raise ValueError(f"unsupported Wizard visualization: {visualization}")
@@ -37,6 +41,7 @@ def wizard_builder(client: Any, dataset: Dataset, specification: Mapping[str, An
         "legend",
         "labels_position",
         "subtotals",
+        "family", "project_root", "presentation", "grid_reason", "measure_colors",
     }
     if set(specification) - allowed:
         raise ValueError(f"unsupported Wizard settings: {sorted(set(specification) - allowed)}")
@@ -102,8 +107,8 @@ def wizard_builder(client: Any, dataset: Dataset, specification: Mapping[str, An
             raise ValueError("column_titles require flat_table")
         builder.column_title(dataset.fields.by_guid(guid), title=str(title))
     for axis, enabled in specification.get("grid", {}).items():
-        if axis not in {"x", "y"} or type(enabled) is not bool or not callable(getattr(builder, "grid", None)):
-            raise ValueError("grid requires a supported x/y axis and boolean value")
+        if axis not in {"x", "y", "y2"} or type(enabled) is not bool or not callable(getattr(builder, "grid", None)):
+            raise ValueError("grid requires a supported x/y/y2 axis and boolean value")
         builder.grid(axis, enabled=enabled)
     if "legend" in specification:
         if specification["legend"] not in {"show", "hide"}:
@@ -113,7 +118,84 @@ def wizard_builder(client: Any, dataset: Dataset, specification: Mapping[str, An
         if specification["labels_position"] not in {"inside", "outside", "auto"}:
             raise ValueError("labels_position must be inside, outside or auto")
         _setter(builder, "labels_position")(mode=specification["labels_position"])
+    labels = profile["values"]["labels"]
+    for field in dataset.result_schema:
+        if str(field.get("type", "")).upper() != "MEASURE" or field.get("guid") not in used_guids:
+            continue
+        formatting = {}
+        if isinstance(labels.get("precision"), int):
+            formatting["precision"] = labels["precision"]
+        if labels.get("unit") not in {None, "", "from_field", "count"}:
+            formatting["postfix"] = " " + str(labels["unit"])
+        if formatting:
+            _setter(builder, "measure_format")(dataset.fields.by_guid(field["guid"]), **formatting)
+    colors = specification.get("measure_colors")
+    if colors is not None:
+        if not isinstance(colors, Mapping) or not colors:
+            raise ValueError("wizard/measure_colors must map measure GUIDs to stable colors")
+        measures = set(roles.get("y", []) + roles.get("y2", []))
+        if set(colors) != measures:
+            raise ValueError("wizard/measure_colors must assign every y/y2 measure GUID exactly once")
+        _setter(builder, "color_by_measure_name")(colors_map={dataset.fields.by_guid(k): v for k, v in colors.items()})
     return builder
+
+
+def resolve_wizard_presentation(specification: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Apply the same effective contract to recipes and direct new Wizard objects."""
+    result = deepcopy(dict(specification))
+    visualization = result.get("visualization")
+    family = result.get("family") or {"bar": "categorical_bar", "line": "time_comparison",
+                                     "flat_table": "native_detail_table", "pivot_table": "cross_tab_totals"}.get(visualization)
+    profile = get_authoring_defaults(project_root=result.get("project_root"), family=family,
+                                     explicit=result.get("presentation"))
+    values = profile["values"]
+    title = values["visible_title"]
+    result.setdefault("title", title.get("text", ""))
+    result.setdefault("title_mode", "show" if title.get("visible") and title.get("owner") == "chart" else "hide")
+    if values.get("legend") and visualization not in {"flat_table", "pivot_table", "indicator"}:
+        result.setdefault("legend", "hide" if values["legend"].get("mode") == "hidden" else "show")
+    if visualization in {"flat_table", "pivot_table"} and values.get("table"):
+        table = values["table"]
+        settings = {key: table[key] for key in ("pagination", "page_size", "size", "freeze_columns") if key in table}
+        if visualization == "flat_table":
+            settings["totals"] = table.get("total_position") == "bottom"
+        elif table.get("total_position") == "bottom_and_right":
+            roles = result.get("roles") or {}
+            result.setdefault("subtotals", roles.get("rows", [])[:1] + roles.get("columns", [])[:1])
+        result["table"] = {**settings, **result.get("table", {})}
+        if isinstance(table.get("widths"), Mapping):
+            raise ValueError("wizard/presentation/table/widths: explicit column widths require a supported Editor table family")
+    if visualization in {"line", "column", "bar", "column_100p", "bar_100p", "area", "area_100p"}:
+        roles = result.get("roles")
+        if isinstance(roles, dict):
+            if any(not isinstance(guids, list) or any(not isinstance(guid, str) or not guid for guid in guids)
+                   for guids in roles.values()):
+                raise ValueError("wizard/roles: fields must be nonempty GUID strings in arrays")
+            measures = roles.get("x" if visualization in {"bar", "bar_100p"} else "y", []) + roles.get("y2", [])
+            if len(measures) > 1 and visualization in {"line", "column"} and "measure_colors" not in result:
+                palette = ("#4E79A7", "#F28E2B", "#E15759", "#76B7B2", "#59A14F", "#EDC948", "#B07AA1", "#FF9DA7")
+                colors = {guid: palette[int(hashlib.sha256(guid.encode()).hexdigest(), 16) % len(palette)] for guid in measures}
+                if len(set(colors.values())) != len(colors):
+                    raise ValueError("wizard/measure_colors: finite palette collision; supply explicit stable GUID-to-color assignments")
+                result["measure_colors"] = colors
+            if values["labels"].get("visible") and "labels" not in roles:
+                roles["labels"] = deepcopy(measures)
+            if not values["labels"].get("visible"):
+                roles.pop("labels", None)
+            if roles.get("labels") and visualization in {"bar", "column"}:
+                result.setdefault("labels_position", values["labels"].get("position", "outside"))
+        grid = values["axes_gridlines"]
+        result["grid"] = {"x": grid["x_grid"], "y": grid["y_grid"], **result.get("grid", {})}
+        if visualization == "line":
+            result["grid"].setdefault("y2", False)
+        categorical = "y" if visualization in {"bar", "bar_100p"} else "x"
+        if result["grid"].get(categorical):
+            raise ValueError(f"wizard/grid/{categorical}: categorical grid must be disabled")
+        if any(result["grid"].values()):
+            reason = result.get("grid_reason") or grid.get("reason")
+            if visualization not in {"line", "column"} or not isinstance(reason, str) or not reason.strip():
+                raise ValueError("wizard/grid: numeric grid requires line/column and a concrete grid_reason")
+    return result, profile
 
 
 def compile_wizard_create(
@@ -165,24 +247,9 @@ def compile_wizard_create(
     dataset = Dataset(id=dataset_id, result_schema=tuple(field_rows))
     client = DataLensClientYC(auth=None)
     try:
-        factory = getattr(client.create.wizard_chart, visualization)
-        builder = factory(name=name, location=Workbook.workbook(workbook_id)).dataset(dataset)
-        for role, guids in roles.items():
-            method = getattr(builder, role, None)
-            if method is None or not callable(method):
-                return {
-                    "ok": False,
-                    "issues": [
-                        {
-                            "code": "wizard_role_unsupported",
-                            "path": f"roles.{role}",
-                            "message": f"{visualization} does not support role {role}",
-                        }
-                    ],
-                    "sdk_version": SDK_VERSION,
-                    "dataset_fields": field_rows,
-                }
-            method([dataset.fields.by_guid(guid) for guid in guids])
+        builder = wizard_builder(client, dataset, {
+            "dataset_id": dataset_id, "visualization": visualization, "roles": roles, "title": title,
+        }, name=name, location=Workbook.workbook(workbook_id))
         for item in local_fields or []:
             builder.add_local_field(WizardLocalField(
                 title=str(item["title"]),
@@ -193,9 +260,10 @@ def compile_wizard_create(
                 autoaggregated=False,
                 aggregation=str(item.get("aggregation") or "none"),
             ))
-        if title and hasattr(builder, "chart_title"):
-            builder.chart_title(text=title, mode="show")
         payload = WizardChartConverter.from_domain_create(builder.to_spec()).to_payload()
+    except (ValueError, TypeError) as exc:
+        return {"ok": False, "issues": [{"code": "wizard_compilation_invalid", "path": "wizard", "message": str(exc)}],
+                "sdk_version": SDK_VERSION, "dataset_fields": field_rows}
     finally:
         client.close()
     return {

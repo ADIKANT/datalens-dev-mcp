@@ -16,6 +16,7 @@ def compile_kpi(tmp_path, presentation=None):
         "kpi_sparkline",
         {
             "object_name": "Synthetic orders KPI",
+            "hint": "Completed orders in the selected period versus its previous period.",
             "metric": {"field_guid": "orders", "label": "Orders", "unit": "count"},
             "date": {"field_guid": "order_day"},
             "comparison": {"field_guid": "previous_orders", "method": "previous_period", "label": "Previous period"},
@@ -110,15 +111,15 @@ def test_selected_hint_owner_has_one_target(tmp_path, owner, enabled, body_count
     assert draft["visual_contract"]["hint"]["enabled"] == enabled
 
 
-def test_standalone_kpi_retains_body_hint_and_default_title(tmp_path):
+def test_standalone_kpi_defers_title_and_hint_to_placement(tmp_path):
     draft = compile_kpi(tmp_path)
     html = render_body(draft)
     assert html.count(">Orders</div>") == 0
-    assert html.count('data-id="kpi-hint"') == 1
+    assert html.count('data-id="kpi-hint"') == 0
 
 
 def test_plain_chart_keeps_native_default_and_explicit_placement_wins(tmp_path):
-    item = {"kind": "chart", "chart_id": "wizard-id", "title": "Native orders", "at": [0, 0, 12, 8]}
+    item = {"kind": "chart", "hint": "Completed orders in the selected period.", "chart_id": "wizard-id", "title": "Native orders", "at": [0, 0, 12, 8]}
     assert assemble(item)["items"][0]["data"]["hideTitle"] is False
     draft = compile_kpi(tmp_path)
     item.update(presentation=draft["visual_contract"], show_title=True, hint="Explicit help")
@@ -130,6 +131,7 @@ def test_plain_chart_keeps_native_default_and_explicit_placement_wins(tmp_path):
     assert item == before
     item["show_title"] = False
     item["hint"] = None
+    item["presentation"]["hint"]["enabled"] = False
     native = assemble(item)["items"][0]["data"]
     assert native["hideTitle"] is True
     assert native["tabs"][0].get("enableHint", False) is False
@@ -138,13 +140,8 @@ def test_plain_chart_keeps_native_default_and_explicit_placement_wins(tmp_path):
 @pytest.mark.parametrize("text", [None, ["business_meaning"], {"calculation": "sum"}])
 def test_widget_hint_does_not_publish_generic_content_keys(tmp_path, text):
     draft = compile_kpi(tmp_path, {"hint": {"owner": "widget", "text": text}})
-    tab = assemble(
-        {
-            "kind": "chart",
-            "chart_id": "kpi-id",
-            "title": "Orders",
-            "at": [0, 0, 12, 8],
-            "presentation": draft["visual_contract"],
-        }
-    )
-    assert tab["items"][0]["data"]["tabs"][0].get("enableHint", False) is False
+    item = {"kind": "chart", "chart_id": "kpi-id", "title": "Orders", "at": [0, 0, 12, 8],
+            "presentation": draft["visual_contract"]}
+    item["presentation"]["hint"]["text"] = text
+    with pytest.raises(ValueError, match="hint requires concrete explanatory text"):
+        assemble(item)

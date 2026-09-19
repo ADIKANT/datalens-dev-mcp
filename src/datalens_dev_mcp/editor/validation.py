@@ -74,6 +74,24 @@ def validate_editor_draft(draft: Mapping[str, Any]) -> dict[str, Any]:
         issues.append(
             {"code": "source_alias_duplicate", "path": "source_aliases", "message": "source aliases must be unique"}
         )
+    issues.extend(validate_editor_source(tabs))
+    return {
+        "ok": not issues,
+        "variant": variant,
+        "issues": issues,
+        "runtime": {
+            "kind": runtime,
+            "static_source_checked": True,
+            "live_result_checked": False,
+            "live_result_status": "static/source contract checked; live result not checked",
+            "node_runtime_assumed": False,
+        },
+    }
+
+
+def validate_editor_source(tabs: Mapping[str, Any]) -> list[dict[str, str]]:
+    """Validate supplied source fragments without requiring/re-authoring other tabs."""
+    issues: list[dict[str, str]] = []
     source_text = "\n".join(str(value) for value in tabs.values())
     if "libs/sql/v1" in source_text:
         issues.append(
@@ -91,15 +109,4 @@ def validate_editor_draft(draft: Mapping[str, Any]) -> dict[str, Any]:
                 "message": "wrapFn callback must preserve runtime arguments",
             }
         )
-    return {
-        "ok": not issues,
-        "variant": variant,
-        "issues": issues,
-        "runtime": {
-            "kind": runtime,
-            "static_source_checked": True,
-            "live_result_checked": False,
-            "live_result_status": "static/source contract checked; live result not checked",
-            "node_runtime_assumed": False,
-        },
-    }
+    return issues

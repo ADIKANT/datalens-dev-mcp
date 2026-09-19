@@ -83,6 +83,7 @@ WIZARD_SETTINGS = frozenset(
         "legend",
         "labels_position",
         "subtotals",
+        "family", "project_root", "presentation", "grid_reason", "measure_colors",
     }
 )
 SUPPORTED_OBJECT_TYPES = frozenset({"dataset", "wizard_chart", "dashboard", *EDITOR_OBJECT_TYPES})
@@ -338,6 +339,19 @@ def _validate_supported_draft(draft: Mapping[str, Any], object_type: str) -> tup
         editor_draft = deepcopy(dict(draft))
         if object_type != "editor_chart":
             editor_draft.setdefault("variant", object_type)
+        if draft.get("recipe_id"):
+            from datalens_dev_mcp.authoring.recipes import compile_recipe
+
+            try:
+                expected = compile_recipe(draft["recipe_id"], draft.get("bindings") or {},
+                                          presentation={**(draft.get("visual_contract") or {}),
+                                                        "technology": draft.get("technology")})["draft"]
+                for tab, source in expected.get("tabs", {}).items():
+                    if draft.get("tabs", {}).get(tab) != source:
+                        errors.append(_error("recipe_payload_drift", f"tabs/{tab}",
+                                             "compiled recipe source differs from its effective contract; recompile or author an explicit custom draft"))
+            except (ValueError, TypeError, KeyError) as exc:
+                errors.append(_error("recipe_compilation_invalid", "visual_contract", str(exc)))
         report = validate_editor_draft(editor_draft)
         errors.extend(deepcopy(report["issues"]))
         return errors, ["editor_static_contract"]
@@ -379,6 +393,22 @@ def _validate_supported_draft(draft: Mapping[str, Any], object_type: str) -> tup
         )
     else:
         errors.extend(validate_dashboard_contract(dict(dashboard))["issues"])
+        if "dashboard" in draft and not errors:
+            # Real SDK conversion checks settings, groups, geometry and hints
+            # without constructing a provider session or calling build().
+            from datalens_sdk import DataLensClientYC, Workbook
+            from datalens_sdk.converter.dashboard import DashboardConverter
+
+            from datalens_dev_mcp.authoring.typed_graph import dashboard_builder
+            from datalens_dev_mcp.dashboard.composition import bind_object_references, object_references
+
+            try:
+                bound = bind_object_references(dict(dashboard), {ref: ref for ref in object_references(dashboard)})
+                with DataLensClientYC(auth=None) as client:
+                    builder = dashboard_builder(client, bound, name=draft["name"], location=Workbook.workbook("local-validation"))
+                    DashboardConverter.from_domain_create(builder.to_spec()).to_payload()
+            except (ValueError, TypeError, KeyError) as exc:
+                errors.append(_error("dashboard_compilation_invalid", "dashboard", str(exc)))
     return errors, ["dashboard_static_contract"]
 
 
@@ -431,6 +461,35 @@ def _validate_wizard(draft: Mapping[str, Any]) -> list[dict[str, str]]:
                     "Wizard roles require Dataset GUIDs, not technical measures",
                 )
             )
+    if not errors:
+        from datalens_dev_mcp.wizard.authoring import resolve_wizard_presentation
+
+        try:
+            compiled, _ = resolve_wizard_presentation(specification)
+            if compiled["title_mode"] not in {"show", "hide"}:
+                raise ValueError("wizard/title_mode: expected show or hide")
+            if any(type(value) is not bool for value in compiled.get("grid", {}).values()):
+                raise ValueError("wizard/grid: expected boolean settings")
+            if set(compiled.get("grid", {})) - {"x", "y", "y2"}:
+                raise ValueError("wizard/grid: unsupported axis")
+            if compiled.get("labels_position", "auto") not in {"inside", "outside", "auto"}:
+                raise ValueError("wizard/labels_position: unsupported position")
+            # With readback fields available this runs the same builder and SDK
+            # converter as the write route, still without a provider request.
+            fields = draft.get("dataset_fields") or (draft.get("bindings") or {}).get("dataset_fields")
+            if fields:
+                from datalens_sdk import DataLensClientYC, Dataset, Workbook
+                from datalens_sdk.converter.wizard import WizardChartConverter
+
+                from datalens_dev_mcp.wizard.authoring import wizard_builder
+
+                with DataLensClientYC(auth=None) as client:
+                    dataset = Dataset(id=str(specification["dataset_id"]), result_schema=tuple(fields))
+                    builder = wizard_builder(client, dataset, specification, name=draft["name"],
+                                             location=Workbook.workbook("local-validation"))
+                    WizardChartConverter.from_domain_create(builder.to_spec()).to_payload()
+        except (ValueError, TypeError, KeyError) as exc:
+            errors.append(_error("wizard_compilation_invalid", "wizard", str(exc)))
     return errors
 
 

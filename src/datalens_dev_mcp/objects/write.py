@@ -145,6 +145,33 @@ class ObjectMutationService:
         if not admitted:
             return record
         items = self._items(record, drafts, lambda d, i: str(d.get("client_ref") or f"create-{i}"))
+        # Validate the complete typed batch before its first effect. Keep the
+        # existing per-item receipt and replay/unknown-outcome contract.
+        from datalens_dev_mcp.authoring.validation import _validate_supported_draft
+
+        invalid = False
+        for index, draft in enumerate(drafts):
+            if items[index].get("status") in {"completed", "uncertain"}:
+                continue
+            if any(key in draft for key in ("wizard", "dashboard", "recipe_id")):
+                try:
+                    errors, _ = _validate_supported_draft(draft, str(draft.get("object_type")))
+                    if errors:
+                        error = errors[0]
+                        raise InputContractError(f"{error['path']}: {error['message']}")
+                except (ValueError, TypeError) as exc:
+                    self._failure(items[index], exc)
+                    invalid = True
+        if invalid:
+            return self._save(record)
+        preflight = getattr(self.backend, "validate_create_batch", None)
+        if callable(preflight):
+            skipped = {index for index, item in enumerate(items) if item.get("status") in {"completed", "uncertain"}}
+            failures = preflight(drafts, destination, skip_indices=skipped)
+            for index, error in failures:
+                self._failure(items[index], error)
+            if failures:
+                return self._save(record)
         for index, draft in enumerate(drafts):
             item = items[index]
             if item.get("status") in {"completed", "uncertain"}:

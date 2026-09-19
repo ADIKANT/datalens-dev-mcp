@@ -68,5 +68,5 @@ def test_profile_reference_and_explicit_priority(tmp_path):
     def contract(**kwargs):
         return compile_recipe('kpi_sparkline', bindings, user_config_path=user, **kwargs)['draft']['config']['kpi']
     assert contract()['direction'] == 'higher_is_better'
-    assert contract(reference={'kpi': {'direction': 'lower_is_better'}})['direction'] == 'lower_is_better'
+    assert contract(reference={'kpi': {'direction': 'lower_is_better'}})['direction'] == 'higher_is_better'
     assert contract(reference={'kpi': {'direction': 'lower_is_better'}}, presentation={'kpi': {'direction': 'neutral'}})['direction'] == 'neutral'

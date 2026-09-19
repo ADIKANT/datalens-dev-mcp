@@ -58,7 +58,7 @@ def test_mcp_compile_response_is_a_compact_handle(tmp_path, monkeypatch):
         },
     )
 
-    assert set(result) == {"ok", "recipe_id", "summary", "draft_reference"}
+    assert set(result) == {"ok", "recipe_id", "summary", "draft_reference", "profile", "placement"}
     assert set(result["summary"]) == {
         "technology",
         "object_type",

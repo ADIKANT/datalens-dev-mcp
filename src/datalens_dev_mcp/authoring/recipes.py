@@ -78,9 +78,9 @@ def compile_recipe(
     )
     values = defaults["values"]
     contract = _apply_profile(recipe["visual_contract"], values)
-    contract = _bind_contract(contract, bindings)
+    contract = _bind_contract(contract, bindings, defaults["overrides"])
     if recipe_id == "kpi_sparkline":
-        contract = _kpi_semantics(contract, bindings, values)
+        contract = _kpi_semantics(contract, bindings, defaults["overrides"])
     technology = str(recipe["technology"] if defaults["technology_source"] == "generic" else values.get("technology"))
     technology = {
         "advanced-chart_node": "advanced_chart",
@@ -93,6 +93,10 @@ def compile_recipe(
         raise ValueError(
             f"recipe {recipe_id} does not support technology {technology}; choose a matching recipe or author an explicit custom draft"
         )
+    axes = contract["axes_gridlines"]
+    if (recipe_id == "period_series" and (axes["x_grid"] or axes["y_grid"])
+            and (axes["x_grid"] or not isinstance(axes.get("reason"), str) or not axes["reason"].strip())):
+        raise ValueError("period_series numeric grid requires axes_gridlines/reason; categorical grid must be off")
     _validate_prepared_data(recipe_id, bindings)
     draft: dict[str, Any] = {
         "recipe_id": recipe_id,
@@ -111,6 +115,13 @@ def compile_recipe(
         draft.update(_pivot_draft(bindings, contract))
     if recipe_id == "time_comparison" and technology == "wizard":
         draft.update(_time_comparison_draft(bindings, contract))
+    if "wizard" in draft:
+        draft["wizard"]["family"] = recipe_id
+        draft["wizard"]["presentation"] = deepcopy(contract)
+        if project_root is not None:
+            draft["wizard"]["project_root"] = str(project_root)
+    draft["placement"] = {"title": deepcopy(contract["visible_title"]), "hint": deepcopy(contract["hint"]),
+                          "status": "pending"}
     renderer_name = recipe.get("renderer")
     renderer_text = ""
     if renderer_name:
@@ -180,8 +191,10 @@ def _time_comparison_draft(bindings: Mapping[str, Any], contract: Mapping[str, A
         "client_ref": str(bindings.get("client_ref") or "time_comparison"),
         "wizard": {
             "visualization": "line",
+            "measure_colors": {refs["metric"]: "#4E79A7", refs["comparison"]: "#9CA3AF"},
             "dataset_id": dataset_id,
-            "roles": {"x": [refs["date"]], "y": [refs["metric"], refs["comparison"]]},
+            "roles": {"x": [refs["date"]], "y": [refs["metric"], refs["comparison"]],
+                      **({"labels": [refs["metric"], refs["comparison"]]} if contract["labels"]["visible"] else {})},
             "title": str(title.get("text") or name),
             "title_mode": "show" if title.get("visible") and title.get("owner") == "chart" else "hide",
             "grid": {"x": contract["axes_gridlines"]["x_grid"], "y": contract["axes_gridlines"]["y_grid"]},
@@ -257,7 +270,7 @@ def _categorical_bar_draft(bindings: Mapping[str, Any], contract: Mapping[str, A
             "title_mode": "show" if title.get("visible") and title.get("owner") == "chart" else "hide",
             "grid": {"x": contract["axes_gridlines"]["x_grid"], "y": contract["axes_gridlines"]["y_grid"]},
             "legend": "hide" if contract["legend"]["mode"] == "hidden" else "show",
-            "labels_position": contract["labels"].get("position", "outside"),
+            **({"labels_position": contract["labels"].get("position", "outside")} if contract["labels"]["visible"] else {}),
             "sort": deepcopy(bindings.get("sort") or []),
         },
     }
@@ -308,8 +321,6 @@ def _apply_profile(contract: Mapping[str, Any], values: Mapping[str, Any]) -> di
     result = deepcopy(dict(contract))
     if isinstance(values.get("visible_title"), Mapping):
         result["visible_title"] = _deep_merge(result["visible_title"], values["visible_title"])
-    elif isinstance(values.get("title"), Mapping):
-        result["visible_title"] = _deep_merge(result["visible_title"], values["title"])
     if isinstance(values.get("hint"), Mapping):
         result["hint"] = _deep_merge(result["hint"], values["hint"])
     if values.get("theme"):
@@ -345,7 +356,8 @@ def _kpi_semantics(contract: Mapping[str, Any], bindings: Mapping[str, Any], val
     return result
 
 
-def _bind_contract(contract: Mapping[str, Any], bindings: Mapping[str, Any]) -> dict[str, Any]:
+def _bind_contract(contract: Mapping[str, Any], bindings: Mapping[str, Any],
+                   overrides: Mapping[str, Any]) -> dict[str, Any]:
     result = deepcopy(dict(contract))
     metric = bindings.get("metric") if isinstance(bindings.get("metric"), Mapping) else {}
     object_name = bindings.get("object_name") or metric.get("label") or ""
@@ -353,10 +365,16 @@ def _bind_contract(contract: Mapping[str, Any], bindings: Mapping[str, Any]) -> 
     if metric:
         if not result["visible_title"].get("text"):
             result["visible_title"]["text"] = str(metric.get("label") or "")
-        result["labels"]["unit"] = metric.get("unit") or result["labels"].get("unit")
+        if "unit" not in overrides.get("labels", {}):
+            result["labels"]["unit"] = metric.get("unit") or result["labels"].get("unit")
         result["tooltip"]["unit"] = metric.get("unit") or True
-    if isinstance(metric.get("precision"), int):
+    if isinstance(metric.get("precision"), int) and "precision" not in overrides.get("labels", {}):
         result["labels"]["precision"] = max(0, min(10, metric["precision"]))
+    if isinstance(bindings.get("hint"), str) and not result["hint"].get("text"):
+        result["hint"]["text"] = bindings["hint"]
+    group = bindings.get("group")
+    if isinstance(group, Mapping) and group.get("label") and "first_column_label" not in overrides.get("table", {}):
+        result["table"]["first_column_label"] = str(group["label"])
     semantics = str(metric.get("aggregation") or metric.get("role") or "sum").lower()
     result["table"]["totals_additive"] = semantics not in {
         "ratio", "average", "avg", "count_distinct", "unique", "uniq", "uniqexact"

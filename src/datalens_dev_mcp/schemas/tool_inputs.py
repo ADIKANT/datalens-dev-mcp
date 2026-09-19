@@ -92,7 +92,11 @@ DESTINATION = {"type": "object", "properties": {"workbook_id": STRING, "collecti
 DRAFT = {
     "type": "object",
     "properties": {"object_type": STRING, "artifact_path": STRING, "client_ref": STRING,
-                   "depends_on": {"type": "array", "items": STRING}},
+                   "depends_on": {"type": "array", "items": STRING},
+                   "dataset_fields": {"type": "array", "items": FIELD,
+                                      "description": "Dataset field readback for complete offline Wizard payload validation."},
+                   "wizard": {"type": "object", "description": "Typed Wizard settings; family, project_root and presentation resolve the shared visual profile."},
+                   "dashboard": {"type": "object", "description": "Typed tabs/items including selector_group; chart placement requires concrete hint text. Supports project_root and presentation."}},
     "anyOf": [{"required": ["object_type"]}, {"required": ["artifact_path"]}],
     "additionalProperties": True,
 }

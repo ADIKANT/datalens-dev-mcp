@@ -267,6 +267,8 @@ def dl_compile_recipe(
             key: summary[key]
             for key in ("technology", "object_type", "renderer_reused", "network_calls", "datalens_writes")
         },
+        "profile": {key: result["defaults"][key] for key in ("profile_version", "applied_sources", "conflicts")},
+        "placement": result["draft"]["placement"],
         "draft_reference": {"artifact_path": result["files"]["draft.json"]},
     }
 

@@ -38,13 +38,13 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
       }
 
       function numberOrNull(value) {
-        if (value === null || value === undefined || value === '') return null;
+        if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) return null;
         const numeric = Number(value);
         return Number.isFinite(numeric) ? numeric : null;
       }
 
       function numberText(value, format, unit) {
-        if (value === null || value === undefined || value === '') return 'N/A';
+        if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) return 'N/A';
         const numeric = Number(value);
         if (!Number.isFinite(numeric)) return 'N/A';
         function groupedFixed(source, decimalPlaces) {
@@ -106,7 +106,7 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
         const lines = series.filter(item => item.type === 'line');
 
         function finiteValue(value) {
-          if (value === null || value === undefined || value === '') return null;
+          if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) return null;
           const numeric = Number(value);
           return Number.isFinite(numeric) ? numeric : null;
         }
@@ -334,7 +334,7 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
               const barHeight = Math.abs(scaleY(end) - scaleY(start));
               const y = Math.min(scaleY(start), scaleY(end));
               marks += `<rect x="${(centerX - renderedBarWidth / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${renderedBarWidth.toFixed(1)}" height="${Math.max(0, barHeight).toFixed(1)}" rx="3" fill="${itemColor}" opacity="0.90" />`;
-              if (item.showBarLabels !== false && value !== 0 && barHeight >= 17 && barLabelIndices[categoryIndex]) {
+              if (presentation.labels.visible && item.showBarLabels !== false && value !== 0 && barHeight >= 17 && barLabelIndices[categoryIndex]) {
                 const segmentTextColor = item.color === '#D0D5DD' ? theme.textSecondary : '#FFFFFF';
                 valueLabels += `<text x="${centerX.toFixed(1)}" y="${(y + barHeight / 2 + 4).toFixed(1)}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="600" letter-spacing="0" fill="${segmentTextColor}">${esc(numberText(value, item.format || data.primaryFormat || 'integer', item.labelUnit !== undefined ? item.labelUnit : ''))}</text>`;
               }
@@ -342,7 +342,7 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
               else negativeTotal = end;
             });
             [positiveTotal, negativeTotal].forEach(stackedTotal => {
-              if (stackedTotal === 0 || bars.length <= 1 || !barLabelIndices[categoryIndex]) return;
+              if (!presentation.labels.visible || stackedTotal === 0 || bars.length <= 1 || !barLabelIndices[categoryIndex]) return;
               const labelY = stackedTotal > 0 ? Math.max(13, scaleY(stackedTotal) - 7)
                 : Math.min(height - plot.bottom + 16, scaleY(stackedTotal) + 15);
               valueLabels += `<text x="${centerX.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="600" letter-spacing="0" fill="${theme.textSecondary}" style="paint-order:stroke;stroke:${theme.halo};stroke-width:3px;stroke-linejoin:round;">${esc(numberText(stackedTotal, data.primaryFormat || 'integer', ''))}</text>`;
@@ -358,7 +358,7 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
               const x = centerX - (barWidth * bars.length) / 2 + barWidth * barIndex;
               const y = Math.min(zeroY, scaleY(value));
               marks += `<rect x="${(x + 2).toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(3, barWidth - 4).toFixed(1)}" height="${Math.max(0, barHeight).toFixed(1)}" rx="3" fill="${itemColor}" opacity="0.90" />`;
-              if (item.showBarLabels !== false && value !== 0 && barLabelIndices[categoryIndex]) {
+              if (presentation.labels.visible && item.showBarLabels !== false && value !== 0 && barLabelIndices[categoryIndex]) {
                 valueLabels += `<text x="${(x + barWidth / 2).toFixed(1)}" y="${(value >= 0 ? Math.max(13, y - 7) : Math.min(height - plot.bottom + 16, y + barHeight + 15)).toFixed(1)}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="600" letter-spacing="0" fill="${theme.textSecondary}" style="paint-order:stroke;stroke:${theme.halo};stroke-width:3px;stroke-linejoin:round;">${esc(numberText(value, item.format || data.primaryFormat || 'integer', item.labelUnit !== undefined ? item.labelUnit : item.unit || ''))}</text>`;
               }
             });
@@ -411,7 +411,7 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
             if (item.showMarkers !== false && (categories.length <= 60 || pointLabelIndices[point.index])) {
               marks += `<circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="3.2" fill="${theme.surface}" stroke="${itemColor}" stroke-width="2.2" />`;
             }
-            if (item.showPointLabels !== false && pointLabelIndices[point.index]) {
+            if (presentation.labels.visible && item.showPointLabels !== false && pointLabelIndices[point.index]) {
               let adjustedLabelOffset = labelOffset;
               const previousValue = finiteValue(item.values?.[point.index - 1]);
               const nextValue = finiteValue(item.values?.[point.index + 1]);
@@ -457,7 +457,7 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
         const grid = primaryTicks.map(value => {
           const y = scaleY(value);
           return `
-            <line x1="${plot.left}" y1="${y}" x2="${width - plot.right}" y2="${y}" stroke="${theme.grid}" stroke-width="1" />
+            ${presentation.axes_gridlines.y_grid ? `<line x1="${plot.left}" y1="${y}" x2="${width - plot.right}" y2="${y}" stroke="${theme.grid}" stroke-width="1" />` : ''}
             <text x="${plot.left - 9}" y="${y + 4}" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="500" letter-spacing="0" fill="${theme.textSecondary}">${esc(numberText(value, data.primaryFormat || 'integer', ''))}</text>
           `;
         }).join('');
@@ -544,7 +544,7 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
           }
 
           function finiteValue(value) {
-            if (value === null || value === undefined || value === '') return null;
+            if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) return null;
             const numeric = Number(value);
             return Number.isFinite(numeric) ? numeric : null;
           }

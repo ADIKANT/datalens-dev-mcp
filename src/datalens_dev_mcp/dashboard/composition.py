@@ -233,12 +233,12 @@ def _validate_typed_dashboard_tabs(contract: dict[str, Any]) -> list[dict[str, s
                 )
                 continue
             kind = item.get("kind")
-            if kind not in {"chart", "external_selector", "title", "text"}:
+            if kind not in {"chart", "external_selector", "selector_group", "title", "text"}:
                 issues.append(
                     {
                         "code": "dashboard_item_kind_invalid",
                         "path": f"{item_path}/kind",
-                        "message": "dashboard item kind must be chart, external_selector, title or text",
+                        "message": "dashboard item kind must be chart, external_selector, selector_group, title or text",
                     }
                 )
             at = item.get("at")
@@ -251,7 +251,9 @@ def _validate_typed_dashboard_tabs(contract: dict[str, Any]) -> list[dict[str, s
                     }
                 )
             if kind in {"chart", "external_selector"}:
-                if not isinstance(item.get("chart_id"), str) or not item.get("chart_id"):
+                chart_id = item.get("chart_id")
+                reference = isinstance(chart_id, dict) and set(chart_id) == {"$object_ref"} and isinstance(chart_id["$object_ref"], str) and bool(chart_id["$object_ref"])
+                if not reference and (not isinstance(chart_id, str) or not chart_id):
                     issues.append(
                         {
                             "code": "dashboard_item_chart_missing",
