@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.14
+
+- Serialize generated Editor recipe configuration deterministically so saved artifacts pass source validation after JSON key reordering. Preserve rejection of actual source changes.
+
 ## 1.2.13
 
 - Resolve one normalized visual profile across recipes, direct Wizard creation and typed Dashboard composition. Keep current user/project choices above old reference styling and retain title alias compatibility.

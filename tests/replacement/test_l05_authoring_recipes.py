@@ -7,6 +7,7 @@ import pytest
 
 from datalens_dev_mcp.authoring.profiles import get_authoring_defaults
 from datalens_dev_mcp.authoring.recipes import compile_recipe, list_recipes
+from datalens_dev_mcp.authoring.validation import validate_drafts
 from datalens_dev_mcp.editor.validation import validate_editor_draft
 from datalens_dev_mcp.sdk import compile_recipe as public_compile_recipe
 from datalens_dev_mcp.server import list_tools
@@ -106,6 +107,7 @@ def test_compile_kpi_materializes_visual_fields_and_reuses_renderer(tmp_path: Pa
     renderer = Path(result["files"]["renderer.js"])
     assert result["draft"]["tabs"]["prepare.js"].startswith(renderer.read_text(encoding="utf-8"))
     assert "Synthetic revenue" not in renderer.read_text(encoding="utf-8")
+    assert validate_drafts([{"artifact_path": result["files"]["draft.json"]}])["ok"] is True
 
 
 def test_kpi_prepared_data_rejects_table_shape_before_provider_write() -> None:
