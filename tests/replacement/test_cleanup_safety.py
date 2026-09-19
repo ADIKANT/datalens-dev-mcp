@@ -17,7 +17,7 @@ class Provider:
         self.failure = None
 
     def object_relations(self, identity, *, direction="to"):
-        ids = self.edges.get(identity, []) if direction == "to" else [k for k, v in self.edges.items() if identity in v]
+        ids = self.edges.get(identity, []) if direction == "from" else [k for k, v in self.edges.items() if identity in v]
         return {"complete": True, "relations": [{"id": k, "type": self.types[k]} for k in ids]}
 
     def object_get(self, kind, identity, **kwargs):
@@ -157,7 +157,7 @@ def test_inverse_preserved_consumer_evidence_fails_closed():
     p.edges = {"board": [], "data": []}
     p.object_relations = lambda identity, direction="to": {
         "complete": True,
-        "relations": [{"id": "board", "type": "dashboard"}] if identity == "data" and direction == "from" else [],
+        "relations": [{"id": "board", "type": "dashboard"}] if identity == "data" and direction == "to" else [],
     }
     preview = service.preview(
         [obj("dashboard", "board"), obj("dataset", "data")], preserve_roots=[obj("dash", "board")]
