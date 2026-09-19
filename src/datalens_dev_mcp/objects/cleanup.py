@@ -70,13 +70,13 @@ class CleanupService:
                 continue
             preserve.add(identity)
             try:
-                graph[identity] = related(identity, "to")
+                graph[identity] = related(identity, "from")
                 queue.extend(graph[identity])
             except (DataLensApiError, ValueError, TypeError) as exc:
                 issues.append({"object_id": identity, "error": safe_error_text(exc)})
 
         # Explicit outbound and inbound reads: inventory order is never dependency order.
-        # Public API linkDirection=to gives dependencies; from gives consumers.
+        # Public API linkDirection=from gives dependencies; to gives consumers.
         for item in normalized:
             identity = item["object_id"]
             try:
@@ -89,8 +89,8 @@ class CleanupService:
                     issues.append({"object_id": identity, "error": safe_error_text(exc)})
                 continue
             try:
-                graph[identity] = related(identity, "to")
-                consumers[identity] = related(identity, "from")
+                graph[identity] = related(identity, "from")
+                consumers[identity] = related(identity, "to")
                 if identity not in preserve and any(x not in by_id or x in preserve for x in consumers[identity]):
                     raise ValueError("candidate has external or preserved consumers")
             except (DataLensApiError, ValueError, TypeError) as exc:
