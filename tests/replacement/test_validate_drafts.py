@@ -70,7 +70,7 @@ VALID_TYPED_DASHBOARD = {
                 "tab_id": "overview",
                 "items": [
                     {
-                        "kind": "chart",
+                        "kind": "chart", "hint": "Sum within the selected date scope.",
                         "chart_id": "chart-synthetic",
                         "title": "Synthetic chart",
                         "item_id": "chart",

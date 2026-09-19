@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.13
+
+- Resolve one normalized visual profile across recipes, direct Wizard creation and typed Dashboard composition. Keep current user/project choices above old reference styling and retain title alias compatibility.
+- Apply widget title/hint ownership, actual measure labels, disabled axis grids, stable measure colors and native selector groups through the supported SDK. Keep business bindings separate from reusable renderers.
+- Validate typed batches before their first write, compile Dashboard payloads locally and preflight Wizard fields without extra mutations. Preserve unrelated existing state and validate only changed Editor source fragments.
+- Reuse the packaged KPI/period renderers with placement-owned headings and hints, controlled gridlines and explicit missing-value handling.
+
 ## 1.2.12
 
 - Let explicit IAM refresh use the configured YC profile's external browser sign-in with a bounded two-minute wait. Keep automatic refresh noninteractive and provide an explicit browser-disabled option.

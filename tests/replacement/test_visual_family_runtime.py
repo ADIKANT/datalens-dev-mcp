@@ -41,7 +41,7 @@ def test_kpi_runtime_applies_hint_spacing_auto_theme_and_semantic_tooltip(tmp_pa
         },
         {
             "spacing": 18,
-            "hint": {"enabled": True, "text": "Synthetic definition"},
+            "hint": {"owner": "body", "enabled": True, "text": "Synthetic definition"},
             "states_theme": {"theme": "auto"},
         },
         user_config_path=tmp_path / "absent.json",

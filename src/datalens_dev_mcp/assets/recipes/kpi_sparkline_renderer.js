@@ -53,7 +53,7 @@ module.exports = function renderKpi(data, config) {
         const titleHtml = title.visible && title.owner === 'body'
           ? '<div style="font-size:' + titleSize + 'px;line-height:' + (titleSize + 2) + 'px;color:' + muted
             + ';text-transform:uppercase;letter-spacing:0.08em;font-weight:800">' + escape(title.text) + '</div>' : '';
-        const hintHtml = hint.enabled ? '<div data-id="kpi-hint" style="display:inline-flex;align-items:center;justify-content:center;width:'
+        const hintHtml = hint.enabled && hint.owner === 'body' ? '<div data-id="kpi-hint" style="display:inline-flex;align-items:center;justify-content:center;width:'
           + (dense ? 16 : 18) + 'px;height:' + (dense ? 16 : 18) + 'px;border-radius:50%;background:var(--g-color-base-generic,#F2F4F7);color:'
           + muted + ';font-size:12px;font-weight:800;cursor:help;flex:0 0 auto">?</div>' : '';
         let html = titleHtml || hintHtml ? '<div style="display:flex;align-items:center;gap:8px">' + titleHtml + hintHtml + '</div>' : '';
@@ -82,7 +82,7 @@ module.exports = function renderKpi(data, config) {
           const values = points.map(p => p && typeof p === 'object' ? p.value : p);
           const finite = values.filter(numeric);
           if (finite.length) {
-            const reserved = py * 2 + titleSize + valueLine + previousSize + 2 + labelSize + gap * 4 + 12;
+            const reserved = py * 2 + (titleHtml || hintHtml ? titleSize : 0) + valueLine + previousSize + 2 + labelSize + gap * 4 + 12;
             const sh = Math.max(34, Math.min(dense ? 52 : 82, height - reserved));
             const sw = Math.max(120, width - px * 2), base = sh - 3;
             const low = Math.min(0, ...finite), high = Math.max(1, ...finite), span = high - low;

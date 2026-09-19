@@ -9,6 +9,8 @@ Work from the exact dashboard project/subproject. A description-only edit needs 
 
 For a new metric or upstream-dependent field, first follow [current source readiness](references/dataset-wizard-contracts.md#current-source-readiness). A merged change or green CI does not prove that this connection exposes the field or data. Complete independent authorized edits while naming the dependent remainder.
 
+New typed Wizard drafts resolve the same profile as recipes. Pass `wizard.project_root` for local overrides and `wizard.presentation` only for explicit exceptions; `wizard.family` retains a chosen family. Readback `dataset_fields` on the draft enables complete local SDK payload validation before create. Labels are actual measure roles, grids default off (including y2), and titles belong in Dashboard widgets. Numeric grid exceptions require `grid_reason` on line/column; categorical grids stay off. Use `measure_colors` keyed by GUID for meaningful series roles; preserve those identities across filters/periods. Default single-series bars use one color and category labels. Chart descriptions are not widget hints.
+
 A new `dataset` draft keeps `object_type`, `name` and `client_ref` at its root; `connection_id`, source and fields belong inside `dataset`. Use typed public operations; the backend compiles against its pinned SDK. Measure Names and Measure Values are chart technical fields, not physical columns.
 
 Follow [authorized scope and delivery](../datalens-dashboard/references/authorized-scope.md). Load [visualization decisions](../datalens-dashboard/references/decision-quality.md) only for the relevant semantic choice. Preview establishes bounded data evidence; provider acceptance and rendered results require their own checks.

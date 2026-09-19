@@ -6,7 +6,7 @@ Recipe output is accepted only when the named consumer applies the property. A v
 | --- | --- | --- |
 | Object name | SDK create/update metadata | Saved object metadata contains the requested name. |
 | Visible title and owner | Dashboard widget, Wizard title, or Editor renderer | The title appears exactly once at the selected owner. |
-| Hint | Wizard native hint or Editor `tooltip.renderer` hint target | Hover opens the requested explanatory content. |
+| Hint | Dashboard nested chart-tab `enableHint` and `hint`; explicit body exceptions use Editor renderer | Hover opens the requested explanatory content. |
 | Tooltip | Wizard datum tooltip or Editor `tooltip.renderer` | Hover contains the bound metric, unit, periods, value and comparison limitations. |
 | Labels, precision, unit and sign | Wizard role/format settings or Editor formatter | Rendered labels resolve concrete formatting; `from_field` is not left unresolved. |
 | Gridlines, ticks and zero baseline | Wizard chart settings | Saved settings and rendered axes match the selected family. |
@@ -14,11 +14,34 @@ Recipe output is accepted only when the named consumer applies the property. A v
 | Comparison | Dataset fields/source prepare plus family renderer | Method, current/previous boundaries, cutoff, missing values and delta kind remain distinct. |
 | Table structure | Wizard table settings or Editor table renderer | Column order/widths, sticky headers/edges, totals and internal scrolling are rendered. |
 | Theme and geometry | DataLens theme tokens, dashboard widget geometry and renderer viewport | Auto inherits DataLens CSS variables; saved widget size is preserved on narrow updates. |
-| Selector semantics | Editor control params and dashboard consumer bindings | Default, empty/clear, select-all and every declared consumer use the same parameter. |
+| Selector semantics | Native SDK group members or external Editor params and dashboard bindings | Default, empty/clear, select-all and every declared consumer use the same parameter. |
 
 The three reference-complete families are `kpi_sparkline`, `comparison_matrix` (dynamic multi-level version matrix), and `weekly_totals_table` (ISO-week totals). `cross_tab_totals` remains the native Wizard pivot route when its properties are sufficient.
 
 Static renderer tests prove property application in the packaged function. Provider save/readback, Dataset/source execution and Browser rendering are separate evidence levels.
+
+## Effective contract
+
+Profile version 2 normalizes `title` to `visible_title` per input layer. Precedence
+is family, reference, common policy, user, project, explicit. Old references do
+not reinstate internal headers or grids; explicitly configured installations keep
+their choices. Generic family metadata cannot override common presentation rules.
+Personal migrations are narrow, backed up and never performed during MCP startup.
+
+Recipes and direct typed Wizard/Dashboard builders consume this resolver. Wizard
+labels use actual roles; formatting uses `measure_format`. Grids are off on x/y/y2;
+line/column numeric exceptions need a reason. A single categorical bar is
+monochrome, so filtering cannot reassign category colors. Multi-measure colors are
+GUID keyed, with finite palette collisions diagnosed; supply `measure_colors` for
+semantic roles. Period-series renderer colors come from bound series, not position.
+
+New chart placement requires explanatory hint text. New recipe source is checked
+against its compiled presentation before batch dispatch, and local Dashboard
+validation runs the SDK converter. Wizard drafts with `dataset_fields` also run
+the actual local SDK converter; without that readback, field/type validity remains
+a scoped server preflight read before the first batch write. Pure local validation
+never needs a provider call. Existing raw imports and narrow updates retain their separate
+preservation validation. No extra save or automatic restyle is performed.
 
 ## Dataset weekly source semantics
 

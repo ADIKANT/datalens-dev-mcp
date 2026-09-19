@@ -59,9 +59,9 @@ DASHBOARD_SPEC = {
                     "at": [0, 0, 36, 2],
                     "defaults": {"region_filter": []},
                 },
-                {"kind": "chart", "chart_id": "kpi-id", "title": "KPI", "item_id": "kpi", "at": [0, 2, 12, 8]},
-                {"kind": "chart", "chart_id": "trend-id", "title": "Trend", "item_id": "trend", "at": [12, 2, 12, 8]},
-                {"kind": "chart", "chart_id": "table-id", "title": "Table", "item_id": "table", "at": [24, 2, 12, 8]},
+                {"kind": "chart", "hint": "Sum of orders within the selected period and region.", "chart_id": "kpi-id", "title": "KPI", "item_id": "kpi", "at": [0, 2, 12, 8]},
+                {"kind": "chart", "hint": "Sum of orders within the selected period and region.", "chart_id": "trend-id", "title": "Trend", "item_id": "trend", "at": [12, 2, 12, 8]},
+                {"kind": "chart", "hint": "Sum of orders within the selected period and region.", "chart_id": "table-id", "title": "Table", "item_id": "table", "at": [24, 2, 12, 8]},
             ],
         }
     ],
@@ -218,8 +218,8 @@ def test_dependency_batch_binds_dataset_three_charts_selector_and_dashboard_ids(
     dataset_ref = {"$object_ref": "dataset"}
     drafts = [
         {"client_ref": "dataset", "object_type": "dataset", "name": "Synthetic", "dataset": DATASET_SPEC},
-        {"client_ref": "kpi", "object_type": "wizard_chart", "name": "KPI", "wizard": {"dataset_id": dataset_ref}},
-        {"client_ref": "trend", "object_type": "wizard_chart", "name": "Trend", "wizard": {"dataset_id": dataset_ref}},
+        {"client_ref": "kpi", "object_type": "wizard_chart", "name": "KPI", "wizard": {"dataset_id": dataset_ref, "visualization": "flat_table", "roles": {"columns": ["amount"]}}},
+        {"client_ref": "trend", "object_type": "wizard_chart", "name": "Trend", "wizard": {"dataset_id": dataset_ref, "visualization": "flat_table", "roles": {"columns": ["amount"]}}},
         {
             "client_ref": "table",
             "object_type": "editor_chart",
@@ -256,15 +256,15 @@ def test_dependency_batch_binds_dataset_three_charts_selector_and_dashboard_ids(
                                 "at": [0, 0, 36, 2],
                                 "defaults": {"region_filter": []},
                             },
-                            {"kind": "chart", "chart_id": {"$object_ref": "kpi"}, "title": "KPI", "at": [0, 2, 12, 8]},
+                            {"kind": "chart", "hint": "Sum of orders within the selected period and region.", "chart_id": {"$object_ref": "kpi"}, "title": "KPI", "at": [0, 2, 12, 8]},
                             {
-                                "kind": "chart",
+                                "kind": "chart", "hint": "Sum of orders within the selected period and region.",
                                 "chart_id": {"$object_ref": "trend"},
                                 "title": "Trend",
                                 "at": [12, 2, 12, 8],
                             },
                             {
-                                "kind": "chart",
+                                "kind": "chart", "hint": "Sum of orders within the selected period and region.",
                                 "chart_id": {"$object_ref": "table"},
                                 "title": "Table",
                                 "at": [24, 2, 12, 8],

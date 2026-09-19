@@ -48,7 +48,7 @@ def test_registry_contains_exact_reusable_families_and_synthetic_examples() -> N
             assert key in contract, (recipe["id"], key)
 
 
-def test_defaults_precedence_is_generic_user_project_reference_explicit(tmp_path: Path) -> None:
+def test_defaults_precedence_keeps_user_project_policy_above_reference(tmp_path: Path) -> None:
     user = tmp_path / "user-authoring.json"
     project = tmp_path / "project"
     (project / ".datalens").mkdir(parents=True)
@@ -76,9 +76,9 @@ def test_defaults_precedence_is_generic_user_project_reference_explicit(tmp_path
 
     assert result["values"]["theme"] == "light"
     assert result["values"]["technology"] == "advanced_chart"
-    assert result["values"]["title"]["owner"] == "widget"
+    assert result["values"]["visible_title"]["owner"] == "body"
     assert result["values"]["spacing"] == 20
-    assert result["precedence"] == ["generic", "user", "project", "reference", "explicit"]
+    assert result["precedence"] == ["generic", "reference", "policy", "user", "project", "explicit"]
     assert result["allowed_reference_files"] == [str((tmp_path / "references/kpi.json").resolve())]
 
 

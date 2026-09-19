@@ -4,8 +4,10 @@ from collections.abc import Mapping
 from copy import deepcopy
 from typing import Any
 
-from datalens_sdk import DashboardTab
+from datalens_sdk import DashboardTab, Dataset
 from datalens_sdk.converter.dashboard import DashboardConverter
+
+from datalens_dev_mcp.authoring.profiles import _deep_merge, get_authoring_defaults, normalize_presentation
 
 _DATASET_KINDS = frozenset({"dimension", "measure"})
 
@@ -158,10 +160,13 @@ def dataset_builder(client: Any, connection: Any, specification: Mapping[str, An
 
 def dashboard_builder(client: Any, specification: Mapping[str, Any], *, name: str, location: Any) -> Any:
     """Build dashboard tabs/widgets using the official DashboardTab surface."""
-    if set(specification) - {"tabs", "settings", "description"}:
+    allowed = {"tabs", "settings", "description", "project_root", "family", "presentation"}
+    if set(specification) - allowed:
         raise ValueError(
-            f"unsupported dashboard settings: {sorted(set(specification) - {'tabs', 'settings', 'description'})}"
+            f"unsupported dashboard settings: {sorted(set(specification) - allowed)}"
         )
+    profile = get_authoring_defaults(project_root=specification.get("project_root"),
+                                     family=specification.get("family"), explicit=specification.get("presentation"))
     tabs = specification.get("tabs")
     if not isinstance(tabs, list) or not tabs:
         raise ValueError("dashboard.tabs must be a nonempty list")
@@ -172,6 +177,9 @@ def dashboard_builder(client: Any, specification: Mapping[str, Any], *, name: st
     for raw_tab in tabs:
         if not isinstance(raw_tab, Mapping) or not isinstance(raw_tab.get("title"), str) or not raw_tab["title"]:
             raise ValueError("dashboard tab requires a title")
+        unknown = set(raw_tab) - {"title", "tab_id", "hidden", "items", "aliases", "connections"}
+        if unknown:
+            raise ValueError(f"dashboard/tab unsupported fields: {sorted(unknown)}")
         tab = DashboardTab(
             str(raw_tab["title"]),
             tab_id=str(raw_tab["tab_id"]) if raw_tab.get("tab_id") else None,
@@ -184,6 +192,13 @@ def dashboard_builder(client: Any, specification: Mapping[str, Any], *, name: st
             if not isinstance(item, Mapping):
                 raise TypeError("dashboard item must be an object")
             kind = item.get("kind")
+            if kind != "selector_group":
+                allowed_item = {"kind", "at", "item_id", "title"} | {
+                    "chart": {"chart_id", "family", "presentation", "show_title", "hint", "size", "auto_height", "params"},
+                    "external_selector": {"chart_id", "defaults"}, "title": set(), "text": {"text"},
+                }.get(kind, set())
+                if set(item) - allowed_item:
+                    raise ValueError(f"dashboard/item unsupported fields: {sorted(set(item) - allowed_item)}")
             at = _tuple(item.get("at"), length=4, name="item.at")
             item_id = str(item["item_id"]) if item.get("item_id") else None
             title = item.get("title")
@@ -191,21 +206,20 @@ def dashboard_builder(client: Any, specification: Mapping[str, Any], *, name: st
                 chart_id = item.get("chart_id")
                 if not isinstance(chart_id, str) or not chart_id or not isinstance(title, str) or not title:
                     raise ValueError("dashboard chart requires chart_id and title")
-                presentation = item.get("presentation") or {}
-                if not isinstance(presentation, Mapping):
-                    raise TypeError("dashboard chart presentation must be an object")
-                selected_title = presentation.get("visible_title") or {}
-                selected_hint = presentation.get("hint") or {}
-                show_title = bool(selected_title.get("visible", True)) and selected_title.get("owner", "widget") == "widget"
-                hint = (
-                    selected_hint.get("text")
-                    if (
-                        selected_hint.get("enabled", True)
-                        and selected_hint.get("owner") == "widget"
-                        and isinstance(selected_hint.get("text"), str)
-                    )
-                    else None
-                )
+                presentation = get_authoring_defaults(
+                    project_root=specification.get("project_root"), family=item.get("family", specification.get("family")),
+                    explicit=_deep_merge(normalize_presentation(specification.get("presentation") or {}),
+                                         normalize_presentation(item.get("presentation") or {})),
+                )["values"]
+                selected_title = presentation["visible_title"]
+                selected_hint = presentation["hint"]
+                show_title = bool(selected_title.get("visible", True)) and selected_title.get("owner") == "widget"
+                hint = item.get("hint", selected_hint.get("text"))
+                if selected_hint.get("enabled") and selected_hint.get("owner") == "widget":
+                    if not isinstance(hint, str) or not hint.strip():
+                        raise ValueError("dashboard chart hint requires concrete explanatory text at item/hint or presentation/hint/text")
+                else:
+                    hint = None
                 tab.add_chart(
                     chart_id,
                     title=title,
@@ -214,8 +228,11 @@ def dashboard_builder(client: Any, specification: Mapping[str, Any], *, name: st
                     size=_tuple(item.get("size"), length=2, name="item.size", optional=True),
                     show_title=bool(item.get("show_title", show_title)),
                     auto_height=bool(item.get("auto_height", False)),
-                    hint=str(item.get("hint", hint)) if item.get("hint", hint) is not None else None,
+                    hint=hint,
+                    params=item.get("params"),
                 )
+            elif kind == "selector_group":
+                _add_selector_group(tab, item, at=at, presentation=profile["values"])
             elif kind == "external_selector":
                 chart_id = item.get("chart_id")
                 if not isinstance(chart_id, str) or not chart_id or not isinstance(title, str) or not title:
@@ -246,12 +263,20 @@ def dashboard_builder(client: Any, specification: Mapping[str, Any], *, name: st
                 tab.add_text(text, item_id=item_id, at=at)
             else:
                 raise ValueError(f"unsupported dashboard item kind: {kind}")
+        for alias in raw_tab.get("aliases", []):
+            if not isinstance(alias, list) or any(not isinstance(field, str) for field in alias):
+                raise ValueError("dashboard tab aliases must be arrays of field GUIDs/parameter names")
+            tab.add_alias(*alias)
+        for connection in raw_tab.get("connections", []):
+            if not isinstance(connection, Mapping) or set(connection) - {"from", "to", "mutual"}:
+                raise ValueError("dashboard tab connections require from/to and optional mutual")
+            tab.add_connection(from_item=connection["from"], to_item=connection["to"],
+                               mutual=connection.get("mutual", False))
         builder.add_tab(tab)
     settings = specification.get("settings") or {}
     if not isinstance(settings, Mapping):
         raise TypeError("dashboard settings must be an object")
-    if settings:
-        builder.settings(**dict(settings))
+    builder.settings(**{**profile["values"]["dashboard"], **dict(settings)})
     if external_defaults:
         return _DashboardCreateWithExternalDefaults(
             builder,
@@ -269,3 +294,52 @@ def _tuple(value: Any, *, length: int, name: str, optional: bool = False) -> tup
     if not isinstance(value, (list, tuple)) or len(value) != length or any(type(item) is not int for item in value):
         raise ValueError(f"{name} must contain {length} integers")
     return tuple(value)
+
+
+def _add_selector_group(tab: DashboardTab, item: Mapping[str, Any], *, at: tuple[int, ...],
+                        presentation: Mapping[str, Any]) -> None:
+    """Compose native SDK members and their wrapper without replacing other tab items."""
+    allowed = {"kind", "item_id", "at", "members", "apply_button", "reset_button", "update_on_change",
+               "show_group_name", "show_on_tabs", "auto_height", "size"}
+    if set(item) - allowed:
+        raise ValueError(f"selector_group unsupported fields: {sorted(set(item) - allowed)}")
+    members = item.get("members")
+    group = item.get("item_id")
+    if not isinstance(group, str) or not group or not isinstance(members, list) or not members:
+        raise ValueError("selector_group requires item_id and nonempty members")
+    policy = presentation["selector"]
+    member_keys = {"item_id", "title", "dataset_id", "field", "param_name", "element", "default_value",
+                   "multiselect", "is_range", "options", "operation", "required", "show_title",
+                   "title_placement", "inner_title", "hint", "affects"}
+    for member in members:
+        if not isinstance(member, Mapping) or set(member) - member_keys:
+            raise ValueError("selector_group/member has unsupported fields")
+        if not member.get("item_id") or not member.get("title"):
+            raise ValueError("selector_group/member requires stable item_id and title")
+        kwargs = deepcopy(dict(member))
+        dataset_id = kwargs.pop("dataset_id", None)
+        if dataset_id is not None:
+            field = kwargs.get("field")
+            if not isinstance(field, Mapping) or not all(field.get(key) for key in ("guid", "data_type", "type")):
+                raise ValueError("selector_group/member/field requires guid, data_type and type from Dataset readback")
+            kwargs["dataset"] = Dataset(id=dataset_id, result_schema=(dict(field),))
+            kwargs["field"] = field["guid"]
+        default = kwargs.get("default_value")
+        if isinstance(default, Mapping):
+            from datalens_sdk.domain.dashboard_types import DateInterval, RelativeDateInterval
+
+            if set(default) - {"start", "end", "relative"} or not {"start", "end"} <= set(default):
+                raise ValueError("selector_group/member/default_value requires start/end and optional relative")
+            interval = RelativeDateInterval if default.get("relative") else DateInterval
+            kwargs["default_value"] = interval(start=default["start"], end=default["end"])
+        if isinstance(kwargs.get("affects"), list):
+            kwargs["affects"] = tuple(kwargs["affects"])
+        kwargs.setdefault("title_placement", policy["title_placement"])
+        kwargs.setdefault("show_title", policy["show_title"])
+        tab.add_selector(**kwargs, group=group)
+    options = {key: item[key] for key in ("apply_button", "reset_button", "update_on_change", "show_group_name",
+                                         "show_on_tabs", "auto_height") if key in item}
+    if isinstance(options.get("show_on_tabs"), list):
+        options["show_on_tabs"] = tuple(options["show_on_tabs"])
+    tab.add_group_selector(group=group, item_id=group, at=at,
+                           size=_tuple(item.get("size"), length=2, name="selector_group.size", optional=True), **options)

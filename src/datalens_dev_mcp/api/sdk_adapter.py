@@ -215,6 +215,54 @@ class SdkAdapter:
             except Exception as exc:
                 raise _provider_error(exc, "getDatasetData") from exc
 
+    def validate_create_batch(self, drafts: list[dict[str, Any]], destination: dict[str, Any], *,
+                              skip_indices: set[int] | None = None) -> list[tuple[int, Exception]]:
+        """Compile every typed Wizard before any batch write, with scoped field reads.
+
+        Pure validate_drafts remains offline. Here existing Dataset metadata can
+        be read; pending Dataset GUIDs come from the batch's own declared fields.
+        No build/save/publish is called, and write-time freshness checks still run.
+        """
+        from datalens_sdk.converter.wizard import WizardChartConverter
+
+        from datalens_dev_mcp.wizard.authoring import wizard_builder
+
+        datasets: dict[str, Any] = {}
+        errors: list[tuple[int, Exception]] = []
+        for index, draft in enumerate(drafts):
+            if index in (skip_indices or set()):
+                continue
+            specification = draft.get("wizard")
+            if not isinstance(specification, dict):
+                continue
+            dataset_ref = specification.get("dataset_id")
+            try:
+                if isinstance(dataset_ref, dict):
+                    ref = dataset_ref["$object_ref"]
+                    source = next(item for item in drafts if item.get("client_ref") == ref)
+                    fields = (source.get("dataset") or {}).get("fields")
+                    if not fields:
+                        raise InputContractError("pending Wizard Dataset requires declared dataset.fields for preflight")
+                    rows = [{**field, "type": str(field.get("kind") or field.get("type")).upper(),
+                             "data_type": field.get("cast") or field.get("data_type")} for field in fields]
+                    dataset = datalens_sdk.Dataset(id=ref, result_schema=tuple(rows))
+                else:
+                    if dataset_ref not in datasets:
+                        datasets[dataset_ref] = self._sdk_client().get.dataset(by_id=str(dataset_ref))
+                    dataset = datasets[dataset_ref]
+                builder = wizard_builder(self._sdk_client(), dataset, specification,
+                                         name=_draft_name(draft), location=_entry_location(destination))
+                WizardChartConverter.from_domain_create(builder.to_spec()).to_payload()
+            except (ValueError, TypeError, KeyError, StopIteration) as exc:
+                errors.append((index, InputContractError(f"wizard: {safe_error_text(exc)}")))
+            except SdkApiError as exc:
+                errors.append((index, _provider_error(exc, "getDataset")))
+            except (httpx.TransportError, SdkTransportError):
+                errors.append((index, DataLensApiError("Wizard preflight Dataset read failed", method="getDataset",
+                                                     response_received=False)))
+
+        return errors
+
     def create(self, draft: dict[str, Any], destination: dict[str, Any]) -> dict[str, Any]:
         """Execute one discriminated draft through the official SDK."""
         requested_type = str(draft.get("object_type") or "")
@@ -705,15 +753,23 @@ def _validate_editor_changes(snapshot: dict[str, Any], latest: dict[str, Any]) -
         raise InputContractError("Unsupported Editor renderer in SDK 3.0.0 installation contract")
     allowed = {field.alias or name: field for name, field in carrier.model_fields.items()}
     data, previous = snapshot.get("data") or {}, latest.get("data") or {}
+    changed_source = {}
     for key, value in data.items():
         if key in previous and previous[key] == value:
             continue
         if key not in allowed:
             raise InputContractError(f"Unsupported Editor tab or UI-managed field: {key}; no public SDK setter")
+        changed_source[key] = value
         try:
             TypeAdapter(allowed[key].rebuild_annotation()).validate_python(value)
         except ValidationError as exc:
             raise InputContractError(f"Editor tab {key} has an invalid value type for its SDK carrier") from exc
+
+    from datalens_dev_mcp.editor.validation import validate_editor_source
+
+    issues = validate_editor_source(changed_source)
+    if issues:
+        raise InputContractError(f"{issues[0]['path']}: {issues[0]['message']}")
 
 
 def _validate_dashboard_snapshot(snapshot: dict[str, Any], *, from_artifact: bool = False) -> None:

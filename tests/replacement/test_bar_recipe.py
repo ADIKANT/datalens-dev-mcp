@@ -40,7 +40,7 @@ def test_categorical_bar_uses_horizontal_roles_and_compiles_display_settings(tmp
     assert visual["type"] == "bar"
     assert visual["x"]["items"] == [{"guid": "amount", "datasetId": "synthetic-dataset"}]
     assert visual["y"]["items"] == [{"guid": "category", "datasetId": "synthetic-dataset"}]
-    assert visual["x"]["settings"]["grid"] == "on"
+    assert visual["x"]["settings"]["grid"] == "off"
     assert visual["y"]["settings"]["grid"] == "off"
     assert visual["labels"]["items"] == [{"guid": "amount", "datasetId": "synthetic-dataset"}]
     assert visual["labels"]["settings"]["labelsPosition"] == "outside"
