@@ -128,8 +128,10 @@ def dl_object_get(
 
 def dl_object_relations(
     object_id: str, page_size: int = 100, max_pages: int = 100, page_token: str | None = None,
+    direction: str = "to",
 ) -> dict[str, Any]:
-    return _read_service().object_relations(object_id, page_size=page_size, max_pages=max_pages, page_token=page_token)
+    return _read_service().object_relations(object_id, direction=direction, page_size=page_size,
+                                            max_pages=max_pages, page_token=page_token)
 
 
 def dl_object_revisions(
@@ -494,11 +496,12 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_object_relations",
-        "description": "Read compact direct relations for one exact DataLens object ID.",
+        "description": "Read direct API-visible relations: direction=from for dependencies, to (legacy default) for consumers. Completeness covers the selected pagination, not a transitive or revision-bound graph.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "object_id": {"type": "string", "minLength": 1},
+                "direction": {"type": "string", "enum": ["from", "to"], "default": "to"},
                 "page_token": {"type": ["string", "null"]},
                 "page_size": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
                 "max_pages": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
