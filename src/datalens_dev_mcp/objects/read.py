@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from typing import Any, Protocol
 
 from datalens_dev_mcp.api.errors import ERROR_DIAGNOSTIC_FIELDS, DataLensApiError, InputContractError, error_response
-from datalens_dev_mcp.objects.relations import EDITOR_SUBTYPES, compact_object_index, object_identity, relation_entries
+from datalens_dev_mcp.objects.relations import EDITOR_SUBTYPES, compact_object_index, object_identity, relation_page
 
 
 class ReadApi(Protocol):
@@ -261,53 +261,86 @@ class ObjectReadService:
         page_size: int = 100,
         max_pages: int = 100,
         page_token: str | None = None,
+        _visited_tokens: list[str] | None = None,
     ) -> dict[str, Any]:
         if not 1 <= page_size <= 1000 or not 1 <= max_pages <= 1000:
             raise ValueError("page_size and max_pages must be between 1 and 1000")
         if direction not in {"to", "from"}:
             raise ValueError("relation direction must be to or from")
+        if page_token is not None and not isinstance(page_token, str):
+            raise ValueError("page_token must be the opaque string returned by getEntriesRelations")
         entries: dict[str, dict[str, Any]] = {}
         token = page_token or ""
         pages = 0
         partial_reason = ""
         provider_partial = False
-        visited: set[str] = set()
+        failure = None
+        visited = set(_visited_tokens or [])
+        consumed_tokens: list[str] = []
         while pages < max_pages:
+            if token in visited:
+                partial_reason = "pagination_cursor_cycle"
+                token = ""
+                break
             payload: dict[str, Any] = {"entryIds": [object_id], "limit": page_size, "linkDirection": direction}
             if token:
                 payload["pageToken"] = token
             visited.add(token)
             try:
                 raw = self.api.read("getEntriesRelations", payload)
-            except Exception:  # noqa: BLE001 - preserve earlier pages when a provider read fails
+            except Exception as exc:  # noqa: BLE001 - retain pages without exposing arbitrary exceptions
+                if not isinstance(exc, DataLensApiError):
+                    exc = DataLensApiError("getEntriesRelations read failed", method="getEntriesRelations",
+                                           stage="provider_read")
+                failure = error_response(exc)
                 partial_reason = "relation_read_failed"
                 break
-            for item in relation_entries(raw):
+            page = relation_page(raw)
+            for item in page.entries:
                 relation_id, _ = object_identity(item)
-                if relation_id:
-                    entries[relation_id] = item
-            page = _unwrap(raw)
-            pages += 1
-            token = str(page.get("nextPageToken") or "").strip()
-            if page.get("complete") is False:
+                prior = entries.get(relation_id)
+                if prior is not None and any(prior.get(key) != item.get(key) for key in ("scope", "type", "subtype")):
+                    page.errors.append("response has conflicting types for one entry identity")
+                    continue
+                entries[relation_id] = item
+            if not page.provider_complete:
                 provider_partial = True
                 partial_reason = "provider_relations_partial"
+            if page.errors:
+                failure = error_response(DataLensApiError(
+                    "getEntriesRelations: " + "; ".join(page.errors[:20]), method="getEntriesRelations",
+                    remote_code="invalid_response", stage="response_validation", response_received=True,
+                ))
+                partial_reason = "invalid_response"
+                break  # Never consume the continuation from an invalid page.
+            pages += 1
+            consumed_tokens.append(token)
+            token = page.next_page_token or ""
             if token and token in visited:
                 partial_reason = "pagination_cursor_cycle"
                 token = ""
                 break
             if not token:
                 break
-        return {
-            "ok": True,
+        result = {
+            "ok": failure is None,
             "object_id": object_id,
+            "direction": direction,
+            "relation_kind": "dependencies" if direction == "from" else "consumers",
+            "coverage": "direct API-visible relations from the requested page token; not transitive or revision-bound",
             "complete": not token and not partial_reason,
             "partial_reason": partial_reason or ("page_limit_reached" if token else ""),
             "provider_complete": not provider_partial,
             "page_count": pages,
             "next_page_token": token or None,
+            "consumed_page_tokens": consumed_tokens,
             "relations": compact_object_index(entries.values()),
         }
+        if failure:
+            result.update(failure, failed_page=pages)
+            if partial_reason == "invalid_response":
+                result.update(next_page_token=None, restart_required=True)
+        return result
 
     def dashboard_snapshot(
         self,
@@ -325,7 +358,7 @@ class ObjectReadService:
         _validate_view(view, fields)
         if not 1 <= page_size <= 1000 or not 1 <= max_pages <= 1000:
             raise ValueError("page_size and max_pages must be between 1 and 1000")
-        binding = [dashboard_id, branch, revision_id, reference_dashboard_id, view, fields]
+        binding = [dashboard_id, branch, revision_id, reference_dashboard_id, view, fields, "from"]
         state = _continuation_state(continuation, binding)
         target = self.object_get("dashboard", dashboard_id, branch=branch, revision_id=revision_id)
         reasons = list(state.get("reasons", []))
@@ -335,7 +368,8 @@ class ObjectReadService:
         if target["object"].get("complete") is False:
             reasons.append("target_partial")
         relation_result = self.object_relations(
-            dashboard_id, page_size=page_size, max_pages=max_pages, page_token=state.get("token")
+            dashboard_id, direction="from", page_size=page_size, max_pages=max_pages, page_token=state.get("token"),
+            _visited_tokens=state.get("consumed_tokens"),
         )
         seen = dict(state.get("seen", {}))
         unresolved = list(state.get("unresolved", []))
@@ -402,8 +436,7 @@ class ObjectReadService:
         token = relation_result["next_page_token"]
         cursor = None
         consumed_tokens = list(state.get("consumed_tokens", []))
-        if relation_result["page_count"]:
-            consumed_tokens.append(state.get("token", ""))
+        consumed_tokens.extend(relation_result["consumed_page_tokens"])
         if token and token in consumed_tokens:
             reasons.append("pagination_cursor_cycle")
             token = None
@@ -420,8 +453,9 @@ class ObjectReadService:
                 }
             )
         result: dict[str, Any] = {
-            "ok": True,
+            "ok": relation_result["ok"],
             "complete": not reasons,
+            "coverage": "target and its direct API-visible dependencies, plus optional reference; not transitive",
             "partial_reason": reasons[0] if reasons else "",
             "partial_reasons": sorted(set(reasons)),
             "continuation": cursor,
@@ -509,6 +543,9 @@ def _continuation_state(cursor: str | None, binding: list[Any]) -> dict[str, Any
             raise TypeError("invalid state")
         if not isinstance(state.get("token"), str) or not isinstance(state.get("reasons"), list):
             raise TypeError("invalid state")
+        if (not isinstance(state.get("consumed_tokens"), list)
+                or any(not isinstance(token, str) for token in state["consumed_tokens"])):
+            raise TypeError("invalid consumed tokens")
         if "target_revision" not in state:
             raise ValueError("missing target revision")
         return state

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass, field
 from typing import Any
 
 SCOPE_TO_OBJECT_TYPE = {
@@ -77,13 +78,52 @@ def compact_object_index(entries: Iterable[Mapping[str, Any]]) -> list[dict[str,
     return sorted(result, key=lambda item: str(item["id"]))
 
 
-def relation_entries(response: Mapping[str, Any]) -> list[dict[str, Any]]:
-    value: Any = response
-    while isinstance(value, Mapping) and isinstance(value.get("result"), Mapping):
-        value = value["result"]
-    if isinstance(value, Mapping) and isinstance(value.get("response"), Mapping):
-        value = value["response"]
-    if not isinstance(value, Mapping):
-        return []
-    candidates = value.get("entries") or value.get("relations") or []
-    return [dict(item) for item in candidates if isinstance(item, Mapping)]
+@dataclass
+class RelationPage:
+    entries: list[dict[str, Any]] = field(default_factory=list)
+    next_page_token: str | None = None
+    provider_complete: bool = True
+    errors: list[str] = field(default_factory=list)
+
+
+def relation_page(response: Any) -> RelationPage:
+    """Parse the flat getEntriesRelations response before discarding any evidence.
+
+    Public API v3/SDK 3 uses relations; entries is the existing reader alias.
+    No recursive envelope guessing or truthy fallback between containers.
+    Errors contain structural locations only, never provider values.
+    """
+    page = RelationPage()
+    if not isinstance(response, Mapping):
+        page.errors.append("response must be an object")
+        return page
+    containers = [key for key in ("relations", "entries") if key in response]
+    if len(containers) != 1:
+        page.errors.append("response requires exactly one relations or entries container")
+    for container in containers:
+        candidates = response[container]
+        if not isinstance(candidates, list):
+            page.errors.append(f"response.{container} must be a list, including when empty")
+            continue
+        for index, item in enumerate(candidates):
+            if (not isinstance(item, Mapping)
+                    or not isinstance(item.get("entryId"), str) or not item["entryId"].strip()
+                    or item["entryId"] != item["entryId"].strip()
+                    or any(key in item and not isinstance(item[key], str) for key in ("scope", "type", "subtype"))
+                    or any(key in item and item[key] != item["entryId"] for key in ("id", "objectId"))):
+                if len(page.errors) < 20:
+                    page.errors.append(f"response.{container}[{index}] has invalid identity or type")
+                continue
+            page.entries.append(dict(item))
+    if "nextPageToken" in response:
+        token = response["nextPageToken"]
+        if not isinstance(token, str):
+            page.errors.append("response.nextPageToken must be a string when present")
+        else:
+            page.next_page_token = token or None  # Opaque: do not strip or coerce.
+    if "complete" in response:
+        if type(response["complete"]) is not bool:
+            page.errors.append("response.complete must be a boolean when present")
+        else:
+            page.provider_complete = response["complete"]
+    return page

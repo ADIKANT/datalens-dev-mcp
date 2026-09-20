@@ -21,7 +21,9 @@ def _field_index(bindings: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
     return result
 
 
-def _dataset_query(bindings: Mapping[str, Any], guids: list[str], titles: list[str]) -> dict[str, Any]:
+def _dataset_query(
+    bindings: Mapping[str, Any], guids: list[str], titles: list[str], *, source_alias: str = "source",
+) -> dict[str, Any]:
     limit = bindings.get("source_limit", 1000)
     if type(limit) is not int or not 1 <= limit <= 100000:
         raise ValueError("source_limit must be an integer from 1 to 100000")
@@ -46,7 +48,8 @@ def _dataset_query(bindings: Mapping[str, Any], guids: list[str], titles: list[s
             raise ValueError(f"unsupported Dataset filter operation: {operation}")
         default = selector.get("default")
         values = default if isinstance(default, list) else ([] if default is None else [default])
-        params[name] = [str(value) for value in values]
+        params[name] = [str(value).lower() if isinstance(value, bool) else str(value)
+                        for value in values if value is not None and value != ""]
         selector_contracts.append(
             {
                 "param_name": name,
@@ -95,13 +98,14 @@ def _dataset_query(bindings: Mapping[str, Any], guids: list[str], titles: list[s
         "columns": titles,
         "limit": limit,
     }
-    sources += "module.exports = {source: buildSource({id: Editor.getId('dataset'), columns: "
+    alias = json.dumps(source_alias)
+    sources += "module.exports = {" + alias + ": buildSource({id: Editor.getId('dataset'), columns: "
     sources += json.dumps(query["columns"], ensure_ascii=False) + ", where, parameters: datasetParameters, limit: "
     sources += str(query["limit"]) + "})};\n"
     prelude = "const loaded = Editor.getLoadedData();\n"
-    prelude += "if (!loaded || !Object.prototype.hasOwnProperty.call(loaded, 'source')) throw new Error('source alias is missing: source');\n"
-    prelude += "const sourceEvents = loaded.source;\n"
-    prelude += "if (Array.isArray(sourceEvents) && sourceEvents.some(item => item && item.event === 'error')) throw new Error('source failed: source');\n"
+    prelude += "if (!loaded || !Object.prototype.hasOwnProperty.call(loaded, " + alias + ")) throw new Error('source alias is missing: ' + " + alias + ");\n"
+    prelude += "const sourceEvents = loaded[" + alias + "];\n"
+    prelude += "if (Array.isArray(sourceEvents) && sourceEvents.some(item => item && item.event === 'error')) throw new Error('source failed: ' + " + alias + ");\n"
     return {
         "meta": {"links": {"dataset": bindings["dataset_id"]}},
         "sources_js": sources,
@@ -150,6 +154,8 @@ module.exports = {rows: preparedRows, state: preparedRows.length ? 'ready' : 'no
 
 
 def kpi_dataset_source(bindings: Mapping[str, Any]) -> dict[str, Any]:
+    if "periods" in bindings:
+        return _period_kpi_source(bindings)
     mode = bindings.get("value_mode")
     if mode not in {"last", "sum"}:
         raise ValueError("KPI Dataset binding requires explicit value_mode: last or sum")
@@ -178,6 +184,86 @@ module.exports = {value: summary('current'), previous: summary('previous'),
   state: rows.length ? 'ready' : 'no_data'};
 """
     return source
+
+
+def _period_kpi_source(bindings: Mapping[str, Any]) -> dict[str, Any]:
+    """Use the same Dataset/filter compiler for both totals and the current trend."""
+    from datalens_dev_mcp.dataset.contracts import calculation_level
+
+    if bindings.get("value_mode") != "aggregate":
+        raise ValueError("period KPI requires value_mode=aggregate; Dataset owns period totals")
+    by_guid = _field_index(bindings)
+    roles = [bindings.get("date"), bindings.get("metric")]
+    if any(not isinstance(role, Mapping) or role.get("field_guid") not in by_guid for role in roles):
+        raise ValueError("period KPI requires known date and metric field GUIDs")
+    date_guid, metric_guid = [role["field_guid"] for role in roles]
+    titles = [by_guid[guid].get("title") for guid in (date_guid, metric_guid)]
+    if any(not isinstance(title, str) or not title for title in titles) or titles[0] == titles[1]:
+        raise ValueError("period KPI requires distinct date and metric titles from Dataset readback")
+    if calculation_level(by_guid[metric_guid]) != "aggregate":
+        raise ValueError("period KPI requires a Dataset aggregate measure; row, window and LOD totals need explicit source semantics")
+    if (bindings.get("comparison") or {}).get("field_guid", metric_guid) != metric_guid:
+        raise ValueError("period KPI compares the same Dataset measure across both periods")
+    periods = bindings["periods"]
+    if not isinstance(periods, Mapping) or set(periods) != {"current", "previous"}:
+        raise ValueError("periods requires current and previous selector bindings")
+    common_selectors = bindings.get("selectors") or []
+    if not isinstance(common_selectors, list):
+        raise TypeError("selectors must be a list")
+    used = {item.get("param_name") for item in [*common_selectors, *(bindings.get("dataset_parameters") or [])]
+            if isinstance(item, Mapping)}
+    selectors = {}
+    for name, period in periods.items():
+        if (not isinstance(period, Mapping) or not isinstance(period.get("param_name"), str)
+                or not period["param_name"] or period["param_name"] in used):
+            raise ValueError("period selectors require distinct param_name values, separate from common filters and Dataset parameters")
+        used.add(period["param_name"])
+        selectors[name] = {**period, "field_guid": date_guid, "operation": "BETWEEN", "empty_selection": "error"}
+    queries = {}
+    for alias, period, guids, columns in (
+        ("source", "current", [date_guid, metric_guid], titles),
+        ("current_total", "current", [metric_guid], [titles[1]]),
+        ("previous_total", "previous", [metric_guid], [titles[1]]),
+    ):
+        queries[alias] = _dataset_query(
+            {**bindings, "selectors": [*common_selectors, selectors[period]]}, guids, columns, source_alias=alias,
+        )
+    params = {key: value for query in queries.values() for key, value in query["params"].items()}
+    if any(len(params[period["param_name"]]) != 2 for period in selectors.values()):
+        raise ValueError("period defaults require two range boundaries")
+    sources = "module.exports = Object.assign({},\n" + ",\n".join(
+        "(() => { const module = {exports: {}};\n" + query["sources_js"] + "\nreturn module.exports; })()"
+        for query in queries.values()
+    ) + ");\n"
+    prepare = "\n".join("{\n" + query["prepare_prelude"] + "}\n" for query in queries.values())
+    prepare += "const Dataset = require('libs/dataset/v2');\n"
+    prepare += "const names = " + json.dumps(titles, ensure_ascii=False) + ";\n"
+    prepare += "const limit = " + str(bindings.get("source_limit", 1000)) + ";\n"
+    prepare += "const periodParams = " + json.dumps([selectors[key]["param_name"] for key in ("current", "previous")]) + ";\n"
+    prepare += """const number = value => {
+  if (value === null || value === undefined || value === '') return null;
+  if (!Number.isFinite(Number(value))) throw new Error('KPI metric must be numeric');
+  return Number(value);
+};
+const total = alias => {
+  const rows = Dataset.getDatasetRows({datasetName: alias});
+  if (rows.length > 1) throw new Error('KPI period total requires one aggregate row: ' + alias);
+  return rows.length ? number(rows[0][names[1]]) : null;
+};
+const rows = Dataset.getDatasetRows({datasetName: 'source'});
+if (rows.length >= limit) throw new Error('KPI trend may be truncated; increase source_limit');
+const points = rows.map(row => ({date: row[names[0]], value: number(row[names[1]])}));
+points.sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
+if (points.some(point => !Number.isFinite(Date.parse(point.date))) ||
+    new Set(points.map(point => Date.parse(point.date))).size !== points.length)
+  throw new Error('KPI requires one row per parseable date');
+const params = Editor.getParams();
+const periodLabel = name => (Array.isArray(params[name]) ? params[name] : [params[name]]).join(' — ');
+module.exports = {value: total('current_total'), previous: total('previous_total'), points,
+  current_period: periodLabel(periodParams[0]), previous_period: periodLabel(periodParams[1]),
+  state: rows.length ? 'ready' : 'no_data'};
+"""
+    return {"meta": queries["source"]["meta"], "sources_js": sources, "prepare_js": prepare, "params": params}
 
 
 def weekly_dataset_source(bindings: Mapping[str, Any]) -> dict[str, Any]:

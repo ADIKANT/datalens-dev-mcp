@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.16
+
+- Read dashboard dependencies in the provider's outbound direction, expose an explicit dependency/consumer direction on compact relation reads, and describe direct pagination separately from revision consistency.
+- Validate relation containers, identities and continuation before compaction. Preserve known elements on failures, stop malformed pages and cursor cycles, and keep snapshots and cleanup previews incomplete when evidence is incomplete.
+- Reuse Dataset selector and parameter bindings for two-period KPI totals and trend. Query aggregate totals at their source grain, preserve missing values, and keep native All/Reset and meaningful zero/false values consistent across requests.
+
+## 1.2.15
+
+- Correct dependency and consumer directions in scoped cleanup, preserving protected roots, deletion order and fresh preview checks.
+
 ## 1.2.14
 
 - Serialize generated Editor recipe configuration deterministically so saved artifacts pass source validation after JSON key reordering. Preserve rejection of actual source changes.
