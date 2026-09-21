@@ -58,11 +58,11 @@ For a temporary change or restore, record your own delta and its before/after va
 
 ## Unknown outcomes and repeat effects
 
-A retry requires a result: reliable `not_applied` evidence or a confirmed rejection before dispatch, or separate informed user authorization for another possible effect after explaining the duplicate risk. An attempted but unsuccessful reconcile, `identity_lookup_unavailable`, a lost object ID, and absence from inventory or name search do not prove non-application. A new `operation_id` does not make a repeat safe; general workbook authorization does not accept duplicate risk.
+Another write attempt requires reliable `not_applied` evidence (a proven pre-dispatch failure or a confirmed provider rejection with no possible earlier effect), or separate informed user authorization for another possible effect after explaining the duplicate risk. This evidence permits an in-scope corrected attempt; it does not add automatic writer retries. An attempted but unsuccessful reconcile, `identity_lookup_unavailable`, a lost object ID, and absence from inventory or name search do not prove non-application. A new `operation_id` does not make a repeat safe; general workbook authorization does not accept duplicate risk.
 
 Keep the original operation ID and receipt. Inspect its prepared identity/destination, client reference, significant fields and content hash; do not print full source. Reconcile exact targets when available. If reliable identity is unavailable, retain unknown and continue independent authorized work. Do not recreate the missing-ID object to finish a batch. A documented provider idempotency guarantee can permit replay with the same key, but the presence of an operation_id in this plugin is only a local receipt binding and is not such a guarantee.
 
-`not_dispatched` / `not_applied` describes a proven preparation failure. A provider rejection after one dispatch is distinct from a missing response or possible composite effect. Inspect both per-item and overall outcomes; never replay completed items in a partial batch. Historical unknown receipts remain unknown without new evidence.
+`not_dispatched` with `not_applied` describes a proven preparation failure. A confirmed provider rejection may instead be `dispatched` with `not_applied`; a missing response, failed readback or possible earlier composite effect remains unknown. Inspect both per-item and overall outcomes; never replay completed items in a partial batch. Historical unknown receipts remain unknown without new evidence.
 
 ## Compact continuation
 
