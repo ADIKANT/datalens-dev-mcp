@@ -30,7 +30,7 @@ Use categorical color for versions/status, sequential/diverging color for scales
 
 The existing 62 use-case IDs remain the capability catalogue; this reference neither replaces nor reduces them. These 12 generic project examples retain applicability without shipping private project names, IDs, data or layouts:
 
-1. Order intake: responsive KPI badge, inline hint, previous-value block and filled sparkline; weekly grouped table with ISO weeks, numeric alignment, fixed widths, pinned groups/totals, bottom total and manual height.
+1. Order intake: responsive KPI badge, widget-owned hint by default, previous-value block and filled sparkline; weekly grouped table with ISO weeks, numeric alignment, fixed widths, pinned groups/totals, bottom total and manual height.
 2. Vehicle utilization: comparable fleet/time slices and explicit utilization definitions.
 3. Fleet service: management detail, stable vehicle identifiers and source freshness.
 4. Pipeline checks: execution status, missing/error distinction and drilldown.

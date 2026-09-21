@@ -102,6 +102,8 @@ remain separate steps with their existing revision and unknown-outcome guards.
 
 ## Effective presentation and native selectors
 
+Presentation precedence, from lowest to highest, is recipe defaults → reference → common visual policy → user → project → explicit current requirements. A reference supplies structure/technology and lower-priority styling; promote only the styling the user explicitly requests to the explicit layer.
+
 New typed dashboards resolve user/project defaults automatically. `dashboard.project_root`
 selects the exact project; `dashboard.presentation` and item `presentation` are
 explicit scoped overrides. Copy `draft.visual_contract` into the item when placing

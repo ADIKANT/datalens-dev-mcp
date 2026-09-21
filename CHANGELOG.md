@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.19
+
+- Align all domain skill references on presentation precedence, widget-owned KPI hints and evidence required before another write attempt.
+- Scope inventory to set discovery/completeness, retain dependency previews for exact cleanup, and clarify recipe defaults and illustrative dates.
+
 ## 1.2.18
 
 - Preserve allowlisted SDK transport failure types, request methods and phases through scoped reads and uncertain-write receipts, without exposing exception messages or URLs.

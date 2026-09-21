@@ -1,4 +1,42 @@
-# Active instruction audit — 1.2.17
+# Skill contract audit — 1.2.19
+
+Scope: all five skill entrypoints and all eleven shipped Markdown references;
+selection boundaries, relative paths/anchors, public tool names and examples,
+presentation resolution, mutation/recovery and cleanup rules. The installed
+1.2.18 skills matched the reviewed source byte-for-byte before edits. This report
+is acceptance documentation, not an additional runtime instruction.
+
+| Skill | Confirmed finding and correction | Retained boundary |
+| --- | --- | --- |
+| Dashboard | Shared recovery text conflated pre-dispatch failure with confirmed provider rejection; distinguish dispatch state from effect outcome. State presentation precedence once in composition; correct the KPI hint example. | Exact target, compact deltas, preservation, saved/published scope and read-only rendered verification |
+| Dataset/Wizard | A blanket sentence about failed-payload replay obscured the shared informed-repeat exception; route unknown effects to that owner. | GUID/type/grain checks, source readiness, native technology and separate validation/data/render evidence |
+| Editor | Reference claimed reference styling outranked user/project choices, contrary to the resolver. Correct default hint ownership, make defaults inspection conditional because compile resolves it, and label dates as an example. | Existing-tab preservation, subtype-specific validation, shared live Dataset binding and no manual renderer regeneration |
+| Inspect | Inventory wording could imply a full workbook listing for exact-candidate cleanup or exact-target absence. Narrow it to inventory-wide claims/discovery. | Direct reads, honest pagination, same-account authentication, rate-limit budget and unresolved identity handling |
+| Maintenance | Unconditional backup/cleanup inventory caused extra workbook scans for known targets. Separate set discovery from exact backup and dependency preview. | Fresh complete preview, preserve roots, exact ordered delete set, stop on uncertain effects; Page content writes remain unsupported |
+
+Validation uses the actual profile resolver, shipped JSON examples, public schemas,
+existing focused checks and final offline acceptance. No new test files, HTTP
+substitutes, provider writes, directory dumps or paid evaluation series were added.
+All 38 current local Markdown links/anchors resolve (36 before the corrections); every referenced `dl_*` name exists.
+All four JSON examples pass their relevant local validator/schema (the selector
+fragment is embedded in a complete typed dashboard draft). These are static
+contract checks, not a claim of live provider or rendered acceptance.
+
+Primary-source checks retained the existing restrictions for
+[Measure Names/Values](https://yandex.cloud/en/docs/datalens/concepts/chart/measure-values)
+and [LOD with time-series functions](https://yandex.cloud/ru/docs/datalens/concepts/lod-aggregation).
+The [pinned RLS subject map](https://github.com/datalens-tech/datalens-skills/blob/603fe462891f99ab6949eec033cb9fcbcf376824/skills/datalens-yc-rls-resolve/references/id-formats.md)
+and [Page iframe constraints](https://github.com/datalens-tech/datalens-skills/blob/603fe462891f99ab6949eec033cb9fcbcf376824/skills/datalens-html-pages/references/authoring-constraints.md)
+remain version/installation scoped. Current adapter support was checked separately;
+reference existence does not authorize or prove a live capability.
+
+No contradiction was found in routing Wizard versus Editor versus Page, RLS read
+scope, authentication recovery, current relations direction, rate-limit recovery,
+or save/publish/restore preservation. This does not claim every provider/runtime
+branch was executed. Prior unknown writes and incomplete visual acceptance remain
+separate pending evidence; a skill audit cannot settle them.
+
+# Previous bounded audit — 1.2.17
 
 Scope: repository instructions, README entrypoints, plugin manifest/MCP registration,
 all five skills and their reachable references, public tool schemas, packaged
