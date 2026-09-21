@@ -4,7 +4,8 @@
 
 Receipt presentation derives its next action from item outcomes. Confirmed
 rejections direct the caller to correct the specific cause with a new operation
-ID for changed input; revision conflicts require a fresh exact target read.
+ID for changed input; rate limits retain unchanged payloads and follow the
+[bounded read recovery rule](../../skills/datalens-inspect/references/direct-reads.md#rate-limits); revision conflicts require a fresh exact target read.
 Unknown effects retain reconciliation guidance and request identity. Mixed
 batches preserve individual completed, unattempted, rejected and unknown items.
 Historical reads normalize their returned view without rewriting stored files

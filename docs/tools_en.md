@@ -20,3 +20,5 @@ Create/update perform saved readback. Publish separately starts from a fresh sav
 `dl_dataset_validate(provider=true)` validates current saved state with the provider without saving. Optional `refresh_source_ids` refresh only those source schemas in the returned candidate. Persisting that candidate separately requires `include_provider_state=true`, fresh revisions and an authorized update. Write status and `dataset_validation` are independent.
 
 Errors retain available stage/method/status, safe provider code and Request-ID/Trace-ID. Missing IDs stay null. Error bodies, SQL, login HTML and full SDK exceptions are not exposed; effect certainty and unknown-write replay restrictions remain unchanged.
+
+HTTP 429: `rate_limited`; optional normalized `retry_after_sec` preserves a valid observed delay. See [rate-limit recovery](../skills/datalens-inspect/references/direct-reads.md#rate-limits) for read budgets and write-outcome precedence.

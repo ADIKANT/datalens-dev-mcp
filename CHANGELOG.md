@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.17
+
+- Classify HTTP 429 as rate limiting, preserve valid Retry-After and safe correlation metadata through tool responses and compact receipts, and keep uncertain write reconciliation ahead of read recovery.
+- Surface SDK 429 responses before its Retry-After-unaware retry loop; retain the existing bounded raw-reader retries and add no write retries.
+- Refresh obsolete contribution/live-acceptance commands, document exact-source release ordering, and retain one repeatable KPI, dependency and cleanup acceptance card.
+
 ## 1.2.16
 
 - Read dashboard dependencies in the provider's outbound direction, expose an explicit dependency/consumer direction on compact relation reads, and describe direct pagination separately from revision consistency.

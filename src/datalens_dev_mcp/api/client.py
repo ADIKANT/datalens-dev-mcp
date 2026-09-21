@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import replace
@@ -19,15 +20,16 @@ class Transport(Protocol):
 
 
 def _retry_after(value: str | None) -> float | None:
-    if not value:
+    if not isinstance(value, str) or not value.strip():
         return None
+    value = value.strip()
     try:
-        seconds = float(value)
-    except ValueError:
-        try:
+        if re.fullmatch(r"[0-9]+", value):
+            seconds = float(value)
+        else:
             seconds = parsedate_to_datetime(value).timestamp() - time.time()
-        except (ValueError, TypeError, OverflowError):
-            return None
+    except (ValueError, TypeError, OverflowError):
+        return None
     return max(0.0, seconds) if math.isfinite(seconds) else None
 
 

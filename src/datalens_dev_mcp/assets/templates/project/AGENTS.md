@@ -1,5 +1,8 @@
 # AGENTS.md
 
+Historical pre-1.0 template, not an operational instruction or installed project entrypoint.
+Use the current domain skills and the actual project instructions. This template is excluded from distributions.
+
 ## Scope
 
 This directory is a DataLens dashboard workspace managed through `datalens-dev-mcp`.

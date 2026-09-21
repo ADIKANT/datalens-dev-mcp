@@ -23,19 +23,20 @@ git clone https://github.com/ADIKANT/datalens-dev-mcp.git
 cd datalens-dev-mcp
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
-.venv/bin/python -m pip install -e '.[dev]'
+.venv/bin/python -m pip install -e '.[dev,test]'
 ```
 
 Run the offline acceptance gate before submitting changes:
 
 ```bash
-.venv/bin/python scripts/run_offline_acceptance.py
+.venv/bin/python -m pytest tests/replacement -q
 ```
 
-When the public-release checker is present, run it as well:
+For a release build, validate both distribution archives:
 
 ```bash
-.venv/bin/python scripts/check_public_release.py
+.venv/bin/python -m build
+.venv/bin/python scripts/check_public_release.py dist/*.whl dist/*.tar.gz
 ```
 
 No live DataLens call is required for ordinary contribution validation.
@@ -46,8 +47,8 @@ Route-policy changes must update the relevant configuration, schemas,
 validators, examples, documentation, and tests together. Keep these safety
 properties intact:
 
-- read-only DataLens behavior by default;
-- explicit local enablement for writes;
+- read-only tools perform no mutation;
+- typed mutations stay within the user-authorized target and effect;
 - fresh read and revision preservation before a mutation;
 - saved readback before any permitted publish;
 - no guessed identifiers, blind writes, or implicit QL fallback.
