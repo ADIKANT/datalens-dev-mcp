@@ -1,5 +1,7 @@
 # Operation outcomes and bounded reads (1.2.8)
 
+Historical release evidence; current 429 guidance is in [rate-limit recovery](../../skills/datalens-inspect/references/direct-reads.md#rate-limits).
+
 ## Changed owners
 
 - The SDK adapter distinguishes preparation from send using the owned client's request hook. Injected clients without dispatch observation retain the conservative build/execute boundary. Durable receipts are still written before SDK entry, so a process crash in that gap remains unknown rather than permitting replay.

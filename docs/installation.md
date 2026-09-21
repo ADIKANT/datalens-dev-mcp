@@ -43,3 +43,5 @@ reuse known settings, and do not infer the API endpoint from a UI URL. See
 [SDK compatibility](testing/sdk-v3-compatibility.md) for exact contracts and legacy
 artifact migration. `dl_server_info` now distinguishes active SDK version from the
 separately installed SDK version, as well as active and installed MCP versions.
+
+For repository release updates, follow [exact-source delivery](testing/stable-releases.md#exact-source-delivery) before build/install and the relevant live acceptance card after host restart.

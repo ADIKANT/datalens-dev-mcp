@@ -20,3 +20,5 @@ Create/update выполняют saved readback; publish отдельно исп
 `dl_dataset_validate(provider=true)` проверяет текущее сохранённое состояние у провайдера без записи. `refresh_source_ids` обновляет схему только указанных источников в возвращённом кандидате; для его отдельного сохранения нужен полный результат с `include_provider_state=true`, свежие ревизии и разрешённый update. Статус сохранения и `dataset_validation` независимы.
 
 Ошибки сохраняют доступные stage/method/status, безопасный provider code и Request-ID/Trace-ID. Отсутствующий ID не подменяется вымышленным. Тела ошибок, SQL, HTML login и полные SDK exceptions не выводятся; certainty и запрет retry неизвестных записей сохраняются.
+
+HTTP 429: `rate_limited`; optional normalized `retry_after_sec` preserves a valid observed delay. See [rate-limit recovery](../skills/datalens-inspect/references/direct-reads.md#rate-limits) for read budgets and write-outcome precedence.

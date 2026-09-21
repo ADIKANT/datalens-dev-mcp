@@ -12,11 +12,13 @@ import httpx
 from datalens_sdk.errors import DataLensAPIError as SdkApiError
 from datalens_sdk.errors import DataLensTransportError as SdkTransportError
 
+from datalens_dev_mcp.api.client import _retry_after
 from datalens_dev_mcp.api.errors import (
     DataLensApiError,
     InputContractError,
     UncertainWriteError,
     WritePreconditionError,
+    response_diagnostics,
     safe_error_text,
 )
 from datalens_dev_mcp.authoring.validation import validate_entry_name
@@ -89,9 +91,26 @@ class SdkAdapter:
             auth = datalens_sdk.StaticYCIAMAuthProvider(org_id=self._config.org_id, token=self._config.iam_token)
             client_type = datalens_sdk.DataLensClientYC
         self._client = client_type(auth=auth, base_url=self._config.base_url,
-                                   event_hooks={"request": [self._observe_dispatch]})
+                                   event_hooks={"request": [self._observe_dispatch],
+                                                "response": [self._observe_rate_limit]})
         self._tracks_dispatch = True
         return self._client
+
+    @staticmethod
+    def _observe_rate_limit(response: httpx.Response) -> None:
+        # SDK 3.0.0 retries 429 before translation with a backoff that ignores
+        # Retry-After. Surface it before that loop; do not add another retry owner.
+        if response.status_code != 429:
+            return
+        method = response.request.url.path.rsplit("/", 1)[-1]
+        failure = DataLensApiError(
+            "DataLens request failed with HTTP 429", method=method, http_status=429,
+            response_received=True, stage="provider_response",
+            retry_after_sec=_retry_after(response.headers.get("Retry-After")),
+            **response_diagnostics(response.headers),
+        )
+        response.close()
+        raise failure
 
     def _observe_dispatch(self, request: httpx.Request) -> None:
         from datalens_dev_mcp.api.schemas import OperationRegistry
@@ -126,6 +145,7 @@ class SdkAdapter:
             failure = _provider_error(exc, method)
             return UncertainWriteError("SDK mutation may have applied; do not replay", method=failure.method or method,
                                        http_status=failure.http_status, remote_code=failure.remote_code,
+                                       retry_after_sec=failure.retry_after_sec,
                                        stage=failure.stage, request_id=failure.request_id, trace_id=failure.trace_id)
         return _provider_error(exc, method)
 
@@ -627,7 +647,12 @@ def _provider_error(exc: Exception, method: str) -> DataLensApiError:
         return exc
     if isinstance(exc, SdkApiError):
         # The SDK message/details can contain SQL, data or an entire HTML body.
-        # Its documented context exposes a separate provider request identifier.
+        # SDK 3.0.0 chains the HTTPStatusError; context itself has no headers.
+        # Inspect only that actual response's allowlisted metadata, never its body.
+        cause = exc.__cause__
+        headers = (cause.response.headers if isinstance(cause, httpx.HTTPStatusError)
+                   and cause.response.status_code == exc.context.status_code else None)
+        diagnostics = response_diagnostics(headers)
         provider_method = urlsplit(exc.context.request_url or "").path.rsplit("/", 1)[-1] or method
         return DataLensApiError(
             f"DataLens request failed with HTTP {exc.context.status_code}",
@@ -636,7 +661,9 @@ def _provider_error(exc: Exception, method: str) -> DataLensApiError:
             response_received=True,
             remote_code=exc.context.code or "",
             stage="provider_response",
-            request_id=exc.context.request_id,
+            request_id=diagnostics["request_id"] or exc.context.request_id,
+            trace_id=diagnostics["trace_id"],
+            retry_after_sec=_retry_after(headers.get("Retry-After") if headers is not None else None),
         )
     return DataLensApiError("SDK operation failed without a classified provider response", method=method,
                            response_received=None, stage="sdk_operation")

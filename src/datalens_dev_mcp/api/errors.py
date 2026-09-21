@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import math
 import re
 import uuid
 from typing import Any
 
-ERROR_DIAGNOSTIC_FIELDS = ("stage", "method", "http_status", "provider_code", "request_id", "trace_id")
+ERROR_DIAGNOSTIC_FIELDS = ("stage", "method", "http_status", "provider_code", "request_id", "trace_id", "retry_after_sec")
 
 
 def safe_diagnostic_id(value: Any) -> str | None:
@@ -54,7 +55,11 @@ class DataLensApiError(RuntimeError):
         self.response_received = response_received
         self.remote_code = safe_diagnostic_id(remote_code) or ""
         self.dispatch_state = dispatch_state
-        self.retry_after_sec = retry_after_sec
+        self.retry_after_sec = (
+            float(retry_after_sec)
+            if isinstance(retry_after_sec, (int, float)) and not isinstance(retry_after_sec, bool)
+            and math.isfinite(retry_after_sec) and retry_after_sec >= 0 else None
+        )
         self.stage = safe_diagnostic_id(stage)
         self.request_id = safe_diagnostic_id(request_id)
         self.trace_id = safe_diagnostic_id(trace_id)
@@ -131,7 +136,7 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
         }[code]
     elif isinstance(error, DataLensApiError):
         code = {401: "authentication_failed", 403: "permission_denied", 404: "not_found",
-                409: "revision_conflict", 412: "revision_conflict"}.get(status)
+                409: "revision_conflict", 412: "revision_conflict", 429: "rate_limited"}.get(status)
         code = code or (error.remote_code if error.remote_code in {"response_too_large", "invalid_json", "invalid_response", "read_budget_exhausted"}
                         else "provider_rejected" if is_confirmed_rejection(error) else "provider_error")
         action = {
@@ -140,6 +145,15 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
             "not_found": "Check the exact object type, ID and branch before continuing.",
             "revision_conflict": "Read the current full target, preserve manual changes, then recompute the patch.",
             "provider_rejected": "Correct the rejected request using its reference contract before a new attempt.",
+            "rate_limited": (
+                "Keep the payload unchanged and reduce request intensity. "
+                + (f"Wait at least {error.retry_after_sec:g} seconds before continuing. "
+                   if error.retry_after_sec is not None else
+                   "Retry-After is unavailable or invalid; this does not mean zero delay. Avoid an immediate retry. ")
+                + "Resume only the same safe read within the remaining bounded budget; "
+                "if the wait or attempts exceed that budget, defer the read without polling or shortening the wait. "
+                "Do not stack retry loops or automatically replay a write; inspect its operation receipt and effect outcome."
+            ),
             "provider_error": "Retry the scoped read when the provider is available.",
             "response_too_large": "Use a smaller page or bounded query. For a required full object, configure a reviewed larger response limit; no truncated state is usable for writes.",
             "invalid_json": "Check the selected API endpoint and response contract; no response body is echoed.",
@@ -161,6 +175,8 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
     if isinstance(error, DataLensApiError):
         result.update(stage=error.stage, method=error.method, provider_code=error.remote_code or None,
                       request_id=error.request_id, trace_id=error.trace_id)
+        if error.retry_after_sec is not None:
+            result["retry_after_sec"] = error.retry_after_sec
     if isinstance(error, CredentialRefreshError):
         result["diagnostic_id"] = error.diagnostic_id
         result["helper_exit_status"] = error.exit_status
