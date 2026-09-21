@@ -145,6 +145,7 @@ class SdkAdapter:
             failure = _provider_error(exc, method)
             return UncertainWriteError("SDK mutation may have applied; do not replay", method=failure.method or method,
                                        http_status=failure.http_status, remote_code=failure.remote_code,
+                                       response_received=failure.response_received,
                                        retry_after_sec=failure.retry_after_sec,
                                        stage=failure.stage, request_id=failure.request_id, trace_id=failure.trace_id)
         return _provider_error(exc, method)
@@ -198,11 +199,7 @@ class SdkAdapter:
                     continue
                 raise _provider_error(exc, f"get:{object_type}") from exc
             except (httpx.TransportError, SdkTransportError) as exc:
-                raise DataLensApiError(
-                    "SDK read transport failed",
-                    method=f"get:{object_type}",
-                    response_received=False,
-                ) from exc
+                raise _provider_error(exc, f"get:{object_type}") from exc
 
     def get_dataset_data(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Execute the bounded preview query through the installed v3 DTO."""
@@ -231,7 +228,7 @@ class SdkAdapter:
                     continue
                 raise _provider_error(exc, "getDatasetData") from exc
             except (httpx.TransportError, SdkTransportError) as exc:
-                raise DataLensApiError("SDK preview transport failed", method="getDatasetData", response_received=False) from exc
+                raise _provider_error(exc, "getDatasetData") from exc
             except Exception as exc:
                 raise _provider_error(exc, "getDatasetData") from exc
 
@@ -277,9 +274,8 @@ class SdkAdapter:
                 errors.append((index, InputContractError(f"wizard: {safe_error_text(exc)}")))
             except SdkApiError as exc:
                 errors.append((index, _provider_error(exc, "getDataset")))
-            except (httpx.TransportError, SdkTransportError):
-                errors.append((index, DataLensApiError("Wizard preflight Dataset read failed", method="getDataset",
-                                                     response_received=False)))
+            except (httpx.TransportError, SdkTransportError) as exc:
+                errors.append((index, _provider_error(exc, "getDataset")))
 
         return errors
 
@@ -645,6 +641,30 @@ def _saved_revision(snapshot: dict[str, Any]) -> str | None:
 def _provider_error(exc: Exception, method: str) -> DataLensApiError:
     if isinstance(exc, DataLensApiError):
         return exc
+    if isinstance(exc, (httpx.TransportError, SdkTransportError)):
+        # SDK 3.0.0 chains the actual HTTPX transport error. Its reason/URL can
+        # contain private content: retain only a known class and the RPC basename.
+        cause = exc.__cause__ if isinstance(exc, SdkTransportError) else exc
+        transport_codes = {
+            httpx.ConnectTimeout: ("connect_timeout", "transport_connect"),
+            httpx.ReadTimeout: ("read_timeout", "transport_read"),
+            httpx.WriteTimeout: ("write_timeout", "transport_write"),
+            httpx.PoolTimeout: ("pool_timeout", "transport_pool"),
+            httpx.ConnectError: ("connect_error", "transport_connect"),
+            httpx.ReadError: ("read_error", "transport_read"),
+            httpx.WriteError: ("write_error", "transport_write"),
+            httpx.CloseError: ("close_error", "transport_close"),
+            httpx.LocalProtocolError: ("local_protocol_error", "transport_protocol"),
+            httpx.RemoteProtocolError: ("remote_protocol_error", "transport_protocol"),
+            httpx.ProxyError: ("proxy_error", "transport_proxy"),
+            httpx.UnsupportedProtocol: ("unsupported_protocol", "transport_protocol"),
+        }
+        code, stage = transport_codes.get(type(cause), ("transport_error", "transport"))
+        if isinstance(exc, SdkTransportError):
+            method = urlsplit(exc.url).path.rsplit("/", 1)[-1] or method
+        return DataLensApiError("SDK request failed during transport", method=method,
+                               remote_code=code, stage=stage,
+                               response_received=False if stage in {"transport_connect", "transport_pool"} else None)
     if isinstance(exc, SdkApiError):
         # The SDK message/details can contain SQL, data or an entire HTML body.
         # SDK 3.0.0 chains the HTTPStatusError; context itself has no headers.

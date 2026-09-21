@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.18
+
+- Preserve allowlisted SDK transport failure types, request methods and phases through scoped reads and uncertain-write receipts, without exposing exception messages or URLs.
+- Keep transport response evidence conservative and retain single-attempt writes and exact-target reconciliation.
+
 ## 1.2.17
 
 - Classify HTTP 429 as rate limiting, preserve valid Retry-After and safe correlation metadata through tool responses and compact receipts, and keep uncertain write reconciliation ahead of read recovery.
