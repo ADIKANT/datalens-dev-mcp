@@ -5,7 +5,8 @@ import re
 import uuid
 from typing import Any
 
-ERROR_DIAGNOSTIC_FIELDS = ("stage", "method", "http_status", "provider_code", "request_id", "trace_id", "retry_after_sec")
+ERROR_DIAGNOSTIC_FIELDS = ("stage", "method", "http_status", "provider_code", "request_id", "trace_id", "retry_after_sec",
+                           "response_received")
 
 
 def safe_diagnostic_id(value: Any) -> str | None:
@@ -137,7 +138,7 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
     elif isinstance(error, DataLensApiError):
         code = {401: "authentication_failed", 403: "permission_denied", 404: "not_found",
                 409: "revision_conflict", 412: "revision_conflict", 429: "rate_limited"}.get(status)
-        code = code or (error.remote_code if error.remote_code in {"response_too_large", "invalid_json", "invalid_response", "read_budget_exhausted"}
+        code = code or (error.remote_code if error.remote_code in {"response_too_large", "invalid_json", "invalid_response", "read_budget_exhausted", "operation_cancelled", "operation_budget_exhausted", "incomplete_relations"}
                         else "provider_rejected" if is_confirmed_rejection(error) else "provider_error")
         action = {
             "authentication_failed": "The API rejected the credential. Use dl_auth_check and the configured authentication recovery; verify API access before resuming the original read.",
@@ -159,6 +160,9 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
             "invalid_json": "Check the selected API endpoint and response contract; no response body is echoed.",
             "invalid_response": "Check the exact endpoint response contract; incomplete state cannot prove absence.",
             "read_budget_exhausted": "The bounded read budget expired; resume the exact safe read when the provider is available.",
+            "operation_cancelled": "No further dispatch is admitted. Reconcile any previously admitted write by operation_id; cancellation does not prove non-application.",
+            "operation_budget_exhausted": "Inspect completed and remaining reads. Incomplete preview cannot authorize deletion; do not automatically repeat the full scan.",
+            "incomplete_relations": "Resolve the incomplete API-visible dependency evidence; this preview cannot authorize deletion.",
         }[code]
     elif isinstance(error, (ValueError, TypeError)):
         code, action = "input_error", "Correct the indicated argument using tools/list inputSchema; no provider call is needed."
@@ -173,7 +177,7 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
     if status is not None:
         result["http_status"] = status
     if isinstance(error, DataLensApiError):
-        result.update(stage=error.stage, method=error.method, provider_code=error.remote_code or None,
+        result.update(response_received=error.response_received, stage=error.stage, method=error.method, provider_code=error.remote_code or None,
                       request_id=error.request_id, trace_id=error.trace_id)
         if error.retry_after_sec is not None:
             result["retry_after_sec"] = error.retry_after_sec

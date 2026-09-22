@@ -382,6 +382,7 @@ def _bind_contract(contract: Mapping[str, Any], bindings: Mapping[str, Any],
     comparison = bindings.get("comparison") if isinstance(bindings.get("comparison"), Mapping) else {}
     if comparison:
         result["comparison"] = _deep_merge(result["comparison"], comparison)
+        result["comparison"] = _deep_merge(result["comparison"], overrides.get("comparison", {}))
     parameter = bindings.get("parameter") if isinstance(bindings.get("parameter"), Mapping) else {}
     if parameter:
         result["selector"] = _deep_merge(
@@ -516,6 +517,13 @@ def _editor_tabs(
 def _validate_prepared_data(recipe_id: str, bindings: Mapping[str, Any]) -> None:
     prepared = bindings.get("prepared_data")
     if not isinstance(prepared, Mapping) or not prepared:
+        return
+    if recipe_id == "heatmap":
+        rows, columns, values = (prepared.get(key) for key in ("row_labels", "column_labels", "values"))
+        if (not isinstance(rows, list) or not isinstance(columns, list) or not isinstance(values, list)
+                or len(values) != len(rows) or len(rows) * len(columns) > 10000
+                or any(not isinstance(row, list) or len(row) != len(columns) for row in values)):
+            raise ValueError("heatmap requires aligned row_labels, column_labels and values, at most 10000 cells")
         return
     if recipe_id == "weekly_totals_table":
         metric = bindings.get("metric") or {}

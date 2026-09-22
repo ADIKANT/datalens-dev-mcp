@@ -13,6 +13,7 @@ from datalens_sdk.errors import DataLensAPIError as SdkApiError
 from datalens_sdk.errors import DataLensTransportError as SdkTransportError
 
 from datalens_dev_mcp.api.client import _retry_after
+from datalens_dev_mcp.api.budget import check_dispatch, current_budget
 from datalens_dev_mcp.api.errors import (
     DataLensApiError,
     InputContractError,
@@ -48,6 +49,23 @@ WIZARD_VARIANTS = {
 EDITOR_VARIANTS = {"advanced_chart", "gravity_charts", "markdown", "selector", "table"}
 
 
+class _BudgetedStream(httpx.SyncByteStream):
+    def __init__(self, stream: httpx.SyncByteStream, budget: Any) -> None:
+        self.stream, self.budget = stream, budget
+
+    def __iter__(self):
+        for chunk in self.stream:
+            try:
+                self.budget.check()
+            except DataLensApiError as exc:
+                exc.dispatch_state = "dispatched"
+                raise
+            yield chunk
+
+    def close(self) -> None:
+        self.stream.close()
+
+
 class SdkAdapter:
     def __init__(
         self,
@@ -73,6 +91,9 @@ class SdkAdapter:
         return self._config
 
     def replace_config(self, config: DataLensConfig) -> None:
+        budget = current_budget.get()
+        if budget is not None:
+            budget.sdk_targets.clear()
         if self._client is not None and hasattr(self._client, "close"):
             self._client.close()
         self._config = config
@@ -100,6 +121,9 @@ class SdkAdapter:
     def _observe_rate_limit(response: httpx.Response) -> None:
         # SDK 3.0.0 retries 429 before translation with a backoff that ignores
         # Retry-After. Surface it before that loop; do not add another retry owner.
+        budget = current_budget.get()
+        if budget is not None:
+            response.stream = _BudgetedStream(response.stream, budget)
         if response.status_code != 429:
             return
         method = response.request.url.path.rsplit("/", 1)[-1]
@@ -120,6 +144,14 @@ class SdkAdapter:
             readonly = OperationRegistry.load().get(method)["effect"] == "read"
         except KeyError:
             readonly = False
+        remaining = check_dispatch(readonly=readonly)
+        if remaining is not None:
+            # HTTPX owns the actual request timeout; the hook also runs for SDK retries.
+            timeout = request.extensions.get("timeout") or {}
+            request.extensions["timeout"] = {
+                key: min(value if value is not None else 30.0, remaining, 30.0)
+                for key, value in {"connect": 30.0, "read": 30.0, "write": 30.0, "pool": 30.0, **timeout}.items()
+            }
         if not readonly:
             # HTTPX calls request hooks after encoding/auth, just before send.
             self._write_dispatches += 1
@@ -159,6 +191,9 @@ class SdkAdapter:
         revision_id: str | None = None,
     ) -> dict[str, Any]:
         value = self._get_domain(object_type, object_id, branch=branch, revision_id=revision_id)
+        budget = current_budget.get()
+        if budget is not None and branch == "saved" and revision_id is None:
+            budget.sdk_targets[(_canonical_object_type(object_type), object_id)] = value
         snapshot = _json_object(value)
         if _canonical_object_type(object_type) in {"chart", "wizard_chart", "editor_chart", "ql_chart"}:
             return _chart_entry(snapshot)
@@ -425,7 +460,10 @@ class SdkAdapter:
         effect_started = False
         dispatch_before = self._write_dispatches
         try:
-            target = self._get_domain(_canonical_object_type(object_type), object_id, branch="saved")
+            budget = current_budget.get()
+            target = budget.sdk_targets.pop((_canonical_object_type(object_type), object_id), None) if budget else None
+            if target is None:
+                target = self._get_domain(_canonical_object_type(object_type), object_id, branch="saved")
             effect_started = True
             target.delete()
             return {"object_id": object_id, "deleted": True, "backend": "official_sdk"}

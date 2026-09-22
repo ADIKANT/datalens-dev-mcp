@@ -13,6 +13,8 @@ Use `dl_compile_recipe` for new registered visual families or a requested redesi
 
 `dl_editor_validate` checks static tabs, aliases and constrained-runtime rules. Verify changed runtime/visual behavior in Browser separately. HTML generated inside an Editor/table cell follows that Editor contract; standalone Page CSP and host messaging do not apply.
 
+For period-series recipes, comparison must apply to the series: `comparison.enabled=false` disables it; an explicit `true` retains an unavailable state when previous data are missing. `legend.mode=hidden` hides the legend. Scope optional `tooltip.hide_null`, `tooltip.hide_zero_multi` and `legend.hide_empty_series` to the requested presentation; they do not change Dataset rows or share denominators. Follow the project's accepted profile and [visualization decisions](../datalens-dashboard/references/decision-quality.md); existing-tab changes still use a narrow patch.
+
 Follow [authorized scope and delivery](../datalens-dashboard/references/authorized-scope.md) and, for a visual/semantic change, the relevant [visualization decision](../datalens-dashboard/references/decision-quality.md). Route Wizard to `datalens-dataset-wizard`, placement to `datalens-dashboard`, discovery to `datalens-inspect`, and standalone Page/backup/cleanup to `datalens-maintenance`.
 
 For unknown effects follow [repeat-effect recovery](../datalens-dashboard/references/authorized-scope.md#unknown-outcomes-and-repeat-effects): only proven non-application or separate informed repeat authorization permits another attempt. Failed reconciliation, absent inventory and a new operation_id do not make a retry safe.

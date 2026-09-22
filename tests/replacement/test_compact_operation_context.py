@@ -64,13 +64,19 @@ def test_public_write_wrappers_are_compact_and_full_record_is_explicit(monkeypat
             return full
 
     monkeypatch.setattr(server, "default_mutation_service", FakeService)
+    class ReceiptStore:
+        def get(self, operation_id):
+            assert operation_id == "op-1"
+            return full
+
+    monkeypatch.setattr(server, "OperationStore", ReceiptStore)
 
     created = server.dl_object_create([{"client_ref": "chart"}], {"workbook_id": "workbook"})
     assert "desired" not in created["results"][0]
     assert "desired" not in server.dl_operation_get("op-1")["results"][0]
-    assert server.dl_operation_get("op-1", include_detail=True) is full
+    assert server.dl_operation_get("op-1", include_detail=True) == full
     wire = server.call_tool("dl_operation_get", {"operation_id": "op-1", "include_detail": True})
-    assert wire["structuredContent"] is full
+    assert wire["structuredContent"] == full
     assert "large" not in wire["content"][0]["text"]
 
 

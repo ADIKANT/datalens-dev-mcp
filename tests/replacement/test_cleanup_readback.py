@@ -38,3 +38,8 @@ def test_successful_delete_response_is_not_proof_of_absence():
     result = service.apply(preview, confirmed_delete=preview["delete"])
     assert not result["ok"]
     assert result["results"][0]["status"] == "uncertain"
+
+
+@pytest.fixture(autouse=True)
+def isolated_cleanup_receipts(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path))

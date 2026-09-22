@@ -1,11 +1,17 @@
 /* Period-aligned line/bar composition. Prepared input owns period and aggregation semantics. */
 module.exports = function renderPeriodSeries(prepared, presentation) {
-  const chartData = {...prepared, title: presentation.visible_title.text || prepared.title || '',
+  const comparisonRequested = presentation.comparison.enabled !== false
+    && !['none', 'disabled'].includes(presentation.comparison.method);
+  const series = (prepared.series || []).map(item => ({...item,
+    comparisonEnabled: comparisonRequested && item.comparisonEnabled !== false
+      && (presentation.comparison.enabled === true || Array.isArray(item.comparisonValues))
+  }));
+  const chartData = {...prepared, series, title: presentation.visible_title.text || prepared.title || '',
     subtitle: presentation.hint.enabled ? (presentation.hint.text || prepared.subtitle || '') : '', kind: 'combo'};
   return {
     render: Editor.wrapFn({args: [chartData, presentation], fn: function(options, data, presentation) {
-      const viewportWidth = Math.max(280, Number(options?.width) || 900);
-      const viewportHeight = Math.max(160, Number(options?.height) || 420);
+      const viewportWidth = Math.max(80, Number(options?.width) || 900);
+      const viewportHeight = Math.max(90, Number(options?.height) || 420);
       const compactMode = viewportWidth < 720;
       const theme = {
         background: 'var(--g-color-base-background,#FFFFFF)',
@@ -56,10 +62,8 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
         let rendered = '';
         if (format === 'percent') {
           rendered = `${groupedFixed(numeric, 1)}%`;
-        } else if (format === 'decimal1') {
-          rendered = groupedFixed(numeric, 1);
-        } else if (format === 'decimal2') {
-          rendered = groupedFixed(numeric, 2);
+        } else if (/^decimal[0-6]$/.test(format)) {
+          rendered = groupedFixed(numeric, Number(format.slice(7)));
         } else {
           rendered = groupedFixed(numeric, 0);
         }
@@ -98,12 +102,26 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
       }
 
       function renderCombo() {
-        const width = Math.max(280, viewportWidth - 28);
-        const height = Math.max(160, viewportHeight - (data.banner ? 132 : 102));
         const categories = data.categories || [];
-        const series = data.series || [];
+        const allSeries = data.series || [];
+        const series = presentation.legend.hide_empty_series && allSeries.length > 1
+          ? allSeries.filter(item => (item.values || []).some(v => finiteValue(v) !== null && finiteValue(v) !== 0))
+          : allSeries;
+        const showLegend = presentation.legend.mode !== 'hidden'
+          && (series.length > 1 || series.some(item => item.comparisonEnabled && item.comparisonLegendName));
+        const width = Math.max(60, viewportWidth - 12);
+        let legendRows = 1, legendRowWidth = 0;
+        if (showLegend) series.forEach(item => {
+          const itemWidth = String(item.name || '').length * 7.3 + 35;
+          if (legendRowWidth && legendRowWidth + itemWidth > width) { legendRows++; legendRowWidth = 0; }
+          legendRowWidth += itemWidth;
+        });
+        const headerHeight = presentation.visible_title.visible && presentation.visible_title.owner === 'body' ? 30 : 0;
+        const height = Math.max(70, viewportHeight - 8 - headerHeight - (showLegend ? legendRows * 24 : 0) - (data.banner ? 38 : 0));
         const bars = series.filter(item => item.type === 'bar');
         const lines = series.filter(item => item.type === 'line');
+        const integerAxis = axis => series.filter(item => (item.axis === 'right') === (axis === 'right'))
+          .every(item => (item.format || data.primaryFormat || 'integer') === 'integer');
 
         function finiteValue(value) {
           if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) return null;
@@ -140,7 +158,7 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
           });
         }
         lines.forEach(item => {
-          (item.values || []).concat(item.comparisonValues || []).forEach(value => {
+          (item.values || []).concat(item.comparisonEnabled ? item.comparisonValues || [] : []).forEach(value => {
             const numericValue = finiteValue(value);
             if (numericValue === null) return;
             if (item.axis === 'right') {
@@ -153,12 +171,12 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
           });
         });
 
-        function niceScale(maxValue, requestedMax, minValue = 0) {
+        function niceScale(maxValue, requestedMax, minValue = 0, axis = 'left') {
           if (minValue < 0) {
             // Reuse the accepted tick spacing, extending the domain on both sides of zero.
             const positiveLimit = finiteValue(requestedMax);
             const upper = positiveLimit !== null && positiveLimit > 0 ? positiveLimit : maxValue;
-            const span = niceScale(upper - minValue, null);
+            const span = niceScale(upper - minValue, null, 0, axis);
             const step = span.ticks[1] - span.ticks[0];
             const min = Math.floor(minValue / step) * step;
             const max = Math.ceil(upper / step) * step;
@@ -176,7 +194,7 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
             };
           }
           const safeMax = Math.max(0, finiteValue(maxValue) || 0);
-          if ((data.primaryFormat || 'integer') === 'integer' && safeMax <= 4) {
+          if (integerAxis(axis) && safeMax <= 4) {
             const integerMax = Math.max(1, Math.ceil(safeMax));
             return {
               max: integerMax,
@@ -188,7 +206,7 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
           const fraction = rawStep / magnitude;
           const preferred = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 7.5, 8, 10];
           const factor = preferred.find(candidate => candidate >= fraction) || 10;
-          const step = factor * magnitude;
+          const step = integerAxis(axis) ? Math.max(1, Math.ceil(factor * magnitude)) : factor * magnitude;
           const scaleMax = Math.max(step, Math.ceil(safeMax / step) * step);
           const tickCount = Math.max(1, Math.round(scaleMax / step));
           return {
@@ -196,27 +214,34 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
             ticks: Array.from({length: tickCount + 1}, (_unused, index) => index * step)
           };
         }
-        const primaryScale = niceScale(primaryMin < 0 ? primaryMax : Math.max(1, primaryMax), data.primaryScaleMax, primaryMin);
-        const secondaryScale = niceScale(secondaryMin < 0 ? secondaryMax : Math.max(1, secondaryMax), data.secondaryScaleMax, secondaryMin);
+        const primaryScale = niceScale(primaryMin < 0 ? primaryMax : primaryMax || 1, data.primaryScaleMax, primaryMin);
+        const secondaryScale = niceScale(secondaryMin < 0 ? secondaryMax : secondaryMax || 1, data.secondaryScaleMax, secondaryMin, 'right');
         function primaryTickValues() {
           return primaryScale.ticks;
         }
         const primaryTicks = primaryTickValues();
+        const tickStep = primaryTicks.length > 1 ? primaryTicks[1] - primaryTicks[0] : 1;
+        let axisPrecision = 0;
+        while (axisPrecision < 6 && primaryTicks.some(v => Math.abs(v - Number(v.toFixed(axisPrecision))) > Math.abs(tickStep) * 0.000001)) axisPrecision++;
+        const axisFormat = data.primaryFormat === 'percent' ? 'percent' : axisPrecision ? 'decimal' + axisPrecision : 'integer';
         const yLabelSamples = primaryTicks.map(value =>
-          numberText(value, data.primaryFormat || 'integer', '')
+          numberText(value, axisFormat, '')
         );
         const longestYLabel = yLabelSamples.reduce(
           (longest, label) => Math.max(longest, String(label).length),
           1
         );
+        const hasRightAxis = series.some(item => item.axis === 'right');
+        const rightFormat = data.secondaryFormat || series.find(item => item.axis === 'right')?.format || 'integer';
+        const rightLabelWidth = hasRightAxis ? Math.max(...secondaryScale.ticks.map(v => numberText(v, rightFormat, '').length)) * 6.7 + 12 : 0;
         const plot = {
-          left: Math.min(compactMode ? 82 : 104, Math.max(compactMode ? 48 : 58, longestYLabel * 7.2 + 20)),
-          right: compactMode ? 20 : 28,
-          top: 34,
-          bottom: 46
+          left: Math.max(22, longestYLabel * 6.7 + 12),
+          right: Math.max(10, rightLabelWidth, 31 - width / Math.max(1, categories.length) / 2),
+          top: presentation.labels.visible ? 21 : 8,
+          bottom: 28
         };
-        const plotWidth = Math.max(120, width - plot.left - plot.right);
-        const plotHeight = Math.max(80, height - plot.top - plot.bottom);
+        const plotWidth = Math.max(1, width - plot.left - plot.right);
+        const plotHeight = Math.max(20, height - plot.top - plot.bottom);
         function scaleY(value, scale = primaryScale) {
           const min = scale.min || 0;
           return plot.top + plotHeight - ((value - min) / (scale.max - min)) * plotHeight;
@@ -234,82 +259,20 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
         let marks = '';
         let valueLabels = '';
 
-        function labelIndexSet(pointCount, desiredCount) {
-          const selected = {};
-          if (pointCount <= 0) return selected;
-          if (pointCount <= desiredCount) {
-            for (let index = 0; index !== pointCount; index += 1) selected[index] = true;
-            return selected;
-          }
-          const count = Math.max(2, desiredCount);
-          const stride = Math.max(1, Math.ceil(pointCount / count));
-          Array.from(
-            {length: Math.ceil(pointCount / stride)},
-            (_unused, slot) => slot * stride
-          ).forEach(index => {
-            selected[index] = true;
-          });
-          const lastIndex = pointCount - 1;
-          if (!selected[lastIndex]) {
-            const selectedIndices = Object.keys(selected).map(Number).sort((left, right) => left - right);
-            const previousIndex = selectedIndices[selectedIndices.length - 1];
-            if (previousIndex > 0 && stride > lastIndex - previousIndex) {
-              delete selected[previousIndex];
-            }
-            selected[lastIndex] = true;
-          }
-          return selected;
+        // Geometry, rather than category count, decides whether a value label fits.
+        function valueLabelIndexSet(values) {
+          return Object.fromEntries((values || []).map((v, i) => [i, finiteValue(v) !== null]));
         }
-
-        function valueLabelIndexSet(values, desiredCount) {
-          const numericValues = (values || []).map(finiteValue);
-          const finiteIndices = numericValues
-            .map((value, index) => value === null ? null : index)
-            .filter(index => index !== null);
-          const selected = {};
-          if (!finiteIndices.length) return selected;
-          if (finiteIndices.length <= desiredCount) {
-            finiteIndices.forEach(index => { selected[index] = true; });
-            return selected;
-          }
-          const capacity = Math.max(2, desiredCount);
-          function add(index) {
-            if (index === null || index === undefined || selected[index]) return;
-            if (Object.keys(selected).length < capacity) selected[index] = true;
-          }
-          add(finiteIndices[0]);
-          add(finiteIndices[finiteIndices.length - 1]);
-          const sortedByValue = finiteIndices.slice().sort((left, right) =>
-            numericValues[right] - numericValues[left]
-          );
-          add(sortedByValue[0]);
-          add(sortedByValue[sortedByValue.length - 1]);
-          const extrema = [];
-          for (let index = 1; index < numericValues.length - 1; index += 1) {
-            const previous = numericValues[index - 1];
-            const current = numericValues[index];
-            const next = numericValues[index + 1];
-            if (previous === null || current === null || next === null) continue;
-            const isPeak = current > previous && current >= next;
-            const isTrough = current < previous && current <= next;
-            if (!isPeak && !isTrough) continue;
-            extrema.push({
-              index,
-              score: Math.abs(current - (previous + next) / 2)
-            });
-          }
-          extrema.sort((left, right) => right.score - left.score).forEach(item => add(item.index));
-          const even = labelIndexSet(numericValues.length, capacity);
-          Object.keys(even).map(Number).forEach(index => {
-            if (numericValues[index] !== null) add(index);
-          });
-          if (Object.keys(selected).length < capacity) finiteIndices.forEach(index => add(index));
-          return selected;
+        const occupiedLabels = [];
+        function reserveLabel(x, y, text, fontSize = 12) {
+          const halfWidth = String(text).length * fontSize * 0.6 / 2 + 1;
+          const box = {left: x - halfWidth, right: x + halfWidth, top: y - 11, bottom: y + 3};
+          if (box.left < 0 || box.right > width || box.top < 0 || box.bottom > height - 20) return false;
+          if (occupiedLabels.some(b => box.left < b.right && box.right > b.left && box.top < b.bottom && box.bottom > b.top)) return false;
+          occupiedLabels.push(box);
+          return true;
         }
-
-        const dataLabelCapacity = categories.length <= 14 || spacing >= 48
-          ? categories.length
-          : Math.max(4, Math.floor(plotWidth / 58));
+        const dataLabelCapacity = categories.length;
         const barLabelMagnitudes = categories.map((_category, index) =>
           bars.reduce((total, item) => {
             const numeric = finiteValue(item.values?.[index]);
@@ -334,7 +297,10 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
               const barHeight = Math.abs(scaleY(end) - scaleY(start));
               const y = Math.min(scaleY(start), scaleY(end));
               marks += `<rect x="${(centerX - renderedBarWidth / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${renderedBarWidth.toFixed(1)}" height="${Math.max(0, barHeight).toFixed(1)}" rx="3" fill="${itemColor}" opacity="0.90" />`;
-              if (presentation.labels.visible && item.showBarLabels !== false && value !== 0 && barHeight >= 17 && barLabelIndices[categoryIndex]) {
+              const segmentText = numberText(value, item.format || data.primaryFormat || 'integer', item.labelUnit !== undefined ? item.labelUnit : '');
+              if (presentation.labels.visible && item.showBarLabels !== false && value !== 0 && barHeight >= 17
+                  && segmentText.length * 12 * .6 + 4 <= renderedBarWidth
+                  && barLabelIndices[categoryIndex] && reserveLabel(centerX, y + barHeight / 2 + 4, segmentText)) {
                 const segmentTextColor = item.color === '#D0D5DD' ? theme.textSecondary : '#FFFFFF';
                 valueLabels += `<text x="${centerX.toFixed(1)}" y="${(y + barHeight / 2 + 4).toFixed(1)}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="600" letter-spacing="0" fill="${segmentTextColor}">${esc(numberText(value, item.format || data.primaryFormat || 'integer', item.labelUnit !== undefined ? item.labelUnit : ''))}</text>`;
               }
@@ -345,6 +311,7 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
               if (!presentation.labels.visible || stackedTotal === 0 || bars.length <= 1 || !barLabelIndices[categoryIndex]) return;
               const labelY = stackedTotal > 0 ? Math.max(13, scaleY(stackedTotal) - 7)
                 : Math.min(height - plot.bottom + 16, scaleY(stackedTotal) + 15);
+              if (!reserveLabel(centerX, labelY, numberText(stackedTotal, data.primaryFormat || 'integer', ''))) return;
               valueLabels += `<text x="${centerX.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="600" letter-spacing="0" fill="${theme.textSecondary}" style="paint-order:stroke;stroke:${theme.halo};stroke-width:3px;stroke-linejoin:round;">${esc(numberText(stackedTotal, data.primaryFormat || 'integer', ''))}</text>`;
             });
           } else {
@@ -358,8 +325,10 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
               const x = centerX - (barWidth * bars.length) / 2 + barWidth * barIndex;
               const y = Math.min(zeroY, scaleY(value));
               marks += `<rect x="${(x + 2).toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(3, barWidth - 4).toFixed(1)}" height="${Math.max(0, barHeight).toFixed(1)}" rx="3" fill="${itemColor}" opacity="0.90" />`;
-              if (presentation.labels.visible && item.showBarLabels !== false && value !== 0 && barLabelIndices[categoryIndex]) {
-                valueLabels += `<text x="${(x + barWidth / 2).toFixed(1)}" y="${(value >= 0 ? Math.max(13, y - 7) : Math.min(height - plot.bottom + 16, y + barHeight + 15)).toFixed(1)}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="600" letter-spacing="0" fill="${theme.textSecondary}" style="paint-order:stroke;stroke:${theme.halo};stroke-width:3px;stroke-linejoin:round;">${esc(numberText(value, item.format || data.primaryFormat || 'integer', item.labelUnit !== undefined ? item.labelUnit : item.unit || ''))}</text>`;
+              const barLabelY = value >= 0 ? Math.max(13, y - 7) : Math.min(height - plot.bottom + 16, y + barHeight + 15);
+              const barLabelText = numberText(value, item.format || data.primaryFormat || 'integer', item.labelUnit !== undefined ? item.labelUnit : item.unit || '');
+              if (presentation.labels.visible && item.showBarLabels !== false && value !== 0 && reserveLabel(x + barWidth / 2, barLabelY, barLabelText, 11)) {
+                valueLabels += `<text x="${(x + barWidth / 2).toFixed(1)}" y="${(value >= 0 ? Math.max(13, y - 7) : Math.min(height - plot.bottom + 16, y + barHeight + 15)).toFixed(1)}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="11" font-weight="600" letter-spacing="0" fill="${theme.textSecondary}" style="paint-order:stroke;stroke:${theme.halo};stroke-width:3px;stroke-linejoin:round;">${esc(numberText(value, item.format || data.primaryFormat || 'integer', item.labelUnit !== undefined ? item.labelUnit : item.unit || ''))}</text>`;
               }
             });
           }
@@ -388,7 +357,7 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
           const comparisonColor = themedColor(item.comparisonColor || item.color);
           const scale = item.axis === 'right' ? secondaryScale : primaryScale;
           const segments = pointSegments(item.values || [], scale);
-          const comparisonSegments = item.showComparisonLine === false
+          const comparisonSegments = !item.comparisonEnabled || item.showComparisonLine === false
             ? []
             : pointSegments(item.comparisonValues || [], scale);
           comparisonSegments.forEach(segment => {
@@ -411,7 +380,7 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
             if (item.showMarkers !== false && (categories.length <= 60 || pointLabelIndices[point.index])) {
               marks += `<circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="3.2" fill="${theme.surface}" stroke="${itemColor}" stroke-width="2.2" />`;
             }
-            if (presentation.labels.visible && item.showPointLabels !== false && pointLabelIndices[point.index]) {
+            if (presentation.labels.visible && item.showPointLabels !== false && pointLabelIndices[point.index] && (!presentation.tooltip.hide_zero_multi || lines.length === 1 || point.value !== 0)) {
               let adjustedLabelOffset = labelOffset;
               const previousValue = finiteValue(item.values?.[point.index - 1]);
               const nextValue = finiteValue(item.values?.[point.index + 1]);
@@ -449,6 +418,8 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
                 }
               }
               const labelY = Math.max(13, Math.min(plot.top + plotHeight - 4, point.y + adjustedLabelOffset));
+              const pointText = numberText(point.value, item.format || data.primaryFormat || 'integer', item.labelUnit !== undefined ? item.labelUnit : item.unit || '');
+              if (!reserveLabel(point.x, labelY, pointText)) return;
               valueLabels += `<text x="${point.x.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="600" letter-spacing="0" fill="${itemColor}" style="paint-order:stroke;stroke:${theme.halo};stroke-width:3px;stroke-linejoin:round;">${esc(numberText(point.value, item.format || data.primaryFormat || 'integer', item.labelUnit !== undefined ? item.labelUnit : item.unit || ''))}</text>`;
             }
           });
@@ -458,26 +429,30 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
           const y = scaleY(value);
           return `
             ${presentation.axes_gridlines.y_grid ? `<line x1="${plot.left}" y1="${y}" x2="${width - plot.right}" y2="${y}" stroke="${theme.grid}" stroke-width="1" />` : ''}
-            <text x="${plot.left - 9}" y="${y + 4}" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="500" letter-spacing="0" fill="${theme.textSecondary}">${esc(numberText(value, data.primaryFormat || 'integer', ''))}</text>
+            <text x="${plot.left - 9}" y="${y + 4}" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="500" letter-spacing="0" fill="${theme.textSecondary}">${esc(numberText(value, axisFormat, ''))}</text>
           `;
         }).join('');
         const grain = String(data.grain || '');
-        const estimatedLabelWidth = grain === 'month' ? 48 : 64;
-        const maxXAxisLabels = Math.max(2, Math.floor(plotWidth / estimatedLabelWidth));
-        const xLabelIndices = labelIndexSet(categories.length, maxXAxisLabels);
+        const xLabelIndices = {};
+        let previousRight = -Infinity;
         const xLabels = categories.map((category, index) => {
-          if (!xLabelIndices[index]) return '';
           const x = centerAt(index);
           const rawLabel = String(category);
           let label = rawLabel;
           if (/^\d{4}-\d{2}-\d{2}/.test(rawLabel)) {
-            const yy = rawLabel.slice(2, 4);
-            const mm = rawLabel.slice(5, 7);
-            const dd = rawLabel.slice(8, 10);
+            const yy = rawLabel.slice(2, 4), mm = rawLabel.slice(5, 7), dd = rawLabel.slice(8, 10);
             label = grain === 'month' ? `${mm}.${yy}` : `${dd}.${mm}.${yy}`;
           }
-          const xFontSize = grain === 'month' && categories.length > 16 ? 10 : 12;
-          return `<text x="${x}" y="${height - 15}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="${xFontSize}" font-weight="500" letter-spacing="0" fill="${theme.textSecondary}">${esc(label)}</text>`;
+          // Bound every formatted label, including long categories and the first/last tick.
+          const available = Math.max(0, 2 * Math.min(x - 2, width - x - 2));
+          const capacity = Math.floor(available / 7.2);
+          if (capacity < 2) return '';
+          if (label.length > capacity) label = label.slice(0, capacity - 1) + '…';
+          const halfWidth = label.length * 7.2 / 2;
+          if (x - halfWidth < previousRight + 6) return '';
+          previousRight = x + halfWidth;
+          xLabelIndices[index] = true;
+          return `<text x="${x}" y="${height - 7}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="500" fill="${theme.textSecondary}"><title>${esc(rawLabel)}</title>${esc(label)}</text>`;
         }).join('');
         const xAxisY = plot.top + plotHeight;
         const xAxis = `
@@ -489,13 +464,8 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
           }).join('')}
         `;
         const legend = series.map(item => {
-          const availableValues = (item.values || []).filter(value => finiteValue(value) !== null);
-          const last = availableValues.length ? availableValues[availableValues.length - 1] : null;
-          const summary = finiteValue(item.summaryValue);
-          const legendValue = data.hasCurrentData === false ? null : summary !== null ? summary : last;
-          const renderedValue = legendValue === null ? 'N/A' : numberText(legendValue, item.format || 'integer', item.unit || '');
-          const primary = `<div style="display:flex;align-items:center;gap:7px;font-size:14px;line-height:18px;color:${theme.textSecondary};"><div style="width:10px;height:10px;border-radius:${item.type === 'line' ? '999px' : '3px'};background:${themedColor(item.color)};"></div><span>${esc(item.name)}</span><span style="color:${theme.text};font-weight:750;">${esc(renderedValue)}</span></div>`;
-          const comparison = item.comparisonLegendName
+          const primary = `<div style="display:flex;align-items:center;gap:7px;font-size:14px;line-height:18px;color:${theme.textSecondary};"><div style="width:10px;height:10px;border-radius:${item.type === 'line' ? '999px' : '3px'};background:${themedColor(item.color)};"></div><span>${esc(item.name)}</span></div>`;
+          const comparison = item.comparisonEnabled && item.comparisonLegendName
             ? `<div style="display:flex;align-items:center;gap:7px;font-size:14px;line-height:18px;color:${theme.textSecondary};"><div style="width:18px;border-top:2px dashed ${themedColor(item.color)};opacity:0.5;"></div><span>${esc(item.comparisonLegendName)}</span></div>`
             : '';
           return primary + comparison;
@@ -509,10 +479,11 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
         return `
           ${header()}
           ${data.banner ? `<div style="padding:7px 9px;border-radius:10px;background:var(--g-color-base-warning-light,#FFF4E5);color:var(--g-color-text-warning,#9A6700);font-size:12px;line-height:16px;font-weight:700;">${esc(data.banner)}</div>` : ''}
-          <div style="display:flex;flex-wrap:wrap;gap:8px 18px;flex:0 0 auto;">${legend}</div>
+          ${showLegend ? `<div style="display:flex;flex-wrap:wrap;gap:6px 18px;flex:0 0 auto;">${legend}</div>` : ''}
           <div style="width:100%;flex:1 1 auto;min-height:0;overflow:hidden;">
-            <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" style="display:block;width:100%;height:100%;min-width:0;background:${theme.background};overflow:hidden;">
+            <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" style="display:block;width:100%;height:100%;min-width:0;background:${theme.background};overflow:hidden;">
               ${grid}
+              ${hasRightAxis ? secondaryScale.ticks.map(v => `<text x="${width - plot.right + 9}" y="${scaleY(v, secondaryScale) + 4}" text-anchor="start" font-family="Inter,Arial,sans-serif" font-size="12" fill="${theme.textSecondary}">${esc(numberText(v, rightFormat, ''))}</text>`).join('') : ''}
               ${xAxis}
               ${marks}
               ${valueLabels}
@@ -527,12 +498,12 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
         : data.state === 'loading' ? '<div role="status">Loading…</div>'
         : data.state === 'no_data' || !data.categories.length ? '<div role="status">No data</div>' : renderCombo();
       return Editor.generateHtml(`
-        <div style="box-sizing:border-box;width:100%;height:100%;min-width:0;min-height:0;padding:${compactMode ? 9 : 11}px ${compactMode ? 10 : 13}px;background:${theme.background};color:${theme.text};font-family:Inter,Arial,sans-serif;display:flex;flex-direction:column;gap:${compactMode ? 7 : 9}px;overflow:hidden;">
+        <div style="box-sizing:border-box;width:100%;height:100%;min-width:0;min-height:0;padding:4px 6px;background:${theme.background};color:${theme.text};font-family:Inter,Arial,sans-serif;display:flex;flex-direction:column;gap:6px;overflow:hidden;">
           ${body}
         </div>
       `);
     }}),
-    tooltip: {renderer: Editor.wrapFn({args: [chartData], fn: function(event, data) {
+    tooltip: {renderer: Editor.wrapFn({args: [chartData, presentation], fn: function(event, data, presentation) {
       const id = event.target?.getAttribute('data-id') || '';
       let title = '', body = '', content = '';
           function escapeHtml(value) {
@@ -589,14 +560,15 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
             const label = grain === 'DAY' || grain === 'WEEK' || grain === 'MONTH'
               ? grain
               : 'PERIOD';
-            return `${label} · ${formatDateRange(value)}`;
+            return `${presentation.tooltip.period_label || label} · ${formatDateRange(value)}`;
           }
 
-          function rangePair(currentRange, comparisonRange, source = data) {
+          function rangePair(currentRange, comparisonRange, hasComparison, source = data) {
+            if (!hasComparison || !presentation.tooltip.comparison.dates) return `<div style="margin-top:5px;font-size:11px;font-weight:700;">${escapeHtml(grainScope(currentRange, source))}</div>`;
             return `
               <div style="margin-top:5px;display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:11px;line-height:15px;color:var(--g-color-text-secondary,#667085);">
                 <div style="font-weight:800;color:var(--g-color-text-primary,#111827);">${escapeHtml(grainScope(currentRange, source))}</div>
-                <div style="font-weight:800;color:var(--g-color-text-primary,#111827);">VS ${escapeHtml(grainScope(comparisonRange, source))}</div>
+                <div style="font-weight:800;color:var(--g-color-text-primary,#111827);">VS ${comparisonRange ? escapeHtml(grainScope(comparisonRange, source)) : 'Comparison unavailable'}</div>
               </div>
             `;
           }
@@ -626,14 +598,17 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
             const percentText = `${percent > 0 ? '+' : ''}${percent.toFixed(1).replace('.', ',')}%`;
             return {
               text: percentText,
-              color: difference > 0 ? 'var(--g-color-text-positive,#12B76A)' : difference < 0 ? 'var(--g-color-text-danger,#F04438)' : 'var(--g-color-text-hint,#98A2B3)'
+              color: presentation.comparison.color === 'neutral' ? 'var(--g-color-text-secondary,#667085)' : difference > 0 ? 'var(--g-color-text-positive,#12B76A)' : difference < 0 ? 'var(--g-color-text-danger,#F04438)' : 'var(--g-color-text-hint,#98A2B3)'
             };
           }
 
-          function metricRows(items, currentIndex, hasComparison) {
+          function metricRows(items, currentIndex) {
             return (items || []).map(item => {
               const currentValue = data.hasCurrentData === false ? null : (item.values || [])[currentIndex];
               const comparisonValue = data.hasCurrentData === false ? null : (item.comparisonValues || [])[currentIndex];
+              const hasComparison = item.comparisonEnabled && presentation.tooltip.comparison.values;
+              if (!hasComparison && ((presentation.tooltip.hide_null && finiteValue(currentValue) === null)
+                  || (presentation.tooltip.hide_zero_multi && items.length > 1 && finiteValue(currentValue) === 0))) return '';
               const delta = deltaMeta(currentValue, comparisonValue);
               return `
                 <div style="padding-top:8px;margin-top:8px;border-top:1px solid var(--g-color-line-generic,#EAECF0);">
@@ -641,9 +616,9 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
                     <span style="display:inline-block;width:8px;height:8px;border-radius:${item.type === 'line' ? '999px' : '2px'};background:${tooltipColor(item.color)};"></span>
                     <span style="font-weight:750;">${escapeHtml(item.name || '')}</span>
                   </div>
-                  <div style="margin-top:4px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                  <div style="margin-top:4px;display:grid;grid-template-columns:${hasComparison ? '1fr 1fr' : '1fr'};gap:12px;">
                     <div>
-                      <div style="font-size:10px;line-height:13px;color:var(--g-color-text-hint,#98A2B3);font-weight:750;">CURRENT</div>
+                      <div style="font-size:10px;line-height:13px;color:var(--g-color-text-hint,#98A2B3);font-weight:750;">${hasComparison ? 'CURRENT' : ''}</div>
                       <div style="font-size:14px;line-height:18px;font-weight:800;color:var(--g-color-text-primary,#111827);">${escapeHtml(formatValue(currentValue, item.format || 'integer', item.unit || ''))}</div>
                     </div>
                     ${hasComparison ? `<div><div style="font-size:10px;line-height:13px;color:var(--g-color-text-hint,#98A2B3);font-weight:750;">VS</div><div style="font-size:14px;line-height:18px;font-weight:800;color:var(--g-color-text-primary,#111827);">${escapeHtml(formatValue(comparisonValue, item.format || 'integer', item.unit || ''))}</div></div>` : ''}
@@ -665,8 +640,8 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
               || (data.comparisonCategories || [])[bucketIndex];
             title = String(data.title || '');
             content = `
-              ${rangePair(currentRange, comparisonRange)}
-              ${metricRows(data.series || [], bucketIndex, Boolean(comparisonRange))}
+              ${rangePair(currentRange, comparisonRange, (data.series || []).some(item => item.comparisonEnabled))}
+              ${metricRows(data.series || [], bucketIndex)}
             `;
           }
           if (!body && !content) return null;

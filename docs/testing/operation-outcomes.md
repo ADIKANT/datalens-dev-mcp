@@ -1,6 +1,6 @@
 # Operation outcomes and bounded reads (1.2.8)
 
-Historical release evidence; current 429 guidance is in [rate-limit recovery](../../skills/datalens-inspect/references/direct-reads.md#rate-limits).
+Historical release evidence; current cleanup behavior is described below. Current 429 guidance is in [rate-limit recovery](../../skills/datalens-inspect/references/direct-reads.md#rate-limits).
 
 ## Changed owners
 
@@ -24,3 +24,16 @@ Existing offline tests cover SDK preparation failures, local build rejection, po
 The connected runtime's auth probe and one deliberate recovery both ended in credential-helper timeout. Helper launch/version and IAM reachability succeeded, which does not establish the timeout cause or a need for interactive login. No repeated helper loop, account switch or credentials change was performed. Historical unknown receipts remain intact; absent inventory is not evidence that a create was unapplied.
 
 A successful small live read benchmark was unavailable under this auth boundary. Stdio dispatch therefore remains sequential: there is no measured benefit justifying a concurrent dispatcher or shared-client concurrency change. After successful authentication, measure independent scoped reads and retain each result before considering concurrency. No live mutation, network fault injection, duplicate creation or rendered canary is claimed by this release note. Post-install native identity, authorized cleanup and Editor save/publish/render/restore remain separate acceptance obligations.
+
+
+## Bounded cleanup and recovery (1.2.20)
+
+Cleanup preview/apply share an operation deadline (default 120 seconds, maximum 180) and an actual provider-dispatch limit (default 200, maximum 1,000), including internal SDK requests and credential refresh. Progress reports the active phase, elapsed time, provider reads/effects and completed/known remaining preview reads. The remaining count is a lower bound until all dependencies have been discovered. A blocked preview cannot authorize deletion; inspect its exact remaining reads and typed issues before choosing a smaller authorized scope or a fresh preview. Successful evidence is reused only within that operation, never as a global graph cache.
+
+Deadline/cancellation checks stop new dispatch. A blocking socket phase may take its remaining timeout (capped at 30 seconds) to unwind; OS DNS is not interruptible. The stdio control plane handles ping, server identity, cancellation and receipt reads independently while one domain worker exclusively owns the SDK. Other domain calls receive a busy response without dispatch. Cancellation after a dispatched write never means that no change occurred.
+
+Preview returns the cleanup operation ID before apply. Apply durably binds it to the exact ordered target set, preview fingerprint and authentication/provider scope before dispatch. Fresh graph/revision checks and consumer-before-dependency deletion remain mandatory. A separate process lease prevents overlapping cleanup writers without blocking receipt reads. Confirmed absence comes from an exact object read, never inventory or a relations error.
+
+Repeated apply for the same admitted operation reconciles without replaying deletes. Unknown effects also block a new operation ID over the same target. Read the receipt with `dl_operation_get`, then use read-only `dl_operation_reconcile`; a still-readable object does not disprove an in-flight effect. After known outcomes, a fresh preview may authorize remaining unattempted targets. `preview_changed` states only that this operation dispatched no new delete, not that an older unknown operation had no effect. Typed provider diagnostics survive cleanup and MCP envelopes.
+
+Offline checks and local renderer replays do not establish native concurrent-host responsiveness, provider crash recovery, publication, selector interaction or live ChartKit rendering. Those require a separately authorized run-owned canary and the installed native build.

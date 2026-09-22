@@ -10,6 +10,7 @@ from email.utils import parsedate_to_datetime
 from typing import Any, Protocol
 from urllib import error, request
 
+from datalens_dev_mcp.api.budget import check_dispatch, current_budget
 from datalens_dev_mcp.api.errors import DataLensApiError, InputContractError, UncertainWriteError, response_diagnostics
 from datalens_dev_mcp.api.schemas import OperationRegistry
 from datalens_dev_mcp.config import DataLensConfig
@@ -52,12 +53,29 @@ class HttpJsonTransport:
             raise DataLensApiError("Read budget expired before dispatch", method=method,
                                    remote_code="read_budget_exhausted", dispatch_state="not_dispatched")
         try:
+            try:
+                readonly = OperationRegistry.load().get(method)["effect"] == "read"
+            except KeyError:
+                readonly = False
+            operation_remaining = check_dispatch(readonly=readonly)
+            if operation_remaining is not None:
+                remaining = min(remaining, operation_remaining)
+                deadline = min(deadline, time.monotonic() + operation_remaining)
             with request.urlopen(req, timeout=min(self.timeout_sec, remaining)) as response:
                 diagnostics = response_diagnostics(getattr(response, "headers", None))
                 chunks = []
                 size = 0
                 read = getattr(response, "read1", response.read)
                 while True:
+                    budget = current_budget.get()
+                    if budget is not None:
+                        try:
+                            budget.check()
+                        except DataLensApiError as exc:
+                            # This request already crossed dispatch, even if cancellation
+                            # prevents consuming its response. A write remains unknown.
+                            exc.dispatch_state = "dispatched"
+                            raise
                     if time.monotonic() >= deadline:
                         raise DataLensApiError("Response read budget expired", method=method,
                                                remote_code="read_budget_exhausted", response_received=True,
@@ -117,7 +135,12 @@ class DataLensApiClient:
         auth_refreshed = False
         transient_attempts = 0
         deadline = time.monotonic() + self.config.read_budget_sec
+        budget = current_budget.get()
+        if budget is not None:
+            deadline = min(deadline, budget.deadline)
         while True:
+            if budget is not None:
+                budget.check()
             if time.monotonic() >= deadline:
                 raise DataLensApiError(f"{method} exhausted its safe read budget", method=method,
                                        remote_code="read_budget_exhausted")

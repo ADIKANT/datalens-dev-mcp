@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import re
 import tempfile
@@ -52,6 +53,26 @@ class OperationStore:
         return value
 
     @contextmanager
+    def cleanup_lock(self, scope: str):
+        """A nonblocking process lease, separate from short receipt transactions."""
+        try:
+            import fcntl
+        except ImportError as exc:
+            raise DataLensSafetyError("durable cleanup admission requires POSIX file locking on this host") from exc
+
+        self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
+        name = hashlib.sha256(scope.encode()).hexdigest()
+        with (self.root / f".cleanup-{name}.lock").open("a+b") as stream:
+            try:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise DataLensSafetyError("Another cleanup owns this provider scope; no new dispatch admitted") from exc
+            try:
+                yield
+            finally:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+
+    @contextmanager
     def _locked(self):
         try:
             import fcntl
@@ -72,6 +93,8 @@ class OperationStore:
             if existing is not None:
                 if any(existing.get(key) != record.get(key) for key in ("effect", "request_digest")):
                     raise InputContractError("operation_id is already bound to a different request")
+                if existing.get("effect") == "cleanup":
+                    return False, existing
                 items = existing.get("results") or []
                 resumable_pending = (
                     existing.get("status") == "pending"
@@ -87,6 +110,20 @@ class OperationStore:
                     existing["store_version"] = int(existing.get("store_version", 0)) + 1
                     return True, self._write(existing)
                 return False, existing
+            if record.get("effect") == "cleanup":
+                targets = {item["object_id"] for item in record.get("results", [])}
+                for path in self.root.glob("*.json"):
+                    other = json.loads(path.read_text(encoding="utf-8"))
+                    if (other.get("effect") != "cleanup"
+                            or other.get("provider_scope", other.get("auth_scope")) != record.get("provider_scope", record.get("auth_scope"))):
+                        continue
+                    uncertain = {item.get("object_id") for item in other.get("results", [])
+                                 if item.get("effect_outcome") == "unknown" or other.get("status") == "pending"}
+                    if uncertain & targets:
+                        raise DataLensSafetyError(
+                            "An earlier cleanup has an unknown effect on this target; reconcile operation_id "
+                            + other["operation_id"] + " before admitting any new delete"
+                        )
             record["store_version"] = 1
             return True, self._write(record)
 
@@ -133,7 +170,7 @@ class OperationStore:
             except (OSError, ValueError, TypeError):
                 continue
             # Pending, partial, blocked and uncertain records are recovery state.
-            if status not in {"completed", "failed"}:
+            if status not in {"completed", "completed_with_absent", "failed"}:
                 continue
             # Tombstones retain claim bindings, but no longer consume detail
             # retention limits or need another durable rewrite under this lock.
@@ -176,6 +213,8 @@ def normalize_operation(record: dict[str, Any]) -> dict[str, Any]:
     uncertain outcome merely because a later read reported a rejection.
     """
     result = deepcopy(record)
+    if result.get("effect") == "cleanup":
+        return result
     items = [item for item in result.get("results", []) if isinstance(item, dict)]
     if not items:
         if result.get("status") == "completed":
@@ -242,7 +281,9 @@ def compact_operation(record: dict[str, Any]) -> dict[str, Any]:
     record = normalize_operation(record)
     result: dict[str, Any] = {
         key: deepcopy(record[key])
-        for key in ("ok", "operation_id", "effect", "status", "write_replayed", "next_action", "detail_pruned")
+        for key in ("ok", "operation_id", "effect", "status", "write_replayed", "next_action", "detail_pruned",
+                    "auth_scope", "provider_scope", "ordered_delete_digest", "preserve_roots", "dependency_fingerprint",
+                    "preview_digest", "progress", "new_delete_dispatched", "observed_objects", "runtime")
         if key in record
     }
     compact_items = []
@@ -269,6 +310,7 @@ def compact_operation(record: dict[str, Any]) -> dict[str, Any]:
                     "effect_outcome",
                     "intent",
                     "dataset_validation",
+                    "object_id", "object_type", "absence_verified", "reconciliation_error",
                 )
                 if key in item
             }

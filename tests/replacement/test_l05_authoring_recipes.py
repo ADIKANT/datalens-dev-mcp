@@ -22,6 +22,7 @@ REQUIRED_RECIPES = {
     "weekly_totals_table",
     "native_detail_table",
     "selector",
+    "heatmap",
 }
 
 

@@ -196,3 +196,8 @@ def test_delete_404_needs_actual_absence_before_dependencies():
     assert p.calls == ["board"]
     assert result["results"][0]["status"] == "uncertain"
     assert result["results"][1]["status"] == "skipped"
+
+
+@pytest.fixture(autouse=True)
+def isolated_cleanup_receipts(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path))
