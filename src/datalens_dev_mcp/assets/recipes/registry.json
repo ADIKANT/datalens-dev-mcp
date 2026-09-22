@@ -4,15 +4,16 @@
     "object_name": {"required": true, "separate_from_visible_title": true},
     "visible_title": {"text": "", "owner": "widget", "visible": true},
     "hint": {"owner": "widget", "enabled": true, "content": ["business_meaning", "calculation", "limitations"]},
-    "tooltip": {"hover_target": "datum", "current_value": true, "unit": true, "missing": "explicit", "zero_denominator": "explicit", "comparison": {"dates": true, "values": true, "absolute_delta": true, "relative_delta": true}},
+    "tooltip": {"hover_target": "datum", "current_value": true, "unit": true, "missing": "explicit", "zero_denominator": "explicit", "hide_null": false, "hide_zero_multi": false, "period_label": "", "comparison": {"dates": true, "values": true, "absolute_delta": true, "relative_delta": true}},
     "axes_gridlines": {"x_grid": false, "y_grid": false, "zero_baseline": "semantic", "range": "auto", "ticks": "unique_after_formatting"},
     "labels": {"visible": true, "precision": "from_field", "unit": "from_field", "sign": "semantic", "abbreviation": "locale", "collision": "viewport_aware"},
-    "legend": {"mode": "dynamic_series", "order": "display_order", "bound_to_visible_series": true},
-    "comparison": {"method": "explicit", "alignment": "calendar", "partial_period": "label", "missing": "explicit", "delta_format": "absolute_and_relative", "color": "semantic"},
+    "legend": {"mode": "dynamic_series", "order": "display_order", "bound_to_visible_series": true, "hide_empty_series": false},
+    "comparison": {"enabled": null, "method": "explicit", "alignment": "calendar", "partial_period": "label", "missing": "explicit", "delta_format": "absolute_and_relative", "color": "semantic"},
     "kpi": {"separate_object": false, "value": false, "comparison_label": false, "sparkline": false, "hint": true},
     "table": {"columns": [], "widths": "explicit", "header": "pinned", "raw_and_formatted": true, "sort": "explicit", "pagination": true, "total_position": "bottom", "internal_scroll": true},
     "selector": {"param_name": "", "type": "string", "default": null, "mode": "single", "clear": true, "select_all": false, "reset": false, "consumers": []},
-    "geometry": {"width": 12, "height": 8, "spacing": 8, "preserve_manual": true, "narrow_viewport": true, "long_labels": "wrap_or_ellipsis_with_tooltip"},
+    "heatmap": {"color": "#4E79A7", "missing_label": "No observations"},
+    "geometry": {"minimum_width": 0, "width": 12, "height": 8, "spacing": 8, "preserve_manual": true, "narrow_viewport": true, "long_labels": "wrap_or_ellipsis_with_tooltip"},
     "states_theme": {"states": ["loading", "error", "no_data", "business_zero"], "themes": ["light", "dark"], "theme": "auto"}
   },
   "recipes": {
@@ -82,6 +83,14 @@
       "required_bindings": ["parameter", "consumers"],
       "visual_contract": {"visible_title": {"owner": "widget"}, "hint": {"enabled": false}, "labels": {"visible": false}, "legend": {"mode": "hidden"}, "geometry": {"width": 4, "height": 2}},
       "example": {"data_class": "synthetic", "states": ["default", "selected", "cleared", "no_options"]}
+    },
+    "heatmap": {
+      "technology": "advanced_chart",
+      "object_type": "advanced-chart_node",
+      "renderer": "heatmap_renderer.js",
+      "required_bindings": ["rows", "columns", "metric"],
+      "visual_contract": {"visible_title": {"owner": "widget"}, "legend": {"mode": "hidden"}, "labels": {"visible": true}, "geometry": {"preserve_manual": true}},
+      "example": {"data_class": "synthetic", "states": ["observed", "business_zero", "missing", "narrow_viewport"]}
     },
     "period_series": {
       "reference_family": "period_aligned_line_bar",

@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import sys
 from collections.abc import Callable
 from copy import deepcopy
+from concurrent.futures import ThreadPoolExecutor
+from contextvars import copy_context
+from threading import Event, Lock
 from typing import Any
 
 from jsonschema import Draft202012Validator
 
 from datalens_dev_mcp import __version__
+from datalens_dev_mcp.api.budget import operation_budget, request_cancellation
 from datalens_dev_mcp.api.errors import DataLensApiError, error_response, safe_error_text
 from datalens_dev_mcp.api.runtime import get_runtime
 from datalens_dev_mcp.api.schemas import OperationRegistry
@@ -30,7 +35,7 @@ from datalens_dev_mcp.objects.backup import BackupService
 from datalens_dev_mcp.objects.cleanup import CleanupService
 from datalens_dev_mcp.objects.read import ObjectReadService
 from datalens_dev_mcp.objects.write import default_mutation_service
-from datalens_dev_mcp.operation_store import compact_operation
+from datalens_dev_mcp.operation_store import OperationStore, compact_operation, normalize_operation
 from datalens_dev_mcp.runtime_identity import runtime_identity
 from datalens_dev_mcp.schemas.tool_inputs import (
     CHANGE,
@@ -322,11 +327,17 @@ def dl_object_publish(targets: list[dict[str, Any]], operation_id: str | None = 
 
 
 def dl_operation_get(operation_id: str, include_detail: bool = False) -> dict[str, Any]:
-    result = default_mutation_service().get_operation(operation_id)
+    record = OperationStore().get(operation_id)
+    result = (normalize_operation(record) if record is not None else
+              {"ok": False, "status": "not_found", "operation_id": operation_id})
     return result if include_detail else compact_operation(result)
 
 
 def dl_operation_reconcile(operation_id: str) -> dict[str, Any]:
+    record = OperationStore().get(operation_id)
+    if record is not None and record.get("effect") == "cleanup":
+        with operation_budget():
+            return compact_operation(_cleanup_service().reconcile(operation_id))
     return compact_operation(default_mutation_service().reconcile(operation_id))
 
 
@@ -334,14 +345,25 @@ def dl_backup_export(targets: list[dict[str, Any]], output_dir: str) -> dict[str
     return BackupService(_read_service()).export(targets, output_dir)
 
 
-def dl_cleanup_preview(candidates: list[dict[str, Any]], preserve_roots: list[dict[str, Any]]) -> dict[str, Any]:
-    service = _read_service()
-    return CleanupService(reader=service, deleter=get_runtime().sdk).preview(candidates, preserve_roots=preserve_roots)
+def _cleanup_service() -> CleanupService:
+    runtime = get_runtime()
+    scope = hashlib.sha256(json.dumps(runtime.config.runtime_identity()[:4]).encode()).hexdigest()
+    provider_scope = hashlib.sha256(json.dumps(runtime.config.runtime_identity()[:3]).encode()).hexdigest()
+    return CleanupService(reader=_read_service(), deleter=runtime.sdk, scope=scope, provider_scope=provider_scope,
+                          runtime=runtime_identity()["runtime"])
 
 
-def dl_cleanup_apply(preview: dict[str, Any], confirmed_delete: list[dict[str, Any]]) -> dict[str, Any]:
-    service = _read_service()
-    return CleanupService(reader=service, deleter=get_runtime().sdk).apply(preview, confirmed_delete=confirmed_delete)
+def dl_cleanup_preview(candidates: list[dict[str, Any]], preserve_roots: list[dict[str, Any]],
+                       budget_sec: float = 120, max_provider_calls: int = 200) -> dict[str, Any]:
+    with operation_budget(budget_sec, max_provider_calls):
+        return _cleanup_service().preview(candidates, preserve_roots=preserve_roots)
+
+
+def dl_cleanup_apply(preview: dict[str, Any], confirmed_delete: list[dict[str, Any]],
+                     operation_id: str | None = None, budget_sec: float = 120,
+                     max_provider_calls: int = 200) -> dict[str, Any]:
+    with operation_budget(budget_sec, max_provider_calls):
+        return _cleanup_service().apply(preview, confirmed_delete=confirmed_delete, operation_id=operation_id)
 
 
 def dl_admin_inventory() -> dict[str, Any]:
@@ -748,8 +770,10 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "candidates": {"type": "array", "items": {"type": "object"}},
-                "preserve_roots": {"type": "array", "items": {"type": "object"}},
+                "candidates": {"type": "array", "maxItems": 1000, "items": {"type": "object"}},
+                "preserve_roots": {"type": "array", "maxItems": 1000, "items": {"type": "object"}},
+                "budget_sec": {"type": "number", "exclusiveMinimum": 0, "maximum": 180, "default": 120},
+                "max_provider_calls": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 200},
             },
             "required": ["candidates", "preserve_roots"],
             "additionalProperties": False,
@@ -763,7 +787,10 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             "type": "object",
             "properties": {
                 "preview": {"type": "object"},
-                "confirmed_delete": {"type": "array", "items": {"type": "object"}},
+                "confirmed_delete": {"type": "array", "maxItems": 1000, "items": {"type": "object"}},
+                "operation_id": {"type": "string", "minLength": 1},
+                "budget_sec": {"type": "number", "exclusiveMinimum": 0, "maximum": 180, "default": 120},
+                "max_provider_calls": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 200},
             },
             "required": ["preview", "confirmed_delete"],
             "additionalProperties": False,
@@ -856,8 +883,15 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, A
                                        "dl_cleanup_apply", "dl_admin_assign_licenses"}
             result = error_response(exc, effect_possible=effect_possible)
         if not result.get("ok", True) and "issues" in result and "status" not in result:
-            result = {**result, "status": "input_error", "code": "input_error",
-                      "next_action": "Correct the listed field or argument issues before another provider request."}
+            if name == "dl_cleanup_preview":
+                # Old provider envelopes retain only issues; they are still not argument failures.
+                code = next((issue.get("code") for issue in result["issues"] if issue.get("code")),
+                            "incomplete_relations")
+                result = {**result, "status": code, "code": code,
+                          "next_action": "Resolve incomplete provider/dependency evidence before deletion."}
+            else:
+                result = {**result, "status": "input_error", "code": "input_error",
+                          "next_action": "Correct the listed field or argument issues before another provider request."}
     return {
         "content": [{"type": "text", "text": json.dumps(_text_result(name, result), ensure_ascii=False, sort_keys=True)}],
         "structuredContent": result,
@@ -910,18 +944,69 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def serve_stdio() -> None:
-    for line in sys.stdin:
-        try:
-            request = json.loads(line)
-            response = (
-                handle_request(request) if isinstance(request, dict)
-                else _error(None, -32600, "JSON-RPC request must be an object")
-            )
-        except (TypeError, ValueError, json.JSONDecodeError) as exc:
-            response = _error(None, -32700, str(exc))
+    # One domain worker owns the SDK, credential refresh and runtime registry.
+    # No domain queue: a slow provider cannot consume unbounded pending work.
+    output_lock, active_lock = Lock(), Lock()
+    active: dict[Any, Event] = {}
+
+    def emit(response: dict[str, Any] | None) -> None:
         if response is not None:
-            sys.stdout.write(json.dumps(response, ensure_ascii=False) + "\n")
-            sys.stdout.flush()
+            with output_lock:
+                sys.stdout.write(json.dumps(response, ensure_ascii=False) + "\n")
+                sys.stdout.flush()
+
+    def run(request: dict[str, Any], cancellation: Event) -> None:
+        token = request_cancellation.set(cancellation)
+        try:
+            emit(handle_request(request))
+        finally:
+            request_cancellation.reset(token)
+            with active_lock:
+                active.pop(request.get("id"), None)
+
+    with ThreadPoolExecutor(max_workers=1, thread_name_prefix="datalens-domain") as worker:
+        for line in sys.stdin:
+            try:
+                request = json.loads(line)
+                if not isinstance(request, dict):
+                    emit(_error(None, -32600, "JSON-RPC request must be an object"))
+                    continue
+                message_id = request.get("id")
+                if message_id is not None and type(message_id) not in {str, int}:
+                    emit(_error(None, -32600, "Request ID must be a string or integer"))
+                    continue
+                if request.get("method") == "notifications/cancelled":
+                    params = request.get("params") or {}
+                    cancelled_id = params.get("requestId") if isinstance(params, dict) else None
+                    if type(cancelled_id) in {str, int}:
+                        with active_lock:
+                            if cancelled_id in active:
+                                active[cancelled_id].set()
+                    continue
+                params = request.get("params") or {}
+                with active_lock:
+                    duplicate = message_id in active
+                if duplicate:
+                    emit(_error(None, -32600, "Request ID is already active"))
+                    continue
+                control = request.get("method") != "tools/call" or (
+                    isinstance(params, dict) and params.get("name") in {"dl_server_info", "dl_operation_get"}
+                )
+                if control:
+                    emit(handle_request(request))
+                    continue
+                with active_lock:
+                    busy = bool(active)
+                    if not busy:
+                        cancellation = Event()
+                        active[message_id] = cancellation
+                if busy:
+                    emit(_error(message_id, -32000, "Domain operation active; control-plane calls remain available. "
+                                "No provider dispatch was made for this request."))
+                else:
+                    worker.submit(copy_context().run, run, request, cancellation)
+            except (TypeError, ValueError, json.JSONDecodeError) as exc:
+                emit(_error(None, -32700, str(exc)))
 
 
 def main(argv: list[str] | None = None) -> int:

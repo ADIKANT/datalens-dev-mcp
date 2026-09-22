@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.20
+
+- Bound cleanup provider calls and elapsed work, retain typed partial progress, and keep identity, ping, cancellation and receipt reads responsive while one worker owns the SDK.
+- Persist cleanup admission and per-target outcomes before effects, reconcile without replay, and block overlapping unknown deletes across operation IDs and processes.
+- Honor period-series comparison applicability and hidden legends; preserve real zeros and gaps with scoped empty-series policies and responsive signed-axis labels.
+- Add an explicitly bound heatmap recipe with complete column labels, missing-cell semantics and narrow-widget scrolling; retain presentation precedence and current manual layout guidance.
+
 ## 1.2.19
 
 - Align all domain skill references on presentation precedence, widget-owned KPI hints and evidence required before another write attempt.

@@ -186,7 +186,7 @@ def _validate_presentation(value: Mapping[str, Any]) -> None:
         "dashboard": {"hide_dash_title"},
     }
     registry = _registry()
-    for section in ("table", "geometry", "legend", "selector", "kpi", "states_theme", "tooltip", "object_name"):
+    for section in ("table", "geometry", "legend", "selector", "kpi", "states_theme", "tooltip", "object_name", "comparison", "heatmap"):
         fields = set(registry["base_visual_contract"].get(section, {}))
         for recipe in registry["recipes"].values():
             fields.update(recipe.get("visual_contract", {}).get(section, {}))
@@ -203,9 +203,13 @@ def _validate_presentation(value: Mapping[str, Any]) -> None:
         for extra in set(value[key]) - allowed:
             raise ValueError(f"presentation/{key}/{extra}: unsupported visual field")
     for key, field in (("visible_title", "visible"), ("hint", "enabled"), ("labels", "visible"),
-                       ("axes_gridlines", "x_grid"), ("axes_gridlines", "y_grid"), ("dashboard", "hide_dash_title")):
+                       ("axes_gridlines", "x_grid"), ("axes_gridlines", "y_grid"), ("dashboard", "hide_dash_title"),
+                       ("tooltip", "hide_null"), ("tooltip", "hide_zero_multi"), ("legend", "hide_empty_series")):
         if field in value.get(key, {}) and type(value[key][field]) is not bool:
             raise ValueError(f"presentation/{key}/{field}: expected a boolean")
+    enabled = value.get("comparison", {}).get("enabled")
+    if enabled is not None and type(enabled) is not bool:
+        raise ValueError("presentation/comparison/enabled: expected boolean or null")
     for key, owners in (("visible_title", {"widget", "chart", "body", "hidden"}), ("hint", {"widget", "body", "custom_hover", "hidden"})):
         if "owner" in value.get(key, {}) and value[key]["owner"] not in owners:
             raise ValueError(f"presentation/{key}/owner: unsupported owner")

@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 
 from datalens_dev_mcp.api.errors import CredentialRefreshError
+from datalens_dev_mcp.api.budget import current_budget
 
 
 def refresh_iam_token_with_yc(
@@ -16,6 +17,9 @@ def refresh_iam_token_with_yc(
     # its own external-browser/SSO callback without exposing a login URL or token.
     if timeout_sec is None:
         timeout_sec = 120.0 if allow_browser else 15.0
+    budget = current_budget.get()
+    if budget is not None:
+        timeout_sec = min(timeout_sec, budget.check())
     command = [yc_binary, "iam", "create-token"]
     if not allow_browser:
         command.append("--no-browser")

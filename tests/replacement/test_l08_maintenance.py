@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import json
 from pathlib import Path
 from typing import Any
@@ -106,3 +108,8 @@ def test_admin_boundary_does_not_claim_license_revoke() -> None:
     assert result["license_assignment"] is True
     assert result["license_revoke"] is False
     assert result["html_page"]["browser_fallback"] is False
+
+
+@pytest.fixture(autouse=True)
+def isolated_cleanup_receipts(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path))
