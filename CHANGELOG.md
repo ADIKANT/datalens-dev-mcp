@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.22
+
+- Return incomplete cleanup responses within the reserved response deadline while the single SDK worker safely unwinds an in-flight call.
+- Keep expiry atomic with dispatch admission, retain known read progress and receipt identity, and suppress late duplicate responses without replaying writes.
+- Keep timed-out apply outcomes unknown even when no new effects were admitted, because an earlier effect under the same operation ID may remain unresolved.
+
 ## 1.2.21
 
 - Preserve dispatched read evidence through budget/cancellation errors and cleanup relation envelopes, including known response status, phase and safe correlation IDs.
