@@ -175,3 +175,83 @@ def test_preview_resolves_fields_from_nested_full_dataset_before_query(monkeypat
     assert result["structuredContent"]["rows"] == [[7]]
     assert result["structuredContent"]["columns"] == ["synthetic-guid"]
     assert len(transport.calls) == 1
+
+
+@pytest.mark.parametrize(("name", "readonly", "cancelled"), [
+    ("dl_cleanup_preview", True, False),
+    ("dl_cleanup_apply", True, False),
+    ("dl_cleanup_apply", False, False),
+    ("dl_cleanup_apply", False, True),
+])
+def test_cleanup_response_deadline_does_not_release_worker_or_replay(monkeypatch, name, readonly, cancelled):
+    from threading import Event, Thread
+
+    from datalens_dev_mcp.api.budget import check_dispatch, current_budget
+
+    entered, release, sent, cancellation = Event(), Event(), Event(), Event()
+    responses, barriers = [], []
+
+    def blocked_handler(**kwargs):
+        budget = current_budget.get()
+        budget.phase = "delete" if not readonly else "dependencies"
+        budget.read_progress = {"completed_read_count": 1, "remaining_read_count": 2,
+                                "remaining_count_kind": "known; undiscovered dependencies may add reads"}
+        check_dispatch(readonly=readonly)
+        entered.set()
+        assert release.wait(2)
+        try:
+            check_dispatch(readonly=False)
+        except DataLensApiError as exc:
+            barriers.append(exc.remote_code)
+        return {"ok": True, "late_result": True}
+
+    monkeypatch.setitem(server.TOOLS, name, blocked_handler)
+    args = {"budget_sec": 0.2, "candidates": [], "preserve_roots": []} if name.endswith("preview") else {
+        "budget_sec": 0.2, "preview": {"operation_id": "synthetic-cleanup"}, "confirmed_delete": [],
+    }
+    request = {"id": 17, "method": "tools/call", "params": {"name": name, "arguments": args}}
+
+    def emit(response):
+        responses.append(response)
+        sent.set()
+
+    worker = Thread(target=server._run_domain_request, args=(request, cancellation, emit))
+    worker.start()
+    try:
+        assert entered.wait(1)
+        if cancelled:
+            cancellation.set()
+        assert server.handle_request({"id": 18, "method": "ping"})["result"] == {}
+        assert sent.wait(1)
+        assert worker.is_alive()  # Still owns the SDK until the call unwinds.
+        result = responses[0]["result"]["structuredContent"]
+        assert result["complete"] is False and result["worker_active"] is True
+        assert result["status"] == ("operation_cancelled" if cancelled else "operation_budget_exhausted")
+        assert result["progress"]["provider_calls"] == 1
+        assert result["progress"]["remaining_read_count"] == 2
+        if name.endswith("apply"):
+            assert result["operation_id"] == "synthetic-cleanup"
+            assert result["effect_outcome"] == "unknown"
+            assert result["new_provider_effects_admitted"] is (not readonly)
+        else:
+            assert "effect_outcome" not in result
+    finally:
+        release.set()
+        worker.join(2)
+    assert not worker.is_alive()
+    assert len(responses) == 1  # Late completion never emits a second response.
+    assert barriers == ["operation_cancelled" if cancelled else "operation_budget_exhausted"]
+
+
+def test_cleanup_invalid_budget_rejects_before_deadline_thread(monkeypatch):
+    from threading import Event
+
+    def forbidden_timer(*args, **kwargs):
+        raise AssertionError("invalid input must not start a timer")
+
+    monkeypatch.setattr(server, "Timer", forbidden_timer)
+    responses = []
+    server._run_domain_request({"id": 19, "method": "tools/call", "params": {
+        "name": "dl_cleanup_preview", "arguments": {"budget_sec": -1, "candidates": [], "preserve_roots": []},
+    }}, Event(), responses.append)
+    assert responses[0]["result"]["structuredContent"]["status"] == "input_error"

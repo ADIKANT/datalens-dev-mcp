@@ -43,3 +43,26 @@ Offline checks and local renderer replays do not establish native concurrent-hos
 A read can already be dispatched when its deadline or cancellation barrier is reached. Its error retains `dispatch_state=dispatched` through cleanup relation conversion, without inventing a mutation outcome. If response headers arrived, the body-read error retains the observed HTTP status, `response_received=true`, `stage=response_read` and allowlisted correlation IDs. A dispatched write interrupted at the same boundary remains unknown.
 
 When a transport timeout returns after the operation deadline, it is classified as `operation_budget_exhausted`, not a generic provider failure suggesting another read. This diagnostic correction does not make synchronous socket phases or OS DNS immediately interruptible; strict wall-clock acceptance remains separate from preventing further dispatch.
+
+
+### Cleanup response deadline (1.2.22)
+
+The native stdio boundary now reserves up to 250 ms (at most 10% of the requested
+budget) for response encoding and delivery. One bounded timer can return an
+incomplete result if a synchronous provider call is still unwinding. It does not
+start another domain worker, release the active-operation slot, interrupt DNS or
+replay the call. Late completion produces no second JSON-RPC response. Host
+delivery and OS scheduling remain outside the server's timing guarantee.
+
+Expiry and provider admission share a lock. Progress includes the active phase,
+admitted read/effect counts and a snapshot of completed/known remaining preview
+reads. Incomplete results never authorize deletion. A timed-out apply retains
+its operation ID and an unknown outcome: zero new effects do not disprove an
+older effect under that ID. Read its durable receipt through the control plane;
+reconcile read-only after the worker finishes. Receipt admission and outcome
+updates remain owned by the existing cleanup service/store.
+
+Existing offline checks cover response-before-unwind, late-response suppression,
+cancellation and dispatch barriers, and unchanged input rejection. A direct
+source/provider read is a separate evidence level; native host acceptance still
+requires loading this build and repeating the affected scoped scenario.

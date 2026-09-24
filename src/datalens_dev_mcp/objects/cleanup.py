@@ -76,13 +76,26 @@ class CleanupService:
         required_reads.update((kind, item["object_id"]) for item in roots for kind in ("object", "from"))
         read_cache: dict[tuple[str, str], Any] = {}
 
+        def report_reads() -> None:
+            # Replace an immutable snapshot for the stdio deadline responder;
+            # it must never traverse a graph/cache while the worker mutates it.
+            pending = [{"object_id": identity, "read": kind}
+                       for kind, identity in sorted(required_reads - set(read_cache))]
+            budget.read_progress = {"completed_reads": list(completed_reads), "remaining_reads": pending,
+                                    "completed_read_count": len(completed_reads), "remaining_read_count": len(pending),
+                                    "remaining_count_kind": "known; undiscovered dependencies may add reads"}
+
+        report_reads()
+
         def get(item: dict[str, str]) -> Any:
             key = ("object", item["object_id"])
             if key not in read_cache:
                 budget.phase = "object_read"
+                report_reads()
                 budget.check()
                 read_cache[key] = self.reader.object_get(item["object_type"], item["object_id"], branch="saved")
                 completed_reads.append({"object_id": item["object_id"], "read": "object"})
+                report_reads()
             return read_cache[key]
 
         def issue(identity: str, exc: Exception) -> None:
@@ -100,6 +113,7 @@ class CleanupService:
             if key in read_cache:
                 return read_cache[key]
             budget.phase = "dependencies" if direction == "from" else "consumers"
+            report_reads()
             budget.check()
             response = self.reader.object_relations(identity, direction=direction)
             if response.get("complete") is not True:
@@ -112,6 +126,7 @@ class CleanupService:
             result = sorted({x["id"] for x in relations})
             read_cache[key] = result
             completed_reads.append({"object_id": identity, "read": direction})
+            report_reads()
             return result
 
         for root in roots:

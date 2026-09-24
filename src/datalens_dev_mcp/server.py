@@ -4,11 +4,12 @@ import hashlib
 import json
 import shutil
 import sys
+import time
 from collections.abc import Callable
 from copy import deepcopy
 from concurrent.futures import ThreadPoolExecutor
 from contextvars import copy_context
-from threading import Event, Lock
+from threading import Event, Lock, Timer
 from typing import Any
 
 from jsonschema import Draft202012Validator
@@ -943,6 +944,75 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any] | None:
     return _error(message_id, -32601, f"method not found: {method}")
 
 
+def _run_domain_request(request: dict[str, Any], cancellation: Event,
+                        emit: Callable[[dict[str, Any] | None], None]) -> None:
+    """Bound cleanup responses while the single SDK worker unwinds in place."""
+    token = request_cancellation.set(cancellation)
+    try:
+        params = request.get("params") or {}
+        name = params.get("name") if isinstance(params, dict) else None
+        args = params.get("arguments", {}) if isinstance(params, dict) else {}
+        schema = next((item["inputSchema"] for item in TOOL_SCHEMAS if item["name"] == name), None)
+        if (name not in {"dl_cleanup_preview", "dl_cleanup_apply"} or schema is None
+                or not Draft202012Validator(schema).is_valid(args)):
+            emit(handle_request(request))
+            return
+        seconds = args.get("budget_sec", 120)
+        # Leave time to encode/flush the response. This is within, not added to,
+        # the caller's budget; OS scheduling/host delivery cannot be guaranteed.
+        reserve = min(0.25, seconds * 0.1)
+        with operation_budget(seconds, args.get("max_provider_calls", 200),
+                              response_reserve_sec=reserve) as budget:
+            response_lock = Lock()
+            responded = False
+
+            def respond(response: dict[str, Any] | None) -> None:
+                nonlocal responded
+                with response_lock:
+                    if not responded:
+                        responded = True
+                        emit(response)
+
+            def expire() -> None:
+                nonlocal responded
+                with response_lock:
+                    if responded:
+                        return
+                    progress = budget.expire()
+                    code = "operation_cancelled" if progress["cancel_requested"] else "operation_budget_exhausted"
+                    result = {"ok": False, "complete": False, "status": code,
+                              "code": code, "worker_active": True, "progress": progress,
+                              "error": "Cleanup response deadline reached; the provider call may still be unwinding.",
+                              "next_action": "No further provider dispatch is admitted. Incomplete preview cannot "
+                                             "authorize deletion. Inspect remaining reads before a fresh scoped preview."}
+                    if name == "dl_cleanup_apply":
+                        operation_id = args.get("operation_id") or args["preview"].get("operation_id")
+                        if isinstance(operation_id, str) and operation_id:
+                            result["operation_id"] = operation_id
+                        # Zero new admissions say nothing about an older effect
+                        # when this call is reconciling an existing operation ID.
+                        result["effect_outcome"] = "unknown"
+                        result["new_provider_effects_admitted"] = bool(progress["provider_effects"])
+                        result["next_action"] = ("Read the operation receipt with dl_operation_get. The single domain "
+                                                 "worker remains occupied until the in-flight call unwinds; then use "
+                                                 "read-only reconcile. Never replay an unknown delete.")
+                    responded = True
+                    emit(_success(request.get("id"), {
+                        "content": [{"type": "text", "text": json.dumps(result, ensure_ascii=False)}],
+                        "structuredContent": result, "isError": True,
+                    }))
+
+            timer = Timer(max(0, budget.deadline - time.monotonic()), expire)
+            timer.daemon = True
+            timer.start()
+            try:
+                respond(handle_request(request))
+            finally:
+                timer.cancel()
+    finally:
+        request_cancellation.reset(token)
+
+
 def serve_stdio() -> None:
     # One domain worker owns the SDK, credential refresh and runtime registry.
     # No domain queue: a slow provider cannot consume unbounded pending work.
@@ -956,11 +1026,9 @@ def serve_stdio() -> None:
                 sys.stdout.flush()
 
     def run(request: dict[str, Any], cancellation: Event) -> None:
-        token = request_cancellation.set(cancellation)
         try:
-            emit(handle_request(request))
+            _run_domain_request(request, cancellation, emit)
         finally:
-            request_cancellation.reset(token)
             with active_lock:
                 active.pop(request.get("id"), None)
 
