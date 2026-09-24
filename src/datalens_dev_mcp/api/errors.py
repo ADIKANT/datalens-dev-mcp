@@ -174,6 +174,10 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
         result.update(dispatch_state="not_dispatched", effect_outcome="not_applied")
     elif effect_possible or isinstance(error, UncertainWriteError):
         result.update(dispatch_state="dispatched", effect_outcome="not_applied" if is_confirmed_rejection(error) else "unknown")
+    elif getattr(error, "dispatch_state", None) == "dispatched":
+        # A read can cross dispatch too. Preserve that evidence without
+        # inventing a mutation outcome for a read-only request.
+        result["dispatch_state"] = "dispatched"
     if status is not None:
         result["http_status"] = status
     if isinstance(error, DataLensApiError):

@@ -30,7 +30,7 @@ class RequestBudget:
         remaining = self.deadline - time.monotonic()
         code = "operation_cancelled" if self.cancelled.is_set() else "operation_budget_exhausted"
         if self.cancelled.is_set() or remaining <= 0:
-            raise DataLensApiError("Operation stopped before the next provider dispatch", remote_code=code,
+            raise DataLensApiError("Operation budget or cancellation barrier reached; no further dispatch is admitted", remote_code=code,
                                    dispatch_state="not_dispatched", stage=self.phase)
         return remaining
 

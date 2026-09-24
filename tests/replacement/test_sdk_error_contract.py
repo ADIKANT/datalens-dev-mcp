@@ -7,6 +7,43 @@ from datalens_dev_mcp.api.errors import DataLensApiError, UncertainWriteError
 from datalens_dev_mcp.api.sdk_adapter import SdkAdapter
 
 
+@pytest.mark.parametrize("code", ["operation_budget_exhausted", "operation_cancelled"])
+def test_dispatched_read_keeps_budget_barrier_evidence(code):
+    import httpx
+
+    from datalens_dev_mcp.api.budget import operation_budget
+    from datalens_dev_mcp.api.errors import error_response
+    from datalens_dev_mcp.api.sdk_adapter import _BudgetedStream
+
+    response = httpx.Response(200, stream=httpx.ByteStream(b"{}"),
+                              request=httpx.Request("POST", "https://example.invalid/rpc/getDashboard"),
+                              headers={"x-request-id": "read-receipt", "x-trace-id": "read-trace"})
+    with operation_budget() as budget:
+        if code == "operation_cancelled":
+            budget.cancelled.set()
+        else:
+            budget.deadline = budget.started
+        with pytest.raises(DataLensApiError) as caught:
+            list(_BudgetedStream(response, budget))
+    result = error_response(caught.value)
+    assert result["status"] == code
+    assert result["dispatch_state"] == "dispatched"
+    assert result["response_received"] is True
+    assert result["stage"] == "response_read"
+    assert result["method"] == "getDashboard"
+    assert result["http_status"] == 200
+    assert result["request_id"] == "read-receipt"
+    assert result["trace_id"] == "read-trace"
+    assert "effect_outcome" not in result
+    from datalens_dev_mcp.objects.cleanup import _relation_failure
+
+    relation_issue = error_response(_relation_failure(result, "dependencies"))
+    assert relation_issue == result
+    write_result = error_response(caught.value, effect_possible=True)
+    assert write_result["status"] == "write_outcome_unknown"
+    assert write_result["effect_outcome"] == "unknown"
+
+
 def test_sdk_read_preserves_confirmed_404():
     def missing(**kwargs):
         raise NotFoundError(APIErrorContext(status_code=404, code="NOT_FOUND", message="Synthetic missing"))

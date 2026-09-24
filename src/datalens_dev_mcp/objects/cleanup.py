@@ -40,6 +40,7 @@ def _relation_failure(response: dict[str, Any], phase: str) -> DataLensApiError:
         response.get("error") or "incomplete dependency relations",
         method=response.get("method") or "getEntriesRelations",
         http_status=response.get("http_status"), response_received=response.get("response_received"),
+        dispatch_state=response.get("dispatch_state"),
         remote_code=response.get("provider_code") or response.get("code") or "incomplete_relations",
         stage=response.get("stage") or phase, retry_after_sec=response.get("retry_after_sec"),
         request_id=response.get("request_id"), trace_id=response.get("trace_id"),

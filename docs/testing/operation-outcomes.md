@@ -37,3 +37,9 @@ Preview returns the cleanup operation ID before apply. Apply durably binds it to
 Repeated apply for the same admitted operation reconciles without replaying deletes. Unknown effects also block a new operation ID over the same target. Read the receipt with `dl_operation_get`, then use read-only `dl_operation_reconcile`; a still-readable object does not disprove an in-flight effect. After known outcomes, a fresh preview may authorize remaining unattempted targets. `preview_changed` states only that this operation dispatched no new delete, not that an older unknown operation had no effect. Typed provider diagnostics survive cleanup and MCP envelopes.
 
 Offline checks and local renderer replays do not establish native concurrent-host responsiveness, provider crash recovery, publication, selector interaction or live ChartKit rendering. Those require a separately authorized run-owned canary and the installed native build.
+
+### Read barrier diagnostics (1.2.21)
+
+A read can already be dispatched when its deadline or cancellation barrier is reached. Its error retains `dispatch_state=dispatched` through cleanup relation conversion, without inventing a mutation outcome. If response headers arrived, the body-read error retains the observed HTTP status, `response_received=true`, `stage=response_read` and allowlisted correlation IDs. A dispatched write interrupted at the same boundary remains unknown.
+
+When a transport timeout returns after the operation deadline, it is classified as `operation_budget_exhausted`, not a generic provider failure suggesting another read. This diagnostic correction does not make synchronous socket phases or OS DNS immediately interruptible; strict wall-clock acceptance remains separate from preventing further dispatch.
