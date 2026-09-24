@@ -13,7 +13,7 @@ import datalens_sdk
 
 from datalens_dev_mcp import __version__
 
-CAPABILITY_REVISION = "2026-09-22.1"
+CAPABILITY_REVISION = "2026-09-24.1"
 _ACTIVE_SDK_VERSION = datalens_sdk.__version__
 _PACKAGE_ROOT = Path(__file__).resolve().parent
 

@@ -186,3 +186,28 @@ def test_safe_read_backoff_and_budget_do_not_retry_local_os_errors(monkeypatch):
     with pytest.raises(PermissionError):
         DataLensApiClient(_config(), transport=transport).read("getWorkbooksList")
     assert len(transport.calls) == 1
+
+
+def test_operation_deadline_timeout_retains_dispatch_without_retry(monkeypatch):
+    from datalens_dev_mcp.api.budget import operation_budget
+    from datalens_dev_mcp.api.client import HttpJsonTransport
+    from datalens_dev_mcp.api.errors import error_response
+
+    calls = []
+    with operation_budget() as budget:
+        def expire(*args, **kwargs):
+            calls.append("dispatch")
+            budget.deadline = budget.started
+            raise TimeoutError("private transport message")
+
+        monkeypatch.setattr("datalens_dev_mcp.api.client.request.urlopen", expire)
+        client = DataLensApiClient(_config(), transport=HttpJsonTransport("https://example.invalid"))
+        with pytest.raises(DataLensApiError) as caught:
+            client.read("getEntriesRelations")
+    result = error_response(caught.value)
+    assert calls == ["dispatch"]
+    assert result["status"] == "operation_budget_exhausted"
+    assert result["dispatch_state"] == "dispatched"
+    assert result["response_received"] is None
+    assert result["stage"] == "transport"
+    assert "private" not in result["error"]

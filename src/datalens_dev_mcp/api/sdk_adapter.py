@@ -50,8 +50,11 @@ EDITOR_VARIANTS = {"advanced_chart", "gravity_charts", "markdown", "selector", "
 
 
 class _BudgetedStream(httpx.SyncByteStream):
-    def __init__(self, stream: httpx.SyncByteStream, budget: Any) -> None:
-        self.stream, self.budget = stream, budget
+    def __init__(self, response: httpx.Response, budget: Any) -> None:
+        self.stream, self.budget = response.stream, budget
+        self.method = response.request.url.path.rsplit("/", 1)[-1]
+        self.http_status = response.status_code
+        self.diagnostics = response_diagnostics(response.headers)
 
     def __iter__(self):
         for chunk in self.stream:
@@ -59,6 +62,12 @@ class _BudgetedStream(httpx.SyncByteStream):
                 self.budget.check()
             except DataLensApiError as exc:
                 exc.dispatch_state = "dispatched"
+                exc.response_received = True
+                exc.http_status = self.http_status
+                exc.stage = "response_read"
+                exc.method = self.method
+                exc.request_id = self.diagnostics["request_id"]
+                exc.trace_id = self.diagnostics["trace_id"]
                 raise
             yield chunk
 
@@ -123,7 +132,7 @@ class SdkAdapter:
         # Retry-After. Surface it before that loop; do not add another retry owner.
         budget = current_budget.get()
         if budget is not None:
-            response.stream = _BudgetedStream(response.stream, budget)
+            response.stream = _BudgetedStream(response, budget)
         if response.status_code != 429:
             return
         method = response.request.url.path.rsplit("/", 1)[-1]
@@ -700,6 +709,14 @@ def _provider_error(exc: Exception, method: str) -> DataLensApiError:
         code, stage = transport_codes.get(type(cause), ("transport_error", "transport"))
         if isinstance(exc, SdkTransportError):
             method = urlsplit(exc.url).path.rsplit("/", 1)[-1] or method
+        budget = current_budget.get()
+        if budget is not None:
+            try:
+                budget.check()
+            except DataLensApiError as stopped:
+                return DataLensApiError(str(stopped), method=method, remote_code=stopped.remote_code,
+                                        dispatch_state="dispatched", stage=stage,
+                                        response_received=False if stage in {"transport_connect", "transport_pool"} else None)
         return DataLensApiError("SDK request failed during transport", method=method,
                                remote_code=code, stage=stage,
                                response_received=False if stage in {"transport_connect", "transport_pool"} else None)

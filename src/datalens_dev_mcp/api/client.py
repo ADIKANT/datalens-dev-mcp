@@ -52,6 +52,8 @@ class HttpJsonTransport:
         if remaining <= 0:
             raise DataLensApiError("Read budget expired before dispatch", method=method,
                                    remote_code="read_budget_exhausted", dispatch_state="not_dispatched")
+        response_received, http_status = None, None
+        diagnostics = {"request_id": None, "trace_id": None}
         try:
             try:
                 readonly = OperationRegistry.load().get(method)["effect"] == "read"
@@ -62,6 +64,7 @@ class HttpJsonTransport:
                 remaining = min(remaining, operation_remaining)
                 deadline = min(deadline, time.monotonic() + operation_remaining)
             with request.urlopen(req, timeout=min(self.timeout_sec, remaining)) as response:
+                response_received, http_status = True, getattr(response, "status", None)
                 diagnostics = response_diagnostics(getattr(response, "headers", None))
                 chunks = []
                 size = 0
@@ -75,6 +78,12 @@ class HttpJsonTransport:
                             # This request already crossed dispatch, even if cancellation
                             # prevents consuming its response. A write remains unknown.
                             exc.dispatch_state = "dispatched"
+                            exc.response_received = True
+                            exc.http_status = getattr(response, "status", None)
+                            exc.stage = "response_read"
+                            exc.method = method
+                            exc.request_id = diagnostics["request_id"]
+                            exc.trace_id = diagnostics["trace_id"]
                             raise
                     if time.monotonic() >= deadline:
                         raise DataLensApiError("Response read budget expired", method=method,
@@ -98,6 +107,20 @@ class HttpJsonTransport:
             raise DataLensApiError(f"{method} failed with HTTP {exc.code}", method=method, http_status=exc.code,
                                    response_received=True, retry_after_sec=retry_after,
                                    stage="provider_response", **diagnostics) from exc
+        except (TimeoutError, ConnectionError, error.URLError) as exc:
+            budget = current_budget.get()
+            if budget is not None:
+                try:
+                    budget.check()
+                except DataLensApiError as stopped:
+                    # A timeout caused by the operation deadline is still a
+                    # dispatched request, not a fresh read to retry.
+                    raise DataLensApiError(str(stopped), method=method, remote_code=stopped.remote_code,
+                                           dispatch_state="dispatched", response_received=response_received,
+                                           http_status=http_status,
+                                           stage="response_read" if response_received else "transport",
+                                           **diagnostics) from exc
+            raise
         try:
             result = json.loads(raw)
         except (ValueError, UnicodeError, RecursionError) as exc:

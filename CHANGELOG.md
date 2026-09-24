@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.21
+
+- Preserve dispatched read evidence through budget/cancellation errors and cleanup relation envelopes, including known response status, phase and safe correlation IDs.
+- Classify transport timeouts at an exhausted operation deadline as budget exhaustion without suggesting another read; keep dispatched write outcomes conservative.
+
 ## 1.2.20
 
 - Bound cleanup provider calls and elapsed work, retain typed partial progress, and keep identity, ping, cancellation and receipt reads responsive while one worker owns the SDK.
