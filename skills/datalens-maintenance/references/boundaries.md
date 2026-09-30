@@ -1,7 +1,7 @@
 # Maintenance boundaries
 
 - `dl_backup_export` writes exact readbacks plus `manifest.json`. `artifact_kind=snapshot_not_full_restore` and `restore_verified=false` are deliberate until a disposable end-to-end restore is demonstrated.
-- `dl_cleanup_preview` follows relations from explicit preserve roots. Apply only an unchanged preview whose ordered delete set is repeated exactly; a missing target is `already_absent`, not a batch-wide failure.
+- `dl_cleanup_preview` reads exact candidates, preserve roots and their direct relations. It closes preservation within candidates; an external consumer blocks deletion, including a preserve path through a non-candidate. It does not recursively scan unrelated root branches. Apply only an unchanged preview whose ordered delete set is repeated exactly; a missing target is `already_absent`, not a batch-wide failure.
 - For standalone HTML Page lifecycle and its distinct iframe contract, use [HTML Pages](html-pages.md). Read active capabilities before claiming a phase is supported.
 - Admin inventory is read-only. License assignment is a separate mutation. No revoke capability is claimed.
 - Use [authorized scope and delivery](../../datalens-dashboard/references/authorized-scope.md) for authorization, uncertain effects and multi-object completion.

@@ -70,6 +70,19 @@ class UncertainWriteError(DataLensApiError):
     """A mutation may have applied, including a partial composite effect."""
 
 
+class ResponseIdentityError(DataLensApiError):
+    """Allowlisted requested/observed identities, never the response payload."""
+
+    def __init__(self, field: str, requested: dict[str, Any], observed: dict[str, Any]) -> None:
+        super().__init__(f"Provider response {field} mismatch; re-read the exact target and revision",
+                         remote_code="identity_mismatch", stage="response_validation",
+                         response_received=True, dispatch_state="dispatched")
+        self.identity_evidence = {
+            side: {key: safe_diagnostic_id(value) for key, value in identity.items()}
+            for side, identity in (("requested", requested), ("observed", observed))
+        }
+
+
 class CredentialRefreshError(DataLensApiError):
     """Allowlisted helper diagnostics, never captured credential output."""
 
@@ -136,9 +149,10 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
             "credential_invalid": "The helper returned no valid credential. Check the configured helper, then call dl_auth_refresh.",
         }[code]
     elif isinstance(error, DataLensApiError):
-        code = {401: "authentication_failed", 403: "permission_denied", 404: "not_found",
-                409: "revision_conflict", 412: "revision_conflict", 429: "rate_limited"}.get(status)
-        code = code or (error.remote_code if error.remote_code in {"response_too_large", "invalid_json", "invalid_response", "read_budget_exhausted", "operation_cancelled", "operation_budget_exhausted", "incomplete_relations"}
+        code = ("identity_mismatch" if error.remote_code == "ENTRY_TYPE_MISMATCH" else
+                {401: "authentication_failed", 403: "permission_denied", 404: "not_found",
+                 409: "revision_conflict", 412: "revision_conflict", 429: "rate_limited"}.get(status))
+        code = code or (error.remote_code if error.remote_code in {"identity_mismatch", "response_too_large", "invalid_json", "invalid_response", "read_budget_exhausted", "operation_cancelled", "operation_budget_exhausted", "incomplete_relations"}
                         else "provider_rejected" if is_confirmed_rejection(error) else "provider_error")
         action = {
             "authentication_failed": "The API rejected the credential. Use dl_auth_check and the configured authentication recovery; verify API access before resuming the original read.",
@@ -159,6 +173,7 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
             "response_too_large": "Use a smaller page or bounded query. For a required full object, configure a reviewed larger response limit; no truncated state is usable for writes.",
             "invalid_json": "Check the selected API endpoint and response contract; no response body is echoed.",
             "invalid_response": "Check the exact endpoint response contract; incomplete state cannot prove absence.",
+            "identity_mismatch": "Compare requested and observed identities; read the exact type, ID, branch and revision before continuing.",
             "read_budget_exhausted": "The bounded read budget expired; resume the exact safe read when the provider is available.",
             "operation_cancelled": "No further dispatch is admitted. Reconcile any previously admitted write by operation_id; cancellation does not prove non-application.",
             "operation_budget_exhausted": "Inspect completed and remaining reads. Incomplete preview cannot authorize deletion; do not automatically repeat the full scan.",
@@ -190,4 +205,6 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
         result["helper_exit_status"] = error.exit_status
         result["stage"] = error.stage
         result["elapsed_sec"] = error.elapsed_sec
+    if isinstance(error, ResponseIdentityError):
+        result["identity_evidence"] = error.identity_evidence
     return result

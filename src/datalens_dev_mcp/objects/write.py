@@ -624,8 +624,16 @@ def _resolve_update_change(change: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(object_type, str) or not object_type or not isinstance(object_id, str) or not object_id:
         raise InputContractError("artifact update requires nonempty object_type and object_id")
     draft = resolve_artifact({"artifact_path": change["artifact_path"]})
-    if object_type not in _EDITOR_ARTIFACT_TYPES or draft.get("object_type") not in _EDITOR_ARTIFACT_TYPES:
-        raise InputContractError("artifact update currently supports compiled Editor drafts only")
+    if (object_type not in _EDITOR_ARTIFACT_TYPES or draft.get("object_type") not in _EDITOR_ARTIFACT_TYPES
+            or not draft.get("recipe_id") or not isinstance(draft.get("bindings"), dict)):
+        raise InputContractError("changes/artifact_path: expected unchanged dl_compile_recipe files.draft.json with "
+                                 "recipe_id, bindings, config and tabs; raw Editor tabs require an explicit "
+                                 "revision-guarded patch, or dl_editor_validate(draft={variant,tabs}) for static validation")
+    from datalens_dev_mcp.authoring.validation import _validate_supported_draft
+
+    errors, _ = _validate_supported_draft(draft, draft["object_type"])
+    if errors:
+        raise InputContractError(f"changes/artifact_path/{errors[0]['path']}: {errors[0]['message']}")
     tabs = draft.get("tabs")
     if not isinstance(tabs, dict) or not tabs:
         raise InputContractError("compiled Editor artifact requires nonempty tabs")
@@ -675,6 +683,13 @@ def _usable_full_read(readback: dict[str, Any]) -> bool:
 
 def _readback_intent(object_type: str, desired: dict[str, Any]) -> dict[str, Any]:
     intent = deepcopy(desired)
+    if object_type == "dashboard" and not isinstance(intent.get("entry"), dict):
+        # Raw imports and deltas use entry fields; SDK reads wrap those fields.
+        # Normalize only the envelope, retaining every requested content field.
+        name = intent.pop("name", None)
+        intent = {"entry": intent}
+        if name is not None:
+            intent["name"] = name
     if object_type == "dataset":
         # Receipts omit sensitive keys, including keys nested in provider error
         # arrays. Apply that same projection to actual state before comparison.

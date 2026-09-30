@@ -6,16 +6,16 @@ import shutil
 import sys
 import time
 from collections.abc import Callable
-from copy import deepcopy
 from concurrent.futures import ThreadPoolExecutor
 from contextvars import copy_context
+from copy import deepcopy
 from threading import Event, Lock, Timer
 from typing import Any
 
 from jsonschema import Draft202012Validator
 
 from datalens_dev_mcp import __version__
-from datalens_dev_mcp.api.budget import operation_budget, request_cancellation
+from datalens_dev_mcp.api.budget import operation_budget, read_budget, request_cancellation
 from datalens_dev_mcp.api.errors import DataLensApiError, error_response, safe_error_text
 from datalens_dev_mcp.api.runtime import get_runtime
 from datalens_dev_mcp.api.schemas import OperationRegistry
@@ -54,6 +54,8 @@ from datalens_dev_mcp.schemas.tool_inputs import (
 
 MCP_PROTOCOL_VERSION = "2025-06-18"
 ToolHandler = Callable[..., dict[str, Any]]
+BOUNDED_READ_TOOLS = {"dl_object_get", "dl_object_relations", "dl_object_revisions", "dl_workbooks_list",
+                      "dl_workbook_entries", "dl_dashboard_snapshot", "dl_dataset_preview"}
 
 
 def dl_server_info() -> dict[str, Any]:
@@ -217,9 +219,11 @@ def dl_dataset_preview(
     tie_breaker_guids: list[str] | None = None,
 ) -> dict[str, Any]:
     runtime = get_runtime()
-    return DatasetPreviewService(runtime.api, dataset_query=runtime.sdk.get_dataset_data).preview(
+    resolved = _dataset_fields(dataset_id, fields)
+    return DatasetPreviewService(runtime.api, dataset_query=runtime.sdk.get_dataset_data,
+                                 saved_fields=lambda target: resolved if fields is None else _dataset_fields(target, None)).preview(
         dataset_id=dataset_id,
-        fields=_dataset_fields(dataset_id, fields),
+        fields=resolved,
         columns=columns,
         filters=filters,
         sort=sort,
@@ -484,11 +488,11 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_object_get",
-        "description": "Read one known DataLens target by exact type, ID, branch and optional revision; no preceding workbook inventory is needed. Use summary/projection for scoped inspection and retain full state for preservation or replacement.",
+        "description": "Read a known target by ID, branch and optional revision. chart (alias widget) accepts confirmed Editor/Wizard/QL subtypes and returns observed_identity; explicit subtypes remain strict. Mutations require the exact observed type. Use summary/projection for inspection, full state for preservation.",
         "inputSchema": {
             "type": "object",
             "properties": {
-                "object_type": {"type": "string", "minLength": 1},
+                "object_type": {"type": "string", "enum": ["chart", "widget", "editor_chart", "wizard_chart", "ql_chart", "dashboard", "dash", "dataset", "connection", "workbook", "html_page", "advanced_chart", "advanced-chart_node", "table_node", "d3_node", "markdown_node", "control_node"]},
                 "object_id": {"type": "string", "minLength": 1},
                 "branch": {"type": "string", "enum": ["saved", "published"], "default": "saved"},
                 "revision_id": {"type": ["string", "null"]},
@@ -597,7 +601,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_authoring_defaults",
-        "description": "Resolve compact generic, user, project, reference and explicit authoring defaults for one visual family.",
+        "description": "Resolve effective presentation for one family. For a registered recipe, recipe_contract exposes the compiler's bindings_schema, supported source routes, technology and distinct create/static/compiled-update inputs.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -612,12 +616,12 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_compile_recipe",
-        "description": "Compile a typed recipe to a compact local artifact reference; never access or write DataLens.",
+        "description": "Compile a typed recipe to a compact local artifact reference; never access or write DataLens. First read dl_authoring_defaults(family=recipe_id).recipe_contract for bindings_schema, source routes and distinct create/static/compiled-update inputs.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "recipe_id": {"type": "string", "minLength": 1},
-                "bindings": {"type": "object"},
+                "bindings": {"type": "object", "description": "Selected recipe_contract.bindings_schema from dl_authoring_defaults(family=recipe_id); source uses meta, sources_js, prepare_js and optional params."},
                 "presentation": {"type": ["object", "null"]},
                 "output_dir": {"type": ["string", "null"]},
                 "project_root": {"type": ["string", "null"]},
@@ -878,7 +882,11 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, A
         result = _argument_error(invalid)
     else:
         try:
-            result = handler(**supplied)
+            if name in BOUNDED_READ_TOOLS:
+                with read_budget(DataLensConfig.from_env().read_budget_sec):
+                    result = handler(**supplied)
+            else:
+                result = handler(**supplied)
         except Exception as exc:  # noqa: BLE001 - failures belong to CallToolResult, not JSON-RPC parsing.
             effect_possible = name in {"dl_object_create", "dl_object_update", "dl_object_publish",
                                        "dl_cleanup_apply", "dl_admin_assign_licenses"}
@@ -946,23 +954,25 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any] | None:
 
 def _run_domain_request(request: dict[str, Any], cancellation: Event,
                         emit: Callable[[dict[str, Any] | None], None]) -> None:
-    """Bound cleanup responses while the single SDK worker unwinds in place."""
+    """Bound read/cleanup responses while the single SDK worker unwinds in place."""
     token = request_cancellation.set(cancellation)
     try:
         params = request.get("params") or {}
         name = params.get("name") if isinstance(params, dict) else None
         args = params.get("arguments", {}) if isinstance(params, dict) else {}
         schema = next((item["inputSchema"] for item in TOOL_SCHEMAS if item["name"] == name), None)
-        if (name not in {"dl_cleanup_preview", "dl_cleanup_apply"} or schema is None
+        ordinary_read = name in BOUNDED_READ_TOOLS
+        if (name not in {"dl_cleanup_preview", "dl_cleanup_apply"} | BOUNDED_READ_TOOLS or schema is None
                 or not Draft202012Validator(schema).is_valid(args)):
             emit(handle_request(request))
             return
-        seconds = args.get("budget_sec", 120)
+        seconds = DataLensConfig.from_env().read_budget_sec if ordinary_read else args.get("budget_sec", 120)
         # Leave time to encode/flush the response. This is within, not added to,
         # the caller's budget; OS scheduling/host delivery cannot be guaranteed.
         reserve = min(0.25, seconds * 0.1)
-        with operation_budget(seconds, args.get("max_provider_calls", 200),
-                              response_reserve_sec=reserve) as budget:
+        context = (read_budget(seconds, response_reserve_sec=reserve) if ordinary_read else
+                   operation_budget(seconds, args.get("max_provider_calls", 200), response_reserve_sec=reserve))
+        with context as budget:
             response_lock = Lock()
             responded = False
 
@@ -979,12 +989,16 @@ def _run_domain_request(request: dict[str, Any], cancellation: Event,
                     if responded:
                         return
                     progress = budget.expire()
-                    code = "operation_cancelled" if progress["cancel_requested"] else "operation_budget_exhausted"
+                    code = "operation_cancelled" if progress["cancel_requested"] else (
+                        "read_budget_exhausted" if ordinary_read else "operation_budget_exhausted")
                     result = {"ok": False, "complete": False, "status": code,
                               "code": code, "worker_active": True, "progress": progress,
-                              "error": "Cleanup response deadline reached; the provider call may still be unwinding.",
+                              "error": "Response deadline reached; the provider call may still be unwinding.",
                               "next_action": "No further provider dispatch is admitted. Incomplete preview cannot "
                                              "authorize deletion. Inspect remaining reads before a fresh scoped preview."}
+                    if ordinary_read:
+                        result["next_action"] = ("No further provider dispatch is admitted. The single domain worker "
+                                                 "remains occupied until the read unwinds; retry only when available.")
                     if name == "dl_cleanup_apply":
                         operation_id = args.get("operation_id") or args["preview"].get("operation_id")
                         if isinstance(operation_id, str) and operation_id:

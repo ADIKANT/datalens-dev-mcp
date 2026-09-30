@@ -103,7 +103,7 @@ def test_preview_executes_bounded_pages_with_stable_offsets() -> None:
         {"schema": schema, "rows": [["2026-01-01", 10], ["2026-01-02", 20]]},
         {"schema": schema, "rows": []},
     ])
-    result = DatasetPreviewService(api).preview(
+    result = DatasetPreviewService(api, saved_fields=lambda _: FIELDS).preview(
         dataset_id="dataset-1",
         fields=FIELDS,
         columns=["date-guid", "revenue-guid"],

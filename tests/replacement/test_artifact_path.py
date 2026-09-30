@@ -137,22 +137,15 @@ def test_create_resolves_artifact_before_recording_and_writing(tmp_path):
 
 
 def test_update_maps_compiled_editor_artifact_to_saved_data_without_echoing_renderer(tmp_path):
+    from datalens_dev_mcp.authoring.recipes import compile_recipe
+
     path = tmp_path / "selector.json"
-    path.write_text(
-        json.dumps(
-            {
-                "object_type": "control_node",
-                "client_ref": "selector",
-                "name": "Updated selector",
-                "tabs": {
-                    "meta.json": '{"links": {}}',
-                    "params.js": "module.exports = {priority_filter: []};",
-                    "controls.js": "module.exports = {consumers: ['matrix', 'kpi']};",
-                },
-                "bindings": {"private": "not-provider-data"},
-            }
-        )
-    )
+    draft = compile_recipe("selector", {
+        "object_name": "Updated selector", "client_ref": "selector",
+        "parameter": {"name": "priority_filter", "type": "string", "default": []},
+        "consumers": ["matrix", "kpi"], "options": [{"title": "High", "value": "high"}],
+    })["draft"]
+    path.write_text(json.dumps(draft))
     current = {
         "entryId": "selector-id",
         "name": "Old selector",
@@ -166,9 +159,7 @@ def test_update_maps_compiled_editor_artifact_to_saved_data_without_echoing_rend
         "revId": "r2",
         "data": {
             **current["data"],
-            "meta": '{"links": {}}',
-            "params": "module.exports = {priority_filter: []};",
-            "controls": "module.exports = {consumers: ['matrix', 'kpi']};",
+            **{filename.rsplit(".", 1)[0]: source for filename, source in draft["tabs"].items()},
         },
     }
     reader = FakeReader(

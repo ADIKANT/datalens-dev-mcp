@@ -12,11 +12,13 @@ from datalens_dev_mcp.api.errors import DataLensApiError, InputContractError
 
 class RequestBudget:
     def __init__(self, seconds: float = 120, max_calls: int = 200, *, cancelled: Event | None = None,
-                 response_reserve_sec: float = 0) -> None:
-        if (type(seconds) not in {int, float} or not 0 < seconds <= 180
+                 response_reserve_sec: float = 0, readonly: bool = False,
+                 parent: RequestBudget | None = None) -> None:
+        if (type(seconds) not in {int, float} or not 0 < seconds <= (300 if readonly else 180)
                 or type(max_calls) is not int or not 1 <= max_calls <= 1000):
             raise InputContractError("budget_sec must be in (0, 180]; max_provider_calls in [1, 1000]")
         self.started = time.monotonic()
+        self.readonly, self.parent = readonly, parent
         self.deadline = self.started + seconds - response_reserve_sec
         self.response_reserve_sec = response_reserve_sec
         self._lock = RLock()
@@ -29,15 +31,16 @@ class RequestBudget:
         self.effects = 0
         self.phase = "admission"
         self.cancelled = cancelled or Event()
-        self.sdk_targets: dict[tuple[str, str], Any] = {}
+        self.sdk_targets: dict[tuple[str, str], Any] = parent.sdk_targets if parent else {}
 
     def check(self) -> float:
         remaining = self.deadline - time.monotonic()
-        code = "operation_cancelled" if self.cancelled.is_set() else "operation_budget_exhausted"
+        code = "operation_cancelled" if self.cancelled.is_set() else (
+            "read_budget_exhausted" if self.readonly else "operation_budget_exhausted")
         if self.cancelled.is_set() or self._expired or remaining <= 0:
             raise DataLensApiError("Operation budget or cancellation barrier reached; no further dispatch is admitted", remote_code=code,
                                    dispatch_state="not_dispatched", stage=self.phase)
-        return remaining
+        return min(remaining, self.parent.check()) if self.parent else remaining
 
     def dispatch(self, *, readonly: bool) -> float:
         # Expiry and admission are atomic: a timeout response cannot race a
@@ -47,6 +50,8 @@ class RequestBudget:
             if self.calls >= self.max_calls:
                 raise DataLensApiError("Operation provider-call limit reached", remote_code="operation_budget_exhausted",
                                        dispatch_state="not_dispatched", stage=self.phase)
+            if self.parent is not None:
+                remaining = min(remaining, self.parent.dispatch(readonly=readonly))
             self.calls += 1
             self.reads += int(readonly)
             self.effects += int(not readonly)
@@ -92,3 +97,26 @@ def check_dispatch(*, readonly: bool) -> float | None:
                                dispatch_state="not_dispatched")
     budget = current_budget.get()
     return budget.dispatch(readonly=readonly) if budget is not None else None
+
+
+@contextmanager
+def read_budget(seconds: float, *, response_reserve_sec: float = 0):
+    """Bound one logical read, retaining any enclosing operation deadline/counters."""
+    parent = current_budget.get()
+    if parent is not None and parent.readonly:
+        yield parent
+        return
+    budget = RequestBudget(seconds, 1000, readonly=True, parent=parent,
+                           cancelled=request_cancellation.get(), response_reserve_sec=response_reserve_sec)
+    token = current_budget.set(budget)
+    try:
+        budget.check()
+        yield budget
+        try:
+            budget.check()
+        except DataLensApiError as exc:
+            if budget.calls:
+                exc.dispatch_state, exc.response_received, exc.stage = "dispatched", True, "response_read"
+            raise
+    finally:
+        current_budget.reset(token)

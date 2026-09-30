@@ -7,16 +7,17 @@ import pytest
 from datalens_dev_mcp.authoring.recipes import compile_recipe, list_recipes
 
 
-def render(value, previous, **semantics):
+def render(value, previous, *, comparison_enabled=True, tooltip_target='kpi-delta', **semantics):
     config = list_recipes()['kpi_sparkline']['visual_contract']
     config['kpi'].update(semantics)
+    config['comparison']['enabled'] = comparison_enabled
     config['labels'].update(unit='%' if semantics.get('value_scale') else 'ms', precision=1)
     data = {'value': value, 'previous': previous, 'points': [{'date': 'day', 'value': value}]}
     source = files('datalens_dev_mcp.assets.recipes').joinpath('kpi_sparkline_renderer.js').read_text()
     script = "const vm=require('node:vm'); const Editor={wrapFn:x=>x,generateHtml:x=>x};" + source
     script += '\nconst r=module.exports('+json.dumps(data)+','+json.dumps(config)+');'
     script += "const invoke=(w,e)=>vm.runInNewContext('('+w.fn.toString()+')',{Editor})(e,...w.args);"
-    script += "console.log(JSON.stringify({body:invoke(r.render,{width:300,height:180}),tooltip:invoke(r.tooltip.renderer,{target:{getAttribute:()=> 'kpi-delta'}})}));"
+    script += "console.log(JSON.stringify({body:invoke(r.render,{width:300,height:180}),tooltip:invoke(r.tooltip.renderer,{target:{getAttribute:()=> " + json.dumps(tooltip_target) + "}})}));"
     return json.loads(subprocess.check_output(['node','-e',script],text=True))
 
 
@@ -42,6 +43,13 @@ def test_units_raw_precision_and_baselines():
         assert 'Infinity' not in str(result)
     assert '+50%' in render(-10,-20)['body']
     assert '+10.0 ms' in render(10,0,delta_kind='absolute')['body']
+    for previous in (0, None, 5):
+        hidden = render(10, previous, comparison_enabled=False, tooltip_target='kpi-value')
+        assert 'kpi-value' in hidden['body'] and '<svg' in hidden['body']
+        assert 'kpi-previous' not in hidden['body'] and 'kpi-delta' not in hidden['body']
+        assert 'Previous' not in hidden['tooltip'] and 'Change' not in hidden['tooltip']
+        assert '10.0 ms' in hidden['tooltip']
+        assert render(10, previous, comparison_enabled=False)['tooltip'] == ''
 
 
 def test_binding_semantics_and_reference_priority(tmp_path):

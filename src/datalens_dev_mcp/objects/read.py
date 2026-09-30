@@ -6,8 +6,21 @@ import re
 from collections.abc import Mapping
 from typing import Any, Protocol
 
-from datalens_dev_mcp.api.errors import ERROR_DIAGNOSTIC_FIELDS, DataLensApiError, InputContractError, error_response
-from datalens_dev_mcp.objects.relations import EDITOR_SUBTYPES, compact_object_index, object_identity, relation_page
+from datalens_dev_mcp.api.errors import (
+    ERROR_DIAGNOSTIC_FIELDS,
+    DataLensApiError,
+    InputContractError,
+    ResponseIdentityError,
+    error_response,
+)
+from datalens_dev_mcp.objects.relations import (
+    CHART_TYPES,
+    EDITOR_SUBTYPES,
+    canonical_object_type,
+    compact_object_index,
+    object_identity,
+    relation_page,
+)
 
 
 class ReadApi(Protocol):
@@ -203,53 +216,61 @@ class ObjectReadService:
         fields: list[str] | None = None,
     ) -> dict[str, Any]:
         _validate_view(view, fields)
+        requested_type = canonical_object_type(object_type)
+        if not isinstance(object_id, str) or not object_id.strip():
+            raise InputContractError("object_id must be a nonempty string")
+        if branch not in {"saved", "published"}:
+            raise InputContractError("branch must be saved or published")
+        if revision_id is not None and (not isinstance(revision_id, str) or not revision_id):
+            raise InputContractError("revision_id must be a nonempty string when supplied")
         if object_type == "html_page":
             request = {"entryId": object_id, "branch": branch}
             if revision_id:
                 request["revId"] = revision_id
-            payload = dict(_unwrap(self.api.read("getHtmlPage", request)))
+            raw = self.api.read("getHtmlPage", request)
+            payload = _unwrap(raw) if isinstance(raw, Mapping) else raw
         else:
             payload = self.sdk.get_object(object_type, object_id, branch=branch, revision_id=revision_id)
+        if not isinstance(payload, Mapping):
+            raise DataLensApiError("Provider object response must be an object", remote_code="invalid_response",
+                                   stage="response_validation", response_received=True, dispatch_state="dispatched")
         observed_id, observed_type = object_identity(payload)
-        if observed_id and observed_id != object_id:
-            raise ValueError("provider object identity mismatch; re-read the exact target")
-        known_types = {
-            "dashboard",
-            "dataset",
-            "connection",
-            "wizard_chart",
-            "editor_chart",
-            "ql_chart",
-            "html_page",
-            "workbook",
-        }
+        entry = payload.get("entry") if isinstance(payload.get("entry"), Mapping) else {}
+        observed_subtype = payload.get("type") or entry.get("type")
+        observed_branch = payload.get("branch") or entry.get("branch")
+        actual_revision = _revision_id(payload, branch=branch, fallback=None)
+        unbranched = requested_type in {"workbook", "connection", "dataset"}
+        requested = {"object_type": object_type, "object_id": object_id, "branch": branch,
+                     "revision_id": revision_id}
+        observed = {"object_type": observed_type, "object_id": observed_id, "subtype": observed_subtype,
+                    "branch": observed_branch, "revision_id": actual_revision}
+        if observed_id != object_id:
+            raise ResponseIdentityError("object_id", requested, observed)
         # Editor draft aliases carry a renderer subtype, while provider identity
         # reports the editor_chart family. Keep the requested identity in the
         # envelope so existing operation receipts can reconcile without replay.
         requested_subtype = "advanced-chart_node" if object_type == "advanced_chart" else object_type
-        requested_type = "editor_chart" if requested_subtype in EDITOR_SUBTYPES else object_type
-        requested_type = "dashboard" if requested_type == "dash" else requested_type
-        if observed_type in known_types and observed_type != requested_type:
-            raise ValueError("provider object type mismatch; re-read the exact target")
-        entry = payload.get("entry") if isinstance(payload.get("entry"), Mapping) else {}
-        observed_subtype = payload.get("type") or entry.get("type")
+        if ((requested_type == "chart" and observed_type not in CHART_TYPES)
+                or (observed_type in CHART_TYPES | {"dashboard", "dataset", "connection", "html_page", "workbook"}
+                    and requested_type != "chart" and observed_type != requested_type)):
+            raise ResponseIdentityError("object_type", requested, observed)
         if (requested_subtype in EDITOR_SUBTYPES and observed_subtype in EDITOR_SUBTYPES
                 and observed_subtype != requested_subtype):
-            raise ValueError("provider Editor subtype mismatch; re-read the exact target")
-        observed_branch = payload.get("branch") or entry.get("branch")
-        if object_type not in {"workbook", "connection", "dataset"} and observed_branch and observed_branch != branch:
-            raise ValueError("provider object branch mismatch; re-read the exact branch")
-        actual_revision = _revision_id(payload, branch=branch, fallback=revision_id)
-        unbranched = object_type in {"workbook", "connection", "dataset"}
+            raise ResponseIdentityError("subtype", requested, observed)
+        if not unbranched and observed_branch and observed_branch != branch:
+            raise ResponseIdentityError("branch", requested, observed)
+        if revision_id and actual_revision != revision_id:
+            raise ResponseIdentityError("revision_id", requested, observed)
         result = {
             "ok": True,
             "identity": {
-                "object_type": object_type,
+                "object_type": observed_type if requested_type == "chart" else object_type,
                 "object_id": object_id,
                 "branch": "unbranched" if unbranched else branch,
                 "revision_id": actual_revision or None,
             },
             "object": payload,
+            "observed_identity": observed,
         }
         return _read_view(result, view=view, fields=fields, branch=branch)
 
@@ -509,6 +530,7 @@ def _read_view(result: dict[str, Any], *, view: str, fields: list[str] | None, b
     return {
         "ok": result["ok"],
         "identity": identity,
+        **({"observed_identity": result["observed_identity"]} if "observed_identity" in result else {}),
         "read_view": view,
         "full_state": False,
         "complete": payload.get("complete") is not False,

@@ -4,6 +4,7 @@ from collections.abc import Callable, Mapping
 from copy import deepcopy
 from typing import Any, Protocol
 
+from datalens_dev_mcp.api.errors import DataLensApiError
 from datalens_dev_mcp.dataset.contracts import TECHNICAL_MEASURES, validate_dataset_fields
 
 
@@ -124,25 +125,47 @@ def compile_preview_request(
 
 
 class DatasetPreviewService:
-    def __init__(self, api: PreviewApi, *, dataset_query: Callable[[dict[str, Any]], dict[str, Any]] | None = None) -> None:
+    def __init__(self, api: PreviewApi, *, dataset_query: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
+                 saved_fields: Callable[[str], list[dict[str, Any]]] | None = None) -> None:
         self.api = api
         self.dataset_query = dataset_query
+        self.saved_fields = saved_fields
 
     def preview(self, **kwargs: Any) -> dict[str, Any]:
         compiled = compile_preview_request(**kwargs)
         if not compiled["ok"]:
             return compiled
+        fields = kwargs["fields"]
+        used = set(kwargs["columns"]) | {item.get("guid") for key in ("filters", "params", "sort")
+                                        for item in kwargs.get(key) or []}
+        calculated = [(index, field) for index, field in enumerate(fields) if field.get("guid") in used
+                      and (field.get("formula") or field.get("calc_mode") == "formula")]
+        if calculated:
+            saved = {field["guid"]: field for field in self.saved_fields(kwargs["dataset_id"])} if self.saved_fields else {}
+            issues = [{"code": "unsaved_calculated_field", "path": f"fields/{index}/guid",
+                       "message": "Preview queries saved provider GUIDs; supplied fields are not saved. "
+                                  "Save the calculated field explicitly, then read its current GUID/formula."}
+                      for index, field in calculated if field["guid"] not in saved
+                      or field.get("formula", "") != saved[field["guid"]].get("formula", "")]
+            if issues:
+                return {"ok": False, "issues": issues, "evidence": "saved_dataset_metadata" if self.saved_fields
+                        else "saved_metadata_unavailable", "query_calls": 0}
         request = dict(compiled["request"])
         rows: list[Any] = []
         pages = 0
         for page_index in range(int(compiled["max_pages"])):
             request["offset"] = int(compiled["request"]["offset"]) + page_index * int(request["limit"])
             raw = self.dataset_query(request) if self.dataset_query is not None else self.api.read("getDatasetData", request)
-            page_rows = _rows(raw, columns=request["columns"])
-            if len(page_rows) > int(request["limit"]) or any(
-                not isinstance(row, list) or len(row) != len(request["columns"]) for row in page_rows
-            ):
-                raise ValueError("getDatasetData response exceeds the requested rows/columns bound")
+            try:
+                page_rows = _rows(raw, columns=request["columns"])
+                if len(page_rows) > int(request["limit"]) or any(
+                    not isinstance(row, list) or len(row) != len(request["columns"]) for row in page_rows
+                ):
+                    raise ValueError("getDatasetData response exceeds the requested rows/columns bound")
+            except (ValueError, TypeError) as exc:
+                raise DataLensApiError(str(exc), method="getDatasetData", remote_code="invalid_response",
+                                       stage="response_validation", response_received=True,
+                                       dispatch_state="dispatched") from exc
             rows.extend(page_rows)
             pages += 1
             if len(page_rows) < int(request["limit"]):

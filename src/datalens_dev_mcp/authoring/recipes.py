@@ -7,6 +7,9 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
+from jsonschema import Draft202012Validator
+
+from datalens_dev_mcp.api.errors import InputContractError
 from datalens_dev_mcp.authoring.models import DraftBundle
 from datalens_dev_mcp.authoring.profiles import _deep_merge, get_authoring_defaults
 
@@ -31,6 +34,68 @@ def list_recipes() -> dict[str, dict[str, Any]]:
     return result
 
 
+def recipe_contract(recipe_id: str) -> dict[str, Any]:
+    """Expose and validate the same selected registry contract via defaults."""
+    registry = _registry()
+    if recipe_id not in registry["recipes"]:
+        raise InputContractError("family must identify an existing recipe")
+    recipe = registry["recipes"][recipe_id]
+    schema: dict[str, Any] = {
+        "type": "object", "required": recipe["required_bindings"],
+        "$defs": registry["binding_definitions"],
+        "properties": {"source": {"$ref": "#/$defs/source"},
+                       "direct_source": {"$ref": "#/$defs/direct_source"},
+                       "prepared_data": {"type": "object"},
+                       "dataset_id": {"type": "string", "minLength": 1},
+                       "fields": {"type": "array", "items": {"type": "object", "required": ["guid", "title"]}},
+                       "metric": {"$ref": "#/$defs/field_binding"},
+                       "date": {"$ref": "#/$defs/field_binding"},
+                       "comparison": {"$ref": "#/$defs/comparison"},
+                       "client_ref": {"type": "string", "minLength": 1},
+                       "value_mode": {"enum": ["last", "sum", "aggregate"]}},
+    }
+    schema["properties"].update({
+        "selectors": {"type": "array", "items": {"$ref": "#/$defs/dataset_selector"}},
+        "periods": {"type": "object", "required": ["current", "previous"], "additionalProperties": False,
+                    "properties": {period: {"$ref": "#/$defs/period_selector"} for period in ("current", "previous")}},
+    })
+    dataset_recipes = {"kpi_sparkline", "comparison_matrix", "weekly_totals_table"}
+    if recipe["technology"] == "wizard":
+        schema["required"] = [*schema["required"], "dataset_id"]
+    elif recipe_id in dataset_recipes:
+        schema["allOf"] = [{
+            "if": {"required": ["dataset_id"], "not": {"anyOf": [
+                {"required": ["source"]}, {"required": ["direct_source"]}, {"required": ["prepared_data"]}]}},
+            "then": {"required": ["fields"], "properties": {
+                "metric": {"type": "object", "required": ["field_guid"]},
+                "date": {"type": "object", "required": ["field_guid"]},
+            }},
+        }]
+    sources = (["dataset_id"] if recipe["technology"] == "wizard" else
+               ["options"] if recipe["technology"] == "selector" else
+               ["source", "direct_source", "prepared_data"] + (["dataset_id"] if recipe_id in dataset_recipes else []))
+    return {"recipe_id": recipe_id, "technology": recipe["technology"],
+            "object_type": recipe["object_type"], "bindings_schema": schema,
+            "source_routes": sources,
+            "prepared_data": ({"required": ["value", "previous", "points"],
+                               "points": "Array of date/value objects; preserve null and meaningful zero"}
+                              if recipe_id == "kpi_sparkline" else
+                              {"required": ["categories", "series"],
+                               "series": "Array of {name, type: line|bar, values}; optional comparisonValues, color, format",
+                               "comparison": "comparisonCategories or explicit ranges; source owns period boundaries"}
+                              if recipe_id == "period_series" else
+                              {"validation": "Selected recipe's prepared-data validation applies before materialization"}),
+            "dataset_binding": {"fields": "Saved Dataset field readback, including every selected/filter GUID",
+                                "field_references": "Use exact field_guid; preview does not save calculated fields",
+                                "kpi_value_mode": "last or additive sum; periods requires aggregate and explicit current/previous selectors"},
+            "artifact_inputs": {
+                "create": {"tool": "dl_object_create", "input": "drafts: typed objects or {artifact_path}; client_ref and depends_on bind batch references"},
+                "static_editor": {"tool": "dl_editor_validate", "input": "draft: {variant, tabs: {filename: source}}; e.g. meta.json, sources.js, prepare.js. For a typed create/compiled artifact use drafts: [{artifact_path}]."},
+                "compiled_update": {"tool": "dl_object_update", "input": "changes: [{object_type, object_id, expected_revision, artifact_path}]",
+                                    "artifact": "Use dl_compile_recipe files.draft.json unchanged; recipe_id, bindings, effective config and tabs are validated together. Raw tabs are not a compiled artifact."},
+            }}
+
+
 def compile_recipe(
     recipe_id: str,
     bindings: Mapping[str, Any],
@@ -44,6 +109,17 @@ def compile_recipe(
     recipes = list_recipes()
     if recipe_id not in recipes:
         raise ValueError(f"unknown recipe_id: {recipe_id}")
+    _validate_prepared_data(recipe_id, bindings)
+    schema = recipe_contract(recipe_id)["bindings_schema"]
+    invalid = next(Draft202012Validator(schema).iter_errors(bindings), None)
+    if invalid is not None:
+        path = "/bindings" + "".join("/" + str(key) for key in invalid.absolute_path)
+        expected = ("required keys: " + ", ".join(invalid.validator_value)
+                    if invalid.validator == "required" else
+                    "allowed keys: " + ", ".join(invalid.schema.get("properties", {}))
+                    if invalid.validator == "additionalProperties" else
+                    "expected " + str(invalid.validator) + ": " + str(invalid.validator_value))
+        raise InputContractError(f"{path}: {expected}; dl_authoring_defaults(family={recipe_id}) returns bindings_schema")
     if bindings.get("direct_source") and "source" not in bindings:
         from datalens_dev_mcp.authoring.dataset_source import compile_direct_source
 
@@ -97,7 +173,6 @@ def compile_recipe(
     if (recipe_id == "period_series" and (axes["x_grid"] or axes["y_grid"])
             and (axes["x_grid"] or not isinstance(axes.get("reason"), str) or not axes["reason"].strip())):
         raise ValueError("period_series numeric grid requires axes_gridlines/reason; categorical grid must be off")
-    _validate_prepared_data(recipe_id, bindings)
     draft: dict[str, Any] = {
         "recipe_id": recipe_id,
         "technology": technology,

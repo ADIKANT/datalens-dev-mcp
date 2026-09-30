@@ -8,11 +8,15 @@ from typing import Any
 from uuid import uuid4
 
 from datalens_dev_mcp.api.budget import operation_budget
-from datalens_dev_mcp.operation_store import OperationStore
-
-from datalens_dev_mcp.api.errors import (DataLensApiError, InputContractError, WritePreconditionError,
-                                       error_response, safe_error_text)
+from datalens_dev_mcp.api.errors import (
+    DataLensApiError,
+    InputContractError,
+    WritePreconditionError,
+    error_response,
+    safe_error_text,
+)
 from datalens_dev_mcp.api.sdk_adapter import _canonical_object_type
+from datalens_dev_mcp.operation_store import OperationStore
 
 
 def _items(items: list[dict[str, Any]]) -> list[dict[str, str]]:
@@ -142,8 +146,13 @@ class CleanupService:
             preserve.add(identity)
             try:
                 graph[identity] = related(identity, "from")
-                required_reads.update(("from", dependency) for dependency in graph[identity])
-                queue.extend(graph[identity])
+                # Only candidate dependencies can enter the deletion set. A path
+                # through an external node ends at an external inbound consumer,
+                # which blocks that candidate below. Unrelated root branches need
+                # no recursive traversal to prove this boundary.
+                dependencies = [dependency for dependency in graph[identity] if dependency in by_id]
+                required_reads.update(("from", dependency) for dependency in dependencies)
+                queue.extend(dependencies)
             except (DataLensApiError, ValueError, TypeError) as exc:
                 issue(identity, exc)
 
@@ -166,11 +175,23 @@ class CleanupService:
             try:
                 graph[identity] = related(identity, "from")
                 consumers[identity] = related(identity, "to")
-                if identity not in preserve and any(x not in by_id or x in preserve for x in consumers[identity]):
-                    issues.append({"object_id": identity, "code": "dependency_conflict", "phase": "consumers",
-                                   "error": "candidate has external or preserved consumers"})
             except (DataLensApiError, ValueError, TypeError) as exc:
                 issue(identity, exc)
+
+        # Use both complete directions: an inbound-only edge from a preserved
+        # candidate also preserves its dependency. Close only within candidates.
+        changed = True
+        while changed:
+            protected = {dependency for consumer in preserve for dependency in graph.get(consumer, [])
+                         if dependency in by_id}
+            protected.update(identity for identity, inbound in consumers.items()
+                             if any(consumer in preserve for consumer in inbound))
+            changed = bool(protected - preserve)
+            preserve.update(protected)
+        for identity, inbound in consumers.items():
+            if identity not in preserve and any(consumer not in by_id for consumer in inbound):
+                issues.append({"object_id": identity, "code": "dependency_conflict", "phase": "consumers",
+                               "error": "candidate has external consumers; no unrelated traversal is needed"})
 
         selected = [identity for identity in by_id if identity not in preserve]
         edges = {identity: set(graph.get(identity, [])) & set(selected) for identity in selected}

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.23
+
+- Prove scoped cleanup from candidate relations and direct preserve roots without traversing unrelated dependency branches; retain complete evidence, consumer ordering and fresh apply guards.
+- Align generic chart and widget reads with confirmed Editor, Wizard and QL identity, and distinguish local input failures from invalid provider responses.
+- Apply configured read budgets, request timeouts and retry limits to ordinary SDK reads and typed preflight reads while keeping one responsive worker and single-attempt writes.
+- Expose selected recipe binding contracts through authoring defaults, validate compiled update provenance, and reject unsaved calculated preview fields before querying data.
+- Verify raw dashboard copies against the forwarded content and assigned identity, including read-only reconciliation of their saved receipts.
+- Honor disabled KPI comparisons in the body and tooltips while preserving current values and trends.
+
 ## 1.2.22
 
 - Return incomplete cleanup responses within the reserved response deadline while the single SDK worker safely unwinds an in-flight call.
