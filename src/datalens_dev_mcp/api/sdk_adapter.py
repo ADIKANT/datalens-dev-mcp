@@ -11,9 +11,10 @@ import datalens_sdk
 import httpx
 from datalens_sdk.errors import DataLensAPIError as SdkApiError
 from datalens_sdk.errors import DataLensTransportError as SdkTransportError
+from datalens_sdk.http import DEFAULT_RETRY_POLICY, DataLensHTTPClient
 
+from datalens_dev_mcp.api.budget import check_dispatch, current_budget, read_budget
 from datalens_dev_mcp.api.client import _retry_after
-from datalens_dev_mcp.api.budget import check_dispatch, current_budget
 from datalens_dev_mcp.api.errors import (
     DataLensApiError,
     InputContractError,
@@ -47,6 +48,39 @@ WIZARD_VARIANTS = {
     "treemap",
 }
 EDITOR_VARIANTS = {"advanced_chart", "gravity_charts", "markdown", "selector", "table"}
+
+
+class _ConfiguredHTTPClient(DataLensHTTPClient):
+    """Use the public SDK transport and its sole retry loop with configured limits."""
+
+    def __init__(self, config: DataLensConfig, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.config = config
+
+    def post_json(self, path, body, *, retry_policy=DEFAULT_RETRY_POLICY, accept_response=None):
+        from datalens_dev_mcp.api.schemas import OperationRegistry
+
+        method = path.rsplit("/", 1)[-1]
+        try:
+            readonly = OperationRegistry.load().get(method)["effect"] == "read"
+        except KeyError:
+            readonly = False
+        budget = current_budget.get()
+        seconds = budget.check() if budget else self.config.read_budget_sec
+        policy = replace(retry_policy, total_timeout=seconds,
+                         request_timeout=self.config.request_timeout_sec,
+                         connect_timeout=self.config.request_timeout_sec,
+                         max_attempts=self.config.read_retries + 1 if readonly else 1)
+        return super().post_json(path, body, retry_policy=policy, accept_response=accept_response)
+
+
+class _ProviderAuth(httpx.Auth):
+    def __init__(self, provider: Any) -> None:
+        self.provider = provider
+
+    def auth_flow(self, request):
+        request.headers.update(self.provider.get_headers())
+        yield request
 
 
 class _BudgetedStream(httpx.SyncByteStream):
@@ -91,8 +125,10 @@ class SdkAdapter:
         logging.getLogger("datalens_sdk.http").disabled = True
         self._config = config
         self._client = client
+        self._http_client: _ConfiguredHTTPClient | None = None
         self._token_refresher = token_refresher
         self._write_dispatches = 0
+        self._responses = 0
         self._tracks_dispatch = False
 
     @property
@@ -103,8 +139,7 @@ class SdkAdapter:
         budget = current_budget.get()
         if budget is not None:
             budget.sdk_targets.clear()
-        if self._client is not None and hasattr(self._client, "close"):
-            self._client.close()
+        self.close()
         self._config = config
         self._client = None
 
@@ -120,11 +155,18 @@ class SdkAdapter:
         else:
             auth = datalens_sdk.StaticYCIAMAuthProvider(org_id=self._config.org_id, token=self._config.iam_token)
             client_type = datalens_sdk.DataLensClientYC
-        self._client = client_type(auth=auth, base_url=self._config.base_url,
-                                   event_hooks={"request": [self._observe_dispatch],
-                                                "response": [self._observe_rate_limit]})
+        self._http_client = _ConfiguredHTTPClient(
+            self._config, installation=self._config.installation, sdk_version=SDK_VERSION,
+            auth=_ProviderAuth(auth), base_url=self._config.base_url,
+            event_hooks={"request": [self._observe_dispatch], "response": [self._observe_response]},
+        )
+        self._client = client_type(http_client=self._http_client)
         self._tracks_dispatch = True
         return self._client
+
+    def _observe_response(self, response: httpx.Response) -> None:
+        self._responses += 1
+        self._observe_rate_limit(response)
 
     @staticmethod
     def _observe_rate_limit(response: httpx.Response) -> None:
@@ -154,13 +196,13 @@ class SdkAdapter:
         except KeyError:
             readonly = False
         remaining = check_dispatch(readonly=readonly)
-        if remaining is not None:
+        if remaining is not None or self._config is not None:
             # HTTPX owns the actual request timeout; the hook also runs for SDK retries.
             timeout = request.extensions.get("timeout") or {}
-            request.extensions["timeout"] = {
-                key: min(value if value is not None else 30.0, remaining, 30.0)
-                for key, value in {"connect": 30.0, "read": 30.0, "write": 30.0, "pool": 30.0, **timeout}.items()
-            }
+            limit = self._config.request_timeout_sec if self._config else 30.0
+            limit = min(limit, remaining) if remaining is not None else limit
+            request.extensions["timeout"] = {key: min(value if value is not None else limit, limit)
+                for key, value in {"connect": limit, "read": limit, "write": limit, "pool": limit, **timeout}.items()}
         if not readonly:
             # HTTPX calls request hooks after encoding/auth, just before send.
             self._write_dispatches += 1
@@ -205,7 +247,12 @@ class SdkAdapter:
             budget.sdk_targets[(_canonical_object_type(object_type), object_id)] = value
         snapshot = _json_object(value)
         if _canonical_object_type(object_type) in {"chart", "wizard_chart", "editor_chart", "ql_chart"}:
-            return _chart_entry(snapshot)
+            try:
+                return _chart_entry(snapshot)
+            except (ValueError, TypeError) as exc:
+                raise DataLensApiError("Invalid chart response envelope", remote_code="invalid_response",
+                                       stage="response_validation", response_received=True,
+                                       dispatch_state="dispatched") from exc
         return snapshot
 
     def _get_domain(
@@ -216,6 +263,12 @@ class SdkAdapter:
         branch: str = "saved",
         revision_id: str | None = None,
     ) -> Any:
+        # Include auth refresh and all SDK attempts in the same logical read.
+        with read_budget(self._config.read_budget_sec if self._config else 60):
+            return self._read_domain(object_type, object_id, branch=branch, revision_id=revision_id)
+
+    def _read_domain(self, object_type: str, object_id: str, *, branch: str,
+                     revision_id: str | None) -> Any:
         object_type = _canonical_object_type(object_type)
         getter_name = object_type
         if branch not in {"saved", "published"}:
@@ -227,6 +280,7 @@ class SdkAdapter:
             kwargs["rev_id"] = revision_id
         auth_refreshed = False
         while True:
+            responses_before = self._responses
             try:
                 return getattr(self._sdk_client().get, getter_name)(**kwargs)
             except SdkApiError as exc:
@@ -244,11 +298,22 @@ class SdkAdapter:
                 raise _provider_error(exc, f"get:{object_type}") from exc
             except (httpx.TransportError, SdkTransportError) as exc:
                 raise _provider_error(exc, f"get:{object_type}") from exc
+            except (ValueError, TypeError, KeyError) as exc:
+                if self._responses > responses_before:
+                    raise DataLensApiError("SDK could not decode the object response", method=f"get:{object_type}",
+                                           remote_code="invalid_response", stage="response_validation",
+                                           response_received=True, dispatch_state="dispatched") from exc
+                raise InputContractError(safe_error_text(exc)) from exc
 
     def get_dataset_data(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Execute the bounded preview query through the installed v3 DTO."""
+        with read_budget(self._config.read_budget_sec if self._config else 60):
+            return self._read_dataset_data(payload)
+
+    def _read_dataset_data(self, payload: dict[str, Any]) -> dict[str, Any]:
         auth_refreshed = False
         while True:
+            responses_before = self._responses
             try:
                 value = self._sdk_client().data.get_dataset_data(
                     dataset_id=payload["datasetId"], columns=payload["columns"],
@@ -273,6 +338,12 @@ class SdkAdapter:
                 raise _provider_error(exc, "getDatasetData") from exc
             except (httpx.TransportError, SdkTransportError) as exc:
                 raise _provider_error(exc, "getDatasetData") from exc
+            except (ValueError, TypeError, KeyError) as exc:
+                if self._responses > responses_before:
+                    raise DataLensApiError("SDK could not decode the Dataset data response", method="getDatasetData",
+                                           remote_code="invalid_response", stage="response_validation",
+                                           response_received=True, dispatch_state="dispatched") from exc
+                raise InputContractError(safe_error_text(exc)) from exc
             except Exception as exc:
                 raise _provider_error(exc, "getDatasetData") from exc
 
@@ -309,7 +380,7 @@ class SdkAdapter:
                     dataset = datalens_sdk.Dataset(id=ref, result_schema=tuple(rows))
                 else:
                     if dataset_ref not in datasets:
-                        datasets[dataset_ref] = self._sdk_client().get.dataset(by_id=str(dataset_ref))
+                        datasets[dataset_ref] = self._get_domain("dataset", str(dataset_ref))
                     dataset = datasets[dataset_ref]
                 builder = wizard_builder(self._sdk_client(), dataset, specification,
                                          name=_draft_name(draft), location=_entry_location(destination))
@@ -318,6 +389,8 @@ class SdkAdapter:
                 errors.append((index, InputContractError(f"wizard: {safe_error_text(exc)}")))
             except SdkApiError as exc:
                 errors.append((index, _provider_error(exc, "getDataset")))
+            except DataLensApiError as exc:
+                errors.append((index, exc))
             except (httpx.TransportError, SdkTransportError) as exc:
                 errors.append((index, _provider_error(exc, "getDataset")))
 
@@ -352,7 +425,8 @@ class SdkAdapter:
                 specification = draft["wizard"]
                 if not isinstance(specification, dict):
                     raise ValueError("draft.wizard must be an object")
-                dataset = client.get.dataset(by_id=str(specification["dataset_id"]))
+                dataset = self._get_domain("dataset", str(specification["dataset_id"]))
+                client = self._sdk_client()
                 builder = wizard_builder(client, dataset, specification, name=name, location=location)
                 payload = WizardChartConverter.from_domain_create(builder.to_spec()).to_payload()
                 expected_readback = {"data": payload["data"]}
@@ -390,7 +464,8 @@ class SdkAdapter:
                 connection_id = specification.get("connection_id")
                 if not isinstance(connection_id, str) or not connection_id:
                     raise ValueError("typed Dataset requires connection_id")
-                connection = client.get.connection(by_id=connection_id)
+                connection = self._get_domain("connection", connection_id)
+                client = self._sdk_client()
                 builder = dataset_builder(client, connection, specification, name=name, location=location)
                 expected_readback = {"name": name}
                 effect_started = True
@@ -413,6 +488,12 @@ class SdkAdapter:
                     raise ValueError("draft.snapshot is required for this object type")
                 if object_type == "dashboard":
                     _validate_dashboard_snapshot(snapshot, from_artifact=True)
+                    # The SDK uses the source identity to decode an import, but
+                    # create assigns a new identity. Verify the fields actually
+                    # forwarded by the raw-create converter, not the source ID.
+                    entry = snapshot.get("entry", snapshot)
+                    expected_readback = {key: entry[key] for key in ("data", "meta", "annotation") if key in entry}
+                    expected_readback["name"] = name
                 if object_type == "editor_chart":
                     _validate_editor_changes(_chart_entry(snapshot), {"data": {}})
                 if object_type == "wizard_chart":
@@ -657,12 +738,15 @@ class SdkAdapter:
     def close(self) -> None:
         if self._client is not None and hasattr(self._client, "close"):
             self._client.close()
+        if self._http_client is not None:
+            self._http_client.close()
+            self._http_client = None
 
 
 def _chart_entry(snapshot: dict[str, Any]) -> dict[str, Any]:
     if "entry" in snapshot:
         if not isinstance(snapshot["entry"], dict):
-            raise ValueError("chart response entry must be an object")
+            raise InputContractError("chart snapshot.entry must be an object")
         entry = dict(snapshot["entry"])
     else:
         entry = dict(snapshot)
@@ -757,32 +841,16 @@ def _json_object(value: Any) -> dict[str, Any]:
         result = asdict(value)
         result.pop("_operations", None)
         return result
-    raise TypeError(f"SDK returned an unsupported object representation: {type(value).__name__}")
+    raise DataLensApiError("SDK returned an unsupported object representation", remote_code="invalid_response",
+                           stage="response_validation", response_received=True, dispatch_state="dispatched")
 
 
 def _canonical_object_type(value: str) -> str:
-    aliases = {
-        "advanced-chart_node": "editor_chart",
-        "advanced_chart": "editor_chart",
-        "dash": "dashboard",
-        "table_node": "editor_chart",
-        "d3_node": "editor_chart",
-        "markdown_node": "editor_chart",
-        "control_node": "editor_chart",
-        "widget": "chart",
-    }
-    canonical = aliases.get(value, value)
-    if canonical not in {
-        "workbook",
-        "connection",
-        "dataset",
-        "chart",
-        "wizard_chart",
-        "editor_chart",
-        "ql_chart",
-        "dashboard",
-    }:
-        raise InputContractError(f"unsupported SDK mutation object type: {value}")
+    from datalens_dev_mcp.objects.relations import canonical_object_type
+
+    canonical = canonical_object_type(value)
+    if canonical == "html_page":
+        raise InputContractError("html_page reads use the typed API route")
     return canonical
 
 

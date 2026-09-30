@@ -34,7 +34,7 @@ def get_authoring_defaults(
     project = _read_config(project_path) if project_path else {}
     # Family structure and reference technology are useful; reference styling is
     # not an override of the current installation's presentation policy.
-    from datalens_dev_mcp.authoring.recipes import list_recipes
+    from datalens_dev_mcp.authoring.recipes import list_recipes, recipe_contract
 
     recipe = list_recipes().get(family, {})
     values = normalize_presentation(recipe.get("visual_contract", {}))
@@ -76,6 +76,7 @@ def get_authoring_defaults(
     return {
         "ok": True,
         "family": family,
+        **({"recipe_contract": recipe_contract(family)} if recipe else {}),
         "values": values,
         "profile_version": 2,
         "overrides": overrides,

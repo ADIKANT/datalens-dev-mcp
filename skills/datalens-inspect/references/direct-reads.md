@@ -1,5 +1,7 @@
 # Direct reads
 
+`dl_object_get(object_type="chart")` and its `widget` alias select the chart family and return the confirmed Editor/Wizard/QL type plus `observed_identity`. Explicit subtypes remain strict; use the observed exact type for mutations. A mismatch after provider read reports `identity_mismatch`, `stage=response_validation` and safe requested/observed identities. Unsupported local types are rejected before dispatch. Ordinary reads use the configured total read budget, including SDK attempts and response consumption; a deadline may return `worker_active=true` while the sole SDK worker unwinds. Control reads remain available, and no new provider dispatch is admitted after expiry.
+
 Choose the smallest sufficient scope. Read an exact known object first; discover an unknown target with inventory of its requested workbook. Complete inventory is necessary for inventory-wide completeness/absence claims and set discovery, not for every known-target edit or exact-candidate cleanup. Cleanup requires its own complete dependency preview; an addressed absence check concerns only that exact target. Read current project `AGENTS.md`/`CONTEXT.md` when present and only their relevant sources; a project manifest is navigation, never a mandatory runtime input.
 
 - Use `dl_auth_check` only for a harmless access probe. It does not inspect a workbook graph.

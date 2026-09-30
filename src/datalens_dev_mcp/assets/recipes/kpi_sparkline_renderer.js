@@ -18,6 +18,7 @@ module.exports = function renderKpi(data, config) {
   const direction = semantic.direction === 'higher_is_better' ? 1 : semantic.direction === 'lower_is_better' ? -1 : 0;
   const model = {
     value: format(data && data.value), previous: format(data && data.previous), unit,
+    comparisonEnabled: !config.comparison || config.comparison.enabled !== false,
     deltaText, assessment: numeric(delta) ? Math.sign(delta) * direction : 0,
     reason: !valid ? 'Missing comparison' : !numeric(delta) ? 'Undefined: previous = 0' : deltaText,
     rawValue: numeric(data && data.value) ? String(data.value) + (semantic.value_scale === 'fraction' ? ' (fraction)' : unit ? ' ' + unit : '') : '—',
@@ -70,19 +71,19 @@ module.exports = function renderKpi(data, config) {
             + '<div data-id="kpi-value" style="font-size:' + valueSize + 'px;line-height:' + valueLine
             + 'px;font-weight:700;letter-spacing:-0.03em;white-space:nowrap;cursor:help">' + escape(model.value)
             + (unit && numeric(prepared.value) ? ' <small>' + escape(unit) + '</small>' : '') + '</div>'
-            + '<div data-id="kpi-delta" aria-label="' + escape(model.reason) + '" style="padding:' + (dense ? '5px 8px' : '6px 10px') + ';border-radius:' + (dense ? 10 : 14)
+            + (model.comparisonEnabled ? '<div data-id="kpi-delta" aria-label="' + escape(model.reason) + '" style="padding:' + (dense ? '5px 8px' : '6px 10px') + ';border-radius:' + (dense ? 10 : 14)
             + 'px;background:' + bg + ';color:' + fg + ';font-size:' + deltaSize + 'px;line-height:' + (deltaSize + 2)
-            + 'px;font-weight:800;white-space:nowrap;letter-spacing:-0.02em;flex:0 0 auto">' + escape(deltaText) + '</div></div>'
-            + '<div style="font-size:' + labelSize + 'px;line-height:' + (labelSize + 2) + 'px;color:' + muted
+            + 'px;font-weight:800;white-space:nowrap;letter-spacing:-0.02em;flex:0 0 auto">' + escape(deltaText) + '</div>' : '') + '</div>'
+            + (model.comparisonEnabled ? '<div style="font-size:' + labelSize + 'px;line-height:' + (labelSize + 2) + 'px;color:' + muted
             + ';text-transform:uppercase;letter-spacing:0.08em;font-weight:800">' + escape(presentation.comparison.label || 'VS PREV WINDOW') + '</div>'
             + '<div data-id="kpi-previous" style="font-size:' + previousSize + 'px;line-height:' + (previousSize + 2)
             + 'px;color:' + muted + ';font-weight:700;letter-spacing:-0.02em">' + escape(model.previous)
-            + (unit && numeric(prepared.previous) ? ' <small>' + escape(unit) + '</small>' : '') + '</div></div>';
+            + (unit && numeric(prepared.previous) ? ' <small>' + escape(unit) + '</small>' : '') + '</div>' : '') + '</div>';
           const points = Array.isArray(prepared.points) ? prepared.points : [];
           const values = points.map(p => p && typeof p === 'object' ? p.value : p);
           const finite = values.filter(numeric);
           if (finite.length) {
-            const reserved = py * 2 + (titleHtml || hintHtml ? titleSize : 0) + valueLine + previousSize + 2 + labelSize + gap * 4 + 12;
+            const reserved = py * 2 + (titleHtml || hintHtml ? titleSize : 0) + valueLine + (model.comparisonEnabled ? previousSize + 2 + labelSize + gap * 2 : 0) + gap * 2 + 12;
             const sh = Math.max(34, Math.min(dense ? 52 : 82, height - reserved));
             const sw = Math.max(120, width - px * 2), base = sh - 3;
             const low = Math.min(0, ...finite), high = Math.max(1, ...finite), span = high - low;
@@ -142,17 +143,18 @@ module.exports = function renderKpi(data, config) {
               + '</strong><div>' + escape(format(numeric(value) ? value * scale : value)) + (unit ? ' ' + escape(unit) : '') + '</div></div>');
           }
           if (id !== 'kpi-value' && id !== 'kpi-delta' && id !== 'kpi-previous') return '';
+          if (!model.comparisonEnabled && id !== 'kpi-value') return '';
           const value = prepared.value;
           const previous = prepared.previous;
           return Editor.generateHtml('<div style="padding:10px;min-width:220px">'
             + '<div><strong>Current</strong> ' + escape(prepared.current_period || '') + ': '
             + escape(model.value) + (unit ? ' ' + escape(unit) : '') + '</div>'
-            + '<div><strong>Previous</strong> ' + escape(prepared.previous_period || '') + ': '
+            + (model.comparisonEnabled ? '<div><strong>Previous</strong> ' + escape(prepared.previous_period || '') + ': '
             + escape(model.previous) + (unit ? ' ' + escape(unit) : '') + '</div>'
             + '<div><strong>Change</strong>: ' + escape(model.deltaText) + '</div>'
-            + '<div>' + escape(model.reason) + '</div>'
+            + '<div>' + escape(model.reason) + '</div>' : '')
             + '<div><strong>Raw current</strong>: ' + escape(model.rawValue) + '</div>'
-            + '<div><strong>Raw previous</strong>: ' + escape(model.rawPrevious) + '</div></div>');
+            + (model.comparisonEnabled ? '<div><strong>Raw previous</strong>: ' + escape(model.rawPrevious) + '</div>' : '') + '</div>');
         },
         args: [data, config, model]
       })

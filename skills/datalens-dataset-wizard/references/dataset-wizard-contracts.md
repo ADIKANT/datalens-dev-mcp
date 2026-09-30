@@ -1,5 +1,7 @@
 # Dataset and Wizard contracts
 
+`dl_dataset_preview(fields=...)` validates a local field description but queries saved provider GUIDs. It does not save fields. Include every selected, filter, sort and parameter field in the description. Supplied calculated fields are checked against saved Dataset metadata before the data query; an absent GUID or changed formula requires an explicit Dataset save followed by fresh readback. Do not substitute field titles for GUIDs or remove filters to obtain success. A preview query is data evidence, not chart rendering evidence.
+
 - A new typed Dataset draft has exactly this ownership shape (values below are synthetic):
 
   ```json

@@ -22,6 +22,20 @@ SCOPE_TO_OBJECT_TYPE = {
 
 EDITOR_SUBTYPES = {"table_node", "d3_node", "advanced-chart_node", "markdown_node", "control_node"}
 
+CHART_TYPES = {"editor_chart", "wizard_chart", "ql_chart"}
+
+
+def canonical_object_type(value: str) -> str:
+    """Normalize public selectors without treating the generic chart as Editor."""
+    from datalens_dev_mcp.api.errors import InputContractError
+
+    aliases = {**dict.fromkeys(EDITOR_SUBTYPES, "editor_chart"),
+               "advanced_chart": "editor_chart", "dash": "dashboard", "widget": "chart"}
+    canonical = aliases.get(value, value)
+    if canonical not in CHART_TYPES | {"workbook", "connection", "dataset", "chart", "dashboard", "html_page"}:
+        raise InputContractError("unsupported object_type; use a documented object family or subtype")
+    return canonical
+
 
 def object_identity(entry: Mapping[str, Any]) -> tuple[str, str]:
     nested = entry.get("entry") if isinstance(entry.get("entry"), Mapping) else {}

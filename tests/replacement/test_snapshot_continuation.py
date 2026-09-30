@@ -5,6 +5,7 @@ import json
 import pytest
 
 from datalens_dev_mcp import server
+from datalens_dev_mcp.api.errors import ResponseIdentityError
 from datalens_dev_mcp.objects.read import ObjectReadService
 
 
@@ -153,8 +154,10 @@ def test_summary_dependencies_are_marked_and_have_full_address(transport):
 )
 def test_provider_identity_mismatch_is_not_echoed_as_requested_identity(transport, monkeypatch, payload):
     monkeypatch.setattr(transport, "get_object", lambda *args, **kwargs: payload)
-    with pytest.raises(ValueError, match="mismatch"):
+    with pytest.raises(ResponseIdentityError, match="mismatch") as caught:
         server.dl_object_get("dashboard", "d")
+    assert caught.value.stage == "response_validation"
+    assert caught.value.response_received is True
 
 
 def test_provider_partial_remains_partial_after_terminal_continuation(transport):

@@ -100,14 +100,14 @@ def test_preparatory_sdk_read_failure_is_not_dispatched(operation):
 
 @pytest.mark.parametrize("phase", ["build_validation", "response_lost", "rejected"])
 def test_owned_sdk_request_hook_distinguishes_build_from_dispatch(monkeypatch, phase):
-    import datalens_sdk
     import httpx
 
+    from datalens_dev_mcp.api import sdk_adapter
     from datalens_dev_mcp.api.errors import error_response
     from datalens_dev_mcp.config import DataLensConfig
 
     requests = []
-    original_client = datalens_sdk.DataLensClientYC
+    original_client = sdk_adapter._ConfiguredHTTPClient
 
     def handle(request):
         requests.append(request)
@@ -115,10 +115,10 @@ def test_owned_sdk_request_hook_distinguishes_build_from_dispatch(monkeypatch, p
             raise httpx.ReadTimeout("synthetic lost response", request=request)
         return httpx.Response(409, json={"code": "CONFLICT", "message": "Synthetic conflict"})
 
-    def client(**kwargs):
-        return original_client(**kwargs, transport=httpx.MockTransport(handle))
+    def client(*args, **kwargs):
+        return original_client(*args, **kwargs, transport=httpx.MockTransport(handle))
 
-    monkeypatch.setattr(datalens_sdk, "DataLensClientYC", client)
+    monkeypatch.setattr(sdk_adapter, "_ConfiguredHTTPClient", client)
     adapter = SdkAdapter(DataLensConfig(org_id="synthetic", iam_token="synthetic"))
     draft = {"object_type": "editor_chart", "name": "Synthetic", "variant": "control_node",
              "tabs": {"meta.json": "{}",

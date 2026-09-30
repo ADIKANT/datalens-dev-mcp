@@ -11,12 +11,21 @@ def test_preserved_dependency_reached_through_non_candidate_is_kept():
         "middle": [{"id": "shared", "type": "dataset"}],
         "shared": [],
     }
+    # The old fixture ignored direction and returned an empty outbound list
+    # as inbound evidence. Exercise the actual complete consumer contract.
+    reader.object_relations = lambda identity, direction="to": {
+        "complete": True,
+        "relations": (reader.relations.get(identity, []) if direction == "from" else
+                      [{"id": consumer} for consumer, dependencies in reader.relations.items()
+                       if any(item["id"] == identity for item in dependencies)]),
+    }
     result = CleanupService(reader=reader, deleter=Deleter()).preview(
         [{"object_type": "dataset", "object_id": "shared"}],
         preserve_roots=[{"object_type": "dashboard", "object_id": "dash"}],
     )
-    assert result["complete"]
-    assert result["delete"] == []
+    assert not result["complete"]
+    assert result["code"] == "dependency_conflict"
+    assert {item["object_id"] for item in result["progress"]["completed_reads"]} == {"dash", "shared"}
 
 
 def test_incomplete_dependency_preview_cannot_be_applied():

@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from datalens_dev_mcp.api.errors import ResponseIdentityError, error_response
 from datalens_dev_mcp.api.sdk_adapter import SdkAdapter
 from datalens_dev_mcp.objects.read import ObjectReadService
 
@@ -26,8 +27,10 @@ def test_editor_create_aliases_have_matching_readback_route(kind, branch):
     assert result["identity"]["branch"] == branch
     assert calls == [{"by_id": "synthetic-chart", "branch": branch}]
     wire_type = "table_node" if wire_type != "table_node" else "control_node"
-    with pytest.raises(ValueError, match="subtype mismatch"):
+    with pytest.raises(ResponseIdentityError, match="subtype mismatch") as failure:
         reader.object_get(kind, "synthetic-chart", branch=branch)
+    assert error_response(failure.value)["stage"] == "response_validation"
+    assert error_response(failure.value)["dispatch_state"] == "dispatched"
 
 
 def test_chart_entry_envelope_does_not_hide_revision_or_tabs():
