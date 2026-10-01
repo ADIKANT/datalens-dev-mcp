@@ -1,6 +1,30 @@
 {
   "schema_version": 1,
   "binding_definitions": {
+    "dataset_source": {
+      "type": "object", "additionalProperties": false, "required": ["queries", "prepare_js"],
+      "description": "Explicit Dataset query needs per alias. Saved measures own aggregation; each query owns its selectors, filters, grain and ordering. Custom Prepare dependencies and underlying SQL cost remain unverified.",
+      "properties": {
+        "prepare_js": {"type": "string", "minLength": 1},
+        "queries": {"type": "array", "minItems": 1, "items": {
+          "type": "object", "additionalProperties": false, "required": ["alias", "role", "field_guids"],
+          "properties": {
+            "alias": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*$", "not": {"enum": ["constructor", "prototype"]}},
+            "role": {"type": "string", "minLength": 1},
+            "field_guids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+            "limit": {"type": "integer", "minimum": 1, "maximum": 100000},
+            "selectors": {"type": "array", "items": {"$ref": "#/$defs/dataset_selector"}},
+            "dataset_parameters": {"type": "array", "items": {"type": "object", "required": ["id", "param_name"], "properties": {"id": {"type": "string", "minLength": 1}, "param_name": {"type": "string", "minLength": 1}, "default": {}}}},
+            "filters": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["field_guid", "operation", "values"], "properties": {
+              "field_guid": {"type": "string", "minLength": 1}, "operation": {"enum": ["IN", "NIN", "NOT_IN", "EQ", "NE", "BETWEEN", "GT", "GTE", "LT", "LTE"]}, "values": {"type": "array"}
+            }}},
+            "sort": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["field_guid", "direction"], "properties": {
+              "field_guid": {"type": "string", "minLength": 1}, "direction": {"enum": ["asc", "desc"]}
+            }}}
+          }
+        }}
+      }
+    },
     "period_selector": {
       "type": "object", "required": ["param_name", "default"],
       "properties": {"param_name": {"type": "string", "minLength": 1},
@@ -9,7 +33,10 @@
     "dataset_selector": {
       "type": "object", "required": ["param_name", "field_guid", "empty_selection"],
       "properties": {"param_name": {"type": "string", "minLength": 1}, "field_guid": {"type": "string", "minLength": 1},
-                     "empty_selection": {"enum": ["all", "none", "error"]}, "operation": {"type": "string"}, "default": {}}
+                     "empty_selection": {"enum": ["all", "none", "error"]}, "operation": {"type": "string"}, "default": {},
+                     "window": {"type": "object", "additionalProperties": false, "required": ["days"],
+                                "description": "Inclusive UTC calendar-day window ending at the selected range end plus offset_days. Requires BETWEEN and empty_selection=error.",
+                                "properties": {"days": {"type": "integer", "minimum": 1}, "offset_days": {"type": "integer"}}}}
     },
     "direct_source": {
       "type": "object", "additionalProperties": false,
@@ -69,8 +96,8 @@
       "technology": "advanced_chart",
       "object_type": "advanced-chart_node",
       "renderer": "kpi_sparkline_renderer.js",
-      "required_bindings": ["metric", "date", "comparison"],
-      "visual_contract": {"visible_title": {"owner": "widget"}, "legend": {"mode": "hidden"}, "kpi": {"direction": "neutral", "delta_kind": "relative", "value_scale": null, "relative_denominator": "absolute_previous", "separate_object": true, "value": true, "comparison_label": true, "sparkline": true}, "geometry": {"width": 6, "height": 4}, "labels": {"precision": 0}},
+      "required_bindings": ["metric"],
+      "visual_contract": {"visible_title": {"owner": "widget"}, "legend": {"mode": "hidden"}, "tooltip": {"raw_values": false}, "kpi": {"direction": "neutral", "delta_kind": "relative", "value_scale": null, "relative_denominator": "absolute_previous", "separate_object": true, "value": true, "comparison_label": true, "sparkline": true}, "geometry": {"width": 6, "height": 4}, "labels": {"precision": 0}},
       "example": {"data_class": "synthetic", "states": ["value", "loading", "error", "no_data", "business_zero"]}
     },
     "time_comparison": {
@@ -145,7 +172,7 @@
       "object_type": "advanced-chart_node",
       "renderer": "period_series_renderer.js",
       "required_bindings": ["metric", "date", "comparison"],
-      "visual_contract": {"visible_title": {"owner": "widget"}, "legend": {"mode": "fixed_semantic"}, "geometry": {"width": 24, "height": 12, "preserve_manual": true}},
+      "visual_contract": {"visible_title": {"owner": "widget"}, "legend": {"mode": "fixed_semantic"}, "axes_gridlines": {"x_labels": true, "y_labels": true}, "labels": {"percent_precision": 1, "small_percent": false, "stack_totals": true}, "geometry": {"width": 24, "height": 12, "preserve_manual": true}},
       "example": {"data_class": "synthetic", "states": ["current", "comparison", "missing_point", "no_data"]}
     }
   }

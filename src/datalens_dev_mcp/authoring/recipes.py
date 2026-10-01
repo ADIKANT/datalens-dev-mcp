@@ -44,6 +44,7 @@ def recipe_contract(recipe_id: str) -> dict[str, Any]:
         "type": "object", "required": recipe["required_bindings"],
         "$defs": registry["binding_definitions"],
         "properties": {"source": {"$ref": "#/$defs/source"},
+                       "dataset_source": {"$ref": "#/$defs/dataset_source"},
                        "direct_source": {"$ref": "#/$defs/direct_source"},
                        "prepared_data": {"type": "object"},
                        "dataset_id": {"type": "string", "minLength": 1},
@@ -56,7 +57,7 @@ def recipe_contract(recipe_id: str) -> dict[str, Any]:
     }
     schema["properties"].update({
         "selectors": {"type": "array", "items": {"$ref": "#/$defs/dataset_selector"}},
-        "periods": {"type": "object", "required": ["current", "previous"], "additionalProperties": False,
+        "periods": {"type": "object", "required": ["current"], "additionalProperties": False,
                     "properties": {period: {"$ref": "#/$defs/period_selector"} for period in ("current", "previous")}},
     })
     dataset_recipes = {"kpi_sparkline", "comparison_matrix", "weekly_totals_table"}
@@ -65,19 +66,26 @@ def recipe_contract(recipe_id: str) -> dict[str, Any]:
     elif recipe_id in dataset_recipes:
         schema["allOf"] = [{
             "if": {"required": ["dataset_id"], "not": {"anyOf": [
-                {"required": ["source"]}, {"required": ["direct_source"]}, {"required": ["prepared_data"]}]}},
-            "then": {"required": ["fields"], "properties": {
+                {"required": ["source"]}, {"required": ["direct_source"]}, {"required": ["prepared_data"]},
+                {"required": ["dataset_source"]}]}},
+            "then": {"required": ["fields", "date"] if recipe_id == "kpi_sparkline" else ["fields"], "properties": {
                 "metric": {"type": "object", "required": ["field_guid"]},
                 "date": {"type": "object", "required": ["field_guid"]},
             }},
         }]
+    if recipe.get("renderer") and recipe["technology"] != "selector":
+        schema.setdefault("allOf", []).append({
+            "if": {"required": ["dataset_source"]}, "then": {"required": ["dataset_id", "fields"],
+                "not": {"anyOf": [{"required": [key]} for key in ("source", "direct_source", "prepared_data")]}}
+        })
     sources = (["dataset_id"] if recipe["technology"] == "wizard" else
                ["options"] if recipe["technology"] == "selector" else
-               ["source", "direct_source", "prepared_data"] + (["dataset_id"] if recipe_id in dataset_recipes else []))
+               ["source", "direct_source", "prepared_data", "dataset_source"] + (["dataset_id"] if recipe_id in dataset_recipes else []))
     return {"recipe_id": recipe_id, "technology": recipe["technology"],
             "object_type": recipe["object_type"], "bindings_schema": schema,
             "source_routes": sources,
-            "prepared_data": ({"required": ["value", "previous", "points"],
+            "prepared_data": ({"required": ["value"],
+                               "conditional": "previous when comparison is enabled; points when sparkline is enabled",
                                "points": "Array of date/value objects; preserve null and meaningful zero"}
                               if recipe_id == "kpi_sparkline" else
                               {"required": ["categories", "series"],
@@ -87,7 +95,8 @@ def recipe_contract(recipe_id: str) -> dict[str, Any]:
                               {"validation": "Selected recipe's prepared-data validation applies before materialization"}),
             "dataset_binding": {"fields": "Saved Dataset field readback, including every selected/filter GUID",
                                 "field_references": "Use exact field_guid; preview does not save calculated fields",
-                                "kpi_value_mode": "last or additive sum; periods requires aggregate and explicit current/previous selectors"},
+                                "kpi_value_mode": "last or additive sum; periods requires aggregate and current selector; previous only when effective comparison is enabled",
+                                "kpi_needs": "Effective user/project/explicit presentation controls Sources: current total always, trend only for sparkline, previous total only for comparison. Date remains required for period filters."},
             "artifact_inputs": {
                 "create": {"tool": "dl_object_create", "input": "drafts: typed objects or {artifact_path}; client_ref and depends_on bind batch references"},
                 "static_editor": {"tool": "dl_editor_validate", "input": "draft: {variant, tabs: {filename: source}}; e.g. meta.json, sources.js, prepare.js. For a typed create/compiled artifact use drafts: [{artifact_path}]."},
@@ -109,7 +118,23 @@ def compile_recipe(
     recipes = list_recipes()
     if recipe_id not in recipes:
         raise ValueError(f"unknown recipe_id: {recipe_id}")
-    _validate_prepared_data(recipe_id, bindings)
+    # Resolve the effective visual contract before deciding what data it consumes.
+    recipe = recipes[recipe_id]
+    defaults = get_authoring_defaults(
+        project_root=project_root, family=recipe_id, explicit=presentation,
+        reference=reference, user_config_path=user_config_path,
+    )
+    values = defaults["values"]
+    contract = _apply_profile(recipe["visual_contract"], values)
+    contract = _bind_contract(contract, bindings, defaults["overrides"])
+    if recipe_id == "kpi_sparkline":
+        contract = _kpi_semantics(contract, bindings, defaults["overrides"])
+    _validate_prepared_data(recipe_id, bindings, contract)
+    input_bindings = deepcopy(dict(bindings))
+    if recipe_id == "kpi_sparkline" and contract["comparison"]["enabled"] is False:
+        bindings = {key: value for key, value in bindings.items() if key != "comparison"}
+        if isinstance(bindings.get("periods"), Mapping):
+            bindings["periods"] = {key: value for key, value in bindings["periods"].items() if key != "previous"}
     schema = recipe_contract(recipe_id)["bindings_schema"]
     invalid = next(Draft202012Validator(schema).iter_errors(bindings), None)
     if invalid is not None:
@@ -120,6 +145,14 @@ def compile_recipe(
                     if invalid.validator == "additionalProperties" else
                     "expected " + str(invalid.validator) + ": " + str(invalid.validator_value))
         raise InputContractError(f"{path}: {expected}; dl_authoring_defaults(family={recipe_id}) returns bindings_schema")
+    # Retain the input contract, not generated Sources, so validation recompiles
+    # owned queries after a presentation change instead of trusting stale code.
+    if "dataset_source" in bindings:
+        from datalens_dev_mcp.authoring.dataset_source import named_dataset_source
+
+        if not recipe.get("renderer") or recipe["technology"] == "selector":
+            raise ValueError("dataset_source requires an Editor renderer recipe")
+        bindings = {**bindings, "source": named_dataset_source(bindings)}
     if bindings.get("direct_source") and "source" not in bindings:
         from datalens_dev_mcp.authoring.dataset_source import compile_direct_source
 
@@ -128,10 +161,11 @@ def compile_recipe(
         from datalens_dev_mcp.authoring.dataset_source import matrix_dataset_source
 
         bindings = {**bindings, "source": matrix_dataset_source(bindings)}
-    if recipe_id == "kpi_sparkline" and bindings.get("dataset_id") and "source" not in bindings:
+    if (recipe_id == "kpi_sparkline" and bindings.get("dataset_id")
+            and "source" not in bindings and "prepared_data" not in bindings):
         from datalens_dev_mcp.authoring.dataset_source import kpi_dataset_source
 
-        bindings = {**bindings, "source": kpi_dataset_source(bindings)}
+        bindings = {**bindings, "source": kpi_dataset_source(bindings, contract)}
     if (
         recipe_id == "weekly_totals_table"
         and bindings.get("dataset_id")
@@ -141,22 +175,9 @@ def compile_recipe(
         from datalens_dev_mcp.authoring.dataset_source import weekly_dataset_source
 
         bindings = {**bindings, "source": weekly_dataset_source(bindings)}
-    recipe = recipes[recipe_id]
     missing = [key for key in recipe["required_bindings"] if key not in bindings]
     if missing:
         raise ValueError(f"missing recipe bindings: {', '.join(missing)}")
-    defaults = get_authoring_defaults(
-        project_root=project_root,
-        family=recipe_id,
-        explicit=presentation,
-        reference=reference,
-        user_config_path=user_config_path,
-    )
-    values = defaults["values"]
-    contract = _apply_profile(recipe["visual_contract"], values)
-    contract = _bind_contract(contract, bindings, defaults["overrides"])
-    if recipe_id == "kpi_sparkline":
-        contract = _kpi_semantics(contract, bindings, defaults["overrides"])
     technology = str(recipe["technology"] if defaults["technology_source"] == "generic" else values.get("technology"))
     technology = {
         "advanced-chart_node": "advanced_chart",
@@ -177,7 +198,8 @@ def compile_recipe(
         "recipe_id": recipe_id,
         "technology": technology,
         "object_type": _object_type_for(recipe, technology),
-        "bindings": deepcopy(dict(bindings)),
+        "bindings": (input_bindings if recipe_id == "kpi_sparkline" or "dataset_source" in input_bindings
+                     else deepcopy(dict(bindings))),
         "config": contract,
         "visual_contract": contract,
         "example": deepcopy(recipe["example"]),
@@ -237,6 +259,10 @@ def compile_recipe(
             "object_type": draft["object_type"],
             "visual_contract": contract,
             "renderer_reused": bool(renderer_name),
+            "source_plan": (bindings.get("source") or {}).get("source_plan", {
+                "kind": "custom" if bindings.get("source") else "prepared" if "prepared_data" in bindings else "native",
+                "dependencies": "unverified" if bindings.get("source") else "declared",
+            }),
             "network_calls": 0,
             "datalens_writes": 0,
         },
@@ -567,9 +593,9 @@ def _editor_tabs(
             raise ValueError(
                 "Advanced recipe requires explicit source or prepared_data; no placeholder source is generated"
             )
-        if recipe_id in {"kpi_sparkline", "period_series"}:
+        if recipe_id == "period_series" or (recipe_id == "kpi_sparkline" and contract["kpi"]["sparkline"]):
             temporal = files("datalens_dev_mcp.assets.recipes").joinpath("temporal_prepare.js").read_text(encoding="utf-8")
-            date = dict(bindings.get("date") or {})
+            date = dict(bindings["date"]) if isinstance(bindings.get("date"), Mapping) else {}
             if (bindings.get("comparison") or {}).get("alignment") == "ordinal":
                 date.setdefault("mode", "ordinal")
             prepared = (
@@ -589,7 +615,8 @@ def _editor_tabs(
     return tabs
 
 
-def _validate_prepared_data(recipe_id: str, bindings: Mapping[str, Any]) -> None:
+def _validate_prepared_data(recipe_id: str, bindings: Mapping[str, Any],
+                            contract: Mapping[str, Any] | None = None) -> None:
     prepared = bindings.get("prepared_data")
     if not isinstance(prepared, Mapping) or not prepared:
         return
@@ -627,10 +654,14 @@ def _validate_prepared_data(recipe_id: str, bindings: Mapping[str, Any]) -> None
                 raise ValueError("period_series periods must be aligned with categories")
         return
     if recipe_id == "kpi_sparkline":
-        required = {"value", "previous", "points"}
+        comparison = (contract or {}).get("comparison", {}).get("enabled") is not False
+        sparkline = (contract or {}).get("kpi", {}).get("sparkline", True)
+        required = {"value"} | ({"previous"} if comparison else set()) | ({"points"} if sparkline else set())
         if not required.issubset(prepared):
-            raise ValueError("kpi_sparkline prepared_data requires value, previous and points")
-        points = prepared["points"]
+            names = [key for key in ("value", "previous", "points") if key in required]
+            expected = ", ".join(names[:-1]) + " and " + names[-1] if len(names) > 1 else names[0]
+            raise ValueError("kpi_sparkline prepared_data requires " + expected)
+        points = prepared.get("points", []) if sparkline else []
         if not isinstance(points, list) or any(
             not isinstance(point, Mapping) or "date" not in point or "value" not in point for point in points
         ):

@@ -6,7 +6,12 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
-_FILTER_OPERATIONS = frozenset({"IN", "NOT_IN", "EQ", "NE", "BETWEEN", "GT", "GTE", "LT", "LTE"})
+_FILTER_OPERATIONS = frozenset({"IN", "NIN", "EQ", "NE", "BETWEEN", "GT", "GTE", "LT", "LTE"})
+
+
+def _filter_operation(value: Any) -> str:
+    operation = str(value or "IN").upper()
+    return "NIN" if operation == "NOT_IN" else operation
 
 
 def _field_index(bindings: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
@@ -33,19 +38,37 @@ def _dataset_query(
     selector_contracts: list[dict[str, Any]] = []
     params: dict[str, list[str]] = {}
     by_guid = _field_index(bindings)
+    filters = []
+    for item in bindings.get("filters") or []:
+        guid, operation = item.get("field_guid"), _filter_operation(item.get("operation"))
+        if guid not in by_guid or operation not in _FILTER_OPERATIONS or not isinstance(item.get("values"), list):
+            raise ValueError("Dataset filters require known field_guid, supported operation and values")
+        filters.append({"column": by_guid[guid]["title"], "type": "title", "operation": operation,
+                        "values": item["values"]})
+    order_by = []
+    for item in bindings.get("sort") or []:
+        guid, direction = item.get("field_guid"), item.get("direction")
+        if guid not in by_guid or direction not in {"asc", "desc"}:
+            raise ValueError("Dataset sort requires known field_guid and asc/desc direction")
+        order_by.append({"column": by_guid[guid]["title"], "direction": direction.upper()})
     for selector in selectors:
         if not isinstance(selector, Mapping):
             raise TypeError("selector binding must be an object")
         name = selector.get("param_name")
         guid = selector.get("field_guid")
         empty = selector.get("empty_selection")
-        operation = str(selector.get("operation") or "IN").upper()
+        operation = _filter_operation(selector.get("operation"))
         if not isinstance(name, str) or not name or not isinstance(guid, str) or guid not in by_guid:
             raise ValueError("selector binding requires param_name and a known field_guid")
         if empty not in {"all", "none", "error"}:
             raise ValueError("selector empty_selection must be all, none or error")
         if operation not in _FILTER_OPERATIONS:
             raise ValueError(f"unsupported Dataset filter operation: {operation}")
+        window = selector.get("window")
+        if window is not None and (not isinstance(window, Mapping) or operation != "BETWEEN" or empty != "error"
+                                   or type(window.get("days")) is not int or window["days"] < 1
+                                   or type(window.get("offset_days", 0)) is not int):
+            raise ValueError("Dataset window requires positive days, integer offset_days, BETWEEN and empty_selection=error")
         default = selector.get("default")
         values = default if isinstance(default, list) else ([] if default is None else [default])
         params[name] = [str(value).lower() if isinstance(value, bool) else str(value)
@@ -57,6 +80,7 @@ def _dataset_query(
                 "type": "title",
                 "operation": operation,
                 "empty_selection": empty,
+                **({"window": dict(window)} if window is not None else {}),
             }
         )
     dataset_parameters = bindings.get("dataset_parameters") or []
@@ -78,16 +102,24 @@ def _dataset_query(
         params[name] = [str(value).lower() if isinstance(value, bool) else str(value) for value in values]
         parameter_contracts.append({"id": identifier, "param_name": name})
     sources = "const {buildSource} = require('libs/dataset/v2');\n"
-    sources += "const params = Editor.getParams();\nconst where = [];\n"
+    sources += "const params = Editor.getParams();\nconst where = " + json.dumps(filters, ensure_ascii=False) + ";\n"
     sources += "const selectorContracts = " + json.dumps(selector_contracts, ensure_ascii=False) + ";\n"
     sources += "for (const selector of selectorContracts) {\n"
     sources += "  const rawValue = params[selector.param_name];\n"
     sources += (
         "  const rawValues = Array.isArray(rawValue) ? rawValue : [rawValue];\n"
-        "  const values = rawValues.filter(value => value !== null && value !== undefined && value !== '')"
+        "  let values = rawValues.filter(value => value !== null && value !== undefined && value !== '')"
         ".map(String);\n"
     )
     sources += "  if (!values.length && selector.empty_selection === 'error') throw new Error('selector value is required: ' + selector.param_name);\n"
+    if any(selector.get("window") for selector in selector_contracts):
+        sources += """  if (selector.window) {
+    if (values.length !== 2 || values.some(v => !/^\\d{4}-\\d{2}-\\d{2}$/.test(v) || !Number.isFinite(Date.parse(v)) || new Date(v).toISOString().slice(0,10) !== v) || values[0] > values[1])
+      throw new Error('window selector requires two ordered ISO dates: ' + selector.param_name);
+    const end = Date.parse(values[1]) + (selector.window.offset_days || 0) * 86400000;
+    values = [end - (selector.window.days - 1) * 86400000, end].map(t => new Date(t).toISOString().slice(0,10));
+  }
+"""
     sources += "  if (values.length || selector.empty_selection === 'none') where.push({column: selector.column, type: selector.type, operation: selector.operation, values});\n}\n"
     sources += "const datasetParameters = " + json.dumps(parameter_contracts, ensure_ascii=False) + ".map(item => {\n"
     sources += "  const raw = params[item.param_name];\n"
@@ -101,7 +133,10 @@ def _dataset_query(
     alias = json.dumps(source_alias)
     sources += "module.exports = {" + alias + ": buildSource({id: Editor.getId('dataset'), columns: "
     sources += json.dumps(query["columns"], ensure_ascii=False) + ", where, parameters: datasetParameters, limit: "
-    sources += str(query["limit"]) + "})};\n"
+    sources += str(query["limit"])
+    if order_by:
+        sources += ", order_by: " + json.dumps(order_by, ensure_ascii=False)
+    sources += "})};\n"
     prelude = "const loaded = Editor.getLoadedData();\n"
     prelude += "if (!loaded || !Object.prototype.hasOwnProperty.call(loaded, " + alias + ")) throw new Error('source alias is missing: ' + " + alias + ");\n"
     prelude += "const sourceEvents = loaded[" + alias + "];\n"
@@ -111,6 +146,13 @@ def _dataset_query(
         "sources_js": sources,
         "params": params,
         "prepare_prelude": prelude,
+        "source_plan": {"kind": "dataset", "upstream_cost": "unverified", "queries": [{
+            "alias": source_alias, "role": bindings.get("source_role", source_alias),
+            "fields": [{"field_guid": guid, "title": by_guid[guid]["title"],
+                        "aggregation": by_guid[guid].get("aggregation", "unknown")} for guid in guids],
+            "filters": filters, "selectors": selector_contracts, "dataset_parameters": parameter_contracts,
+            "sort": order_by, "limit": limit,
+        }]},
     }
 
 
@@ -153,22 +195,45 @@ module.exports = {rows: preparedRows, state: preparedRows.length ? 'ready' : 'no
     return {"meta": query["meta"], "sources_js": query["sources_js"], "params": query["params"], "prepare_js": prepare}
 
 
-def kpi_dataset_source(bindings: Mapping[str, Any]) -> dict[str, Any]:
+def kpi_dataset_source(bindings: Mapping[str, Any], presentation: Mapping[str, Any] | None = None) -> dict[str, Any]:
     if "periods" in bindings:
-        return _period_kpi_source(bindings)
+        return _period_kpi_source(bindings, presentation)
     mode = bindings.get("value_mode")
     if mode not in {"last", "sum"}:
         raise ValueError("KPI Dataset binding requires explicit value_mode: last or sum")
     if mode == "sum" and (bindings.get("metric") or {}).get("additive") is not True:
         raise ValueError("sum requires an explicitly additive metric")
-    source = matrix_dataset_source({**bindings, "rows": [bindings.get("date")]})
-    transform = source["prepare_js"]
-    source["prepare_js"] = (
-        "const prepared = (() => { const module = {exports: {}};\n" + transform + "\nreturn module.exports; })();\n"
-    )
+    comparison = (presentation or {}).get("comparison", {}).get("enabled") is not False
+    sparkline = (presentation or {}).get("kpi", {}).get("sparkline", True)
+    by_guid = _field_index(bindings)
+    roles = ["date", "metric"] + (["comparison"] if comparison else [])
+    guids = []
+    for role in roles:
+        reference = bindings.get(role)
+        if not isinstance(reference, Mapping) or reference.get("field_guid") not in by_guid:
+            raise ValueError(f"KPI {role} requires a known Dataset field_guid")
+        guids.append(reference["field_guid"])
+    titles = [by_guid[guid].get("title") for guid in guids]
+    if any(not isinstance(title, str) or not title for title in titles) or len(set(titles)) != len(titles):
+        raise ValueError("KPI requires distinct Dataset titles")
+    query = _dataset_query(bindings, guids, titles)
+    source = {key: query[key] for key in ("meta", "sources_js", "params", "source_plan")}
+    source["prepare_js"] = query["prepare_prelude"] + "const Dataset = require('libs/dataset/v2');\n"
+    source["prepare_js"] += "const names = " + json.dumps(titles, ensure_ascii=False) + ";\n"
+    source["prepare_js"] += """const number = value => {
+  if (value === null || value === undefined || value === '') return null;
+  if (!Number.isFinite(Number(value))) throw new Error('KPI metric must be numeric');
+  return Number(value);
+};
+const sourceRows = Dataset.getDatasetRows({datasetName: 'source'});
+"""
+    source["prepare_js"] += "if (sourceRows.length >= " + str(bindings.get("source_limit", 1000)) + ") throw new Error('KPI rows may be truncated; increase source_limit');\n"
+    source["prepare_js"] += "const rows = sourceRows.map(row => ({label: row[names[0]], timestamp: Date.parse(row[names[0]]), current: number(row[names[1]])"
+    if comparison:
+        source["prepare_js"] += ", previous: number(row[names[2]])"
+    source["prepare_js"] += "}));\n"
     source["prepare_js"] += "const mode = " + json.dumps(mode) + ";\n"
-    source["prepare_js"] += """const rows = prepared.rows.map(row => ({...row, timestamp: Date.parse(row.label)}));
-if (rows.some(row => !Number.isFinite(row.timestamp))) throw new Error('KPI dates must be parseable dates');
+    source["prepare_js"] += """if (rows.some(row => !Number.isFinite(row.timestamp))) throw new Error('KPI dates must be parseable dates');
 rows.sort((a, b) => a.timestamp - b.timestamp);
 if (new Set(rows.map(row => row.timestamp)).size !== rows.length) throw new Error('KPI requires one row per date');
 const summary = key => {
@@ -177,21 +242,24 @@ const summary = key => {
   if (rows.some(row => row[key] === null)) return null;
   return rows.reduce((total, row) => total + row[key], 0);
 };
-module.exports = {value: summary('current'), previous: summary('previous'),
-  points: rows.map(row => ({date: row.label, value: row.current})),
-  current_period: rows.length ? rows[rows.length - 1].label : '',
-  previous_period: rows.length ? rows[rows.length - 1].label : '',
-  state: rows.length ? 'ready' : 'no_data'};
 """
+    source["prepare_js"] += "const value = summary('current');\nmodule.exports = {value, "
+    if comparison:
+        source["prepare_js"] += "previous: summary('previous'), previous_period: rows.length ? rows[rows.length - 1].label : '', "
+    if sparkline:
+        source["prepare_js"] += "points: rows.map(row => ({date: row.label, value: row.current})), "
+    source["prepare_js"] += "current_period: rows.length ? rows[rows.length - 1].label : '', state: value === null ? 'no_data' : 'ready'};\n"
     return source
 
 
-def _period_kpi_source(bindings: Mapping[str, Any]) -> dict[str, Any]:
+def _period_kpi_source(bindings: Mapping[str, Any], presentation: Mapping[str, Any] | None = None) -> dict[str, Any]:
     """Use the same Dataset/filter compiler for both totals and the current trend."""
     from datalens_dev_mcp.dataset.contracts import calculation_level
 
     if bindings.get("value_mode") != "aggregate":
         raise ValueError("period KPI requires value_mode=aggregate; Dataset owns period totals")
+    comparison = (presentation or {}).get("comparison", {}).get("enabled") is not False
+    sparkline = (presentation or {}).get("kpi", {}).get("sparkline", True)
     by_guid = _field_index(bindings)
     roles = [bindings.get("date"), bindings.get("metric")]
     if any(not isinstance(role, Mapping) or role.get("field_guid") not in by_guid for role in roles):
@@ -202,29 +270,31 @@ def _period_kpi_source(bindings: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("period KPI requires distinct date and metric titles from Dataset readback")
     if calculation_level(by_guid[metric_guid]) != "aggregate":
         raise ValueError("period KPI requires a Dataset aggregate measure; row, window and LOD totals need explicit source semantics")
-    if (bindings.get("comparison") or {}).get("field_guid", metric_guid) != metric_guid:
+    if comparison and (bindings.get("comparison") or {}).get("field_guid", metric_guid) != metric_guid:
         raise ValueError("period KPI compares the same Dataset measure across both periods")
     periods = bindings["periods"]
-    if not isinstance(periods, Mapping) or set(periods) != {"current", "previous"}:
-        raise ValueError("periods requires current and previous selector bindings")
+    required_periods = ["current", "previous"] if comparison else ["current"]
+    if not isinstance(periods, Mapping) or any(name not in periods for name in required_periods):
+        raise ValueError("periods requires " + " and ".join(required_periods) + " selector bindings")
     common_selectors = bindings.get("selectors") or []
     if not isinstance(common_selectors, list):
         raise TypeError("selectors must be a list")
     used = {item.get("param_name") for item in [*common_selectors, *(bindings.get("dataset_parameters") or [])]
             if isinstance(item, Mapping)}
     selectors = {}
-    for name, period in periods.items():
+    for name in required_periods:
+        period = periods[name]
         if (not isinstance(period, Mapping) or not isinstance(period.get("param_name"), str)
                 or not period["param_name"] or period["param_name"] in used):
             raise ValueError("period selectors require distinct param_name values, separate from common filters and Dataset parameters")
         used.add(period["param_name"])
         selectors[name] = {**period, "field_guid": date_guid, "operation": "BETWEEN", "empty_selection": "error"}
     queries = {}
-    for alias, period, guids, columns in (
-        ("source", "current", [date_guid, metric_guid], titles),
-        ("current_total", "current", [metric_guid], [titles[1]]),
-        ("previous_total", "previous", [metric_guid], [titles[1]]),
-    ):
+    needs = ([("source", "current", [date_guid, metric_guid], titles)] if sparkline else [])
+    needs.append(("current_total", "current", [metric_guid], [titles[1]]))
+    if comparison:
+        needs.append(("previous_total", "previous", [metric_guid], [titles[1]]))
+    for alias, period, guids, columns in needs:
         queries[alias] = _dataset_query(
             {**bindings, "selectors": [*common_selectors, selectors[period]]}, guids, columns, source_alias=alias,
         )
@@ -238,8 +308,7 @@ def _period_kpi_source(bindings: Mapping[str, Any]) -> dict[str, Any]:
     prepare = "\n".join("{\n" + query["prepare_prelude"] + "}\n" for query in queries.values())
     prepare += "const Dataset = require('libs/dataset/v2');\n"
     prepare += "const names = " + json.dumps(titles, ensure_ascii=False) + ";\n"
-    prepare += "const limit = " + str(bindings.get("source_limit", 1000)) + ";\n"
-    prepare += "const periodParams = " + json.dumps([selectors[key]["param_name"] for key in ("current", "previous")]) + ";\n"
+    prepare += "const periodParams = " + json.dumps([selectors[key]["param_name"] for key in required_periods]) + ";\n"
     prepare += """const number = value => {
   if (value === null || value === undefined || value === '') return null;
   if (!Number.isFinite(Number(value))) throw new Error('KPI metric must be numeric');
@@ -250,20 +319,75 @@ const total = alias => {
   if (rows.length > 1) throw new Error('KPI period total requires one aggregate row: ' + alias);
   return rows.length ? number(rows[0][names[1]]) : null;
 };
-const rows = Dataset.getDatasetRows({datasetName: 'source'});
+"""
+    if sparkline:
+        prepare += "const limit = " + str(bindings.get("source_limit", 1000)) + ";\n"
+        prepare += """const rows = Dataset.getDatasetRows({datasetName: 'source'});
 if (rows.length >= limit) throw new Error('KPI trend may be truncated; increase source_limit');
 const points = rows.map(row => ({date: row[names[0]], value: number(row[names[1]])}));
 points.sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
 if (points.some(point => !Number.isFinite(Date.parse(point.date))) ||
     new Set(points.map(point => Date.parse(point.date))).size !== points.length)
   throw new Error('KPI requires one row per parseable date');
-const params = Editor.getParams();
-const periodLabel = name => (Array.isArray(params[name]) ? params[name] : [params[name]]).join(' — ');
-module.exports = {value: total('current_total'), previous: total('previous_total'), points,
-  current_period: periodLabel(periodParams[0]), previous_period: periodLabel(periodParams[1]),
-  state: rows.length ? 'ready' : 'no_data'};
 """
-    return {"meta": queries["source"]["meta"], "sources_js": sources, "prepare_js": prepare, "params": params}
+    prepare += """const params = Editor.getParams();
+const periodLabel = name => (Array.isArray(params[name]) ? params[name] : [params[name]]).join(' — ');
+const value = total('current_total');
+"""
+    prepare += "module.exports = {value, current_period: periodLabel(periodParams[0]), "
+    if comparison:
+        prepare += "previous: total('previous_total'), previous_period: periodLabel(periodParams[1]), "
+    if sparkline:
+        prepare += "points, "
+    prepare += "state: value === null ? 'no_data' : 'ready'};\n"
+    plan = {"kind": "dataset", "upstream_cost": "unverified", "queries": []}
+    for alias, period, _, _ in needs:
+        item = queries[alias]["source_plan"]["queries"][0]
+        item.update(role="trend" if alias == "source" else alias, period=period)
+        plan["queries"].append(item)
+    return {"meta": queries["current_total"]["meta"], "sources_js": sources, "prepare_js": prepare, "params": params,
+            "source_plan": plan}
+
+
+def named_dataset_source(bindings: Mapping[str, Any]) -> dict[str, Any]:
+    """Compile explicit per-consumer projections; the caller owns calculation semantics.
+
+    Each alias has its own filters, including deliberately unfiltered denominators.
+    No dependencies are inferred from arbitrary SQL or the supplied Prepare code.
+    """
+    by_guid = _field_index(bindings)
+    specification = bindings["dataset_source"]
+    queries, params = {}, {}
+    for item in specification["queries"]:
+        alias, guids = item["alias"], item["field_guids"]
+        if alias in queries:
+            raise ValueError("Dataset source aliases must be distinct")
+        if any(guid not in by_guid for guid in guids):
+            raise ValueError(f"Dataset query {alias} requires known field GUIDs")
+        titles = [by_guid[guid].get("title") for guid in guids]
+        if any(not isinstance(title, str) or not title for title in titles) or len(set(titles)) != len(titles):
+            raise ValueError("Dataset queries require distinct field titles")
+        query = _dataset_query(
+            {"dataset_id": bindings["dataset_id"], "fields": bindings["fields"],
+             "selectors": item.get("selectors", []), "filters": item.get("filters", []),
+             "dataset_parameters": item.get("dataset_parameters", []), "sort": item.get("sort", []),
+             "source_limit": item.get("limit", 1000), "source_role": item["role"]},
+            guids, titles, source_alias=alias,
+        )
+        for name, default in query["params"].items():
+            if name in params and params[name] != default:
+                raise ValueError(f"Dataset query parameter defaults conflict: {name}")
+            params[name] = default
+        queries[alias] = query
+    sources = "module.exports = Object.assign({},\n" + ",\n".join(
+        "(() => { const module = {exports: {}};\n" + query["sources_js"] + "\nreturn module.exports; })()"
+        for query in queries.values()
+    ) + ");\n"
+    prepare = "\n".join("{\n" + query["prepare_prelude"] + "}\n" for query in queries.values())
+    return {"meta": {"links": {"dataset": bindings["dataset_id"]}}, "sources_js": sources,
+            "prepare_js": prepare + specification["prepare_js"], "params": params,
+            "source_plan": {"kind": "dataset", "upstream_cost": "unverified", "prepare_dependencies": "explicit_custom",
+                            "queries": [item for query in queries.values() for item in query["source_plan"]["queries"]]}}
 
 
 def weekly_dataset_source(bindings: Mapping[str, Any]) -> dict[str, Any]:

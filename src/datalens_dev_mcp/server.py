@@ -277,7 +277,7 @@ def dl_compile_recipe(
         "recipe_id": result["recipe_id"],
         "summary": {
             key: summary[key]
-            for key in ("technology", "object_type", "renderer_reused", "network_calls", "datalens_writes")
+            for key in ("technology", "object_type", "renderer_reused", "source_plan", "network_calls", "datalens_writes")
         },
         "profile": {key: result["defaults"][key] for key in ("profile_version", "applied_sources", "conflicts")},
         "placement": result["draft"]["placement"],

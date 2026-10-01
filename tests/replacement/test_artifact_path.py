@@ -65,7 +65,9 @@ def test_mcp_compile_response_is_a_compact_handle(tmp_path, monkeypatch):
         "renderer_reused",
         "network_calls",
         "datalens_writes",
+        "source_plan",
     }
+    assert result["summary"]["source_plan"] == {"kind": "custom", "dependencies": "unverified"}
     assert len(json.dumps(result)) < 1_000
     assert len(json.dumps(resolve_artifact(result["draft_reference"]))) > len(json.dumps(result)) * 5
 

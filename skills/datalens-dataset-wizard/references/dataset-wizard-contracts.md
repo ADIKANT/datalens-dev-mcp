@@ -56,6 +56,8 @@ Before changing a formula or relative-date filter, read the exact field GUIDs an
 
 ## Current source readiness
 
+Source specialization has three separate costs: requests declared by the chart, physical Dataset SQL work, and Prepare work after loading. Returning fewer fields does not prove fewer physical scans or removed joins/CTEs. Use the actual request/SQL and available read-only plan/metrics; never assume universal CTE materialization. Preserve date/filter/sort fields even when they are not returning columns. Non-additive KPI totals need source aggregation without an accidental daily grain; distinct actor windows need their union, and ratio/Apdex measures need correct weights and denominators. Keep global daily denominators independent of team selection/top-N. A narrow recent-detail query retains its ordering/tie-breaker and exact requested limit. Do not change connections, credentials, RLS, physical DWH objects or share a result cache across users as an optimization shortcut. Existing Editor consumers may use [explicit Dataset query bindings](../../datalens-editor/references/editor-authoring.md#explicit-dataset-query-needs); preserve Wizard technology for native consumers.
+
 For upstream-dependent metrics, establish the contract in the connection actually used by the target. A repository column, merge, release promotion or green CI is implementation evidence, not proof of a changed physical source. Use addressed metadata and a small real query; report a missing query capability or denied access as unverified, not as an absent field.
 
 | Evidence | Establish before depending on it |

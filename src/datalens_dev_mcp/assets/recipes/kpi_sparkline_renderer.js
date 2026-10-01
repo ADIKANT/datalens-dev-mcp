@@ -7,22 +7,24 @@ module.exports = function renderKpi(data, config) {
   const unit = ['from_field', 'count'].includes(config.labels.unit) ? '' : String(config.labels.unit || '');
   const precision = Number.isInteger(config.labels.precision) ? Math.max(0, Math.min(10, config.labels.precision)) : 0;
   const format = value => numeric(value) ? (value * scale).toFixed(precision).split('.').map((part, index) => index === 0 ? part.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') : part).join('.') : '—';
-  const valid = numeric(data && data.value) && numeric(data && data.previous);
-  const difference = valid ? data.value - data.previous : null;
+  const comparisonEnabled = !config.comparison || config.comparison.enabled !== false;
+  const previous = comparisonEnabled && data ? data.previous : null;
+  const valid = comparisonEnabled && numeric(data && data.value) && numeric(previous);
+  const difference = valid ? data.value - previous : null;
   const kind = semantic.delta_kind || 'relative';
   // Relative change deliberately uses abs(previous), including negative baselines.
-  const delta = !valid ? null : kind === 'relative' ? (data.previous === 0 ? null : difference / Math.abs(data.previous) * 100) : difference * scale;
+  const delta = !valid ? null : kind === 'relative' ? (previous === 0 ? null : difference / Math.abs(previous) * 100) : difference * scale;
   const deltaUnit = kind === 'relative' ? '%' : kind === 'percentage_points' ? ' pp' : unit ? ' ' + unit : '';
   const rounded = numeric(delta) ? kind === 'absolute' ? delta.toFixed(precision) : String(Math.round(delta * 10) / 10) : null;
   const deltaText = rounded === null ? 'n/a' : (delta > 0 ? '+' : '') + rounded + deltaUnit;
   const direction = semantic.direction === 'higher_is_better' ? 1 : semantic.direction === 'lower_is_better' ? -1 : 0;
   const model = {
-    value: format(data && data.value), previous: format(data && data.previous), unit,
-    comparisonEnabled: !config.comparison || config.comparison.enabled !== false,
+    value: format(data && data.value), previous: format(previous), unit,
+    comparisonEnabled,
     deltaText, assessment: numeric(delta) ? Math.sign(delta) * direction : 0,
     reason: !valid ? 'Missing comparison' : !numeric(delta) ? 'Undefined: previous = 0' : deltaText,
     rawValue: numeric(data && data.value) ? String(data.value) + (semantic.value_scale === 'fraction' ? ' (fraction)' : unit ? ' ' + unit : '') : '—',
-    rawPrevious: numeric(data && data.previous) ? String(data.previous) + (semantic.value_scale === 'fraction' ? ' (fraction)' : unit ? ' ' + unit : '') : '—'
+    rawPrevious: numeric(previous) ? String(previous) + (semantic.value_scale === 'fraction' ? ' (fraction)' : unit ? ' ' + unit : '') : '—'
   };
   return {
     render: Editor.wrapFn({
@@ -79,7 +81,7 @@ module.exports = function renderKpi(data, config) {
             + '<div data-id="kpi-previous" style="font-size:' + previousSize + 'px;line-height:' + (previousSize + 2)
             + 'px;color:' + muted + ';font-weight:700;letter-spacing:-0.02em">' + escape(model.previous)
             + (unit && numeric(prepared.previous) ? ' <small>' + escape(unit) + '</small>' : '') + '</div>' : '') + '</div>';
-          const points = Array.isArray(prepared.points) ? prepared.points : [];
+          const points = presentation.kpi.sparkline !== false && Array.isArray(prepared.points) ? prepared.points : [];
           const values = points.map(p => p && typeof p === 'object' ? p.value : p);
           const finite = values.filter(numeric);
           if (finite.length) {
@@ -134,7 +136,7 @@ module.exports = function renderKpi(data, config) {
             return Editor.generateHtml('<div style="padding:10px 12px;max-width:280px;border-radius:12px;background:rgba(17,24,39,.96);color:#F9FAFB;box-shadow:0 12px 28px rgba(15,23,42,.28)"><strong>'
               + escape(presentation.visible_title.text) + '</strong><div>' + escape(text) + '</div></div>');
           }
-          if (id.indexOf('sparkline-point-') === 0) {
+          if (presentation.kpi.sparkline !== false && id.indexOf('sparkline-point-') === 0) {
             const index = Number(id.slice('sparkline-point-'.length));
             const point = (prepared.points || [])[index];
             const value = point && typeof point === 'object' ? point.value : point;
@@ -144,17 +146,15 @@ module.exports = function renderKpi(data, config) {
           }
           if (id !== 'kpi-value' && id !== 'kpi-delta' && id !== 'kpi-previous') return '';
           if (!model.comparisonEnabled && id !== 'kpi-value') return '';
-          const value = prepared.value;
-          const previous = prepared.previous;
           return Editor.generateHtml('<div style="padding:10px;min-width:220px">'
-            + '<div><strong>Current</strong> ' + escape(prepared.current_period || '') + ': '
+            + '<div><strong>' + (model.comparisonEnabled ? 'Current' : 'Period') + '</strong> ' + escape(prepared.current_period || '') + ': '
             + escape(model.value) + (unit ? ' ' + escape(unit) : '') + '</div>'
             + (model.comparisonEnabled ? '<div><strong>Previous</strong> ' + escape(prepared.previous_period || '') + ': '
             + escape(model.previous) + (unit ? ' ' + escape(unit) : '') + '</div>'
             + '<div><strong>Change</strong>: ' + escape(model.deltaText) + '</div>'
             + '<div>' + escape(model.reason) + '</div>' : '')
-            + '<div><strong>Raw current</strong>: ' + escape(model.rawValue) + '</div>'
-            + (model.comparisonEnabled ? '<div><strong>Raw previous</strong>: ' + escape(model.rawPrevious) + '</div>' : '') + '</div>');
+            + (presentation.tooltip.raw_values ? '<div><strong>Raw value</strong>: ' + escape(model.rawValue) + '</div>' : '')
+            + (presentation.tooltip.raw_values && model.comparisonEnabled ? '<div><strong>Raw previous</strong>: ' + escape(model.rawPrevious) + '</div>' : '') + '</div>');
         },
         args: [data, config, model]
       })
