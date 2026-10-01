@@ -11,6 +11,7 @@ def render(value, previous, *, comparison_enabled=True, tooltip_target='kpi-delt
     config = list_recipes()['kpi_sparkline']['visual_contract']
     config['kpi'].update(semantics)
     config['comparison']['enabled'] = comparison_enabled
+    config['tooltip']['raw_values'] = True  # Explicit precision diagnostics.
     config['labels'].update(unit='%' if semantics.get('value_scale') else 'ms', precision=1)
     data = {'value': value, 'previous': previous, 'points': [{'date': 'day', 'value': value}]}
     source = files('datalens_dev_mcp.assets.recipes').joinpath('kpi_sparkline_renderer.js').read_text()

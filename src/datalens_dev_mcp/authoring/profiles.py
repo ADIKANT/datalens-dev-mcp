@@ -73,6 +73,13 @@ def get_authoring_defaults(
         if explicit and (explicit.get("labels") or {}).get("visible"):
             raise ValueError("presentation/labels: selector has no metric labels")
         values["labels"]["visible"] = False
+    if family and family != "period_series":
+        for section, keys in (("axes_gridlines", ("x_labels", "y_labels")),
+                              ("labels", ("percent_precision", "small_percent", "stack_totals"))):
+            unsupported = set(keys).intersection(values.get(section, {}))
+            if unsupported:
+                raise ValueError(f"presentation/{section}/{sorted(unsupported)[0]}: supported by period_series; "
+                                 "preserve other chart technologies and use their explicit custom path")
     return {
         "ok": True,
         "family": family,
@@ -182,8 +189,8 @@ def _validate_presentation(value: Mapping[str, Any]) -> None:
     shapes = {
         "visible_title": {"owner", "visible", "text"},
         "hint": {"owner", "enabled", "text", "content"},
-        "axes_gridlines": {"x_grid", "y_grid", "zero_baseline", "range", "ticks", "reason"},
-        "labels": {"visible", "precision", "unit", "sign", "abbreviation", "collision", "position"},
+        "axes_gridlines": {"x_grid", "y_grid", "zero_baseline", "range", "ticks", "reason", "x_labels", "y_labels"},
+        "labels": {"visible", "precision", "unit", "sign", "abbreviation", "collision", "position", "percent_precision", "small_percent", "stack_totals"},
         "dashboard": {"hide_dash_title"},
     }
     registry = _registry()
@@ -205,9 +212,17 @@ def _validate_presentation(value: Mapping[str, Any]) -> None:
             raise ValueError(f"presentation/{key}/{extra}: unsupported visual field")
     for key, field in (("visible_title", "visible"), ("hint", "enabled"), ("labels", "visible"),
                        ("axes_gridlines", "x_grid"), ("axes_gridlines", "y_grid"), ("dashboard", "hide_dash_title"),
-                       ("tooltip", "hide_null"), ("tooltip", "hide_zero_multi"), ("legend", "hide_empty_series")):
+                       ("tooltip", "hide_null"), ("tooltip", "hide_zero_multi"), ("legend", "hide_empty_series"),
+                       ("kpi", "sparkline"), ("tooltip", "raw_values")):
         if field in value.get(key, {}) and type(value[key][field]) is not bool:
             raise ValueError(f"presentation/{key}/{field}: expected a boolean")
+    for key, field in (("axes_gridlines", "x_labels"), ("axes_gridlines", "y_labels"),
+                       ("labels", "small_percent"), ("labels", "stack_totals")):
+        if field in value.get(key, {}) and type(value[key][field]) is not bool:
+            raise ValueError(f"presentation/{key}/{field}: expected a boolean")
+    precision = value.get("labels", {}).get("percent_precision")
+    if precision is not None and (type(precision) is not int or not 0 <= precision <= 6):
+        raise ValueError("presentation/labels/percent_precision: expected integer from 0 to 6")
     enabled = value.get("comparison", {}).get("enabled")
     if enabled is not None and type(enabled) is not bool:
         raise ValueError("presentation/comparison/enabled: expected boolean or null")

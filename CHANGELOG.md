@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.24
+
+- Compile KPI Sources from effective presentation: current aggregate always, trend only for sparkline, and previous aggregate only for comparison; preserve aggregate grain, missing values and full legacy bindings.
+- Support explicit per-alias Dataset fields, filters, rolling windows, parameters, order and limits through the existing recipe compiler, with a compact declared source plan and unchanged custom code.
+- Add period-series axis-label, percentage and stack-total options; preserve decimal precision in tooltips and place clustered line labels in numeric order using available space.
+- Keep KPI raw diagnostic values opt-in and align authoring guidance on source cost, semantic checks, narrow edits and custom-renderer exceptions.
+
 ## 1.2.23
 
 - Prove scoped cleanup from candidate relations and direct preserve roots without traversing unrelated dependency branches; retain complete evidence, consumer ordering and fresh apply guards.

@@ -61,7 +61,8 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
         }
         let rendered = '';
         if (format === 'percent') {
-          rendered = `${groupedFixed(numeric, 1)}%`;
+          rendered = presentation.labels.small_percent && numeric > 0 && numeric < 1 ? '<1%'
+            : `${groupedFixed(numeric, presentation.labels.percent_precision ?? 1)}%`;
         } else if (/^decimal[0-6]$/.test(format)) {
           rendered = groupedFixed(numeric, Number(format.slice(7)));
         } else {
@@ -231,14 +232,16 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
           (longest, label) => Math.max(longest, String(label).length),
           1
         );
-        const hasRightAxis = series.some(item => item.axis === 'right');
+        const showNumericLabels = presentation.axes_gridlines.y_labels !== false;
+        const showCategoryLabels = presentation.axes_gridlines.x_labels !== false;
+        const hasRightAxis = showNumericLabels && series.some(item => item.axis === 'right');
         const rightFormat = data.secondaryFormat || series.find(item => item.axis === 'right')?.format || 'integer';
         const rightLabelWidth = hasRightAxis ? Math.max(...secondaryScale.ticks.map(v => numberText(v, rightFormat, '').length)) * 6.7 + 12 : 0;
         const plot = {
-          left: Math.max(22, longestYLabel * 6.7 + 12),
+          left: showNumericLabels ? Math.max(22, longestYLabel * 6.7 + 12) : 10,
           right: Math.max(10, rightLabelWidth, 31 - width / Math.max(1, categories.length) / 2),
           top: presentation.labels.visible ? 21 : 8,
-          bottom: 28
+          bottom: showCategoryLabels ? 28 : 10
         };
         const plotWidth = Math.max(1, width - plot.left - plot.right);
         const plotHeight = Math.max(20, height - plot.top - plot.bottom);
@@ -308,7 +311,7 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
               else negativeTotal = end;
             });
             [positiveTotal, negativeTotal].forEach(stackedTotal => {
-              if (!presentation.labels.visible || stackedTotal === 0 || bars.length <= 1 || !barLabelIndices[categoryIndex]) return;
+              if (!presentation.labels.visible || presentation.labels.stack_totals === false || stackedTotal === 0 || bars.length <= 1 || !barLabelIndices[categoryIndex]) return;
               const labelY = stackedTotal > 0 ? Math.max(13, scaleY(stackedTotal) - 7)
                 : Math.min(height - plot.bottom + 16, scaleY(stackedTotal) + 15);
               if (!reserveLabel(centerX, labelY, numberText(stackedTotal, data.primaryFormat || 'integer', ''))) return;
@@ -352,7 +355,8 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
           return segments;
         }
 
-        lines.forEach((item, lineIndex) => {
+        const lineLabels = categories.map(() => []);
+        lines.forEach(item => {
           const itemColor = themedColor(item.color);
           const comparisonColor = themedColor(item.comparisonColor || item.color);
           const scale = item.axis === 'right' ? secondaryScale : primaryScale;
@@ -374,54 +378,39 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
           });
           const points = segments.reduce((all, segment) => all.concat(segment), []);
           const pointLabelIndices = valueLabelIndexSet(item.values || [], dataLabelCapacity);
-          const defaultLabelOffset = lines.length > 1 ? (lineIndex % 2 === 0 ? -10 : 17) : -9;
-          const labelOffset = Number.isFinite(Number(item.labelOffsetY)) ? Number(item.labelOffsetY) : defaultLabelOffset;
+          const labelOffset = Number.isFinite(Number(item.labelOffsetY)) ? Number(item.labelOffsetY) : -9;
           points.forEach(point => {
             if (item.showMarkers !== false && (categories.length <= 60 || pointLabelIndices[point.index])) {
               marks += `<circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="3.2" fill="${theme.surface}" stroke="${itemColor}" stroke-width="2.2" />`;
             }
             if (presentation.labels.visible && item.showPointLabels !== false && pointLabelIndices[point.index] && (!presentation.tooltip.hide_zero_multi || lines.length === 1 || point.value !== 0)) {
-              let adjustedLabelOffset = labelOffset;
-              const previousValue = finiteValue(item.values?.[point.index - 1]);
-              const nextValue = finiteValue(item.values?.[point.index + 1]);
-              const isLocalMinimum = previousValue !== null
-                && nextValue !== null
-                && point.value < previousValue
-                && point.value <= nextValue;
-              const isLocalMaximum = previousValue !== null
-                && nextValue !== null
-                && point.value > previousValue
-                && point.value >= nextValue;
-              if (isLocalMinimum) adjustedLabelOffset = 18 + lineIndex * 10;
-              else if (isLocalMaximum) adjustedLabelOffset = -10 - lineIndex * 10;
-              if (bars.length) {
-                let nearestBarTop = zeroY;
-                const belowZero = point.y > zeroY;
-                if (data.stacked) {
-                  const stackedValue = bars.reduce((total, bar) => {
-                    const numeric = finiteValue(bar.values?.[point.index]);
-                    if (numeric === null || (belowZero ? numeric >= 0 : numeric < 0)) return total;
-                    return total + numeric;
-                  }, 0);
-                  nearestBarTop = scaleY(stackedValue);
-                } else {
-                  bars.forEach(bar => {
-                    const numeric = finiteValue(bar.values?.[point.index]);
-                    if (numeric === null) return;
-                    nearestBarTop = belowZero
-                      ? Math.max(nearestBarTop, scaleY(numeric))
-                      : Math.min(nearestBarTop, scaleY(numeric));
-                  });
-                }
-                if (Math.abs(point.y - nearestBarTop) < 24) {
-                  adjustedLabelOffset = point.y > plot.top + 32 ? -27 - lineIndex * 10 : 20 + lineIndex * 10;
-                }
-              }
-              const labelY = Math.max(13, Math.min(plot.top + plotHeight - 4, point.y + adjustedLabelOffset));
               const pointText = numberText(point.value, item.format || data.primaryFormat || 'integer', item.labelUnit !== undefined ? item.labelUnit : item.unit || '');
-              if (!reserveLabel(point.x, labelY, pointText)) return;
-              valueLabels += `<text x="${point.x.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="600" letter-spacing="0" fill="${itemColor}" style="paint-order:stroke;stroke:${theme.halo};stroke-width:3px;stroke-linejoin:round;">${esc(numberText(point.value, item.format || data.primaryFormat || 'integer', item.labelUnit !== undefined ? item.labelUnit : item.unit || ''))}</text>`;
+              lineLabels[point.index].push({point, text: pointText, color: itemColor, offset: labelOffset});
             }
+          });
+        });
+
+        // Place labels in plotted numeric order, independent of series order.
+        // If space runs out, omit a label instead of reversing its apparent rank.
+        lineLabels.forEach(labels => {
+          labels.sort((a, b) => a.point.y - b.point.y);
+          const bottom = plot.top + plotHeight - 4;
+          let nextY = 13;
+          const positions = labels.map(label => {
+            const y = Math.max(nextY, label.point.y + label.offset);
+            nextY = y + 15;
+            return y;
+          });
+          // Use space above a cluster near the baseline before dropping labels.
+          const shift = Math.min(Math.max(0, (positions[positions.length - 1] || 0) - bottom),
+            Math.max(0, (positions[0] || 13) - 13));
+          let previousY = -Infinity;
+          labels.forEach((label, index) => {
+            let y = Math.max(positions[index] - shift, previousY + 15);
+            while (y <= bottom && !reserveLabel(label.point.x, y, label.text)) y += 15;
+            if (y > bottom) return;
+            previousY = y;
+            valueLabels += `<text x="${label.point.x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="600" letter-spacing="0" fill="${label.color}" style="paint-order:stroke;stroke:${theme.halo};stroke-width:3px;stroke-linejoin:round;">${esc(label.text)}</text>`;
           });
         });
 
@@ -429,13 +418,14 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
           const y = scaleY(value);
           return `
             ${presentation.axes_gridlines.y_grid ? `<line x1="${plot.left}" y1="${y}" x2="${width - plot.right}" y2="${y}" stroke="${theme.grid}" stroke-width="1" />` : ''}
-            <text x="${plot.left - 9}" y="${y + 4}" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="500" letter-spacing="0" fill="${theme.textSecondary}">${esc(numberText(value, axisFormat, ''))}</text>
+            ${showNumericLabels ? `<text x="${plot.left - 9}" y="${y + 4}" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="500" letter-spacing="0" fill="${theme.textSecondary}">${esc(numberText(value, axisFormat, ''))}</text>` : ''}
           `;
         }).join('');
         const grain = String(data.grain || '');
         const xLabelIndices = {};
         let previousRight = -Infinity;
         const xLabels = categories.map((category, index) => {
+          if (!showCategoryLabels) return '';
           const x = centerAt(index);
           const rawLabel = String(category);
           let label = rawLabel;
@@ -531,11 +521,10 @@ module.exports = function renderPeriodSeries(prepared, presentation) {
             }
             let rendered = '';
             if (format === 'percent') {
-              rendered = `${groupedFixed(numeric, 1)}%`;
-            } else if (format === 'decimal1') {
-              rendered = groupedFixed(numeric, 1);
-            } else if (format === 'decimal2') {
-              rendered = groupedFixed(numeric, 2);
+              rendered = presentation.labels.small_percent && numeric > 0 && numeric < 1 ? '<1%'
+                : `${groupedFixed(numeric, presentation.labels.percent_precision ?? 1)}%`;
+            } else if (/^decimal[0-6]$/.test(format)) {
+              rendered = groupedFixed(numeric, Number(format.slice(7)));
             } else {
               rendered = groupedFixed(numeric, 0);
             }

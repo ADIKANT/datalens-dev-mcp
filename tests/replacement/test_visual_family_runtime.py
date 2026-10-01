@@ -24,6 +24,38 @@ def _run_renderer(asset: str, data: dict, contract: dict, *, target_id: str = ""
     return json.loads(subprocess.check_output(["node", "-e", script], text=True))
 
 
+def test_period_series_profile_formats_without_reordering_data():
+    import re
+
+    data = {"categories": ["2026-09-01"], "primaryScaleMax": 100, "series": [
+        {"name": "p50", "type": "line", "format": "decimal3", "values": [0.987]},
+        {"name": "p99", "type": "line", "format": "decimal3", "values": [1.234]},
+        {"name": "p95", "type": "line", "format": "decimal3", "values": [1.111]},
+    ]}
+    bundle = compile_recipe("period_series", {"metric": "Latency", "date": "Day", "comparison": {}, "prepared_data": data},
+                            presentation={"axes_gridlines": {"y_labels": False}, "comparison": {"enabled": False}})
+    output = _run_renderer("period_series_renderer.js", data, bundle["draft"]["config"], target_id="combo-bucket-0")
+    assert "0,987" in output["tooltip"] and "1,234" in output["tooltip"]
+    assert "text-anchor=\"end\"" not in output["html"]
+    labels = {text: float(y) for y, text in re.findall(r'<text[^>]*y="([\d.]+)"[^>]*>([\d,]+)</text>', output["html"])}
+    assert labels["1,234"] < labels["1,111"] < labels["0,987"]
+    assert [s["name"] for s in data["series"]] == ["p50", "p99", "p95"]
+
+
+def test_period_share_profile_preserves_positive_subpercent_and_true_zero():
+    data = {"categories": ["2026-09-01"], "series": [
+        {"name": "Share", "type": "bar", "format": "percent", "values": [0.4]},
+    ]}
+    bundle = compile_recipe("period_series", {"metric": "Share", "date": "Day", "comparison": {}, "prepared_data": data},
+                            presentation={"labels": {"percent_precision": 0, "small_percent": True},
+                                          "comparison": {"enabled": False}, "tooltip": {"hide_zero_multi": True}})
+    output = _run_renderer("period_series_renderer.js", data, bundle["draft"]["config"], target_id="combo-bucket-0")
+    assert "&lt;1%" in output["tooltip"]
+    data["series"][0]["values"] = [0]
+    output = _run_renderer("period_series_renderer.js", data, bundle["draft"]["config"], target_id="combo-bucket-0")
+    assert "0%" in output["tooltip"]
+
+
 def test_kpi_runtime_applies_hint_spacing_auto_theme_and_semantic_tooltip(tmp_path) -> None:
     result = compile_recipe(
         "kpi_sparkline",
