@@ -1,6 +1,6 @@
 import pytest
 
-from datalens_dev_mcp.api.errors import DataLensApiError, UncertainWriteError
+from datalens_dev_mcp.api.errors import DataLensApiError, DataLensSafetyError, UncertainWriteError
 from datalens_dev_mcp.objects.cleanup import CleanupService
 
 
@@ -35,6 +35,99 @@ class Provider:
 def setup():
     provider = Provider()
     return provider, CleanupService(reader=provider, deleter=provider)
+
+
+def test_separately_authorized_repeat_keeps_original_unknown_and_never_replays():
+    from datalens_dev_mcp.operation_store import compact_operation
+
+    p, service = setup()
+    p.edges = {"data": []}
+    first = service.preview([obj("dataset", "data")], preserve_roots=[])
+    p.failure = UncertainWriteError("synthetic lost response")
+    unknown = service.apply(first, confirmed_delete=first["delete"])
+    assert unknown["status"] == "uncertain"
+    fresh = service.preview(first["candidates"], preserve_roots=[])
+    with pytest.raises(DataLensSafetyError):
+        service.apply(fresh, confirmed_delete=fresh["delete"])
+    assert p.calls == ["data"]
+    repeat_of = [{"operation_id": unknown["operation_id"], "object_id": "data",
+                  "receipt_version": unknown["store_version"]}]
+    p.failure = None
+    result = service.apply(fresh, confirmed_delete=fresh["delete"], repeat_of=repeat_of)
+    assert result["ok"] and result["results"][0]["absence_verified"]
+    assert p.calls == ["data", "data"]
+    assert service.store.get(unknown["operation_id"]) == unknown
+    assert compact_operation(result)["repeat_of"] == repeat_of
+    assert compact_operation(unknown)["store_version"] == unknown["store_version"]
+    assert service.apply(fresh, confirmed_delete=fresh["delete"], repeat_of=repeat_of)["ok"]
+    assert p.calls == ["data", "data"]
+    # Even after compaction and an object reappears, the same grant is spent.
+    service.store._compact_receipt(result)
+    p.absent.clear()
+    newer = service.preview(first["candidates"], preserve_roots=[])
+    with pytest.raises(DataLensSafetyError):
+        service.apply(newer, confirmed_delete=newer["delete"], repeat_of=repeat_of)
+    assert p.calls == ["data", "data"]
+
+
+@pytest.mark.parametrize("conflict", ["version", "scope", "pending", "missing", "wrong_target", "drift"])
+def test_repeat_permission_does_not_override_receipt_or_preview_conflicts(conflict):
+    p, service = setup()
+    p.edges = {"data": []}
+    first = service.preview([obj("dataset", "data")], preserve_roots=[obj("dashboard", "protected")])
+    p.failure = UncertainWriteError("synthetic lost response")
+    unknown = service.apply(first, confirmed_delete=first["delete"])
+    refs = [{"operation_id": unknown["operation_id"], "object_id": "data",
+             "receipt_version": unknown["store_version"]}]
+    fresh = service.preview(first["candidates"], preserve_roots=first["preserve_roots"])
+    if conflict == "version":
+        service.reconcile(unknown["operation_id"])
+    elif conflict in {"scope", "pending"}:
+        unknown["auth_scope" if conflict == "scope" else "status"] = "other" if conflict == "scope" else "pending"
+        service.store.put(unknown)
+        refs[0]["receipt_version"] = unknown["store_version"]
+    elif conflict == "missing":
+        refs[0]["operation_id"] = "nonexistent"
+    elif conflict == "wrong_target":
+        refs[0]["object_id"] = "unrelated"
+    elif conflict == "drift":
+        p.edges["protected"] = ["data"]
+    p.failure = None
+    if conflict == "drift":
+        result = service.apply(fresh, confirmed_delete=fresh["delete"], repeat_of=refs)
+        assert result["status"] == "preview_changed"
+        # A preview_changed reservation must recheck the grant on resumption.
+        p.edges["protected"] = []
+        service.reconcile(unknown["operation_id"])
+    with pytest.raises(DataLensSafetyError):
+        service.apply(fresh, confirmed_delete=fresh["delete"], repeat_of=refs)
+    assert p.calls == ["data"]
+
+
+@pytest.mark.parametrize("second_outcome", ["not_applied", "unknown"])
+def test_new_repeat_attempt_requires_every_unknown_and_keeps_known_failures_recoverable(second_outcome):
+    p, service = setup()
+    p.edges = {"data": []}
+    first = service.preview([obj("dataset", "data")], preserve_roots=[])
+    p.failure = UncertainWriteError("synthetic lost response")
+    unknown = service.apply(first, confirmed_delete=first["delete"])
+    refs = [{"operation_id": unknown["operation_id"], "object_id": "data",
+             "receipt_version": unknown["store_version"]}]
+    fresh = service.preview(first["candidates"], preserve_roots=[])
+    if second_outcome == "not_applied":
+        p.failure = DataLensApiError("connection failed", dispatch_state="not_dispatched", response_received=False)
+    second = service.apply(fresh, confirmed_delete=fresh["delete"], repeat_of=refs)
+    assert second["results"][0]["effect_outcome"] == second_outcome
+    newer = service.preview(first["candidates"], preserve_roots=[])
+    p.failure = None
+    if second_outcome == "unknown":
+        with pytest.raises(DataLensSafetyError):
+            service.apply(newer, confirmed_delete=newer["delete"], repeat_of=refs)
+        # This represents a new informed authorization covering the latest risk.
+        refs.append({"operation_id": second["operation_id"], "object_id": "data",
+                     "receipt_version": second["store_version"]})
+    assert service.apply(newer, confirmed_delete=newer["delete"], repeat_of=refs)["ok"]
+    assert p.calls == ["data", "data", "data"]
 
 
 def test_alias_preserve_identity_and_its_dependencies():

@@ -366,9 +366,10 @@ def dl_cleanup_preview(candidates: list[dict[str, Any]], preserve_roots: list[di
 
 def dl_cleanup_apply(preview: dict[str, Any], confirmed_delete: list[dict[str, Any]],
                      operation_id: str | None = None, budget_sec: float = 120,
-                     max_provider_calls: int = 200) -> dict[str, Any]:
+                     max_provider_calls: int = 200, repeat_of: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     with operation_budget(budget_sec, max_provider_calls):
-        return _cleanup_service().apply(preview, confirmed_delete=confirmed_delete, operation_id=operation_id)
+        return _cleanup_service().apply(preview, confirmed_delete=confirmed_delete, operation_id=operation_id,
+                                        repeat_of=repeat_of)
 
 
 def dl_admin_inventory() -> dict[str, Any]:
@@ -787,12 +788,23 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_cleanup_apply",
-        "description": "Delete only the exact ordered objects confirmed from an unchanged cleanup preview.",
+        "description": "Delete exact ordered objects from an unchanged preview. repeat_of asserts separate informed "
+                       "user authorization for one new attempt after an unknown delete; it never enables automatic retries.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "preview": {"type": "object"},
                 "confirmed_delete": {"type": "array", "maxItems": 1000, "items": {"type": "object"}},
+                "repeat_of": {"type": "array", "maxItems": 1000, "uniqueItems": True,
+                              "description": "Only after the user accepts another possible effect: reference every "
+                                             "unknown cleanup for these exact targets using its current store_version. "
+                                             "Keep the originals; use a fresh preview and a new operation_id.",
+                              "items": {"type": "object", "properties": {
+                                  "operation_id": {"type": "string", "minLength": 1},
+                                  "object_id": {"type": "string", "minLength": 1},
+                                  "receipt_version": {"type": "integer", "minimum": 1}},
+                                  "required": ["operation_id", "object_id", "receipt_version"],
+                                  "additionalProperties": False}},
                 "operation_id": {"type": "string", "minLength": 1},
                 "budget_sec": {"type": "number", "exclusiveMinimum": 0, "maximum": 180, "default": 120},
                 "max_provider_calls": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 200},

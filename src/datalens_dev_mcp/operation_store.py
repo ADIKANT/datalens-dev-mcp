@@ -94,6 +94,13 @@ class OperationStore:
                 if any(existing.get(key) != record.get(key) for key in ("effect", "request_digest")):
                     raise InputContractError("operation_id is already bound to a different request")
                 if existing.get("effect") == "cleanup":
+                    if existing.get("status") == "preview_changed" and all(
+                        item.get("dispatch_state") == "not_dispatched" for item in existing.get("results", [])
+                    ):
+                        self._check_cleanup_claim(existing)
+                        existing.update(status="pending", ok=False,
+                                        store_version=int(existing.get("store_version", 0)) + 1)
+                        return True, self._write(existing)
                     return False, existing
                 items = existing.get("results") or []
                 resumable_pending = (
@@ -111,21 +118,49 @@ class OperationStore:
                     return True, self._write(existing)
                 return False, existing
             if record.get("effect") == "cleanup":
-                targets = {item["object_id"] for item in record.get("results", [])}
-                for path in self.root.glob("*.json"):
-                    other = json.loads(path.read_text(encoding="utf-8"))
-                    if (other.get("effect") != "cleanup"
-                            or other.get("provider_scope", other.get("auth_scope")) != record.get("provider_scope", record.get("auth_scope"))):
-                        continue
-                    uncertain = {item.get("object_id") for item in other.get("results", [])
-                                 if item.get("effect_outcome") == "unknown" or other.get("status") == "pending"}
-                    if uncertain & targets:
-                        raise DataLensSafetyError(
-                            "An earlier cleanup has an unknown effect on this target; reconcile operation_id "
-                            + other["operation_id"] + " before admitting any new delete"
-                        )
+                self._check_cleanup_claim(record)
             record["store_version"] = 1
             return True, self._write(record)
+
+    def _check_cleanup_claim(self, record: dict[str, Any]) -> None:
+        """Called under the store lock; an explicit grant never clears old evidence."""
+        targets = {item["object_id"] for item in record.get("results", [])}
+        refs = {(ref["operation_id"], ref["object_id"]): ref for ref in record.get("repeat_of", [])}
+        required: dict[tuple[str, str], dict[str, Any]] = {}
+        for path in self.root.glob("*.json"):
+            other = json.loads(path.read_text(encoding="utf-8"))
+            if (other.get("operation_id") == record["operation_id"] or other.get("effect") != "cleanup"
+                    or other.get("provider_scope", other.get("auth_scope"))
+                    != record.get("provider_scope", record.get("auth_scope"))):
+                continue
+            for item in other.get("results", []):
+                if item.get("object_id") not in targets:
+                    continue
+                if other.get("status") == "pending":
+                    raise DataLensSafetyError("An earlier cleanup is pending; reconcile operation_id "
+                                              + other["operation_id"] + " before any new delete")
+                if item.get("effect_outcome") == "unknown":
+                    required[(other["operation_id"], item["object_id"])] = other
+            for ref in other.get("repeat_of", []):
+                key = (ref["operation_id"], ref["object_id"])
+                if key in refs and (other["operation_id"], ref["object_id"]) not in refs and any(
+                                       item.get("object_id") == ref["object_id"]
+                                       and item.get("effect_outcome") != "not_applied"
+                                       for item in other.get("results", [])):
+                    raise DataLensSafetyError("Repeat authorization was already used by operation_id "
+                                              + other["operation_id"] + "; inspect its outcome")
+        if refs.keys() != required.keys():
+            raise DataLensSafetyError(
+                "An earlier cleanup has an unknown effect, or repeat_of does not match the exact unknown targets. "
+                "Reconcile the original receipts. Only separate informed user authorization permits repeat_of "
+                "with their current receipt versions: " + ", ".join(sorted({key[0] for key in required}))
+            )
+        for key, ref in refs.items():
+            other = required[key]
+            if (other.get("auth_scope") != record.get("auth_scope")
+                    or other.get("store_version") != ref["receipt_version"]):
+                raise DataLensSafetyError("repeat_of receipt version or authentication scope changed; "
+                                          "read the original operation before considering another effect")
 
     def put(self, record: dict[str, Any]) -> dict[str, Any]:
         with self._locked():
@@ -283,7 +318,8 @@ def compact_operation(record: dict[str, Any]) -> dict[str, Any]:
         key: deepcopy(record[key])
         for key in ("ok", "operation_id", "effect", "status", "write_replayed", "next_action", "detail_pruned",
                     "auth_scope", "provider_scope", "ordered_delete_digest", "preserve_roots", "dependency_fingerprint",
-                    "preview_digest", "progress", "new_delete_dispatched", "observed_objects", "runtime")
+                    "preview_digest", "progress", "new_delete_dispatched", "observed_objects", "runtime",
+                    "store_version", "repeat_of")
         if key in record
     }
     compact_items = []

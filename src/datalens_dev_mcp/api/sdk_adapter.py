@@ -71,7 +71,18 @@ class _ConfiguredHTTPClient(DataLensHTTPClient):
                          request_timeout=self.config.request_timeout_sec,
                          connect_timeout=self.config.request_timeout_sec,
                          max_attempts=self.config.read_retries + 1 if readonly else 1)
-        return super().post_json(path, body, retry_policy=policy, accept_response=accept_response)
+        try:
+            return super().post_json(path, body, retry_policy=policy, accept_response=accept_response)
+        except SdkTransportError as exc:
+            # Classify at this RPC, not the outer SDK operation: a subsequent
+            # read can fail to connect after a successful mutation. These HTTPX
+            # phases precede request bytes and this mutation has just one attempt.
+            if (not readonly and exc.attempts == 1
+                    and isinstance(exc.__cause__, (httpx.ConnectTimeout, httpx.ConnectError, httpx.PoolTimeout))):
+                failure = _provider_error(exc, method)
+                failure.dispatch_state = "not_dispatched"
+                raise failure from exc
+            raise
 
 
 class _ProviderAuth(httpx.Auth):
