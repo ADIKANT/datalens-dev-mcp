@@ -64,6 +64,8 @@ Keep the original operation ID and receipt. Inspect its prepared identity/destin
 
 `not_dispatched` with `not_applied` describes a proven preparation failure. A confirmed provider rejection may instead be `dispatched` with `not_applied`; a missing response, failed readback or possible earlier composite effect remains unknown. Inspect both per-item and overall outcomes; never replay completed items in a partial batch. Historical unknown receipts remain unknown without new evidence.
 
+For cleanup only, the typed `repeat_of` references provide the separately authorized repeat path described in [maintenance boundaries](../../datalens-maintenance/references/boundaries.md). Keep the original unknown receipts and current versions; do not substitute a new operation ID alone. A single SDK mutation that fails during connection or pool acquisition before request bytes is `not_dispatched`/`not_applied`. A write/read timeout, lost response, or later connection failure after an earlier composite effect remains unknown. No case adds automatic mutation retries.
+
 ## Compact continuation
 
 Read the exact project's current `AGENTS.md`/`CONTEXT.md` when present, reusing them while current. For a handoff from another task, start with its available short summary or named artifact. Recover the result, accepted decisions, IDs/revisions, remaining work and exact evidence location; read only the missing turns next. Use the current host tool schema for pagination and turn/output limits, not a remembered argument bound. Do not combine several bounded histories or instruction files into one unbounded output; project/filter each result before returning it to the model.

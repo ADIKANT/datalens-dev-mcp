@@ -98,7 +98,8 @@ def test_preparatory_sdk_read_failure_is_not_dispatched(operation):
     assert result["code"] != "write_outcome_unknown"
 
 
-@pytest.mark.parametrize("phase", ["build_validation", "response_lost", "rejected"])
+@pytest.mark.parametrize("phase", ["build_validation", "response_lost", "rejected",
+                                   "ConnectTimeout", "ConnectError", "PoolTimeout", "WriteTimeout"])
 def test_owned_sdk_request_hook_distinguishes_build_from_dispatch(monkeypatch, phase):
     import httpx
 
@@ -113,6 +114,8 @@ def test_owned_sdk_request_hook_distinguishes_build_from_dispatch(monkeypatch, p
         requests.append(request)
         if phase == "response_lost":
             raise httpx.ReadTimeout("synthetic lost response", request=request)
+        if phase in {"ConnectTimeout", "ConnectError", "PoolTimeout", "WriteTimeout"}:
+            raise getattr(httpx, phase)("synthetic transport failure", request=request)
         return httpx.Response(409, json={"code": "CONFLICT", "message": "Synthetic conflict"})
 
     def client(*args, **kwargs):
@@ -130,6 +133,41 @@ def test_owned_sdk_request_hook_distinguishes_build_from_dispatch(monkeypatch, p
             adapter.create(draft, {"workbook_id": "synthetic"})
         result = error_response(caught.value, effect_possible=True)
         assert len(requests) == (0 if phase == "build_validation" else 1)
-        assert result["effect_outcome"] == ("unknown" if phase == "response_lost" else "not_applied")
+        assert result["effect_outcome"] == ("unknown" if phase in {"response_lost", "WriteTimeout"} else "not_applied")
+        if phase in {"ConnectTimeout", "ConnectError", "PoolTimeout"}:
+            assert result["dispatch_state"] == "not_dispatched"
+            assert result["response_received"] is False
+    finally:
+        adapter.close()
+
+
+@pytest.mark.parametrize("followup", ["getEditorChart", "deleteEditorChart"])
+def test_connect_failure_cannot_negate_an_earlier_mutation(monkeypatch, followup):
+    import httpx
+
+    from datalens_dev_mcp.api import sdk_adapter
+    from datalens_dev_mcp.api.errors import error_response
+    from datalens_dev_mcp.config import DataLensConfig
+
+    requests = []
+    original_client = sdk_adapter._ConfiguredHTTPClient
+
+    def handle(request):
+        requests.append(request.url.path)
+        if len(requests) > 1:
+            raise httpx.ConnectTimeout("synthetic subsequent failure", request=request)
+        return httpx.Response(200, json={})
+
+    monkeypatch.setattr(sdk_adapter, "_ConfiguredHTTPClient",
+                        lambda *args, **kwargs: original_client(*args, **kwargs, transport=httpx.MockTransport(handle)))
+    adapter = SdkAdapter(DataLensConfig(org_id="synthetic", iam_token="synthetic", read_retries=0))
+    try:
+        adapter._sdk_client()
+        adapter._http_client.post_json("/rpc/deleteEditorChart", {})
+        with pytest.raises(Exception) as caught:
+            adapter._http_client.post_json("/rpc/" + followup, {})
+        failure = adapter._mutation_error(caught.value, "composite", effect_started=True, dispatch_before=0)
+        assert error_response(failure, effect_possible=True)["effect_outcome"] == "unknown"
+        assert len(requests) == 2
     finally:
         adapter.close()

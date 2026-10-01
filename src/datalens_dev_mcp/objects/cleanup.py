@@ -35,6 +35,25 @@ def _items(items: list[dict[str, Any]]) -> list[dict[str, str]]:
     return list(result.values())
 
 
+def _repeat_refs(value: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise InputContractError("repeat_of must be an array of exact prior cleanup references")
+    seen = set()
+    for ref in value:
+        if (not isinstance(ref, dict) or set(ref) != {"operation_id", "object_id", "receipt_version"}
+                or any(not isinstance(ref[key], str) or not ref[key].strip()
+                       or ref[key] != ref[key].strip() for key in ("operation_id", "object_id"))
+                or type(ref["receipt_version"]) is not int or ref["receipt_version"] < 1):
+            raise InputContractError("repeat_of requires operation_id, object_id and a positive receipt_version")
+        key = (ref["operation_id"], ref["object_id"])
+        if key in seen:
+            raise InputContractError("repeat_of contains duplicate prior targets")
+        seen.add(key)
+    return sorted(deepcopy(value), key=lambda ref: (ref["operation_id"], ref["object_id"]))
+
+
 def _absent(exc: DataLensApiError) -> bool:
     return exc.http_status == 404 and exc.response_received is True
 
@@ -249,13 +268,15 @@ class CleanupService:
 
     def apply(self, preview: dict[str, Any], *, confirmed_delete: list[dict[str, Any]],
               operation_id: str | None = None, budget_sec: float = 120,
-              max_provider_calls: int = 200) -> dict[str, Any]:
+              max_provider_calls: int = 200, repeat_of: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        repeat_of = _repeat_refs(repeat_of)
         with operation_budget(budget_sec, max_provider_calls), self.store.cleanup_lock(self.provider_scope):
             return self._apply(preview, confirmed_delete=confirmed_delete, operation_id=operation_id,
-                               budget_sec=budget_sec, max_provider_calls=max_provider_calls)
+                               budget_sec=budget_sec, max_provider_calls=max_provider_calls, repeat_of=repeat_of)
 
     def _apply(self, preview: dict[str, Any], *, confirmed_delete: list[dict[str, Any]],
-               operation_id: str | None, budget_sec: float, max_provider_calls: int) -> dict[str, Any]:
+               operation_id: str | None, budget_sec: float, max_provider_calls: int,
+               repeat_of: list[dict[str, Any]]) -> dict[str, Any]:
         if preview.get("complete") is not True:
             raise InputContractError("cleanup requires a complete dependency preview")
         expected = _items(preview.get("delete") or [])
@@ -269,7 +290,8 @@ class CleanupService:
             raise InputContractError("cleanup preview belongs to a different authentication scope")
         oid = operation_id or preview.get("operation_id") or "cleanup-" + uuid4().hex
         request_digest = _digest({"scope": self.scope, "delete": expected, "preserve_roots": body["preserve_roots"],
-                                  "preview_digest": preview["preview_digest"]})
+                                  "preview_digest": preview["preview_digest"],
+                                  **({"repeat_of": repeat_of} if repeat_of else {})})
         prior = self.store.get(oid)
         if prior is not None:
             if prior.get("request_digest") != request_digest:
@@ -284,15 +306,10 @@ class CleanupService:
                   "ordered_delete_digest": _digest(expected), "preserve_roots": body["preserve_roots"],
                   "dependency_fingerprint": body["dependency_fingerprint"],
                   "preview_digest": preview["preview_digest"],
+                  **({"repeat_of": repeat_of} if repeat_of else {}),
                   "results": [{**item, "target": item, "status": "skipped", "dispatch_state": "not_dispatched",
                                "effect_outcome": "not_applied"} for item in expected]}
-        if prior is not None:
-            record = prior
-            record.update(status="pending", ok=False)
-            self.store.put(record)
-            admitted = True
-        else:
-            admitted, record = self.store.claim(record)
+        admitted, record = self.store.claim(record)
         if not admitted:
             return record
         with operation_budget(budget_sec, max_provider_calls) as budget:

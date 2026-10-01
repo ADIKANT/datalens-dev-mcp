@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.25
+
+- Distinguish a single SDK mutation's connection/pool failure before request bytes from a lost response; retain unknown outcomes after an earlier composite effect and keep writes single-attempt.
+- Admit separately authorized cleanup repeats through exact original operation, target and receipt-version references, preserving original uncertainty, fresh dependency checks, durable admission and no-replay protection.
+
 ## 1.2.24
 
 - Compile KPI Sources from effective presentation: current aggregate always, trend only for sparkline, and previous aggregate only for comparison; preserve aggregate grain, missing values and full legacy bindings.

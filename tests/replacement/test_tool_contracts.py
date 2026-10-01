@@ -96,6 +96,33 @@ def test_schema_labels_and_replacement_annotations():
     assert schemas["dl_object_publish"]["annotations"]["destructiveHint"] is True
 
 
+@pytest.mark.parametrize("repeat_of", [[{}], [{"operation_id": "old", "object_id": "entry", "receipt_version": 0}],
+                                        [{"operation_id": "old", "object_id": "entry", "receipt_version": True}]])
+def test_cleanup_repeat_schema_rejects_invalid_references_before_provider(monkeypatch, repeat_of):
+    def unexpected():
+        pytest.fail("provider service must not be reached")
+
+    monkeypatch.setattr(server, "_cleanup_service", unexpected)
+    result = server.call_tool("dl_cleanup_apply", {"preview": {}, "confirmed_delete": [], "repeat_of": repeat_of})
+    assert result["isError"]
+    assert result["structuredContent"]["status"] == "input_error"
+
+
+def test_cleanup_repeat_public_tool_passes_exact_references(monkeypatch):
+    refs = [{"operation_id": "old", "object_id": "entry", "receipt_version": 5}]
+
+    def apply(preview, **kwargs):
+        assert kwargs["repeat_of"] == refs
+        assert kwargs["operation_id"] == "new"
+        return {"ok": True, "effect": "cleanup", "status": "completed", "repeat_of": refs, "results": []}
+
+    monkeypatch.setattr(server, "_cleanup_service", lambda: SimpleNamespace(apply=apply))
+    result = server.call_tool("dl_cleanup_apply", {"preview": {}, "confirmed_delete": [],
+                                                  "operation_id": "new", "repeat_of": refs})
+    assert not result["isError"]
+    assert result["structuredContent"]["repeat_of"] == refs
+
+
 def test_runtime_fingerprint_reports_active_identity_without_cwd_git(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     first = server.dl_server_info()
