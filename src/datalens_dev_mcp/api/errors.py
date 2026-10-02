@@ -200,6 +200,16 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
                       request_id=error.request_id, trace_id=error.trace_id)
         if error.retry_after_sec is not None:
             result["retry_after_sec"] = error.retry_after_sec
+        guidance = {
+            "ERR.DS_API.DB.CH.READONLY_USER":
+                "Inspect the connection's readonly contract with its owner. Do not change database settings or permissions automatically.",
+            "ERR.DS_API.DB.INDEX_NOT_USED":
+                "Inspect predicates and the documented index requirement; narrow the intended query without changing its semantics. Do not disable the database guard.",
+            "ERR.DS_API.DB.EST_EXEC_TOO_LONG":
+                "Inspect the query plan, active Sources and requested range; reduce unnecessary work with equivalent results. Do not repeat the unchanged expensive query.",
+        }.get(error.remote_code)
+        if guidance:
+            result["provider_guidance"] = guidance
     if isinstance(error, CredentialRefreshError):
         result["diagnostic_id"] = error.diagnostic_id
         result["helper_exit_status"] = error.exit_status

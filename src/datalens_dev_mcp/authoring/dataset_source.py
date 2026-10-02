@@ -65,6 +65,11 @@ def _dataset_query(
         if operation not in _FILTER_OPERATIONS:
             raise ValueError(f"unsupported Dataset filter operation: {operation}")
         window = selector.get("window")
+        date_input = selector.get("date_input")
+        if date_input is not None and date_input not in {"utc_calendar_date", "iso_datetime"}:
+            raise ValueError("date_input must be utc_calendar_date or iso_datetime")
+        if window is not None and date_input == "iso_datetime":
+            raise ValueError("rolling windows require UTC calendar dates; use date_input=utc_calendar_date")
         if window is not None and (not isinstance(window, Mapping) or operation != "BETWEEN" or empty != "error"
                                    or type(window.get("days")) is not int or window["days"] < 1
                                    or type(window.get("offset_days", 0)) is not int):
@@ -81,6 +86,7 @@ def _dataset_query(
                 "operation": operation,
                 "empty_selection": empty,
                 **({"window": dict(window)} if window is not None else {}),
+                **({"date_input": date_input} if date_input is not None else {}),
             }
         )
     dataset_parameters = bindings.get("dataset_parameters") or []
@@ -104,6 +110,31 @@ def _dataset_query(
     sources = "const {buildSource} = require('libs/dataset/v2');\n"
     sources += "const params = Editor.getParams();\nconst where = " + json.dumps(filters, ensure_ascii=False) + ";\n"
     sources += "const selectorContracts = " + json.dumps(selector_contracts, ensure_ascii=False) + ";\n"
+    if any(selector.get("date_input") for selector in selector_contracts):
+        sources += r"""const normalizeDateInput = (values, selector) => {
+  const fail = () => { throw new Error('Date control ' + selector.param_name +
+    ' expects YYYY-MM-DD, ISO datetime with timezone, or one native __interval_ value; mode=' + selector.date_input); };
+  if (values.length === 1 && values[0].startsWith('__interval_')) {
+    if (selector.operation !== 'BETWEEN') fail();
+    const interval = Editor.resolveInterval(values[0]);
+    if (!interval || typeof interval.from !== 'string' || typeof interval.to !== 'string') fail();
+    values = [interval.from, interval.to];
+  }
+  values = values.map(value => {
+    if (value.startsWith('__relative_')) value = Editor.resolveRelative(value);
+    if (typeof value !== 'string') fail();
+    const day = /^\d{4}-\d{2}-\d{2}$/.test(value);
+    const instant = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value);
+    if ((!day && !instant) || !Number.isFinite(Date.parse(value))) fail();
+    const datePart = value.slice(0, 10);
+    if (new Date(datePart).toISOString().slice(0, 10) !== datePart) fail();
+    return selector.date_input === 'utc_calendar_date' ? new Date(value).toISOString().slice(0, 10) : value;
+  });
+  if (selector.operation === 'BETWEEN' && values.length &&
+      (values.length !== 2 || Date.parse(values[0]) > Date.parse(values[1]))) fail();
+  return values;
+};
+"""
     sources += "for (const selector of selectorContracts) {\n"
     sources += "  const rawValue = params[selector.param_name];\n"
     sources += (
@@ -112,6 +143,8 @@ def _dataset_query(
         ".map(String);\n"
     )
     sources += "  if (!values.length && selector.empty_selection === 'error') throw new Error('selector value is required: ' + selector.param_name);\n"
+    if any(selector.get("date_input") for selector in selector_contracts):
+        sources += "  if (selector.date_input) values = normalizeDateInput(values, selector);\n"
     if any(selector.get("window") for selector in selector_contracts):
         sources += """  if (selector.window) {
     if (values.length !== 2 || values.some(v => !/^\\d{4}-\\d{2}-\\d{2}$/.test(v) || !Number.isFinite(Date.parse(v)) || new Date(v).toISOString().slice(0,10) !== v) || values[0] > values[1])

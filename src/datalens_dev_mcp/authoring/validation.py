@@ -339,6 +339,9 @@ def _validate_supported_draft(draft: Mapping[str, Any], object_type: str) -> tup
         editor_draft = deepcopy(dict(draft))
         if object_type != "editor_chart":
             editor_draft.setdefault("variant", object_type)
+        # Creation validates the full draft even if it was previously checked
+        # as a partial source fragment.
+        editor_draft["validation_scope"] = "complete_draft"
         if draft.get("recipe_id"):
             from datalens_dev_mcp.authoring.recipes import compile_recipe
 

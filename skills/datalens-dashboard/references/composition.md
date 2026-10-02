@@ -50,6 +50,47 @@
 
 ## Compact edits to existing tabs
 
+`items` and `globalItems` are separate native collections. For a global external
+selector, declare new parameters without changing its current selection:
+
+```json
+{
+  "changes": [{
+    "object_type": "dashboard", "object_id": "dashboard-id",
+    "expected_revision": "observed-saved-revision",
+    "dashboard_patch": {"tabs": [{"id": "overview", "globalItems": {
+      "update": [{"id": "global-selector", "namespace": "default",
+        "patch": {"defaults": {"event_from": [], "event_to": []}}}]
+    }}]}
+  }],
+  "operation_id": "declare-period-parameters"
+}
+```
+
+Use actual tab/item IDs. An optional `namespace` checks/disambiguates the native
+identity; an unqualified ambiguous ID fails. Both collections support
+add/update/remove. To edit one group child, use
+`update: [{id: "group-id", group: {update: [{id: "child-id", patch: {defaults: {field: ""}}}]}}]`.
+This addresses `data.group[]`; it does not replace the group or replicate it
+across tabs. `remove` accepts an ID or `{id, namespace}`. New global controls
+must fit the SDK native carrier; existing unknown fields are preserved.
+
+Empty values are subtype-specific. External Editor parameter declarations can
+use `[]`; native Dataset date controls use their field key with `""` when empty.
+Missing keys, null, empty arrays/strings, false and zero are not interchangeable.
+Verify Params → defaults → impactTabsIds/aliases → actual Editor.getParams() →
+query → data → rendered result. See the explicit date input contract in
+[Editor authoring](../../datalens-editor/references/editor-authoring.md#native-calendar-inputs).
+
+Generic `patch` also exists, but arrays are atomic. Use a full fresh snapshot and
+verify all carried fields when that fallback is necessary; a stale tabs array is
+never the default for two keys. A typed-helper gap is not absence of API support.
+Browser remains read-only unless UI editing is explicitly requested.
+
+Dashboard lazy/visible-widget loading and concurrency are existing settings to
+inspect when relevant to a load problem. Change them only for the requested
+dashboard; they neither replace purpose-specific Sources nor impose a global cap.
+
 Use `dashboard_patch` in `dl_object_update` for existing native tabs. Read the
 current saved identity, revision and affected records first. The server reads the
 complete saved object, checks `expected_revision`, applies the addressed delta

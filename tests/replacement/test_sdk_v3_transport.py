@@ -284,6 +284,44 @@ def editor_state():
     }
 
 
+@pytest.mark.parametrize("operation", ["absent", None, {"id": "async-operation", "done": False}])
+@pytest.mark.parametrize("read_failure", [False, True])
+def test_connection_create_response_retains_id_and_never_recreates(install_runtime, operation, read_failure):
+    class ConnectionProvider(Provider):
+        def handle(self, request):
+            method = request.url.path.rsplit("/", 1)[-1]
+            if method == "createConnection":
+                self.writes.append((method, json.loads(request.content)))
+                self.state.update(json.loads(request.content))
+                response = {"id": "synthetic-connection"}
+                if operation != "absent":
+                    response["operation"] = operation
+                return httpx.Response(200, json=response)
+            if read_failure:
+                return httpx.Response(403, json={"code": "FORBIDDEN"})
+            return super().handle(request)
+
+    provider = ConnectionProvider({"id": "synthetic-connection", "type": "clickhouse", "name": "Synthetic"})
+    install_runtime(provider)
+    args = {"drafts": [{"object_type": "connection", "client_ref": "connection", "name": "Synthetic",
+                        "snapshot": {"id": "source", "name": "Synthetic", "type": "clickhouse", "host": "synthetic.invalid",
+                                     "port": 8443, "username": "synthetic"}}],
+            "destination": {"workbook_id": "synthetic-workbook"}, "operation_id": "connection-response"}
+    result = call_tool("dl_object_create", args)
+    row = result["results"][0]
+    assert row.get("target", {}).get("object_id") == "synthetic-connection", result
+    if isinstance(operation, dict):
+        assert row["code"] == "connection_operation_incomplete", result
+        reconciled = call_tool("dl_operation_reconcile", {"operation_id": "connection-response"})
+        assert reconciled["status"] == "uncertain"
+    elif read_failure:
+        assert result["status"] == "uncertain", result
+    else:
+        assert result["status"] == "completed", result
+    call_tool("dl_object_create", args)
+    assert len(provider.writes) == 1
+
+
 def test_public_editor_one_tab_preserves_others_and_strips_secrets(install_runtime):
     provider = Provider(editor_state())
     provider.state["data"]["futureTab"] = {"manual": "preserve"}
@@ -299,12 +337,22 @@ def test_public_editor_one_tab_preserves_others_and_strips_secrets(install_runti
     assert "NEVER-TRANSMIT" not in json.dumps(result)
 
 
-def test_public_editor_activities_rejected_before_network_write(install_runtime):
+@pytest.mark.parametrize("variant, supported", [("table_node", True), ("d3_node", True),
+                                               ("control_node", True), ("markdown_node", False),
+                                               ("advanced-chart_node", False)])
+def test_public_editor_activities_carrier_preserves_subtype_contract(install_runtime, variant, supported):
     provider = Provider(editor_state())
+    provider.state["type"] = variant
     install_runtime(provider)
     result = update("editor_chart", "synthetic-editor", {"data": {"activities": "module.exports={};"}})
-    assert result["results"][0]["code"] == "input_error", json.dumps(result, indent=2)
-    assert not provider.writes
+    if supported:
+        assert result["status"] == "completed", result
+        data = provider.writes[0][1]["entry"]["data"]
+        assert data["activities"] == "module.exports={};"
+        assert data["sources"] == editor_state()["data"]["sources"]
+    else:
+        assert result["results"][0]["code"] == "input_error", result
+        assert not provider.writes
 
 
 @pytest.mark.parametrize("value", [{"not": "a source string"}, ["source"], 42, None])
@@ -413,6 +461,43 @@ def test_public_dashboard_v2_geometry_unchanged(install_runtime):
     assert "revId" not in provider.writes[0][1]["entry"]
     assert provider.writes[0][1]["mode"] == "save"
     assert [tab["id"] for tab in provider.state["entry"]["data"]["tabs"]] == ["first", "second"]
+
+
+@pytest.mark.parametrize("drift", [False, True])
+def test_global_control_defaults_sdk_roundtrip_and_noop(install_runtime, drift):
+    initial = dashboard_state()
+    tab = initial["entry"]["data"]["tabs"][0]
+    control = tab["items"].pop(0)
+    control["defaults"] = {"category": [], "future": ["keep"]}
+    tab["globalItems"] = [control]
+    tab["future"] = {"empty": [], "zero": 0, "flag": False, "null": None}
+    provider = Provider(initial)
+    if drift:
+        def concurrent(p, count):
+            if count == 2:
+                p.state["entry"]["revId"] = "manual"
+        provider.before_read = concurrent
+    install_runtime(provider)
+    addition = {"period_from": [], "period_to": []}
+    change = {"object_type": "dashboard", "object_id": "synthetic-dashboard", "expected_revision": "S2",
+              "dashboard_patch": {"tabs": [{"id": "first", "globalItems": {
+                  "update": [{"id": control["id"], "namespace": control["namespace"],
+                              "patch": {"defaults": addition}}]}}]}}
+    result = call_tool("dl_object_update", {"changes": [change], "operation_id": "global-save"})
+    if drift:
+        assert result["results"][0]["code"] == "revision_conflict", result
+        assert not provider.writes
+        return
+    expected = deepcopy(initial["entry"]["data"])
+    expected["tabs"][0]["globalItems"][0]["defaults"].update(addition)
+    assert result["status"] == "completed", result
+    assert len(provider.writes) == 1
+    assert provider.writes[0][1]["entry"]["data"] == expected
+    change["expected_revision"] = "S3"
+    provider.state["entry"]["savedId"] = "S3"
+    repeated = call_tool("dl_object_update", {"changes": [change], "operation_id": "global-noop"})
+    assert repeated["results"][0]["code"] == "no_change", repeated
+    assert len(provider.writes) == 1
 
 
 @pytest.mark.parametrize("concurrent_edit", [False, True])
@@ -608,6 +693,8 @@ def test_raw_editor_create_cannot_bypass_activities_contract(install_runtime):
     snapshot = editor_state()
     snapshot["data"].pop("secrets", None)
     snapshot["data"]["activities"] = "module.exports={};"
+    snapshot["type"] = "advanced-chart_node"
+    snapshot["data"].pop("config")
     from datalens_dev_mcp.api.errors import InputContractError
 
     with pytest.raises(InputContractError, match="activities"):

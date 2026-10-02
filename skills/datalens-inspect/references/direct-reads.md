@@ -48,3 +48,13 @@ A confirmed HTTP 429 is `rate_limited`, not a request/formula defect. Keep the p
 Raw reads already own bounded retries; waits above five seconds or the remaining read deadline return the error. SDK 3.0.0 normally retries 429 without respecting Retry-After; the owned adapter surfaces 429 before that loop and adds no retry loop. Its actual response supplies allowlisted delay/correlation metadata; unavailable headers remain unknown. [RFC 6585 §4](https://www.rfc-editor.org/rfc/rfc6585.html#section-4) defines 429; [RFC 9110 §10.2.3](https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.3) defines delay-seconds or HTTP-date. Neither specifies this provider's endpoint limits.
 
 429 is not permission to replay a write. Inspect the existing receipt, dispatch state and effect outcome. An unknown/composite write or failed readback retains `write_outcome_unknown` and reconciliation priority; a final rejection cannot undo earlier effects. Follow [repeat-effect recovery](../../datalens-dashboard/references/authorized-scope.md#unknown-outcomes-and-repeat-effects).
+# Provider methods and MCP tool contracts
+
+`dl_method_schema(method=...)` describes a provider method such as
+`updateDashboard`. MCP tools such as `dl_object_update` use their own
+`tools/list` `inputSchema`; passing a tool name to method lookup returns that
+precise location and compact argument names. A known small patch does not need
+another method-schema call. `dl_object_diff` previews read-only and takes no
+`expected_revision`; `dl_object_update` requires the saved guard at
+`changes[].expected_revision` for compact dashboard edits. See the canonical
+[addressed collection example](../../datalens-dashboard/references/composition.md#compact-edits-to-existing-tabs).

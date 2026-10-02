@@ -18,6 +18,10 @@ class OperationRegistry:
         try:
             result = dict(self._operations[method])
             result.setdefault("contract_kind", "operation_metadata")
+            # Provider authorization markers do not describe effects or async
+            # completion. Keep unknown/unmarked scopes explicit.
+            result.setdefault("authorization_scope", None)
+            result.setdefault("completion", "response" if result.get("effect") == "read" else "readback_required")
             return result
         except KeyError as exc:
             raise KeyError(f"unsupported documented DataLens method: {method}") from exc
