@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.26
+
+- Address dashboard global controls and grouped children by native identity through the existing revision-guarded save path, preserving neighboring records, layout and no-op behavior.
+- Align Editor tab validation and SDK carriers for Controls, Config and documented Activities; report partial static scope without deleting supplied tabs.
+- Adapt explicitly selected native calendar inputs for Dataset filters, retaining inclusive boundaries, clear semantics and timezone contracts.
+- Refresh selected API provenance, distinguish MCP tool schemas from provider methods, and retain connection IDs with incomplete asynchronous creation outcomes.
+- Classify failed receipt admission before dispatch and clear stale error diagnostics only when resuming a confirmed failed attempt.
+
 ## 1.2.25
 
 - Distinguish a single SDK mutation's connection/pool failure before request bytes from a lost response; retain unknown outcomes after an earlier composite effect and keep writes single-attempt.

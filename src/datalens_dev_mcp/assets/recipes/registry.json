@@ -28,12 +28,14 @@
     "period_selector": {
       "type": "object", "required": ["param_name", "default"],
       "properties": {"param_name": {"type": "string", "minLength": 1},
+                     "date_input": {"enum": ["utc_calendar_date", "iso_datetime"]},
                      "default": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "string"}}}
     },
     "dataset_selector": {
       "type": "object", "required": ["param_name", "field_guid", "empty_selection"],
       "properties": {"param_name": {"type": "string", "minLength": 1}, "field_guid": {"type": "string", "minLength": 1},
                      "empty_selection": {"enum": ["all", "none", "error"]}, "operation": {"type": "string"}, "default": {},
+                     "date_input": {"enum": ["utc_calendar_date", "iso_datetime"], "description": "Explicit native date control adapter; UTC calendar conversion only when selected. BETWEEN is inclusive. ISO datetime retains its timezone."},
                      "window": {"type": "object", "additionalProperties": false, "required": ["days"],
                                 "description": "Inclusive UTC calendar-day window ending at the selected range end plus offset_days. Requires BETWEEN and empty_selection=error.",
                                 "properties": {"days": {"type": "integer", "minimum": 1}, "offset_days": {"type": "integer"}}}}

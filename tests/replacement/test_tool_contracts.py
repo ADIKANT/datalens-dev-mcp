@@ -135,6 +135,20 @@ def test_runtime_fingerprint_reports_active_identity_without_cwd_git(tmp_path, m
     assert first["build"]["commit_status"] == "unknown"
 
 
+def test_method_lookup_distinguishes_tool_input_from_provider_metadata():
+    result = server.dl_method_schema("dl_object_update")
+    assert result["status"] == "wrong_contract_level"
+    assert result["tool_contract"]["fields"] == ["changes", "delivery_mode", "operation_id"]
+    assert result["tool_contract"]["required"] == ["changes"]
+    assert "available_methods" not in result
+    result = server.call_tool("dl_object_diff", {"object_type": "dashboard", "object_id": "synthetic",
+                                                "patch": {"name": "x"}, "expected_revision": "r1"})
+    assert result["structuredContent"]["code"] == "input_error"
+    assert "changes[].expected_revision" in result["structuredContent"]["message"]
+    provider = server.dl_method_schema("updateDashboard")
+    assert provider["ok"] and provider["operation"]["authorization_scope"] == "write"
+
+
 def test_new_distribution_does_not_masquerade_as_active_process(monkeypatch):
     from importlib import import_module
 

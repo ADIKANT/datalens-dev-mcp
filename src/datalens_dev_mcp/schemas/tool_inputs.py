@@ -3,9 +3,9 @@
 STRING = {"type": "string", "minLength": 1}
 
 
-def _dashboard_collection_change(*keys: str) -> dict:
+def _dashboard_collection_change(*keys: str, controls: bool = False, groups: bool = False) -> dict:
     identity = {key: STRING for key in keys}
-    return {
+    result = {
         "type": "object", "minProperties": 1, "additionalProperties": False,
         "properties": {
             "add": {"type": "array", "minItems": 1, "items": {
@@ -21,19 +21,32 @@ def _dashboard_collection_change(*keys: str) -> dict:
                            "additionalProperties": False}},
         },
     }
+    if controls:
+        update = result["properties"]["update"]["items"]
+        update["properties"]["namespace"] = STRING
+        update["properties"]["patch"]["not"]["anyOf"].append({"required": ["namespace"]})
+        result["properties"]["remove"]["items"] = {"oneOf": [STRING, {
+            "type": "object", "properties": {"id": STRING, "namespace": STRING},
+            "required": ["id"], "additionalProperties": False}]}
+        if groups:
+            update["required"] = list(keys)
+            update["anyOf"] = [{"required": ["patch"]}, {"required": ["group"]}]
+            update["properties"]["group"] = _dashboard_collection_change("id", controls=True)
+    return result
 
 
 DASHBOARD_PATCH = {
     "type": "object", "properties": {"tabs": {
         "type": "array", "minItems": 1, "items": {
             "type": "object", "required": ["id"], "additionalProperties": False,
-            "anyOf": [{"required": [key]} for key in ("patch", "items", "layout", "connections")],
+            "anyOf": [{"required": [key]} for key in ("patch", "items", "globalItems", "layout", "connections")],
             "properties": {
                 "id": STRING,
                 "patch": {"type": "object", "minProperties": 1, "additionalProperties": False,
                           "properties": {"title": STRING, "aliases": {"type": "object"},
                                          "settings": {"type": "object"}}},
-                "items": _dashboard_collection_change("id"),
+                "items": _dashboard_collection_change("id", controls=True, groups=True),
+                "globalItems": _dashboard_collection_change("id", controls=True, groups=True),
                 "layout": _dashboard_collection_change("i"),
                 "connections": _dashboard_collection_change("from", "to"),
             },
@@ -92,6 +105,8 @@ DESTINATION = {"type": "object", "properties": {"workbook_id": STRING, "collecti
 DRAFT = {
     "type": "object",
     "properties": {"object_type": STRING, "artifact_path": STRING, "client_ref": STRING,
+                   "validation_scope": {"enum": ["complete_draft", "supplied_tabs"],
+                                        "description": "Static single-draft scope; batch draft validation uses complete_draft. SDK create supplies omitted provider-required tabs."},
                    "depends_on": {"type": "array", "items": STRING},
                    "dataset_fields": {"type": "array", "items": FIELD,
                                       "description": "Dataset field readback for complete offline Wizard payload validation."},

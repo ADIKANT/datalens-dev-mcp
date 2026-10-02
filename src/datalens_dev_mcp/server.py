@@ -99,6 +99,14 @@ def dl_auth_refresh(allow_browser: bool = True) -> dict[str, Any]:
 
 
 def dl_method_schema(method: str) -> dict[str, Any]:
+    tool = next((item for item in TOOL_SCHEMAS if item["name"] == method), None)
+    if tool is not None:
+        return {"ok": False, "status": "wrong_contract_level", "method": method,
+                "message": "This is an MCP tool, not a provider method. Its contract is tools/list → "
+                           + method + " → inputSchema; use that schema directly.",
+                "tool_contract": {"name": method, "schema_path": "tools/list.inputSchema",
+                                  "required": tool["inputSchema"].get("required", []),
+                                  "fields": list(tool["inputSchema"]["properties"])}}
     registry = OperationRegistry.load()
     try:
         operation = registry.get(method)
@@ -694,7 +702,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_object_update",
-        "description": "Apply narrow saved-object patches with revision checks and readback; exact no-ops do not write. For existing dashboard tabs use dashboard_patch plus expected_revision: items keyed by id, layout by i, connections by from/to, with add/update/remove and small tab metadata patches. Send only changed records, not whole tabs. Named global parameter removal uses remove_global_params. Compiled Editor updates use artifact_path. Writes retain private receipts; unknown effects are not replayed.",
+        "description": "Apply narrow saved-object patches with revision checks and readback; exact no-ops do not write. For existing dashboard tabs use dashboard_patch plus expected_revision: items/globalItems keyed by id with optional namespace, group_control children via group keyed by native id, layout by i, connections by from/to, with add/update/remove and small tab metadata patches. Send only changed records, not whole tabs. Named global parameter removal uses remove_global_params. Compiled Editor updates use artifact_path. Writes retain private receipts; unknown effects are not replayed.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -892,6 +900,11 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, A
     if invalid is not None:
         # Do not echo the offending payload: it may contain source or credentials.
         result = _argument_error(invalid)
+        if name == "dl_object_diff" and "expected_revision" in supplied:
+            result["message"] = (
+                "dl_object_diff is a read-only preview and does not accept expected_revision. "
+                "Remove it for preview; dl_object_update takes changes[].expected_revision for a saved write. "
+                "Use the respective MCP tools/list inputSchema; no mutation was dispatched.")
     else:
         try:
             if name in BOUNDED_READ_TOOLS:

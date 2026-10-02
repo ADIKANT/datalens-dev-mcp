@@ -447,20 +447,22 @@ class SdkAdapter:
                 builder = getattr(client.create.editor_chart, _editor_factory(str(draft.get("variant") or "")))(
                     name=name, location=location
                 )
-                tab_methods = {
-                    "meta.json": "meta",
-                    "params.js": "params",
-                    "sources.js": "sources",
-                    "prepare.js": "prepare",
-                    "controls.js": "controls",
-                    "config.js": "config",
-                }
+                from datalens_dev_mcp.editor.validation import TAB_FIELDS, allowed_editor_fields, validate_editor_source
+
+                allowed = allowed_editor_fields(str(draft.get("variant") or ""))
+                issues = validate_editor_source(draft["tabs"])
+                if issues:
+                    raise InputContractError(f"{issues[0]['path']}: {issues[0]['message']}")
                 expected_tabs = {}
                 for filename, content in draft["tabs"].items():
-                    tab = tab_methods.get(filename)
+                    tab = TAB_FIELDS.get(filename)
+                    if tab not in allowed:
+                        raise InputContractError(f"unsupported tab for selected Editor variant: {filename}")
                     method = getattr(builder, tab, None) if tab else None
                     if not callable(method):
-                        raise ValueError(f"unsupported tab for selected Editor variant: {filename}")  # noqa: TRY004
+                        raise InputContractError(
+                            f"SDK 3.0.0 create carrier does not support {filename}; "
+                            "the documented tab is retained in the draft, no create was dispatched")
                     if not isinstance(content, str):
                         raise ValueError(f"Editor tab must contain source text: {filename}")  # noqa: TRY004
                     method(content)
@@ -511,6 +513,15 @@ class SdkAdapter:
                     _validate_wizard_snapshot(_chart_entry(snapshot))
                 factory = getattr(client.raw.create, object_type)
                 builder = factory(response_snapshot=snapshot, name=name, location=location)
+                if object_type == "connection":
+                    from datalens_sdk.converter.connection import ConnectionConverter
+                    from datalens_sdk.domain.specs.raw_resource import RawCreateSpec
+
+                    # Verify fields actually sent, not the import's source id/name.
+                    expected_readback = ConnectionConverter.from_raw_create(
+                        RawCreateSpec(response_snapshot=snapshot, name=name, location=location), overrides=None,
+                        installation=self._config.installation if self._config else "yacloud",
+                    ).to_payload()
                 effect_started = True
                 value = builder.build()
             result = {"object_id": _result_id(value), "object": _json_object(value), "backend": "official_sdk"}
@@ -922,6 +933,8 @@ def _validate_editor_changes(snapshot: dict[str, Any], latest: dict[str, Any]) -
     from datalens_sdk._generated import dto
     from pydantic import TypeAdapter, ValidationError
 
+    from datalens_dev_mcp.editor.validation import allowed_editor_fields
+
     carriers = {
         "table_node": "TableNodeNodeUpdateDataDTO",
         "d3_node": "D3NodeNodeUpdateDataDTO",
@@ -933,16 +946,19 @@ def _validate_editor_changes(snapshot: dict[str, Any], latest: dict[str, Any]) -
     if carrier is None:
         raise InputContractError("Unsupported Editor renderer in SDK 3.0.0 installation contract")
     allowed = {field.alias or name: field for name, field in carrier.model_fields.items()}
+    documented = allowed_editor_fields(str(snapshot.get("type")))
     data, previous = snapshot.get("data") or {}, latest.get("data") or {}
     changed_source = {}
     for key, value in data.items():
         if key in previous and previous[key] == value:
             continue
-        if key not in allowed:
+        if key not in documented or (key not in allowed and key != "activities"):
             raise InputContractError(f"Unsupported Editor tab or UI-managed field: {key}; no public SDK setter")
         changed_source[key] = value
         try:
-            TypeAdapter(allowed[key].rebuild_annotation()).validate_python(value)
+            # Activities is absent from the generated DTO, but the existing raw
+            # replacement carrier preserves data verbatim (SDK transport checked).
+            TypeAdapter(allowed[key].rebuild_annotation() if key in allowed else str).validate_python(value)
         except ValidationError as exc:
             raise InputContractError(f"Editor tab {key} has an invalid value type for its SDK carrier") from exc
 

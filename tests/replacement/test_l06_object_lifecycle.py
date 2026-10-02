@@ -71,6 +71,26 @@ def test_save_only_reads_saved_and_never_publishes(tmp_path: Path) -> None:
     assert reader.calls == [("editor_chart", "chart-1", "saved")]
 
 
+def test_receipt_admission_failure_is_pre_dispatch(tmp_path, monkeypatch):
+    from datalens_dev_mcp.server import call_tool
+
+    backend = FakeBackend([])
+    writer = service(tmp_path, FakeReader({}), backend)
+
+    def denied(record):
+        raise PermissionError("synthetic denied operation store")
+
+    monkeypatch.setattr(writer.store, "claim", denied)
+    monkeypatch.setattr("datalens_dev_mcp.server.default_mutation_service", lambda: writer)
+    result = call_tool("dl_object_create", {"drafts": [{"object_type": "editor_chart", "client_ref": "synthetic", "name": "Synthetic",
+                                                       "snapshot": {"data": {}}}],
+                                             "destination": {"workbook_id": "synthetic"}})["structuredContent"]
+    assert result["dispatch_state"] == "not_dispatched"
+    assert result["effect_outcome"] == "not_applied"
+    assert result.get("stage") == "receipt_admission", result
+    assert backend.calls == []
+
+
 def test_completed_operation_is_returned_without_duplicate_create(tmp_path: Path) -> None:
     reader = FakeReader(
         {("wizard_chart", "chart-1", "saved"): [rb("wizard_chart", "chart-1", "r1", {"id": "chart-1", "data": {}})]}

@@ -10,6 +10,8 @@ The SDK 3.0.0 API exposes Page method names. The inspected API v3 `GetHtmlPageRe
 
 Metadata reads remain available. Publishing an existing saved Page revision uses the validated update revision/mode contract only when explicitly requested; it does not establish that this adapter authored or inspected that revision's HTML. Verify exact saved/published revision identity and report the content-verification limit separately.
 
+The current documentation also describes an optional `x-dl-audit-mode: true` header for `getHtmlPage` and `getHtmlPagePreviewUrl` with explicit saved/published/revision, language and theme selection. These remain documented-only capabilities until an authorized Page verifies their results through the existing read owner. Preview defaults to published at the provider; a future supported call must select the intended branch explicitly. Do not add arbitrary headers or infer source access from audit mode. A temporary authenticated preview URL is neither a public share nor save/publish proof; keep it out of Git and durable logs. See the [API compatibility matrix](../../../docs/testing/docs-api-compatibility.md).
+
 For a content-authoring request, finish the authorized local UTF-8 artifact, lint and local preview, then state that provider creation/content update remains unsupported pending a verified content-readback path. Do not invent an endpoint, presigned upload, generic invoke or browser write fallback. Check active typed schemas for any future reviewed capability change; the existence of an upstream reference or SDK method is insufficient. Keep local artifact, provider readback, supported publication and platform render as separate results.
 
 ## Author against the confirmed Page contract

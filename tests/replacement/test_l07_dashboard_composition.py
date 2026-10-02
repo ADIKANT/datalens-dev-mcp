@@ -4,10 +4,45 @@ import pytest
 
 from datalens_dev_mcp.dashboard.composition import (
     RESERVED_PARAMETERS,
+    apply_dashboard_patch,
     compose_dashboard_patch,
     dependency_order,
     validate_dashboard_contract,
 )
+
+
+def test_global_group_children_namespace_and_value_preservation():
+    from copy import deepcopy
+
+    from datalens_dev_mcp.api.errors import InputContractError
+
+    current = {"data": {"tabs": [{"id": "tab", "globalItems": [
+        {"id": "group", "type": "group_control", "namespace": "default", "data": {"group": [
+            {"id": "child", "namespace": "default", "defaults": {"keep": "", "value": 0}},
+            {"id": "sibling", "defaults": {"value": False}},
+        ]}}, {"id": "same", "namespace": "a"}, {"id": "same", "namespace": "b"}],
+        "layout": [{"i": "group", "x": 2, "y": 3, "w": 10, "h": 4}]}]}}
+    delta = {"tabs": [{"id": "tab", "globalItems": {"update": [
+        {"id": "group", "namespace": "default", "group": {"update": [
+            {"id": "child", "patch": {"defaults": {"value": [], "null": None}}}]}},
+        {"id": "same", "namespace": "b", "patch": {"defaults": {"value": False}}}]} }]}
+    after, desired = apply_dashboard_patch(current, delta)
+    expected = deepcopy(current)
+    items = expected["data"]["tabs"][0]["globalItems"]
+    items[0]["data"]["group"][0]["defaults"].update(value=[], null=None)
+    items[2]["defaults"] = {"value": False}
+    assert after == desired == expected
+    for address in ({"id": "missing"}, {"id": "same"}, {"id": "same", "namespace": "wrong"}):
+        with pytest.raises(InputContractError, match="exactly one"):
+            apply_dashboard_patch(current, {"tabs": [{"id": "tab", "globalItems": {
+                "update": [{**address, "patch": {"defaults": {"value": []}}}]}}]})
+    from test_sdk_v3_transport import dashboard_state
+
+    native = deepcopy(dashboard_state()["entry"]["data"]["tabs"][0]["items"][0])
+    native["id"] = "new"
+    after, _ = apply_dashboard_patch(after, {"tabs": [{"id": "tab", "globalItems": {
+        "add": [native], "remove": [{"id": "same", "namespace": "a"}]}}]})
+    assert [row["id"] for row in after["data"]["tabs"][0]["globalItems"]] == ["group", "same", "new"]
 
 
 def test_narrow_dashboard_patch_preserves_manual_geometry_and_unknown_widgets() -> None:

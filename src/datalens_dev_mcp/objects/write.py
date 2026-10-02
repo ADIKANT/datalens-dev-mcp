@@ -15,6 +15,7 @@ from datalens_dev_mcp.api.errors import (
     safe_error_text,
 )
 from datalens_dev_mcp.authoring.artifacts import resolve_artifact
+from datalens_dev_mcp.editor.validation import TAB_FIELDS as _EDITOR_ARTIFACT_TABS
 from datalens_dev_mcp.objects.relations import object_identity
 from datalens_dev_mcp.operation_store import OperationStore, normalize_operation
 
@@ -29,15 +30,6 @@ _EDITOR_ARTIFACT_TYPES = frozenset(
         "control_node",
     }
 )
-_EDITOR_ARTIFACT_TABS = {
-    "meta.json": "meta",
-    "params.js": "params",
-    "sources.js": "sources",
-    "prepare.js": "prepare",
-    "controls.js": "controls",
-    "config.js": "config",
-}
-
 
 class MutationBackend(Protocol):
     def create(self, draft: dict[str, Any], destination: dict[str, Any]) -> dict[str, Any]: ...
@@ -199,6 +191,17 @@ class ObjectMutationService:
                 if isinstance(response.get("expected_readback"), dict):
                     item["desired"] = _recordable(response["expected_readback"])
                 self._returned(record, item, response)
+                value = response.get("object") or {}
+                if draft["object_type"] == "connection" and value.get("operation") is not None:
+                    # The response's operation is an opaque object in the API
+                    # contract. No generic connection-operation read is exposed;
+                    # an id or a guessed `done` field cannot establish readiness.
+                    item["connection_operation"] = _recordable(value["operation"])
+                    item.update(status="uncertain", code="connection_operation_incomplete",
+                                next_action="Connection id retained; async operation completion is not verified. "
+                                            "No supported generic operation poll; do not repeat create.")
+                    self._save(record)
+                    continue
                 self._verify_readback(item, branch="saved")
             except UncertainWriteError as exc:
                 self._failure(item, exc)
@@ -356,6 +359,10 @@ class ObjectMutationService:
         for item in record.get("results", []):
             if item.get("status") != "uncertain":
                 continue
+            if "connection_operation" in item:
+                # A metadata read alone does not prove provisioning completed.
+                item["code"] = "connection_operation_incomplete"
+                continue
             target = item.get("target") or {}
             object_type, object_id = str(target.get("object_type") or ""), str(target.get("object_id") or "")
             if not object_type or not object_id:
@@ -384,6 +391,8 @@ class ObjectMutationService:
             next_action="Inspect this operation_id and reconcile exact target readback; do not replay the write.",
         )
         item.pop("error", None)
+        for field in ERROR_DIAGNOSTIC_FIELDS:
+            item.pop(field, None)
         self._save(record)
 
     def _returned(self, record: dict[str, Any], item: dict[str, Any], response: dict[str, Any]) -> None:
@@ -477,17 +486,25 @@ class ObjectMutationService:
             digest = _digest(request)
         except (ValueError, TypeError) as exc:
             raise InputContractError(safe_error_text(exc)) from exc
-        return self.store.claim(
-            {
-                "ok": False,
-                "operation_id": oid,
-                "effect": effect,
-                "request_digest": digest,
-                "status": "pending",
-                "next_action": "Inspect the existing receipt; an active or interrupted claim must not be replayed.",
-                "results": [],
-            }
-        )
+        try:
+            return self.store.claim(
+                {
+                    "ok": False,
+                    "operation_id": oid,
+                    "effect": effect,
+                    "request_digest": digest,
+                    "status": "pending",
+                    "next_action": "Inspect the existing receipt; an active or interrupted claim must not be replayed.",
+                    "results": [],
+                }
+            )
+        except OSError as exc:
+            # Admission has not returned; this invocation cannot have reached
+            # backend dispatch. Do not reinterpret any older stored receipt.
+            raise DataLensApiError(
+                "Cannot persist operation admission; no provider write was dispatched by this invocation",
+                dispatch_state="not_dispatched", stage="receipt_admission",
+            ) from exc
 
     @staticmethod
     def _items(record: dict[str, Any], values: list[dict[str, Any]], key_fn: Any) -> list[dict[str, Any]]:

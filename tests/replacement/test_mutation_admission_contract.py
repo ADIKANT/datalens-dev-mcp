@@ -341,13 +341,16 @@ def test_process_crash_keeps_durable_claim(tmp_path, after_effect):
 def test_store_failure_before_transport_blocks_effect(tmp_path):
     from test_l06_object_lifecycle import FakeBackend, FakeReader, service
 
+    from datalens_dev_mcp.api.errors import DataLensApiError
+
     writer = service(tmp_path, FakeReader({}), FakeBackend([]))
     with (
         patch.object(writer.store, "_write", side_effect=OSError("synthetic disk unavailable")),
-        pytest.raises(OSError),
+        pytest.raises(DataLensApiError, match="no provider write") as failure,
     ):
         writer.create_objects(create_draft(), {"workbook_id": "synthetic"}, operation_id="disk")
     assert writer.backend.calls == []
+    assert failure.value.dispatch_state == "not_dispatched"
 
 
 @pytest.mark.parametrize("change", ["payload", "effect", "target"])

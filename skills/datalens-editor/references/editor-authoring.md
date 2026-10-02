@@ -52,27 +52,67 @@ For a successful full read retained as `read`, this caller-side projection prese
 store("editorBefore", read); // private full snapshot, including unknown provider fields
 const object = read.object;
 const allowed = {
-  table_node: ["meta", "params", "sources", "prepare", "config"],
-  d3_node: ["meta", "params", "sources", "prepare", "controls"],
+  table_node: ["meta", "params", "sources", "prepare", "config", "controls", "activities"],
+  d3_node: ["meta", "params", "sources", "prepare", "controls", "config", "activities"],
   "advanced-chart_node": ["meta", "params", "sources", "prepare", "controls"],
-  markdown_node: ["meta", "params", "prepare"],
-  control_node: ["meta", "params", "controls"],
+  markdown_node: ["meta", "params", "sources", "controls", "prepare"],
+  control_node: ["meta", "params", "sources", "controls", "activities"],
 };
 const names = allowed[object.type]?.slice();
 if (!names) throw new Error("Unsupported Editor subtype: " + object.type);
-if (object.type === "control_node" && "sources" in object.data) names.push("sources");
-const tabs = Object.fromEntries(names.map(name => {
+const tabs = Object.fromEntries(names.filter(name => name in object.data).map(name => {
   if (typeof object.data[name] !== "string") throw new Error("Missing source text: data." + name);
   return [name === "meta" ? "meta.json" : name + ".js", object.data[name]];
 }));
-const draft = {variant: object.type, tabs};
+const draft = {variant: object.type, tabs, validation_scope: "supplied_tabs"};
 store("editorDraft", draft);
 // Edit only the requested tab in draft.tabs, then:
 const result = await tools.mcp__datalens__dl_editor_validate({draft});
 text(result.structuredContent ?? result);
 ```
 
-Projected tabs, including Meta source aliases, remain verbatim. The full snapshot also retains provider fields outside the static variant contract: for example, a Table's extra raw `controls` field stays in the snapshot without becoming an unsupported `controls.js` validation tab. If an explicit `source_aliases` list accompanies your authoring draft, retain it too; do not infer or rename aliases from display labels. For a single Prepare edit, send only `patch: {data: {prepare: draft.tabs["prepare.js"]}}` with the exact target and fresh `expected_revision`. Preserve all other provider fields through the narrow update. Verify the changed tab and untouched bindings in saved readback, then apply the [publication and own-delta restore rules](../../datalens-dashboard/references/authorized-scope.md#saved-state-publication-and-restoration).
+Projected tabs, including Controls, Activities and Meta aliases, remain verbatim.
+Validate the exact tabs being written; never remove a supplied tab to make validation
+pass. `validation_scope: "supplied_tabs"` checks only the supplied fragment and
+reports its scope. New complete drafts use the default `complete_draft` contract;
+provider response.required does not become a requirement for every narrow update.
+Unchanged unknown fields stay in the full saved snapshot. Preserve explicit
+`source_aliases`. A single Prepare edit uses `patch: {data: {prepare: draft.tabs["prepare.js"]}}`
+with fresh `expected_revision`; verify it and untouched bindings in saved readback.
+Use the [publication rules](../../datalens-dashboard/references/authorized-scope.md#saved-state-publication-and-restoration).
+
+SDK 3.0.0 carries Table Controls, Table/Gravity Config and Markdown Sources/Controls.
+Activities is documented only for Table, Gravity and Selector; the existing raw
+update/import carrier preserves it. The typed create builder has no Activities
+setter and returns a scoped unsupported error before dispatch. Do not discard it
+or upgrade the SDK blindly. See the [compatibility matrix](../../../docs/testing/docs-api-compatibility.md).
+
+### Native calendar inputs
+
+Dataset selector bindings can explicitly set `date_input: "utc_calendar_date"`
+or `"iso_datetime"`. They accept strict YYYY-MM-DD, ISO datetime with an explicit
+timezone, and native `__interval_...`/`__relative_...` forms through
+`Editor.resolveInterval`/`Editor.resolveRelative`. UTC calendar mode converts the
+instant to its UTC date; ISO datetime mode retains its timezone. BETWEEN includes
+both supplied boundaries. A calendar end date is not automatically the end of a
+timestamp day: use the intended instant boundaries for timestamp fields. Rolling
+`window` requires UTC calendar mode (or the existing two-date contract).
+
+```json
+{"param_name":"event_period","field_guid":"date-field-guid","operation":"BETWEEN",
+ "empty_selection":"all","default":[],"date_input":"utc_calendar_date"}
+```
+
+Clear/All removes only this selector's filter when `empty_selection=all`; it does
+not inject today, reset unrelated parameters or alter other source families.
+For custom SQL, keep normalization in the project's existing source owner. Record
+the actual `Editor.getParams()` input (for example an array containing
+`"2026-09-29T00:00:00.000Z"`), chosen timezone and inclusive/exclusive boundaries;
+resolve native intervals only when their prefix is present. Never parse arbitrary
+strings as dates or truncate timestamps without an explicit calendar-date contract.
+Check declaration, global defaults, impactTabs/aliases, normalized query/filter,
+selected entity, rows and rendered output together. The fixed input's expected
+counts are evidence for that input; live data needs a fresh baseline.
 
 Validation proves the static contract only. For a runtime failure, distinguish JavaScript execution, an unresolved alias/source, a provider error, a valid empty query and an invalid KPI calculation. Do not hide upstream failure under a “no data” label. If the same shape/alias problem persists on a real object despite this mapping, report the exact path and observed shape before dispatch; do not weaken the subtype contract or introduce a new write route.
 

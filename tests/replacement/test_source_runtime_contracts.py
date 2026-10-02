@@ -65,6 +65,38 @@ def test_dataset_source_accepts_scalar_selector_value_from_dashboard_runtime() -
     assert selected["where"] == [{"column": "Region", "type": "title", "operation": "IN", "values": ["north"]}]
 
 
+@pytest.mark.parametrize("value, expected", [
+    (["2026-09-29", "2026-09-30"], ["2026-09-29", "2026-09-30"]),
+    (["2026-09-29T00:00:00Z", "2026-09-30T23:59:59.999Z"], ["2026-09-29", "2026-09-30"]),
+    (["2026-09-29T01:00:00+03:00", "2026-09-30T01:00:00+03:00"], ["2026-09-28", "2026-09-29"]),
+    ([], None), ([""], None), (None, None),
+])
+def test_explicit_calendar_control_normalizes_only_selected_filter(value, expected):
+    bindings = _dataset_bindings()
+    bindings["selectors"].append({"param_name": "period", "field_guid": "region", "operation": "BETWEEN",
+                                  "empty_selection": "all", "date_input": "utc_calendar_date"})
+    source = matrix_dataset_source(bindings)
+    query = _run_sources(source, {"region_filter": ["north"], "period": value})
+    assert query["where"][0]["values"] == ["north"]
+    assert [item["values"] for item in query["where"][1:]] == ([] if expected is None else [expected])
+    assert source["params"]["period"] == []
+
+
+def test_native_interval_delegates_to_editor_and_keeps_instant_timezone():
+    bindings = _dataset_bindings()
+    bindings["selectors"] = [{"param_name": "period", "field_guid": "region", "operation": "BETWEEN",
+                               "empty_selection": "all", "date_input": "iso_datetime"}]
+    source = matrix_dataset_source(bindings)
+    # Resolver stub checks only delegation. Provider-native resolution is a separate live proof.
+    script = """const Editor={getId:()=> 'dataset', getParams:()=>({period:['__interval___relative_-1d___relative_+0d']}),
+      resolveInterval:v=> {if(v!=='__interval___relative_-1d___relative_+0d') throw Error('wrong input');
+        return {from:'2026-09-29T00:00:00+03:00',to:'2026-09-30T23:59:59+03:00'};}};
+      const require=()=>({buildSource:x=>x});
+    """ + source["sources_js"] + "console.log(JSON.stringify(module.exports.source));"
+    query = json.loads(subprocess.check_output(["node", "-e", script], text=True))
+    assert query["where"][0]["values"] == ['2026-09-29T00:00:00+03:00', '2026-09-30T23:59:59+03:00']
+
+
 @pytest.mark.parametrize(
     ("loaded", "message"),
     [

@@ -58,7 +58,8 @@ def apply_dashboard_patch(current: dict[str, Any], patch: dict[str, Any]) -> tup
         if len(matches) != 1:
             raise InputContractError("dashboard_patch tab ID must resolve to exactly one current tab")
         tab = semantic_merge(tabs[matches[0]], change.get("patch", {}))
-        for name, keys in (("items", ("id",)), ("layout", ("i",)), ("connections", ("from", "to"))):
+        for name, keys in (("items", ("id",)), ("globalItems", ("id",)),
+                           ("layout", ("i",)), ("connections", ("from", "to"))):
             if name in change:
                 tab[name] = _edit_dashboard_collection(tab.get(name, []), change[name], keys, name)
         tabs[matches[0]] = tab
@@ -76,18 +77,35 @@ def _edit_dashboard_collection(
     if not isinstance(current, list) or any(not isinstance(row, dict) for row in current):
         raise InputContractError(f"dashboard_patch {name} must be a native array of objects")
     result = deepcopy(current)
-    touched: set[tuple[str, ...]] = set()
+    touched: set[tuple[Any, ...]] = set()
     for operation in ("add", "update", "remove"):
         for row in change.get(operation, []):
             identity = (row,) if isinstance(row, str) else tuple(row[key] for key in keys)
-            if identity in touched:
-                raise InputContractError(f"dashboard_patch {name} repeats an identity across changes")
-            touched.add(identity)
+            namespace = row.get("namespace") if isinstance(row, dict) else None
             matches = [index for index, value in enumerate(result)
-                       if tuple(value.get(key) for key in keys) == identity]
+                       if tuple(value.get(key) for key in keys) == identity
+                       and (namespace is None or value.get("namespace") == namespace)]
+            resolved_namespace = result[matches[0]].get("namespace") if len(matches) == 1 else namespace
+            addressed = (*identity, resolved_namespace)
+            if addressed in touched:
+                raise InputContractError(f"dashboard_patch {name} repeats an identity across changes")
+            touched.add(addressed)
             if operation == "add":
                 if matches:
                     raise InputContractError(f"dashboard_patch {name}.add identity already exists; re-read the target")
+                if name == "globalItems" or name.endswith(".group"):
+                    from datalens_sdk._generated import dto
+                    from pydantic import TypeAdapter, ValidationError
+
+                    carrier = dto.DashGroupControlItemV2DTO if name.endswith(".group") else dto.DashGlobalItemV2DTO
+                    try:
+                        # Validate new records only. Never serialize the DTO back:
+                        # unknown existing fields and exact empty values must survive.
+                        TypeAdapter(carrier).validate_python(row)
+                    except ValidationError as exc:
+                        raise InputContractError(
+                            f"dashboard_patch {name}.add is not supported by the SDK 3.0.0 native control carrier; "
+                            "supply a complete supported control/group_control before dispatch") from exc
                 result.append(deepcopy(row))
             else:
                 if len(matches) != 1:
@@ -95,7 +113,15 @@ def _edit_dashboard_collection(
                 if operation == "remove":
                     result.pop(matches[0])
                 else:
-                    result[matches[0]] = semantic_merge(result[matches[0]], row["patch"])
+                    updated = semantic_merge(result[matches[0]], row.get("patch", {}))
+                    if "group" in row:
+                        if "group" in row.get("patch", {}).get("data", {}):
+                            raise InputContractError("Choose addressed group children or an explicit group replacement, not both")
+                        if updated.get("type") != "group_control" or not isinstance(updated.get("data"), dict):
+                            raise InputContractError(f"dashboard_patch {name}.group requires a native group_control")
+                        updated["data"]["group"] = _edit_dashboard_collection(
+                            updated["data"].get("group", []), row["group"], ("id",), f"{name}.group")
+                    result[matches[0]] = updated
     return result
 
 
