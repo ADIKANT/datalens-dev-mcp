@@ -178,6 +178,24 @@ class SdkAdapter:
     def _observe_response(self, response: httpx.Response) -> None:
         self._responses += 1
         self._observe_rate_limit(response)
+        # The SDK reads response.content itself. Consume decoded HTTPX chunks
+        # under the owned limit before its parser can materialize unbounded JSON.
+        limit = self._config.max_response_bytes if self._config else 32 * 1024 * 1024
+        content = bytearray()
+        try:
+            for chunk in response.iter_bytes(chunk_size=min(65536, limit + 1)):
+                if len(content) + len(chunk) > limit:
+                    raise DataLensApiError("SDK response exceeds configured decoded byte limit",
+                                           method=response.request.url.path.rsplit("/", 1)[-1],
+                                           remote_code="response_too_large", stage="response_read",
+                                           http_status=response.status_code, response_received=True,
+                                           dispatch_state="dispatched", **response_diagnostics(response.headers))
+                content.extend(chunk)
+            # HTTPX read() uses this same cache. Preserve the original response
+            # and headers for the pinned SDK instead of decoding JSON twice.
+            response._content = bytes(content)
+        finally:
+            response.close()
 
     @staticmethod
     def _observe_rate_limit(response: httpx.Response) -> None:

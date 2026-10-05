@@ -135,7 +135,7 @@ def create_draft():
     ]
 
 
-def process_create(root, oid, effects, entered, release, results, pause_claim=False):
+def process_create(root, oid, effects, entered, release, results, pause_claim=False, intent_suffix=""):
     def handle(request):
         with effects.get_lock():
             effects.value += 1
@@ -159,7 +159,9 @@ def process_create(root, oid, effects, entered, release, results, pause_claim=Fa
 
     writer._record = record
     with patch("datalens_dev_mcp.server.default_mutation_service", return_value=writer):
-        results.put(dl_object_create(create_draft(), {"workbook_id": "synthetic-workbook"}, operation_id=oid))
+        drafts = create_draft()
+        drafts[0]["name"] += intent_suffix
+        results.put(dl_object_create(drafts, {"workbook_id": "synthetic-workbook"}, operation_id=oid))
 
 
 @pytest.mark.parametrize("same_id", [True, False])
@@ -170,7 +172,8 @@ def test_public_multiprocess_admission(tmp_path, same_id):
         target=process_create, args=(str(tmp_path), "op-a", effects, entered, release, results, same_id)
     )
     second = ctx.Process(
-        target=process_create, args=(str(tmp_path), "op-a" if same_id else "op-b", effects, entered, release, results)
+        target=process_create, args=(str(tmp_path), "op-a" if same_id else "op-b", effects, entered, release, results,
+                                     False, "" if same_id else " independent")
     )
     first.start()
     assert entered.wait(10)

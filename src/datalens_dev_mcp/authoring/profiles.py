@@ -78,7 +78,7 @@ def get_authoring_defaults(
                               ("labels", ("percent_precision", "small_percent", "stack_totals"))):
             unsupported = set(keys).intersection(values.get(section, {}))
             if unsupported:
-                raise ValueError(f"presentation/{section}/{sorted(unsupported)[0]}: supported by period_series; "
+                raise ValueError(f"presentation/{section}/{min(unsupported)}: supported by period_series; "
                                  "preserve other chart technologies and use their explicit custom path")
     return {
         "ok": True,
@@ -185,7 +185,7 @@ def _validate_presentation(value: Mapping[str, Any]) -> None:
 
     known = set(_registry()["base_visual_contract"]) | {"theme", "spacing", "technology", "dashboard"}
     for key in set(value) - known:
-        raise ValueError(f"presentation/{key}: unsupported visual field")
+        raise ValueError(f"presentation/{key}: unsupported visual field; allowed keys: {', '.join(sorted(known))}")
     shapes = {
         "visible_title": {"owner", "visible", "text"},
         "hint": {"owner", "enabled", "text", "content"},
@@ -209,7 +209,7 @@ def _validate_presentation(value: Mapping[str, Any]) -> None:
         if not isinstance(value[key], Mapping):
             raise TypeError(f"presentation/{key}: expected an object")
         for extra in set(value[key]) - allowed:
-            raise ValueError(f"presentation/{key}/{extra}: unsupported visual field")
+            raise ValueError(f"presentation/{key}/{extra}: unsupported visual field; allowed keys: {', '.join(sorted(allowed))}")
     for key, field in (("visible_title", "visible"), ("hint", "enabled"), ("labels", "visible"),
                        ("axes_gridlines", "x_grid"), ("axes_gridlines", "y_grid"), ("dashboard", "hide_dash_title"),
                        ("tooltip", "hide_null"), ("tooltip", "hide_zero_multi"), ("legend", "hide_empty_series"),

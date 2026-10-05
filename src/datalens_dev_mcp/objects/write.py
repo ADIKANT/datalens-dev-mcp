@@ -10,6 +10,7 @@ from datalens_dev_mcp.api.errors import (
     ERROR_DIAGNOSTIC_FIELDS,
     DataLensApiError,
     InputContractError,
+    ReceiptPersistenceError,
     UncertainWriteError,
     error_response,
     safe_error_text,
@@ -83,10 +84,12 @@ def _json_equal(current: Any, proposed: Any) -> bool:
 
 
 class ObjectMutationService:
-    def __init__(self, *, reader: ObjectReader, backend: MutationBackend, store: OperationStore | None = None) -> None:
+    def __init__(self, *, reader: ObjectReader, backend: MutationBackend, store: OperationStore | None = None,
+                 provider_scope: str | None = None) -> None:
         self.reader = reader
         self.backend = backend
         self.store = store or OperationStore()
+        self.provider_scope = provider_scope
 
     def diff(
         self, object_type: str, object_id: str, patch: dict[str, Any] | None = None, *,
@@ -223,13 +226,38 @@ class ObjectMutationService:
         if not admitted:
             return record
         items = self._items(record, changes, lambda c, i: f"{c.get('object_type')}:{c.get('object_id')}")
+        # Validate changed fields before any batch effect. A full-state metadata
+        # repair may carry unchanged, already invalid fields; do not block it.
+        from datalens_dev_mcp.dataset.contracts import validate_dataset_fields
+        preflight_states: dict[int, dict[str, Any]] = {}
+        invalid = False
+        for index, change in enumerate(changes):
+            patch = change.get("patch") or {}
+            fields = (patch.get("dataset") or {}).get("result_schema") if isinstance(patch.get("dataset"), dict) else None
+            if (change.get("object_type") == "dataset" and isinstance(fields, list)
+                    and items[index].get("status") not in {"completed", "uncertain", "blocked"}):
+                report = validate_dataset_fields(fields)
+                if not report["ok"]:
+                    try:
+                        before = self.reader.object_get("dataset", str(change["object_id"]), branch="saved")
+                        preflight_states[index] = before
+                        existing = (before.get("object", {}).get("dataset") or {}).get("result_schema")
+                        if _usable_full_read(before) and _json_equal(existing, fields):
+                            continue
+                        issue = report["issues"][0]
+                        raise InputContractError(f"{issue['path']}: {issue['message']}")
+                    except (DataLensApiError, ValueError, TypeError) as exc:
+                        self._failure(items[index], exc)
+                        invalid = True
+        if invalid:
+            return self._save(record)
         for index, change in enumerate(changes):
             item = items[index]
             if item.get("status") in {"completed", "uncertain", "blocked"}:
                 continue
             object_type, object_id = str(change["object_type"]), str(change["object_id"])
             try:
-                current = self.reader.object_get(object_type, object_id, branch="saved")
+                current = preflight_states.get(index) or self.reader.object_get(object_type, object_id, branch="saved")
                 if not _usable_full_read(current):
                     item.update(
                         status="blocked",
@@ -396,7 +424,7 @@ class ObjectMutationService:
         self._save(record)
 
     def _returned(self, record: dict[str, Any], item: dict[str, Any], response: dict[str, Any]) -> None:
-        item.update(write_returned=True, code="readback_pending", dispatch_state="dispatched", effect_outcome="unknown")
+        item.update(write_returned=True, code="readback_pending", dispatch_state="dispatched", effect_outcome="applied")
         value = response.get("object") or {}
         item["returned_revision"] = value.get("revId") or value.get("rev_id")
         self._save(record)
@@ -447,9 +475,12 @@ class ObjectMutationService:
         if _usable_full_read(readback) and correct_identity and content_matches and revision_matches:
             item.update(status="completed", code="readback_verified", observed_revision=identity.get("revision_id"))
             item["evidence"] = f"{allowed_branch}_readback"
+            item["write_verified"] = True
             item["effect_outcome"] = "applied"
             item.pop("error", None)
             item.pop("next_action", None)
+            for field in ERROR_DIAGNOSTIC_FIELDS:
+                item.pop(field, None)
         else:
             # An old or different snapshot cannot prove rejection: the write
             # may still be in flight, or a later edit may have superseded it.
@@ -473,6 +504,8 @@ class ObjectMutationService:
                            ("code", "next_action", "dispatch_state", "effect_outcome")})
         item.update({key: detail[key] for key in (*ERROR_DIAGNOSTIC_FIELDS, "dispatch_state", "effect_outcome")
                      if key in detail})
+        if item.get("write_returned"):
+            item["effect_outcome"] = "applied"
         item.update(
             status="uncertain" if uncertain else "failed",
             error=detail["error"],
@@ -493,6 +526,10 @@ class ObjectMutationService:
                     "operation_id": oid,
                     "effect": effect,
                     "request_digest": digest,
+                    "provider_scope": self.provider_scope,
+                    "write_targets": sorted({str(item["object_id"]) for item in
+                                             request.get("changes", request.get("targets", []))
+                                             if item.get("object_id")}),
                     "status": "pending",
                     "next_action": "Inspect the existing receipt; an active or interrupted claim must not be replayed.",
                     "results": [],
@@ -531,10 +568,10 @@ class ObjectMutationService:
         record["status"] = status
         record["ok"] = status == "completed"
         normalized = normalize_operation(record)
-        for key in ("status", "ok", "next_action"):
+        for key in ("status", "ok", "next_action", "task_complete"):
             if key in normalized:
                 record[key] = normalized[key]
-        if record["status"] == "completed":
+        if record["status"] == "completed" and record["ok"]:
             record.pop("next_action", None)
         try:
             return self.store.put(record)
@@ -542,9 +579,7 @@ class ObjectMutationService:
             if any(
                 item.get("status") == "uncertain" or item.get("write_returned") for item in record.get("results", [])
             ):
-                raise UncertainWriteError(
-                    "operation persistence failed; inspect the durable receipt and reconcile"
-                ) from exc
+                raise ReceiptPersistenceError(deepcopy(record)) from exc
             raise
 
 
@@ -777,6 +812,7 @@ def default_mutation_service() -> ObjectMutationService:
     return ObjectMutationService(
         reader=ObjectReadService(api=runtime.api, sdk=runtime.sdk),
         backend=runtime.sdk,
+        provider_scope=_digest(runtime.config.runtime_identity()[:3]),
     )
 
 

@@ -20,3 +20,8 @@ Follow [authorized scope and delivery](../datalens-dashboard/references/authoriz
 For source changes, use the effective presentation to identify active consumers. Period KPI comparison/sparkline flags determine previous-total/trend queries; value-only needs only the current aggregate. Other explicit per-alias Dataset projections use `dataset_source` in the same recipe compiler. Inspect `summary.source_plan`, actual DataSetData/SQL and results at the same grain. Projection does not prove reduced inner SQL cost. Follow [query needs and portable presentation](references/editor-authoring.md#explicit-dataset-query-needs); preserve custom source code and metadata-only edit paths.
 
 For unknown effects follow [repeat-effect recovery](../datalens-dashboard/references/authorized-scope.md#unknown-outcomes-and-repeat-effects): only proven non-application or separate informed repeat authorization permits another attempt. Failed reconciliation, absent inventory and a new operation_id do not make a retry safe.
+
+For a recipe argument failure, repair the single example from its field path and
+allowed keys before compiling the batch. Do not fan out the same unsupported
+`presentation/colors` field. Keep custom Sources/Prepare on narrow tab or metadata
+edits; compiler success does not establish source data or rendered correctness.

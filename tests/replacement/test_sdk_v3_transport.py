@@ -946,3 +946,140 @@ def test_public_unbranched_type_has_no_publish_dispatch(install_runtime, object_
     )
     assert result["results"][0]["code"] == "object_has_no_publish_branch"
     assert not provider.requests
+
+
+@pytest.mark.parametrize("fault", ["healthy", "lost_response", "slow_write", "preflight_slow", "readback_429", "oversize", "oversize_gzip"])
+def test_native_stdio_http_fault_receipts(tmp_path, fault):
+    """Real stdio process and local HTTP; optional exact installed interpreter."""
+    import os
+    import selectors
+    import socket
+    import subprocess
+    import sys
+    import time
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Thread
+
+    state = dataset_state()
+    effects = []
+    requests = []
+    durable = tmp_path / "provider.json"
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+
+        def do_POST(self):
+            payload = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            method = self.path.rsplit("/", 1)[-1]
+            requests.append(method)
+            if method == "updateDataset":
+                effects.append(method)
+                state["dataset"] = payload["data"]["dataset"]
+                state["dataset"]["revision_id"] = "I2"
+                state["revId"] = "A2"
+                durable.write_text(json.dumps({"effects": len(effects), "state": state}))
+                if fault == "lost_response":
+                    self.connection.shutdown(socket.SHUT_RDWR)
+                    self.connection.close()
+                    return
+                if fault == "slow_write":
+                    time.sleep(0.35)
+            if fault == "preflight_slow":
+                time.sleep(0.35)
+            status = 429 if fault == "readback_429" and effects and method == "getDataset" else 200
+            content = json.dumps({**state, **({"padding": "x" * 3000} if fault.startswith("oversize") else {})}).encode()
+            if fault == "oversize_gzip":
+                import gzip
+                content = gzip.compress(content)
+            self.send_response(status)
+            if fault == "oversize_gzip":
+                self.send_header("Content-Encoding", "gzip")
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(content)))
+            if status == 429:
+                self.send_header("Retry-After", "30")
+            self.end_headers()
+            try:
+                self.wfile.write(content)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+    http = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = Thread(target=http.serve_forever, daemon=True)
+    thread.start()
+    envfile = tmp_path / "credentials.env"
+    envfile.write_text("")
+    env = {key: value for key, value in os.environ.items() if not key.startswith(("DATALENS_", "YC_")) and key != "PYTHONPATH"}
+    env.update(DATALENS_ENV_FILE=str(envfile), DATALENS_API_BASE_URL=f"http://127.0.0.1:{http.server_port}",
+               DATALENS_ORG_ID="synthetic", DATALENS_IAM_TOKEN="synthetic", XDG_STATE_HOME=str(tmp_path),
+               DATALENS_READ_RETRIES="0", DATALENS_READ_BUDGET_SEC="1",
+               DATALENS_OPERATION_BUDGET_SEC="0.15" if fault in {"slow_write", "preflight_slow"} else "2",
+               DATALENS_MAX_RESPONSE_BYTES="1024" if fault.startswith("oversize") else "32768")
+    interpreter = os.environ.get("DATALENS_TEST_PYTHON", sys.executable)
+    process = subprocess.Popen([interpreter, "-I", "-m", "datalens_dev_mcp.cli", "stdio"], cwd=tmp_path,
+                               env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    selector = selectors.DefaultSelector()
+    selector.register(process.stdout, selectors.EVENT_READ)
+    request_id = 0
+    def call(name, arguments):
+        nonlocal request_id
+        request_id += 1
+        process.stdin.write(json.dumps({"id": request_id, "method": "tools/call", "params": {
+            "name": name, "arguments": arguments}}) + "\n")
+        process.stdin.flush()
+        assert selector.select(5), f"stdio response missing for {name}"
+        response = json.loads(process.stdout.readline())
+        assert response["id"] == request_id
+        return response.get("result", {}).get("structuredContent", response)
+    try:
+        identity = call("dl_server_info", {})
+        if os.environ.get("DATALENS_TEST_PYTHON"):
+            assert identity["runtime"]["import_kind"] == "site-packages"
+            assert identity["build"]["commit_status"] == "clean"
+        args = {"changes": [{"object_type": "dataset", "object_id": "synthetic-dataset",
+                             "patch": {"dataset": {"description": "after"}}}], "operation_id": "local-fault"}
+        if fault == "slow_write":
+            args["changes"].append({"object_type": "dataset", "object_id": "synthetic-second",
+                                    "patch": {"dataset": {"description": "second"}}})
+        result = call("dl_object_update", args)
+        assert result["operation_id"] == "local-fault", result
+        assert len(effects) == (0 if fault in {"preflight_slow", "oversize", "oversize_gzip"} else 1)
+        if fault in {"slow_write", "preflight_slow"}:
+            if result.get("worker_active"):
+                info = call("dl_server_info", {})
+                # The worker may finish between the deadline reply and this probe.
+                assert info["domain"]["available"] is not info["domain"]["worker_active"]
+            else:
+                assert result["status"] in {"failed", "uncertain"}
+            time.sleep(0.4)  # Let the one in-flight provider call unwind, without a read storm.
+        if fault in {"lost_response", "readback_429"}:
+            assert result["status"] == "uncertain", result
+            row = result["results"][0]
+            assert row["effect_outcome"] == ("applied" if fault == "readback_429" else "unknown")
+            repeated = call("dl_object_update", args)
+            assert repeated["status"] == "uncertain"
+            assert len(effects) == 1
+        if fault == "healthy":
+            assert result["status"] == "completed", result
+        receipt = call("dl_operation_get", {"operation_id": "local-fault"})
+        assert receipt["operation_id"] == "local-fault"
+        if effects:
+            assert json.loads(durable.read_text())["effects"] == 1
+        process.stdin.close()
+        process.wait(timeout=3)
+        # Reload the durable receipt in a new installed process, without provider effects.
+        probe = subprocess.run([interpreter, "-I", "-c",
+                                ("import json; from datalens_dev_mcp.server import dl_operation_get; "
+                                 "print(json.dumps(dl_operation_get('local-fault')))")], cwd=tmp_path, env=env,
+                               capture_output=True, text=True, check=True, timeout=5)
+        assert json.loads(probe.stdout)["results"] == receipt["results"]
+        assert not process.stdout.read(), "late duplicate stdio response"
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait()
+        selector.close()
+        http.shutdown()
+        http.server_close()
+        thread.join(2)

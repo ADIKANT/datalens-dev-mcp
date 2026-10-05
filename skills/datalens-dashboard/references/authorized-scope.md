@@ -85,3 +85,10 @@ For multiple workbooks/projects, keep each project's exact root, workbook and ob
 Do not claim overall completion until every target has a row and no required remainder. Use compact operation results (changed fields, revision and readback boundary); open `dl_operation_get(include_detail=true)` only for an unresolved detail. `no_change` means a fresh saved read matched the patch and no write was sent. Keep API save/readback, publish/readback, data proof, and Browser proof as separate evidence. A visible selector, Editor, or layout change needs relevant rendered verification; a metadata-only update does not require a full Browser tour.
 
 Scale the final response to the request: a single rename needs the result and relevant readback, while a multi-project task needs per-target change, save/readback, requested publish/render and exact remainder. A status question or compaction continues the existing task unless the user changes it; keep accepted formulas and units rather than asking again.
+
+Ordinary create/update/publish calls share `DATALENS_OPERATION_BUDGET_SEC`
+(default 120 seconds, maximum 180) across credentials, preflight, effects and
+readback. A deadline preserves the operation ID and available receipt; it does
+not free the worker or authorize replay. An ACK remains applied when readback
+fails. A `receipt_storage_failed` reply contains in-memory IDs/outcomes which
+must be retained: durable state may be older. Reconcile after the worker unwinds.

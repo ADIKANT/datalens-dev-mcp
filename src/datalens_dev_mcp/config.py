@@ -7,7 +7,7 @@ from pathlib import Path
 
 # Process-local credentials only. The configured credential is part of the key:
 # changing account, endpoint, or the token on disk invalidates the override.
-_RUNTIME_TOKENS: dict[tuple[str, str, str], str] = {}
+_RUNTIME_TOKENS: dict[tuple[str, ...], str] = {}
 
 
 def _default_env_file(process: Mapping[str, str]) -> Path | None:
@@ -36,8 +36,12 @@ class DataLensConfig:
     request_timeout_sec: float = 30.0
     read_retries: int = 2
     read_budget_sec: float = 60.0
+    operation_budget_sec: float = 120.0
     max_response_bytes: int = 32 * 1024 * 1024
     yc_binary: str = "yc"
+    yc_profile: str = ""
+    yc_impersonate_service_account_id: str = field(default="", repr=False)
+    setting_sources: dict[str, str] = field(default_factory=dict, compare=False)
     credential_source: str = "explicit"
     refresh_available: bool = False
     _configured_token: str | None = field(default=None, repr=False, compare=False)
@@ -47,6 +51,7 @@ class DataLensConfig:
 
         if (not math.isfinite(self.request_timeout_sec) or not 0 < self.request_timeout_sec <= 300
                 or not math.isfinite(self.read_budget_sec) or not 0 < self.read_budget_sec <= 300
+                or not math.isfinite(self.operation_budget_sec) or not 0 < self.operation_budget_sec <= 180
                 or not 0 <= self.read_retries <= 5
                 or not 1024 <= self.max_response_bytes <= 256 * 1024 * 1024):
             raise ValueError("Invalid bounded read timeout, retries, budget or response limit")
@@ -72,12 +77,18 @@ class DataLensConfig:
         token = (values.get("DATALENS_TOKEN") or "") if installation == "enterprise" else (
             values.get("DATALENS_IAM_TOKEN") or values.get("YC_IAM_TOKEN") or ""
         )
-        source = "env_file" if token and file_values else "process_env" if token else "none"
+        token_key = "DATALENS_TOKEN" if installation == "enterprise" else (
+            "DATALENS_IAM_TOKEN" if values.get("DATALENS_IAM_TOKEN") else "YC_IAM_TOKEN")
+        def source_of(key: str) -> str:
+            return "env_file" if key in file_values else "process_env" if key in process else "none"
+        source = source_of(token_key) if token else "none"
+        profile = values.get("DATALENS_YC_PROFILE", "").strip()
+        impersonate = values.get("DATALENS_YC_IMPERSONATE_SERVICE_ACCOUNT_ID", "").strip()
         refresh = values.get("DATALENS_ENABLE_TOKEN_REFRESH_ON_401", "").strip().lower() in {"1", "true", "yes"}
         base_url = (values.get("DATALENS_API_BASE_URL") or "https://api.datalens.tech").rstrip("/")
         org_id = values.get("DATALENS_ORG_ID", "").strip()
         configured_token = token.strip()
-        active_token = _RUNTIME_TOKENS.get((base_url, org_id, configured_token), configured_token)
+        active_token = _RUNTIME_TOKENS.get((installation, base_url, org_id, profile, impersonate, configured_token), configured_token)
         return cls(
             installation=installation,
             base_url=base_url,
@@ -86,8 +97,14 @@ class DataLensConfig:
             request_timeout_sec=float(values.get("DATALENS_REQUEST_TIMEOUT_SEC", "30")),
             read_retries=int(values.get("DATALENS_READ_RETRIES", "2")),
             read_budget_sec=float(values.get("DATALENS_READ_BUDGET_SEC", "60")),
+            operation_budget_sec=float(values.get("DATALENS_OPERATION_BUDGET_SEC", "120")),
             max_response_bytes=int(values.get("DATALENS_MAX_RESPONSE_BYTES", str(32 * 1024 * 1024))),
             yc_binary=values.get("DATALENS_YC_BINARY", "yc").strip() or "yc",
+            yc_profile=profile,
+            yc_impersonate_service_account_id=impersonate,
+            setting_sources={"token": source, "profile": source_of("DATALENS_YC_PROFILE"),
+                             "organization": source_of("DATALENS_ORG_ID"),
+                             "impersonation": source_of("DATALENS_YC_IMPERSONATE_SERVICE_ACCOUNT_ID")},
             credential_source="runtime_refresh" if active_token != configured_token else source,
             refresh_available=refresh,
             _configured_token=configured_token,
@@ -97,7 +114,8 @@ class DataLensConfig:
         if not token or any(character.isspace() for character in token):
             raise ValueError("refresh returned an invalid credential")
         original = self._configured_token if self._configured_token is not None else self.iam_token
-        _RUNTIME_TOKENS[(self.base_url, self.org_id, original)] = token
+        _RUNTIME_TOKENS[(self.installation, self.base_url, self.org_id, self.yc_profile,
+                         self.yc_impersonate_service_account_id, original)] = token
 
     def runtime_identity(self) -> tuple[object, ...]:
         configured = self._configured_token if self._configured_token is not None else self.iam_token
@@ -108,9 +126,12 @@ class DataLensConfig:
             configured,
             self.request_timeout_sec,
             self.read_budget_sec,
+            self.operation_budget_sec,
             self.max_response_bytes,
             self.read_retries,
             self.yc_binary,
+            self.yc_profile,
+            self.yc_impersonate_service_account_id,
             self.refresh_available,
         )
 
@@ -129,4 +150,7 @@ class DataLensConfig:
             "credential_source": self.credential_source,
             "token_present": bool(self.iam_token),
             "refresh_available": self.refresh_available,
+            "profile_attribution": "explicit" if self.yc_profile else "ambient_unknown",
+            "impersonation_configured": bool(self.yc_impersonate_service_account_id),
+            "setting_sources": dict(self.setting_sources),
         }

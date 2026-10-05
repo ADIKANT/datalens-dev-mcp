@@ -555,6 +555,9 @@ def _validate_typed_dataset(specification: Mapping[str, Any]) -> list[dict[str, 
             _error("dataset_fields_missing", "dataset/fields", "typed Dataset requires a nonempty fields array")
         )
     else:
+        for issue in validate_dataset_fields(fields)["issues"]:
+            if issue["code"] == "field_title_duplicate":
+                errors.append(_error(issue["code"], "dataset/" + issue["path"], issue["message"]))
         for index, field in enumerate(fields):
             if not isinstance(field, Mapping):
                 continue

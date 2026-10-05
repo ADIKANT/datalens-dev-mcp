@@ -182,3 +182,9 @@ def test_l04_public_tools_are_dataset_specific() -> None:
     schemas = {tool["name"]: tool for tool in list_tools()}
     assert schemas["dl_dataset_validate"]["annotations"]["readOnlyHint"] is True
     assert schemas["dl_dataset_preview"]["inputSchema"]["required"] == ["dataset_id", "columns"]
+
+
+def test_duplicate_titles_rejected_even_with_distinct_guids():
+    result = validate_dataset_fields([{"guid": "first", "title": "Same"}, {"guid": "second", "title": "Same"}])
+    assert not result["ok"]
+    assert result["issues"][0]["code"] == "field_title_duplicate"

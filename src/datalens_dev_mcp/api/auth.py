@@ -6,12 +6,12 @@ import subprocess
 import time
 from pathlib import Path
 
-from datalens_dev_mcp.api.errors import CredentialRefreshError
 from datalens_dev_mcp.api.budget import current_budget
+from datalens_dev_mcp.api.errors import CredentialRefreshError
 
 
 def refresh_iam_token_with_yc(
-    *, yc_binary: str = "yc", allow_browser: bool = False, timeout_sec: float | None = None,
+    *, yc_binary: str = "yc", yc_profile: str = "", impersonate_service_account_id: str = "", allow_browser: bool = False, timeout_sec: float | None = None,
 ) -> str:
     # Background reads stay noninteractive. Explicit recovery lets yc complete
     # its own external-browser/SSO callback without exposing a login URL or token.
@@ -21,6 +21,10 @@ def refresh_iam_token_with_yc(
     if budget is not None:
         timeout_sec = min(timeout_sec, budget.check())
     command = [yc_binary, "iam", "create-token"]
+    if yc_profile:
+        command.extend(["--profile", yc_profile])
+    if impersonate_service_account_id:
+        command.extend(["--impersonate-service-account-id", impersonate_service_account_id])
     if not allow_browser:
         command.append("--no-browser")
     command.append("--no-user-output")
@@ -49,7 +53,8 @@ def refresh_iam_token_with_yc(
         raise CredentialRefreshError("credential_refresh_timeout", stage=stage,
                                      elapsed_sec=round(time.monotonic() - started, 3)) from exc
     except OSError as exc:
-        raise CredentialRefreshError("credential_helper_unavailable", stage="helper_launch",
+        code = "credential_helper_unavailable" if isinstance(exc, FileNotFoundError) else "credential_helper_launch_failed"
+        raise CredentialRefreshError(code, stage="helper_launch",
                                      elapsed_sec=round(time.monotonic() - started, 3)) from exc
     if result.returncode != 0:
         # Only an explicit helper instruction establishes interactive recovery.

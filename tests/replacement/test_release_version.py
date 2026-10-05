@@ -91,6 +91,9 @@ def test_archive_audit_rejects_version_content_mismatch(tmp_path):
         archive.writestr('datalens_dev_mcp/server.py', '')
         archive.writestr('datalens_dev_mcp/api/sdk_adapter.py', '')
         archive.writestr('datalens_dev_mcp/assets/recipes/registry.json', '{}')
+        archive.writestr('datalens_dev_mcp/assets/recipes/temporal_prepare.js', '')
+        archive.writestr('datalens_dev_mcp/schemas/capability-coverage.json', '{}')
+        archive.writestr('datalens_dev_mcp/_build_provenance.json', '{}')
         archive.writestr('datalens_dev_mcp/__init__.py', '__version__ = "1.1.0"\n')
         archive.writestr('datalens_dev_mcp-1.1.1.dist-info/METADATA', 'Name: datalens-dev-mcp\nVersion: 1.1.1\n')
     with pytest.raises(ValueError, match='version'):

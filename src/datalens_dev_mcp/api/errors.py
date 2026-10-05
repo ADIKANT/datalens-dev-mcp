@@ -70,6 +70,14 @@ class UncertainWriteError(DataLensApiError):
     """A mutation may have applied, including a partial composite effect."""
 
 
+class ReceiptPersistenceError(UncertainWriteError):
+    """Known response evidence retained in memory when its durable write fails."""
+
+    def __init__(self, receipt: dict[str, Any]) -> None:
+        super().__init__("Operation receipt could not be persisted; retain this response and reconcile without replay")
+        self.receipt = receipt
+
+
 class ResponseIdentityError(DataLensApiError):
     """Allowlisted requested/observed identities, never the response payload."""
 
@@ -138,6 +146,7 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
     elif isinstance(error, CredentialRefreshError):
         code = error.code
         action = {
+            "credential_helper_launch_failed": "Check the configured helper launch permissions; do not change account.",
             "credential_helper_unavailable": "Check the configured yc executable and its launch permissions, then call dl_auth_refresh.",
             "interactive_login_required": "Use dl_auth_refresh for the existing yc profile's external-browser sign-in and API verification; the user handles any required password or MFA. If yc still requires profile setup, follow its supported same-account login.",
             "credential_refresh_timeout": (
@@ -217,4 +226,9 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
         result["elapsed_sec"] = error.elapsed_sec
     if isinstance(error, ResponseIdentityError):
         result["identity_evidence"] = error.identity_evidence
+    if isinstance(error, ReceiptPersistenceError):
+        from datalens_dev_mcp.operation_store import compact_operation
+        result.update(compact_operation(error.receipt))
+        result.update(ok=False, status="receipt_storage_failed", code="receipt_storage_failed", receipt_persisted=False,
+                      next_action="Retain this response's IDs and ACK evidence; durable state is older. Reconcile without replay.")
     return result

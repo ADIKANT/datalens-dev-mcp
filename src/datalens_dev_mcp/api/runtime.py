@@ -37,7 +37,9 @@ class DataLensRuntime:
             raise self._refresh_failure
         try:
             token = (self._credential_refresher() if self._credential_refresher else
-                     refresh_iam_token_with_yc(yc_binary=self.config.yc_binary, allow_browser=allow_browser)).strip()
+                     refresh_iam_token_with_yc(yc_binary=self.config.yc_binary, yc_profile=self.config.yc_profile,
+                                               impersonate_service_account_id=self.config.yc_impersonate_service_account_id,
+                                               allow_browser=allow_browser)).strip()
             if not token or any(character.isspace() for character in token):
                 raise CredentialRefreshError("credential_invalid")
         except DataLensApiError as exc:
@@ -46,7 +48,8 @@ class DataLensRuntime:
             self._refresh_failure = exc
             raise
         self.config.remember_refreshed_token(token)
-        self.config = replace(self.config, iam_token=token, credential_source="runtime_refresh")
+        original = self.config._configured_token if self.config._configured_token is not None else self.config.iam_token
+        self.config = replace(self.config, iam_token=token, credential_source="runtime_refresh", _configured_token=original)
         self.api.config = self.config
         self.sdk.replace_config(self.config)
         return token

@@ -124,7 +124,7 @@ def test_runtime_refresh_uses_configured_yc_binary(monkeypatch, allow_browser) -
     monkeypatch.setattr(
         runtime_module,
         "refresh_iam_token_with_yc",
-        lambda *, yc_binary, allow_browser: seen.append((yc_binary, allow_browser)) or "fresh-synthetic",
+        lambda *, yc_binary, yc_profile, impersonate_service_account_id, allow_browser: seen.append((yc_binary, allow_browser, yc_profile, impersonate_service_account_id)) or "fresh-synthetic",
     )
     runtime = DataLensRuntime(config, api_transport=SequenceTransport([{"entries": []}]))
 
@@ -135,7 +135,7 @@ def test_runtime_refresh_uses_configured_yc_binary(monkeypatch, allow_browser) -
         result = server.dl_auth_refresh() if allow_browser else server.dl_auth_refresh(allow_browser=False)
         assert result["status"] == "refreshed_and_verified"
         assert result["browser_allowed"] is allow_browser
-    assert seen == [("/synthetic/yc", bool(allow_browser))]
+    assert seen == [("/synthetic/yc", bool(allow_browser), "", "")]
     assert runtime.api.config is runtime.sdk.config is runtime.config
 
 

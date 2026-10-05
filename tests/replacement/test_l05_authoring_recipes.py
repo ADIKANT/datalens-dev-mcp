@@ -244,3 +244,8 @@ def test_public_python_and_mcp_use_same_authoring_function() -> None:
     assert schemas["dl_authoring_defaults"]["annotations"]["readOnlyHint"] is True
     assert schemas["dl_compile_recipe"]["inputSchema"]["required"] == ["recipe_id", "bindings"]
     assert schemas["dl_editor_validate"]["annotations"]["readOnlyHint"] is True
+
+
+def test_presentation_error_exposes_one_schema_guided_repair():
+    with pytest.raises(ValueError, match=r"presentation/colors:.*allowed keys:"):
+        compile_recipe("kpi_sparkline", {"metric": {}, "date": {}, "comparison": {}}, presentation={"colors": []})

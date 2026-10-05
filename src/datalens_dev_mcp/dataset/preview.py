@@ -25,7 +25,7 @@ def compile_preview_request(
     max_pages: int = 1,
     tie_breaker_guids: list[str] | None = None,
 ) -> dict[str, Any]:
-    field_report = validate_dataset_fields(fields)
+    field_report = validate_dataset_fields(fields, require_unique_titles=False)
     known = {str(field["guid"]) for field in field_report["fields"]}
     issues = list(field_report["issues"])
     normalized_columns = list(dict.fromkeys(str(value).strip() for value in columns if str(value).strip() in known))

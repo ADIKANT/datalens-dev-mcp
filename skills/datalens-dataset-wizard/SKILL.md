@@ -18,3 +18,10 @@ Follow [authorized scope and delivery](../datalens-dashboard/references/authoriz
 Route placement to `datalens-dashboard`, JavaScript variants to `datalens-editor`, metadata or RLS identity lookup to `datalens-inspect`, and backup/cleanup to `datalens-maintenance`.
 
 For unknown effects follow [repeat-effect recovery](../datalens-dashboard/references/authorized-scope.md#unknown-outcomes-and-repeat-effects): only proven non-application or separate informed repeat authorization permits another attempt. Failed reconciliation, absent inventory and a new operation_id do not make a retry safe.
+
+Treat `write_verified`, `dataset_validation`, bounded data preview and Browser
+rendering as separate evidence. An invalid saved Dataset is not task success;
+metadata-only repairs may preserve pre-existing invalid state, but newly changed
+fields must pass prospective title/GUID validation before a batch writes. If a
+required upstream field is not exposed, finish independent metadata work and mark
+the dependent part blocked; do not wait for a merge or substitute a source.

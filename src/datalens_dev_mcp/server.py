@@ -11,6 +11,7 @@ from contextvars import copy_context
 from copy import deepcopy
 from threading import Event, Lock, Timer
 from typing import Any
+from uuid import uuid4
 
 from jsonschema import Draft202012Validator
 
@@ -910,6 +911,9 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, A
             if name in BOUNDED_READ_TOOLS:
                 with read_budget(DataLensConfig.from_env().read_budget_sec):
                     result = handler(**supplied)
+            elif name in {"dl_object_create", "dl_object_update", "dl_object_publish"}:
+                with operation_budget(DataLensConfig.from_env().operation_budget_sec):
+                    result = handler(**supplied)
             else:
                 result = handler(**supplied)
         except Exception as exc:  # noqa: BLE001 - failures belong to CallToolResult, not JSON-RPC parsing.
@@ -978,8 +982,9 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def _run_domain_request(request: dict[str, Any], cancellation: Event,
-                        emit: Callable[[dict[str, Any] | None], None]) -> None:
-    """Bound read/cleanup responses while the single SDK worker unwinds in place."""
+                        emit: Callable[[dict[str, Any] | None], None],
+                        availability: dict[str, Any] | None = None) -> None:
+    """Bound responses while the single SDK worker retains ownership until unwind."""
     token = request_cancellation.set(cancellation)
     try:
         params = request.get("params") or {}
@@ -987,17 +992,26 @@ def _run_domain_request(request: dict[str, Any], cancellation: Event,
         args = params.get("arguments", {}) if isinstance(params, dict) else {}
         schema = next((item["inputSchema"] for item in TOOL_SCHEMAS if item["name"] == name), None)
         ordinary_read = name in BOUNDED_READ_TOOLS
-        if (name not in {"dl_cleanup_preview", "dl_cleanup_apply"} | BOUNDED_READ_TOOLS or schema is None
+        mutation = name in {"dl_object_create", "dl_object_update", "dl_object_publish"}
+        if (not mutation and name not in {"dl_cleanup_preview", "dl_cleanup_apply"} | BOUNDED_READ_TOOLS or schema is None
                 or not Draft202012Validator(schema).is_valid(args)):
             emit(handle_request(request))
             return
-        seconds = DataLensConfig.from_env().read_budget_sec if ordinary_read else args.get("budget_sec", 120)
+        fresh_operation_id = mutation and not args.get("operation_id")
+        if fresh_operation_id:
+            args = {**args, "operation_id": str(uuid4())}
+            request = {**request, "params": {**params, "arguments": args}}
+        config = DataLensConfig.from_env()
+        seconds = (config.read_budget_sec if ordinary_read else config.operation_budget_sec if mutation
+                   else args.get("budget_sec", 120))
         # Leave time to encode/flush the response. This is within, not added to,
         # the caller's budget; OS scheduling/host delivery cannot be guaranteed.
         reserve = min(0.25, seconds * 0.1)
         context = (read_budget(seconds, response_reserve_sec=reserve) if ordinary_read else
                    operation_budget(seconds, args.get("max_provider_calls", 200), response_reserve_sec=reserve))
         with context as budget:
+            if availability is not None:
+                availability["budget"] = budget
             response_lock = Lock()
             responded = False
 
@@ -1024,6 +1038,22 @@ def _run_domain_request(request: dict[str, Any], cancellation: Event,
                     if ordinary_read:
                         result["next_action"] = ("No further provider dispatch is admitted. The single domain worker "
                                                  "remains occupied until the read unwinds; retry only when available.")
+                    if mutation:
+                        result["operation_id"] = args["operation_id"]
+                        result["effect_outcome"] = ("not_applied" if fresh_operation_id and not progress["provider_effects"]
+                                                    else "unknown")
+                        try:
+                            receipt = dl_operation_get(args["operation_id"])
+                            if receipt.get("status") != "not_found":
+                                result["receipt"] = receipt
+                                items = receipt.get("results", [])
+                                if items and all(item.get("effect_outcome") == "applied" for item in items):
+                                    result["effect_outcome"] = "applied"
+                        except (OSError, ValueError, TypeError):
+                            result["receipt_unavailable"] = True
+                        result["new_provider_effects_admitted"] = bool(progress["provider_effects"])
+                        result["next_action"] = ("Read this operation receipt with dl_operation_get. Wait for the worker "
+                                                 "to unwind, then reconcile read-only; never replay completed or unknown items.")
                     if name == "dl_cleanup_apply":
                         operation_id = args.get("operation_id") or args["preview"].get("operation_id")
                         if isinstance(operation_id, str) and operation_id:
@@ -1057,6 +1087,17 @@ def serve_stdio() -> None:
     # No domain queue: a slow provider cannot consume unbounded pending work.
     output_lock, active_lock = Lock(), Lock()
     active: dict[Any, Event] = {}
+    availability: dict[str, Any] = {}
+
+    def worker_status() -> dict[str, Any]:
+        with active_lock:
+            if not active:
+                return {"worker_active": False, "available": True}
+            budget = availability.get("budget")
+            progress = budget.progress() if budget else {"phase": "admission",
+                "elapsed_sec": round(time.monotonic() - availability["started"], 3)}
+            return {"worker_active": True, "available": False, "active_request_id": next(iter(active)),
+                    **progress, "deadline_remaining_sec": max(0, budget.deadline - time.monotonic()) if budget else None}
 
     def emit(response: dict[str, Any] | None) -> None:
         if response is not None:
@@ -1066,7 +1107,7 @@ def serve_stdio() -> None:
 
     def run(request: dict[str, Any], cancellation: Event) -> None:
         try:
-            _run_domain_request(request, cancellation, emit)
+            _run_domain_request(request, cancellation, emit, availability)
         finally:
             with active_lock:
                 active.pop(request.get("id"), None)
@@ -1100,16 +1141,29 @@ def serve_stdio() -> None:
                     isinstance(params, dict) and params.get("name") in {"dl_server_info", "dl_operation_get"}
                 )
                 if control:
-                    emit(handle_request(request))
+                    response = handle_request(request)
+                    if (isinstance(params, dict) and params.get("name") == "dl_server_info"
+                            and response and "result" in response):
+                        payload = response["result"]["structuredContent"]
+                        payload["domain"] = worker_status()
+                        response["result"]["content"] = [{"type": "text", "text": json.dumps(
+                            _text_result("dl_server_info", payload), ensure_ascii=False)}]
+                    emit(response)
                     continue
                 with active_lock:
                     busy = bool(active)
                     if not busy:
                         cancellation = Event()
                         active[message_id] = cancellation
+                        availability.clear()
+                        availability["started"] = time.monotonic()
                 if busy:
-                    emit(_error(message_id, -32000, "Domain operation active; control-plane calls remain available. "
-                                "No provider dispatch was made for this request."))
+                    response = _error(message_id, -32000, "Domain operation active; control-plane calls remain available. "
+                                      "No provider dispatch was made for this request.")
+                    response["error"]["data"] = {"code": "domain_busy", "request_sent": False,
+                                                  "next_action": "Wait for availability; do not repeat reads while busy.",
+                                                  **worker_status()}
+                    emit(response)
                 else:
                     worker.submit(copy_context().run, run, request, cancellation)
             except (TypeError, ValueError, json.JSONDecodeError) as exc:
