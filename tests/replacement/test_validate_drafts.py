@@ -219,13 +219,11 @@ def test_validate_drafts_rejects_wizard_setting_not_supported_by_builder() -> No
     )
 
     assert result["ok"] is False
-    assert result["items"][0]["errors"] == [
-        {
-            "code": "wizard_setting_unsupported",
-            "path": "wizard/params",
-            "message": "unsupported Wizard setting: params",
-        }
-    ]
+    errors = result["items"][0]["errors"]
+    assert len(errors) == 1
+    assert errors[0]["code"] == "wizard_setting_unsupported"
+    assert errors[0]["path"] == "wizard/params"
+    assert errors[0]["message"].startswith("unsupported Wizard setting: params; allowed:")
 
 
 def test_validate_drafts_requires_selector_parameter_in_every_declared_consumer() -> None:
@@ -342,3 +340,21 @@ def test_mcp_and_python_facade_share_batch_validation_while_single_editor_valida
     tool = {item["name"]: item for item in server.list_tools()}["dl_editor_validate"]
     assert tool["inputSchema"]["oneOf"] == [{"required": ["draft"]}, {"required": ["drafts"]}]
     assert tool["annotations"]["readOnlyHint"] is True
+
+
+def test_wizard_rejected_shape_supplies_allowed_values_for_one_repair():
+    from copy import deepcopy
+
+    draft = deepcopy(VALID_WIZARD)
+    draft['wizard']['visualization'] = 'flatTable'
+    draft['wizard']['columns'] = ['synthetic-field']
+    response = server.call_tool('dl_editor_validate', {'drafts': [draft]})['structuredContent']
+    errors = {error['path']: error['message'] for error in response['items'][0]['errors']}
+    assert 'allowed:' in errors['wizard/visualization']
+    assert 'flat_table' in errors['wizard/visualization']
+    assert 'allowed:' in errors['wizard/columns']
+    assert 'roles' in errors['wizard/columns']
+    del draft['wizard']['columns']
+    draft['wizard']['visualization'] = 'flat_table'
+    repaired = server.call_tool('dl_editor_validate', {'drafts': [draft]})['structuredContent']
+    assert repaired['ok'] and repaired['provider_writes'] == 0

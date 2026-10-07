@@ -425,7 +425,7 @@ def _validate_wizard(draft: Mapping[str, Any]) -> list[dict[str, str]]:
             _error(
                 "wizard_setting_unsupported",
                 f"wizard/{setting}",
-                f"unsupported Wizard setting: {setting}",
+                f"unsupported Wizard setting: {setting}; allowed: {', '.join(sorted(WIZARD_SETTINGS))}",
             )
         )
     dataset_id = specification.get("dataset_id")
@@ -443,7 +443,8 @@ def _validate_wizard(draft: Mapping[str, Any]) -> list[dict[str, str]]:
             _error(
                 "wizard_visualization_unsupported",
                 "wizard/visualization",
-                f"unsupported Wizard visualization: {visualization or '<missing>'}",
+                f"unsupported Wizard visualization: {visualization or '<missing>'}; "
+                f"allowed: {', '.join(sorted(WIZARD_VISUALIZATIONS))}",
             )
         )
     roles = specification.get("roles")

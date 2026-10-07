@@ -2,6 +2,18 @@
 
 `dl_dataset_preview(fields=...)` validates a local field description but queries saved provider GUIDs. It does not save fields. Include every selected, filter, sort and parameter field in the description. Supplied calculated fields are checked against saved Dataset metadata before the data query; an absent GUID or changed formula requires an explicit Dataset save followed by fresh readback. Do not substitute field titles for GUIDs or remove filters to obtain success. A preview query is data evidence, not chart rendering evidence.
 
+For a new standard table, `dl_compile_recipe(recipe_id="native_detail_table", bindings={dataset_id, columns:[{field_guid}]})` produces a typed Wizard draft. Inspect the recipe's exact binding schema through `dl_authoring_defaults(family="native_detail_table").recipe_contract` when needed. Preserve readback GUIDs and supply `wizard.dataset_fields` from the actual Dataset when validating a manual draft against the SDK.
+
+A minimal manual Wizard draft uses this shape (replace synthetic GUIDs with readback):
+
+```json
+{"object_type":"wizard_chart","client_ref":"orders","name":"Orders",
+ "wizard":{"dataset_id":"existing-dataset-id","visualization":"flat_table",
+           "roles":{"columns":["order-id-guid","amount-guid"]}}}
+```
+
+`flat_table` is the authoring value; provider serialization `flatTable` and a guessed `table` are not authoring values. `roles.columns` contains GUID strings, not field objects or root `columns`. On a validation error, repair the returned field path using its allowed settings/visualizations before retrying the single draft. `dl_method_schema` returns method metadata, not this complete authoring schema.
+
 - A new typed Dataset draft has exactly this ownership shape (values below are synthetic):
 
   ```json
