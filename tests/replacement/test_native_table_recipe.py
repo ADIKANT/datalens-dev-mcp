@@ -1,8 +1,10 @@
 import pytest
 from datalens_sdk import DataLensClientYC, Dataset, EntryLocation
 from datalens_sdk.converter.wizard import WizardChartConverter
+from jsonschema import Draft202012Validator
 from test_l04_dataset_wizard import FIELDS
 
+from datalens_dev_mcp.authoring.profiles import get_authoring_defaults
 from datalens_dev_mcp.authoring.recipes import compile_recipe
 from datalens_dev_mcp.wizard.authoring import wizard_builder
 
@@ -56,3 +58,34 @@ def test_native_table_recipe_rejects_unresolved_source(tmp_path):
         compile_recipe(
             "native_detail_table", {"columns": [{"field_guid": "date-guid"}]}, user_config_path=tmp_path / "absent.json"
         )
+    with pytest.raises(ValueError, match=r"/bindings/object_name"):
+        compile_recipe("native_detail_table", {"dataset_id": "synthetic", "columns": [{"field_guid": "date-guid"}]},
+                       user_config_path=tmp_path / "absent.json")
+
+
+@pytest.mark.parametrize("name_source", ["bindings", "metric", "project", "presentation"])
+def test_native_table_defaults_describe_effective_name_and_columns(tmp_path, name_source):
+    import json
+
+    bindings = {"dataset_id": "synthetic", "columns": [{"field_guid": "date-guid", "label": "Date"}]}
+    presentation = {}
+    if name_source == "bindings":
+        bindings["object_name"] = "Details"
+    elif name_source == "metric":
+        bindings["metric"] = {"label": "Details"}
+    elif name_source == "project":
+        (tmp_path / ".datalens").mkdir()
+        (tmp_path / ".datalens/authoring.json").write_text(json.dumps({"defaults": {"object_name": {"value": "Details"}}}))
+    else:
+        presentation = {"object_name": {"value": "Details"}}
+    defaults = get_authoring_defaults(tmp_path, "native_detail_table", explicit=presentation,
+                                      user_config_path=tmp_path / "absent.json")
+    schema = defaults["recipe_contract"]["bindings_schema"]
+    assert {"object_name", "columns"} <= schema["properties"].keys()
+    Draft202012Validator(schema).validate(bindings)
+    result = compile_recipe("native_detail_table", bindings, presentation, project_root=tmp_path,
+                            user_config_path=tmp_path / "absent.json")
+    assert result["draft"]["name"] == "Details"
+    with pytest.raises(ValueError, match=r"/bindings/columns/0/field_guid"):
+        compile_recipe("native_detail_table", {**bindings, "columns": [{}]}, presentation,
+                       project_root=tmp_path, user_config_path=tmp_path / "absent.json")

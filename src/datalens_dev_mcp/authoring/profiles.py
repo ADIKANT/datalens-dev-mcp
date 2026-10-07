@@ -83,7 +83,7 @@ def get_authoring_defaults(
     return {
         "ok": True,
         "family": family,
-        **({"recipe_contract": recipe_contract(family)} if recipe else {}),
+        **({"recipe_contract": recipe_contract(family, values=values)} if recipe else {}),
         "values": values,
         "profile_version": 2,
         "overrides": overrides,

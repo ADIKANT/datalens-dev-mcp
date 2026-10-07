@@ -35,7 +35,7 @@ def _dataset_bindings() -> dict:
 
 def _run_sources(source: dict, params: dict) -> dict:
     script = "const Editor={getId:()=> 'dataset-synthetic',getParams:()=> (" + json.dumps(params) + ")};\n"
-    script += "const require=()=>({buildSource:x=>x});\n" + source["sources_js"]
+    script += "const require=()=>({buildSource:x=>x});\n" + source.get("sources_js", source.get("sources.js"))
     script += "console.log(JSON.stringify(module.exports));"
     return json.loads(subprocess.check_output(["node", "-e", script], text=True))["source"]
 
@@ -157,16 +157,16 @@ def test_weekly_recipe_compiles_dataset_rows_to_iso_week_totals(tmp_path) -> Non
         },
         user_config_path=tmp_path / "absent.json",
     )
-    source = result["draft"]["bindings"]["source"]
+    source = result["draft"]["tabs"]
     loaded = {"source": {"status": "loaded"}}
     rows = [
         {"Day": "2026-09-01", "Priority": "High", "Current issues": 12},
         {"Day": "2026-09-02", "Priority": "Medium", "Current issues": 8},
         {"Day": "2026-09-03", "Priority": "Low", "Current issues": 5},
     ]
-    script = "const Editor={getLoadedData:()=> (" + json.dumps(loaded) + ")};\n"
-    script += "const require=()=>({getDatasetRows:()=>" + json.dumps(rows) + "});\n" + source["prepare_js"]
-    script += "console.log(JSON.stringify(module.exports));"
+    script = "const Editor={wrapFn:x=>x,getLoadedData:()=> (" + json.dumps(loaded) + ")};\n"
+    script += "const require=()=>({getDatasetRows:()=>" + json.dumps(rows) + "});\n" + source["prepare.js"]
+    script += "console.log(JSON.stringify(module.exports.render.args[0]));"
 
     prepared = json.loads(subprocess.check_output(["node", "-e", script], text=True))
 
@@ -269,6 +269,15 @@ def _weekly_prepared(tmp_path, rows, binding=None):
 
 
 def test_weekly_additive_sum_uses_readback_semantics(tmp_path):
+    from datalens_dev_mcp.authoring.validation import validate_drafts
+
+    bundle = compile_recipe("weekly_totals_table", _weekly_binding(), output_dir=tmp_path,
+                            user_config_path=tmp_path / "absent.json")
+    plan = bundle["summary"]["source_plan"]
+    assert plan["kind"] == "dataset" and plan["upstream_cost"] == "unverified"
+    assert [field["field_guid"] for field in plan["queries"][0]["fields"]] == ["group", "date", "value"]
+    assert "source" not in bundle["draft"]["bindings"]
+    assert validate_drafts([{"artifact_path": bundle["files"]["draft.json"]}])["ok"]
     prepared = _weekly_prepared(tmp_path, [
         {"Group": "A", "Day": "2026-09-01", "Value": 10},
         {"Group": "A", "Day": "2026-09-02", "Value": 20},
@@ -316,7 +325,7 @@ def test_weekly_declared_count_missing_combinations_zero_keeps_explicit_unknown(
 def test_dataset_parameter_scalar_and_singleton_preserve_value(tmp_path, value, expected):
     binding = _weekly_binding()
     binding["dataset_parameters"] = [{"id": "parameter-id", "param_name": "priority"}]
-    source = _compiled_weekly(tmp_path, binding)["bindings"]["source"]
+    source = _compiled_weekly(tmp_path, binding)["tabs"]
     for raw in (value, [value]):
         query = _run_sources(source, {"priority": raw})
         assert query["parameters"] == [{"id": "parameter-id", "value": expected}]
@@ -327,14 +336,14 @@ def test_dataset_parameter_scalar_and_singleton_preserve_value(tmp_path, value, 
 def test_dataset_parameter_clear_is_omitted(tmp_path, params):
     binding = _weekly_binding()
     binding["dataset_parameters"] = [{"id": "parameter-id", "param_name": "priority"}]
-    source = _compiled_weekly(tmp_path, binding)["bindings"]["source"]
+    source = _compiled_weekly(tmp_path, binding)["tabs"]
     assert _run_sources(source, params)["parameters"] == []
 
 
 def test_dataset_parameter_rejects_multiple_values(tmp_path):
     binding = _weekly_binding()
     binding["dataset_parameters"] = [{"id": "parameter-id", "param_name": "priority"}]
-    source = _compiled_weekly(tmp_path, binding)["bindings"]["source"]
+    source = _compiled_weekly(tmp_path, binding)["tabs"]
     with pytest.raises(subprocess.CalledProcessError):
         _run_sources(source, {"priority": ["High", "Low"]})
 
@@ -367,8 +376,9 @@ def test_weekly_ratio_preserves_source_computed_totals(tmp_path, route):
 def test_dataset_parameter_default_false_has_runtime_spelling(tmp_path):
     binding = _weekly_binding()
     binding["dataset_parameters"] = [{"id": "parameter-id", "param_name": "priority", "default": False}]
-    source = _compiled_weekly(tmp_path, binding)["bindings"]["source"]
-    assert _run_sources(source, source["params"])["parameters"] == [{"id": "parameter-id", "value": "false"}]
+    source = _compiled_weekly(tmp_path, binding)["tabs"]
+    params = json.loads(subprocess.check_output(["node", "-e", source["params.js"] + "\nconsole.log(JSON.stringify(module.exports));"], text=True))
+    assert _run_sources(source, params)["parameters"] == [{"id": "parameter-id", "value": "false"}]
 
 
 def test_weekly_binding_cannot_override_nonadditive_field(tmp_path):

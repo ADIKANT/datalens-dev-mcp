@@ -2,6 +2,8 @@
 
 ## 1.2.27
 
+- Expose effective native-table names/columns and Dataset matrix row/metric/comparison bindings before compile, with route-aware validation and executable synthetic examples.
+- Retain generated matrix/weekly Dataset query provenance and original artifact bindings through revalidation; distinguish declared dependencies from unverified live relations and source cost.
 - Stamp wheel/source artifacts with source, SDK, schema, asset and external skill provenance; capture active build identity once and reject mismatched content.
 - Pin IAM refresh to an optional authorized CLI profile and impersonation context; isolate credential caches and report per-setting provenance.
 - Bound ordinary mutation responses and expose worker availability without releasing an active SDK call or replaying effects.

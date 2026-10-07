@@ -2,7 +2,7 @@
 
 `dl_dataset_preview(fields=...)` validates a local field description but queries saved provider GUIDs. It does not save fields. Include every selected, filter, sort and parameter field in the description. Supplied calculated fields are checked against saved Dataset metadata before the data query; an absent GUID or changed formula requires an explicit Dataset save followed by fresh readback. Do not substitute field titles for GUIDs or remove filters to obtain success. A preview query is data evidence, not chart rendering evidence.
 
-For a new standard table, `dl_compile_recipe(recipe_id="native_detail_table", bindings={dataset_id, columns:[{field_guid}]})` produces a typed Wizard draft. Inspect the recipe's exact binding schema through `dl_authoring_defaults(family="native_detail_table").recipe_contract` when needed. Preserve readback GUIDs and supply `wizard.dataset_fields` from the actual Dataset when validating a manual draft against the SDK.
+For a new standard table, `dl_compile_recipe(recipe_id="native_detail_table", bindings={dataset_id, object_name, columns:[{field_guid, label?}]})` produces a typed Wizard draft. Columns must be nonempty and use distinct readback GUIDs; `label` optionally overrides the column title. The name can instead come from effective presentation/project `object_name.value`, then `metric.label`; a visible title does not name the object. Inspect `dl_authoring_defaults(family="native_detail_table").recipe_contract` for the effective binding schema and synthetic example. Preserve readback GUIDs and supply `wizard.dataset_fields` from the actual Dataset when validating a manual draft against the SDK.
 
 A minimal manual Wizard draft uses this shape (replace synthetic GUIDs with readback):
 

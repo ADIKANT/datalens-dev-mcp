@@ -70,6 +70,11 @@
       "properties": {"field_guid": {"type": "string", "minLength": 1}, "label": {"type": "string"},
                      "unit": {"type": "string"}, "additive": {"type": "boolean"}}
     },
+    "dataset_field_binding": {
+      "allOf": [{"$ref": "#/$defs/field_binding"}],
+      "type": "object", "required": ["field_guid"],
+      "description": "Object with field_guid from the saved Dataset fields; optional label and unit."
+    },
     "comparison": {
       "type": "object",
       "properties": {"method": {"type": "string"}, "alignment": {"type": "string"},
@@ -119,13 +124,32 @@
       "example": {"data_class": "synthetic", "states": ["positive", "zero", "missing", "long_label"]}
     },
     "comparison_matrix": {
+      "binding_properties": {
+        "rows": {"type": "array", "items": {"$ref": "#/$defs/field_binding"},
+                 "description": "Dataset route: nonempty row-dimension bindings with field_guid. Other routes may use labels or an empty array; actual prepared rows belong in prepared_data.rows."}
+      },
+      "dataset_bindings_schema": {
+        "required": ["fields", "rows", "metric", "comparison"],
+        "properties": {
+          "fields": {"minItems": 1, "items": {"properties": {
+            "guid": {"type": "string", "minLength": 1}, "title": {"type": "string", "minLength": 1}}}},
+          "rows": {"minItems": 1, "items": {"$ref": "#/$defs/dataset_field_binding"}},
+          "metric": {"$ref": "#/$defs/dataset_field_binding"},
+          "comparison": {"$ref": "#/$defs/dataset_field_binding"}
+        }
+      },
       "reference_family": "multi_level_version_matrix",
       "technology": "advanced_chart",
       "object_type": "advanced-chart_node",
       "renderer": "version_matrix_renderer.js",
       "required_bindings": ["rows", "metric"],
       "visual_contract": {"legend": {"mode": "fixed_semantic", "items": [{"status": "noChange", "label": "No change"}, {"status": "hwChange", "label": "Hardware change"}, {"status": "swChange", "label": "Software change"}, {"status": "blChange", "label": "Bootloader change"}, {"status": "missing", "label": "Missing"}, {"status": "manual_not_applicable", "label": "Manual N/A"}]}, "table": {"total_position": "none", "header_rows": ["RELEASE SCOPE", "RELEASE TARGET", "CI / IS", "RELEASE STATUS", "FOR ASSEMBLY", "VERSION TYPE"], "first_column_label": "Item", "first_column_width": 150, "value_column_width": 112, "header_height": 32, "header_heights": [32, 32, 48, 36, 36, 38]}, "geometry": {"width": 12, "height": 10}},
-      "example": {"data_class": "synthetic", "states": ["increase", "unchanged", "decrease", "missing"]}
+      "example": {"data_class": "synthetic", "states": ["increase", "unchanged", "decrease", "missing"],
+                  "bindings": {"dataset_id": "synthetic-dataset", "object_name": "Synthetic comparison",
+                               "rows": [{"field_guid": "group", "label": "Group"}],
+                               "metric": {"field_guid": "current", "label": "Current"},
+                               "comparison": {"field_guid": "previous", "label": "Previous"},
+                               "fields": [{"guid": "group", "title": "Group"}, {"guid": "current", "title": "Current"}, {"guid": "previous", "title": "Previous"}]}}
     },
     "cross_tab_totals": {
       "technology": "wizard",
@@ -145,12 +169,26 @@
       "example": {"data_class": "synthetic", "states": ["iso_weeks", "empty", "bottom_total", "right_total"]}
     },
     "native_detail_table": {
+      "binding_properties": {
+        "columns": {"type": "array", "minItems": 1,
+                    "description": "Ordered distinct Dataset field GUIDs; optional label overrides the column title.",
+                    "items": {"type": "object", "required": ["field_guid"],
+                              "properties": {"field_guid": {"type": "string", "minLength": 1}, "label": {"type": "string"}}}}
+      },
+      "name_binding": {
+        "description": "/bindings/object_name: supply a nonempty name, effective presentation/project object_name.value, or /bindings/metric/label; visible_title does not name the object.",
+        "anyOf": [{"required": ["object_name"]},
+                  {"required": ["metric"], "properties": {"metric": {"type": "object", "required": ["label"],
+                   "properties": {"label": {"type": "string", "minLength": 1, "pattern": "\\S"}}}}}]
+      },
       "technology": "wizard",
       "object_type": "wizard_chart",
       "wizard_visualization": "flat_table",
       "required_bindings": ["columns"],
       "visual_contract": {"table": {"total_position": "bottom", "header": "pinned", "pagination": true, "internal_scroll": true}, "legend": {"mode": "hidden"}},
-      "example": {"data_class": "synthetic", "states": ["rows", "empty", "long_text", "pagination"]}
+      "example": {"data_class": "synthetic", "states": ["rows", "empty", "long_text", "pagination"],
+                  "bindings": {"dataset_id": "synthetic-dataset", "object_name": "Synthetic details",
+                               "columns": [{"field_guid": "date-guid", "label": "Date"}, {"field_guid": "revenue-guid"}]}}
     },
     "selector": {
       "technology": "selector",

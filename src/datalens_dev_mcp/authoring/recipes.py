@@ -34,7 +34,7 @@ def list_recipes() -> dict[str, dict[str, Any]]:
     return result
 
 
-def recipe_contract(recipe_id: str) -> dict[str, Any]:
+def recipe_contract(recipe_id: str, *, values: Mapping[str, Any] | None = None) -> dict[str, Any]:
     """Expose and validate the same selected registry contract via defaults."""
     registry = _registry()
     if recipe_id not in registry["recipes"]:
@@ -53,8 +53,11 @@ def recipe_contract(recipe_id: str) -> dict[str, Any]:
                        "date": {"$ref": "#/$defs/field_binding"},
                        "comparison": {"$ref": "#/$defs/comparison"},
                        "client_ref": {"type": "string", "minLength": 1},
+                       "object_name": {"type": "string", "minLength": 1, "pattern": "\\S",
+                                       "description": "Object name, separate from the visible title. Falls back to effective presentation/project object_name.value, then metric.label."},
                        "value_mode": {"enum": ["last", "sum", "aggregate"]}},
     }
+    schema["properties"].update(deepcopy(recipe.get("binding_properties", {})))
     schema["properties"].update({
         "selectors": {"type": "array", "items": {"$ref": "#/$defs/dataset_selector"}},
         "periods": {"type": "object", "required": ["current"], "additionalProperties": False,
@@ -68,11 +71,13 @@ def recipe_contract(recipe_id: str) -> dict[str, Any]:
             "if": {"required": ["dataset_id"], "not": {"anyOf": [
                 {"required": ["source"]}, {"required": ["direct_source"]}, {"required": ["prepared_data"]},
                 {"required": ["dataset_source"]}]}},
-            "then": {"required": ["fields", "date"] if recipe_id == "kpi_sparkline" else ["fields"], "properties": {
+            "then": _deep_merge({"required": ["fields", "date"] if recipe_id == "kpi_sparkline" else ["fields"], "properties": {
                 "metric": {"type": "object", "required": ["field_guid"]},
                 "date": {"type": "object", "required": ["field_guid"]},
-            }},
+            }}, recipe.get("dataset_bindings_schema", {})),
         }]
+    if recipe.get("name_binding") and not ((values or {}).get("object_name") or {}).get("value"):
+        schema.setdefault("allOf", []).append(deepcopy(recipe["name_binding"]))
     if recipe.get("renderer") and recipe["technology"] != "selector":
         schema.setdefault("allOf", []).append({
             "if": {"required": ["dataset_source"]}, "then": {"required": ["dataset_id", "fields"],
@@ -81,8 +86,14 @@ def recipe_contract(recipe_id: str) -> dict[str, Any]:
     sources = (["dataset_id"] if recipe["technology"] == "wizard" else
                ["options"] if recipe["technology"] == "selector" else
                ["source", "direct_source", "prepared_data", "dataset_source"] + (["dataset_id"] if recipe_id in dataset_recipes else []))
+    if recipe_id == "comparison_matrix":
+        schema.setdefault("allOf", []).append({
+            "anyOf": [{"required": [route]} for route in sources],
+            "description": "Provide a source route: " + ", ".join(sources),
+        })
     return {"recipe_id": recipe_id, "technology": recipe["technology"],
             "object_type": recipe["object_type"], "bindings_schema": schema,
+            "example": deepcopy(recipe["example"]),
             "source_routes": sources,
             "prepared_data": ({"required": ["value"],
                                "conditional": "previous when comparison is enabled; points when sparkline is enabled",
@@ -92,6 +103,10 @@ def recipe_contract(recipe_id: str) -> dict[str, Any]:
                                "series": "Array of {name, type: line|bar, values}; optional comparisonValues, color, format",
                                "comparison": "comparisonCategories or explicit ranges; source owns period boundaries"}
                               if recipe_id == "period_series" else
+                              {"required": ["rows"],
+                               "rows": "Prepared objects with current/previous values or cells:[{value, status?}]; label is optional. An empty array is valid. Not Dataset field bindings.",
+                               "columns": "Optional version/status columns: [{key, headers:[...]}]; see the renderer contract for the six header levels."}
+                              if recipe_id == "comparison_matrix" else
                               {"validation": "Selected recipe's prepared-data validation applies before materialization"}),
             "dataset_binding": {"fields": "Saved Dataset field readback, including every selected/filter GUID",
                                 "field_references": "Use exact field_guid; preview does not save calculated fields",
@@ -135,14 +150,18 @@ def compile_recipe(
         bindings = {key: value for key, value in bindings.items() if key != "comparison"}
         if isinstance(bindings.get("periods"), Mapping):
             bindings["periods"] = {key: value for key, value in bindings["periods"].items() if key != "previous"}
-    schema = recipe_contract(recipe_id)["bindings_schema"]
+    schema = defaults["recipe_contract"]["bindings_schema"]
     invalid = next(Draft202012Validator(schema).iter_errors(bindings), None)
     if invalid is not None:
         path = "/bindings" + "".join("/" + str(key) for key in invalid.absolute_path)
+        if invalid.validator == "required":
+            missing_key = next(key for key in invalid.validator_value if key not in invalid.instance)
+            path += "/" + missing_key
         expected = ("required keys: " + ", ".join(invalid.validator_value)
                     if invalid.validator == "required" else
                     "allowed keys: " + ", ".join(invalid.schema.get("properties", {}))
                     if invalid.validator == "additionalProperties" else
+                    invalid.schema.get("description") or
                     "expected " + str(invalid.validator) + ": " + str(invalid.validator_value))
         raise InputContractError(f"{path}: {expected}; dl_authoring_defaults(family={recipe_id}) returns bindings_schema")
     # Retain the input contract, not generated Sources, so validation recompiles
@@ -157,7 +176,8 @@ def compile_recipe(
         from datalens_dev_mcp.authoring.dataset_source import compile_direct_source
 
         bindings = {**bindings, "source": compile_direct_source(bindings["direct_source"])}
-    if recipe_id == "comparison_matrix" and bindings.get("dataset_id") and "source" not in bindings:
+    if (recipe_id == "comparison_matrix" and bindings.get("dataset_id")
+            and "source" not in bindings and "prepared_data" not in bindings):
         from datalens_dev_mcp.authoring.dataset_source import matrix_dataset_source
 
         bindings = {**bindings, "source": matrix_dataset_source(bindings)}
@@ -198,8 +218,7 @@ def compile_recipe(
         "recipe_id": recipe_id,
         "technology": technology,
         "object_type": _object_type_for(recipe, technology),
-        "bindings": (input_bindings if recipe_id == "kpi_sparkline" or "dataset_source" in input_bindings
-                     else deepcopy(dict(bindings))),
+        "bindings": input_bindings,
         "config": contract,
         "visual_contract": contract,
         "example": deepcopy(recipe["example"]),
@@ -260,7 +279,8 @@ def compile_recipe(
             "visual_contract": contract,
             "renderer_reused": bool(renderer_name),
             "source_plan": (bindings.get("source") or {}).get("source_plan", {
-                "kind": "custom" if bindings.get("source") else "prepared" if "prepared_data" in bindings else "native",
+                "kind": ((bindings.get("source") or {}).get("source_kind", "custom")
+                         if bindings.get("source") else "prepared" if "prepared_data" in bindings else "native"),
                 "dependencies": "unverified" if bindings.get("source") else "declared",
             }),
             "network_calls": 0,
@@ -461,7 +481,7 @@ def _bind_contract(contract: Mapping[str, Any], bindings: Mapping[str, Any],
                    overrides: Mapping[str, Any]) -> dict[str, Any]:
     result = deepcopy(dict(contract))
     metric = bindings.get("metric") if isinstance(bindings.get("metric"), Mapping) else {}
-    object_name = bindings.get("object_name") or metric.get("label") or ""
+    object_name = bindings.get("object_name") or result["object_name"].get("value") or metric.get("label") or ""
     result["object_name"]["value"] = str(object_name)
     if metric:
         if not result["visible_title"].get("text"):
