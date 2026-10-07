@@ -82,9 +82,13 @@ Verify Params → defaults → impactTabsIds/aliases → actual Editor.getParams
 query → data → rendered result. See the explicit date input contract in
 [Editor authoring](../../datalens-editor/references/editor-authoring.md#native-calendar-inputs).
 
-Generic `patch` also exists, but arrays are atomic. Use a full fresh snapshot and
-verify all carried fields when that fallback is necessary; a stale tabs array is
-never the default for two keys. A typed-helper gap is not absence of API support.
+Generic `patch` also exists, but arrays are atomic. Mirror the exact full readback
+wrapper: if tabs live at `object.entry.data.tabs`, use `patch: {entry: {data: {tabs: [...]}}}`,
+not root `patch.data`. To remove cancelled whole tabs when no native-ID tab-removal
+operation exists, retain the complete current records of only the authorized
+remaining tabs in that array, including their items/columns, layout and unknown
+fields. Use the fresh revision and verify all carried fields. A stale tabs array
+is never the default for two keys. A typed-helper gap is not absence of API support.
 Browser remains read-only unless UI editing is explicitly requested.
 
 Dashboard lazy/visible-widget loading and concurrency are existing settings to

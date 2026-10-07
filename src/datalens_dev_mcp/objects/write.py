@@ -281,6 +281,14 @@ class ObjectMutationService:
                     self._save(record)
                     continue
                 patch = deepcopy(change.get("patch") or {})
+                if (object_type == "dashboard" and "data" in patch
+                        and "data" not in current["object"]
+                        and isinstance(current["object"].get("entry"), dict)
+                        and "data" in current["object"]["entry"]):
+                    raise InputContractError(
+                        "Dashboard patch must follow the readback wrapper: use entry/data, "
+                        "or dashboard_patch for native-ID edits; root data would not update entry/data"
+                    )
                 proposed = semantic_merge(current["object"], patch)
                 if "dashboard_patch" in change:
                     from datalens_dev_mcp.dashboard.composition import apply_dashboard_patch

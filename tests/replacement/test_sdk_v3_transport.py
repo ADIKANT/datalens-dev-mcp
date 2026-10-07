@@ -1097,3 +1097,24 @@ def test_native_stdio_http_fault_receipts(tmp_path, fault):
         http.shutdown()
         http.server_close()
         thread.join(2)
+
+
+def test_dashboard_wrong_wrapper_rejected_before_effect_and_corrected_once(install_runtime):
+    initial = dashboard_state()
+    initial['entry']['data']['tabs'].append({**deepcopy(initial['entry']['data']['tabs'][1]), 'id': 'cancelled'})
+    provider = Provider(initial)
+    install_runtime(provider)
+    retained = deepcopy(initial['entry']['data']['tabs'][:2])
+    change = {'object_type': 'dashboard', 'object_id': 'synthetic-dashboard', 'expected_revision': 'S2',
+              'patch': {'data': {'tabs': retained}}}
+    rejected = call_tool('dl_object_update', {'changes': [change], 'operation_id': 'wrong-wrapper'})
+    assert rejected['status'] == 'failed'
+    assert rejected['results'][0]['effect_outcome'] == 'not_applied'
+    assert 'entry/data' in rejected['results'][0]['error']
+    assert provider.writes == []
+    change['patch'] = {'entry': {'data': {'tabs': retained}}}
+    saved = call_tool('dl_object_update', {'changes': [change], 'operation_id': 'correct-wrapper'})
+    assert saved['status'] == 'completed'
+    assert provider.state['entry']['data']['tabs'] == retained
+    assert len(provider.writes) == 1
+    assert provider.state['entry']['publishedId'] == initial['entry']['publishedId']
