@@ -4,7 +4,7 @@ Read the relevant section for a new visual or semantic change. A rename or spaci
 
 ## Question, metric and comparison
 
-Use a table for exact lookup; a time series for trends; ranked bar/dot for category magnitude; part-to-whole only for a valid whole; bins/quantiles for distributions; scatter for association without a causal claim. Prefer native Wizard for new standard charts while preserving an existing technology. Bullet/target bars, small multiples and distribution views are options when needed, not a mandate to implement new families.
+Use a table for exact lookup; a time series for trends; ranked bar/dot for category magnitude; part-to-whole only for a valid whole; bins/quantiles for distributions; scatter for association without a causal claim. Use the [project-first technology and source order](../../datalens-inspect/SKILL.md#technology-and-source-selection). Bullet/target bars, small multiples and distribution views are options when needed, not a mandate to implement new families.
 
 Distinguish measures, identifiers and categories: versions and vehicle identifiers are not numeric measures. Establish definition, unit, grain, aggregation, comparison base and missingness from requirements, metadata and actual data. Do not sum percentages/distinct counts or average averages. Source-computed non-additive totals remain authoritative. Never invent a target, threshold, owner or benchmark.
 
@@ -17,6 +17,19 @@ When a measure appears in both KPI and table, reconcile a source-level total for
 When the requested metric depends on upstream changes, use the [current source readiness](../../datalens-dataset-wizard/references/dataset-wizard-contracts.md#current-source-readiness) checks for the actual connection. Separate independent presentation work from dependent metrics. A release status is not data evidence, and a partial result is not completion of the entire request.
 
 KPI arithmetic sign and favorable direction differ: lower latency can be better. Preserve declared `higher_is_better`, `lower_is_better`, or `neutral`; unknown direction is neutral. Recipe presentation uses `kpi.direction`, `kpi.delta_kind` (`relative`, `absolute`, `percentage_points`), and `kpi.value_scale` (`null`, `fraction`, `percent`). The same keys on `metric` seed values; selected profiles/references and explicit presentation overrides take precedence. Select the delta kind and scale: 80% to 84% (or 0.8 to 0.84) is +4 percentage points or +5% relative. The supported relative calculation uses `(current - previous) / abs(previous)`; a zero base is undefined, never Infinity. Missing values remain missing, and formatting preserves raw point precision. Body and tooltip agree on units, dates and precision. Compare incomplete periods on a comparable basis or explain the difference. Intentional cumulative-lag windows may overlap.
+
+## Affected metric check
+
+Before changing a formula, source or grouping, keep a few working notes for the affected metric: source and connection; what one row represents; key; period and filters; numerator and denominator; NULL versus real zero; units. Reconcile KPI and detail on that same slice. These are scoped notes, not a required manifest or MCP schema. A label or hint edit does not require a fresh source analysis.
+
+Use these generic counterexamples when choosing and checking the implementation:
+
+- Three claims can have five issues: count the requested entity at its own grain.
+- One contract can have two billing order IDs: a contract number cannot deduplicate orders. Read existing `payments_json` and the project's agreed status rule before proposing ETL. A completed payment and full settlement are different facts; amount-versus-price alone does not establish the agreed status.
+- A current applied-state snapshot cannot reconstruct history. A command source covers commanded assets, not necessarily the entire fleet; state the coverage before changing a population denominator.
+- An entity in two groups contributes once to their union. Unequal group weights require compatible aggregate numerators/denominators, not an average of averages; group distinct counts are not additive. A selected group does not redefine an agreed global denominator.
+
+Exercise synthetic edge rows through the actual changed compiler, Sources/Prepare or renderer, with independently stated expected results. Business status rules remain in the project, not universal plugin logic.
 
 ## Time and scales
 

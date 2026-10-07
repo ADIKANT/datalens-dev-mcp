@@ -296,3 +296,132 @@ def test_cleanup_invalid_budget_rejects_before_deadline_thread(monkeypatch):
         "name": "dl_cleanup_preview", "arguments": {"budget_sec": -1, "candidates": [], "preserve_roots": []},
     }}, Event(), responses.append)
     assert responses[0]["result"]["structuredContent"]["status"] == "input_error"
+
+
+def test_packaged_provenance_validates_content_and_sdk(tmp_path):
+    from datalens_dev_mcp.runtime_identity import _load_provenance
+    payload = {"format": 1, "source_commit": "a" * 40, "source_tree": "b" * 40,
+               "commit_status": "clean", "package_version": server.__version__, "sdk_pin": "3.0.0",
+               "package_content_sha256": "c" * 64, "schema_sha256": "d" * 64,
+               "assets_sha256": "e" * 64, "skills_sha256": "f" * 64}
+    path = tmp_path / "_build_provenance.json"
+    assert _load_provenance(path, "c" * 64)["commit_status"] == "unknown"
+    path.write_text(json.dumps(payload))
+    assert _load_provenance(path, "c" * 64)["source_commit"] == "a" * 40
+    assert _load_provenance(path, "0" * 64)["commit_status"] == "mismatch"
+    payload["sdk_pin"] = "0.0.0"
+    path.write_text(json.dumps(payload))
+    assert _load_provenance(path, "c" * 64)["commit_status"] == "mismatch"
+    path.write_text('{bad')
+    assert _load_provenance(path, "c" * 64)["commit_status"] == "invalid"
+
+
+def test_provenance_digest_covers_assets_and_external_skills(tmp_path):
+    from datalens_dev_mcp.provenance import content_digest
+    (tmp_path / "renderer.js").write_text("const value = 1;")
+    before = content_digest(tmp_path)
+    (tmp_path / "renderer.js").write_text("const value = 2;")
+    assert content_digest(tmp_path) != before
+    before = content_digest(tmp_path)
+    (tmp_path / "SKILL.md").write_text("Synthetic skill")
+    assert content_digest(tmp_path) != before
+    before = content_digest(tmp_path)
+    (tmp_path / "_build_provenance.json").write_text("{}")
+    assert content_digest(tmp_path) == before
+
+
+@pytest.mark.parametrize("name,args", [
+    ("dl_object_create", {"drafts": [{"object_type": "dashboard", "name": "Synthetic", "client_ref": "d",
+                                      "dashboard": {"tabs": []}}], "destination": {"workbook_id": "synthetic"}}),
+    ("dl_object_update", {"changes": [{"object_type": "dashboard", "object_id": "synthetic",
+                                      "expected_revision": "r1", "patch": {"name": "New"}}]}),
+    ("dl_object_publish", {"targets": [{"object_type": "dashboard", "object_id": "synthetic",
+                                      "expected_saved_revision": "r1"}]}),
+])
+def test_mutation_response_deadline_blocks_later_dispatch(monkeypatch, tmp_path, name, args):
+    from threading import Event, Thread
+
+    from datalens_dev_mcp.api.budget import check_dispatch
+    monkeypatch.setenv("DATALENS_OPERATION_BUDGET_SEC", "0.1")
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path))
+    entered, release, sent = Event(), Event(), Event()
+    responses, errors = [], []
+    def handler(**kwargs):
+        check_dispatch(readonly=False)
+        entered.set()
+        release.wait(2)
+        try:
+            check_dispatch(readonly=False)
+        except DataLensApiError as exc:
+            errors.append(exc.remote_code)
+        return {"ok": True}
+    monkeypatch.setitem(server.TOOLS, name, handler)
+    def emit(response):
+        responses.append(response)
+        sent.set()
+    worker = Thread(target=server._run_domain_request, args=(
+        {"id": 1, "method": "tools/call", "params": {"name": name, "arguments": args}}, Event(), emit))
+    worker.start()
+    try:
+        assert entered.wait(1)
+        assert sent.wait(0.5)
+        assert worker.is_alive()
+        result = responses[0]["result"]["structuredContent"]
+        assert result["operation_id"]
+        assert result["effect_outcome"] == "unknown"
+    finally:
+        release.set()
+        worker.join(3)
+    assert len(responses) == 1
+    assert errors == ["operation_budget_exhausted"]
+
+
+def test_stdio_busy_keeps_control_available_without_dispatch(monkeypatch):
+    import io
+    from threading import Event
+    entered, release = Event(), Event()
+    calls = []
+    def slow(**kwargs):
+        calls.append(kwargs)
+        entered.set()
+        assert release.wait(2)
+        return {"ok": True}
+    monkeypatch.setitem(server.TOOLS, "dl_object_get", slow)
+    def request(oid, name):
+        args = {"object_type": "dashboard", "object_id": "synthetic"} if name == "dl_object_get" else {}
+        return json.dumps({"id": oid, "method": "tools/call", "params": {"name": name, "arguments": args}}) + "\n"
+    def input_lines():
+        yield request(1, "dl_object_get")
+        assert entered.wait(1)
+        yield request(2, "dl_object_get")
+        yield request(3, "dl_server_info")
+        release.set()
+    output = io.StringIO()
+    monkeypatch.setattr(server.sys, "stdin", input_lines())
+    monkeypatch.setattr(server.sys, "stdout", output)
+    server.serve_stdio()
+    replies = {value["id"]: value for value in map(json.loads, output.getvalue().splitlines())}
+    busy = replies[2]["error"]["data"]
+    assert busy["code"] == "domain_busy" and busy["request_sent"] is False
+    assert busy["worker_active"] is True and busy["active_request_id"] == 1
+    assert replies[3]["result"]["structuredContent"]["domain"]["available"] is False
+    assert len(calls) == 1
+
+
+def test_build_stamp_binds_checkout_and_survives_source_archive(tmp_path, monkeypatch):
+    from datalens_dev_mcp.provenance import build_provenance, content_digest
+    root = Path(__file__).resolve().parents[2]
+    monkeypatch.chdir(tmp_path)
+    value = build_provenance(root)
+    assert value["source_commit"] == subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
+    dirty = subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"], text=True).strip()
+    assert value["commit_status"] == ("dirty" if dirty else "clean")
+    package = tmp_path / "src/datalens_dev_mcp"
+    package.mkdir(parents=True)
+    (package / "module.py").write_text("value = 1")
+    value["package_content_sha256"] = content_digest(package)
+    (package / "_build_provenance.json").write_text(json.dumps(value))
+    assert build_provenance(tmp_path) == value
+    (package / "module.py").write_text("value = 2")
+    with pytest.raises(ValueError, match="does not match"):
+        build_provenance(tmp_path)

@@ -44,6 +44,9 @@ def test_config_report_never_contains_credentials() -> None:
         "credential_source": "explicit",
         "token_present": True,
         "refresh_available": False,
+        "profile_attribution": "ambient_unknown",
+        "impersonation_configured": False,
+        "setting_sources": {},
     }
     assert "synthetic-token" not in repr(report)
     assert "synthetic-token" not in repr(_config())

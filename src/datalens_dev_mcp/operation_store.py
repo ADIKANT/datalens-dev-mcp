@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 import os
 import re
 import tempfile
@@ -91,6 +91,9 @@ class OperationStore:
         with self._locked():
             existing = self.get(record["operation_id"])
             if existing is not None:
+                if (existing.get("provider_scope") and record.get("provider_scope")
+                        and existing["provider_scope"] != record["provider_scope"]):
+                    raise InputContractError("operation_id belongs to a different provider scope")
                 if any(existing.get(key) != record.get(key) for key in ("effect", "request_digest")):
                     raise InputContractError("operation_id is already bound to a different request")
                 if existing.get("effect") == "cleanup":
@@ -119,8 +122,35 @@ class OperationStore:
                 return False, existing
             if record.get("effect") == "cleanup":
                 self._check_cleanup_claim(record)
+            else:
+                self._check_mutation_claim(record)
             record["store_version"] = 1
             return True, self._write(record)
+
+    def _check_mutation_claim(self, record: dict[str, Any]) -> None:
+        """A new caller ID cannot escape an unresolved intent or target claim."""
+        targets = set(record.get("write_targets", []))
+        for path in self.root.glob("*.json"):
+            other = json.loads(path.read_text(encoding="utf-8"))
+            if other.get("effect") == "cleanup":
+                continue
+            if (other.get("provider_scope") and record.get("provider_scope")
+                    and other["provider_scope"] != record["provider_scope"]):
+                continue
+            items = other.get("results") or []
+            unresolved = other.get("status") in {"pending", "uncertain"} or any(
+                item.get("status") == "uncertain" for item in items)
+            if not unresolved:
+                continue
+            same_intent = (other.get("effect") == record.get("effect")
+                           and other.get("request_digest") == record.get("request_digest"))
+            unknown_targets = {item.get("target", {}).get("object_id") for item in items
+                               if item.get("status") in {"pending", "uncertain"}}
+            if other.get("status") == "pending":
+                unknown_targets.update(other.get("write_targets", []))
+            if same_intent or targets.intersection(unknown_targets):
+                raise DataLensSafetyError("An earlier mutation has an unresolved intent or target; reconcile operation_id "
+                                          + other["operation_id"] + "; a new ID does not authorize replay")
 
     def _check_cleanup_claim(self, record: dict[str, Any]) -> None:
         """Called under the store lock; an explicit grant never clears old evidence."""
@@ -167,8 +197,9 @@ class OperationStore:
             existing = self.get(str(record.get("operation_id") or ""))
             if existing is not None and existing.get("store_version", 0) != record.get("store_version", 0):
                 raise UncertainWriteError("operation receipt changed concurrently; re-read and reconcile")
-            record["store_version"] = int(record.get("store_version", 0)) + 1
-            result = self._write(record)
+            pending = {**record, "store_version": int(record.get("store_version", 0)) + 1}
+            result = self._write(pending)
+            record["store_version"] = pending["store_version"]
             self._prune(keep=self._path(record["operation_id"]))
             return result
 
@@ -263,8 +294,10 @@ def normalize_operation(record: dict[str, Any]) -> dict[str, Any]:
     for item in items:
         if item.get("status") == "completed":
             item.pop("next_action", None)
-        if item.get("write_returned") and item.get("status") != "completed":
-            item["status"] = "uncertain"
+        if item.get("write_returned"):
+            item["effect_outcome"] = "applied"
+            if item.get("status") != "completed":
+                item["status"] = "uncertain"
         if item.get("status") == "uncertain":
             item["next_action"] = (
                 "Inspect this operation_id and reconcile exact target readback; do not replay the write. "
@@ -303,6 +336,9 @@ def normalize_operation(record: dict[str, Any]) -> dict[str, Any]:
     if len(statuses) > 1 and status != "partial":
         action = f"{action} Preserve completed items and distinguish unattempted, rejected and unknown items; do not repeat the entire batch."
     result.update(status=status, ok=status == "completed")
+    if any(item.get("dataset_validation", {}).get("status") == "invalid" for item in items):
+        result.update(ok=False, task_complete=False)
+        action = "Write outcomes are retained; Dataset validation is invalid. Inspect validation before claiming data or render success."
     result.pop("next_action", None)
     if action:
         result["next_action"] = action
@@ -319,7 +355,7 @@ def compact_operation(record: dict[str, Any]) -> dict[str, Any]:
         for key in ("ok", "operation_id", "effect", "status", "write_replayed", "next_action", "detail_pruned",
                     "auth_scope", "provider_scope", "ordered_delete_digest", "preserve_roots", "dependency_fingerprint",
                     "preview_digest", "progress", "new_delete_dispatched", "observed_objects", "runtime",
-                    "store_version", "repeat_of")
+                    "store_version", "repeat_of", "task_complete")
         if key in record
     }
     compact_items = []
@@ -342,6 +378,7 @@ def compact_operation(record: dict[str, Any]) -> dict[str, Any]:
                     "next_action",
                     "evidence",
                     "write_returned",
+                    "write_verified",
                     "dispatch_state",
                     "effect_outcome",
                     "intent",

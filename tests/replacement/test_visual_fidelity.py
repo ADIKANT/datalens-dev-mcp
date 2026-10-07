@@ -244,3 +244,29 @@ def test_kpi_previous_keeps_metric_unit_without_inventing_missing_value():
     missing = render("kpi_sparkline", bindings, {"width": 320, "height": 180})
     previous = missing.split('data-id="kpi-previous"', 1)[1].split("</div>", 1)[0]
     assert ">—" in previous and "%" not in previous
+
+
+def test_weekly_long_multiline_row_label_remains_accessible_at_420():
+    from html.parser import HTMLParser
+
+    label = 'Long customer group with multiple words\nSecond line <detail>'
+    html = render('weekly_totals_table', {
+        'metric': {}, 'date': {}, 'group': {},
+        'prepared_data': {'weeks': [{'label': f'2026-W{i:02d}'} for i in range(1, 9)],
+                          'rows': [{'label': label, 'values': [None, 0, 1, 2, 3, 4, 5, 6]}]}},
+        {'width': 420, 'height': 180})
+    class Labels(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.labels = []
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            if attrs.get('data-id') == 'weekly-row-label-0':
+                self.labels.append(attrs)
+    parser = Labels()
+    parser.feed(html)
+    assert len(parser.labels) == 1
+    assert parser.labels[0]['title'] == label
+    assert parser.labels[0]['aria-label'] == label
+    assert 'overflow:auto' in html
+    assert '>—<' in html and '>0<' in html

@@ -66,7 +66,7 @@ module.exports = function renderWeeklyTotals(data, config) {
           const total = row.total === undefined
             ? (row.values || []).reduce((sum, value) => sum + (Number(value) || 0), 0) : row.total;
           return '<div style="display:flex;width:' + minWidth + 'px;min-width:' + minWidth + 'px;height:40px">'
-            + '<div style="box-sizing:border-box;position:sticky;left:0;z-index:2;display:flex;align-items:center;min-width:0;overflow:hidden;flex:0 0 '
+            + '<div data-id="weekly-row-label-' + rowIndex + '" title="' + escape(row.label) + '" aria-label="' + escape(row.label) + '" style="box-sizing:border-box;position:sticky;left:0;z-index:2;display:flex;align-items:center;min-width:0;overflow:hidden;flex:0 0 '
             + firstWidth + 'px;height:40px;padding:0 14px;background:' + backgroundFill(background) + ';border-bottom:1px solid '
             + colors.line + ';border-right:1px solid ' + colors.line + ';color:' + colors.text
             + ';font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
@@ -115,6 +115,11 @@ module.exports = function renderWeeklyTotals(data, config) {
           const escape = value => String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
           const id = event && event.target && event.target.getAttribute
             ? String(event.target.getAttribute('data-id') || '') : '';
+          const labelMatch = id.match(/^weekly-row-label-(\d+)$/);
+          if (labelMatch) {
+            const row = (prepared.rows || [])[Number(labelMatch[1])] || {};
+            return Editor.generateHtml('<div style="padding:10px;white-space:pre-wrap">' + escape(row.label) + '</div>');
+          }
           const match = id.match(/^weekly-cell-(\d+)-(\d+)$/);
           if (!match) return '';
           const row = (prepared.rows || [])[Number(match[1])] || {};

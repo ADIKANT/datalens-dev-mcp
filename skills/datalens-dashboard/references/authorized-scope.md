@@ -48,6 +48,17 @@ flowchart TD
   J --> H[Published readback and affected data or UI check]
 ```
 
+## Narrow change sequence
+
+1. Read the exact object and saved/published branch needed for the request.
+2. Identify the properties authorized by the latest request, including cancellations.
+3. Build the smallest delta addressed by native IDs; keep unknown fields, chart types, globalItems, sibling group controls, untouched tabs and manual width/height.
+4. If the revision changed, reread and rebase only your delta on that state. Never retry a stale full snapshot or remove the revision guard.
+5. After save, compare both changed properties and untouched state against the fresh baseline.
+6. Before publish, inspect all saved-versus-published differences, not only your delta. Apply the publication boundary below.
+
+For example, if a user cancels intermediate payment/funnel views and retains Orders and Returns, keep those two views and all required detail columns. Remove only the now-cancelled view branches and parameters within scope; an earlier plan must not recreate them on continuation. A shorter hint must retain the metric definition and relevant limits, not completion prose.
+
 ## Saved state, publication and restoration
 
 Retain the complete snapshot privately when preservation or replacement needs it; a compact view is not a replacement payload. Read the current saved identity/revision and compare the affected state before writing. After each write, use the verified resulting revision for the next dependent action; a sign of drift needs an addressed refresh, not another full project/history read.
@@ -85,3 +96,10 @@ For multiple workbooks/projects, keep each project's exact root, workbook and ob
 Do not claim overall completion until every target has a row and no required remainder. Use compact operation results (changed fields, revision and readback boundary); open `dl_operation_get(include_detail=true)` only for an unresolved detail. `no_change` means a fresh saved read matched the patch and no write was sent. Keep API save/readback, publish/readback, data proof, and Browser proof as separate evidence. A visible selector, Editor, or layout change needs relevant rendered verification; a metadata-only update does not require a full Browser tour.
 
 Scale the final response to the request: a single rename needs the result and relevant readback, while a multi-project task needs per-target change, save/readback, requested publish/render and exact remainder. A status question or compaction continues the existing task unless the user changes it; keep accepted formulas and units rather than asking again.
+
+Ordinary create/update/publish calls share `DATALENS_OPERATION_BUDGET_SEC`
+(default 120 seconds, maximum 180) across credentials, preflight, effects and
+readback. A deadline preserves the operation ID and available receipt; it does
+not free the worker or authorize replay. An ACK remains applied when readback
+fails. A `receipt_storage_failed` reply contains in-memory IDs/outcomes which
+must be retained: durable state may be older. Reconcile after the worker unwinds.

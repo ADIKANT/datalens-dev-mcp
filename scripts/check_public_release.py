@@ -32,7 +32,9 @@ def audit(path: Path) -> None:
     ]
     if bad:
         raise ValueError(f"{path.name}: forbidden archive members: {bad}")
-    for required in ("server.py", "api/sdk_adapter.py", "assets/recipes/registry.json"):
+    for required in ("server.py", "api/sdk_adapter.py", "assets/recipes/registry.json",
+                     "assets/recipes/temporal_prepare.js", "schemas/capability-coverage.json",
+                     "_build_provenance.json"):
         if not any(name.endswith("datalens_dev_mcp/" + required) for name in names):
             raise ValueError(f"{path.name}: missing {required}")
     runtime_paths = [name for name in contents if name.endswith("datalens_dev_mcp/__init__.py")]
@@ -50,7 +52,21 @@ def audit(path: Path) -> None:
             versions.append(json.loads(content)["version"])
     if not versions or len(set(versions)) != 1 or None in versions:
         raise ValueError("archive package metadata and content version differ")
-    print(f"{path.name}: structural archive and version audit passed")
+    stamp_name = next(name for name in contents if name.endswith("datalens_dev_mcp/_build_provenance.json"))
+    stamp = json.loads(contents[stamp_name])
+    import hashlib
+    prefix = stamp_name.removesuffix("_build_provenance.json")
+    digest = hashlib.sha256()
+    for name in sorted(contents):
+        if (name.startswith(prefix) and name != stamp_name
+                and Path(name).suffix in {".py", ".json", ".js", ".md"}):
+            digest.update(name[len(prefix):].encode())
+            digest.update(b"\0")
+            digest.update(contents[name])
+    if (stamp.get("format") != 1 or stamp.get("package_version") != versions[0]
+            or stamp.get("package_content_sha256") != digest.hexdigest()):
+        raise ValueError("archive content does not match build provenance")
+    print(f"{path.name}: structural archive, version and provenance audit passed")
 
 
 if __name__ == "__main__":

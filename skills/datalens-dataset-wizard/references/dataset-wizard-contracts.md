@@ -2,6 +2,18 @@
 
 `dl_dataset_preview(fields=...)` validates a local field description but queries saved provider GUIDs. It does not save fields. Include every selected, filter, sort and parameter field in the description. Supplied calculated fields are checked against saved Dataset metadata before the data query; an absent GUID or changed formula requires an explicit Dataset save followed by fresh readback. Do not substitute field titles for GUIDs or remove filters to obtain success. A preview query is data evidence, not chart rendering evidence.
 
+For a new standard table, `dl_compile_recipe(recipe_id="native_detail_table", bindings={dataset_id, object_name, columns:[{field_guid, label?}]})` produces a typed Wizard draft. Columns must be nonempty and use distinct readback GUIDs; `label` optionally overrides the column title. The name can instead come from effective presentation/project `object_name.value`, then `metric.label`; a visible title does not name the object. Inspect `dl_authoring_defaults(family="native_detail_table").recipe_contract` for the effective binding schema and synthetic example. Preserve readback GUIDs and supply `wizard.dataset_fields` from the actual Dataset when validating a manual draft against the SDK.
+
+A minimal manual Wizard draft uses this shape (replace synthetic GUIDs with readback):
+
+```json
+{"object_type":"wizard_chart","client_ref":"orders","name":"Orders",
+ "wizard":{"dataset_id":"existing-dataset-id","visualization":"flat_table",
+           "roles":{"columns":["order-id-guid","amount-guid"]}}}
+```
+
+`flat_table` is the authoring value; provider serialization `flatTable` and a guessed `table` are not authoring values. `roles.columns` contains GUID strings, not field objects or root `columns`. On a validation error, repair the returned field path using its allowed settings/visualizations before retrying the single draft. `dl_method_schema` returns method metadata, not this complete authoring schema.
+
 - A new typed Dataset draft has exactly this ownership shape (values below are synthetic):
 
   ```json
@@ -71,3 +83,5 @@ For upstream-dependent metrics, establish the contract in the connection actuall
 For booking format and Insight-style driver dimensions, inspect their actual values and relationship to customers/teams. A multi-select label, user picker and object identifier can be different fields despite similar names. Resolve IDs through the declared key relationship; never pair two arrays by incidental order. Do not explode arrays or add many-to-many joins that duplicate hours or booking counts. Check the grain before/after the join or filter, including an actual NULL/empty case when available; name coverage gaps when no such case exists. A materially different metric definition, such as allocating one booking's hours among multiple drivers, requires the business rule rather than a cosmetic patch.
 
 If only part of the source is ready, complete independent authorized UI/metadata changes and identify each dependent item and the evidence needed to unblock it. Do not substitute invented zeros, a temporary Dataset or another source with different semantics. Retain upstream errors as errors; a valid empty query is different from a missing source or an invalid KPI. The ready subset does not complete the whole request.
+
+Before changing formula/source/grouping, apply the [affected metric check](../../datalens-dashboard/references/decision-quality.md#affected-metric-check). Preserve source-computed weighted/distinct totals and the agreed denominator; a metadata-only patch stays on the narrow path.

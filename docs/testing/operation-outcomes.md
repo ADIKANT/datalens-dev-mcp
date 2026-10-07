@@ -66,3 +66,23 @@ Existing offline checks cover response-before-unwind, late-response suppression,
 cancellation and dispatch barriers, and unchanged input rejection. A direct
 source/provider read is a separate evidence level; native host acceptance still
 requires loading this build and repeating the affected scoped scenario.
+
+## Mutation evidence transitions
+
+The same per-item evidence applies to create, update and publish; delete also
+requires exact absence readback through the cleanup owner.
+
+| Observation | Effect evidence | Next action |
+| --- | --- | --- |
+| Never dispatched / explicit single-request rejection | not_applied | Correct the cause; resume only eligible items |
+| Dispatched, response lost | unknown | Read-only reconcile; no new-ID replay |
+| ACK received, readback pending/failed | applied, verification incomplete | Retain ID/ACK; reconcile the exact branch |
+| Readback differs | ACK stays applied if received; otherwise unknown | Preserve uncertainty; do not replay |
+| Exact readback verified | applied, completed | Preserve completed item |
+| Receipt storage failed after ACK | in-memory applied evidence, older durable record | Retain returned receipt; no replay |
+
+New IDs are rejected for unresolved matching intents or overlapping targets in
+the same provider scope. Known applied is distinct from Dataset validation or
+rendered correctness. Invalid Dataset findings keep the save outcome but return
+`ok=false` and `task_complete=false`. Fresh verified reconciliation clears stale
+transport diagnostics. Cleanup retains its separate exact-absence semantics.

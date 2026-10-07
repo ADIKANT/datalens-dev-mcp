@@ -5,6 +5,8 @@ description: Use when authoring or diagnosing DataLens JavaScript Editor table, 
 
 # DataLens Editor
 
+Use the [technology and source selection](../datalens-inspect/SKILL.md#technology-and-source-selection) order first.
+
 For a known Editor, start with that target's current identity, parent and subtype/renderer; no workbook-wide inventory is needed. Use inventory when selecting an unknown target or discovering a suitable existing example. If that evidence is insufficient, inspect the business workspace's root navigation and only relevant project `AGENTS.md`/`CONTEXT.md` files; confirm a candidate's live ID and type. A Wizard-only project does not establish that Editor is unavailable. For authorized creation, use a supported recipe or example in the requested workbook, remapping aliases and dependencies to authorized objects or read-only sources. Dependencies do not expand mutation scope.
 
 Work from the exact dashboard project/subproject. For a single-tab edit, read that target in full, patch only the requested tab, and verify the changed behavior; do not recompile the entire chart or traverse its workbook. Read [Editor authoring](references/editor-authoring.md) for the actual runtime variant (`table_node`, `d3_node`, `advanced-chart_node`, `markdown_node` or `control_node`). Preserve that technology, untouched tabs, Meta aliases and source bindings. Diagnose missing aliases, upstream errors and valid empty results separately.
@@ -20,3 +22,8 @@ Follow [authorized scope and delivery](../datalens-dashboard/references/authoriz
 For source changes, use the effective presentation to identify active consumers. Period KPI comparison/sparkline flags determine previous-total/trend queries; value-only needs only the current aggregate. Other explicit per-alias Dataset projections use `dataset_source` in the same recipe compiler. Inspect `summary.source_plan`, actual DataSetData/SQL and results at the same grain. Projection does not prove reduced inner SQL cost. Follow [query needs and portable presentation](references/editor-authoring.md#explicit-dataset-query-needs); preserve custom source code and metadata-only edit paths.
 
 For unknown effects follow [repeat-effect recovery](../datalens-dashboard/references/authorized-scope.md#unknown-outcomes-and-repeat-effects): only proven non-application or separate informed repeat authorization permits another attempt. Failed reconciliation, absent inventory and a new operation_id do not make a retry safe.
+
+For a recipe argument failure, repair the single example from its field path and
+allowed keys before compiling the batch. Do not fan out the same unsupported
+`presentation/colors` field. Keep custom Sources/Prepare on narrow tab or metadata
+edits; compiler success does not establish source data or rendered correctness.

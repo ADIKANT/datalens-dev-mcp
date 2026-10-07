@@ -31,7 +31,9 @@ assert info['active_version_matches_installed'] is True
 assert info['active_sdk_matches_installed'] is True
 assert info['capability_revision']
 assert len(info['build']['package_content_sha256']) == 64
-assert info['build']['source_commit'] is None
+assert info['build']['commit_status'] == 'clean'
+assert info['build']['source_commit']
+assert info['build']['sdk_pin'] == info['runtime']['sdk_version']
 print(json.dumps({"version": datalens_dev_mcp.__version__, "tools": names, 'active': info}))
 """
 
@@ -48,6 +50,8 @@ def main() -> None:
         assert manifest["name"] == "datalens-dev-mcp"
         skill_root = root / manifest["skills"]
         assert list(skill_root.glob("*/SKILL.md")), "plugin has no skills"
+        from datalens_dev_mcp.provenance import content_digest
+        assert content_digest(skill_root) == installed["active"]["build"]["skills_sha256"]
         server_map = json.loads((root / manifest["mcpServers"]).read_text())
         assert server_map == {"mcpServers": {"datalens": {"command": "datalens-dev-mcp", "args": ["stdio"]}}}
         requests = [

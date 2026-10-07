@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from collections import Counter
 from collections.abc import Mapping, Sequence
@@ -243,6 +244,15 @@ def _validate_selector_consumers(resolved: list[dict[str, Any] | None], items: l
             bindings = by_ref[consumer_ref].get("bindings") or {}
             source = bindings.get("source") if isinstance(bindings, Mapping) else None
             params = source.get("params") if isinstance(source, Mapping) else None
+            if by_ref[consumer_ref].get("recipe_id"):
+                # Recipes emit a JSON object, not arbitrary Params JavaScript.
+                # Full recipe/tab consistency is checked by _validate_supported_draft.
+                tab = (by_ref[consumer_ref].get("tabs") or {}).get("params.js", "")
+                prefix = "module.exports = "
+                try:
+                    params = json.loads(tab[len(prefix):].strip().removesuffix(";")) if isinstance(tab, str) and tab.startswith(prefix) else None
+                except (TypeError, ValueError):
+                    params = None
             if consumer_parameter != param_name or not isinstance(params, Mapping) or param_name not in params:
                 items[index]["errors"].append(
                     _error(
@@ -425,7 +435,7 @@ def _validate_wizard(draft: Mapping[str, Any]) -> list[dict[str, str]]:
             _error(
                 "wizard_setting_unsupported",
                 f"wizard/{setting}",
-                f"unsupported Wizard setting: {setting}",
+                f"unsupported Wizard setting: {setting}; allowed: {', '.join(sorted(WIZARD_SETTINGS))}",
             )
         )
     dataset_id = specification.get("dataset_id")
@@ -443,7 +453,8 @@ def _validate_wizard(draft: Mapping[str, Any]) -> list[dict[str, str]]:
             _error(
                 "wizard_visualization_unsupported",
                 "wizard/visualization",
-                f"unsupported Wizard visualization: {visualization or '<missing>'}",
+                f"unsupported Wizard visualization: {visualization or '<missing>'}; "
+                f"allowed: {', '.join(sorted(WIZARD_VISUALIZATIONS))}",
             )
         )
     roles = specification.get("roles")
@@ -555,6 +566,9 @@ def _validate_typed_dataset(specification: Mapping[str, Any]) -> list[dict[str, 
             _error("dataset_fields_missing", "dataset/fields", "typed Dataset requires a nonempty fields array")
         )
     else:
+        for issue in validate_dataset_fields(fields)["issues"]:
+            if issue["code"] == "field_title_duplicate":
+                errors.append(_error(issue["code"], "dataset/" + issue["path"], issue["message"]))
         for index, field in enumerate(fields):
             if not isinstance(field, Mapping):
                 continue

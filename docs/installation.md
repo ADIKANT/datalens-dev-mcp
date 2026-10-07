@@ -45,3 +45,27 @@ artifact migration. `dl_server_info` now distinguishes active SDK version from t
 separately installed SDK version, as well as active and installed MCP versions.
 
 For repository release updates, follow [exact-source delivery](testing/stable-releases.md#exact-source-delivery) before build/install and the relevant live acceptance card after host restart.
+
+## Candidate build attribution
+
+Build from a clean feature commit with `python -m build`. The setuptools build
+stamps wheel and sdist with the source commit/tree, package content digest, SDK
+pin and schema/asset/skill digests. A wheel rebuilt from an sdist carries the same
+provenance and rejects changed package bytes. Dirty checkouts are marked dirty;
+source/editable imports without a stamp report unknown. The active runtime reads
+its identity once; replacing installed files does not relabel a running process.
+
+Skills ship through the plugin repository, outside the wheel. The stamp's
+`skills_sha256` describes the build checkout, not the host's active skill cache.
+`scripts/installed_smoke.py` compares that digest with the supplied plugin checkout.
+For a different installed skill directory, compare it with
+`datalens_dev_mcp.provenance.content_digest(Path(skill_directory))` before claiming
+that the runtime and skills came from the same candidate. A package digest alone
+cannot establish external skill identity.
+
+Set `DATALENS_YC_PROFILE` to the already authorized YC CLI profile when account
+attribution is required. Optional `DATALENS_YC_IMPERSONATE_SERVICE_ACCOUNT_ID`
+selects an existing authorized impersonation context. Neither setting activates a
+global profile. Unspecified profiles remain explicitly `ambient_unknown`.
+`DATALENS_OPERATION_BUDGET_SEC` bounds create/update/publish as one operation
+(default 120 seconds, maximum 180), including credential acquisition and readback.

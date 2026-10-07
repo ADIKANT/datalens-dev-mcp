@@ -16,6 +16,15 @@ If the API endpoint or target organization remains unresolved after scoped confi
 
 ## Authentication recovery
 
+`DATALENS_YC_PROFILE` pins the existing authorized CLI profile; optional
+`DATALENS_YC_IMPERSONATE_SERVICE_ACCOUNT_ID` pins its impersonation context.
+The helper passes arguments without activating a global profile or falling back
+when an explicit profile fails. `profile_attribution=ambient_unknown` means the
+account is not pinned: when a specific account is required, establish its existing
+profile before refresh. A profile mismatch or host denial stops this route; never
+switch credentials or tools to bypass it. `setting_sources` reports token,
+organization, profile and impersonation sources separately without secret values.
+
 `dl_auth_check` makes a minimal API read. Distinguish a helper that cannot start, explicit interactive-login evidence, a timeout of unknown cause, an API 401 (`authentication_failed`) and a scope 403 (`permission_denied`). None establishes that a workbook is missing. Helper errors expose only an allowlisted code, exit status and diagnostic ID; never print captured stdout/stderr or tokens.
 
 For a token renewal request or credential recovery within an authorized DataLens task, use `dl_auth_refresh` with its default `allow_browser=true`. It runs the existing `yc` profile's supported token command and allows **the system external browser** to complete the configured provider/SSO sign-in, waiting up to 120 seconds. An existing browser session may authenticate automatically; ask the user only for actual password/MFA or another unresolved boundary. Announce the browser sign-in and continue when the session already authorizes it; do not add another plan/login permission question. Do not change account/profile, extract browser cookies, copy callback URLs into an embedded browser, or print captured helper output. Set `allow_browser=false` only for an explicit browser restriction or a noninteractive-only request; that mode retains the 15-second bound.

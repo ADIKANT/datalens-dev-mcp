@@ -5,7 +5,7 @@ description: Use when creating, updating, validating, or previewing DataLens dat
 
 # DataLens Dataset and Wizard
 
-Work from the exact dashboard project/subproject. A description-only edit needs a narrow patch and saved readback. Field, formula, filter or source changes also need applicable field validation and bounded data preview; JSON alone cannot prove metric meaning. Use [Dataset/Wizard contracts](references/dataset-wizard-contracts.md) for typed drafts, field roles, preview and revision-safe updates. Use current field GUIDs; ambiguous labels cannot identify fields. Preserve dataset-global versus chart-local fields, calculation levels, field order and the existing object's technology. Prefer Wizard for new standard charts unless the user requests another route or a documented gap requires it.
+Work from the exact dashboard project/subproject. A description-only edit needs a narrow patch and saved readback. Field, formula, filter or source changes also need applicable field validation and bounded data preview; JSON alone cannot prove metric meaning. Use [Dataset/Wizard contracts](references/dataset-wizard-contracts.md) for typed drafts, field roles, preview and revision-safe updates. Use current field GUIDs; ambiguous labels cannot identify fields. Preserve dataset-global versus chart-local fields, calculation levels, field order and the existing object's technology. Choose technology and source using the [project-first order](../datalens-inspect/SKILL.md#technology-and-source-selection); a JavaScript request alone does not exclude an existing Dataset.
 
 For a new metric or upstream-dependent field, first follow [current source readiness](references/dataset-wizard-contracts.md#current-source-readiness). A merged change or green CI does not prove that this connection exposes the field or data. Complete independent authorized edits while naming the dependent remainder.
 
@@ -18,3 +18,10 @@ Follow [authorized scope and delivery](../datalens-dashboard/references/authoriz
 Route placement to `datalens-dashboard`, JavaScript variants to `datalens-editor`, metadata or RLS identity lookup to `datalens-inspect`, and backup/cleanup to `datalens-maintenance`.
 
 For unknown effects follow [repeat-effect recovery](../datalens-dashboard/references/authorized-scope.md#unknown-outcomes-and-repeat-effects): only proven non-application or separate informed repeat authorization permits another attempt. Failed reconciliation, absent inventory and a new operation_id do not make a retry safe.
+
+Treat `write_verified`, `dataset_validation`, bounded data preview and Browser
+rendering as separate evidence. An invalid saved Dataset is not task success;
+metadata-only repairs may preserve pre-existing invalid state, but newly changed
+fields must pass prospective title/GUID validation before a batch writes. If a
+required upstream field is not exposed, finish independent metadata work and mark
+the dependent part blocked; do not wait for a merge or substitute a source.

@@ -81,10 +81,11 @@ def calculation_level(field: Mapping[str, Any]) -> str:
     return "row"
 
 
-def validate_dataset_fields(fields: list[dict[str, Any]]) -> dict[str, Any]:
+def validate_dataset_fields(fields: list[dict[str, Any]], *, require_unique_titles: bool = True) -> dict[str, Any]:
     issues: list[dict[str, str]] = []
     normalized: list[dict[str, Any]] = []
     seen: set[str] = set()
+    titles: set[str] = set()
     for index, raw in enumerate(fields):
         if not isinstance(raw, dict):
             issues.append(
@@ -121,6 +122,10 @@ def validate_dataset_fields(fields: list[dict[str, Any]]) -> dict[str, Any]:
             )
             continue
         seen.add(guid)
+        if require_unique_titles and title in titles:
+            issues.append({"code": "field_title_duplicate", "path": f"fields[{index}].title",
+                           "message": "Dataset field titles must be unique across distinct GUIDs"})
+        titles.add(title)
         level = calculation_level(raw)
         item = dict(raw)
         item["guid"] = guid

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "datalens-dev-mcp"
-version = "1.2.26"
+version = "1.2.27"
 description = "Typed domain plugin for developing and maintaining Yandex DataLens objects through Codex and MCP clients."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -78,6 +78,7 @@ exclude = ["datalens_dev_mcp.assets.templates*"]
 
 [tool.setuptools.package-data]
 "datalens_dev_mcp" = [
+  "_build_provenance.json",
   "schemas/*.json",
   "assets/recipes/*.json",
   "assets/recipes/*.js",

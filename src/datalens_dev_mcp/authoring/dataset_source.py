@@ -179,11 +179,16 @@ def _dataset_query(
         "sources_js": sources,
         "params": params,
         "prepare_prelude": prelude,
-        "source_plan": {"kind": "dataset", "upstream_cost": "unverified", "queries": [{
+        "source_plan": {"kind": "dataset", "dependencies": "declared", "upstream_cost": "unverified", "queries": [{
+            "dataset_alias": "dataset", "dataset_id": bindings["dataset_id"],
             "alias": source_alias, "role": bindings.get("source_role", source_alias),
             "fields": [{"field_guid": guid, "title": by_guid[guid]["title"],
                         "aggregation": by_guid[guid].get("aggregation", "unknown")} for guid in guids],
-            "filters": filters, "selectors": selector_contracts, "dataset_parameters": parameter_contracts,
+            "filters": [{**item, "field_guid": raw["field_guid"]}
+                        for item, raw in zip(filters, bindings.get("filters") or [])],
+            "selectors": [{**item, "field_guid": raw["field_guid"]}
+                          for item, raw in zip(selector_contracts, selectors)],
+            "dataset_parameters": parameter_contracts,
             "sort": order_by, "limit": limit,
         }]},
     }
@@ -225,7 +230,8 @@ const preparedRows = rows.map(row => ({
 }));
 module.exports = {rows: preparedRows, state: preparedRows.length ? 'ready' : 'no_data'};
 """
-    return {"meta": query["meta"], "sources_js": query["sources_js"], "params": query["params"], "prepare_js": prepare}
+    return {"meta": query["meta"], "sources_js": query["sources_js"], "params": query["params"],
+            "prepare_js": prepare, "source_plan": query["source_plan"]}
 
 
 def kpi_dataset_source(bindings: Mapping[str, Any], presentation: Mapping[str, Any] | None = None) -> dict[str, Any]:
@@ -373,7 +379,7 @@ const value = total('current_total');
     if sparkline:
         prepare += "points, "
     prepare += "state: value === null ? 'no_data' : 'ready'};\n"
-    plan = {"kind": "dataset", "upstream_cost": "unverified", "queries": []}
+    plan = {**queries["current_total"]["source_plan"], "queries": []}
     for alias, period, _, _ in needs:
         item = queries[alias]["source_plan"]["queries"][0]
         item.update(role="trend" if alias == "source" else alias, period=period)
@@ -419,7 +425,7 @@ def named_dataset_source(bindings: Mapping[str, Any]) -> dict[str, Any]:
     prepare = "\n".join("{\n" + query["prepare_prelude"] + "}\n" for query in queries.values())
     return {"meta": {"links": {"dataset": bindings["dataset_id"]}}, "sources_js": sources,
             "prepare_js": prepare + specification["prepare_js"], "params": params,
-            "source_plan": {"kind": "dataset", "upstream_cost": "unverified", "prepare_dependencies": "explicit_custom",
+            "source_plan": {**next(iter(queries.values()))["source_plan"], "prepare_dependencies": "explicit_custom",
                             "queries": [item for query in queries.values() for item in query["source_plan"]["queries"]]}}
 
 
@@ -509,6 +515,7 @@ module.exports = {weeks, rows, total_values, grand_total, state: rows.length ? '
         "sources_js": query["sources_js"],
         "params": query["params"],
         "prepare_js": prepare,
+        "source_plan": query["source_plan"],
     }
 
 

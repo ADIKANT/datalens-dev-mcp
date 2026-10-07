@@ -18,6 +18,10 @@ Effective `comparison.enabled=false` removes the period KPI's previous query and
 
 ### Explicit Dataset query needs
 
+For the generated `comparison_matrix` Dataset route, bind nonempty `rows:[{field_guid, label?}]`, `metric:{field_guid}` and `comparison:{field_guid}` to saved `fields` and `dataset_id`. `rows` identifies row dimensions; it is separate from `prepared_data.rows`, whose objects contain current/previous values or version/status cells. The effective schema and synthetic example are returned by defaults. Custom `source`, `direct_source` and `prepared_data` routes do not require a Dataset.
+
+Generated matrix/weekly/KPI and named Dataset plans retain declared Dataset/query aliases and query needs. `dependencies=declared` is static provenance, not a verified live relation graph; custom Prepare dependencies and physical scan cost remain unverified. Compiled artifacts retain original bindings so revalidation regenerates the owned source. Do not copy internal `source_plan` into the closed public `source` input. Cleanup still requires a fresh complete relations preview.
+
 For an Editor recipe needing a different projection, grain, window, denominator or detail order, use the existing compile route with `dataset_id`, saved `fields`, and `dataset_source: {queries, prepare_js}`. Each query declares `alias`, its consumer `role`, `field_guids`, optional `selectors`, fixed `filters`, `dataset_parameters`, `sort` and `limit`. Selectors and parameters belong to each query; none are inherited from top-level selectors. This keeps a global denominator independent of selected groups. Sort entries use `{field_guid, direction: "asc"|"desc"}`; include the actual time and tie-breaker fields for bounded detail. `prepare_js` exports the chosen recipe's prepared-data shape using `Dataset.getDatasetRows({datasetName: alias})`. It remains explicit user code; the compiler does not infer which aliases it uses or rewrite it.
 
 Use `dl_authoring_defaults(family=...).recipe_contract.bindings_schema` for the exact nested contract. The compact compile `summary.source_plan` shows declared aliases, roles, returning fields/aggregation, filters/parameters, sort and limits. Full generated tabs remain in `draft_reference.artifact_path`. `upstream_cost=unverified` is deliberate: a narrow outer Dataset request does not prove that inner SQL joins, DISTINCT, history or CTE work disappeared. Inspect the actual DataSetData request and generated SQL in Inspector; use read-only plans/metrics when available. Record unavailable physical scan metrics as unknown. There is no automatic cache or change of connection, RLS, credentials or physical source.
@@ -110,6 +114,7 @@ the actual `Editor.getParams()` input (for example an array containing
 `"2026-09-29T00:00:00.000Z"`), chosen timezone and inclusive/exclusive boundaries;
 resolve native intervals only when their prefix is present. Never parse arbitrary
 strings as dates or truncate timestamps without an explicit calendar-date contract.
+Trace user choice → actual control value → resolved interval → source filter → rows → visible label. A dynamic end must not retain an old fixed date; six calendar months must not become 180 days. Use the project's agreed week start, timezone and day boundary in both SQL and renderer, with explicitly fixed dates in local checks. Clear only the selected date filter, retaining category and independent controls. A local control remains local; group/global controls reach only their declared charts/tabs, with no hidden default excluding expected rows.
 Check declaration, global defaults, impactTabs/aliases, normalized query/filter,
 selected entity, rows and rendered output together. The fixed input's expected
 counts are evidence for that input; live data needs a fresh baseline.
@@ -139,3 +144,17 @@ KPI presentation uses `kpi.direction` (`higher_is_better`, `lower_is_better`, `n
 The `date` binding accepts `mode` (`auto`, `calendar`, `temporal`, `ordinal`) and `granularity` (`day`, `week`, `month`). Known calendar grids use UTC boundaries (monthly points use month starts) and fill absent periods with null; filling the sparkline grid never recomputes the source KPI total. Irregular ISO dates use proportional elapsed-time spacing. Explicit `ordinal` comparisons retain their aligned positions. Do not connect gaps or replace signed observations with zero.
 
 A shared renderer change belongs to its owning source project and affects its consumers. Establish that scope first, check the changed family on representative permitted consumers, and preserve unrelated bindings. Do not apply the shared-renderer delivery cycle to a local tab or metadata edit.
+
+## Project choice, semantic checks and optimization
+
+Use the [technology/source order](../../datalens-inspect/SKILL.md#technology-and-source-selection) before recipe selection and the [affected metric check](../../datalens-dashboard/references/decision-quality.md#affected-metric-check) before changing calculations. Direct SQL with JS selectors is appropriate for an explicitly established direct-source project; a reusable Dataset is appropriate for a shared metric model or standard Wizard view. Neither rule is a universal preference.
+
+Optimize in this order: identify sources consumed by the visible element; remove unused queries/fields without changing meaning; aggregate at the needed grain while retaining requested detail; compare values and filters before/after; measure only when claiming speed. Preserve custom source contracts. Do not add diagnostic queries solely to generate a report or benchmark a label edit.
+
+Separate query count, returned rows/bytes, source elapsed time, available physical scan metrics, and page loading/rendering. Reduced JSON does not establish reduced physical scanning, and one successful query does not establish dashboard speed. A speedup claim needs at least three comparable before/after measurement pairs on the same slice, recording cache state. Otherwise report simplification or response reduction, and keep KPI/detail/filter parity evidence.
+
+## Affected visual verification
+
+After a visual edit, inspect the affected element in Browser after API and applicable data checks. For a responsive recipe, compare a wide viewport and 420 px, scrolling to all required data and checking hover and legend interactions. Diagnose recipe renderer, dashboard geometry and native host separately. Do not patch host limitations with unsupported CSS or claim that a backend save fixed rendering.
+
+Show a title once through its agreed owner. Hints explain the metric rather than saying done/calculated. Preserve manual heights and widths as project baselines, not universal defaults; tables must remain readable, multiline values accessible, and required columns retained through supported scrolling. Verify tooltip/legend meaning and NULL versus zero when relevant. A screenshot does not verify CSV/XLSX; check export separately only when requested.

@@ -139,21 +139,9 @@ final request.
 
 ## Browser QA and delivery
 
-The generated final QA plan is bound to dashboard ID, exact fresh
-saved/published identities, final-attestation hash, composition hash, and
-payload hashes. It checks every required tab from its top through real scroll
-checkpoints to its bottom at one desktop viewport by default. Additional widths
-apply only to explicit responsive acceptance.
+Read the affected rendered element after scoped API and applicable data checks. A responsive change needs a wide viewport and 420 px; check scrolling, hover and legend where supported. A narrow metadata edit needs only the applicable readback, not a full dashboard tour. Selector changes need actual selection and clearing with the independent controls preserved.
 
-The pass verifies applicable universal assertions plus project/profile-bound
-style assertions with active provenance. Default final visual QA does not
-change selectors or filters; those interactions require a separate explicit
-cell with baseline/restore. Any visible error must be attributed or acceptance
-stays open.
-
-Safe Apply publishes from verified saved state and verifies published readback
-before Browser. A successful matching `qa_attestation` is then required before
-the delivery state can become `done`; it is never a publish precondition.
+Save/readback, publish/readback, data and Browser evidence are separate. Before a requested publish, inspect all saved-versus-published differences for scope; preserve someone else's unpublished edits. No generic QA manifest, Safe Apply workflow or attestation is required. Name any native-host limitation without attributing it to the recipe or claiming a backend correction.
 
 Dashboard composition emits the native DataLens `widget.data.tabs[]` payload shape.
 Its `operation` selects a schema-valid `CreateDashboardV1Args` or
@@ -171,3 +159,7 @@ must remain inside the project root. It cannot add technologies, bypass the
 canonical route decision, alter protected runtime after validation, or enable
 fallback. Path escape, changed hashes, route conflicts, and missing families
 block generation.
+
+## Scoped implementation and evidence
+
+Follow the skill's [project/source selection and optimization](../skills/datalens-editor/references/editor-authoring.md#project-choice-semantic-checks-and-optimization), [native calendar chain](../skills/datalens-editor/references/editor-authoring.md#native-calendar-inputs) and [affected visual verification](../skills/datalens-editor/references/editor-authoring.md#affected-visual-verification). Project technology choices precede generic defaults. Metric/source changes need grain and denominator checks; label edits do not. Report physical scan, response size and render time separately, and preserve unrelated saved work before publishing.
