@@ -18,3 +18,7 @@ For token renewal or a credential failure, follow [authentication recovery](refe
 For cloud identity lookup load [RLS resolution](references/cloud-rls-resolution.md). For changes route to `datalens-dataset-wizard`, `datalens-editor` or `datalens-dashboard`; backup, standalone HTML Page and cleanup belong to `datalens-maintenance`. Load only the addressed reference.
 
 [Upstream provenance](references/upstream-provenance.md) records the selectively adapted sources; load it only for a version/provenance question.
+
+## Technology and source selection
+
+Read the current request and the exact project's `AGENTS.md`/`CONTEXT.md` before choosing an implementation. Preserve an existing object's technology unless the user requests a migration. For a new object, follow the explicitly requested technology and confirmed project approach; only then use the general Wizard-for-standard-charts / Editor-for-required-custom-behavior default. Choose visualization technology and data source separately: JavaScript does not prohibit Dataset. A project using direct SQL and JS selectors does not need a new Dataset layer without a concrete requirement; a standard Wizard chart or shared metric model should reuse its suitable existing Dataset.

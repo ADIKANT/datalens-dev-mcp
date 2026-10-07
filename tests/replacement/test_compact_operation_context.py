@@ -4,6 +4,7 @@ import json
 import os
 import time
 
+import pytest
 from test_l06_object_lifecycle import FakeBackend, FakeReader, rb, service
 
 from datalens_dev_mcp import server
@@ -147,3 +148,19 @@ def test_diff_compares_full_source_but_bounds_values_and_paths(tmp_path):
     assert source["before"]["sha256"] != source["after"]["sha256"]
     assert "beforebefore" not in json.dumps(result)
     assert writer.backend.calls == []
+
+
+def test_failed_receipt_write_does_not_advance_callers_store_version(tmp_path, monkeypatch):
+    store = OperationStore(tmp_path)
+    record = {"operation_id": "synthetic", "results": [], "status": "pending"}
+    store.put(record)
+    before = store.get('synthetic')
+    def disk_full(record):
+        raise OSError('synthetic disk full')
+    with monkeypatch.context() as scoped:
+        scoped.setattr(store, '_write', disk_full)
+        with pytest.raises(OSError, match='disk full'):
+            store.put(record)
+    assert record['store_version'] == before['store_version']
+    assert store.get('synthetic') == before
+    assert store.put(record)['store_version'] == before['store_version'] + 1

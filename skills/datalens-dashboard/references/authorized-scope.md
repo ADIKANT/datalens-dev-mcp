@@ -48,6 +48,17 @@ flowchart TD
   J --> H[Published readback and affected data or UI check]
 ```
 
+## Narrow change sequence
+
+1. Read the exact object and saved/published branch needed for the request.
+2. Identify the properties authorized by the latest request, including cancellations.
+3. Build the smallest delta addressed by native IDs; keep unknown fields, chart types, globalItems, sibling group controls, untouched tabs and manual width/height.
+4. If the revision changed, reread and rebase only your delta on that state. Never retry a stale full snapshot or remove the revision guard.
+5. After save, compare both changed properties and untouched state against the fresh baseline.
+6. Before publish, inspect all saved-versus-published differences, not only your delta. Apply the publication boundary below.
+
+For example, if a user cancels intermediate payment/funnel views and retains Orders and Returns, keep those two views and all required detail columns. Remove only the now-cancelled view branches and parameters within scope; an earlier plan must not recreate them on continuation. A shorter hint must retain the metric definition and relevant limits, not completion prose.
+
 ## Saved state, publication and restoration
 
 Retain the complete snapshot privately when preservation or replacement needs it; a compact view is not a replacement payload. Read the current saved identity/revision and compare the affected state before writing. After each write, use the verified resulting revision for the next dependent action; a sign of drift needs an addressed refresh, not another full project/history read.

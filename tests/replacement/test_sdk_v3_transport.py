@@ -948,7 +948,7 @@ def test_public_unbranched_type_has_no_publish_dispatch(install_runtime, object_
     assert not provider.requests
 
 
-@pytest.mark.parametrize("fault", ["healthy", "lost_response", "slow_write", "preflight_slow", "readback_429", "oversize", "oversize_gzip"])
+@pytest.mark.parametrize("fault", ["healthy", "lost_response", "slow_write", "preflight_slow", "readback_429", "receipt_storage", "oversize", "oversize_gzip"])
 def test_native_stdio_http_fault_receipts(tmp_path, fault):
     """Real stdio process and local HTTP; optional exact installed interpreter."""
     import os
@@ -979,6 +979,8 @@ def test_native_stdio_http_fault_receipts(tmp_path, fault):
                 state["dataset"]["revision_id"] = "I2"
                 state["revId"] = "A2"
                 durable.write_text(json.dumps({"effects": len(effects), "state": state}))
+                if fault == "receipt_storage":
+                    (tmp_path / "datalens-dev-mcp" / "operations").chmod(0o500)
                 if fault == "lost_response":
                     self.connection.shutdown(socket.SHUT_RDWR)
                     self.connection.close()
@@ -1043,7 +1045,7 @@ def test_native_stdio_http_fault_receipts(tmp_path, fault):
             args["changes"].append({"object_type": "dataset", "object_id": "synthetic-second",
                                     "patch": {"dataset": {"description": "second"}}})
         result = call("dl_object_update", args)
-        assert result["operation_id"] == "local-fault", result
+        assert result.get("operation_id") == "local-fault", result
         assert len(effects) == (0 if fault in {"preflight_slow", "oversize", "oversize_gzip"} else 1)
         if fault in {"slow_write", "preflight_slow"}:
             if result.get("worker_active"):
@@ -1060,6 +1062,18 @@ def test_native_stdio_http_fault_receipts(tmp_path, fault):
             repeated = call("dl_object_update", args)
             assert repeated["status"] == "uncertain"
             assert len(effects) == 1
+        if fault == "receipt_storage":
+            (tmp_path / "datalens-dev-mcp" / "operations").chmod(0o700)
+            assert result["code"] == "receipt_storage_failed", result
+            assert result["receipt_persisted"] is False
+            assert result["results"][0]["effect_outcome"] == "applied"
+        if fault in {"lost_response", "readback_429", "receipt_storage"}:
+            another = call("dl_object_update", {**args, "operation_id": "new-id"})
+            assert another.get("ok") is not True
+            assert len(effects) == 1
+            reconciled = call("dl_operation_reconcile", {"operation_id": "local-fault"})
+            assert len(effects) == 1
+            assert reconciled["status"] == ("uncertain" if fault == "readback_429" else "completed")
         if fault == "healthy":
             assert result["status"] == "completed", result
         receipt = call("dl_operation_get", {"operation_id": "local-fault"})

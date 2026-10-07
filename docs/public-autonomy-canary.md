@@ -17,3 +17,29 @@ A live mutation requires an authorized run-owned target, environment, exact effe
 Prove data and render where affected: bounded preview with the relevant fields, then read-only Browser inspection for visible changes. A correct save with a blank chart or wrong selector behavior remains a visual failure. Restore/cleanup only within the agreed scope and verify it.
 
 Record the tested commit/build, actual task and observable result, limitations and cleanup in a few lines. Without an available host or authorized canary, finish code, local checks and PR, and name the unavailable live boundary separately. Do not compensate with more synthetic cases.
+
+## Precise-change scenarios
+
+Use the installed candidate tools and its matching skills; record the commit and
+skill digest with each observed trajectory. Do not put the expected solution in
+the model prompt. Reuse the existing host execution method where available;
+static wording checks and deterministic handler tests are separate evidence.
+
+| Task supplied to the agent | Observe independently |
+| --- | --- |
+| Add a chart to an established direct-SQL/JS-selector project | Uses the project's source route without an unjustified Dataset |
+| Add a standard view to an existing shared metric model | Reuses the Dataset and native Wizard where appropriate |
+| Change one hint; another client changes geometry after the first read | Re-reads/rebases the hint, preserves full state, saves without publishing |
+| Continue after intermediate payment/funnel views were cancelled | Retains the latest two views and required detail columns |
+| Count overlapping entity groups and compare unequal weighted groups | Keeps order/entity keys, union distinct and aggregate denominator semantics |
+| Clear a date while a category is selected | Actual source query removes only the date, preserves category and tab scope |
+| Continue an interrupted write with lost response | Uses original receipt/reconcile, no new effect or revived old requirements |
+| Repair a rejected recipe argument | One informed correction from the returned contract, no guessed batch retries |
+| Give a short final response | Keeps definition, verification boundary and unresolved remainder |
+
+The source/filter/render scenario additionally needs an authorized run-owned
+canary, a bounded real source, period selection and date clearing with category
+preserved, a neighboring tab check, wide/420 px inspection, and exact cleanup.
+Local mocks cannot close that boundary. If that environment is unavailable,
+record the specific blocked stages, zero external writes and any owned residue;
+continue the local qualification and PR without waiting for SSO or merge.

@@ -407,3 +407,66 @@ def test_weekly_consistent_aggregation_sources_remain_additive(tmp_path, aggrega
     ], binding)
     assert prepared["rows"][0]["values"] == [10, 0 if aggregation == "count" else None]
     assert prepared["grand_total"] == (30 if aggregation == "count" else None)
+
+
+@pytest.mark.parametrize('now, expected', [
+    ('2026-10-07', ['2026-04-07', '2026-10-07']),
+    ('2026-11-07', ['2026-05-07', '2026-11-07']),
+])
+def test_calendar_month_interval_uses_fresh_host_resolution_without_hidden_end(now, expected):
+    binding = _dataset_bindings()
+    binding['selectors'].append({'param_name': 'period', 'field_guid': 'region', 'operation': 'BETWEEN',
+                                'empty_selection': 'all', 'date_input': 'utc_calendar_date',
+                                'default': ['2020-01-01', '2020-06-01']})
+    source = matrix_dataset_source(binding)
+    # Native calendar arithmetic belongs to the host. Independently specified
+    # resolver results test the actual generated query, not a fake provider claim.
+    script = 'const Editor={getId:()=>"dataset",getParams:()=>({region_filter:["north"],period:["__interval___relative_-6M___relative_+0d"]}),'
+    script += 'resolveInterval:v=>{if(!v.includes("-6M"))throw Error("changed calendar unit");return ' + json.dumps(dict(zip(['from', 'to'], expected))) + ';}};'
+    script += 'const require=()=>({buildSource:x=>x});' + source['sources_js']
+    script += 'console.log(JSON.stringify(module.exports.source));'
+    query = json.loads(subprocess.check_output(['node', '-e', script], text=True))
+    assert query['where'] == [
+        {'column': 'Region', 'type': 'title', 'operation': 'IN', 'values': ['north']},
+        {'column': 'Region', 'type': 'title', 'operation': 'BETWEEN', 'values': expected}]
+    assert query['where'][1]['values'][1] == now
+    cleared = _run_sources(source, {'region_filter': ['north'], 'period': ['']})
+    assert cleared['where'] == query['where'][:1]
+
+
+def test_nonadditive_entity_keys_and_weights_reach_renderer_unchanged(tmp_path):
+    # Project-owned Prepare code uses raw synthetic rows, with expected answers
+    # stated independently below. The plugin must carry its output without
+    # summing overlapping groups or substituting an unweighted total.
+    raw = [
+        {"claim": "c1", "issue": "i1", "order": "o1", "contract": "k1", "group": "A"},
+        {"claim": "c1", "issue": "i2", "order": "o1", "contract": "k1", "group": "B"},
+        {"claim": "c2", "issue": "i3", "order": "o2", "contract": "k1", "group": "A"},
+        {"claim": "c2", "issue": "i4", "order": "o2", "contract": "k1", "group": "B"},
+        {"claim": "c3", "issue": "i5", "order": "o2", "contract": "k1", "group": "B"},
+    ]
+    for key, expected in [("claim", 3), ("issue", 5), ("order", 2), ("contract", 1), ("weighted", 0.875)]:
+        binding = _weekly_binding('avg')
+        binding['metric']['aggregation'] = 'ratio' if key == 'weighted' else 'count_distinct'
+        prepare = "const records=" + json.dumps(raw) + "; const key=" + json.dumps(key) + ";"
+        prepare += """
+          const groups=['A','B'];
+          const weights={A:{success:1,total:2},B:{success:6,total:6}};
+          const total=key==='weighted' ? groups.reduce((s,g)=>s+weights[g].success,0)/groups.reduce((s,g)=>s+weights[g].total,0)
+            : new Set(records.map(r=>r[key])).size;
+          module.exports={weeks:[{key:'2026-W40',label:'2026-W40'}],
+            rows:groups.map(g=>{const value=key==='weighted'? weights[g].success/weights[g].total
+              : new Set(records.filter(r=>r.group===g).map(r=>r[key])).size;
+              return {label:g,values:[value],total:value};}),total_values:[total],grand_total:total};
+        """
+        binding['source'] = {'meta': {}, 'sources_js': 'module.exports={};', 'prepare_js': prepare}
+        draft = _compiled_weekly(tmp_path, binding)
+        script = 'const Editor={wrapFn:x=>x};' + draft['tabs']['prepare.js']
+        script += 'console.log(JSON.stringify(module.exports.render.args[0]));'
+        actual = json.loads(subprocess.check_output(['node', '-e', script], text=True))
+        assert actual['grand_total'] == expected
+        assert actual['total_values'] == [expected]
+        if key == 'claim':
+            assert [r['total'] for r in actual['rows']] == [2, 3]
+        if key == 'weighted':
+            assert [r['total'] for r in actual['rows']] == [0.5, 1.0]

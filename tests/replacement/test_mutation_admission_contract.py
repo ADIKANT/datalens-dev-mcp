@@ -661,3 +661,42 @@ def test_compact_dashboard_diff_and_no_change_do_not_write(tmp_path):
         result = call_tool("dl_object_update", {"changes": [change]})["structuredContent"]
     assert result["results"][0]["code"] == "no_change"
     assert backend.calls == []
+
+
+def test_hint_and_group_child_rebase_preserve_full_manual_dashboard(tmp_path):
+    from test_l06_object_lifecycle import FakeBackend, FakeReader, rb, service
+
+    before = {"entry": {"future": {"keep": [None, 0, False]}, "data": {"tabs": [
+        {"id": "orders", "items": [
+            {"id": "chart", "type": "widget", "data": {"chartId": "editor", "hint": "old"}},
+            {"id": "local", "type": "group_control", "data": {"group": [
+                {"id": "period", "defaults": {"period": ["old"]}},
+                {"id": "category", "defaults": {"category": ["A"]}, "future": True}]}},
+        ], "globalItems": [{"id": "global", "defaults": {"scope": ["all"]}}],
+         "layout": [{"i": "chart", "x": 1, "y": 2, "w": 17, "h": 4}]},
+        {"id": "returns", "items": [{"id": "native", "type": "widget",
+                                      "data": {"chartId": "wizard", "columns": ["id", "amount", "status"]}}]},
+    ], "settings": {"globalParams": {"scope": ["all"]}}}}}
+    manual = copy.deepcopy(before)
+    manual["entry"]["data"]["tabs"][0]["layout"][0].update(w=21, h=2)
+    wanted = copy.deepcopy(manual)
+    wanted["entry"]["data"]["tabs"][0]["items"][0]["data"]["hint"] = "Order count by billing order ID"
+    wanted["entry"]["data"]["tabs"][0]["items"][1]["data"]["group"][0]["defaults"]["period"] = []
+    delta = {"tabs": [{"id": "orders", "items": {"update": [
+        {"id": "chart", "patch": {"data": {"hint": "Order count by billing order ID"}}},
+        {"id": "local", "group": {"update": [{"id": "period", "patch": {"defaults": {"period": []}}}]}}
+    ]}}]}
+    reader = FakeReader({("dashboard", "synthetic", "saved"): [
+        rb("dashboard", "synthetic", "manual-r2", manual),
+        rb("dashboard", "synthetic", "manual-r2", manual),
+        rb("dashboard", "synthetic", "r3", wanted)]})
+    backend = FakeBackend([{"object_id": "synthetic", "object": {"revId": "r3"}}])
+    writer = service(tmp_path, reader, backend)
+    change = {"object_type": "dashboard", "object_id": "synthetic", "expected_revision": "r1", "dashboard_patch": delta}
+    assert writer.update_objects([change], operation_id="stale")["status"] == "blocked"
+    assert backend.calls == []
+    # Proven pre-dispatch revision conflict permits rebasing just the requested delta.
+    change["expected_revision"] = "manual-r2"
+    assert writer.update_objects([change], operation_id="rebased")["status"] == "completed"
+    assert backend.calls == [("update", {"object_type": "dashboard", "object_id": "synthetic", "snapshot": wanted})]
+    assert all(branch == "saved" for _, _, branch in reader.calls)

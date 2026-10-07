@@ -5,6 +5,8 @@ description: Use when authoring or diagnosing DataLens JavaScript Editor table, 
 
 # DataLens Editor
 
+Use the [technology and source selection](../datalens-inspect/SKILL.md#technology-and-source-selection) order first.
+
 For a known Editor, start with that target's current identity, parent and subtype/renderer; no workbook-wide inventory is needed. Use inventory when selecting an unknown target or discovering a suitable existing example. If that evidence is insufficient, inspect the business workspace's root navigation and only relevant project `AGENTS.md`/`CONTEXT.md` files; confirm a candidate's live ID and type. A Wizard-only project does not establish that Editor is unavailable. For authorized creation, use a supported recipe or example in the requested workbook, remapping aliases and dependencies to authorized objects or read-only sources. Dependencies do not expand mutation scope.
 
 Work from the exact dashboard project/subproject. For a single-tab edit, read that target in full, patch only the requested tab, and verify the changed behavior; do not recompile the entire chart or traverse its workbook. Read [Editor authoring](references/editor-authoring.md) for the actual runtime variant (`table_node`, `d3_node`, `advanced-chart_node`, `markdown_node` or `control_node`). Preserve that technology, untouched tabs, Meta aliases and source bindings. Diagnose missing aliases, upstream errors and valid empty results separately.

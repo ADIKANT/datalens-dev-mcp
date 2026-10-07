@@ -206,6 +206,9 @@ class ObjectMutationService:
                     self._save(record)
                     continue
                 self._verify_readback(item, branch="saved")
+            except ReceiptPersistenceError:
+                # Preserve the ACK/identity receipt; another save could mask it.
+                raise
             except UncertainWriteError as exc:
                 self._failure(item, exc)
             except (DataLensApiError, ValueError, TypeError) as exc:
@@ -310,6 +313,9 @@ class ObjectMutationService:
                 response = self.backend.update(object_type, object_id, proposed)
                 self._returned(record, item, response)
                 self._verify_readback(item, branch="saved")
+            except ReceiptPersistenceError:
+                # Preserve the ACK/identity receipt; another save could mask it.
+                raise
             except UncertainWriteError as exc:
                 self._failure(item, exc)
             except (DataLensApiError, ValueError, TypeError) as exc:
@@ -367,6 +373,9 @@ class ObjectMutationService:
                 response = self.backend.publish(object_type, object_id, saved)
                 self._returned(record, item, response)
                 self._verify_readback(item, branch="published")
+            except ReceiptPersistenceError:
+                # Preserve the ACK/identity receipt; another save could mask it.
+                raise
             except UncertainWriteError as exc:
                 self._failure(item, exc)
             except (DataLensApiError, ValueError, TypeError) as exc:

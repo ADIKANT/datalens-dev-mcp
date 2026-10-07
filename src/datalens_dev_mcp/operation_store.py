@@ -197,8 +197,9 @@ class OperationStore:
             existing = self.get(str(record.get("operation_id") or ""))
             if existing is not None and existing.get("store_version", 0) != record.get("store_version", 0):
                 raise UncertainWriteError("operation receipt changed concurrently; re-read and reconcile")
-            record["store_version"] = int(record.get("store_version", 0)) + 1
-            result = self._write(record)
+            pending = {**record, "store_version": int(record.get("store_version", 0)) + 1}
+            result = self._write(pending)
+            record["store_version"] = pending["store_version"]
             self._prune(keep=self._path(record["operation_id"]))
             return result
 
