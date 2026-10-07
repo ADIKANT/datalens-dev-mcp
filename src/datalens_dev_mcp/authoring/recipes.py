@@ -89,7 +89,7 @@ def recipe_contract(recipe_id: str, *, values: Mapping[str, Any] | None = None) 
     if recipe_id == "comparison_matrix":
         schema.setdefault("allOf", []).append({
             "anyOf": [{"required": [route]} for route in sources],
-            "description": "Provide a source route: " + ", ".join(sources),
+            "description": "Provide an explicit source route: " + ", ".join(sources),
         })
     return {"recipe_id": recipe_id, "technology": recipe["technology"],
             "object_type": recipe["object_type"], "bindings_schema": schema,
