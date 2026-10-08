@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
+import re
 from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import asdict, is_dataclass, replace
+from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -73,11 +77,12 @@ class _ConfiguredHTTPClient(DataLensHTTPClient):
                          max_attempts=self.config.read_retries + 1 if readonly else 1)
         try:
             return super().post_json(path, body, retry_policy=policy, accept_response=accept_response)
-        except SdkTransportError as exc:
+        except (SdkTransportError, SdkApiError) as exc:
+            exc._datalens_request_diagnostics = _request_diagnostics(body)
             # Classify at this RPC, not the outer SDK operation: a subsequent
             # read can fail to connect after a successful mutation. These HTTPX
             # phases precede request bytes and this mutation has just one attempt.
-            if (not readonly and exc.attempts == 1
+            if (not readonly and isinstance(exc, SdkTransportError) and exc.attempts == 1
                     and isinstance(exc.__cause__, (httpx.ConnectTimeout, httpx.ConnectError, httpx.PoolTimeout))):
                 failure = _provider_error(exc, method)
                 failure.dispatch_state = "not_dispatched"
@@ -259,7 +264,8 @@ class SdkAdapter:
                                        http_status=failure.http_status, remote_code=failure.remote_code,
                                        response_received=failure.response_received,
                                        retry_after_sec=failure.retry_after_sec,
-                                       stage=failure.stage, request_id=failure.request_id, trace_id=failure.trace_id)
+                                       stage=failure.stage, request_id=failure.request_id, trace_id=failure.trace_id,
+                                       provider_diagnostics=failure.provider_diagnostics)
         return _provider_error(exc, method)
 
     def get_object(
@@ -502,14 +508,7 @@ class SdkAdapter:
                 effect_started = True
                 value = builder.build()
             elif object_type == "dashboard" and isinstance(draft.get("dashboard"), dict):
-                from datalens_sdk.converter.dashboard import DashboardConverter
-
-                from datalens_dev_mcp.authoring.typed_graph import dashboard_builder
-
-                builder = dashboard_builder(client, draft["dashboard"], name=name, location=location)
-                payload = getattr(builder, "response_snapshot", None)
-                if payload is None:
-                    payload = DashboardConverter.from_domain_create(builder.to_spec()).to_payload()
+                builder, payload = _dashboard_create(client, draft, destination)
                 expected_readback = {"entry": {"data": payload["entry"]["data"]}}
                 effect_started = True
                 value = builder.build()
@@ -809,6 +808,100 @@ def _saved_revision(snapshot: dict[str, Any]) -> str | None:
     return None
 
 
+def _dashboard_create(client: Any, draft: dict[str, Any], destination: dict[str, Any]) -> tuple[Any, dict[str, Any]]:
+    from datalens_sdk.converter.dashboard import DashboardConverter
+
+    from datalens_dev_mcp.authoring.typed_graph import dashboard_builder
+
+    builder = dashboard_builder(client, draft["dashboard"], name=_draft_name(draft), location=_entry_location(destination))
+    payload = getattr(builder, "response_snapshot", None)
+    if payload is None:
+        payload = DashboardConverter.from_domain_create(builder.to_spec()).to_payload()
+    return builder, payload
+
+
+def prepare_dashboard_wire(draft: dict[str, Any], destination: dict[str, Any], *, installation: str) -> bytes:
+    """Use the create converter and HTTPX JSON encoder, with no transport available."""
+    if getattr(datalens_sdk, "__version__", "") != SDK_VERSION:
+        raise InputContractError("Installed SDK differs from the supported pin")
+    if draft.get("object_type") != "dashboard" or not isinstance(draft.get("dashboard"), dict):
+        raise InputContractError("wire preparation supports concrete typed dashboard drafts only")
+    if installation not in {"yacloud", "enterprise"}:
+        raise InputContractError("wire preparation requires yacloud or enterprise installation")
+    client_type = datalens_sdk.DataLensClientEnterprise if installation == "enterprise" else datalens_sdk.DataLensClientYC
+    # Builders and converters cannot dispatch through this sentinel.
+    client = client_type(http_client=object())
+    _, payload = _dashboard_create(client, draft, destination)
+    return httpx.Request("POST", "https://example.invalid", json=payload).content
+
+
+def _request_diagnostics(body: Any) -> dict[str, Any]:
+    wire = httpx.Request("POST", "https://example.invalid", json=body).content
+    return _wire_diagnostics(wire)
+
+
+def _wire_diagnostics(wire: bytes) -> dict[str, Any]:
+    from datalens_dev_mcp import __version__
+
+    return {"request_sha256": hashlib.sha256(wire).hexdigest(), "request_bytes": len(wire),
+            "runtime_version": __version__, "sdk_version": SDK_VERSION,
+            "observed_at": datetime.now(UTC).isoformat()}
+
+
+def _allowed_provider_code(value: Any) -> str | None:
+    # Known codes only: an identifier-shaped arbitrary value may still be a secret.
+    known = {"VALIDATION_ERROR", "INVALID_ARGUMENT", "BAD_REQUEST", "NOT_FOUND", "CONFLICT",
+             "INTERNAL_ERROR", "INTERNAL_SERVER_ERROR", "UNAUTHORIZED", "FORBIDDEN", "ENTRY_TYPE_MISMATCH",
+             "ERR.DS_API.DB.CH.READONLY_USER", "ERR.DS_API.DB.INDEX_NOT_USED", "ERR.DS_API.DB.EST_EXEC_TOO_LONG"}
+    return value if isinstance(value, str) and value in known else None
+
+
+def _body_diagnostics(response: httpx.Response | None) -> dict[str, Any]:
+    result: dict[str, Any] = {"body_available": False, "body_status": "unavailable", "redacted": True,
+                              "reason": None, "field_path": None}
+    if response is None or not response.is_stream_consumed:
+        return result
+    body = response.content
+    content_type = response.headers.get("content-type", "").split(";", 1)[0].lower()
+    result.update(body_available=True, body_bytes=len(body), body_sha256=hashlib.sha256(body).hexdigest(),
+                  content_type=content_type if content_type in {"application/json", "text/html", "text/plain"} else "other",
+                  truncated=len(body) > 65536, body_status="unusable")
+    try:
+        result.update(_wire_diagnostics(response.request.content))
+    except (ValueError, httpx.RequestNotRead):
+        pass
+    if len(body) > 65536 or content_type != "application/json":
+        return result
+    try:
+        value = json.loads(body)
+    except (ValueError, RecursionError):
+        return result
+    if not isinstance(value, dict):
+        return result
+    result["body_status"] = "structured_redacted"
+    # Only documented-style error envelopes; never recurse into arbitrary details.
+    for _ in range(3):
+        if isinstance(value.get("error"), dict):
+            value = value["error"]
+        else:
+            break
+    code = _allowed_provider_code(value.get("code"))
+    result["code"] = code
+    result["reason"] = {"VALIDATION_ERROR": "validation", "INVALID_ARGUMENT": "validation",
+                        "BAD_REQUEST": "validation", "CONFLICT": "conflict", "NOT_FOUND": "not_found",
+                        "UNAUTHORIZED": "authentication", "FORBIDDEN": "permission",
+                        "INTERNAL_ERROR": "internal", "INTERNAL_SERVER_ERROR": "internal"}.get(code)
+    path = value.get("path")
+    allowed = {"entry", "data", "tabs", "items", "layout", "source", "fieldType", "elementType", "fieldName",
+               "defaultValue", "required", "meta", "name", "workbookId", "group", "defaults", "id", "type",
+               "settings", "connections", "aliases", "params", "mode", "x", "y", "w", "h", "i"}
+    if isinstance(path, str) and len(path) <= 240:
+        tokens = re.split(r"[./\[\]]+", path)
+        if any(tokens) and all(token in allowed or bool(re.fullmatch(r"[0-9]{1,6}", token)) for token in tokens if token):
+            result["field_path"] = path
+    return result
+
+
 def _provider_error(exc: Exception, method: str) -> DataLensApiError:
     if isinstance(exc, DataLensApiError):
         return exc
@@ -843,22 +936,27 @@ def _provider_error(exc: Exception, method: str) -> DataLensApiError:
                                         response_received=False if stage in {"transport_connect", "transport_pool"} else None)
         return DataLensApiError("SDK request failed during transport", method=method,
                                remote_code=code, stage=stage,
+                               provider_diagnostics=getattr(exc, "_datalens_request_diagnostics", None),
                                response_received=False if stage in {"transport_connect", "transport_pool"} else None)
     if isinstance(exc, SdkApiError):
         # The SDK message/details can contain SQL, data or an entire HTML body.
         # SDK 3.0.0 chains the HTTPStatusError; context itself has no headers.
-        # Inspect only that actual response's allowlisted metadata, never its body.
+        # Read bounded structured diagnostics from the actual response only.
+        # Messages, details and business values are never returned.
         cause = exc.__cause__
         headers = (cause.response.headers if isinstance(cause, httpx.HTTPStatusError)
                    and cause.response.status_code == exc.context.status_code else None)
         diagnostics = response_diagnostics(headers)
+        body_diagnostics = _body_diagnostics(cause.response if headers is not None else None)
+        body_diagnostics.update(getattr(exc, "_datalens_request_diagnostics", {}))
         provider_method = urlsplit(exc.context.request_url or "").path.rsplit("/", 1)[-1] or method
         return DataLensApiError(
             f"DataLens request failed with HTTP {exc.context.status_code}",
             method=provider_method,
             http_status=exc.context.status_code,
             response_received=True,
-            remote_code=exc.context.code or "",
+            remote_code=body_diagnostics.pop("code", None) or _allowed_provider_code(exc.context.code) or "",
+            provider_diagnostics=body_diagnostics,
             stage="provider_response",
             request_id=diagnostics["request_id"] or exc.context.request_id,
             trace_id=diagnostics["trace_id"],

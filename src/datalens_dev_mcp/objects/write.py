@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from copy import deepcopy
+from datetime import UTC, datetime
 from typing import Any, Protocol
 from uuid import uuid4
 
@@ -398,7 +399,7 @@ class ObjectMutationService:
             return {"ok": False, "status": "not_found", "operation_id": operation_id}
         return normalize_operation(value)
 
-    def reconcile(self, operation_id: str) -> dict[str, Any]:
+    def reconcile(self, operation_id: str, *, investigate_create: bool = False) -> dict[str, Any]:
         record = self.store.get(operation_id)
         if record is None:
             return {"ok": False, "status": "not_found", "operation_id": operation_id, "write_replayed": False}
@@ -417,6 +418,8 @@ class ObjectMutationService:
             object_type, object_id = str(target.get("object_type") or ""), str(target.get("object_id") or "")
             if not object_type or not object_id:
                 item["code"] = "identity_lookup_unavailable"
+                if investigate_create and record.get("effect") == "create":
+                    self._investigate_create(item)
                 continue
             if not record.get("provider_scope") and "legacy_scope_evidence" not in item:
                 retained = item.get("readback", {}).get("object", {})
@@ -460,6 +463,45 @@ class ObjectMutationService:
         result = self._save(record)
         result["write_replayed"] = False
         return result
+
+    def _investigate_create(self, item: dict[str, Any]) -> None:
+        """Append bounded candidate evidence; names/content never establish ownership."""
+        intent = item.get("intent") or {}
+        workbook = intent.get("destination", {}).get("workbook_id")
+        evidence: dict[str, Any] = {
+            "observed_at": datetime.now(UTC).isoformat(), "workbook_id": workbook,
+            "method": "getWorkbookEntries_then_exact_saved_read", "attribution": "unavailable",
+            "effect_outcome": "unknown", "candidate_count": 0, "inventory_complete": False,
+            "coverage": "At most 10 inventory pages and 10 same-name candidates; absence is not non-application",
+            "limitation": "Listing/readback/revision APIs do not expose a create request-ID ownership link",
+            "candidates": [], "provider_writes": 0,
+        }
+        if not workbook or not callable(getattr(self.reader, "workbook_entries", None)):
+            evidence["code"] = "inventory_unavailable"
+        else:
+            try:
+                inventory = self.reader.workbook_entries(workbook, page_size=100, max_pages=10)
+                evidence.update(inventory_complete=inventory.get("complete") is True,
+                                page_count=inventory.get("page_count"), object_count=inventory.get("object_count"))
+                candidates = [entry for entry in inventory.get("objects", [])
+                              if entry.get("object_type") == intent.get("object_type")
+                              and str(entry.get("name", "")).split("/", 1)[-1] == intent.get("name")]
+                evidence.update(candidate_count=len(candidates), candidates_truncated=len(candidates) > 10)
+                for candidate in candidates[:10]:
+                    row = {"object_id": candidate["id"], "match": "name_only", "attributed": False}
+                    try:
+                        current = self.reader.object_get(candidate["object_type"], candidate["id"], branch="saved")
+                        entry = current.get("object", {}).get("entry", current.get("object", {}))
+                        row.update(revision_id=current.get("identity", {}).get("revision_id"),
+                                   workbook_matches=entry.get("workbookId") == workbook,
+                                   identity_verified=current.get("identity", {}).get("object_id") == candidate["id"])
+                    except (DataLensApiError, ValueError, TypeError) as exc:
+                        row["read_error"] = error_response(exc)["code"]
+                    evidence["candidates"].append(row)
+            except (DataLensApiError, ValueError, TypeError) as exc:
+                evidence["read_error"] = error_response(exc)["code"]
+        item.setdefault("investigation_history", []).append(evidence)
+        item["investigation"] = evidence
 
     def _begin(self, record: dict[str, Any], item: dict[str, Any]) -> None:
         # Persist before crossing the network boundary. A killed process cannot

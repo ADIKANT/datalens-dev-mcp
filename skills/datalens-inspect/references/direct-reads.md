@@ -67,3 +67,13 @@ effect whose contents remain unverified, not a completed delivery. Its
 explicit expected revision for the next independent change. Unknown effects and
 connection provisioning cannot use this route. `include_detail=true` exposes
 retained transition history; the default result keeps diagnostics compact.
+
+
+Provider failures expose bounded `provider_diagnostics`: available/unusable body,
+size/hash, allowlisted code/field path/classified reason, redaction/truncation,
+request hash, runtime/SDK and observation time. Messages, arbitrary details, SQL,
+HTML and credentials are omitted. A hash is correlation evidence, not effect proof.
+Use the operation's compact intent, scope, stage, effect and current error first;
+`include_detail=true` retains historical evidence. For missing create IDs,
+`dl_operation_reconcile(..., investigate_create=true)` adds bounded candidate reads
+without claiming ownership or replaying. Full inventory absence cannot close cleanup.

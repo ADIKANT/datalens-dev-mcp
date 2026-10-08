@@ -6,7 +6,7 @@ import uuid
 from typing import Any
 
 ERROR_DIAGNOSTIC_FIELDS = ("stage", "method", "http_status", "provider_code", "request_id", "trace_id", "retry_after_sec",
-                           "response_received")
+                           "response_received", "provider_diagnostics")
 
 
 def safe_diagnostic_id(value: Any) -> str | None:
@@ -49,6 +49,7 @@ class DataLensApiError(RuntimeError):
         stage: str = "provider_request",
         request_id: str | None = None,
         trace_id: str | None = None,
+        provider_diagnostics: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message)
         self.method = safe_diagnostic_id(method)
@@ -64,6 +65,7 @@ class DataLensApiError(RuntimeError):
         self.stage = safe_diagnostic_id(stage)
         self.request_id = safe_diagnostic_id(request_id)
         self.trace_id = safe_diagnostic_id(trace_id)
+        self.provider_diagnostics = provider_diagnostics
 
 
 class UncertainWriteError(DataLensApiError):
@@ -74,7 +76,8 @@ class ReceiptPersistenceError(UncertainWriteError):
     """Known response evidence retained in memory when its durable write fails."""
 
     def __init__(self, receipt: dict[str, Any]) -> None:
-        super().__init__("Operation receipt could not be persisted; retain this response and reconcile without replay")
+        super().__init__("Operation receipt could not be persisted; retain this response and reconcile without replay",
+                         stage="receipt_storage")
         self.receipt = receipt
 
 
@@ -207,6 +210,8 @@ def error_response(error: BaseException, *, effect_possible: bool = False) -> di
     if isinstance(error, DataLensApiError):
         result.update(response_received=error.response_received, stage=error.stage, method=error.method, provider_code=error.remote_code or None,
                       request_id=error.request_id, trace_id=error.trace_id)
+        if error.provider_diagnostics is not None:
+            result["provider_diagnostics"] = error.provider_diagnostics
         if error.retry_after_sec is not None:
             result["retry_after_sec"] = error.retry_after_sec
         guidance = {

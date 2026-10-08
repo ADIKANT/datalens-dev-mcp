@@ -371,3 +371,28 @@ def test_resumed_claim_is_reserved_before_a_second_caller(tmp_path):
     store.put(record)
     assert store.claim(record)[0] is True
     assert store.claim(record)[0] is False
+
+
+@pytest.mark.parametrize("count,complete", [(0, True), (1, True), (2, True), (0, False)])
+def test_unknown_create_investigation_never_attributes_by_name(tmp_path, count, complete):
+    class Reader(FakeReader):
+        def workbook_entries(self, workbook_id, **kwargs):
+            assert workbook_id == "w"
+            return {"ok": True, "complete": complete, "page_count": 1,
+                    "objects": [{"id": f"candidate-{i}", "object_type": "editor_chart", "name": "Synthetic",
+                                 "workbook_id": "w"} for i in range(count)]}
+    reader = Reader({("editor_chart", f"candidate-{i}", "saved"):
+                     [rb("editor_chart", f"candidate-{i}", "r1", {"name": "Synthetic", "workbookId": "w"})]
+                     for i in range(count)})
+    writer = service(tmp_path, reader, FakeBackend([UncertainWriteError("lost")]))
+    writer.create_objects(draft(), {"workbook_id": "w"}, operation_id="unknown")
+    before = writer.store.get("unknown")
+    result = writer.reconcile("unknown", investigate_create=True)
+    item = result["results"][0]
+    assert item["effect_outcome"] == "unknown" and "target" not in item
+    assert item["investigation"]["candidate_count"] == count
+    assert item["investigation"]["inventory_complete"] == complete
+    assert item["investigation"]["attribution"] == "unavailable"
+    assert result["write_replayed"] is False and len(writer.backend.calls) == 1
+    assert item["intent"] == before["results"][0]["intent"]
+    assert result["request_digest"] == before["request_digest"]
