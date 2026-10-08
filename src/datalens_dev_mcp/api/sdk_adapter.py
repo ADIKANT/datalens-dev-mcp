@@ -995,6 +995,13 @@ def _validate_dashboard_snapshot(snapshot: dict[str, Any], *, from_artifact: boo
             "Dashboard snapshot requires document version 2 (36-column layout). "
             "Re-export through API v3 or explicitly migrate the legacy artifact; coordinates are never guessed or scaled."
         )
+    from datalens_dev_mcp.dashboard.composition import manual_input_field_types
+
+    for _, path in manual_input_field_types(snapshot):
+        raise InputContractError(
+            f"{path}: fieldType is not supported for sourceType=manual, elementType=input by SDK 3.0.0; "
+            'omit fieldType, e.g. source={"elementType":"input","fieldName":"rate","defaultValue":"50"}'
+        )
     data = entry.get("data") or {}
     tabs = data.get("tabs")
     if not isinstance(tabs, list) or not tabs:

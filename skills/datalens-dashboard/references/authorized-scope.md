@@ -103,3 +103,26 @@ readback. A deadline preserves the operation ID and available receipt; it does
 not free the worker or authorize replay. An ACK remains applied when readback
 fails. A `receipt_storage_failed` reply contains in-memory IDs/outcomes which
 must be retained: durable state may be older. Reconcile after the worker unwinds.
+
+
+### Applied historical writes
+
+`dl_operation_reconcile(operation_id=...)` never repeats a provider write. A
+retained provider ACK can establish `effect_outcome=applied` even when later
+content no longer matches. For an ordinary update/publish, a complete exact
+current read and verified provider/target scope can return `status=resolved`,
+`verification_status=historical_content_unverified`, `write_verified=false`,
+and `write_replayed=false`. This releases the historical hold; it does not
+claim the old desired state is current or historically verified. Retained
+history preserves prior errors, intent and readback. Read the current full saved
+object, preserve manual changes, and submit an intentional narrow change with a
+fresh `expected_revision` and a new operation ID. A stale revision cannot pass.
+Unknown effects and asynchronous connection provisioning remain held. A new ID,
+empty inventory or newer revision alone never establishes the old effect.
+
+Manual parameter inputs (`sourceType=manual`, `elementType=input`) do not accept
+`source.fieldType` in SDK 3.0.0. Omit that field; retain `fieldName`, defaults and
+required business settings. Reconciliation normalizes only the known legacy
+`fieldType=string` on this exact variant; Dataset/date controls and other fields
+remain exact. A compact `readback_diff` and `verification_checks` distinguish
+missing fields, content mismatch, identity, branch, completeness and revisions.

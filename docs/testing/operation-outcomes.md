@@ -86,3 +86,32 @@ the same provider scope. Known applied is distinct from Dataset validation or
 rendered correctness. Invalid Dataset findings keep the save outcome but return
 `ok=false` and `task_complete=false`. Fresh verified reconciliation clears stale
 transport diagnostics. Cleanup retains its separate exact-absence semantics.
+
+
+## Historical acknowledged writes (1.2.28)
+
+The existing public reconcile operation now separates historical effect from
+verification. It can resolve an acknowledged ordinary update/publish after a
+complete exact current target read, without claiming historical content success.
+The additive `resolved` status retains `ok=false`, `task_complete=false` and
+`verification_status=historical_content_unverified`; only `completed` means
+verified content. A new independent change requires fresh explicit CAS.
+Receipts without provider scope use their retained tenant/workbook/entry identity
+as a fixed scope anchor. Missing or conflicting evidence keeps the hold; later
+reads cannot replace the anchor. Legacy `write_returned=true` recovers ACK evidence
+without replay, and prior states/errors stay in history. Store-version CAS and
+short process locks prevent concurrent reconciliation from overwriting a newer
+receipt. Reconciliation is idempotent after resolution. Unknown effects and async
+connection operations remain blocked, including attempts with a new ID.
+
+Manual input `source.fieldType` is rejected before dispatch with its exact path
+and applicable example. Only the observed legacy manual-input string field is
+normalized during comparison; required fields, parameter values, list order,
+Dataset and date control field types remain significant. Diagnostic values are
+bounded and redacted. SDK nested entry revisions are extracted; a returned
+precondition revision is retained separately and never labeled post-write.
+
+Existing lifecycle, interruption, SDK, compact receipt, dashboard, runtime and
+cleanup checks cover the changed paths. Offline checks do not establish native
+activation, live provider normalization or Browser rendering; those require
+separate run-owned acceptance and cleanup.

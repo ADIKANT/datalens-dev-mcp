@@ -9,6 +9,7 @@ from uuid import uuid4
 from datalens_dev_mcp.api.errors import (
     ERROR_DIAGNOSTIC_FIELDS,
     DataLensApiError,
+    DataLensSafetyError,
     InputContractError,
     ReceiptPersistenceError,
     UncertainWriteError,
@@ -238,7 +239,7 @@ class ObjectMutationService:
             patch = change.get("patch") or {}
             fields = (patch.get("dataset") or {}).get("result_schema") if isinstance(patch.get("dataset"), dict) else None
             if (change.get("object_type") == "dataset" and isinstance(fields, list)
-                    and items[index].get("status") not in {"completed", "uncertain", "blocked"}):
+                    and items[index].get("status") not in {"completed", "resolved", "uncertain", "blocked"}):
                 report = validate_dataset_fields(fields)
                 if not report["ok"]:
                     try:
@@ -256,7 +257,7 @@ class ObjectMutationService:
             return self._save(record)
         for index, change in enumerate(changes):
             item = items[index]
-            if item.get("status") in {"completed", "uncertain", "blocked"}:
+            if item.get("status") in {"completed", "resolved", "uncertain", "blocked"}:
                 continue
             object_type, object_id = str(change["object_type"]), str(change["object_id"])
             try:
@@ -338,7 +339,7 @@ class ObjectMutationService:
         items = self._items(record, targets, lambda t, i: f"{t.get('object_type')}:{t.get('object_id')}")
         for index, target in enumerate(targets):
             item = items[index]
-            if item.get("status") in {"completed", "uncertain", "blocked"}:
+            if item.get("status") in {"completed", "resolved", "uncertain", "blocked"}:
                 continue
             object_type, object_id = str(target["object_type"]), str(target["object_id"])
             if object_type in {"dataset", "connection", "workbook"}:
@@ -401,6 +402,10 @@ class ObjectMutationService:
         record = self.store.get(operation_id)
         if record is None:
             return {"ok": False, "status": "not_found", "operation_id": operation_id, "write_replayed": False}
+        if record.get("provider_scope") and record["provider_scope"] != self.provider_scope:
+            raise DataLensSafetyError("Operation belongs to a different provider scope; use its original configuration")
+        if not any(item.get("status") == "uncertain" for item in record.get("results", [])):
+            return {**normalize_operation(record), "write_replayed": False}
         for item in record.get("results", []):
             if item.get("status") != "uncertain":
                 continue
@@ -413,13 +418,45 @@ class ObjectMutationService:
             if not object_type or not object_id:
                 item["code"] = "identity_lookup_unavailable"
                 continue
+            if not record.get("provider_scope") and "legacy_scope_evidence" not in item:
+                retained = item.get("readback", {}).get("object", {})
+                retained = retained.get("entry", retained)
+                item["legacy_scope_evidence"] = {key: retained.get(key) for key in
+                                                 ("tenantId", "workbookId", "entryId")}
+            previous = deepcopy(item)
+            previous.pop("history", None)
+            item.setdefault("history", []).append(previous)
+            if item.get("write_returned"):
+                # The legacy owner persisted this flag only after backend return.
+                # This ACK establishes effect, never historical content correctness.
+                item["effect_outcome"] = "applied"
+                item["effect_evidence"] = "retained_provider_ack"
             branch = "published" if record.get("effect") == "publish" else "saved"
             try:
                 self._verify_readback(item, branch=branch)
+                current = item.get("readback") or {}
+                scope_verified = bool(record.get("provider_scope") == self.provider_scope and self.provider_scope)
+                if not record.get("provider_scope"):
+                    old_entry = item["legacy_scope_evidence"]
+                    new_entry = current.get("object", {})
+                    new_entry = new_entry.get("entry", new_entry)
+                    scope_verified = all(old_entry.get(key) and old_entry[key] == new_entry.get(key)
+                                         for key in ("tenantId", "workbookId", "entryId"))
                 if item["status"] == "completed":
                     item["code"] = "reconciled_applied"
+                elif (record.get("effect") in {"update", "publish"} and item.get("write_returned")
+                      and item.get("readback_identity_verified") and scope_verified
+                      and current.get("identity", {}).get("revision_id")):
+                    item.update(status="resolved", code="applied_history_unverified", write_verified=False,
+                                verification_status="historical_content_unverified",
+                                continuation_requires_fresh_cas=True,
+                                next_action="Read the current full target and prepare an intentional narrow change with "
+                                            "its expected revision and a new operation_id; never replay this write.")
+                    item["reconciled_provider_scope"] = self.provider_scope
+                    item["evidence"] = "retained_provider_ack_and_current_target_read"
             except (DataLensApiError, ValueError, TypeError) as exc:
-                item.update(status="uncertain", code="readback_unavailable", error=safe_error_text(exc))
+                item.update(status="uncertain", code="readback_unavailable", error=safe_error_text(exc),
+                            verification_status="unavailable")
         result = self._save(record)
         result["write_replayed"] = False
         return result
@@ -443,13 +480,24 @@ class ObjectMutationService:
     def _returned(self, record: dict[str, Any], item: dict[str, Any], response: dict[str, Any]) -> None:
         item.update(write_returned=True, code="readback_pending", dispatch_state="dispatched", effect_outcome="applied")
         value = response.get("object") or {}
-        item["returned_revision"] = value.get("revId") or value.get("rev_id")
+        entry = value.get("entry") if isinstance(value.get("entry"), dict) else value
+        revision = entry.get("revId") or entry.get("rev_id")
+        precondition = revision is not None and revision == item.get("expected_revision")
+        item["returned_revision"] = None if precondition else revision
+        item["response_revision"] = revision
+        item["response_revision_role"] = "precondition" if precondition else "result" if revision else "not_returned"
+        item["verification_status"] = "pending"
+        if item.get("target", {}).get("object_type") == "connection" and value.get("operation") is not None:
+            item["connection_operation"] = _recordable(value["operation"])
         self._save(record)
 
     def _verify_readback(self, item: dict[str, Any], *, branch: str) -> None:
         target = item["target"]
         readback = self.reader.object_get(target["object_type"], target["object_id"], branch=branch)
         item["readback"] = _recordable(readback)
+        item.pop("error", None)
+        for field in ERROR_DIAGNOSTIC_FIELDS:
+            item.pop(field, None)
         identity = readback.get("identity") or {}
         allowed_branch = "unbranched" if target["object_type"] in {"dataset", "connection", "workbook"} else branch
         correct_identity = (
@@ -465,13 +513,19 @@ class ObjectMutationService:
         payload_id, _ = object_identity(payload)
         correct_identity = correct_identity and (not payload_id or payload_id == target["object_id"])
         desired = item.get("desired") or {}
-        content_matches = _readback_contains(
-            _readback_intent(target["object_type"], payload), _readback_intent(target["object_type"], desired)
-        )
+        actual_intent = _readback_intent(target["object_type"], payload)
+        desired_intent = _readback_intent(target["object_type"], desired)
+        content_matches = _readback_contains(actual_intent, desired_intent)
+        differences = _readback_diff(_recordable(actual_intent), desired_intent)
+        item["readback_diff"] = _compact_readback_diff(differences)
+        item["readback_diff_complete"] = len(differences) <= 20
+        item["normalizations"] = _dashboard_normalizations(desired) if target["object_type"] == "dashboard" else []
+        item["readback_identity_verified"] = _usable_full_read(readback) and correct_identity
+        item["observed_revision"] = identity.get("revision_id")
         content_matches = content_matches and all(_path_absent(payload, path) for path in item.get("absent_paths", []))
         if item.get("exact_dashboard_tabs"):
-            expected_entry = desired.get("entry", desired)
-            actual_entry = payload.get("entry", payload)
+            expected_entry = desired_intent.get("entry", desired_intent)
+            actual_entry = actual_intent.get("entry", actual_intent)
             actual_data = actual_entry.get("data") if isinstance(actual_entry, dict) else None
             content_matches = content_matches and isinstance(actual_data, dict) and _json_equal(
                 actual_data.get("tabs"), expected_entry["data"]["tabs"]
@@ -489,10 +543,14 @@ class ObjectMutationService:
         required_revision = item.get("required_published_revision")
         if required_revision and identity.get("revision_id") != required_revision:
             revision_matches = False
+        item["verification_checks"] = {"full_read": _usable_full_read(readback), "identity": correct_identity,
+                                       "content": content_matches, "revision": revision_matches}
         if _usable_full_read(readback) and correct_identity and content_matches and revision_matches:
             item.update(status="completed", code="readback_verified", observed_revision=identity.get("revision_id"))
             item["evidence"] = f"{allowed_branch}_readback"
             item["write_verified"] = True
+            item["verification_status"] = "verified"
+            item["readback_diff"] = []
             item["effect_outcome"] = "applied"
             item.pop("error", None)
             item.pop("next_action", None)
@@ -504,6 +562,7 @@ class ObjectMutationService:
             item.update(
                 status="uncertain",
                 code="readback_mismatch",
+                verification_status="mismatch",
                 next_action="Reconcile exact target identity, branch and business content; do not replay the write.",
             )
 
@@ -523,6 +582,7 @@ class ObjectMutationService:
                      if key in detail})
         if item.get("write_returned"):
             item["effect_outcome"] = "applied"
+            item["verification_status"] = "unavailable"
         item.update(
             status="uncertain" if uncertain else "failed",
             error=detail["error"],
@@ -544,6 +604,10 @@ class ObjectMutationService:
                     "effect": effect,
                     "request_digest": digest,
                     "provider_scope": self.provider_scope,
+                    "cas_targets": sorted({str(item["object_id"]) for item in
+                                           request.get("changes", request.get("targets", []))
+                                           if item.get("object_id") and
+                                           (item.get("expected_revision") or item.get("expected_saved_revision"))}),
                     "write_targets": sorted({str(item["object_id"]) for item in
                                              request.get("changes", request.get("targets", []))
                                              if item.get("object_id")}),
@@ -578,6 +642,8 @@ class ObjectMutationService:
             status = "blocked"
         elif any(value == "failed" for value in statuses):
             status = "partial" if any(value == "completed" for value in statuses) else "failed"
+        elif statuses and "resolved" in statuses and all(value in {"completed", "resolved"} for value in statuses):
+            status = "resolved"
         elif statuses and all(value == "completed" for value in statuses):
             status = "completed"
         else:
@@ -733,7 +799,7 @@ def _contains(actual: Any, expected: Any) -> bool:
         return isinstance(actual, dict) and all(
             key in actual and _contains(actual[key], value) for key, value in expected.items()
         )
-    return actual == expected
+    return _json_equal(actual, expected)
 
 
 def _usable_full_read(readback: dict[str, Any]) -> bool:
@@ -759,6 +825,14 @@ def _readback_intent(object_type: str, desired: dict[str, Any]) -> dict[str, Any
         intent = {"entry": intent}
         if name is not None:
             intent["name"] = name
+    if object_type == "dashboard":
+        from datalens_dev_mcp.dashboard.composition import manual_input_field_types
+
+        for source, _ in manual_input_field_types(intent):
+            # Historical manual input string fieldType was stripped by the
+            # provider. Date/Dataset types, other values and all business fields stay exact.
+            if source["fieldType"] == "string":
+                source.pop("fieldType")
     if object_type == "dataset":
         # Receipts omit sensitive keys, including keys nested in provider error
         # arrays. Apply that same projection to actual state before comparison.
@@ -775,6 +849,43 @@ def _readback_intent(object_type: str, desired: dict[str, Any]) -> dict[str, Any
                 if isinstance(source, dict):
                     source.pop("parameter_hash", None)
     return intent
+
+
+def _compact_readback_diff(changes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    compact = _compact_diff([{"path": row["path"], "before": row["expected"], "after": row["observed"]}
+                             for row in changes[:20]])
+    return [{"path": row["path"], "expected": row["before"], "observed": row["after"],
+             "classification": source["classification"],
+             "next_action": "Inspect current content; preserve the receipt and do not replay the write."}
+            for row, source in zip(compact, changes)]
+
+
+def _dashboard_normalizations(desired: dict[str, Any]) -> list[dict[str, Any]]:
+    from datalens_dev_mcp.dashboard.composition import manual_input_field_types
+
+    return [{"path": path, "expected": "string", "observed": None,
+             "classification": "legacy_manual_input_field_type", "next_action": "Omit fieldType on manual input."}
+            for source, path in manual_input_field_types(desired) if source["fieldType"] == "string"]
+
+
+def _readback_diff(actual: Any, expected: Any, path: str = "") -> list[dict[str, Any]]:
+    if isinstance(expected, dict) and isinstance(actual, dict):
+        differences = []
+        for key, value in expected.items():
+            child = path + "/" + key.replace("~", "~0").replace("/", "~1")
+            if key not in actual:
+                differences.append({"path": child, "expected": value, "observed": None,
+                                    "classification": "missing_required_field"})
+            else:
+                differences.extend(_readback_diff(actual[key], value, child))
+        return differences
+    if isinstance(expected, list) and isinstance(actual, list) and len(actual) == len(expected):
+        return [diff for i, (a, e) in enumerate(zip(actual, expected))
+                for diff in _readback_diff(a, e, f"{path}/{i}")]
+    if _json_equal(actual, expected):
+        return []
+    return [{"path": path or "/", "expected": expected, "observed": actual,
+             "classification": "content_mismatch"}]
 
 
 def _readback_contains(actual: Any, expected: Any) -> bool:

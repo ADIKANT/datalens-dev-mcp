@@ -756,7 +756,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_operation_reconcile",
-        "description": "Reconcile an uncertain modifying result by exact target readback without replaying the write.",
+        "description": "Reconcile by exact target readback without replay. ACKed historical updates may resolve with unverified content; new changes require fresh CAS. Unknown effects and connection provisioning remain held.",
         "inputSchema": {
             "type": "object",
             "properties": {"operation_id": {"type": "string", "minLength": 1}},

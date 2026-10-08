@@ -197,7 +197,9 @@ def test_update_accepts_fresh_readback_when_sdk_returns_prewrite_revision(tmp_pa
 
     assert result["status"] == "completed"
     assert result["results"][0]["observed_revision"] == "r2"
-    assert result["results"][0]["returned_revision"] == "r1"
+    assert result["results"][0]["returned_revision"] is None
+    assert result["results"][0]["response_revision"] == "r1"
+    assert result["results"][0]["response_revision_role"] == "precondition"
 
 
 def test_revision_drift_blocks_write(tmp_path: Path) -> None:
