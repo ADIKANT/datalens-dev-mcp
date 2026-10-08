@@ -146,9 +146,14 @@ def dl_object_get(
 def dl_object_relations(
     object_id: str, page_size: int = 100, max_pages: int = 100, page_token: str | None = None,
     direction: str = "to",
+    publish_targets: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    return _read_service().object_relations(object_id, direction=direction, page_size=page_size,
-                                            max_pages=max_pages, page_token=page_token)
+    reader = _read_service()
+    result = reader.object_relations(object_id, direction=direction, page_size=page_size,
+                                     max_pages=max_pages, page_token=page_token)
+    if publish_targets is not None:
+        result["publication_manifest"] = reader.publication_manifest(result, publish_targets)
+    return result
 
 
 def dl_object_revisions(
@@ -297,12 +302,17 @@ def dl_compile_recipe(
 def dl_editor_validate(
     draft: dict[str, Any] | None = None,
     drafts: list[dict[str, Any]] | None = None,
+    destination: dict[str, Any] | None = None,
+    output_dir: str | None = None,
 ) -> dict[str, Any]:
     if (draft is None) == (drafts is None):
         raise ValueError("provide exactly one of draft or drafts")
     if drafts is not None:
         config = DataLensConfig.from_env()
-        return validate_drafts(drafts, installation=config.installation, base_url=config.base_url)
+        return validate_drafts(drafts, installation=config.installation, base_url=config.base_url,
+                               destination=destination, output_dir=output_dir)
+    if destination is not None or output_dir is not None:
+        raise ValueError("wire preparation requires drafts, destination and output_dir")
     return validate_editor_draft(resolve_artifact(draft))
 
 
@@ -347,12 +357,14 @@ def dl_operation_get(operation_id: str, include_detail: bool = False) -> dict[st
     return result if include_detail else compact_operation(result)
 
 
-def dl_operation_reconcile(operation_id: str) -> dict[str, Any]:
+def dl_operation_reconcile(operation_id: str, investigate_create: bool = False) -> dict[str, Any]:
     record = OperationStore().get(operation_id)
     if record is not None and record.get("effect") == "cleanup":
         with operation_budget():
             return compact_operation(_cleanup_service().reconcile(operation_id))
-    return compact_operation(default_mutation_service().reconcile(operation_id))
+    service = default_mutation_service()
+    return compact_operation(service.reconcile(operation_id, investigate_create=True) if investigate_create
+                             else service.reconcile(operation_id))
 
 
 def dl_backup_export(targets: list[dict[str, Any]], output_dir: str) -> dict[str, Any]:
@@ -533,11 +545,16 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_object_relations",
-        "description": "Read direct API-visible relations: direction=from for dependencies, to (legacy default) for consumers. Completeness covers the selected pagination, not a transitive or revision-bound graph.",
+        "description": "Read direct API-visible relations: direction=from for dependencies, to (legacy default) for consumers. Completeness covers the selected pagination, not a transitive or revision-bound graph. Optional publish_targets with intended saved revisions produces a read-only selected-dependency manifest; no automatic publication.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "object_id": {"type": "string", "minLength": 1},
+                "publish_targets": {"type": "array", "minItems": 1, "maxItems": 50, "items": {
+                    "type": "object", "properties": {"object_id": {"type": "string", "minLength": 1},
+                    "object_type": {"type": "string", "enum": ["dashboard", "editor_chart", "wizard_chart", "ql_chart"]},
+                    "expected_saved_revision": {"type": "string", "minLength": 1}},
+                    "required": ["object_id", "object_type", "expected_saved_revision"], "additionalProperties": False}},
                 "direction": {"type": "string", "enum": ["from", "to"], "default": "to"},
                 "page_token": {"type": ["string", "null"]},
                 "page_size": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
@@ -649,12 +666,15 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_editor_validate",
-        "description": "Validate one Editor draft or a mixed typed draft batch, including artifact references, without execution. An Editor draft uses the observed variant and filename-keyed tabs (meta.json, params.js, etc.), not raw provider data keys. Required tabs depend on subtype; a static draft does not replace the full saved snapshot.",
+        "description": "Validate one Editor draft or a mixed typed draft batch, including artifact references, without execution. With destination and output_dir, prepare exact typed-dashboard wire in a private local artifact (static_validity_only, zero provider calls). An Editor draft uses the observed variant and filename-keyed tabs (meta.json, params.js, etc.), not raw provider data keys. Required tabs depend on subtype; a static draft does not replace the full saved snapshot.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "draft": {"type": ["object", "null"]},
                 "drafts": {"type": ["array", "null"], "items": {"type": "object"}},
+                "destination": {"type": "object", "properties": {"workbook_id": {"type": "string", "minLength": 1}},
+                                "required": ["workbook_id"], "additionalProperties": False},
+                "output_dir": {"type": "string", "minLength": 1},
             },
             "oneOf": [{"required": ["draft"]}, {"required": ["drafts"]}],
             "additionalProperties": False,
@@ -756,10 +776,11 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_operation_reconcile",
-        "description": "Reconcile by exact target readback without replay. ACKed historical updates may resolve with unverified content; new changes require fresh CAS. Unknown effects and connection provisioning remain held.",
+        "description": "Reconcile by exact target readback without replay. ACKed historical updates may resolve with unverified content; new changes require fresh CAS. Unknown effects and connection provisioning remain held. investigate_create=true appends bounded workbook/name candidate evidence without assigning ownership or replaying.",
         "inputSchema": {
             "type": "object",
-            "properties": {"operation_id": {"type": "string", "minLength": 1}},
+            "properties": {"operation_id": {"type": "string", "minLength": 1},
+                           "investigate_create": {"type": "boolean", "default": False}},
             "required": ["operation_id"],
             "additionalProperties": False,
         },

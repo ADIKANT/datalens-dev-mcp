@@ -191,3 +191,31 @@ not support them inside native groups.
 For an affected selector/control, inspect the actual saved container and its layout representation. Check the sum of child widths/heights and all gaps against available geometry; checking each child separately is insufficient. Read exact field GUIDs and data types before choosing date/time operators.
 
 For deleting only explicitly named `settings.globalParams` keys, use `dl_object_update` with `object_type="dashboard"`, `object_id`, fresh `expected_revision` and `remove_global_params=["synthetic_unused_key"]`. First inspect current bindings and usage; the server verifies the exact container and absence after saving. This route preserves neighboring parameters and settings. Do not send an entire dashboard for a single-key removal. For normal values use the existing narrow patch; for compiled Editor tabs use the verified artifact reference. A host refusal before dispatch proves no write was sent, but is not permission to bypass review with an opaque payload or shell write.
+
+
+## Diagnose a create before dispatch
+
+For an already concrete typed dashboard, call `dl_editor_validate(drafts=[...],
+destination={"workbook_id":"workbook-id"}, output_dir="/absolute/private/directory")`.
+This uses the installed pinned SDK create converter and HTTPX JSON encoder without
+transport. Each valid item returns a private 0600 wire artifact, byte hash, versions,
+normalization and required fields. Provider scope/access is **not verified** by this
+static route. It does not reserve IDs, prove server acceptance or authorize a retry.
+The create wire contract has no mode field; delivery still requires saved readback
+and an explicit subsequent publication. Keep wire artifacts out of public Git.
+
+After an uncertain create without identity, use
+`dl_operation_reconcile(operation_id="existing-operation", investigate_create=true)`.
+It appends bounded inventory/name candidate reads and their coverage. A matching
+name/content or an empty complete inventory does not establish request ownership
+or non-application. Without a returned ID or provider attribution, preserve unknown;
+retain the original receipts and prepare request/trace/time evidence for the owner.
+
+Before publishing selected dependencies, use `dl_object_relations(object_id="dashboard-id",
+direction="from", publish_targets=[{"object_type":"editor_chart", "object_id":"chart-id",
+"expected_saved_revision":"intended-revision"}, ...])`. The manifest distinguishes
+object identity, subtype/workbook, saved, published and intended revisions. It reads
+only selected dependencies and orders them before the root. Review all unpublished
+changes in each selected object, publish each intended revision explicitly, then
+read the published root and dependencies. The manifest is a preflight, not atomic CAS
+or authorization to publish other saved changes. Revision IDs are not object IDs.

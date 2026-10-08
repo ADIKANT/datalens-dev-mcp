@@ -229,3 +229,34 @@ def test_valid_empty_inventory_is_complete(method, container):
     reader = ObjectReadService(api=FakeApi({method: [{container: []}]}), sdk=FakeSdk({}))
     result = reader.workbook_entries("synthetic") if container == "entries" else reader.workbooks_list()
     assert result["ok"] is True and result["complete"] is True and result["object_count"] == 0
+
+
+
+def test_selected_publication_manifest_keeps_foreign_saved_changes_out():
+    import pytest
+
+    from datalens_dev_mcp.api.errors import ResponseIdentityError
+    from datalens_dev_mcp.objects.read import ObjectReadService
+
+    reader = ObjectReadService(api=None, sdk=None)
+    def read(kind, oid, *, branch="saved", **kwargs):
+        if oid == "revision-instead-of-object":
+            raise ResponseIdentityError("object_id", {"object_id": oid}, {"object_id": "chart"})
+        assert oid in {"root", "chart"}  # unselected foreign dependency is never read/published
+        return {"ok": True, "identity": {"object_id": oid, "object_type": kind, "revision_id": oid + "-" + branch},
+                "object": {"entry": {"entryId": oid, "workbookId": "w", "type": kind}}}
+    reader.object_get = read
+    relations = {"complete": True, "direction": "from", "object_id": "root", "relations": [
+        {"id": "chart", "object_type": "editor_chart"}, {"id": "foreign", "object_type": "editor_chart"}]}
+    targets = [{"object_id": "root", "object_type": "dashboard", "expected_saved_revision": "root-saved"},
+               {"object_id": "chart", "object_type": "editor_chart", "expected_saved_revision": "chart-saved"}]
+    result = reader.publication_manifest(relations, targets)
+    assert result["ready"] is True and result["provider_writes"] == 0
+    assert [row["object_id"] for row in result["objects"]] == ["chart", "root"]
+    assert result["objects"][0]["published_revision"] == "chart-published"
+    assert result["objects"][0]["saved_revision"] == "chart-saved"
+    targets[1]["expected_saved_revision"] = "stale"
+    assert reader.publication_manifest(relations, targets)["ready"] is False
+    with pytest.raises(ValueError):
+        reader.publication_manifest(relations, [{"object_type": "editor_chart", "object_id": "unrelated",
+                                                "expected_saved_revision": "r"}])

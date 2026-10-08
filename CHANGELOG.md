@@ -1,6 +1,14 @@
 # Changelog
 
 
+## 1.2.29
+
+- Prepare exact typed dashboard wire payloads through validation without provider dispatch, with private artifacts and versioned hashes.
+- Retain bounded provider diagnostics without raw messages, SQL, HTML or credentials; unknown HTTP failures remain unknown.
+- Append scoped candidate evidence for missing-ID creates without attributing objects by name or replaying writes.
+- Plan publication for explicitly selected dependencies with separate object, saved, published and intended revisions.
+- Clarify event-period uniqueness, source readiness and preservation of current manual edits. Retain SDK 3.0.0 after bounded compatibility review.
+
 ## 1.2.28
 
 - Recover acknowledged historical updates through public read-only reconciliation without replaying them or indefinitely holding later intentional changes; require fresh CAS and retain unverified history explicitly.

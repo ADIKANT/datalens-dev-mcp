@@ -358,3 +358,50 @@ def test_wizard_rejected_shape_supplies_allowed_values_for_one_repair():
     draft['wizard']['visualization'] = 'flat_table'
     repaired = server.call_tool('dl_editor_validate', {'drafts': [draft]})['structuredContent']
     assert repaired['ok'] and repaired['provider_writes'] == 0
+
+
+
+def test_dashboard_wire_preparation_uses_actual_sdk_without_dispatch(tmp_path, monkeypatch):
+    import hashlib
+
+    import httpx
+
+    from datalens_dev_mcp.api import sdk_adapter
+    from datalens_dev_mcp.api.sdk_adapter import SdkAdapter
+    from datalens_dev_mcp.config import DataLensConfig
+
+    draft = {"client_ref": "rates", "object_type": "dashboard", "name": "Synthetic rates",
+             "dashboard": {"tabs": [{"tab_id": "rates", "title": "Rates", "items": [
+                 {"kind": "selector_group", "item_id": "rates", "at": [0, 0, 36, 4],
+                  "members": [{"item_id": "rate_" + key, "title": key, "param_name": "rate_" + key,
+                               "element": "input", "default_value": value, "required": True}
+                              for key, value in zip("abc", ["50", "10", "100"])]}]}]}}
+    requests = []
+    original = sdk_adapter._ConfiguredHTTPClient
+    def handle(request):
+        requests.append(request)
+        return httpx.Response(500, json={"code": "INTERNAL_ERROR"})
+    monkeypatch.setattr(sdk_adapter, "_ConfiguredHTTPClient",
+                        lambda *a, **kw: original(*a, **kw, transport=httpx.MockTransport(handle)))
+    result = server.dl_editor_validate(drafts=[draft], destination={"workbook_id": "synthetic"},
+                                       output_dir=str(tmp_path))
+    assert result["ok"] and result["proof_level"] == "static_validity_only"
+    assert requests == [] and result["provider_writes"] == 0
+    prepared = result["items"][0]["prepared_request"]
+    artifact = Path(prepared["artifact_path"])
+    wire = artifact.read_bytes()
+    assert artifact.stat().st_mode & 0o777 == 0o600
+    assert hashlib.sha256(wire).hexdigest() == prepared["request_sha256"]
+    group = json.loads(wire)["entry"]["data"]["tabs"][0]["items"][0]["data"]["group"]
+    assert [m["source"]["defaultValue"] for m in group] == ["50", "10", "100"]
+    assert all("fieldType" not in m["source"] for m in group)
+    adapter = SdkAdapter(DataLensConfig(org_id="synthetic", iam_token="synthetic"))
+    try:
+        import pytest
+
+        from datalens_dev_mcp.api.errors import DataLensApiError
+        with pytest.raises(DataLensApiError):
+            adapter.create(draft, {"workbook_id": "synthetic"})
+    finally:
+        adapter.close()
+    assert len(requests) == 1 and requests[0].content == wire

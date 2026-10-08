@@ -396,7 +396,7 @@ def compact_operation(record: dict[str, Any]) -> dict[str, Any]:
                     "continuation_requires_fresh_cas", "reconciled_provider_scope", "normalizations",
                     "readback_diff", "readback_diff_complete", "verification_checks",
                     "intent",
-                    "dataset_validation",
+                    "dataset_validation", "investigation",
                     "object_id", "object_type", "absence_verified", "reconciliation_error",
                 )
                 if key in item

@@ -43,3 +43,26 @@ Complete feature-branch commit/push, PR checks and required review before mergin
 Refresh the selected existing runtime and plugin from that source; do not add a second MCP registration. Verify site-packages import outside the checkout with no `PYTHONPATH=src`, installed stdio/closed schemas and authorized read probes. After completing all local setup, request one full host restart if required, retain a private RESUME and wait for the user's return before native acceptance.
 
 Use the [R1–R3 acceptance card](live_test_plan.md) for relevant release changes. Existing CI/offline checks remain required; neither their pass counts nor installed smoke substitute for native/provider/rendered evidence.
+
+
+## SDK qualification for 1.2.29
+
+Decision: retain `datalens-sdk==3.0.0`. The installed converter reproduces the
+investigated typed dashboard payload; its manual input omits `fieldType` and
+`meta=null` is allowed by the official DTO. No server cause was established from
+the retained HTTP 500 evidence. Diagnostics do not claim a server/create fix.
+
+| Used path | 3.0.0 qualification and 3.1/3.2 assessment |
+| --- | --- |
+| Dashboard create/manual controls | Shared create converter and exact HTTP bytes tested without dispatch; no demonstrated upgrade fix for the unknown response |
+| Dashboard update/publish | Existing revision guard and `publish_revision` retain saved-revision semantics; 3.1 adds mode APIs that need separate migration validation |
+| Editor/Wizard | Existing subtype/tab and exact revision tests retained; 3.1 changes Editor catalogs and raw Wizard replacement, not automatically a plugin defect |
+| Dataset | Existing field and save/readback guards retained; 3.1 RLS changes are outside this diff |
+| Revision history | Existing typed public `getRevisions` route retained; 3.1 resource-level history is optional, not needed for attribution absent in provider metadata |
+| Connections | Existing raw DTO preservation tests retained; 3.2 adds access/default fields and new infrastructure surface; no implicit adoption or permission changes |
+
+Official evidence: [3.1 changes](https://github.com/datalens-tech/datalens-sdk/compare/v3.0.0...v3.1.0),
+[3.2 changes](https://github.com/datalens-tech/datalens-sdk/compare/v3.1.0...v3.2.0),
+[dashboard DTO](https://github.com/datalens-tech/datalens-sdk/blob/v3.2.0/src/datalens_sdk/_generated/dto.py).
+This is bounded source/contract qualification, not live qualification of newer SDKs.
+Static, fixture, installed-stdio and native/live/UI evidence remain separate.

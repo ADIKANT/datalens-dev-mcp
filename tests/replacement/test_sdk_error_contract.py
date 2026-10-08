@@ -171,3 +171,65 @@ def test_connect_failure_cannot_negate_an_earlier_mutation(monkeypatch, followup
         assert len(requests) == 2
     finally:
         adapter.close()
+
+
+@pytest.mark.parametrize("body,reason,path", [
+    ({"error": {"code": "VALIDATION_ERROR", "path": "entry.data.tabs.0.items.0.source.fieldType",
+                 "message": "SELECT private FROM business", "details": {"password": "secret-value"}}},
+     "validation", "entry.data.tabs.0.items.0.source.fieldType"),
+    ({"code": "Bearer-secret-value", "path": "entry.private-business-value", "message": "secret-value"}, None, None),
+    ("<html>private-business-value</html>", None, None),
+])
+def test_provider_body_diagnostics_are_bounded_and_never_prove_effect(body, reason, path):
+    import json
+
+    import httpx
+    from datalens_sdk.errors import DataLensAPIError
+
+    from datalens_dev_mcp.api.errors import error_response
+    from datalens_dev_mcp.api.sdk_adapter import _provider_error
+
+    request = httpx.Request("POST", "https://example.invalid/rpc/createDashboard", json={"private": "secret-value"})
+    response = (httpx.Response(500, json=body, request=request) if isinstance(body, dict) else
+                httpx.Response(500, text=body, headers={"content-type": "text/html"}, request=request))
+    exc = DataLensAPIError(APIErrorContext(status_code=500, code=None, message="private-business-value"))
+    exc.__cause__ = httpx.HTTPStatusError("private-business-value", request=request, response=response)
+    result = error_response(_provider_error(exc, "createDashboard"), effect_possible=True)
+    assert result["effect_outcome"] == "unknown"
+    diagnostic = result["provider_diagnostics"]
+    assert diagnostic["body_available"] is True
+    assert diagnostic["reason"] == reason
+    assert diagnostic["field_path"] == path
+    assert diagnostic["redacted"] is True
+    assert len(diagnostic["body_sha256"]) == 64
+    assert len(diagnostic["request_sha256"]) == 64
+    public = json.dumps(result)
+    assert "secret-value" not in public and "private-business-value" not in public and "SELECT" not in public
+
+
+@pytest.mark.parametrize("kind", ["missing", "oversize", "invalid_json", "array", "secret_path"])
+def test_provider_unavailable_or_unusable_body_is_explicit(kind):
+    import json
+
+    import httpx
+    from datalens_sdk.errors import DataLensAPIError
+
+    from datalens_dev_mcp.api.errors import error_response
+    from datalens_dev_mcp.api.sdk_adapter import _provider_error
+    exc = DataLensAPIError(APIErrorContext(status_code=500, code="private-token", message="secret-value"))
+    if kind != "missing":
+        request = httpx.Request("POST", "https://example.invalid/rpc/createDashboard", content=b'{ "x": 1 }')
+        body = {"oversize": b'x' * 65537, "invalid_json": b'{secret-value', "array": b'["secret-value"]',
+                "secret_path": b'{"error":{"code":"VALIDATION_ERROR","path":"entry.secret-value"}}'}[kind]
+        response = httpx.Response(500, content=body, headers={"content-type":"application/json"}, request=request)
+        exc.__cause__ = httpx.HTTPStatusError("private", request=request, response=response)
+    result = error_response(_provider_error(exc, "createDashboard"), effect_possible=True)
+    diag = result["provider_diagnostics"]
+    assert diag["body_available"] == (kind != "missing")
+    assert diag["body_status"] == ("unavailable" if kind == "missing" else
+                                   "structured_redacted" if kind == "secret_path" else "unusable")
+    assert diag["field_path"] is None and result["effect_outcome"] == "unknown"
+    assert "secret-value" not in json.dumps(result) and "private-token" not in json.dumps(result)
+    if kind != "missing":
+        import hashlib
+        assert diag["request_sha256"] == hashlib.sha256(b'{ "x": 1 }').hexdigest()

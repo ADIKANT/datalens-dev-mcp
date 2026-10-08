@@ -61,3 +61,26 @@ The existing 62 use-case IDs remain the capability catalogue; this reference nei
 12. Service period comparison: preserve accepted current/comparison series, hover, markers, labels, gridlines and legend while retaining honest signed scales.
 
 Select the corresponding real project reference when available; these examples are not runtime dependencies or replacement compositions. Verify query/results, dates/units, renderer/widget property consumption and filter behavior separately from API saved/published identity. Configuration presence and test counts do not prove the visual result.
+
+
+## Event metrics and partial evidence
+
+Distinguish current state, activity at a historical date, first-event accumulation,
+and events within the selected period. Current-state projections cannot reconstruct
+missing event history. For period users, count distinct user keys across the whole
+period; daily distinct counts are not additive. Record repeated-event handling,
+business timezone and current versus historical cohort. The latest accepted metric
+definition supersedes an earlier period-independent total.
+
+Before a source switch, retain a short upstream handoff: environment/engine/table/ref,
+actual consumer, grain/keys/joins, business date/timezone, cohort, covered window,
+control counts/checksums and readiness. A merged change alone does not prove delivery.
+Distinguish valid empty slices, missing/stale data, query failure and denied access.
+A source emptied during a failed load is not a business zero. Empty UI rendering and
+offline fixture checks do not prove the metric on live rows. Prepare independent SQL,
+formulas and scoped diffs while source readiness remains unresolved.
+
+Preserve current KPI style when changing a formula, and all agreed detail columns,
+controls and retained sections when moving a table. Keep car price, order amount,
+prepayment, paid amount and credit financing distinct; missing full price stays
+unknown. Use the latest accepted paid-preorder status, not superseded logic.

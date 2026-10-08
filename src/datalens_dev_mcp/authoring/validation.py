@@ -7,6 +7,7 @@ import re
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
+from datetime import UTC
 from typing import Any
 from urllib.parse import urlparse
 
@@ -92,7 +93,8 @@ KNOWN_NOT_CHECKED_TYPES = frozenset({"connection", "workbook", "ql_chart", "html
 
 
 def validate_drafts(
-    drafts: Sequence[Mapping[str, Any]], *, installation: str = "", base_url: str = ""
+    drafts: Sequence[Mapping[str, Any]], *, installation: str = "", base_url: str = "",
+    destination: dict[str, Any] | None = None, output_dir: str | None = None
 ) -> ValidationResult:
     """Validate a concrete authoring batch without contacting DataLens."""
     if not isinstance(drafts, Sequence) or isinstance(drafts, (str, bytes, bytearray)):
@@ -112,6 +114,8 @@ def validate_drafts(
             "proof_level": "static_validity_only",
         }
 
+    if (destination is None) != (output_dir is None):
+        raise ValueError("wire preparation requires both destination and output_dir")
     resolved: list[dict[str, Any] | None] = []
     items: list[dict[str, Any]] = []
     for index, raw in enumerate(drafts):
@@ -205,6 +209,46 @@ def validate_drafts(
     for item in items:
         if item["errors"] and item["status"] == "valid":
             item["status"] = "invalid"
+
+    if destination is not None:
+        import hashlib
+        import os
+        import tempfile
+        from datetime import datetime
+        from pathlib import Path
+
+        from datalens_dev_mcp import __version__
+        from datalens_dev_mcp.api.sdk_adapter import SDK_VERSION, prepare_dashboard_wire
+
+        if set(destination) != {"workbook_id"} or not isinstance(destination["workbook_id"], str) or not destination["workbook_id"]:
+            raise ValueError("wire preparation requires exactly one workbook_id destination")
+        directory = Path(output_dir).expanduser()
+        if not directory.is_absolute():
+            raise ValueError("output_dir must be an absolute local path")
+        for draft, item in zip(resolved, items, strict=True):
+            if item["status"] != "valid":
+                continue
+            try:
+                wire = prepare_dashboard_wire(draft, destination, installation=installation or "yacloud")
+            except (ValueError, TypeError) as exc:
+                item["status"] = "invalid"
+                item["errors"].append(_error("wire_preparation_failed", f"drafts/{item['index']}/dashboard", _compact_error(exc)))
+                continue
+            directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+            descriptor, filename = tempfile.mkstemp(prefix="dashboard-wire-", suffix=".json", dir=directory)
+            with os.fdopen(descriptor, "wb") as stream:
+                stream.write(wire)
+            item["prepared_request"] = {
+                "method": "createDashboard", "artifact_path": filename,
+                "request_sha256": hashlib.sha256(wire).hexdigest(), "request_bytes": len(wire),
+                "runtime_version": __version__, "sdk_version": SDK_VERSION,
+                "prepared_at": datetime.now(UTC).isoformat(), "destination": dict(destination),
+                "installation": installation or "yacloud", "provider_scope_verified": False,
+                "delivery_mode": "save", "wire_mode": "absent_in_create_contract", "proof_level": "static_validity_only", "provider_writes": 0,
+                "normalization": "official_sdk_create_converter_and_httpx_json_encoder",
+                "required_fields": ["entry.name", "entry.workbookId", "entry.data.tabs"],
+            }
+            item["checks"].append("sdk_wire_serialization")
 
     return {
         "ok": all(item["status"] == "valid" for item in items),

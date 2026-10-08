@@ -274,6 +274,48 @@ class ObjectReadService:
         }
         return _read_view(result, view=view, fields=fields, branch=branch)
 
+    def publication_manifest(self, relations: dict[str, Any], targets: list[dict[str, Any]]) -> dict[str, Any]:
+        """Plan only explicitly selected direct dependencies and the root; never publish."""
+        if (relations.get("direction") != "from" or not relations.get("complete")
+                or (relations.get("consumed_page_tokens") or [""])[0] != ""):
+            raise InputContractError("publication manifest requires complete direct dependency relations (direction=from)")
+        if not isinstance(targets, list) or not 1 <= len(targets) <= 50:
+            raise InputContractError("publish_targets requires 1 to 50 explicit targets")
+        root = relations["object_id"]
+        allowed = {row["id"]: row.get("object_type") for row in relations["relations"]}
+        allowed[root] = "dashboard"
+        ids = [target.get("object_id") for target in targets]
+        if len(set(ids)) != len(ids):
+            raise InputContractError("publish_targets contains duplicate object IDs")
+        for target in targets:
+            oid, kind = target.get("object_id"), target.get("object_type")
+            if oid not in allowed or kind != allowed[oid] or kind not in {"dashboard", "editor_chart", "wizard_chart", "ql_chart"}:
+                raise InputContractError("publish target must match the root or an observed direct dependency identity")
+            if not isinstance(target.get("expected_saved_revision"), str) or not target["expected_saved_revision"]:
+                raise InputContractError("each publish target requires its intended expected_saved_revision")
+        rows = []
+        for target in sorted(targets, key=lambda target: target["object_id"] == root):
+            oid, kind = target["object_id"], target["object_type"]
+            row = {"object_id": oid, "object_type": kind, "intended_revision": target["expected_saved_revision"]}
+            try:
+                saved = self.object_get(kind, oid, branch="saved")
+                published = self.object_get(kind, oid, branch="published")
+                entry = saved["object"].get("entry", saved["object"])
+                row.update(saved_revision=saved["identity"]["revision_id"],
+                           published_revision=published["identity"]["revision_id"],
+                           workbook_id=entry.get("workbookId"), subtype=entry.get("type"),
+                           provider_scope={"tenant_id": entry.get("tenantId")} )
+                row["ready"] = row["saved_revision"] == row["intended_revision"]
+                row["already_published"] = row["published_revision"] == row["intended_revision"]
+            except (DataLensApiError, ValueError, TypeError) as exc:
+                row.update(ready=False, error=error_response(exc)["code"])
+            rows.append(row)
+        return {"ready": all(row["ready"] for row in rows), "objects": rows, "provider_writes": 0,
+                "order": "selected direct dependencies before root",
+                "coverage": "explicit selection only; direct relations are not revision-bound or transitive",
+                "next_action": "Publish each selected target with its intended revision after a fresh read; stop on drift. "
+                               "Then read the published root and dependencies. This preflight is not atomic CAS."}
+
     def object_relations(
         self,
         object_id: str,
