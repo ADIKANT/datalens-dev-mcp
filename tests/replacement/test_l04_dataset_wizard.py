@@ -140,7 +140,7 @@ def test_official_sdk_compiles_current_multi_measure_wizard_shape() -> None:
         title="Revenue and orders by day",
     )
     assert result["ok"] is True
-    assert result["sdk_version"] == "3.0.0"
+    assert result["sdk_version"] == "3.2.0"
     assert result["payload"]["data"]["sources"]["datasetsIds"] == ["dataset-1"]
     slots = result["payload"]["data"]["visualization"]
     assert [item["guid"] for item in slots["y"]["items"]] == ["revenue-guid", "orders-guid"]

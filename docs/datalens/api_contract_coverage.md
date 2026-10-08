@@ -2,7 +2,7 @@
 
 [Официальный API Reference](https://yandex.cloud/ru/docs/datalens/openapi-ref/) · [Инструменты](../tools.md) · [Совместимость SDK](../testing/sdk-v3-compatibility.md)
 
-Сервер использует SDK 3.0.0 и API v3. `tools/list` возвращает точные схемы закрытого набора typed-инструментов. `dl_method_schema` возвращает выбранные operation metadata, ограничения и ссылки; это не полная JSON Schema провайдера и не произвольный RPC gateway.
+Сервер использует SDK 3.2.0 и API v3. `tools/list` возвращает точные схемы закрытого набора typed-инструментов. `dl_method_schema` возвращает выбранные operation metadata, ограничения и ссылки; это не полная JSON Schema провайдера и не произвольный RPC gateway.
 
 | Возможность | Публичный путь | Граница проверки |
 | --- | --- | --- |

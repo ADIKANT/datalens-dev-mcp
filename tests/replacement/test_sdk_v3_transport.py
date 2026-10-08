@@ -80,8 +80,11 @@ class Provider:
                 if payload.get("mode") == "publish":
                     self.state["publishedId"] = self.state["revId"]
             elif method == "updateEditorChart":
-                self.state["data"] = deepcopy(payload["entry"]["data"])
-                self.state["revId"] = "S3"
+                if "revId" not in payload["entry"]:
+                    self.state["data"] = deepcopy(payload["entry"]["data"])
+                self.state["revId"] = payload["entry"].get("revId", "S3")
+                if payload.get("mode") == "publish":
+                    self.state["publishedId"] = self.state["revId"]
             elif method == "updateDashboard":
                 self.state["entry"]["data"] = deepcopy(payload["entry"]["data"])
                 if "annotation" in payload["entry"]:
@@ -569,8 +572,9 @@ def test_public_raw_dashboard_create_requires_tab_and_known_schema(install_runti
     assert not provider.writes
 
 
-@pytest.mark.parametrize("kind", ["dashboard", "wizard_chart"])
-def test_public_publish_uses_exact_saved_revision(install_runtime, kind):
+@pytest.mark.parametrize("kind", ["dashboard", "wizard_chart", "editor_chart"])
+@pytest.mark.parametrize("installation", ["yacloud", "enterprise"])
+def test_public_publish_uses_exact_saved_revision(install_runtime, kind, installation):
     initial = (
         dashboard_state()
         if kind == "dashboard"
@@ -586,9 +590,13 @@ def test_public_publish_uses_exact_saved_revision(install_runtime, kind):
             }
         )
     )
+    if kind == "editor_chart":
+        initial = editor_state()
+        initial["data"]["futureTab"] = {"manual": "preserve"}
     provider = Provider(initial)
-    install_runtime(provider)
-    target = "synthetic-dashboard" if kind == "dashboard" else "synthetic-chart"
+    install_runtime(provider, installation)
+    target = {"dashboard": "synthetic-dashboard", "wizard_chart": "synthetic-chart",
+              "editor_chart": "synthetic-editor"}[kind]
     result = call_tool(
         "dl_object_publish",
         {
@@ -602,26 +610,36 @@ def test_public_publish_uses_exact_saved_revision(install_runtime, kind):
     assert payload["mode"] == "publish"
 
 
-def test_public_publish_third_revision_is_not_success(install_runtime):
-    provider = Provider(dashboard_state())
+@pytest.mark.parametrize("kind", ["dashboard", "editor_chart"])
+def test_public_publish_third_revision_is_not_success(install_runtime, kind):
+    provider = Provider(dashboard_state() if kind == "dashboard" else editor_state())
     install_runtime(provider)
 
     def drift(p, count):
         if count == 3:
-            p.state["entry"]["revId"] = "S-unrequested"
-            p.state["entry"]["publishedId"] = "S-unrequested"
+            entry = p.state.get("entry", p.state)
+            entry["revId"] = "S-unrequested"
+            entry["publishedId"] = "S-unrequested"
 
     provider.before_read = drift
     result = call_tool(
         "dl_object_publish",
         {
             "targets": [
-                {"object_type": "dashboard", "object_id": "synthetic-dashboard", "expected_saved_revision": "S2"}
+                {"object_type": kind, "object_id": "synthetic-dashboard" if kind == "dashboard" else "synthetic-editor",
+                 "expected_saved_revision": "S2"}
             ],
             "operation_id": "publish-drift",
         },
     )
     assert result["results"][0]["code"] == "readback_mismatch", json.dumps(result, indent=2)
+    still_wrong = call_tool("dl_operation_reconcile", {"operation_id": "publish-drift"})
+    assert still_wrong["status"] == "resolved", still_wrong
+    assert still_wrong["ok"] is False
+    assert still_wrong["results"][0]["verification_status"] == "historical_content_unverified"
+    assert still_wrong["results"][0]["write_verified"] is False
+    assert still_wrong["write_replayed"] is False
+    assert len(provider.writes) == 1
 
 
 @pytest.mark.parametrize("kind", ["zero", "denied", "unavailable", "malformed", "transport", "over_limit"])
@@ -681,7 +699,7 @@ def test_server_info_keeps_loaded_sdk_identity_when_disk_distribution_changes(mo
         identity.metadata, "version", lambda name: "future-installed" if name == "datalens-sdk" else "other-package"
     )
     after = dl_server_info()
-    assert before["runtime"]["sdk_version"] == "3.0.0"
+    assert before["runtime"]["sdk_version"] == "3.2.0"
     assert after["runtime"]["sdk_version"] == before["runtime"]["sdk_version"]
     assert after["installed_sdk_version"] == "future-installed"
     assert after["active_sdk_matches_installed"] is False
@@ -1118,3 +1136,56 @@ def test_dashboard_wrong_wrapper_rejected_before_effect_and_corrected_once(insta
     assert provider.state['entry']['data']['tabs'] == retained
     assert len(provider.writes) == 1
     assert provider.state['entry']['publishedId'] == initial['entry']['publishedId']
+
+
+@pytest.mark.parametrize("installation", ["yacloud", "enterprise"])
+@pytest.mark.parametrize("access", ["absent", "deny", "allow_trusted", "allow", None])
+@pytest.mark.parametrize("create", [False, True])
+def test_connection_preserves_observed_access_without_sdk_defaults(install_runtime, installation, access, create):
+    class ConnectionProvider(Provider):
+        def handle(self, request):
+            method = request.url.path.rsplit("/", 1)[-1]
+            if method in {"createConnection", "updateConnection"}:
+                payload = json.loads(request.content)
+                self.writes.append((method, payload))
+                self.state.update(payload if create else payload["data"])
+                return httpx.Response(200, json={"id": self.state["id"]})
+            return super().handle(request)
+
+    initial = {"id": "synthetic-connection", "name": "Synthetic", "type": "clickhouse", "revId": "S2",
+               "host": "synthetic.invalid", "description": "before", "port": 8443, "username": "synthetic",
+               "data_export_forbidden": True, "future_setting": {"preserve": [False, None, ""]}}
+    if access != "absent":
+        initial["ai_access_level"] = access
+    provider = ConnectionProvider(initial)
+    install_runtime(provider, installation)
+    if create:
+        result = call_tool("dl_object_create", {
+            "drafts": [{"object_type": "connection", "client_ref": "connection", "name": "Synthetic",
+                        "snapshot": initial}], "destination": {"workbook_id": "synthetic-workbook"},
+            "operation_id": "access-create",
+        })
+    else:
+        result = update("connection", "synthetic-connection", {"description": "after"})
+    assert result["status"] == "completed", result
+    assert len(provider.writes) == 1
+    payload = provider.writes[0][1] if create else provider.writes[0][1]["data"]
+    assert ("ai_access_level" in payload) == (access != "absent")
+    if access != "absent":
+        assert payload["ai_access_level"] == access
+    assert payload["data_export_forbidden"] is True
+    assert payload["future_setting"] == initial["future_setting"]
+    assert payload["host"] == initial["host"]
+    assert payload["description"] == ("before" if create else "after")
+
+
+def test_sdk_dataset_raw_replacement_still_drops_inner_revision():
+    # Qualifies the remaining narrow adapter: do not remove its revision guard
+    # merely because a newer SDK exposes a raw replace method.
+    from datalens_sdk.converter.raw.dataset import dataset_content_from_snapshot
+    from datalens_sdk.serialization.artifacts import DatasetSnapshotView
+
+    original = dataset_state()
+    payload = dataset_content_from_snapshot(DatasetSnapshotView.from_raw(original))
+    assert "revision_id" not in payload
+    assert original["dataset"]["revision_id"] == "I1"

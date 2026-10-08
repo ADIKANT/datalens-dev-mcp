@@ -302,5 +302,5 @@ def inspect_wizard_shape(data: Mapping[str, Any]) -> dict[str, Any]:
 def _setter(builder: Any, name: str) -> Any:
     method = getattr(builder, name, None)
     if not callable(method):
-        raise ValueError(f"SDK 3.0.0 does not support {name} for this Wizard visualization")  # noqa: TRY004
+        raise ValueError(f"SDK 3.2.0 does not support {name} for this Wizard visualization")  # noqa: TRY004
     return method

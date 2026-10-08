@@ -17,7 +17,7 @@ revision, and the separately observed installed distribution version. An existin
 process can still run old code after a wheel upgrade; `pip show` alone is not an
 active-process check. Build commit is explicitly unknown when it was not embedded
 in the package; the server never substitutes the caller directory's Git HEAD.
-The 1.2.0 release pins SDK 3.0.0 and API version 3. Its operation store uses
+The current release pins SDK 3.2.0 and API version 3. Its operation store uses
 OS file locks on macOS/Linux; lock release after a crash never permits replay of
 an uncertain write. Compact terminal receipts retain operation ID bindings after
 detail pruning; size limits bound retained detail, not the number of ID bindings.

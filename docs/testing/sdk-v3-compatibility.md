@@ -1,4 +1,4 @@
-# SDK 3.0.0 compatibility
+# SDK 3.2.0 compatibility
 
 This change retains the typed public operations, mutation receipts, request digests,
 process claims, fresh saved-state merge, adapter preflight, and independent readback.
@@ -7,18 +7,34 @@ or generic write gateway is introduced.
 
 ## Pinned upstream and installation
 
-The dependency is `datalens-sdk==3.0.0`, from the official
-[datalens-tech/datalens-sdk](https://github.com/datalens-tech/datalens-sdk) project.
-The annotated `v3.0.0` tag resolves to commit
-`9114d148ed9ffa2524933988831384184d9db01b`; the tag object is
-`f2ee038d647cff969816246e3b0c7a53b5d42480`, not the source commit.
-The [changelog](https://github.com/datalens-tech/datalens-sdk/blob/9114d148ed9ffa2524933988831384184d9db01b/CHANGELOG.md),
-installed `agent_skill_paths()` documentation, installed generated DTOs, and both
-`spec/yacloud.json` and `spec/enterprise.json` were inspected. Upstream is
-[Apache-2.0](https://github.com/datalens-tech/datalens-sdk/blob/9114d148ed9ffa2524933988831384184d9db01b/LICENSE).
-The adapter imports its installed carriers; it does not vendor the upstream tree,
-skill, or OpenAPI files. The Editor carrier mapping is derived from
-`converter/editor_chart.py` at that commit.
+The dependency is `datalens-sdk==3.2.0`, from the official
+[datalens-tech/datalens-sdk release](https://github.com/datalens-tech/datalens-sdk/releases/tag/v3.2.0).
+The stable release was checked on 2026-10-08 and resolves to commit
+`f173ae3eec6d62db924ab03afe7773896a238f15` (annotated tag object
+`730db4107785c1f7e9b9a8563d1da3a5bfbb792a`). PyPI and GitHub artifacts agree:
+wheel SHA256 `935bc0132a2211cba86ee28ca1d9b7f030df6fdc6c961b0d42ceb24bee27bba3`,
+sdist SHA256 `6163d429e13d8d164fe94fd984aaeb3c0914348a0c01df0f5979f22b5d88faa2`.
+The adapter uses installed official carriers; no upstream tree or specification
+is vendored. The SDK remains Apache-2.0.
+
+### Migration from 3.0 through 3.1 to 3.2
+
+| Used path | Verified target contract and decision |
+| --- | --- |
+| Dashboard create/manual controls | Converter unchanged between installed 3.0 and 3.2; exact HTTP bytes and manual input without `fieldType` remain tested; create has no save/publish mode |
+| Dashboard update/publish | 3.1 adds `.mode()`; existing explicit `execute(publish=False)` remains supported for save; publish retains `publish_revision` and exact revision readback |
+| Wizard | 3.1 raw replacement stops sending `revId` during save; remove the plugin's copied-handle workaround and retain the full-state/no-revision wire regression |
+| Editor | 3.1 separates read/create/update carriers and adds `publish_revision`; use it for exact saved-revision publication and require that same revision on readback/reconcile |
+| QL | Supported raw save/publish still sends full content; no exact-revision publication method is exposed; do not claim one |
+| Dataset | 3.2 raw replacement still drops `dataset.revision_id`; retain the narrow adapter and both independent revision guards, including explicit observed null |
+| Revision history | New resource-level pager is available; existing bounded public `getRevisions` preserves its selected response contract and unknown-create attribution limits |
+| Connections | 3.2 typed create DTO adds defaults including `ai_access_level=allow`; the plugin's raw snapshot create/replace preserves explicit values and absent fields without injecting those defaults, verified for both installations |
+| Errors/readback | SDK HTTP module is unchanged; retain bounded response/error handling, no write retries, lost-response receipts, identity checks and independent saved/published reads |
+
+Official comparisons: [3.0 to 3.1](https://github.com/datalens-tech/datalens-sdk/compare/v3.0.0...v3.1.0),
+[3.1 to 3.2](https://github.com/datalens-tech/datalens-sdk/compare/v3.1.0...v3.2.0).
+New cloud infrastructure APIs and connector types do not expand this plugin's
+closed public tool surface. Historical request hashes/receipts are not rewritten.
 
 | Configuration | SDK / authentication | HTTP contract |
 |---|---|---|
@@ -49,11 +65,11 @@ existing MCP identity/branch/full-state projection.
 | Dashboard create/update | Typed `DashboardTab` or guarded V2 snapshot / SDK raw replacement | `createDashboard` / `updateDashboard`; 36-column geometry, explicit tabs, IDs, order, hidden state, selectors and bindings remain intact |
 | Preview | `client.data.get_dataset_data`, real filter/parameter/sort DTOs | `getDatasetData`; requested GUIDs, rows and columns bounded; malformed/error responses never become empty success |
 | Navigation and relations | Existing bounded read adapter; SDK navigation filter contract independently exercised | `getWorkbooksList`, `getWorkbookEntries`, `getEntriesRelations`; unknown read scopes retained, continuation and partial state preserved |
-| Publish saved Dashboard/Wizard | SDK `publish_revision(rev_id=observed)` after fresh preflight | `updateDashboard` / `updateWizardChart`, publish mode plus exact revision; readback must match that revision |
+| Publish saved Dashboard/Wizard/Editor | SDK `publish_revision(rev_id=observed)` after fresh preflight | `updateDashboard` / `updateWizardChart` / `updateEditorChart`, publish mode plus exact revision; readback must match that revision |
 | Existing HTML Page metadata/publication | Narrow documented API adapter | `getHtmlPage`; `updateHtmlPage` with `entryId`, `mode=publish`, `revId`; fresh identity/branch/revision preflight and exact published readback |
-| Editor/QL publication | Existing full-content SDK save in publish mode | Publishes the freshly read saved content; those SDK DTOs do not expose a separate existing-revision publication method |
+| QL publication | Existing full-content SDK save in publish mode | Publishes the freshly read saved content; the SDK does not expose a separate existing-revision publication method |
 
-Dataset raw replacement in SDK 3.0.0 still invokes
+Dataset raw replacement in SDK 3.2.0 still invokes
 `converter/raw/dataset.py:dataset_content_from_snapshot`, which strips
 `revision_id` with create-time server fields. Removing the narrow adapter would
 regress the inner-revision contract. It therefore remains a single existing
@@ -63,19 +79,11 @@ arrays, and empty strings are preserved. Protocol revision locations and the doc
 `sources[].parameter_hash` are excluded from business readback matching: a nested business `revision` field
 remains significant. An explicit null `dataset.revision_id` is preserved when the fresh read also returns null and the independently checked outer revision is present. Missing or changed inner revisions still fail before dispatch; the outer revision is never copied into the inner field. Preflight is not an atomic provider-side CAS guarantee.
 
-The SDK raw Wizard replacement has a second verified gap:
-`domain/raw_resource.py:_init_raw_chart_replace` copies `target.raw.revId` into
-`RawReplaceSpec.target_revision_id`, and
-`converter/wizard/converter.py:from_raw_replace` sends that revision even in save
-mode. A revision selects existing state; it is not an ordinary-save CAS field.
-The adapter performs its unchanged identity/branch/revision preflight first, then
-passes a separate `dataclasses.replace` copy of the public `WizardChart` handle
-without the root protocol `raw.revId` to the official `client.raw.replace` path.
-The fetched target, desired snapshot, nested business revision fields, unknown
-state, aliases and GUID bindings remain unchanged. No SDK private builder state
-or transport is patched. Exact publication returns through `publish_revision`
-before this save-only adaptation. Dashboard raw ordinary-save requests were
-independently checked and already omit `entry.revId`.
+SDK 3.1 fixes the former Wizard raw-save revision selection. The adapter now
+passes the original target to `client.raw.replace.wizard_chart`, with no copy or
+protocol-field removal. A real SDK transport regression checks ordinary save
+omits `revId`, persists the requested full content and preserves unrelated state.
+Exact publication returns through `publish_revision` before raw replacement.
 
 ## Compatibility boundaries
 
@@ -89,9 +97,9 @@ independently checked and already omit `entry.revId`.
   reads are accepted under that contract. Existing V2 coordinates are never
   scaled. Raw and typed creation require a tab. This is structural evidence,
   not rendered evidence.
-- Activities is absent from the generated Editor writable carrier. The upstream
-  shared update facade/raw path can still accept it, so this adapter checks
-  introduced or changed tabs before dispatch. Legacy secrets are stripped by
+- Editor writable tabs depend on the subtype and installation. Activities is
+  supported for table/Gravity/selector and rejected for Markdown/Advanced;
+  the adapter checks introduced or changed tabs against the installed carriers. Legacy secrets are stripped by
   SDK reads/replacements; attempts to introduce UI-managed fields are rejected.
 - HTML Page method names exist in both upstream specifications, but
   `GetHtmlPageResult` provides metadata and `meta.objectId`, not HTML content.
@@ -101,14 +109,20 @@ independently checked and already omit `entry.revId`.
   No new content-fetch/upload endpoint is invented. Editor HTML remains a
   separate renderer contract.
 - Dataset, connection and workbook have no separate supported publish branch.
-  Save-only never invokes publication. Editor/QL publish proves the saved content
+  Save-only never invokes publication. QL publish proves the saved content
   sent and the published content read back; it does not claim publication of an
-  unchanged revision ID.
+  unchanged revision ID. Dashboard, Wizard and Editor require exact revision readback.
 - Preview zero rows means the bounded query returned zero rows, not that its
   source is empty. 403, source/server errors, malformed response, and transport
   failure remain errors. Preview is never rendering proof.
 
-## Acceptance evidence
+## Historical 3.0 migration evidence
+
+These recorded counts and failures describe the original 3.0 migration. The
+current 3.2 contract matrix above supersedes its workaround decisions. Existing
+regressions remain in their original files and run against the current pin.
+
+### Acceptance evidence
 
 Tests intercept HTTP only for the new public-handler cases; runtime injection
 selects synthetic configuration. Real SDK builders, DTOs, services, readback and

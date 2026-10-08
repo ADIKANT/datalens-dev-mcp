@@ -30,7 +30,7 @@ from datalens_dev_mcp.api.errors import (
 from datalens_dev_mcp.authoring.validation import validate_entry_name
 from datalens_dev_mcp.config import DataLensConfig
 
-SDK_VERSION = "3.0.0"
+SDK_VERSION = "3.2.0"
 
 WIZARD_VARIANTS = {
     "area",
@@ -136,7 +136,7 @@ class SdkAdapter:
         actual = getattr(datalens_sdk, "__version__", "")
         if actual != SDK_VERSION:
             raise RuntimeError(f"datalens-sdk version mismatch: expected {SDK_VERSION}, got {actual or '<unknown>'}")
-        # SDK 3.0.0 logs raw provider message/details (including SQL or HTML).
+        # SDK 3.2.0 logs raw provider message/details (including SQL or HTML).
         # Keep failures in our sanitized tool results; do not duplicate bodies on stderr.
         logging.getLogger("datalens_sdk.http").disabled = True
         self._config = config
@@ -204,7 +204,7 @@ class SdkAdapter:
 
     @staticmethod
     def _observe_rate_limit(response: httpx.Response) -> None:
-        # SDK 3.0.0 retries 429 before translation with a backoff that ignores
+        # SDK 3.2.0 retries 429 before translation with a backoff that ignores
         # Retry-After. Surface it before that loop; do not add another retry owner.
         budget = current_budget.get()
         if budget is not None:
@@ -485,7 +485,7 @@ class SdkAdapter:
                     method = getattr(builder, tab, None) if tab else None
                     if not callable(method):
                         raise InputContractError(
-                            f"SDK 3.0.0 create carrier does not support {filename}; "
+                            f"SDK 3.2.0 create carrier does not support {filename}; "
                             "the documented tab is retained in the draft, no create was dispatched")
                     if not isinstance(content, str):
                         raise ValueError(f"Editor tab must contain source text: {filename}")  # noqa: TRY004
@@ -667,7 +667,7 @@ class SdkAdapter:
                 _validate_wizard_snapshot(snapshot)
             if canonical == "dashboard":
                 _validate_dashboard_snapshot(snapshot)
-            if publish and canonical in {"dashboard", "wizard_chart"}:
+            if publish and canonical in {"dashboard", "wizard_chart", "editor_chart"}:
                 if not expected_revision:
                     raise WritePreconditionError("Publish requires an observed saved revision")
                 effect_started = True
@@ -689,7 +689,7 @@ class SdkAdapter:
                     return {"object_id": object_id, "object": _json_object(value), "backend": "official_sdk"}
                 rename_to = snapshot["name"]
             if canonical == "dataset":
-                # SDK 3.0.0 raw replacement still strips dataset.revision_id.
+                # SDK 3.2.0 raw replacement still strips dataset.revision_id.
                 # Keep one narrow full-state API v3 adapter with both revision
                 # guards; see docs/testing/sdk-v3-compatibility.md.
                 from datalens_dev_mcp.api.client import DataLensApiClient
@@ -716,17 +716,7 @@ class SdkAdapter:
                     "updateDataset", {"datasetId": object_id, "data": {"dataset": deepcopy(content)}}
                 )
             else:
-                replacement_target = target
-                if canonical == "wizard_chart" and not publish:
-                    # SDK 3.0 raw replacement copies target.raw.revId into the
-                    # request, selecting an existing revision instead of saving
-                    # content. The preflight above owns the old revision. Pass a
-                    # separate public domain handle without this protocol field;
-                    # keep the captured target and complete desired state intact.
-                    replacement_target = replace(
-                        target, raw={key: value for key, value in target.raw.items() if key != "revId"}
-                    )
-                builder = getattr(client.raw.replace, canonical)(target=replacement_target, response_snapshot=snapshot)
+                builder = getattr(client.raw.replace, canonical)(target=target, response_snapshot=snapshot)
             if canonical == "dataset":
                 pass
             elif canonical == "dashboard":
@@ -906,7 +896,7 @@ def _provider_error(exc: Exception, method: str) -> DataLensApiError:
     if isinstance(exc, DataLensApiError):
         return exc
     if isinstance(exc, (httpx.TransportError, SdkTransportError)):
-        # SDK 3.0.0 chains the actual HTTPX transport error. Its reason/URL can
+        # SDK 3.2.0 chains the actual HTTPX transport error. Its reason/URL can
         # contain private content: retain only a known class and the RPC basename.
         cause = exc.__cause__ if isinstance(exc, SdkTransportError) else exc
         transport_codes = {
@@ -940,7 +930,7 @@ def _provider_error(exc: Exception, method: str) -> DataLensApiError:
                                response_received=False if stage in {"transport_connect", "transport_pool"} else None)
     if isinstance(exc, SdkApiError):
         # The SDK message/details can contain SQL, data or an entire HTML body.
-        # SDK 3.0.0 chains the HTTPStatusError; context itself has no headers.
+        # SDK 3.2.0 chains the HTTPStatusError; context itself has no headers.
         # Read bounded structured diagnostics from the actual response only.
         # Messages, details and business values are never returned.
         cause = exc.__cause__
@@ -1060,7 +1050,7 @@ def _validate_editor_changes(snapshot: dict[str, Any], latest: dict[str, Any]) -
     }
     carrier = getattr(dto, carriers.get(str(snapshot.get("type")), ""), None)
     if carrier is None:
-        raise InputContractError("Unsupported Editor renderer in SDK 3.0.0 installation contract")
+        raise InputContractError("Unsupported Editor renderer in SDK 3.2.0 installation contract")
     allowed = {field.alias or name: field for name, field in carrier.model_fields.items()}
     documented = allowed_editor_fields(str(snapshot.get("type")))
     data, previous = snapshot.get("data") or {}, latest.get("data") or {}
@@ -1097,7 +1087,7 @@ def _validate_dashboard_snapshot(snapshot: dict[str, Any], *, from_artifact: boo
 
     for _, path in manual_input_field_types(snapshot):
         raise InputContractError(
-            f"{path}: fieldType is not supported for sourceType=manual, elementType=input by SDK 3.0.0; "
+            f"{path}: fieldType is not supported for sourceType=manual, elementType=input by SDK 3.2.0; "
             'omit fieldType, e.g. source={"elementType":"input","fieldName":"rate","defaultValue":"50"}'
         )
     data = entry.get("data") or {}
@@ -1115,6 +1105,6 @@ def _validate_wizard_snapshot(snapshot: dict[str, Any]) -> None:
     data = snapshot.get("data") or {}
     if snapshot.get("version", 1) != 1 or "datasetsPartialFields" in data or "datasetsIds" in data:
         raise InputContractError(
-            "Legacy Wizard V2 artifact is incompatible with SDK 3.0.0 document V1. "
+            "Legacy Wizard V2 artifact is incompatible with SDK 3.2.0 document V1. "
             "Re-export through API v3 or rebuild with the typed Wizard recipe using exact Dataset GUIDs."
         )
