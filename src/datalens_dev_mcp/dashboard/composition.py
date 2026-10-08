@@ -385,3 +385,22 @@ def bind_object_references(value: Any, ids: dict[str, str]) -> Any:
     if isinstance(value, list):
         return [bind_object_references(item, ids) for item in value]
     return value
+
+
+def manual_input_field_types(snapshot: dict[str, Any]):
+    """Exact V2 control paths; never recursively discard similarly named fields."""
+    entry = snapshot.get("entry", snapshot)
+    prefix = "/entry" if "entry" in snapshot else ""
+    for ti, tab in enumerate((entry.get("data") or {}).get("tabs", [])):
+        for collection in ("items", "globalItems"):
+            for ii, item in enumerate(tab.get(collection, [])):
+                data = item.get("data") or {}
+                path = f"{prefix}/data/tabs/{ti}/{collection}/{ii}/data"
+                controls = [(data, path)] if item.get("type") == "control" else []
+                if item.get("type") == "group_control":
+                    controls = [(member, f"{path}/group/{gi}") for gi, member in enumerate(data.get("group", []))]
+                for control, cp in controls:
+                    source = control.get("source") or {}
+                    if (control.get("sourceType") == "manual" and source.get("elementType") == "input"
+                            and "fieldType" in source):
+                        yield source, cp + "/source/fieldType"

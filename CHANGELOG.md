@@ -1,5 +1,12 @@
 # Changelog
 
+
+## 1.2.28
+
+- Recover acknowledged historical updates through public read-only reconciliation without replaying them or indefinitely holding later intentional changes; require fresh CAS and retain unverified history explicitly.
+- Reject unsupported manual input fieldType before dispatch and normalize only its known legacy string representation during readback; retain exact business values and ordered collections.
+- Report compact verification differences, preserve prior diagnostics in receipt history, distinguish nested result revisions from pre-write revisions, and retain connection provisioning evidence before readback.
+
 ## 1.2.27
 
 - Expose effective native-table names/columns and Dataset matrix row/metric/comparison bindings before compile, with route-aware validation and executable synthetic examples.

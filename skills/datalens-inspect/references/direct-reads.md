@@ -58,3 +58,12 @@ another method-schema call. `dl_object_diff` previews read-only and takes no
 `expected_revision`; `dl_object_update` requires the saved guard at
 `changes[].expected_revision` for compact dashboard edits. See the canonical
 [addressed collection example](../../datalens-dashboard/references/composition.md#compact-edits-to-existing-tabs).
+
+
+For a retained acknowledged update, `dl_operation_reconcile` can return
+`resolved` with `historical_content_unverified`. This is an applied historical
+effect whose contents remain unverified, not a completed delivery. Its
+`continuation_requires_fresh_cas` requires a full current saved read and an
+explicit expected revision for the next independent change. Unknown effects and
+connection provisioning cannot use this route. `include_detail=true` exposes
+retained transition history; the default result keeps diagnostics compact.

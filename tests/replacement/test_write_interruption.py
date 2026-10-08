@@ -192,3 +192,182 @@ def test_invalid_dataset_metadata_save_retains_separate_validation(tmp_path):
     assert item["dataset_validation"]["status"] == "invalid"
     assert result["task_complete"] is False
     assert backend.calls[0][1]["snapshot"]["dataset"]["result_schema"] == before["dataset"]["result_schema"]
+
+
+def test_legacy_ack_reconcile_releases_only_verified_target_with_fresh_cas(tmp_path, monkeypatch):
+    from datalens_dev_mcp.api.errors import DataLensSafetyError
+    from datalens_dev_mcp.server import call_tool
+
+    current = rb("dashboard", "d", "manual", {"entry": {"entryId": "d", "tenantId": "tenant",
+                 "workbookId": "wb", "data": {"tabs": [{"id": "manual"}]}}})
+    reader = FakeReader({("dashboard", "d", "saved"): [current]})
+    backend = FakeBackend([])
+    writer = service(tmp_path, reader, backend)
+    writer.provider_scope = "scope"
+    writer.store.put({"operation_id": "legacy", "effect": "update", "status": "uncertain",
+        "request_digest": "historical", "results": [{"key": "dashboard:d", "status": "uncertain",
+        "target": {"object_type": "dashboard", "object_id": "d"}, "write_returned": True,
+        "effect_outcome": "unknown", "expected_revision": "before", "returned_revision": None,
+        "desired": {"entry": {"data": {"tabs": [{"id": "old"}]}}}, "readback": current,
+        "error": "old timeout", "code": "readback_mismatch"}]})
+    monkeypatch.setattr("datalens_dev_mcp.server.default_mutation_service", lambda: writer)
+    result = call_tool("dl_operation_reconcile", {"operation_id": "legacy"})["structuredContent"]
+    assert result["write_replayed"] is False
+    assert result["status"] == "resolved"
+    item = result["results"][0]
+    assert item["effect_outcome"] == "applied"
+    assert item["verification_status"] == "historical_content_unverified"
+    assert item["write_verified"] is False
+    assert "error" not in item
+    assert backend.calls == []
+    with pytest.raises(DataLensSafetyError):
+        writer.update_objects([{"object_type": "dashboard", "object_id": "d", "patch": {"name": "Next"}}],
+                              operation_id="no-cas")
+    saved = writer.store.get("legacy")
+    assert saved["results"][0]["history"][0]["error"] == "old timeout"
+    assert writer.reconcile("legacy")["store_version"] == saved["store_version"]
+    writer.update_objects([{"object_type": "dashboard", "object_id": "d", "expected_revision": "stale",
+                           "patch": {"name": "Next"}}], operation_id="stale-cas")
+    assert backend.calls == []
+    from copy import deepcopy
+    after = deepcopy(current)
+    after["identity"]["revision_id"] = "new"
+    after["object"]["entry"]["data"]["note"] = "Intentional new change"
+    reader.replies[("dashboard", "d", "saved")] = [current, after]
+    backend.outcomes.append({"object_id": "d", "object": {"entry": {"revId": "new"}}})
+    updated = call_tool("dl_object_update", {"changes": [{"object_type": "dashboard", "object_id": "d",
+        "expected_revision": "manual", "patch": {"entry": {"data": {"note": "Intentional new change"}}}}],
+        "operation_id": "fresh-change"})["structuredContent"]
+    assert updated["status"] == "completed"
+    assert backend.calls[0][1]["snapshot"]["entry"]["data"]["tabs"] == [{"id": "manual"}]
+    published = deepcopy(after)
+    published["identity"]["branch"] = "published"
+    reader.replies[("dashboard", "d", "published")] = [published]
+    backend.outcomes.append({"object_id": "d"})
+    result = call_tool("dl_object_publish", {"targets": [{"object_type": "dashboard", "object_id": "d",
+                         "expected_saved_revision": "new"}], "operation_id": "fresh-publish"})["structuredContent"]
+    assert result["status"] == "completed"
+    assert [kind for kind, _ in backend.calls] == ["update", "publish"]
+
+
+def test_manual_input_field_type_is_rejected_before_dispatch_and_legacy_normalized():
+    from copy import deepcopy
+
+    from datalens_dev_mcp.api.errors import InputContractError
+    from datalens_dev_mcp.api.sdk_adapter import _validate_dashboard_snapshot
+    from datalens_dev_mcp.objects.write import _readback_contains, _readback_intent
+
+    snapshot = {"entry": {"version": 2, "data": {"tabs": [{"id": "t", "items": [{"id": "rates",
+        "type": "group_control", "data": {"group": [{"sourceType": "manual", "source": {
+            "elementType": "input", "fieldName": "rate_" + str(i), "fieldType": "string",
+            "defaultValue": str(i), "required": True}} for i in range(3)]}}]}]}}}
+    with pytest.raises(InputContractError, match="fieldType"):
+        _validate_dashboard_snapshot(snapshot)
+    actual = deepcopy(snapshot)
+    controls = actual["entry"]["data"]["tabs"][0]["items"][0]["data"]["group"]
+    for control in controls:
+        control["source"].pop("fieldType")
+    expected = _readback_intent("dashboard", snapshot)
+    assert _readback_contains(_readback_intent("dashboard", actual), expected)
+    controls[0]["source"].pop("required")
+    assert not _readback_contains(_readback_intent("dashboard", actual), expected)
+    controls[0]["source"]["required"] = True
+    controls.reverse()
+    assert not _readback_contains(_readback_intent("dashboard", actual), expected)
+    controls.reverse()
+    controls[0]["source"]["defaultValue"] = "different"
+    assert not _readback_contains(_readback_intent("dashboard", actual), expected)
+
+
+@pytest.mark.parametrize("case", ["unknown", "incomplete", "wrong_identity", "wrong_branch", "wrong_tenant", "provisioning"])
+def test_reconcile_does_not_release_unproven_history(tmp_path, case):
+    from copy import deepcopy
+    current = rb("dashboard", "d", "r3", {"entry": {"entryId": "d", "tenantId": "tenant",
+                 "workbookId": "wb", "data": {"tabs": [{"id": "manual"}]}}})
+    old = deepcopy(current)
+    if case == "incomplete":
+        current["complete"] = False
+    if case == "wrong_identity":
+        current["identity"]["object_id"] = "other"
+    if case == "wrong_branch":
+        current["identity"]["branch"] = "published"
+    if case == "wrong_tenant":
+        current["object"]["entry"]["tenantId"] = "different"
+    writer = service(tmp_path, FakeReader({("dashboard", "d", "saved"): [current]}), FakeBackend([]))
+    writer.store.put({"operation_id": "held", "effect": "update", "status": "uncertain", "results": [{
+        "status": "uncertain", "target": {"object_type": "dashboard", "object_id": "d"},
+        "write_returned": case != "unknown", "readback": old, "expected_revision": "r1",
+        "desired": {"entry": {"data": {"tabs": [{"id": "old"}]}}},
+        **({"connection_operation": {"id": "provisioning"}} if case == "provisioning" else {})}]})
+    for _ in range(2):
+        result = writer.reconcile("held")
+        assert result["status"] == "uncertain"
+        assert result["write_replayed"] is False
+    assert writer.backend.calls == []
+
+
+@pytest.mark.parametrize("response, expected, role", [
+    ({"entry": {"revId": "r2"}}, "r2", "result"), ({"rev_id": "r2"}, "r2", "result"),
+    ({"entry": {"revId": "r1"}}, None, "precondition"), ({}, None, "not_returned")])
+def test_returned_revision_keeps_nested_result_and_precondition_separate(tmp_path, response, expected, role):
+    writer = service(tmp_path, FakeReader({}), FakeBackend([]))
+    record = {"operation_id": "revision", "effect": "update", "results": []}
+    item = {"status": "uncertain", "expected_revision": "r1"}
+    record["results"].append(item)
+    writer._returned(record, item, {"object": response})
+    assert item["returned_revision"] == expected
+    assert item["response_revision_role"] == role
+
+
+def test_partial_claim_preserves_completed_targets_and_provider_scope(tmp_path):
+    from datalens_dev_mcp.api.errors import DataLensSafetyError
+    from datalens_dev_mcp.operation_store import OperationStore
+    store = OperationStore(tmp_path)
+    store.put({"operation_id": "batch", "effect": "update", "status": "pending", "provider_scope": "a",
+               "write_targets": ["done", "unknown"], "results": [
+                   {"status": "completed", "target": {"object_id": "done"}},
+                   {"status": "uncertain", "target": {"object_id": "unknown"}}]})
+    def claim(oid, target, scope):
+        return store.claim({"operation_id": oid, "effect": "update", "request_digest": oid,
+                            "provider_scope": scope, "write_targets": [target], "status": "pending"})
+    assert claim("independent", "done", "a")[0]
+    assert claim("other-scope", "unknown", "b")[0]
+    with pytest.raises(DataLensSafetyError):
+        claim("held-target", "unknown", "a")
+
+
+def test_concurrent_receipt_reconciliation_cannot_overwrite_newer_result(tmp_path):
+    from datalens_dev_mcp.operation_store import OperationStore
+    store = OperationStore(tmp_path)
+    original = store.put({"operation_id": "shared", "status": "uncertain", "results": []})
+    competing = store.get("shared")
+    original["status"] = "resolved"
+    store.put(original)
+    with pytest.raises(UncertainWriteError, match="concurrently"):
+        store.put(competing)
+    assert store.get("shared")["status"] == "resolved"
+
+
+def test_retry_rejected_batch_cannot_bypass_another_unknown_target(tmp_path):
+    from datalens_dev_mcp.api.errors import DataLensSafetyError
+    from datalens_dev_mcp.operation_store import OperationStore
+    store = OperationStore(tmp_path)
+    retry = {"operation_id": "rejected", "effect": "update", "request_digest": "one", "provider_scope": "a",
+             "write_targets": ["d"], "status": "failed", "results": [
+                 {"status": "failed", "target": {"object_id": "d"}, "effect_outcome": "not_applied"}]}
+    store.put(retry)
+    store.put({"operation_id": "unknown", "effect": "update", "request_digest": "two", "provider_scope": "a",
+               "write_targets": ["d"], "status": "uncertain", "results": [
+                   {"status": "uncertain", "target": {"object_id": "d"}, "effect_outcome": "unknown"}]})
+    with pytest.raises(DataLensSafetyError):
+        store.claim(retry)
+
+
+def test_resumed_claim_is_reserved_before_a_second_caller(tmp_path):
+    from datalens_dev_mcp.operation_store import OperationStore
+    store = OperationStore(tmp_path)
+    record = {"operation_id": "retry", "effect": "update", "request_digest": "same", "status": "failed",
+              "write_targets": ["d"], "results": [{"status": "failed", "target": {"object_id": "d"}}]}
+    store.put(record)
+    assert store.claim(record)[0] is True
+    assert store.claim(record)[0] is False

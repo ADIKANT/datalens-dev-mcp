@@ -105,13 +105,8 @@ class OperationStore:
                                         store_version=int(existing.get("store_version", 0)) + 1)
                         return True, self._write(existing)
                     return False, existing
-                items = existing.get("results") or []
-                resumable_pending = (
-                    existing.get("status") == "pending"
-                    and bool(items)
-                    and all(item.get("status") in {"pending", "completed", "failed"} for item in items)
-                )
-                if existing.get("status") in {"partial", "failed"} or resumable_pending:
+                if existing.get("status") in {"partial", "failed"}:
+                    self._check_mutation_claim(existing)
                     # Only confirmed rejected/unattempted items are resumable.
                     # Reserve the resumed batch before releasing the transaction.
                     existing.pop("detail_pruned", None)
@@ -130,14 +125,23 @@ class OperationStore:
     def _check_mutation_claim(self, record: dict[str, Any]) -> None:
         """A new caller ID cannot escape an unresolved intent or target claim."""
         targets = set(record.get("write_targets", []))
+        targets -= {item.get("target", {}).get("object_id") for item in record.get("results", [])
+                    if item.get("status") in {"completed", "resolved"}}
         for path in self.root.glob("*.json"):
             other = json.loads(path.read_text(encoding="utf-8"))
-            if other.get("effect") == "cleanup":
+            if other.get("operation_id") == record.get("operation_id") or other.get("effect") == "cleanup":
                 continue
             if (other.get("provider_scope") and record.get("provider_scope")
                     and other["provider_scope"] != record["provider_scope"]):
                 continue
             items = other.get("results") or []
+            released_targets = {item.get("target", {}).get("object_id") for item in items
+                                if item.get("continuation_requires_fresh_cas") and
+                                (not item.get("reconciled_provider_scope") or
+                                 item["reconciled_provider_scope"] == record.get("provider_scope"))}
+            if targets.intersection(released_targets) - set(record.get("cas_targets", [])):
+                raise DataLensSafetyError("Historical applied effect requires a fresh full read and expected revision "
+                                          "for every new target change; reconcile operation_id " + other["operation_id"])
             unresolved = other.get("status") in {"pending", "uncertain"} or any(
                 item.get("status") == "uncertain" for item in items)
             if not unresolved:
@@ -146,8 +150,9 @@ class OperationStore:
                            and other.get("request_digest") == record.get("request_digest"))
             unknown_targets = {item.get("target", {}).get("object_id") for item in items
                                if item.get("status") in {"pending", "uncertain"}}
+            known_targets = {item.get("target", {}).get("object_id") for item in items}
             if other.get("status") == "pending":
-                unknown_targets.update(other.get("write_targets", []))
+                unknown_targets.update(set(other.get("write_targets", [])) - known_targets)
             if same_intent or targets.intersection(unknown_targets):
                 raise DataLensSafetyError("An earlier mutation has an unresolved intent or target; reconcile operation_id "
                                           + other["operation_id"] + "; a new ID does not authorize replay")
@@ -296,7 +301,7 @@ def normalize_operation(record: dict[str, Any]) -> dict[str, Any]:
             item.pop("next_action", None)
         if item.get("write_returned"):
             item["effect_outcome"] = "applied"
-            if item.get("status") != "completed":
+            if item.get("status") not in {"completed", "resolved"}:
                 item["status"] = "uncertain"
         if item.get("status") == "uncertain":
             item["next_action"] = (
@@ -309,6 +314,10 @@ def normalize_operation(record: dict[str, Any]) -> dict[str, Any]:
     if "uncertain" in statuses or record.get("status") == "uncertain":
         status = "uncertain"
         action = "Reconcile unknown items using this operation_id and exact target readback; the write must not be replayed."
+    elif "resolved" in statuses and statuses <= {"completed", "resolved"}:
+        status = "resolved"
+        action = ("Historical effects are applied; content verification remains incomplete. "
+                  "Read current full targets and use fresh expected revisions for intentional new changes; do not replay.")
     elif statuses == {"completed"}:
         status, action = "completed", None
     elif "blocked" in statuses:
@@ -336,6 +345,8 @@ def normalize_operation(record: dict[str, Any]) -> dict[str, Any]:
     if len(statuses) > 1 and status != "partial":
         action = f"{action} Preserve completed items and distinguish unattempted, rejected and unknown items; do not repeat the entire batch."
     result.update(status=status, ok=status == "completed")
+    if "resolved" in statuses:
+        result["task_complete"] = False
     if any(item.get("dataset_validation", {}).get("status") == "invalid" for item in items):
         result.update(ok=False, task_complete=False)
         action = "Write outcomes are retained; Dataset validation is invalid. Inspect validation before claiming data or render success."
@@ -381,6 +392,9 @@ def compact_operation(record: dict[str, Any]) -> dict[str, Any]:
                     "write_verified",
                     "dispatch_state",
                     "effect_outcome",
+                    "verification_status", "effect_evidence", "response_revision", "response_revision_role",
+                    "continuation_requires_fresh_cas", "reconciled_provider_scope", "normalizations",
+                    "readback_diff", "readback_diff_complete", "verification_checks",
                     "intent",
                     "dataset_validation",
                     "object_id", "object_type", "absence_verified", "reconciliation_error",
