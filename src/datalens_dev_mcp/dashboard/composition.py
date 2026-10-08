@@ -104,7 +104,7 @@ def _edit_dashboard_collection(
                         TypeAdapter(carrier).validate_python(row)
                     except ValidationError as exc:
                         raise InputContractError(
-                            f"dashboard_patch {name}.add is not supported by the SDK 3.0.0 native control carrier; "
+                            f"dashboard_patch {name}.add is not supported by the SDK 3.2.0 native control carrier; "
                             "supply a complete supported control/group_control before dispatch") from exc
                 result.append(deepcopy(row))
             else:

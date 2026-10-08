@@ -6,7 +6,7 @@
 
 Текущий интерфейс использует typed object operations. Исторический путь генерации HTML через `dl_generate_editor_bundle` / `dl_validate_editor_runtime_contract` больше не доступен. При необходимости подготовьте разрешённый локальный UTF-8 artifact; для поддерживаемых операций провайдера используйте текущие schemas и существующий защищённый lifecycle. Наличие reference не доказывает поддержку инсталляции и не создаёт upload endpoint.
 
-Specs SDK v3.0.0 содержат Page create/get/update/delete, но `GetHtmlPageResult` возвращает metadata и `meta.objectId` без HTML content. Adapter отклоняет создание Page и изменение содержимого до отправки провайдеру, пока чтение сохранённого content нельзя проверить. Завершите разрешённый локальный artifact и укажите этот конкретный неподдерживаемый шаг.
+Specs SDK v3.2.0 содержат Page create/get/update/delete, но `GetHtmlPageResult` возвращает metadata и `meta.objectId` без HTML content. Adapter отклоняет создание Page и изменение содержимого до отправки провайдеру, пока чтение сохранённого content нельзя проверить. Завершите разрешённый локальный artifact и укажите этот конкретный неподдерживаемый шаг.
 
 Чтение metadata и проверенная публикация существующей точной saved revision остаются отдельными поддерживаемыми операциями. Публикация использует revision/mode в update, а не отдельный endpoint; она не доказывает, что adapter создал или прочитал content этой версии. Сохраняйте точные target/revision checks, reconciliation квитанции и readback saved/published identity.
 

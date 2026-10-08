@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.30
+
+- Pin official SDK 3.2.0 and qualify existing create, save, publish, error and readback contracts.
+- Publish Editor charts through the official exact-revision method and require that revision in readback and reconciliation.
+- Remove the Wizard save workaround fixed upstream; retain the independently verified Dataset revision guards.
+- Verify connection snapshot create/update preserves explicit access settings and absent fields without injecting new SDK defaults.
+
 
 ## 1.2.29
 

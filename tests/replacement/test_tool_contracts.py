@@ -301,7 +301,7 @@ def test_cleanup_invalid_budget_rejects_before_deadline_thread(monkeypatch):
 def test_packaged_provenance_validates_content_and_sdk(tmp_path):
     from datalens_dev_mcp.runtime_identity import _load_provenance
     payload = {"format": 1, "source_commit": "a" * 40, "source_tree": "b" * 40,
-               "commit_status": "clean", "package_version": server.__version__, "sdk_pin": "3.0.0",
+               "commit_status": "clean", "package_version": server.__version__, "sdk_pin": "3.2.0",
                "package_content_sha256": "c" * 64, "schema_sha256": "d" * 64,
                "assets_sha256": "e" * 64, "skills_sha256": "f" * 64}
     path = tmp_path / "_build_provenance.json"

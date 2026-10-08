@@ -7,7 +7,7 @@ Its 138 operations have 60 `read`, 24 `write`, 50 `privileged` and four absent
 authorization scope separately from local effect and completion. The other 96
 operations are coverage boundaries, including the new Lakehouse/cluster/storage/
 job/SQL endpoints; they are not automatically tools or acceptance actions.
-SDK remains pinned to 3.0.0.
+This historical audit used SDK 3.0.0; current qualification is in [SDK compatibility](sdk-v3-compatibility.md).
 
 | Contract | Current implementation and evidence boundary |
 | --- | --- |

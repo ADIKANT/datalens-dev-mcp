@@ -377,7 +377,7 @@ class ObjectMutationService:
                     expected_revision=observed or None,
                     desired=_recordable(_publish_content(saved["object"])),
                 )
-                if object_type in {"dashboard", "wizard_chart", "html_page"}:
+                if object_type in {"dashboard", "wizard_chart", "editor_chart", "html_page"}:
                     item["required_published_revision"] = observed
                 self._begin(record, item)
                 response = self.backend.publish(object_type, object_id, saved)
