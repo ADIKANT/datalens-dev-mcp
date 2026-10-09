@@ -431,6 +431,43 @@ class SdkAdapter:
 
         return errors
 
+    def prepare_create(self, draft: dict[str, Any], destination: dict[str, Any]) -> dict[str, Any] | None:
+        """Freeze a workbook dashboard's exact SDK payload before dispatch.
+
+        The opaque marker is correlation evidence, not provider idempotency.
+        Other object types and folder creates retain their existing contract.
+        """
+        if draft.get("object_type") != "dashboard" or not destination.get("workbook_id"):
+            return None
+        from uuid import uuid4
+
+        from datalens_sdk.converter.dashboard import DashboardConverter
+        from datalens_sdk.domain.specs.raw_resource import RawCreateSpec
+
+        if isinstance(draft.get("dashboard"), dict):
+            _, payload = _dashboard_create(self._sdk_client(), draft, destination)
+        else:
+            snapshot = draft.get("snapshot")
+            if not isinstance(snapshot, dict):
+                return None
+            _validate_dashboard_snapshot(snapshot, from_artifact=True)
+            payload = DashboardConverter.from_raw_create(RawCreateSpec(
+                response_snapshot=snapshot, name=_draft_name(draft), location=_entry_location(destination),
+            )).to_payload()
+        entry = deepcopy(payload["entry"])
+        marker = uuid4().hex
+        # Imports get a fresh marker; never reuse the source object's identity.
+        entry["meta"] = {**(entry.get("meta") or {}), "datalens_dev_mcp_create_id": marker}
+        expected = {"entry": {key: deepcopy(entry[key]) for key in ("data", "meta", "annotation") if key in entry},
+                    "name": _draft_name(draft)}
+        entry["entryId"] = "typed-dashboard-template"
+        entry["version"] = 2
+        prepared = {key: deepcopy(value) for key, value in draft.items() if key != "dashboard"}
+        prepared["snapshot"] = {"entry": entry}
+        return {"draft": prepared, "expected_readback": expected,
+                "recovery": {"kind": "dashboard_meta_v1", "marker": marker,
+                             "workbook_id": destination["workbook_id"]}}
+
     def create(self, draft: dict[str, Any], destination: dict[str, Any]) -> dict[str, Any]:
         """Execute one discriminated draft through the official SDK."""
         requested_type = str(draft.get("object_type") or "")

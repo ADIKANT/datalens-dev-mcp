@@ -115,3 +115,21 @@ Existing lifecycle, interruption, SDK, compact receipt, dashboard, runtime and
 cleanup checks cover the changed paths. Offline checks do not establish native
 activation, live provider normalization or Browser rendering; those require
 separate run-owned acceptance and cleanup.
+
+## Lost dashboard create acknowledgements
+
+Workbook dashboard creation freezes the SDK payload and persists a random metadata
+correlation marker before dispatch. A missing ID triggers bounded read-only lookup
+across dashboard candidates, independent of their current names. Exactly one marker
+match with complete inventory and candidate reads recovers the target; full saved
+content verification is still required. No second create is sent. Metadata from a
+raw import is preserved except that the reserved create marker is replaced.
+
+Existing SDK transport cases cover cloud/enterprise, typed/raw creation, HTTP 500
+after application, lost response, missing/duplicate markers, incomplete inventory,
+failed reads, wrong workbook, content drift and later reconciliation. An unmarked
+legacy request cannot be resolved from a name match or empty listing. Audit entry
+updates describe current last-update state and are not a request-status endpoint.
+
+Wire validation reports the exact template bytes before the runtime marker, not
+the final dispatched byte hash. Provider error diagnostics retain the latter.

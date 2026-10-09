@@ -246,6 +246,8 @@ def validate_drafts(
                 "installation": installation or "yacloud", "provider_scope_verified": False,
                 "delivery_mode": "save", "wire_mode": "absent_in_create_contract", "proof_level": "static_validity_only", "provider_writes": 0,
                 "normalization": "official_sdk_create_converter_and_httpx_json_encoder",
+                "runtime_added_fields": ["entry.meta.datalens_dev_mcp_create_id"],
+                "wire_scope": "template_before_per_operation_recovery_marker",
                 "required_fields": ["entry.name", "entry.workbookId", "entry.data.tabs"],
             }
             item["checks"].append("sdk_wire_serialization")

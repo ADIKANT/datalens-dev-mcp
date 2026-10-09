@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.31
+
+- Recover missing workbook dashboard create identities using a per-attempt metadata
+  marker persisted with expected content before dispatch. Recovery reads never
+  replay the mutation; incomplete, duplicate or mismatched evidence stays explicit.
+- Preserve original failure evidence and distinguish current absence from an
+  unproved historical outcome for legacy requests without correlation metadata.
+- Identify the runtime marker added after static wire-template validation.
+
+
 ## 1.2.30
 
 - Pin official SDK 3.2.0 and qualify existing create, save, publish, error and readback contracts.

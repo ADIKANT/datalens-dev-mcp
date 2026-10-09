@@ -309,6 +309,10 @@ def normalize_operation(record: dict[str, Any]) -> dict[str, Any]:
                 "An unavailable reconciliation, missing ID or empty inventory is not not_applied evidence; "
                 "a new operation_id does not make a repeat safe."
             )
+        if item.get("status") == "uncertain" and not item.get("target"):
+            investigation = item.get("investigation") or {}
+            if investigation.get("next_action"):
+                item["next_action"] = investigation["next_action"]
     statuses = {item.get("status", "pending") for item in items}
     # An overall unknown outcome is itself evidence; do not downgrade it on read.
     if "uncertain" in statuses or record.get("status") == "uncertain":

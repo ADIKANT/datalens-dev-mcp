@@ -73,6 +73,27 @@ Another write attempt requires reliable `not_applied` evidence (a proven pre-dis
 
 Keep the original operation ID and receipt. Inspect its prepared identity/destination, client reference, significant fields and content hash; do not print full source. Reconcile exact targets when available. If reliable identity is unavailable, retain unknown and continue independent authorized work. Do not recreate the missing-ID object to finish a batch. A documented provider idempotency guarantee can permit replay with the same key, but the presence of an operation_id in this plugin is only a local receipt binding and is not such a guarantee.
 
+New workbook dashboard creates persist an opaque per-attempt correlation marker in
+`entry.meta.datalens_dev_mcp_create_id` and the final expected content before
+sending. A lost-ID result triggers one bounded read-only recovery scan; later
+`dl_operation_reconcile` uses the same marker automatically. Recovery requires a
+complete workbook inventory, all candidate reads and a unique matching marker,
+then full content readback. A match with changed content retains the recovered ID
+and applied effect, but does not report verified completion. Copies, partial
+reads and missing markers remain uncertain. Imported dashboards receive a fresh
+marker while retaining other metadata. This is not a provider idempotency key.
+
+Historical receipts without that marker cannot acquire it retroactively.
+`investigate_create=true` reports currently observed name candidates and coverage;
+no candidates means not observed now, not historical non-application. Repeat
+read-only investigation only when visibility or evidence changes. The API's
+`getAuditEntriesUpdates` lists last-updated entries, not transaction status by
+request ID; request/trace correlation requires provider audit evidence.
+
+The validator's dashboard wire artifact is the SDK template before the per-attempt
+metadata marker. Its report names the runtime-added field; the dispatched request
+hash may differ. The receipt freezes exact expected content before dispatch.
+
 `not_dispatched` with `not_applied` describes a proven preparation failure. A confirmed provider rejection may instead be `dispatched` with `not_applied`; a missing response, failed readback or possible earlier composite effect remains unknown. Inspect both per-item and overall outcomes; never replay completed items in a partial batch. Historical unknown receipts remain unknown without new evidence.
 
 For cleanup only, the typed `repeat_of` references provide the separately authorized repeat path described in [maintenance boundaries](../../datalens-maintenance/references/boundaries.md). Keep the original unknown receipts and current versions; do not substitute a new operation ID alone. A single SDK mutation that fails during connection or pool acquisition before request bytes is `not_dispatched`/`not_applied`. A write/read timeout, lost response, or later connection failure after an earlier composite effect remains unknown. No case adds automatic mutation retries.

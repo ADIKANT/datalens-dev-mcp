@@ -187,6 +187,12 @@ class ObjectMutationService:
                 draft = bind_object_references(draft, ids)
                 item["intent"] = _create_intent(draft, destination)
                 item["desired"] = _create_desired(draft)
+                prepare = getattr(self.backend, "prepare_create", None)
+                prepared = prepare(draft, destination) if callable(prepare) else None
+                if prepared is not None:
+                    draft = prepared["draft"]
+                    item["desired"] = _recordable(prepared["expected_readback"])
+                    item["create_recovery"] = _recordable(prepared["recovery"])
                 self._begin(record, item)
                 response = self.backend.create(draft, destination)
                 object_id = str(response.get("object_id") or response.get("id") or "")
@@ -216,7 +222,10 @@ class ObjectMutationService:
             except (DataLensApiError, ValueError, TypeError) as exc:
                 self._failure(item, exc)
             self._save(record)
-        return self._save(record)
+        result = self._save(record)
+        if any(item.get("status") == "uncertain" and item.get("create_recovery") for item in items):
+            return self.reconcile(record["operation_id"])
+        return result
 
     def update_objects(
         self, changes: list[dict[str, Any]], *, delivery_mode: str = "save", operation_id: str | None = None
@@ -418,8 +427,17 @@ class ObjectMutationService:
             object_type, object_id = str(target.get("object_type") or ""), str(target.get("object_id") or "")
             if not object_type or not object_id:
                 item["code"] = "identity_lookup_unavailable"
-                if investigate_create and record.get("effect") == "create":
+                if record.get("effect") == "create" and (investigate_create or item.get("create_recovery")):
                     self._investigate_create(item)
+                    if item.get("target"):
+                        # Persist the recovered identity before any further read.
+                        self._save(record)
+                        try:
+                            self._verify_readback(item, branch="saved")
+                            if item["status"] == "completed":
+                                item["code"] = "reconciled_applied"
+                        except (DataLensApiError, ValueError, TypeError) as exc:
+                            item.update(code="readback_unavailable", error=safe_error_text(exc))
                 continue
             if not record.get("provider_scope") and "legacy_scope_evidence" not in item:
                 retained = item.get("readback", {}).get("object", {})
@@ -465,41 +483,89 @@ class ObjectMutationService:
         return result
 
     def _investigate_create(self, item: dict[str, Any]) -> None:
-        """Append bounded candidate evidence; names/content never establish ownership."""
+        """Read bounded candidates; only a persisted per-create marker can attribute."""
         intent = item.get("intent") or {}
         workbook = intent.get("destination", {}).get("workbook_id")
+        recovery = item.get("create_recovery") or {}
+        marker = recovery.get("marker")
+        desired_entry = (item.get("desired") or {}).get("entry") or {}
+        desired_meta = desired_entry.get("meta") or {}
+        marked = (intent.get("object_type") == "dashboard" and recovery.get("kind") == "dashboard_meta_v1"
+                  and recovery.get("workbook_id") == workbook and isinstance(marker, str) and len(marker) == 32
+                  and all(c in "0123456789abcdef" for c in marker)
+                  and isinstance(desired_entry.get("data"), dict) and isinstance(desired_meta, dict)
+                  and desired_meta.get("datalens_dev_mcp_create_id") == marker)
+        limit = 50 if marked else 10
         evidence: dict[str, Any] = {
             "observed_at": datetime.now(UTC).isoformat(), "workbook_id": workbook,
             "method": "getWorkbookEntries_then_exact_saved_read", "attribution": "unavailable",
             "effect_outcome": "unknown", "candidate_count": 0, "inventory_complete": False,
-            "coverage": "At most 10 inventory pages and 10 same-name candidates; absence is not non-application",
-            "limitation": "Listing/readback/revision APIs do not expose a create request-ID ownership link",
+            "coverage": f"At most 10 inventory pages and {limit} candidate reads; absence is not non-application",
+            "limitation": ("Marker lookup requires complete inventory and every candidate read; copies are ambiguous"
+                           if marked else "Legacy request has no persisted correlation marker; names cannot prove ownership"),
             "candidates": [], "provider_writes": 0,
         }
+        matches = []
+        reads_complete = True
         if not workbook or not callable(getattr(self.reader, "workbook_entries", None)):
             evidence["code"] = "inventory_unavailable"
         else:
             try:
                 inventory = self.reader.workbook_entries(workbook, page_size=100, max_pages=10)
-                evidence.update(inventory_complete=inventory.get("complete") is True,
+                evidence.update(inventory_complete=inventory.get("complete") is True and inventory.get("ok") is True,
                                 page_count=inventory.get("page_count"), object_count=inventory.get("object_count"))
                 candidates = [entry for entry in inventory.get("objects", [])
                               if entry.get("object_type") == intent.get("object_type")
-                              and str(entry.get("name", "")).split("/", 1)[-1] == intent.get("name")]
-                evidence.update(candidate_count=len(candidates), candidates_truncated=len(candidates) > 10)
-                for candidate in candidates[:10]:
-                    row = {"object_id": candidate["id"], "match": "name_only", "attributed": False}
+                              and (marked or str(entry.get("name", "")).rsplit("/", 1)[-1] == intent.get("name"))]
+                evidence.update(candidate_count=len(candidates), candidates_truncated=len(candidates) > limit)
+                for candidate in candidates[:limit]:
+                    row = {"object_id": candidate["id"], "match": "none" if marked else "name_only", "attributed": False}
                     try:
                         current = self.reader.object_get(candidate["object_type"], candidate["id"], branch="saved")
                         entry = current.get("object", {}).get("entry", current.get("object", {}))
-                        row.update(revision_id=current.get("identity", {}).get("revision_id"),
-                                   workbook_matches=entry.get("workbookId") == workbook,
-                                   identity_verified=current.get("identity", {}).get("object_id") == candidate["id"])
+                        identity = current.get("identity") or {}
+                        valid = (_usable_full_read(current) and identity.get("object_id") == candidate["id"]
+                                 and identity.get("object_type") == intent.get("object_type")
+                                 and identity.get("branch") == "saved" and bool(identity.get("revision_id"))
+                                 and entry.get("workbookId") == workbook)
+                        row.update(revision_id=identity.get("revision_id"), workbook_matches=entry.get("workbookId") == workbook,
+                                   identity_verified=bool(valid))
+                        if not valid:
+                            reads_complete = False
+                        meta = entry.get("meta")
+                        if marked and isinstance(meta, dict) and meta.get("datalens_dev_mcp_create_id") == marker:
+                            row["match"] = "persisted_create_marker"
+                            if valid:
+                                matches.append(candidate["id"])
                     except (DataLensApiError, ValueError, TypeError) as exc:
+                        reads_complete = False
                         row["read_error"] = error_response(exc)["code"]
                     evidence["candidates"].append(row)
+                evidence["candidate_reads_complete"] = reads_complete and len(candidates) <= limit
+                if marked and evidence["inventory_complete"] and evidence["candidate_reads_complete"] and len(matches) == 1:
+                    previous = deepcopy(item)
+                    previous.pop("history", None)
+                    previous.pop("investigation_history", None)
+                    item.setdefault("history", []).append(previous)
+                    item["target"] = {"object_type": "dashboard", "object_id": matches[0]}
+                    item["effect_outcome"] = "applied"
+                    item["effect_evidence"] = "persisted_create_marker_and_full_readback"
+                    evidence.update(attribution="persisted_create_marker", effect_outcome="applied")
+                    for row in evidence["candidates"]:
+                        row["attributed"] = row["object_id"] == matches[0]
+                elif marked:
+                    evidence["code"] = ("ambiguous_create_marker" if len(matches) > 1 else
+                                        "create_marker_not_observed" if not matches else "incomplete_candidate_evidence")
             except (DataLensApiError, ValueError, TypeError) as exc:
                 evidence["read_error"] = error_response(exc)["code"]
+        evidence["presence"] = ("attributed" if evidence["attribution"] != "unavailable" else
+                                "candidates_observed" if evidence["candidate_count"] else "not_observed")
+        if not item.get("target"):
+            evidence["next_action"] = (
+                "Read-only reconciliation may be repeated after new evidence or restored visibility; never repeat create. "
+                "For an old unmarked request, obtain provider request/trace correlation; current absence does not "
+                "establish its historical transaction outcome."
+            )
         item.setdefault("investigation_history", []).append(evidence)
         item["investigation"] = evidence
 
