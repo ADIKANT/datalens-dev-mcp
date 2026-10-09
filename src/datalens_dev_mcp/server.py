@@ -776,7 +776,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "dl_operation_reconcile",
-        "description": "Reconcile by exact target readback without replay. ACKed historical updates may resolve with unverified content; new changes require fresh CAS. Unknown effects and connection provisioning remain held. investigate_create=true appends bounded workbook/name candidate evidence without assigning ownership or replaying.",
+        "description": "Reconcile by exact target readback without replay. ACKed historical updates may resolve with unverified content; new changes require fresh CAS. Unknown effects and connection provisioning remain held. New workbook dashboard creates recover by a persisted metadata marker and full readback, without replay. investigate_create=true also investigates legacy unmarked creates by name; names or absence never establish effect.",
         "inputSchema": {
             "type": "object",
             "properties": {"operation_id": {"type": "string", "minLength": 1},

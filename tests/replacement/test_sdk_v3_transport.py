@@ -1189,3 +1189,87 @@ def test_sdk_dataset_raw_replacement_still_drops_inner_revision():
     payload = dataset_content_from_snapshot(DatasetSnapshotView.from_raw(original))
     assert "revision_id" not in payload
     assert original["dataset"]["revision_id"] == "I1"
+
+
+@pytest.mark.parametrize('installation', ['yacloud', 'enterprise'])
+@pytest.mark.parametrize('failure', ['server_error', 'lost_response'])
+@pytest.mark.parametrize('evidence', ['unique', 'absent', 'duplicate', 'partial', 'unreadable', 'wrong_workbook', 'drift'])
+@pytest.mark.parametrize('raw_import', [False, True])
+def test_dashboard_create_recovers_provider_identity_after_lost_ack(install_runtime, installation, failure, evidence, raw_import):
+    from datalens_dev_mcp.operation_store import OperationStore
+
+    class LostAck(Provider):
+        def handle(self, request):
+            method = request.url.path.rsplit('/', 1)[-1]
+            payload = json.loads(request.content)
+            if method == 'createDashboard':
+                self.writes.append((method, payload))
+                retained = OperationStore().get('recover-create')['results'][0]
+                self.pre_dispatch = retained
+                self.state['entry'].update(deepcopy(payload['entry']))
+                if failure == 'lost_response':
+                    raise httpx.ReadTimeout('synthetic lost acknowledgement', request=request)
+                return httpx.Response(500, json={'code': 'INTERNAL_ERROR'})
+            if method == 'getWorkbookEntries':
+                entries = [{'entryId': 'synthetic-dashboard', 'scope': 'dash', 'type': '',
+                            'key': 'Renamed after creation', 'workbookId': 'synthetic-workbook'}]
+                if evidence in {'duplicate', 'unreadable'}:
+                    entries.append({**entries[0], 'entryId': 'second'})
+                return httpx.Response(200, json={'entries': entries,
+                                                'nextPageToken': 'more' if evidence == 'partial' else ''})
+            if method == 'getDashboard':
+                value = deepcopy(self.state)
+                value['entry']['entryId'] = payload['dashboardId']
+                if evidence == 'unreadable' and payload['dashboardId'] == 'second':
+                    return httpx.Response(403, json={'code': 'FORBIDDEN'})
+                if evidence == 'absent':
+                    value['entry']['meta'] = {}
+                if evidence == 'wrong_workbook':
+                    value['entry']['workbookId'] = 'other-workbook'
+                if evidence == 'drift':
+                    value['entry']['data']['tabs'][0]['title'] = 'Manual change'
+                return httpx.Response(200, json=value)
+            return super().handle(request)
+
+    provider = LostAck(dashboard_state())
+    install_runtime(provider, installation)
+    draft = {'client_ref': 'd', 'object_type': 'dashboard', 'name': 'Synthetic',
+             'dashboard': {'tabs': [{'title': 'Recovery', 'tab_id': 'recovery', 'items': [
+                 {'kind': 'text', 'item_id': 'text', 'text': 'Synthetic', 'at': [0, 0, 36, 4]}]}]}}
+    if raw_import:
+        draft.pop('dashboard')
+        draft['snapshot'] = dashboard_state()
+        draft['snapshot']['entry']['meta'] = {'user_setting': 'preserved', 'datalens_dev_mcp_create_id': 'source-marker'}
+    result = call_tool('dl_object_create', {'drafts': [draft],
+        'destination': {'workbook_id': 'synthetic-workbook'}, 'operation_id': 'recover-create'})
+    if raw_import:
+        sent_meta = provider.writes[0][1]['entry']['meta']
+        assert sent_meta['user_setting'] == 'preserved'
+        assert sent_meta['datalens_dev_mcp_create_id'] != 'source-marker'
+    item = result['results'][0]
+    if evidence != 'unique':
+        assert result['status'] == 'uncertain', result
+        if evidence == 'drift':
+            assert item['target']['object_id'] == 'synthetic-dashboard'
+            assert item['effect_outcome'] == 'applied' and not item.get('write_verified')
+        else:
+            assert 'target' not in item and item['effect_outcome'] == 'unknown'
+        assert len(provider.writes) == 1
+        if evidence == 'absent':
+            # A later explicit reconcile uses the persisted marker after restart;
+            # the provider became visible, with no resubmitted mutation.
+            evidence = 'unique'
+            recovered = call_tool('dl_operation_reconcile', {'operation_id': 'recover-create'})
+            assert recovered['status'] == 'completed', recovered
+            assert len(provider.writes) == 1
+        return
+    assert result['status'] == 'completed', json.dumps(result, indent=2)
+    assert item['target']['object_id'] == 'synthetic-dashboard'
+    assert item['effect_evidence'] == 'persisted_create_marker_and_full_readback'
+    assert item['verification_checks']['content'] is True
+    assert provider.pre_dispatch['desired']['entry']['data'] == provider.writes[0][1]['entry']['data']
+    marker = provider.pre_dispatch['create_recovery']['marker']
+    assert provider.writes[0][1]['entry']['meta']['datalens_dev_mcp_create_id'] == marker
+    assert len(provider.writes) == 1
+    again = call_tool('dl_operation_reconcile', {'operation_id': 'recover-create'})
+    assert again['status'] == 'completed' and len(provider.writes) == 1
