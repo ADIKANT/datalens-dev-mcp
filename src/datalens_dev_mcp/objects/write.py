@@ -77,6 +77,9 @@ def semantic_diff(current: Any, proposed: Any, path: str = "") -> list[dict[str,
 def _json_equal(current: Any, proposed: Any) -> bool:
     # Python equates True with 1, including inside lists. These are different
     # JSON values and cannot authorize skipping a requested change.
+    # JSON has one number type: providers may serialize SDK 18.0 as 18.
+    if type(current) in (int, float) and type(proposed) in (int, float):
+        return current == proposed
     if type(current) is not type(proposed):
         return False
     if isinstance(current, dict):
@@ -728,7 +731,8 @@ class ObjectMutationService:
                 expected_tokens = html_semantic_content(authored)
                 skip_csp = expected_tokens == html_semantic_content(authored, ignore_injected_csp=True)
                 desired_intent["content"] = expected_tokens
-                actual_intent["content"] = html_semantic_content(actual_intent["content"], ignore_injected_csp=skip_csp)
+                actual_intent["content"] = html_semantic_content(
+                    actual_intent["content"], ignore_injected_csp=skip_csp, ignore_provider_policy=True)
             item["content_status"] = readback.get("content_status", "unavailable")
         metadata_publish = target["object_type"] == "html_page" and bool(item.get("required_published_revision"))
         complete = _usable_full_read(readback) or (metadata_publish and readback.get("metadata_verified") is True)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from html.parser import HTMLParser
 from typing import Any
 
@@ -46,7 +47,19 @@ def read_html_preview(url: str) -> str:
         raise DataLensApiError("HTML preview could not be read as bounded UTF-8 content", stage="html_content_read") from exc
 
 
-def html_semantic_content(content: str, *, ignore_injected_csp: bool = False) -> list[Any]:
+def html_semantic_content(content: str, *, ignore_injected_csp: bool = False,
+                          ignore_provider_policy: bool = False) -> list[Any]:
+    # Exact provider policy v3 observed in a controlled preview. Markers alone
+    # cannot authorize ignoring arbitrary CSS/JavaScript or authored content.
+    if ignore_provider_policy and content.startswith("<!DOCTYPE html>\n<!--datalens-html-policy:start-->\n"):
+        marker = "<!--datalens-html-policy:end-->\n"
+        end = content.find(marker)
+        if end != -1:
+            end += len(marker)
+            digest = hashlib.sha256(content[:end].encode("utf-8")).hexdigest()
+            if digest == "1b3f0c8274747fbc373da514130f4dc700f6bda7ff7e0e0e8da09536ab09a664":
+                content = content[end:]
+
     class Document(HTMLParser):
         def __init__(self):
             super().__init__(convert_charrefs=True)

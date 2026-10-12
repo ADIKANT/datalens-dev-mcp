@@ -174,3 +174,18 @@ def test_admin_boundary_does_not_claim_license_revoke() -> None:
 @pytest.fixture(autouse=True)
 def isolated_cleanup_receipts(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path))
+
+
+def test_html_provider_policy_envelope_preserves_authored_semantics():
+    from datalens_dev_mcp.maintenance import html_semantic_content
+
+    # Public provider policy v3 envelope; document body is synthetic.
+    prefix = '<!DOCTYPE html>\n<!--datalens-html-policy:start-->\n<meta charset="utf-8">\n<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://yastatic.net https://api-maps.yandex.ru https://*.api-maps.yandex.ru https://*.maps.yandex.net https://suggest-maps.yandex.ru \'unsafe-inline\' \'unsafe-eval\'; style-src https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://yastatic.net https://fonts.googleapis.com \'unsafe-inline\' blob:; img-src https://yastatic.net https://api-maps.yandex.ru https://*.api-maps.yandex.ru https://*.maps.yandex.net https://suggest-maps.yandex.ru https://yandex.ru/clck/ data: blob:; font-src https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; media-src data: blob:; connect-src https://api-maps.yandex.ru https://*.api-maps.yandex.ru https://*.maps.yandex.net https://suggest-maps.yandex.ru; form-action \'none\'; frame-src \'none\'; object-src \'none\'; worker-src \'none\'; base-uri \'none\'">\n<style>html{overflow:hidden}</style>\n<script>(function(){function h(){var b=document.body;parent.postMessage({code:\'HEIGHT\',data:{contentHeight:b.getBoundingClientRect().top+b.scrollHeight+parseFloat(getComputedStyle(b).marginBottom)}},\'*\')}function init(){new ResizeObserver(h).observe(document.body);h()}document.readyState===\'loading\'?document.addEventListener(\'DOMContentLoaded\',init):init()})()</script>\n<!--datalens-html-policy:end-->\n'
+    authored = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>Пример</body></html>'
+    assert html_semantic_content(prefix + authored, ignore_provider_policy=True) == html_semantic_content(authored)
+    changed = prefix.replace('overflow:hidden', 'overflow:visible')
+    assert html_semantic_content(changed + authored, ignore_provider_policy=True) != html_semantic_content(authored)
+    assert html_semantic_content(prefix + authored.replace('Пример', 'Changed'), ignore_provider_policy=True) != html_semantic_content(authored)
+    explicit = authored.replace('<head>', '<head><meta http-equiv="Content-Security-Policy" content="default-src none">')
+    assert html_semantic_content(prefix + explicit, ignore_provider_policy=True) == html_semantic_content(explicit)
+    assert html_semantic_content(prefix + authored, ignore_provider_policy=True) != html_semantic_content(explicit)

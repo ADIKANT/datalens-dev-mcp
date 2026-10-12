@@ -360,3 +360,17 @@ def test_l06_exposes_only_direct_lifecycle_tools() -> None:
     assert schemas["dl_object_diff"]["annotations"]["readOnlyHint"] is True
     assert schemas["dl_object_create"]["annotations"]["idempotentHint"] is False
     assert "task" not in " ".join(schemas).lower()
+
+
+def test_numeric_readback_accepts_equal_json_numbers_but_not_booleans(tmp_path):
+    expected = {"data": {"layout": [{"x": 0.0, "w": 18.0}]}}
+    for label, x, completed in [("number", 0, True), ("boolean", False, False), ("changed", 1, False)]:
+        actual = {"id": "chart-1", "data": {"layout": [{"x": x, "w": 18}]}}
+        reader = FakeReader({("editor_chart", "chart-1", "saved"): [rb("editor_chart", "chart-1", "r1", actual)]})
+        backend = FakeBackend([{"object_id": "chart-1", "expected_readback": expected}])
+        result = service(tmp_path / label, reader, backend).create_objects(
+            [{"client_ref": "c1", "object_type": "editor_chart", "name": "Synthetic", "snapshot": expected}],
+            {"workbook_id": "wb-1"}, operation_id="numeric-" + label)
+        assert result["results"][0].get("write_verified", False) is completed
+        assert bool(result["results"][0]["readback_diff"]) is not completed
+        assert len(backend.calls) == 1
