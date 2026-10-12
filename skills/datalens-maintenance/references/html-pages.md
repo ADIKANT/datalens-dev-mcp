@@ -12,7 +12,7 @@ Create/update uses the existing typed write owner and semantic content readback.
 
 Use explicit saved/published selection; preview defaults must not choose the branch implicitly. Local artifact, content-checked revision, publication and platform render are distinct evidence. Verify theme/lang and the requested interaction in Browser for visible Page changes.
 
-## Author against## Author against the confirmed Page contract
+## Author against the confirmed Page contract
 
 The pinned upstream Page reference describes an opaque-origin iframe with `sandbox=allow-scripts` and injected CSP. It permits approved static resources while blocking data-network calls. Verify applicability to the target installation before relying on these details:
 
