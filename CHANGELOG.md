@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.34
+
+- Correct the dashboard skill's native connection example to use chart-tab wire IDs and receiver-first ignore direction; distinguish native patches from logical SDK composition.
+
 ## 1.2.33
 
 - Compare equal JSON numbers independently of integer/float serialization while keeping booleans distinct; dashboard geometry no longer produces false readback mismatches.

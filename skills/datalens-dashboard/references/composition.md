@@ -118,7 +118,7 @@ of the tool arguments.
           "update": [{"i": "revenue", "patch": {"y": 4, "h": 10}}]
         },
         "connections": {
-          "add": [{"from": "region-selector", "to": "revenue", "kind": "ignore"}]
+          "add": [{"from": "revenue-chart-tab", "to": "region-selector", "kind": "ignore"}]
         }
       }]
     }
@@ -136,6 +136,15 @@ updates preserve position and unknown fields. Missing/ambiguous targets, existin
 add identities and repeated identities in one request fail before dispatch.
 Patches cannot change identity keys. Widget deletion does not cascade: include
 the requested layout and connection removals explicitly.
+
+For this native patch, connection endpoints are wire IDs from saved readback:
+use a widget's `data.tabs[].id`, a grouped selector's `data.group[].id`, or a
+standalone control's item ID. Widget/group wrapper IDs are not wire endpoints.
+`from` is the receiver that ignores parameters from `to`; the example stops the
+`revenue-chart-tab` chart tab receiving `region-selector` parameters. Native
+edges require `kind: "ignore"`; add the reverse edge explicitly for mutual
+isolation. Unlike the logical composition form below, native patches do not
+expand wrapper IDs or a `mutual` flag.
 
 A tab's `patch` supports `title`, `aliases` and `settings`. Mapping values merge;
 explicitly supplied nested arrays replace their addressed value, so preserve
@@ -181,7 +190,9 @@ instead of `dataset_id`/`field`. Members support SDK selector options, stable ID
 relative intervals. An interval default enables range selection; explicit
 `is_range: false` conflicts with it. Preserve wrapper `show_on_tabs`, apply/reset
 settings and member order. Tab `aliases` is an array of field/parameter-name arrays;
-`connections` contains `from`, `to`, optional `mutual` ignore edges. Empty
+The logical composition form's `connections` contains `from`, `to`, optional
+`mutual` ignore edges; SDK builders expand widget/group IDs to wire endpoints.
+Here too, `from` is the receiver that ignores `to`. Empty
 connections retain the native broadcast behavior. Chart `params` must not mask
 selector defaults. External Editor selectors stay standalone: the provider does
 not support them inside native groups.
