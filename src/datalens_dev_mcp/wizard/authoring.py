@@ -5,16 +5,13 @@ from collections.abc import Mapping
 from copy import deepcopy
 from typing import Any
 
-from datalens_sdk import DataLensClientYC, Dataset, WizardLocalField, Workbook
-from datalens_sdk.converter.wizard import WizardChartConverter
+from datalens_sdk import Dataset
 
 from datalens_dev_mcp.api.sdk_adapter import SDK_VERSION, WIZARD_VARIANTS
 from datalens_dev_mcp.authoring.profiles import get_authoring_defaults
 from datalens_dev_mcp.dataset.contracts import (
     TECHNICAL_MEASURES,
-    validate_dataset_fields,
     validate_visualization_fields,
-    wire_fields,
 )
 
 
@@ -174,9 +171,14 @@ def resolve_wizard_presentation(specification: Mapping[str, Any]) -> tuple[dict[
             measures = roles.get("x" if visualization in {"bar", "bar_100p"} else "y", []) + roles.get("y2", [])
             if len(measures) > 1 and visualization in {"line", "column"} and "measure_colors" not in result:
                 palette = ("#4E79A7", "#F28E2B", "#E15759", "#76B7B2", "#59A14F", "#EDC948", "#B07AA1", "#FF9DA7")
-                colors = {guid: palette[int(hashlib.sha256(guid.encode()).hexdigest(), 16) % len(palette)] for guid in measures}
-                if len(set(colors.values())) != len(colors):
-                    raise ValueError("wizard/measure_colors: finite palette collision; supply explicit stable GUID-to-color assignments")
+                colors = {}
+                for guid in sorted(set(measures)):
+                    start = int(hashlib.sha256(guid.encode()).hexdigest(), 16) % len(palette)
+                    available = [palette[(start + offset) % len(palette)] for offset in range(len(palette))
+                                 if palette[(start + offset) % len(palette)] not in colors.values()]
+                    colors[guid] = available[0] if available else palette[start]
+                if len(colors) > len(palette):
+                    profile.setdefault("advisories", []).append("Default palette repeats after eight measures; explicit measure_colors may improve distinction.")
                 result["measure_colors"] = colors
             if values["labels"].get("visible") and "labels" not in roles:
                 roles["labels"] = deepcopy(measures)
@@ -188,93 +190,7 @@ def resolve_wizard_presentation(specification: Mapping[str, Any]) -> tuple[dict[
         result["grid"] = {"x": grid["x_grid"], "y": grid["y_grid"], **result.get("grid", {})}
         if visualization == "line":
             result["grid"].setdefault("y2", False)
-        categorical = "y" if visualization in {"bar", "bar_100p"} else "x"
-        if result["grid"].get(categorical):
-            raise ValueError(f"wizard/grid/{categorical}: categorical grid must be disabled")
-        if any(result["grid"].values()):
-            reason = result.get("grid_reason") or grid.get("reason")
-            if visualization not in {"line", "column"} or not isinstance(reason, str) or not reason.strip():
-                raise ValueError("wizard/grid: numeric grid requires line/column and a concrete grid_reason")
     return result, profile
-
-
-def compile_wizard_create(
-    *,
-    visualization: str,
-    name: str,
-    workbook_id: str,
-    dataset_id: str,
-    fields: list[dict[str, Any]],
-    roles: dict[str, list[str]],
-    title: str = "",
-    local_fields: list[dict[str, Any]] | None = None,
-) -> dict[str, Any]:
-    report = validate_dataset_fields(fields)
-    issues = list(report["issues"])
-    selected = [guid for guids in roles.values() for guid in guids]
-    issues.extend(validate_visualization_fields(fields + (local_fields or []), selected)["issues"])
-    if visualization not in WIZARD_VARIANTS:
-        issues.append(
-            {
-                "code": "wizard_visualization_unsupported",
-                "path": "visualization",
-                "message": f"unsupported SDK visualization: {visualization}",
-            }
-        )
-    field_rows = wire_fields(fields)
-    known = {str(item["guid"]): item for item in field_rows}
-    for role, guids in roles.items():
-        for guid in guids:
-            if guid.lower() in TECHNICAL_MEASURES:
-                issues.append(
-                    {
-                        "code": "technical_measure_role_requires_sdk_operation",
-                        "path": f"roles.{role}",
-                        "message": "technical measures must use a documented SDK chart operation",
-                    }
-                )
-            elif guid not in known:
-                issues.append(
-                    {
-                        "code": "wizard_field_guid_unknown",
-                        "path": f"roles.{role}",
-                        "message": f"field GUID is absent from Dataset readback: {guid}",
-                    }
-                )
-    if issues:
-        return {"ok": False, "issues": issues, "sdk_version": SDK_VERSION, "dataset_fields": field_rows}
-
-    dataset = Dataset(id=dataset_id, result_schema=tuple(field_rows))
-    client = DataLensClientYC(auth=None)
-    try:
-        builder = wizard_builder(client, dataset, {
-            "dataset_id": dataset_id, "visualization": visualization, "roles": roles, "title": title,
-        }, name=name, location=Workbook.workbook(workbook_id))
-        for item in local_fields or []:
-            builder.add_local_field(WizardLocalField(
-                title=str(item["title"]),
-                formula=str(item["formula"]),
-                guid=str(item["guid"]),
-                cast=str(item.get("cast") or "float"),
-                type="MEASURE" if item.get("measure") else "DIMENSION",
-                autoaggregated=False,
-                aggregation=str(item.get("aggregation") or "none"),
-            ))
-        payload = WizardChartConverter.from_domain_create(builder.to_spec()).to_payload()
-    except (ValueError, TypeError) as exc:
-        return {"ok": False, "issues": [{"code": "wizard_compilation_invalid", "path": "wizard", "message": str(exc)}],
-                "sdk_version": SDK_VERSION, "dataset_fields": field_rows}
-    finally:
-        client.close()
-    return {
-        "ok": True,
-        "issues": [],
-        "sdk_version": SDK_VERSION,
-        "sdk_factory": f"wizard_chart.{visualization}",
-        "dataset_fields": field_rows,
-        "payload": payload,
-        "partial_fields_shape": inspect_wizard_shape(payload["data"])["partial_fields_shape"],
-    }
 
 
 def inspect_wizard_shape(data: Mapping[str, Any]) -> dict[str, Any]:

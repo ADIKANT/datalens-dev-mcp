@@ -9,7 +9,7 @@ or generic write gateway is introduced.
 
 The dependency is `datalens-sdk==3.2.0`, from the official
 [datalens-tech/datalens-sdk release](https://github.com/datalens-tech/datalens-sdk/releases/tag/v3.2.0).
-The stable release was checked on 2026-10-08 and resolves to commit
+The stable release was checked again on 2026-10-12 and resolves to commit
 `f173ae3eec6d62db924ab03afe7773896a238f15` (annotated tag object
 `730db4107785c1f7e9b9a8563d1da3a5bfbb792a`). PyPI and GitHub artifacts agree:
 wheel SHA256 `935bc0132a2211cba86ee28ca1d9b7f030df6fdc6c961b0d42ceb24bee27bba3`,
@@ -59,7 +59,7 @@ existing MCP identity/branch/full-state projection.
 | Public request | Adapter / SDK contract | Endpoint and preservation |
 |---|---|---|
 | Dataset create | Existing typed source/field builder | `createDataset`; installed installation-specific DTOs |
-| Dataset full or narrow update | Real SDK `get.dataset` plus the existing narrow full-state adapter | `updateDataset`, `datasetId` + `data.dataset`; outer saved revision and inner `dataset.revision_id` checked independently |
+| Dataset full or narrow update | Real SDK `get.dataset` plus the existing narrow full-state adapter | `updateDataset`, `datasetId` + `data.dataset` + explicit `data.mode`; outer saved revision and inner `dataset.revision_id` checked independently |
 | Wizard create/update | Typed GUID-based create builders; SDK raw replacement of document **V1** | `createWizardChart` / `updateWizardChart`; `sources.datasetsIds`, GUID+dataset handles, ordered visualization slots |
 | Editor create/update | Renderer builder / raw replacement, with changed-tab validation against generated update carriers | `createEditorChart` / `updateEditorChart`; preserve untouched tabs, `meta` aliases, links, unknown unchanged fields; SDK strips UI-managed secrets |
 | Dashboard create/update | Typed `DashboardTab` or guarded V2 snapshot / SDK raw replacement | `createDashboard` / `updateDashboard`; 36-column geometry, explicit tabs, IDs, order, hidden state, selectors and bindings remain intact |
@@ -101,15 +101,17 @@ Exact publication returns through `publish_revision` before raw replacement.
   supported for table/Gravity/selector and rejected for Markdown/Advanced;
   the adapter checks introduced or changed tabs against the installed carriers. Legacy secrets are stripped by
   SDK reads/replacements; attempts to introduce UI-managed fields are rejected.
-- HTML Page method names exist in both upstream specifications, but
-  `GetHtmlPageResult` provides metadata and `meta.objectId`, not HTML content.
-  The adapter rejects Page creation/content updates before dispatch because it
-  cannot prove content readback. Keep a local UTF-8 HTML artifact instead.
-  Metadata and revision publication do not certify Page content or rendering.
-  No new content-fetch/upload endpoint is invented. Editor HTML remains a
-  separate renderer contract.
-- Dataset, connection and workbook have no separate supported publish branch.
-  Save-only never invokes publication. QL publish proves the saved content
+- HTML Page metadata selects identity and revision; official SDK `get.html_page_preview_url`
+  selects that exact revision. A separate credential-free HTTPS client consumes the
+  temporary URL with bounded time/bytes, no redirects, and UTF-8 HTML checks. Signed
+  URLs are not persisted. Content comparison permits injected CSP only when absent
+  from authored HTML; other content must match. An unavailable preview never proves
+  content correctness. Existing-revision publication is verified independently by
+  `publishedId`; rendering remains separate. Editor HTML has its own runtime.
+- Dataset saved/published/exact-revision reads use SDK branch pointers. Explicit
+  `dl_object_update(delivery_mode="publish")` writes content as a new revision;
+  Dataset cannot promote an existing revision through `dl_object_publish`.
+  Connections and workbooks remain unbranched. Save-only never invokes publication. QL publish proves the saved content
   sent and the published content read back; it does not claim publication of an
   unchanged revision ID. Dashboard, Wizard and Editor require exact revision readback.
 - Preview zero rows means the bounded query returned zero rows, not that its

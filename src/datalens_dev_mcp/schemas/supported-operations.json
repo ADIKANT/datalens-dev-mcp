@@ -24,9 +24,10 @@
     {"method": "getWizardChart", "experimental": true, "backend": "official_sdk", "effect": "read", "verified": "sdk_3.2.0", "api_version": "3", "authorization_scope": "read", "documentation_snapshot": "2026-10-01"},
     {"method": "getEditorChart", "backend": "official_sdk", "effect": "read", "verified": "sdk_3.2.0", "api_version": "3", "authorization_scope": "read", "documentation_snapshot": "2026-10-01"},
     {"method": "getDashboard", "backend": "official_sdk", "effect": "read", "verified": "sdk_3.2.0", "api_version": "3", "authorization_scope": "read", "documentation_snapshot": "2026-10-01"},
-    {"method": "createHtmlPage", "backend": "public_api_adapter", "effect": "write", "verified": "schema", "readback_required": true, "api_version": "3", "adapter_support": "unsupported_content_readback", "limitation": "API metadata does not expose HTML content; content authoring is rejected before dispatch.", "authorization_scope": "write", "documentation_snapshot": "2026-10-01"},
+    {"method": "createHtmlPage", "backend": "official_sdk", "effect": "write", "verified": "sdk_3.2.0", "readback_required": true, "api_version": "3", "adapter_support": "content_save", "limitation": "Content verification requires exact-revision preview storage access in the selected installation.", "authorization_scope": "write", "documentation_snapshot": "2026-10-01"},
     {"method": "getHtmlPage", "backend": "public_api_adapter", "effect": "read", "verified": "schema", "api_version": "3", "authorization_scope": "read", "documentation_snapshot": "2026-10-01", "documented_options": {"audit_header": "x-dl-audit-mode: true"}, "audit_support": "documented_only; no authorized HTML Page available for provider verification"},
-    {"method": "updateHtmlPage", "backend": "public_api_adapter", "effect": "write", "verified": "schema", "readback_required": true, "api_version": "3", "adapter_support": "publish_existing_revision_only", "limitation": "API metadata does not expose HTML content; content authoring is rejected before dispatch.", "authorization_scope": "write", "documentation_snapshot": "2026-10-01"},
+    {"method": "getHtmlPagePreviewUrl", "backend": "official_sdk", "effect": "read", "verified": "sdk_3.2.0", "api_version": "3", "authorization_scope": "read", "limitation": "Temporary storage URL; consumed immediately without API credentials and never persisted."},
+    {"method": "updateHtmlPage", "backend": "public_api_adapter", "effect": "write", "verified": "schema", "readback_required": true, "api_version": "3", "adapter_support": "content_save_and_existing_revision_publish", "limitation": "Content and rendered verification are separate from publication pointer verification.", "authorization_scope": "write", "documentation_snapshot": "2026-10-01"},
     {"method": "deleteHtmlPage", "backend": "public_api_adapter", "effect": "delete", "verified": "schema", "readback_required": true, "api_version": "3", "authorization_scope": "privileged", "documentation_snapshot": "2026-10-01"},
     {"method": "getLicenses", "backend": "public_api_adapter", "effect": "read", "verified": "schema", "api_version": "3", "authorization_scope": "read", "documentation_snapshot": "2026-10-01"},
     {"method": "getLicensesLimit", "backend": "public_api_adapter", "effect": "read", "verified": "schema", "api_version": "3", "authorization_scope": "read", "documentation_snapshot": "2026-10-01"},
@@ -45,6 +46,7 @@
       "example": {
         "datasetId": "synthetic-dataset",
         "data": {
+          "mode": "save",
           "dataset": {
             "revision_id": "observed-inner-revision",
             "description": "Updated description",

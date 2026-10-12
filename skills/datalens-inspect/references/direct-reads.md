@@ -77,3 +77,7 @@ Use the operation's compact intent, scope, stage, effect and current error first
 `include_detail=true` retains historical evidence. For missing create IDs,
 `dl_operation_reconcile(..., investigate_create=true)` adds bounded candidate reads
 without claiming ownership or replaying. Full inventory absence cannot close cleanup.
+
+## Continuing bounded reads
+
+Workbook lists and entries return `continuation` scoped to the same filters and page size. Pass it unchanged to the same tool; each response contains only that bounded slice. Snapshot continuation retains unresolved hydration even after the last relations page. Completeness covers the observed pages, not an atomic workbook snapshot. Reconciliation of missing create IDs retains candidate progress across calls; it performs reads only and never replays the create. A released sender lease plus durable pre-dispatch state can prove non-dispatch; an old receipt or missing candidate alone cannot.

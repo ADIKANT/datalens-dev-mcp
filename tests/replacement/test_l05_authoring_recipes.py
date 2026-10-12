@@ -238,6 +238,14 @@ def test_editor_validation_rejects_node_sql_lib_and_duplicate_aliases() -> None:
     assert {"unsupported_sql_library", "source_alias_duplicate"}.issubset(codes)
 
 
+def test_editor_comments_literals_and_constant_callback_do_not_block():
+    from datalens_dev_mcp.editor.validation import validate_editor_source
+
+    assert validate_editor_source({"prepare.js": "// Example: wrapFn(() => 1)\nmodule.exports = 1;"}) == []
+    assert validate_editor_source({"prepare.js": "// require('libs/sql/v1')\nconst x = 'libs/sql/v1';"}) == []
+    assert validate_editor_source({"prepare.js": "Editor.wrapFn(() => 1)"}) == []
+
+
 def test_public_python_and_mcp_use_same_authoring_function() -> None:
     assert public_compile_recipe is compile_recipe
     schemas = {tool["name"]: tool for tool in list_tools()}

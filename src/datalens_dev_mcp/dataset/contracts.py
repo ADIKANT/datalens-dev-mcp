@@ -10,6 +10,11 @@ TECHNICAL_MEASURES = frozenset({"measure names", "measure values"})
 _LOD_RE = re.compile(r"\b(FIXED|INCLUDE|EXCLUDE)\b", re.IGNORECASE)
 _TIME_RE = re.compile(r"\b(AGO|AT_DATE)\s*\(", re.IGNORECASE)
 _AGG_RE = re.compile(r"\b(SUM|AVG|MIN|MAX|COUNT|COUNTD|COUNTUNIQUE)\s*\(", re.IGNORECASE)
+_FORMULA_NONCODE = re.compile(r"'(?:\\.|''|[^'\\])*'|\"(?:\\.|\"\"|[^\"\\])*\"|/\*[\s\S]*?\*/|--[^\n]*|//[^\n]*|\[[^\]]*\]")
+
+
+def _formula_code(formula: str, *, retain_fields: bool = False) -> str:
+    return _FORMULA_NONCODE.sub(lambda m: m[0] if retain_fields and m[0].startswith("[") else " " * len(m[0]), formula)
 
 
 def dataset_validation_summary(dataset: Mapping[str, Any]) -> dict[str, Any]:
@@ -71,7 +76,7 @@ def validate_provider_dataset(api: Any, readback: dict[str, Any], *, refresh_sou
 
 
 def calculation_level(field: Mapping[str, Any]) -> str:
-    formula = str(field.get("formula") or "")
+    formula = _formula_code(str(field.get("formula") or ""))
     if _LOD_RE.search(formula):
         return "lod"
     if _TIME_RE.search(formula):
@@ -171,10 +176,10 @@ def validate_visualization_fields(fields: list[dict[str, Any]], field_guids: lis
         if field is None:
             continue
         selected.append(field)
-        for title in re.findall(r"\[([^\]]+)\]", str(field.get("formula") or "")):
+        for title in re.findall(r"\[([^\]]+)\]", _formula_code(str(field.get("formula") or ""), retain_fields=True)):
             if title in by_title:
                 pending.append(by_title[title])
-    formulas = [str(field.get("formula") or "") for field in selected]
+    formulas = [_formula_code(str(field.get("formula") or "")) for field in selected]
     if any(_LOD_RE.search(formula) for formula in formulas) and any(_TIME_RE.search(formula) for formula in formulas):
         issues.append(
             {

@@ -75,7 +75,7 @@ module.exports = function renderVersionMatrix(data, config) {
           });
         }
         const state = prepared && prepared.state ? prepared.state : rows.length ? 'ready' : 'no_data';
-        const messages = {loading: 'Loading…', error: 'Data unavailable', no_data: 'No data'};
+        const messages = {loading: 'Loading…', error: 'Data unavailable', no_data: 'No data', incomplete: 'Incomplete data: source row limit reached'};
         const title = presentation.visible_title || {};
         const spacing = Number.isFinite(Number(presentation.geometry.spacing))
           ? Math.max(0, Number(presentation.geometry.spacing)) : 8;

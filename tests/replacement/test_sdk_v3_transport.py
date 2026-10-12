@@ -71,6 +71,9 @@ class Provider:
                 self.state["dataset"]["revision_id"] = "I2"
             elif method == "createWizardChart":
                 self.state = wizard_state(payload["data"])
+            elif method == "updateHtmlPage":
+                if payload.get("mode") == "publish":
+                    self.state["publishedId"] = payload["revId"]
             elif method == "updateWizardChart":
                 # revId selects an existing revision; it is not a save CAS.
                 # Ordinary saves must omit it to persist their proposed data.
@@ -95,6 +98,8 @@ class Provider:
             if self.after_write:
                 self.after_write(self)
         value = deepcopy(self.state)
+        if method.endswith("Dataset") and "revId" in value:
+            value.setdefault("savedId", value["revId"])
         if method.endswith(("WizardChart", "EditorChart")) and "entry" not in value:
             value = {"entry": value}
         return httpx.Response(200, json=value)
@@ -155,7 +160,7 @@ def test_public_dataset_full_state_and_reconcile(install_runtime, installation):
     desired["description"] = "after"
     result = update("dataset", "synthetic-dataset", {"dataset": desired})
     assert result["results"][0]["status"] == "completed", json.dumps(result, indent=2)
-    assert provider.writes == [("updateDataset", {"datasetId": "synthetic-dataset", "data": {"dataset": desired}})]
+    assert provider.writes == [("updateDataset", {"datasetId": "synthetic-dataset", "data": {"dataset": desired, "mode": "save"}})]
     assert provider.state["dataset"]["future"] == initial["dataset"]["future"]
     assert all(headers["x-dl-api-version"] == "3" for _, _, headers in provider.requests)
     call_tool("dl_operation_reconcile", {"operation_id": "sdk-v3-update"})
@@ -167,6 +172,105 @@ def test_public_dataset_full_state_and_reconcile(install_runtime, installation):
     assert provider.reads == reads + 1 and len(provider.writes) == 1
     assert provider.state["dataset"]["obligatory_filters"] == initial["dataset"]["obligatory_filters"]
     assert result["results"][0]["changed_fields"] == ["/dataset/description"]
+
+
+def test_dataset_saved_published_history_and_content_publish(install_runtime):
+    class DatasetBranches(Provider):
+        def __init__(self):
+            super().__init__(dataset_state())
+            self.saved, self.published = "A1", "P1"
+            self.history = {"A1": deepcopy(self.state), "P1": deepcopy(self.state)}
+            self.history["P1"]["dataset"]["description"] = "published-before"
+
+        def handle(self, request):
+            payload = json.loads(request.content)
+            method = request.url.path.rsplit("/", 1)[-1]
+            self.requests.append((method, payload, dict(request.headers)))
+            if method == "updateDataset":
+                self.writes.append((method, payload))
+                assert payload["data"]["dataset"]["revision_id"] == self.history[self.saved]["dataset"]["revision_id"]
+                revision = f"A{len(self.writes) + 1}"
+                self.history[revision] = {"id": "synthetic-dataset", "dataset": deepcopy(payload["data"]["dataset"])}
+                self.history[revision]["dataset"]["revision_id"] = f"I{len(self.writes) + 1}"
+                self.saved = revision
+                if payload["data"]["mode"] == "publish":
+                    self.published = revision
+            elif method == "getDataset":
+                revision = payload.get("rev_id") or self.saved
+            else:
+                raise AssertionError(method)
+            value = deepcopy(self.history[revision])
+            value.update(revId=revision, savedId=self.saved, publishedId=self.published)
+            return httpx.Response(200, json=value)
+
+    provider = DatasetBranches()
+    install_runtime(provider)
+    def read(branch="saved", revision=None):
+        args = {"object_type": "dataset", "object_id": "synthetic-dataset", "branch": branch}
+        if revision:
+            args["revision_id"] = revision
+        return call_tool("dl_object_get", args)
+    assert read("published")["object"]["dataset"]["description"] == "published-before"
+    assert read()["object"]["dataset"]["description"] == "before"
+    saved = update("dataset", "synthetic-dataset", {"dataset": {"description": "saved-after"}}, operation="branch-save")
+    assert saved["results"][0]["write_verified"] is True, saved
+    assert provider.published == "P1"
+    published = call_tool("dl_object_update", {"changes": [{"object_type": "dataset", "object_id": "synthetic-dataset",
+        "expected_revision": "A2", "patch": {"dataset": {"description": "published-after"}}}],
+        "delivery_mode": "publish", "operation_id": "content-publish"})
+    assert published["results"][0]["write_verified"] is True, published
+    assert provider.published == provider.saved == "A3"
+    assert read("published")["object"]["dataset"]["description"] == "published-after"
+    assert read(revision="A1")["object"]["dataset"]["description"] == "before"
+    assert [payload["data"]["mode"] for _, payload in provider.writes] == ["save", "publish"]
+
+
+def test_source_refresh_preserves_guid_formula_and_requires_explicit_save(install_runtime):
+    initial = dataset_state()
+    initial["dataset"]["sources"] = [{"id": "source-guid", "valid": True,
+        "parameters": {"sql": "SELECT amount, category FROM synthetic"},
+        "raw_schema": [{"name": "amount", "user_type": "float"}]}]
+    initial["dataset"]["source_avatars"] = [{"id": "avatar-guid", "source_id": "source-guid"}]
+    for field in initial["dataset"]["result_schema"]:
+        field.update(title=field["guid"], valid=True)
+    initial["dataset"]["result_schema"][1].update(calc_mode="formula", formula="SUM([one])")
+    class RefreshProvider(Provider):
+        def handle(self, request):
+            payload = json.loads(request.content)
+            if request.url.path.endswith("validateDataset"):
+                assert payload["data"]["updates"] == [{"action": "refresh_source", "source": {
+                    "id": "source-guid", "force_update_fields": False}}]
+                validated = deepcopy(payload["data"]["dataset"])
+                validated["component_errors"] = {"items": []}
+                validated["sources"][0]["raw_schema"].append({"name": "category", "user_type": "string"})
+                return httpx.Response(200, json={"dataset": validated})
+            return super().handle(request)
+    provider = RefreshProvider(initial)
+    install_runtime(provider)
+    result = call_tool("dl_dataset_validate", {"dataset_id": "synthetic-dataset", "provider": True,
+        "refresh_source_ids": ["source-guid"], "include_provider_state": True})
+    assert result["ok"] is True and result["persisted"] is False, result
+    assert provider.writes == []
+    validated = result["validated_dataset"]
+    assert validated["result_schema"] == initial["dataset"]["result_schema"]
+    assert validated["source_avatars"] == initial["dataset"]["source_avatars"]
+    assert len(validated["sources"][0]["raw_schema"]) == 2
+    saved = update("dataset", "synthetic-dataset", {"dataset": validated}, expected_revision="A1")
+    assert saved["results"][0]["write_verified"] is True, saved
+    assert provider.state["dataset"]["result_schema"] == initial["dataset"]["result_schema"]
+
+
+def test_dataset_content_publish_requires_a_new_observed_revision(install_runtime):
+    initial = dataset_state()
+    initial["publishedId"] = "A1"
+    provider = Provider(initial)
+    provider.after_write = lambda value: setattr(value, "state", deepcopy(initial))
+    install_runtime(provider)
+    result = call_tool("dl_object_update", {"changes": [{"object_type": "dataset", "object_id": "synthetic-dataset",
+        "patch": {"dataset": {"description": "before"}}}], "delivery_mode": "publish"})
+    assert len(provider.writes) == 1
+    assert result["results"][0].get("write_verified") is not True
+    assert result["results"][0]["verification_checks"]["revision"] is False
 
 
 def test_public_dataset_wrong_business_revision_is_mismatch(install_runtime):
@@ -745,17 +849,36 @@ def test_wizard_legacy_v2_artifact_rejected_locally(install_runtime):
 
 
 @pytest.mark.parametrize("effect", ["create", "update"])
-def test_html_page_content_authoring_stops_before_dispatch_without_readback_contract(install_runtime, effect):
-    provider = Provider(
-        {
-            "entryId": "synthetic-html",
-            "revId": "S2",
-            "savedId": "S2",
-            "data": {},
-            "meta": {"objectId": "synthetic-storage"},
-        }
-    )
+@pytest.mark.parametrize("unavailable", [False, True])
+def test_html_page_content_authoring_and_preview_boundary(install_runtime, monkeypatch, effect, unavailable):
+    authored = '<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"></head><body>Пример</body></html>'
+    class HtmlProvider(Provider):
+        def handle(self, request):
+            method = request.url.path.rsplit("/", 1)[-1]
+            payload = json.loads(request.content)
+            if method == "getHtmlPagePreviewUrl":
+                self.requests.append((method, payload, dict(request.headers)))
+                assert payload["revId"] == self.state["revId"] and "branch" not in payload
+                return httpx.Response(200, json={"url": "https://storage.invalid/page?signature=synthetic-private"})
+            if method in {"createHtmlPage", "updateHtmlPage"}:
+                self.writes.append((method, payload))
+                self.state.update(revId="S3", savedId="S3")
+                return httpx.Response(200, json={"entry": self.state, "warnings": []})
+            return super().handle(request)
+    provider = HtmlProvider({"entryId": "synthetic-html", "revId": "S2", "savedId": "S2", "publishedId": "S1",
+                             "data": {}, "meta": {"objectId": "synthetic-storage"}, "key": "Synthetic",
+                             "type": "html-page", "scope": "artifact", "annotation": None,
+                             "collectionId": None, "workbookId": "synthetic-workbook", "tenantId": "synthetic",
+                             "createdAt": "2026-01-01T00:00:00Z", "updatedAt": "2026-01-01T00:00:00Z",
+                             "createdBy": "synthetic", "updatedBy": "synthetic", "hidden": False,
+                             "public": False, "version": 1})
     install_runtime(provider)
+    def preview(url):
+        if unavailable:
+            from datalens_dev_mcp.api.errors import DataLensApiError
+            raise DataLensApiError("Preview unavailable", http_status=403)
+        return authored.replace("<head>", '<head><meta http-equiv="Content-Security-Policy" content="default-src self">')
+    monkeypatch.setattr("datalens_dev_mcp.maintenance.read_html_preview", preview)
     if effect == "create":
         result = call_tool(
             "dl_object_create",
@@ -765,7 +888,7 @@ def test_html_page_content_authoring_stops_before_dispatch_without_readback_cont
                         "client_ref": "page",
                         "object_type": "html_page",
                         "name": "Synthetic",
-                        "content": "<html><body>Local artifact</body></html>",
+                        "content": authored,
                     }
                 ],
                 "destination": {"workbook_id": "synthetic-workbook"},
@@ -773,10 +896,11 @@ def test_html_page_content_authoring_stops_before_dispatch_without_readback_cont
             },
         )
     else:
-        result = update("html_page", "synthetic-html", {"content": "<html><body>Local artifact</body></html>"})
-    assert result["results"][0]["code"] == "input_error", json.dumps(result, indent=2)
-    assert "content readback" in result["results"][0]["error"]
-    assert not provider.writes
+        result = update("html_page", "synthetic-html", {"content": authored})
+    expected = ("uncertain" if effect == "create" else "blocked") if unavailable else "completed"
+    assert result["status"] == expected, result
+    assert len(provider.writes) == (0 if unavailable and effect == "update" else 1)
+    assert "signature=" not in json.dumps(result)
 
 
 @pytest.mark.parametrize("stale", [False, True])
@@ -793,7 +917,7 @@ def test_html_page_metadata_and_exact_revision_publish(install_runtime, stale):
     install_runtime(provider)
 
     def drift(p, count):
-        if stale and count == 3:
+        if stale and count == 5:
             p.state["revId"] = "S-other"
 
     provider.before_read = drift
@@ -962,7 +1086,8 @@ def test_public_unbranched_type_has_no_publish_dispatch(install_runtime, object_
         "dl_object_publish",
         {"targets": [{"object_type": object_type, "object_id": "synthetic"}], "operation_id": "no-publish"},
     )
-    assert result["results"][0]["code"] == "object_has_no_publish_branch"
+    assert result["results"][0]["code"] == ("dataset_revision_promotion_unsupported" if object_type == "dataset"
+                                           else "object_has_no_publish_branch")
     assert not provider.requests
 
 
@@ -979,6 +1104,7 @@ def test_native_stdio_http_fault_receipts(tmp_path, fault):
     from threading import Thread
 
     state = dataset_state()
+    state["savedId"] = state["revId"]
     effects = []
     requests = []
     durable = tmp_path / "provider.json"
@@ -996,6 +1122,7 @@ def test_native_stdio_http_fault_receipts(tmp_path, fault):
                 state["dataset"] = payload["data"]["dataset"]
                 state["dataset"]["revision_id"] = "I2"
                 state["revId"] = "A2"
+                state["savedId"] = "A2"
                 durable.write_text(json.dumps({"effects": len(effects), "state": state}))
                 if fault == "receipt_storage":
                     (tmp_path / "datalens-dev-mcp" / "operations").chmod(0o500)

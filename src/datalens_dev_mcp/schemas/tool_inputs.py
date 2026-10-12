@@ -67,6 +67,7 @@ CHANGE = {
     "type": "object",
     "properties": {"object_type": STRING, "object_id": STRING, "expected_revision": STRING,
                    "patch": {"type": "object", "minProperties": 1}, "artifact_path": STRING,
+                   "artifact_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
                    "dashboard_patch": DASHBOARD_PATCH,
                    "remove_global_params": {"type": "array", "minItems": 1, "maxItems": 50,
                                             "uniqueItems": True, "items": STRING}},
@@ -76,7 +77,7 @@ CHANGE = {
                "properties": {"object_type": {"const": "dashboard"}}},
               {"required": ["remove_global_params", "expected_revision"],
                "properties": {"object_type": {"const": "dashboard"}}}],
-    "dependentSchemas": {"dashboard_patch": {
+    "dependentSchemas": {"artifact_sha256": {"required": ["artifact_path"]}, "dashboard_patch": {
         "required": ["expected_revision"],
         "properties": {"object_type": {"const": "dashboard"}, "patch": False,
                        "artifact_path": False, "remove_global_params": False}}},

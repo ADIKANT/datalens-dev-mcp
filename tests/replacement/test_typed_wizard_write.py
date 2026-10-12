@@ -41,7 +41,7 @@ def test_wizard_create_uses_official_typed_factory_and_live_field_lookup():
         }
         result = SdkAdapter(client=client).create(draft, {"workbook_id": "synthetic-workbook"})
     assert result["object_id"] == "synthetic-chart"
-    assert reads == [{"by_id": "synthetic-dataset"}]
+    assert reads == [{"by_id": "synthetic-dataset", "branch": "saved"}]
     assert len(specs) == 1
     assert result["expected_readback"]["data"]["sources"]["datasetsIds"] == ["synthetic-dataset"]
 
@@ -93,3 +93,19 @@ def test_typed_expected_content_is_checked_and_persisted(tmp_path):
     assert result["results"][0]["status"] == "uncertain"
     assert result["results"][0]["desired"] == expected
     assert result["results"][0]["code"] == "readback_mismatch"
+def test_multimeasure_defaults_resolve_collisions_and_accept_explicit_grid():
+    from datalens_dev_mcp.wizard.authoring import resolve_wizard_presentation
+
+    for count in (2, 9):
+        spec = {"visualization": "line", "roles": {"x": ["date"], "y": [f"measure-{i:03}" for i in range(count)]},
+                "grid": {"x": True, "y": True}}
+        result, profile = resolve_wizard_presentation(spec)
+        assert len(result["measure_colors"]) == count
+        assert result["grid"]["x"] and result["grid"]["y"]
+        if count == 2:
+            assert len(set(result["measure_colors"].values())) == 2
+        else:
+            assert profile["advisories"]
+        explicit = {"measure-000": "#abcdef"}
+        result, _ = resolve_wizard_presentation({**spec, "measure_colors": explicit})
+        assert result["measure_colors"] == explicit

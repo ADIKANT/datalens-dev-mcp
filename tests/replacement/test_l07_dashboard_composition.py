@@ -5,10 +5,10 @@ import pytest
 from datalens_dev_mcp.dashboard.composition import (
     RESERVED_PARAMETERS,
     apply_dashboard_patch,
-    compose_dashboard_patch,
     dependency_order,
     validate_dashboard_contract,
 )
+from datalens_dev_mcp.objects.write import semantic_merge
 
 
 def test_global_group_children_namespace_and_value_preservation():
@@ -58,7 +58,7 @@ def test_narrow_dashboard_patch_preserves_manual_geometry_and_unknown_widgets() 
         },
         "name": "Old",
     }
-    proposed = compose_dashboard_patch(current, {"name": "New"})
+    proposed = semantic_merge(current, {"name": "New"})
     assert proposed["data"] == current["data"]
     assert proposed["name"] == "New"
 

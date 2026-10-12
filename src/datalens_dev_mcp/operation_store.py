@@ -53,6 +53,25 @@ class OperationStore:
         return value
 
     @contextmanager
+    def mutation_lease(self, operation_id: str):
+        """Hold sender ownership until return or process exit, without a timeout guess."""
+        import fcntl
+
+        self._path(operation_id)  # Validate before creating an ownership file.
+        self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
+        name = hashlib.sha256(operation_id.encode()).hexdigest()
+        with (self.root / f".sender-{name}.lock").open("a+b") as stream:
+            try:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                yield False
+                return
+            try:
+                yield True
+            finally:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+
+    @contextmanager
     def cleanup_lock(self, scope: str):
         """A nonblocking process lease, separate from short receipt transactions."""
         try:
@@ -297,6 +316,10 @@ def normalize_operation(record: dict[str, Any]) -> dict[str, Any]:
             )
         return result
     for item in items:
+        if result.get("semantic_contract") != "typed_v2" and item.get("write_verified") is True:
+            item.update(write_verified=False, verification_status="historical_content_unverified")
+            if item.get("status") == "completed":
+                item["status"] = "resolved" if item.get("write_returned") else "uncertain"
         if item.get("status") == "completed":
             item.pop("next_action", None)
         if item.get("write_returned"):
@@ -370,7 +393,7 @@ def compact_operation(record: dict[str, Any]) -> dict[str, Any]:
         for key in ("ok", "operation_id", "effect", "status", "write_replayed", "next_action", "detail_pruned",
                     "auth_scope", "provider_scope", "ordered_delete_digest", "preserve_roots", "dependency_fingerprint",
                     "preview_digest", "progress", "new_delete_dispatched", "observed_objects", "runtime",
-                    "store_version", "repeat_of", "task_complete")
+                    "store_version", "repeat_of", "task_complete", "semantic_contract", "owner_active")
         if key in record
     }
     compact_items = []
@@ -400,7 +423,7 @@ def compact_operation(record: dict[str, Any]) -> dict[str, Any]:
                     "continuation_requires_fresh_cas", "reconciled_provider_scope", "normalizations",
                     "readback_diff", "readback_diff_complete", "verification_checks",
                     "intent",
-                    "dataset_validation", "investigation",
+                    "dataset_validation", "investigation", "content_status", "delivery_mode", "artifact_sha256",
                     "object_id", "object_type", "absence_verified", "reconciliation_error",
                 )
                 if key in item

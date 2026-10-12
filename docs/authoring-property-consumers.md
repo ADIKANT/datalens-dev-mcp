@@ -30,12 +30,12 @@ Personal migrations are narrow, backed up and never performed during MCP startup
 
 Recipes and direct typed Wizard/Dashboard builders consume this resolver. Wizard
 labels use actual roles; formatting uses `measure_format`. Grids are off on x/y/y2;
-line/column numeric exceptions need a reason. A single categorical bar is
+supported explicit overrides remain valid without a reason. A single categorical bar is
 monochrome, so filtering cannot reassign category colors. Multi-measure colors are
-GUID keyed, with finite palette collisions diagnosed; supply `measure_colors` for
+GUID keyed, with deterministic collision resolution and an advisory beyond the palette; supply `measure_colors` for
 semantic roles. Period-series renderer colors come from bound series, not position.
 
-New chart placement requires explanatory hint text. New recipe source is checked
+New chart placement enables hints only when explanatory text is supplied. New recipe source is checked
 against its compiled presentation before batch dispatch, and local Dashboard
 validation runs the SDK converter. Wizard drafts with `dataset_fields` also run
 the actual local SDK converter; without that readback, field/type validity remains
@@ -52,3 +52,5 @@ For averages, ratios and distinct counts, supply an explicit `source` transform 
 Explicit null, absent metric values and empty/whitespace strings stay unknown. Any unknown component makes the corresponding weekly cell and row/column/grand total null, rendered as a dash. Actual numeric zero remains zero. Missing group/week combinations default to null; `rows[].value_states` distinguishes `missing`, `unknown` and `value`. For count measures only, `metric.missing_combinations: "zero"` declares absent combinations to be zero, while explicit unknowns still propagate. The default policy is `"unknown"`. Weeks are drawn from the returned rows, not an invented calendar range.
 
 Dataset parameters accept a scalar or singleton array, normalized to one string value in `{id, value}`. Numeric zero and boolean false become `"0"` and `"false"`. Null, undefined, empty string and empty/cleared arrays omit the parameter; omitted parameters use the Dataset's own behavior. Multiple nonempty values are rejected because this binding does not support multivalue Dataset parameters. Selector filters keep their separate `where` contract and clear policy.
+
+Weekly and matrix Dataset shortcuts request one extra row to detect bounded overflow. At the provider maximum, a full-cap result remains conservatively incomplete. Incomplete sources expose no grand total and render an explicit incomplete message; exactly the requested count is complete when the extra-row probe finds no overflow. Backup manifests separately report file creation, target revision and content coverage; snapshots are not verified restores.

@@ -6,15 +6,13 @@ First identify the consumer from current object type and the request. A standalo
 
 ## Capability before delivery
 
-The SDK 3.0.0 API exposes Page method names. The inspected API v3 `GetHtmlPageResult` includes metadata, `meta.objectId` and arbitrary `data`, but does not document source HTML retrieval. This adapter therefore rejects standalone Page creation and content updates before provider dispatch: it cannot verify their required content readback. Do not treat arbitrary data, a metadata response, successful upload or local lint as proof of saved HTML.
+SDK 3.2 metadata selects object identity and saved/published/exact revision. The read owner obtains an official preview URL for that exact revision and immediately reads bounded UTF-8 HTML with a separate credential-free client. Keep temporary signed URLs out of Git and durable logs. Preview failure leaves content unverified; it does not prove that metadata or a write failed.
 
-Metadata reads remain available. Publishing an existing saved Page revision uses the validated update revision/mode contract only when explicitly requested; it does not establish that this adapter authored or inspected that revision's HTML. Verify exact saved/published revision identity and report the content-verification limit separately.
+Create/update uses the existing typed write owner and semantic content readback. Keep the authored UTF-8 file as an editable artifact. Added CSP is normalized only when absent from authored content. Existing-revision publish needs a fresh `publishedId` matching the selected saved revision and target identity; report content status separately. No generic invoke or browser write fallback is needed.
 
-The current documentation also describes an optional `x-dl-audit-mode: true` header for `getHtmlPage` and `getHtmlPagePreviewUrl` with explicit saved/published/revision, language and theme selection. These remain documented-only capabilities until an authorized Page verifies their results through the existing read owner. Preview defaults to published at the provider; a future supported call must select the intended branch explicitly. Do not add arbitrary headers or infer source access from audit mode. A temporary authenticated preview URL is neither a public share nor save/publish proof; keep it out of Git and durable logs. See the [API compatibility matrix](../../../docs/testing/docs-api-compatibility.md).
+Use explicit saved/published selection; preview defaults must not choose the branch implicitly. Local artifact, content-checked revision, publication and platform render are distinct evidence. Verify theme/lang and the requested interaction in Browser for visible Page changes.
 
-For a content-authoring request, finish the authorized local UTF-8 artifact, lint and local preview, then state that provider creation/content update remains unsupported pending a verified content-readback path. Do not invent an endpoint, presigned upload, generic invoke or browser write fallback. Check active typed schemas for any future reviewed capability change; the existence of an upstream reference or SDK method is insufficient. Keep local artifact, provider readback, supported publication and platform render as separate results.
-
-## Author against the confirmed Page contract
+## Author against## Author against the confirmed Page contract
 
 The pinned upstream Page reference describes an opaque-origin iframe with `sandbox=allow-scripts` and injected CSP. It permits approved static resources while blocking data-network calls. Verify applicability to the target installation before relying on these details:
 

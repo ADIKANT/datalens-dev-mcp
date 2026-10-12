@@ -27,11 +27,6 @@ RESERVED_PARAMETERS = frozenset(
 )
 
 
-def compose_dashboard_patch(current: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
-    """Apply only the requested mapping paths; arrays and geometry remain untouched unless supplied."""
-    return semantic_merge(current, patch)
-
-
 def apply_dashboard_patch(current: dict[str, Any], patch: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     """Edit addressed native tab records without resending or replacing their neighbors."""
     from jsonschema import Draft202012Validator

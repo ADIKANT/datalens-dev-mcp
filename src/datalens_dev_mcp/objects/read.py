@@ -100,8 +100,10 @@ class ObjectReadService:
             result.update(error_response(exc))
         return result
 
-    def workbooks_list(self, *, page_size: int = 100, max_pages: int = 100) -> dict[str, Any]:
-        return self._paginate("getWorkbooksList", {}, page_size=page_size, max_pages=max_pages)
+    def workbooks_list(self, *, page_size: int = 100, max_pages: int = 100,
+                       continuation: str | None = None) -> dict[str, Any]:
+        return self._paginate("getWorkbooksList", {}, page_size=page_size, max_pages=max_pages,
+                              continuation=continuation)
 
     def workbook_entries(
         self,
@@ -109,12 +111,14 @@ class ObjectReadService:
         *,
         page_size: int = 100,
         max_pages: int = 100,
+        continuation: str | None = None,
     ) -> dict[str, Any]:
         return self._paginate(
             "getWorkbookEntries",
             {"workbookId": workbook_id},
             page_size=page_size,
             max_pages=max_pages,
+            continuation=continuation,
         )
 
     def _paginate(
@@ -124,23 +128,27 @@ class ObjectReadService:
         *,
         page_size: int,
         max_pages: int,
+        continuation: str | None = None,
     ) -> dict[str, Any]:
         page_limit = 200 if method == "getWorkbookEntries" else 1000
         if not 1 <= page_size <= page_limit:
             raise ValueError(f"page_size must be between 1 and {page_limit}")
         if not 1 <= max_pages <= 1000:
             raise ValueError("max_pages must be between 1 and 1000")
+        binding = [method, base_payload, page_size]
+        state = _inventory_state(continuation, binding)
+        start_page = state.get("next_page", 0)
         objects: dict[str, dict[str, Any]] = {}
         token = ""
         pages = 0
-        seen_tokens: set[str] = set()
+        seen_tokens: set[str] = set(state.get("seen_tokens", []))
         partial_reason = "page_limit_reached"
         failure = None
         complete = False
         container = "entries" if method == "getWorkbookEntries" else "workbooks"
         while pages < max_pages:
             # Numeric workbook pages and opaque relation tokens have separate contracts.
-            payload = {**base_payload, "pageSize": page_size, "page": pages}
+            payload = {**base_payload, "pageSize": page_size, "page": start_page + pages}
             try:
                 raw = self.api.read(method, payload)
                 if not isinstance(raw, Mapping):
@@ -195,12 +203,17 @@ class ObjectReadService:
             "page_count": pages,
             "object_count": len(objects),
             "next_page_token": token or None,
-            "next_page": None if complete else pages,
+            "next_page": None if complete else start_page + pages,
+            "continuation": None if complete or partial_reason == "repeated_page_token" else _encode_continuation({
+                "binding": binding, "next_page": start_page + pages, "seen_tokens": sorted(seen_tokens),
+            }),
+            "result_scope": "incremental_pages" if continuation else "initial_pages",
+            "consistency_note": "Numeric pagination is not an atomic inventory snapshot; membership may change.",
             "objects": compact_object_index(objects.values()),
         }
         if failure:
             result.update(error=failure["error"], code=failure["code"], next_action=failure["next_action"],
-                          failed_page=pages, method=method)
+                          failed_page=start_page + pages, method=method)
             result.update({key: failure[key] for key in (*ERROR_DIAGNOSTIC_FIELDS, "diagnostic_id", "helper_exit_status",
                                                         "elapsed_sec") if key in failure and failure[key] is not None})
         return result
@@ -224,9 +237,7 @@ class ObjectReadService:
         if revision_id is not None and (not isinstance(revision_id, str) or not revision_id):
             raise InputContractError("revision_id must be a nonempty string when supplied")
         if object_type == "html_page":
-            request = {"entryId": object_id, "branch": branch}
-            if revision_id:
-                request["revId"] = revision_id
+            request = {"entryId": object_id, **({"revId": revision_id} if revision_id else {"branch": branch})}
             raw = self.api.read("getHtmlPage", request)
             payload = _unwrap(raw) if isinstance(raw, Mapping) else raw
         else:
@@ -239,7 +250,7 @@ class ObjectReadService:
         observed_subtype = payload.get("type") or entry.get("type")
         observed_branch = payload.get("branch") or entry.get("branch")
         actual_revision = _revision_id(payload, branch=branch, fallback=None)
-        unbranched = requested_type in {"workbook", "connection", "dataset"}
+        unbranched = requested_type in {"workbook", "connection"}
         requested = {"object_type": object_type, "object_id": object_id, "branch": branch,
                      "revision_id": revision_id}
         observed = {"object_type": observed_type, "object_id": observed_id, "subtype": observed_subtype,
@@ -272,6 +283,17 @@ class ObjectReadService:
             "object": payload,
             "observed_identity": observed,
         }
+        if object_type == "html_page":
+            result["metadata_verified"] = bool(actual_revision)
+            result["content_status"] = "unavailable"
+            try:
+                if not actual_revision or not callable(getattr(self.sdk, "html_content", None)):
+                    raise DataLensApiError("Exact-revision HTML preview is unavailable", stage="html_preview")
+                content = self.sdk.html_content(object_id, actual_revision)
+                result["object"] = {**payload, "content": content}
+                result["content_status"] = "content_checked"
+            except (DataLensApiError, ValueError, TypeError) as exc:
+                result.update(complete=False, full_state=False, content_error=error_response(exc)["code"])
         return _read_view(result, view=view, fields=fields, branch=branch)
 
     def publication_manifest(self, relations: dict[str, Any], targets: list[dict[str, Any]]) -> dict[str, Any]:
@@ -424,30 +446,39 @@ class ObjectReadService:
         binding = [dashboard_id, branch, revision_id, reference_dashboard_id, view, fields, "from"]
         state = _continuation_state(continuation, binding)
         target = self.object_get("dashboard", dashboard_id, branch=branch, revision_id=revision_id)
-        reasons = list(state.get("reasons", []))
+        reasons = [reason for reason in state.get("reasons", []) if reason not in {
+            "unresolved_dependencies", "reference_read_failed", "reference_partial", "target_partial",
+        }]
         target_revision = target["identity"]["revision_id"]
         if continuation and state["target_revision"] != target_revision:
             reasons.append("target_revision_drift")
         if target["object"].get("complete") is False:
             reasons.append("target_partial")
-        relation_result = self.object_relations(
+        relation_result = ({"ok": True, "complete": True, "provider_complete": True,
+                            "relations": [], "next_page_token": None, "consumed_page_tokens": [],
+                            "partial_reason": ""} if state.get("relations_done") else self.object_relations(
             dashboard_id, direction="from", page_size=page_size, max_pages=max_pages, page_token=state.get("token"),
             _visited_tokens=state.get("consumed_tokens"),
-        )
+        ))
         seen = dict(state.get("seen", {}))
-        unresolved = list(state.get("unresolved", []))
+        pending = list(state.get("unresolved", []))
+        unresolved = []
         dependencies: list[dict[str, Any]] = []
         new_relations: list[dict[str, Any]] = []
-        for relation in relation_result["relations"]:
+        attempted: set[str] = set()
+        for relation in [*pending, *relation_result["relations"]]:
             object_id = str(relation["id"])
             normalized_type = object_identity(relation)[1]
             if object_id in seen:
                 if seen[object_id] != normalized_type:
                     reasons.append("dependency_graph_drift")
                 continue
-            seen[object_id] = normalized_type
+            if object_id in attempted:
+                continue
+            attempted.add(object_id)
             new_relations.append(relation)
             if object_id == dashboard_id:
+                seen[object_id] = normalized_type
                 continue  # The target is already read; self/cyclic edges add no dependency.
             if normalized_type not in {
                 "connection",
@@ -466,6 +497,8 @@ class ObjectReadService:
                 continue
             if dependency["object"].get("complete") is False:
                 unresolved.append({**relation, "reason": "dependency_partial"})
+            else:
+                seen[object_id] = normalized_type
             dependencies.append(_read_view(dependency, view=view, fields=fields, branch=branch))
         if unresolved:
             reasons.append("unresolved_dependencies")
@@ -503,11 +536,12 @@ class ObjectReadService:
         if token and token in consumed_tokens:
             reasons.append("pagination_cursor_cycle")
             token = None
-        if token:
+        if token or unresolved:
             cursor = _encode_continuation(
                 {
                     "binding": binding,
-                    "token": token,
+                    "token": token or "",
+                    "relations_done": relation_result["complete"],
                     "target_revision": state.get("target_revision", target_revision),
                     "seen": seen,
                     "unresolved": unresolved,
@@ -594,6 +628,21 @@ def _read_view(result: dict[str, Any], *, view: str, fields: list[str] | None, b
 
 def _encode_continuation(state: dict[str, Any]) -> str:
     return base64.urlsafe_b64encode(json.dumps(state, separators=(",", ":")).encode()).decode()
+
+
+def _inventory_state(cursor: str | None, binding: list[Any]) -> dict[str, Any]:
+    if cursor is None:
+        return {}
+    try:
+        state = json.loads(base64.b64decode(cursor, altchars=b"-_", validate=True))
+        if (not isinstance(state, dict) or state.get("binding") != binding
+                or type(state.get("next_page")) is not int or state["next_page"] < 0
+                or not isinstance(state.get("seen_tokens"), list)
+                or any(not isinstance(value, str) for value in state["seen_tokens"])):
+            raise ValueError("scope or pagination mismatch")
+        return state
+    except (ValueError, TypeError, UnicodeError) as exc:
+        raise ValueError("invalid inventory continuation or scope/page_size mismatch") from exc
 
 
 def _continuation_state(cursor: str | None, binding: list[Any]) -> dict[str, Any]:

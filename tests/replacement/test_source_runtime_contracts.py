@@ -50,7 +50,7 @@ def test_dataset_source_uses_documented_builder_and_selector_without_static_rest
     assert selected["id"] == "dataset-synthetic"
     assert selected["columns"] == ["Region", "Current", "Previous"]
     assert selected["where"] == [{"column": "Region", "type": "title", "operation": "IN", "values": ["north"]}]
-    assert selected["limit"] == 25
+    assert selected["limit"] == 26  # One extra group proves whether the requested output is complete.
     assert cleared["where"] == []
     assert cleared_from_dashboard_default["where"] == []
     assert source["params"] == {"region_filter": []}
@@ -266,6 +266,20 @@ def _weekly_prepared(tmp_path, rows, binding=None):
     script += draft["tabs"]["prepare.js"]
     script += "console.log(JSON.stringify(module.exports.render.args));"
     return json.loads(subprocess.check_output(["node", "-e", script], text=True))[0]
+
+
+@pytest.mark.parametrize("count", [999, 1000, 1001])
+def test_weekly_limit_probe_never_presents_partial_totals(tmp_path, count):
+    rows = [{"Group": f"group-{i}", "Day": "2026-01-05", "Value": 2} for i in range(count)]
+    prepared = _weekly_prepared(tmp_path, rows)
+    if count <= 1000:
+        assert prepared["state"] == "ready"
+        assert prepared["grand_total"] == count * 2
+    else:
+        assert prepared["state"] == "incomplete"
+        assert prepared["grand_total"] is None and prepared["coverage"]["complete"] is False
+    draft = _compiled_weekly(tmp_path, _weekly_binding())
+    assert "limit: 1001" in draft["tabs"]["sources.js"]
 
 
 def test_weekly_additive_sum_uses_readback_semantics(tmp_path):

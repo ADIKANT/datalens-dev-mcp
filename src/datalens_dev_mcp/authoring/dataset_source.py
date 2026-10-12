@@ -28,10 +28,12 @@ def _field_index(bindings: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
 
 def _dataset_query(
     bindings: Mapping[str, Any], guids: list[str], titles: list[str], *, source_alias: str = "source",
+    coverage_probe: bool = False,
 ) -> dict[str, Any]:
     limit = bindings.get("source_limit", 1000)
     if type(limit) is not int or not 1 <= limit <= 100000:
         raise ValueError("source_limit must be an integer from 1 to 100000")
+    requested_limit = min(limit + 1, 100000) if coverage_probe else limit
     selectors = bindings.get("selectors") or []
     if not isinstance(selectors, list):
         raise TypeError("selectors must be a list")
@@ -161,7 +163,7 @@ def _dataset_query(
     sources += "  return values.length ? {id: item.id, value: String(values[0])} : null;\n}).filter(Boolean);\n"
     query = {
         "columns": titles,
-        "limit": limit,
+        "limit": requested_limit,
     }
     alias = json.dumps(source_alias)
     sources += "module.exports = {" + alias + ": buildSource({id: Editor.getId('dataset'), columns: "
@@ -189,7 +191,9 @@ def _dataset_query(
             "selectors": [{**item, "field_guid": raw["field_guid"]}
                           for item, raw in zip(selector_contracts, selectors)],
             "dataset_parameters": parameter_contracts,
-            "sort": order_by, "limit": limit,
+            "sort": order_by, "limit": requested_limit,
+            **({"coverage": "limit_plus_one" if limit < 100000 else "bounded_at_provider_cap",
+                "output_limit": limit} if coverage_probe else {}),
         }]},
     }
 
@@ -213,7 +217,7 @@ def matrix_dataset_source(bindings: Mapping[str, Any]) -> dict[str, Any]:
         titles.append(title)
     if len(set(titles)) != len(titles):
         raise ValueError("matrix Dataset binding requires distinct field titles")
-    query = _dataset_query(bindings, guids, titles)
+    query = _dataset_query(bindings, guids, titles, coverage_probe=True)
     prepare = (
         query["prepare_prelude"]
         + "const Dataset = require('libs/dataset/v2');\nconst names = "
@@ -230,6 +234,10 @@ const preparedRows = rows.map(row => ({
 }));
 module.exports = {rows: preparedRows, state: preparedRows.length ? 'ready' : 'no_data'};
 """
+    limit = bindings.get("source_limit", 1000)
+    guard = f"rows.length {'>=' if limit == 100000 else '>'} {limit}"
+    prepare = prepare.replace("const number =", "if (" + guard + ") { module.exports = {rows: [], state: 'incomplete', "
+                              "coverage: {complete: false, reason: 'source_row_limit'}}; } else {\nconst number =") + "}\n"
     return {"meta": query["meta"], "sources_js": query["sources_js"], "params": query["params"],
             "prepare_js": prepare, "source_plan": query["source_plan"]}
 
@@ -462,7 +470,7 @@ def weekly_dataset_source(bindings: Mapping[str, Any]) -> dict[str, Any]:
     missing = metric.get("missing_combinations", "unknown")
     if missing not in {"unknown", "zero"} or (missing == "zero" and aggregations[0] != "count"):
         raise ValueError("weekly missing_combinations must be unknown, or zero for a count measure")
-    query = _dataset_query(bindings, guids, titles)
+    query = _dataset_query(bindings, guids, titles, coverage_probe=True)
     prepare = query["prepare_prelude"] + "const Dataset = require('libs/dataset/v2');\n"
     prepare += "const missingValue = " + ("0" if missing == "zero" else "null") + ";\n"
     prepare += "const names = " + json.dumps(titles, ensure_ascii=False) + ";\n"
@@ -510,6 +518,11 @@ const total_values = weeks.map((week, index) => sum(rows.map(row => row.values[i
 const grand_total = sum(total_values);
 module.exports = {weeks, rows, total_values, grand_total, state: rows.length ? 'ready' : 'no_data'};
 """
+    limit = bindings.get("source_limit", 1000)
+    guard = f"sourceRows.length {'>=' if limit == 100000 else '>'} {limit}"
+    prepare = prepare.replace("const isoDate =", "if (" + guard + ") { module.exports = {weeks: [], rows: [], "
+                              "total_values: [], grand_total: null, state: 'incomplete', "
+                              "coverage: {complete: false, reason: 'source_row_limit'}}; } else {\nconst isoDate =") + "}\n"
     return {
         "meta": query["meta"],
         "sources_js": query["sources_js"],

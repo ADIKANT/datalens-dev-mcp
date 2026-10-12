@@ -1,4 +1,6 @@
-# MCP-Native Content Model
+# MCP-Native Content Model — historical
+
+> Archived pre-1.2 direct-domain replacement design. Task tools, task journals and planner paths below are not the current runtime. See [current instruction ownership](runtime_instruction_model.md) and the five installed domain skills. Mutation receipts retain write evidence; they are not task journals.
 
 This repository is the active DataLens development surface. Runtime behavior must be expressed in MCP-native files, not direct copied source trees or sync artifacts.
 

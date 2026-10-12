@@ -1,4 +1,6 @@
-# Project Journal
+# Project Journal — historical
+
+> Archived pre-1.2 direct-domain replacement design. Task tools, task journals and planner paths below are not the current runtime. See [current instruction ownership](architecture/runtime_instruction_model.md) and the five installed domain skills. Mutation receipts retain write evidence; they are not task journals.
 
 Each autonomous task has a project-local journal under `.datalens-mcp/tasks/<task-id>/`. It contains the immutable contract, target/server identity, append-only hash-chained events, materialized state, compact checkpoint, receipts, evidence, snapshots, and a process lease.
 

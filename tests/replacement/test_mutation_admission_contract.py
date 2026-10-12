@@ -49,6 +49,7 @@ def test_full_dataset_public_update_advancing_revisions(tmp_path, mode):
     def handle(request):
         if writes and mode == "readback_unavailable":
             raise httpx.ReadTimeout("readback unavailable", request=request)
+        state["savedId"] = state["revId"]
         return httpx.Response(200, json=state)
 
     def direct(request, **kwargs):
@@ -61,6 +62,7 @@ def test_full_dataset_public_update_advancing_revisions(tmp_path, mode):
         state["dataset"] = payload["data"]["dataset"]
         state["dataset"]["revision_id"] = "inner-r8"
         state["revId"] = "outer-r2"
+        state["savedId"] = state["revId"]
         if mode == "partial_after":
             state["complete"] = False
         returned = copy.deepcopy(state)
@@ -133,6 +135,28 @@ def create_draft():
             },
         }
     ]
+
+
+def test_reconcile_admission_crash_requires_released_sender_then_resumes(tmp_path, monkeypatch):
+    from test_l06_object_lifecycle import FakeBackend, FakeReader, rb, service
+
+    backend = FakeBackend([{"object_id": "new"}])
+    reader = FakeReader({("editor_chart", "new", "saved"): [rb("editor_chart", "new", "r1", {"name": "Synthetic"})]})
+    writer = service(tmp_path, reader, backend)
+    drafts = [{"object_type": "editor_chart", "name": "Synthetic", "client_ref": "new", "depends_on": []}]
+    request = {"drafts": drafts, "destination": {"workbook_id": "synthetic"}}
+    with writer.store.mutation_lease("crashed"):
+        writer._record("create", request, "crashed")
+        assert writer.reconcile("crashed")["owner_active"] is True
+        assert backend.calls == []
+    reconciled = writer.reconcile("crashed")
+    assert reconciled["status"] == "failed"
+    assert reconciled["effect_outcome"] == "not_applied"
+    assert backend.calls == []
+    assert writer.create_objects(drafts, request["destination"], operation_id="crashed")["ok"]
+    assert len(backend.calls) == 1
+    assert writer.create_objects(drafts, request["destination"], operation_id="crashed")["ok"]
+    assert len(backend.calls) == 1
 
 
 def process_create(root, oid, effects, entered, release, results, pause_claim=False, intent_suffix=""):
