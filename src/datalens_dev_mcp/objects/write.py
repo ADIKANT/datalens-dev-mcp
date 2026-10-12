@@ -77,6 +77,9 @@ def semantic_diff(current: Any, proposed: Any, path: str = "") -> list[dict[str,
 def _json_equal(current: Any, proposed: Any) -> bool:
     # Python equates True with 1, including inside lists. These are different
     # JSON values and cannot authorize skipping a requested change.
+    # JSON has one number type: providers may serialize SDK 18.0 as 18.
+    if type(current) in (int, float) and type(proposed) in (int, float):
+        return current == proposed
     if type(current) is not type(proposed):
         return False
     if isinstance(current, dict):
