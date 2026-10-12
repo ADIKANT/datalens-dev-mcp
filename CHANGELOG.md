@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.33
+
+- Recognize the exact verified HTML policy v3 preview envelope without ignoring changed scripts, styles or authored CSP. This resolves a live content-readback false mismatch; unknown provider transformations remain unverified.
+
 ## 1.2.32
 
 - Preserve business intent during readback and report protected connection values and lost historical intent as unverifiable.
