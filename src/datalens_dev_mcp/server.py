@@ -22,7 +22,6 @@ from datalens_dev_mcp.api.runtime import get_runtime
 from datalens_dev_mcp.api.schemas import OperationRegistry
 from datalens_dev_mcp.authoring.artifacts import (
     default_recipe_artifact_dir,
-    prune_recipe_artifacts,
     resolve_artifact,
 )
 from datalens_dev_mcp.authoring.profiles import get_authoring_defaults
@@ -50,13 +49,14 @@ from datalens_dev_mcp.schemas.tool_inputs import (
     READ_FIELDS,
     READ_VIEW,
     SORT,
+    STRING,
     TARGET,
 )
 
 MCP_PROTOCOL_VERSION = "2025-06-18"
 ToolHandler = Callable[..., dict[str, Any]]
 BOUNDED_READ_TOOLS = {"dl_object_get", "dl_object_relations", "dl_object_revisions", "dl_workbooks_list",
-                      "dl_workbook_entries", "dl_dashboard_snapshot", "dl_dataset_preview"}
+                      "dl_workbook_entries", "dl_dashboard_snapshot", "dl_dataset_preview", "dl_operation_reconcile"}
 
 
 def dl_server_info() -> dict[str, Any]:
@@ -123,12 +123,14 @@ def _read_service() -> ObjectReadService:
     return ObjectReadService(api=runtime.api, sdk=runtime.sdk)
 
 
-def dl_workbooks_list(page_size: int = 100, max_pages: int = 100) -> dict[str, Any]:
-    return _read_service().workbooks_list(page_size=page_size, max_pages=max_pages)
+def dl_workbooks_list(page_size: int = 100, max_pages: int = 100, continuation: str | None = None) -> dict[str, Any]:
+    return _read_service().workbooks_list(page_size=page_size, max_pages=max_pages, continuation=continuation)
 
 
-def dl_workbook_entries(workbook_id: str, page_size: int = 100, max_pages: int = 100) -> dict[str, Any]:
-    return _read_service().workbook_entries(workbook_id, page_size=page_size, max_pages=max_pages)
+def dl_workbook_entries(workbook_id: str, page_size: int = 100, max_pages: int = 100,
+                        continuation: str | None = None) -> dict[str, Any]:
+    return _read_service().workbook_entries(workbook_id, page_size=page_size, max_pages=max_pages,
+                                           continuation=continuation)
 
 
 def dl_object_get(
@@ -281,8 +283,8 @@ def dl_compile_recipe(
         if generated_dir is not None:
             shutil.rmtree(generated_dir, ignore_errors=True)
         raise
-    if generated_dir is not None:
-        prune_recipe_artifacts(generated_dir)
+    # Issued drafts are resumable work products. A later compile cannot evict
+    # them; users explicitly remove their own outputs when no longer needed.
     # The local consumer reads the same artifact. Do not make the model
     # receive and echo its renderer/large provider payload to create it.
     summary = result["summary"]
@@ -319,9 +321,12 @@ def dl_editor_validate(
 def dl_object_diff(
     object_type: str, object_id: str, patch: dict[str, Any] | None = None, include_proposed: bool = False,
     dashboard_patch: dict[str, Any] | None = None,
+    artifact_path: str | None = None, artifact_sha256: str | None = None, expected_revision: str | None = None,
 ) -> dict[str, Any]:
     return default_mutation_service().diff(
-        object_type, object_id, patch, dashboard_patch=dashboard_patch, include_proposed=include_proposed
+        object_type, object_id, patch, dashboard_patch=dashboard_patch, include_proposed=include_proposed,
+        **({"artifact_path": artifact_path, "artifact_sha256": artifact_sha256, "expected_revision": expected_revision}
+           if any(value is not None for value in (artifact_path, artifact_sha256, expected_revision)) else {}),
     )
 
 
@@ -488,6 +493,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             "properties": {
                 "page_size": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
                 "max_pages": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
+                "continuation": {"type": ["string", "null"], "description": "Resume the returned scope-bound inventory cursor."},
             },
             "additionalProperties": False,
         },
@@ -502,6 +508,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
                 "workbook_id": {"type": "string", "minLength": 1},
                 "page_size": {"type": "integer", "minimum": 1, "maximum": 200, "default": 100},
                 "max_pages": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
+                "continuation": {"type": ["string", "null"], "description": "Resume the returned scope-bound inventory cursor."},
             },
             "required": ["workbook_id"],
             "additionalProperties": False,
@@ -692,9 +699,12 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
                 "patch": {"type": "object"},
                 "dashboard_patch": DASHBOARD_PATCH,
                 "include_proposed": {"type": "boolean", "default": False},
+                "artifact_path": STRING,
+                "artifact_sha256": CHANGE["properties"]["artifact_sha256"],
+                "expected_revision": STRING,
             },
             "required": ["object_type", "object_id"],
-            "oneOf": [{"required": ["patch"]}, {"required": ["dashboard_patch"],
+            "oneOf": [{"required": ["patch"]}, {"required": ["artifact_path"]}, {"required": ["dashboard_patch"],
                        "properties": {"object_type": {"const": "dashboard"}}}],
             "additionalProperties": False,
         },
@@ -728,7 +738,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             "type": "object",
             "properties": {
                 "changes": {"type": "array", "minItems": 1, "items": CHANGE},
-                "delivery_mode": {"type": "string", "enum": ["save"], "default": "save"},
+                "delivery_mode": {"type": "string", "enum": ["save", "publish"], "default": "save", "description": "publish is Dataset-only content publication and creates a new revision."},
                 "operation_id": {"type": ["string", "null"]},
             },
             "required": ["changes"],

@@ -157,9 +157,7 @@ own precedence layer. Conflicting aliases in one layer fail with their paths.
 
 Defaults hide the page title, show each widget title, suppress the chart/body
 header, and enable its native `tabs[].enableHint` with concrete `hint.text`.
-Supply `item.hint` or `presentation.hint.text`; content-category names are not a
-hint. Missing text fails before create. Standalone charts can remain pending
-placement. Explicit owner/visibility changes remain supported; existing narrow
+Supply `item.hint` or `presentation.hint.text` when useful. Without text the hint stays disabled; placement remains supported. Explicit owner/visibility changes remain supported; existing narrow
 updates preserve their unrelated presentation and descriptions.
 
 `kind: "selector_group"` uses the SDK's native group builder. For example:

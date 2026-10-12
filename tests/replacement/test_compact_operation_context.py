@@ -11,6 +11,17 @@ from datalens_dev_mcp import server
 from datalens_dev_mcp.operation_store import OperationStore, compact_operation
 
 
+def test_legacy_erased_intent_cannot_reconfirm_business_content():
+    legacy = {"operation_id": "legacy-erased", "effect": "update", "status": "completed", "ok": True,
+              "results": [{"key": "dashboard:synthetic", "status": "completed", "write_returned": True,
+                           "write_verified": True, "desired": {}, "readback": {"object": {}}}]}
+    result = compact_operation(legacy)
+    assert result["results"][0]["write_verified"] is False
+    assert result["results"][0]["verification_status"] == "historical_content_unverified"
+    assert result["task_complete"] is False
+    assert legacy["results"][0]["write_verified"] is True
+
+
 def test_compact_operation_keeps_actionable_result_without_payload_or_javascript() -> None:
     large_js = "module.exports = " + "x" * 20_000
     full = {
@@ -112,11 +123,15 @@ def test_operation_records_redact_credentials_before_persistence(tmp_path) -> No
     )
 
     persisted = (tmp_path / "operations" / "credential-redaction.json").read_text(encoding="utf-8")
-    assert result["status"] == "completed"
+    assert result["status"] == "uncertain"
+    assert result["results"][0]["verification_checks"]["content"] is False
     assert "private-value" not in persisted
     assert "private-token" not in persisted
-    assert '"password"' not in persisted
-    assert '"iam_token"' not in persisted
+    assert "not-returned" not in persisted
+    assert result["results"][0]["desired"]["password"] == {"$protected_value": "unverifiable"}
+    assert {row["classification"] for row in result["results"][0]["readback_diff"]} == {
+        "protected_value_unverifiable", "missing_required_field",
+    }
 
 
 def test_store_prunes_old_completed_records_but_preserves_uncertain_recovery(tmp_path) -> None:

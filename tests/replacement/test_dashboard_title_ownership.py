@@ -143,5 +143,7 @@ def test_widget_hint_does_not_publish_generic_content_keys(tmp_path, text):
     item = {"kind": "chart", "chart_id": "kpi-id", "title": "Orders", "at": [0, 0, 12, 8],
             "presentation": draft["visual_contract"]}
     item["presentation"]["hint"]["text"] = text
-    with pytest.raises(ValueError, match="hint requires concrete explanatory text"):
-        assemble(item)
+    tab = assemble(item)
+    native = tab["items"][0]["data"]["tabs"][0]
+    assert not native.get("enableHint", False)
+    assert not native.get("hint")

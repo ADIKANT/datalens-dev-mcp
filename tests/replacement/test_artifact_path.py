@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from test_l06_object_lifecycle import FakeBackend, FakeReader, rb, service
 
-from datalens_dev_mcp.authoring.artifacts import prune_recipe_artifacts, resolve_artifact
+from datalens_dev_mcp.authoring.artifacts import resolve_artifact
 from datalens_dev_mcp.server import dl_compile_recipe, dl_editor_validate
 
 
@@ -96,23 +96,22 @@ def test_single_editor_validation_resolves_compiled_artifact_reference(tmp_path)
     assert result["ok"] is True
 
 
-def test_recipe_artifact_cache_prunes_old_completed_directories(tmp_path):
-    root = tmp_path / "recipe-artifacts"
-    old = root / "old"
-    recent = root / "recent"
-    keep = root / "keep"
-    for directory in (old, recent, keep):
+def test_compile_preserves_large_old_issued_drafts_and_neighbors(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path))
+    root = tmp_path / "datalens-dev-mcp" / "recipe-artifacts"
+    first = None
+    for index in range(202):
+        directory = root / f"issued-{index}"
         directory.mkdir(parents=True)
-        (directory / "draft.json").write_text("{}")
-    os.utime(old, (100, 100))
-    os.utime(recent, (200, 200))
-    os.utime(keep, (300, 300))
-
-    prune_recipe_artifacts(keep, max_directories=2, max_bytes=1_000, max_age_seconds=10**12)
-
-    assert not old.exists()
-    assert recent.exists()
-    assert keep.exists()
+        path = directory / "draft.json"
+        path.write_text(json.dumps({"object_type": "editor_chart", "data": "x" * (9 * 1024 * 1024 if index < 2 else 1)}))
+        os.utime(directory, (100, 100))
+        first = first or path
+    result = dl_compile_recipe("native_detail_table", {"dataset_id": "synthetic", "object_name": "Synthetic",
+                               "columns": [{"field_guid": "synthetic-field"}]})
+    assert len(resolve_artifact({"artifact_path": str(first)})["data"]) == 9 * 1024 * 1024
+    assert len(list(root.iterdir())) == 203
+    assert resolve_artifact(result["draft_reference"])["wizard"]
 
 
 def test_failed_default_compile_does_not_leave_an_empty_artifact(tmp_path, monkeypatch):
@@ -204,3 +203,42 @@ def test_artifact_reference_rejects_recursive_reference(tmp_path):
     path.write_text(json.dumps({"artifact_path": str(path)}))
     with pytest.raises(ValueError, match="concrete JSON object"):
         resolve_artifact({"artifact_path": str(path)})
+
+
+@pytest.mark.parametrize("case", ["valid", "substitution", "wrong_subtype", "stale"])
+def test_custom_editor_artifact_preserves_tabs_and_binds_bytes_target_revision(tmp_path, case):
+    import hashlib
+
+    from datalens_dev_mcp.api.errors import InputContractError
+
+    path = tmp_path / "custom.json"
+    source = "module.exports = {controls: []};" + " " * 210000
+    path.write_text(json.dumps({"object_type": "editor_chart", "variant": "control_node", "object_id": "selector",
+                               "expected_revision": "r1", "tabs": {"controls.js": source}}))
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    if case == "substitution":
+        path.write_text(path.read_text() + " ")
+    before = {"type": "control_node", "data": {"controls": "old", "params": "manual"}}
+    after = {"type": "control_node", "data": {"controls": source, "params": "manual"}}
+    current = rb("editor_chart", "selector", "r0" if case == "stale" else "r1", before)
+    current["observed_identity"] = {"subtype": "table_node" if case == "wrong_subtype" else "control_node"}
+    reader = FakeReader({("editor_chart", "selector", "saved"): ([current] if case == "valid" else []) + [current, rb("editor_chart", "selector", "r2", after)]})
+    backend = FakeBackend([{"object_id": "selector"}])
+    writer = service(tmp_path, reader, backend)
+    change = {"object_type": "editor_chart", "object_id": "selector", "expected_revision": "r1",
+              "artifact_path": str(path), "artifact_sha256": digest}
+    if case == "valid":
+        diff = writer.diff(**change)
+        assert diff["artifact_sha256"] == digest
+        assert [row["path"] for row in diff["changes"]] == ["/data/controls"]
+    if case == "substitution":
+        with pytest.raises(InputContractError, match="sha256"):
+            writer.update_objects([change])
+    else:
+        result = writer.update_objects([change])
+        assert result["status"] == {"valid": "completed", "wrong_subtype": "failed", "stale": "blocked"}[case]
+        if case == "valid":
+            assert result["results"][0]["artifact_sha256"] == digest
+            assert backend.calls[0][1]["snapshot"]["data"] == after["data"]
+    if case != "valid":
+        assert backend.calls == []

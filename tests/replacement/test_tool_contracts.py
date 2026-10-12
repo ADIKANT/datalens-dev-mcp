@@ -144,7 +144,7 @@ def test_method_lookup_distinguishes_tool_input_from_provider_metadata():
     result = server.call_tool("dl_object_diff", {"object_type": "dashboard", "object_id": "synthetic",
                                                 "patch": {"name": "x"}, "expected_revision": "r1"})
     assert result["structuredContent"]["code"] == "input_error"
-    assert "changes[].expected_revision" in result["structuredContent"]["message"]
+    assert "require artifact_path" in result["structuredContent"]["error"]
     provider = server.dl_method_schema("updateDashboard")
     assert provider["ok"] and provider["operation"]["authorization_scope"] == "write"
 

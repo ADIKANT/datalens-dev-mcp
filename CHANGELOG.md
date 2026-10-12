@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.32
+
+- Preserve business intent during readback and report protected connection values and lost historical intent as unverifiable.
+- Resume bounded inventory, snapshot hydration and missing-ID investigation; distinguish released pre-dispatch admissions from active or uncertain writes.
+- Retain issued drafts and support reviewed custom Editor artifacts with hash, subtype, revision and compact diff checks.
+- Make palette, grid and hint defaults advisory; avoid formula/JavaScript false positives in literals and comments.
+- Detect incomplete weekly/matrix sources and export private backups with exact revision and content coverage.
+- Support Dataset saved/published reads and explicit new-revision content publication; retain the inner revision precondition.
+- Verify HTML through official exact-revision preview URLs with bounded credential-free storage reads and separate publication evidence.
+- Remove unused renderers and duplicate helpers; synchronize skills and archive retired workflow documentation.
+
 ## 1.2.31
 
 - Recover missing workbook dashboard create identities using a per-attempt metadata

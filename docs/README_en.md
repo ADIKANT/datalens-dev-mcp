@@ -1,4 +1,4 @@
-# datalens-dev-mcp 1.0 documentation
+# datalens-dev-mcp documentation
 
 [Русский](README.md) · **English** · [Project home](../README_en.md)
 
@@ -7,7 +7,7 @@
 ## Current contract
 
 - [Installation](installation.md) — wheel, plugin manifest, and checkout-independent verification.
-- [26 MCP tools](tools_en.md) — the closed read, authoring, write, and maintenance surface.
+- [MCP tools](tools_en.md) — the closed read, authoring, write, and maintenance surface.
 - [Visual property consumers](authoring-property-consumers.md) — where recipe properties are applied and what still needs runtime evidence.
 - [Supported SDK/API operations](../src/datalens_dev_mcp/schemas/supported-operations.json) — backend, version, and static boundary for each method.
 - [62-outcome coverage map](../src/datalens_dev_mcp/schemas/capability-coverage.json) — a direct owner and honest boundary, not an executable router.

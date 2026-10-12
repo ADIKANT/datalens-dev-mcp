@@ -51,7 +51,6 @@ WIZARD_VARIANTS = {
     "scatter",
     "treemap",
 }
-EDITOR_VARIANTS = {"advanced_chart", "gravity_charts", "markdown", "selector", "table"}
 
 
 class _ConfiguredHTTPClient(DataLensHTTPClient):
@@ -309,7 +308,7 @@ class SdkAdapter:
         if branch not in {"saved", "published"}:
             raise ValueError("branch must be 'saved' or 'published'")
         kwargs: dict[str, Any] = {"by_id": object_id}
-        if object_type not in {"workbook", "connection", "dataset"}:
+        if object_type not in {"workbook", "connection"} and not revision_id:
             kwargs["branch"] = branch
         if revision_id and object_type != "workbook":
             kwargs["rev_id"] = revision_id
@@ -586,7 +585,9 @@ class SdkAdapter:
             raise self._mutation_error(exc, f"create:{object_type}", effect_started=effect_started,
                                        dispatch_before=dispatch_before) from exc
 
-    def update(self, object_type: str, object_id: str, snapshot: dict[str, Any]) -> dict[str, Any]:
+    def update(self, object_type: str, object_id: str, snapshot: dict[str, Any], *, mode: str = "save") -> dict[str, Any]:
+        if mode not in {"save", "publish"} or mode == "publish" and object_type != "dataset":
+            raise InputContractError("content publish is supported only for Dataset; other types publish a saved revision")
         if object_type == "html_page":
             return self._html_update(object_id, snapshot, publish=False)
         if object_type == "workbook":
@@ -608,7 +609,7 @@ class SdkAdapter:
             except Exception as exc:
                 raise self._mutation_error(exc, "update:workbook", effect_started=effect_started,
                                            dispatch_before=dispatch_before) from exc
-        return self._replace(object_type, object_id, snapshot, publish=False)
+        return self._replace(object_type, object_id, snapshot, publish=mode == "publish")
 
     def publish(self, object_type: str, object_id: str, saved: dict[str, Any]) -> dict[str, Any]:
         if object_type == "html_page":
@@ -638,16 +639,38 @@ class SdkAdapter:
                                        dispatch_before=dispatch_before) from exc
 
     def _html_create(self, draft: dict[str, Any], destination: dict[str, Any]) -> dict[str, Any]:
-        raise InputContractError(
-            "HTML Page content readback is unavailable in the verified API v3 contract; "
-            "retain a local HTML artifact. Page content create/update is unsupported by this adapter."
-        )
+        from datalens_dev_mcp.maintenance import validate_html_content
+
+        content = draft.get("content", (draft.get("snapshot") or {}).get("content"))
+        if not validate_html_content(content)["ok"]:
+            raise InputContractError("HTML Page requires bounded UTF-8 content")
+        effect_started = False
+        dispatch_before = self._write_dispatches
+        try:
+            builder = self._sdk_client().create.html_page(name=_draft_name(draft), location=_entry_location(destination))
+            builder.content(content)
+            effect_started = True
+            value = builder.build()
+            return {"object_id": _result_id(value), "object": _json_object(value), "backend": "official_sdk",
+                    "expected_readback": {"content": content}}
+        except Exception as exc:
+            raise self._mutation_error(exc, "create:html_page", effect_started=effect_started,
+                                       dispatch_before=dispatch_before) from exc
+
+    def html_content(self, object_id: str, revision_id: str) -> str:
+        from datalens_dev_mcp.maintenance import read_html_preview
+
+        try:
+            url = self._sdk_client().get.html_page_preview_url(by_id=object_id, rev_id=revision_id)
+        except (SdkApiError, SdkTransportError) as exc:
+            raise _provider_error(exc, "getHtmlPagePreviewUrl") from exc
+        except (ValueError, TypeError) as exc:
+            raise DataLensApiError("HTML preview URL is unavailable in this installation", stage="html_preview") from exc
+        return read_html_preview(url)
 
     def _html_update(self, object_id: str, snapshot: dict[str, Any], *, publish: bool) -> dict[str, Any]:
         from datalens_dev_mcp.api.client import DataLensApiClient
 
-        if not publish:
-            return self._html_create(snapshot, {})
         if self._config is None:
             raise RuntimeError("DataLensConfig is required for HTML operations")
         revision = _saved_revision(snapshot)
@@ -663,14 +686,25 @@ class SdkAdapter:
             raise WritePreconditionError("HTML Page saved identity/revision changed; re-read before publishing")
         if latest.get("branch", "saved") != "saved":
             raise WritePreconditionError("HTML Page target is not the saved branch")
-        result = api.write("updateHtmlPage", {"entryId": object_id, "mode": "publish", "revId": revision})
+        if publish:
+            payload = {"entryId": object_id, "mode": "publish", "revId": revision}
+        else:
+            from datalens_dev_mcp.maintenance import validate_html_content
+
+            content = snapshot.get("content")
+            if not validate_html_content(content)["ok"]:
+                raise InputContractError("HTML Page requires bounded UTF-8 content")
+            payload = {"entryId": object_id, "mode": "save", "content": content}
+            if "description" in snapshot:
+                payload["annotation"] = {"description": snapshot["description"]}
+        result = api.write("updateHtmlPage", payload)
         entry = result.get("entry") if isinstance(result.get("entry"), dict) else result
         return {"object_id": object_id, "object": entry, "backend": "public_api_adapter",
-                "publication_semantics": "existing_revision"}
+                "publication_semantics": "existing_revision" if publish else "new_content_revision"}
 
     def _replace(self, object_type: str, object_id: str, snapshot: dict[str, Any], *, publish: bool) -> dict[str, Any]:
         canonical = _canonical_object_type(object_type)
-        if publish and canonical in {"connection", "dataset", "workbook"}:
+        if publish and canonical in {"connection", "workbook"}:
             raise ValueError(f"{canonical} has no publish branch")
         effect_started = False
         direct = False
@@ -696,7 +730,7 @@ class SdkAdapter:
                 entry = state.get("entry") if isinstance(state.get("entry"), dict) else state
                 if observed_id and observed_id != object_id:
                     raise WritePreconditionError("SDK target identity changed; re-read the exact target")
-                if canonical not in {"dataset", "connection", "workbook"} and entry.get("branch", "saved") != "saved":
+                if canonical not in {"connection", "workbook"} and entry.get("branch", "saved") != "saved":
                     raise WritePreconditionError("SDK target branch changed; re-read the saved target")
             if canonical == "editor_chart":
                 _validate_editor_changes(snapshot, latest)
@@ -750,7 +784,8 @@ class SdkAdapter:
                 effect_started = True
                 direct = True
                 value = DataLensApiClient(self._config).write(
-                    "updateDataset", {"datasetId": object_id, "data": {"dataset": deepcopy(content)}}
+                    "updateDataset", {"datasetId": object_id, "data": {"dataset": deepcopy(content),
+                                                                       "mode": "publish" if publish else "save"}}
                 )
             else:
                 builder = getattr(client.raw.replace, canonical)(target=target, response_snapshot=snapshot)
@@ -784,22 +819,6 @@ class SdkAdapter:
         except Exception as exc:
             raise self._mutation_error(exc, f"replace:{canonical}", effect_started=effect_started,
                                        dispatch_before=dispatch_before, direct=direct) from exc
-
-    def describe_factory(self, resource: str, variant: str) -> dict[str, object]:
-        supported = (
-            variant in WIZARD_VARIANTS
-            if resource == "wizard"
-            else variant in EDITOR_VARIANTS
-            if resource == "editor"
-            else False
-        )
-        return {
-            "sdk_version": SDK_VERSION,
-            "resource": resource,
-            "variant": variant,
-            "supported": supported,
-            "effect": "mutation_on_build" if supported else "unsupported",
-        }
 
     def close(self) -> None:
         if self._client is not None and hasattr(self._client, "close"):

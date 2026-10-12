@@ -13,7 +13,7 @@ from datalens_dev_mcp.server import dl_method_schema
 
 
 def snapshot():
-    return {'id': 'synthetic-dataset', 'revId': 'outer-r1', 'dataset': {
+    return {'id': 'synthetic-dataset', 'revId': 'outer-r1', 'savedId': 'outer-r1', 'dataset': {
         'revision_id': 'inner-r7', 'description': 'before',
         'sources': [{'id': 'source-guid', 'parameters': {'sql': 'SELECT 1'}}],
         'source_avatars': [{'id': 'avatar-guid', 'source_id': 'source-guid'}],
@@ -48,7 +48,7 @@ def test_dataset_wire_preserves_inner_revision_and_content():
     desired['dataset']['description'] = 'after'
     original = copy.deepcopy(desired)
     writes = run_update(desired, current)
-    assert writes == [({'datasetId': 'synthetic-dataset', 'data': {'dataset': desired['dataset']}}, '3')]
+    assert writes == [({'datasetId': 'synthetic-dataset', 'data': {'dataset': desired['dataset'], 'mode': 'save'}}, '3')]
     assert desired == original
 
 

@@ -74,6 +74,21 @@ def test_unknown_and_failed_dependencies_survive_continuation(transport):
     assert {x["reason"] for x in second["unresolved_relations"]} == {"unknown_type", "dependency_read_failed"}
 
 
+def test_terminal_relation_page_retries_pending_hydration(transport, monkeypatch):
+    transport.pages = {"": {"entries": [{"entryId": "broken", "scope": "dataset"}]}}
+    first = server.dl_dashboard_snapshot("d")
+    assert first["continuation"] and not first["complete"]
+    original = transport.get_object
+    monkeypatch.setattr(transport, "get_object", lambda kind, identity, **kwargs: (
+        {"id": identity, "revId": "r1", "data": {}} if identity == "broken"
+        else original(kind, identity, **kwargs)
+    ))
+    second = server.dl_dashboard_snapshot("d", continuation=first["continuation"])
+    assert second["complete"] and second["continuation"] is None
+    assert [row["identity"]["object_id"] for row in second["dependencies"]] == ["broken"]
+    assert len([call for call in transport.calls if call[0] == "getEntriesRelations"]) == 1
+
+
 def test_target_revision_drift_stays_partial(transport):
     first = server.dl_dashboard_snapshot("d", max_pages=1)
     transport.rev = "r2"

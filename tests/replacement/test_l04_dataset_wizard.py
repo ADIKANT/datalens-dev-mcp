@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from datalens_dev_mcp.dataset.contracts import validate_dataset_fields, validate_visualization_fields
+from datalens_sdk import DataLensClientYC, Dataset, WizardLocalField, Workbook
+from datalens_sdk.converter.wizard import WizardChartConverter
+
+from datalens_dev_mcp.dataset.contracts import validate_dataset_fields, validate_visualization_fields, wire_fields
 from datalens_dev_mcp.dataset.preview import DatasetPreviewService, compile_preview_request
 from datalens_dev_mcp.server import list_tools
-from datalens_dev_mcp.wizard.authoring import compile_wizard_create, inspect_wizard_shape
+from datalens_dev_mcp.wizard.authoring import inspect_wizard_shape, wizard_builder
 
 FIELDS = [
     {
@@ -130,46 +133,27 @@ def test_technical_measure_fields_cannot_be_columns_filters_or_dataset_guids() -
 
 
 def test_official_sdk_compiles_current_multi_measure_wizard_shape() -> None:
-    result = compile_wizard_create(
-        visualization="line",
-        name="Synthetic revenue and orders",
-        workbook_id="workbook-1",
-        dataset_id="dataset-1",
-        fields=FIELDS,
-        roles={"x": ["date-guid"], "y": ["revenue-guid", "orders-guid"]},
-        title="Revenue and orders by day",
-    )
-    assert result["ok"] is True
-    assert result["sdk_version"] == "3.2.0"
-    assert result["payload"]["data"]["sources"]["datasetsIds"] == ["dataset-1"]
-    slots = result["payload"]["data"]["visualization"]
+    dataset = Dataset(id="dataset-1", result_schema=tuple(wire_fields(FIELDS)))
+    client = DataLensClientYC(auth=None)
+    try:
+        builder = wizard_builder(client, dataset, {
+            "visualization": "line", "roles": {"x": ["date-guid"], "y": ["revenue-guid", "orders-guid"]},
+            "title": "Revenue and orders by day",
+        }, name="Synthetic", location=Workbook.workbook("workbook-1"))
+        builder.add_local_field(WizardLocalField(guid="avg-check-local", title="Average check",
+            formula="SUM([revenue]) / SUM([orders])", cast="float", type="MEASURE",
+            autoaggregated=False, aggregation="none"))
+        payload = WizardChartConverter.from_domain_create(builder.to_spec()).to_payload()
+    finally:
+        client.close()
+    assert payload["data"]["sources"]["datasetsIds"] == ["dataset-1"]
+    slots = payload["data"]["visualization"]
     assert [item["guid"] for item in slots["y"]["items"]] == ["revenue-guid", "orders-guid"]
     assert all(item["datasetId"] == "dataset-1" for item in slots["y"]["items"])
     assert "placeholders" not in slots
-    assert "datasetsPartialFields" not in result["payload"]["data"]
-
-
-
-def test_chart_local_field_stays_out_of_dataset_contract() -> None:
-    result = compile_wizard_create(
-        visualization="line",
-        name="Synthetic average check",
-        workbook_id="workbook-1",
-        dataset_id="dataset-1",
-        fields=FIELDS,
-        roles={"x": ["date-guid"], "y": ["revenue-guid"]},
-        local_fields=[
-            {
-                "guid": "avg-check-local",
-                "title": "Average check",
-                "formula": "SUM([revenue]) / SUM([orders])",
-                "measure": True,
-            }
-        ],
-    )
-    assert result["ok"] is True
-    assert all(field["guid"] != "avg-check-local" for field in result["dataset_fields"])
-    assert any(update["field"]["guid"] == "avg-check-local" for update in result["payload"]["data"]["sources"]["updates"])
+    assert "datasetsPartialFields" not in payload["data"]
+    assert all(field["guid"] != "avg-check-local" for field in dataset.result_schema)
+    assert any(update["field"]["guid"] == "avg-check-local" for update in payload["data"]["sources"]["updates"])
 
 
 def test_existing_wizard_shape_is_detected_not_reinvented() -> None:

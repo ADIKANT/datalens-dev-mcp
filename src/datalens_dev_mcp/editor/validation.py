@@ -121,7 +121,14 @@ def validate_editor_source(tabs: Mapping[str, Any]) -> list[dict[str, str]]:
     """Validate supplied source fragments without requiring/re-authoring other tabs."""
     issues: list[dict[str, str]] = []
     source_text = "\n".join(str(value) for value in tabs.values())
-    if "libs/sql/v1" in source_text:
+    # Skip comments and unrelated literals before recognizing an actual import.
+    tokens = re.findall(r"//[^\n]*|/\*[\s\S]*?\*/|'(?:\\.|[^'\\])*'|\"(?:\\.|[^\"\\])*\"|`(?:\\.|[^`\\])*`|[A-Za-z_$][\w$]*|[^\s]", source_text)
+    imports = False
+    for index, token in enumerate(tokens):
+        if token in {"'libs/sql/v1'", '"libs/sql/v1"'}:
+            previous = [part for part in tokens[:index] if not part.startswith(("//", "/*"))]
+            imports = imports or previous[-2:] == ["require", "("] or previous[-1:] in (["from"], ["import"])
+    if imports:
         issues.append(
             {
                 "code": "unsupported_sql_library",
@@ -129,12 +136,6 @@ def validate_editor_source(tabs: Mapping[str, Any]) -> list[dict[str, str]]:
                 "message": "Editor runtime does not provide libs/sql/v1",
             }
         )
-    if re.search(r"wrapFn\s*\(\s*\(\s*\)\s*=>", source_text):
-        issues.append(
-            {
-                "code": "wrap_fn_arguments_dropped",
-                "path": "tabs",
-                "message": "wrapFn callback must preserve runtime arguments",
-            }
-        )
+    # A constant callback can intentionally ignore arguments; its signature is
+    # not proof of an invalid runtime contract.
     return issues

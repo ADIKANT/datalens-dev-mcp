@@ -25,7 +25,7 @@ class Reader:
                 "identity": {
                     "object_type": "dataset",
                     "object_id": "shared",
-                    "branch": "unbranched",
+                    "branch": "saved",
                     "revision_id": "r2",
                 },
                 "object": {"id": "shared"},
@@ -99,6 +99,67 @@ def test_html_contract_requires_string_and_documented_size_limit() -> None:
     assert validate_html_content("<p>Synthetic</p>")["ok"] is True
     assert validate_html_content({"html": "<p>x</p>"})["ok"] is False
     assert validate_html_content("x" * (5 * 1024 * 1024 + 1))["issues"][0]["code"] == "html_too_large"
+
+
+@pytest.mark.parametrize("branch,revision", [("saved", None), ("published", None), ("saved", "historical")])
+def test_backup_checks_exact_target_and_private_files(tmp_path, branch, revision):
+    class ExactReader:
+        def object_get(self, kind, oid, **kwargs):
+            assert kwargs == {"branch": branch, "revision_id": revision}
+            return {"ok": True, "complete": True, "full_state": True,
+                    "identity": {"object_type": kind, "object_id": oid, "branch": branch,
+                                 "revision_id": revision or branch + "-revision"},
+                    "object": {"name": "Synthetic"}}
+    result = BackupService(ExactReader()).export([
+        {"object_type": "dataset", "object_id": "synthetic", "branch": branch, "revision_id": revision}
+    ], tmp_path)
+    assert result["complete"] is True
+    for path in tmp_path.glob("*.json"):
+        assert path.stat().st_mode & 0o777 == 0o600
+    assert result["objects"][0]["requested_revision"] == revision
+
+
+@pytest.mark.parametrize("kind,content,full", [
+    ("html_page", {"name": "Metadata only"}, False),
+    ("connection", {"password": "synthetic-password"}, True),
+    ("dataset", {"name": "Partial"}, False),
+])
+def test_backup_written_file_does_not_prove_complete_content(tmp_path, kind, content, full):
+    class PartialReader:
+        def object_get(self, object_type, oid, **kwargs):
+            return {"ok": True, "complete": full, "full_state": full,
+                    "identity": {"object_type": object_type, "object_id": oid,
+                                 "branch": "unbranched" if kind == "connection" else "saved", "revision_id": "r1"},
+                    "object": content}
+    result = BackupService(PartialReader()).export([{"object_type": kind, "object_id": "synthetic"}], tmp_path)
+    assert result["complete"] is False
+    assert result["objects"][0]["file_written"] is True
+    assert result["objects"][0]["target_verified"] is True
+    assert result["objects"][0]["content_complete"] is False
+    assert "synthetic-password" not in (tmp_path / result["objects"][0]["file"]).read_text()
+
+
+@pytest.mark.parametrize("status,mime,body", [
+    (403, "text/html", b"expired"), (302, "text/html", b"redirect"),
+    (200, "application/json", b"{}"), (200, "text/html; charset=latin1", b"bad"),
+    (200, "text/html", b"\xff"), (200, "text/html", b"x" * 101),
+])
+def test_html_storage_errors_are_bounded_and_do_not_expose_signed_url(monkeypatch, status, mime, body):
+    import httpx
+
+    from datalens_dev_mcp import maintenance
+    real_client = httpx.Client
+    def factory(**kwargs):
+        assert kwargs["trust_env"] is False and kwargs["follow_redirects"] is False
+        def handle(request):
+            assert not any(key in request.headers for key in ("authorization", "cookie", "x-yc-org-id"))
+            return httpx.Response(status, headers={"content-type": mime}, content=body)
+        return real_client(transport=httpx.MockTransport(handle), **kwargs)
+    monkeypatch.setattr(maintenance.httpx, "Client", factory)
+    monkeypatch.setattr(maintenance, "HTML_MAX_BYTES", 100)
+    with pytest.raises(DataLensApiError) as raised:
+        maintenance.read_html_preview("https://storage.invalid/preview?signature=synthetic-private")
+    assert "synthetic-private" not in str(raised.value)
 
 
 def test_admin_boundary_does_not_claim_license_revoke() -> None:

@@ -41,7 +41,7 @@ module.exports = function renderWeeklyTotals(data, config) {
           ? Math.max(0, Number(presentation.geometry.spacing)) : 0;
         let heading = title.visible && title.owner === 'body'
           ? '<div style="font-size:14px;font-weight:700;margin-bottom:' + spacing + 'px">' + escape(title.text) + '</div>' : '';
-        const messages = {loading: 'Loading…', error: 'Data unavailable', no_data: 'No data'};
+        const messages = {loading: 'Loading…', error: 'Data unavailable', no_data: 'No data', incomplete: 'Incomplete data: source row limit reached'};
         if (messages[state]) {
           return Editor.generateHtml('<div role="status" style="box-sizing:border-box;height:100%;padding:' + spacing
             + 'px;background:' + colors.surface + ';color:' + colors.muted + '">' + heading + messages[state] + '</div>');

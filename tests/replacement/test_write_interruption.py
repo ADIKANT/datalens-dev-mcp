@@ -181,7 +181,7 @@ def test_invalid_dataset_metadata_save_retains_separate_validation(tmp_path):
                          "component_errors": {"items": [{"errors": [{"code": "TITLE_CONFLICT"}]}]}}}
     before = {"dataset": {**state["dataset"], "description": "Old"}}
     saved = rb("dataset", "s", "r2", state)
-    saved["identity"]["branch"] = "unbranched"
+    saved["identity"]["branch"] = "saved"
     reader = FakeReader({("dataset", "s", "saved"): [rb("dataset", "s", "r1", before), saved]})
     backend = FakeBackend([{"object_id": "s"}])
     result = service(tmp_path, reader, backend).update_objects(
@@ -396,3 +396,36 @@ def test_unknown_create_investigation_never_attributes_by_name(tmp_path, count, 
     assert result["write_replayed"] is False and len(writer.backend.calls) == 1
     assert item["intent"] == before["results"][0]["intent"]
     assert result["request_digest"] == before["request_digest"]
+
+
+@pytest.mark.parametrize("duplicate,drift", [(False, False), (True, False), (False, True)])
+def test_marker_reconcile_continues_after_fifty_candidates(tmp_path, duplicate, drift):
+    marker = "a" * 32
+    class Reader(FakeReader):
+        def workbook_entries(self, workbook_id, **kwargs):
+            return {"ok": True, "complete": True, "page_count": 1, "objects": [
+                {"id": f"d-{i}", "object_type": "dashboard", "name": "Synthetic"} for i in range(61)
+            ]}
+    desired = {"entry": {"data": {"tabs": []}, "meta": {"datalens_dev_mcp_create_id": marker}}}
+    replies = {}
+    for i in range(61):
+        obj = {"entry": {"workbookId": "w", "data": {"tabs": [{"id": "changed"}] if drift else []},
+                         "meta": {"datalens_dev_mcp_create_id": marker} if i == 60 or duplicate and i == 0 else {}}}
+        replies[("dashboard", f"d-{i}", "saved")] = [rb("dashboard", f"d-{i}", "r1", obj)]
+    writer = service(tmp_path, Reader(replies), FakeBackend([]))
+    writer.store.put({"operation_id": "missing", "effect": "create", "status": "uncertain", "results": [{
+        "key": "d", "status": "uncertain", "desired": desired,
+        "intent": {"object_type": "dashboard", "destination": {"workbook_id": "w"}},
+        "create_recovery": {"kind": "dashboard_meta_v1", "workbook_id": "w", "marker": marker},
+    }]})
+    first = writer.reconcile("missing")
+    assert "target" not in first["results"][0]
+    assert first["results"][0]["investigation"]["remaining_candidates"] == 11
+    second = writer.reconcile("missing")
+    item = second["results"][0]
+    if duplicate:
+        assert "target" not in item and item["investigation"]["code"] == "ambiguous_create_marker"
+    else:
+        assert item["target"]["object_id"] == "d-60" and item["effect_outcome"] == "applied"
+        assert bool(item.get("write_verified")) is (not drift)
+    assert writer.backend.calls == []

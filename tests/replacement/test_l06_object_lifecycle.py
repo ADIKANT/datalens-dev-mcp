@@ -55,6 +55,32 @@ def service(tmp_path: Path, reader: FakeReader, backend: FakeBackend) -> ObjectM
     return ObjectMutationService(reader=reader, backend=backend, store=OperationStore(tmp_path / "operations"))
 
 
+def test_business_security_words_remain_semantic_during_readback(tmp_path):
+    from copy import deepcopy
+
+    old = {"entry": {"data": {"settings": {"globalParams": {
+        "authorization_status": ["new"], "token_count": 0, "secret": "old", "token": 0,
+    }}}}}
+    patch = deepcopy(old)
+    patch["entry"]["data"]["settings"]["globalParams"].update(
+        authorization_status=["paid"], token_count=3, secret="new", token=1,
+    )
+    reader = FakeReader({("dashboard", "dash-1", "saved"): [
+        rb("dashboard", "dash-1", "r1", old), rb("dashboard", "dash-1", "r2", old),
+    ]})
+    backend = FakeBackend([{"object_id": "dash-1"}])
+    writer = service(tmp_path, reader, backend)
+    result = writer.update_objects([
+        {"object_type": "dashboard", "object_id": "dash-1", "patch": patch, "expected_revision": "r1"},
+    ], operation_id="business-security-words")
+    item = result["results"][0]
+    assert item.get("write_verified") is not True
+    assert item["verification_checks"]["content"] is False
+    assert len(item["readback_diff"]) == 4
+    assert writer.reconcile("business-security-words")["results"][0].get("write_verified") is not True
+    assert len(backend.calls) == 1
+
+
 def test_save_only_reads_saved_and_never_publishes(tmp_path: Path) -> None:
     reader = FakeReader(
         {("editor_chart", "chart-1", "saved"): [rb("editor_chart", "chart-1", "r1", {"id": "chart-1", "data": {}})]}
@@ -180,7 +206,7 @@ def test_update_accepts_fresh_readback_when_sdk_returns_prewrite_revision(tmp_pa
         }
     )
     for value in reader.replies[("dataset", "dataset-1", "saved")]:
-        value["identity"]["branch"] = "unbranched"
+        value["identity"]["branch"] = "saved"
     backend = FakeBackend([{"object_id": "dataset-1", "object": {"revId": "r1"}}])
 
     result = service(tmp_path, reader, backend).update_objects(

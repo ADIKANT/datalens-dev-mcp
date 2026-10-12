@@ -68,6 +68,21 @@ def test_workbook_entries_are_explicitly_partial_at_bound() -> None:
     assert result["next_page_token"] == "next-1"
 
 
+def test_inventory_continuation_resumes_numeric_page_and_binds_scope():
+    api = FakeApi({"getWorkbookEntries": [
+        {"entries": [{"entryId": "a", "scope": "dash"}], "nextPageToken": "p2"},
+        {"entries": [{"entryId": "b", "scope": "dash"}]},
+    ]})
+    reader = ObjectReadService(api=api, sdk=FakeSdk({}))
+    first = reader.workbook_entries("wb-1", max_pages=1)
+    with pytest.raises(ValueError, match="continuation"):
+        reader.workbook_entries("other", continuation=first["continuation"])
+    second = reader.workbook_entries("wb-1", continuation=first["continuation"])
+    assert [payload["page"] for _, payload in api.calls] == [0, 1]
+    assert second["complete"] and second["continuation"] is None
+    assert [row["id"] for row in second["objects"]] == ["b"]
+
+
 def test_typed_object_get_preserves_requested_branch_and_revision() -> None:
     sdk = FakeSdk({("wizard_chart", "chart-1", "published"): {"id": "chart-1", "rev_id": "rev-7"}})
     result = ObjectReadService(api=FakeApi({}), sdk=sdk).object_get(
@@ -82,10 +97,10 @@ def test_typed_object_get_preserves_requested_branch_and_revision() -> None:
     assert sdk.calls == [("wizard_chart", "chart-1", "published", "rev-7")]
 
 
-def test_unbranched_object_reports_actual_semantics() -> None:
+def test_dataset_reports_selected_branch() -> None:
     sdk = FakeSdk({("dataset", "dataset-1", "published"): {"id": "dataset-1", "revId": "rev-2"}})
     result = ObjectReadService(api=FakeApi({}), sdk=sdk).object_get("dataset", "dataset-1", branch="published")
-    assert result["identity"]["branch"] == "unbranched"
+    assert result["identity"]["branch"] == "published"
 
 
 @pytest.mark.parametrize(

@@ -217,7 +217,7 @@ def dashboard_builder(client: Any, specification: Mapping[str, Any], *, name: st
                 hint = item.get("hint", selected_hint.get("text"))
                 if selected_hint.get("enabled") and selected_hint.get("owner") == "widget":
                     if not isinstance(hint, str) or not hint.strip():
-                        raise ValueError("dashboard chart hint requires concrete explanatory text at item/hint or presentation/hint/text")
+                        hint = None
                 else:
                     hint = None
                 tab.add_chart(

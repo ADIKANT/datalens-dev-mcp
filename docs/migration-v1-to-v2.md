@@ -1,4 +1,6 @@
-# Migrating from the legacy tool surface
+# Migrating from the legacy tool surface — historical
+
+> Archived pre-1.2 direct-domain replacement design. Task tools, task journals and planner paths below are not the current runtime. See [current instruction ownership](architecture/runtime_instruction_model.md) and the five installed domain skills. Mutation receipts retain write evidence; they are not task journals.
 
 The autonomous surface is the default. Existing integrations can temporarily select `legacy-v1`, but new clients should move from manual low-level sequences to task ownership:
 

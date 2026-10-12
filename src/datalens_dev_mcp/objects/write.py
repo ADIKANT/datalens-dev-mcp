@@ -4,6 +4,7 @@ import hashlib
 import json
 from copy import deepcopy
 from datetime import UTC, datetime
+from functools import wraps
 from typing import Any, Protocol
 from uuid import uuid4
 
@@ -85,6 +86,20 @@ def _json_equal(current: Any, proposed: Any) -> bool:
     return current == proposed
 
 
+def _owned_mutation(method):
+    @wraps(method)
+    def owned(self, *args, operation_id=None, **kwargs):
+        operation_id = operation_id or str(uuid4())
+        with self.store.mutation_lease(operation_id) as acquired:
+            if not acquired:
+                # Do not expose the other request's receipt before validating its scope/digest.
+                return {"ok": False, "status": "pending", "operation_id": operation_id,
+                        "owner_active": True, "write_replayed": False,
+                        "next_action": "A live sender owns this operation; inspect its receipt after it returns"}
+            return method(self, *args, operation_id=operation_id, **kwargs)
+    return owned
+
+
 class ObjectMutationService:
     def __init__(self, *, reader: ObjectReader, backend: MutationBackend, store: OperationStore | None = None,
                  provider_scope: str | None = None) -> None:
@@ -95,13 +110,26 @@ class ObjectMutationService:
 
     def diff(
         self, object_type: str, object_id: str, patch: dict[str, Any] | None = None, *,
-        dashboard_patch: dict[str, Any] | None = None, include_proposed: bool = False
+        dashboard_patch: dict[str, Any] | None = None, include_proposed: bool = False,
+        artifact_path: str | None = None, artifact_sha256: str | None = None, expected_revision: str | None = None,
     ) -> dict[str, Any]:
-        if (patch is None) == (dashboard_patch is None):
-            raise InputContractError("Supply exactly one of patch or dashboard_patch")
+        if sum(value is not None for value in (patch, dashboard_patch, artifact_path)) != 1:
+            raise InputContractError("Supply exactly one of patch, dashboard_patch or artifact_path")
+        artifact = None
+        if artifact_path is not None:
+            artifact = _resolve_update_change({"object_type": object_type, "object_id": object_id,
+                "artifact_path": artifact_path, **({"artifact_sha256": artifact_sha256} if artifact_sha256 else {}),
+                **({"expected_revision": expected_revision} if expected_revision else {})})
+            patch = artifact["patch"]
+        elif artifact_sha256 is not None or expected_revision is not None:
+            raise InputContractError("artifact_sha256/expected_revision in diff require artifact_path")
         if dashboard_patch is not None and object_type != "dashboard":
             raise InputContractError("dashboard_patch requires object_type dashboard")
         current = self.reader.object_get(object_type, object_id, branch="saved")
+        if artifact and (not _usable_full_read(current)
+                or expected_revision and current.get("identity", {}).get("revision_id") != expected_revision
+                or artifact.get("artifact_variant") and current.get("observed_identity", {}).get("subtype") != artifact["artifact_variant"]):
+            raise InputContractError("Artifact diff requires complete saved state with the expected revision and subtype")
         if dashboard_patch is not None:
             from datalens_dev_mcp.dashboard.composition import apply_dashboard_patch
 
@@ -110,7 +138,7 @@ class ObjectMutationService:
             proposed, _ = apply_dashboard_patch(current["object"], dashboard_patch)
         else:
             proposed = semantic_merge(current["object"], patch)
-        changes = semantic_diff(current["object"], proposed)
+        changes = semantic_diff(_recordable(current["object"], object_type), _recordable(proposed, object_type))
         result = {
             "ok": True,
             "identity": current["identity"],
@@ -119,9 +147,12 @@ class ObjectMutationService:
             "diff_complete": len(changes) <= 50,
         }
         if include_proposed:
-            result["proposed"] = proposed
+            result["proposed"] = _recordable(proposed, object_type)
+        if artifact:
+            result.update(artifact_sha256=artifact_sha256, expected_revision=expected_revision)
         return result
 
+    @_owned_mutation
     def create_objects(
         self,
         drafts: list[dict[str, Any]],
@@ -191,7 +222,7 @@ class ObjectMutationService:
                 prepared = prepare(draft, destination) if callable(prepare) else None
                 if prepared is not None:
                     draft = prepared["draft"]
-                    item["desired"] = _recordable(prepared["expected_readback"])
+                    item["desired"] = _recordable(prepared["expected_readback"], draft["object_type"])
                     item["create_recovery"] = _recordable(prepared["recovery"])
                 self._begin(record, item)
                 response = self.backend.create(draft, destination)
@@ -200,14 +231,14 @@ class ObjectMutationService:
                     raise UncertainWriteError("create returned no object id")
                 item["target"] = {"object_type": str(draft["object_type"]), "object_id": object_id}
                 if isinstance(response.get("expected_readback"), dict):
-                    item["desired"] = _recordable(response["expected_readback"])
+                    item["desired"] = _recordable(response["expected_readback"], draft["object_type"])
                 self._returned(record, item, response)
                 value = response.get("object") or {}
                 if draft["object_type"] == "connection" and value.get("operation") is not None:
                     # The response's operation is an opaque object in the API
                     # contract. No generic connection-operation read is exposed;
                     # an id or a guessed `done` field cannot establish readiness.
-                    item["connection_operation"] = _recordable(value["operation"])
+                    item["connection_operation"] = _recordable(value["operation"], "connection")
                     item.update(status="uncertain", code="connection_operation_incomplete",
                                 next_action="Connection id retained; async operation completion is not verified. "
                                             "No supported generic operation poll; do not repeat create.")
@@ -224,19 +255,22 @@ class ObjectMutationService:
             self._save(record)
         result = self._save(record)
         if any(item.get("status") == "uncertain" and item.get("create_recovery") for item in items):
-            return self.reconcile(record["operation_id"])
+            return self._reconcile(record["operation_id"])
         return result
 
+    @_owned_mutation
     def update_objects(
         self, changes: list[dict[str, Any]], *, delivery_mode: str = "save", operation_id: str | None = None
     ) -> dict[str, Any]:
-        if delivery_mode != "save":
-            raise InputContractError("update delivery_mode must be 'save'; publish is an explicit later operation")
+        if delivery_mode not in {"save", "publish"} or (delivery_mode == "publish"
+                and any(change.get("object_type") != "dataset" for change in changes)):
+            raise InputContractError("update delivery_mode=publish requires only Dataset changes and creates new revisions")
         try:
             changes = [_resolve_update_change(change) for change in changes]
         except (ValueError, TypeError) as exc:
             raise InputContractError(safe_error_text(exc)) from exc
-        admitted, record = self._record("update", {"changes": changes}, operation_id)
+        admitted, record = self._record("update", {"changes": changes,
+                                       **({"delivery_mode": "publish"} if delivery_mode == "publish" else {})}, operation_id)
         if not admitted:
             return record
         items = self._items(record, changes, lambda c, i: f"{c.get('object_type')}:{c.get('object_id')}")
@@ -272,6 +306,10 @@ class ObjectMutationService:
             object_type, object_id = str(change["object_type"]), str(change["object_id"])
             try:
                 current = preflight_states.get(index) or self.reader.object_get(object_type, object_id, branch="saved")
+                if change.get("artifact_variant"):
+                    subtype = (current.get("observed_identity") or {}).get("subtype")
+                    if subtype != change["artifact_variant"]:
+                        raise InputContractError("custom Editor artifact requires the exact observed renderer subtype")
                 if not _usable_full_read(current):
                     item.update(
                         status="blocked",
@@ -309,29 +347,33 @@ class ObjectMutationService:
                 absent_paths = _remove_dashboard_params(proposed, change)
                 item.update(
                     target={"object_type": object_type, "object_id": object_id},
-                    desired=_recordable(patch),
+                    desired=_recordable(patch, object_type),
                     expected_revision=actual_revision or None,
                     absent_paths=absent_paths,
-                    changes=semantic_diff(_recordable(current["object"]), _recordable(proposed)),
+                    changes=semantic_diff(_recordable(current["object"], object_type), _recordable(proposed, object_type)),
+                    delivery_mode=delivery_mode,
                 )
-                if _json_equal(current["object"], proposed):
+                if change.get("artifact_sha256"):
+                    item["artifact_sha256"] = change["artifact_sha256"]
+                if delivery_mode == "save" and _json_equal(current["object"], proposed):
                     identity = current.get("identity") or {}
-                    branch = "unbranched" if object_type in {"dataset", "connection", "workbook"} else "saved"
+                    branch = "unbranched" if object_type in {"connection", "workbook"} else "saved"
                     if any(identity.get(key) != value for key, value in {
                         "object_type": object_type, "object_id": object_id, "branch": branch
                     }.items()):
                         raise InputContractError("no-op requires the exact saved target identity and branch")
                     item.update(status="completed", code="no_change", write_returned=False,
-                                observed_revision=actual_revision or None, readback=_recordable(current),
+                                observed_revision=actual_revision or None, readback=_recordable(current, object_type),
                                 evidence="fresh_saved_read_no_write")
                     item.pop("error", None)
                     item.pop("next_action", None)
                     self._save(record)
                     continue
                 self._begin(record, item)
-                response = self.backend.update(object_type, object_id, proposed)
+                response = (self.backend.update(object_type, object_id, proposed, mode="publish") if delivery_mode == "publish"
+                            else self.backend.update(object_type, object_id, proposed))
                 self._returned(record, item, response)
-                self._verify_readback(item, branch="saved")
+                self._verify_readback(item, branch="published" if delivery_mode == "publish" else "saved")
             except ReceiptPersistenceError:
                 # Preserve the ACK/identity receipt; another save could mask it.
                 raise
@@ -342,7 +384,10 @@ class ObjectMutationService:
             self._save(record)
         return self._save(record)
 
+    @_owned_mutation
     def publish_objects(self, targets: list[dict[str, Any]], *, operation_id: str | None = None) -> dict[str, Any]:
+        if any("revision_id" in target or target.get("branch", "saved") != "saved" for target in targets):
+            raise InputContractError("Publish selects the fresh saved revision; use expected_saved_revision, not revision_id or published branch")
         admitted, record = self._record("publish", {"targets": targets}, operation_id)
         if not admitted:
             return record
@@ -353,12 +398,15 @@ class ObjectMutationService:
                 continue
             object_type, object_id = str(target["object_type"]), str(target["object_id"])
             if object_type in {"dataset", "connection", "workbook"}:
-                item.update(status="blocked", code="object_has_no_publish_branch")
+                item.update(status="blocked", code="dataset_revision_promotion_unsupported" if object_type == "dataset"
+                            else "object_has_no_publish_branch")
+                if object_type == "dataset":
+                    item["next_action"] = "Use dl_object_update delivery_mode=publish for explicit content publication as a new Dataset revision."
                 self._save(record)
                 continue
             try:
                 saved = self.reader.object_get(object_type, object_id, branch="saved")
-                if not _usable_full_read(saved):
+                if not _usable_full_read(saved) and not (object_type == "html_page" and saved.get("metadata_verified")):
                     item.update(
                         status="blocked",
                         code="full_read_required",
@@ -384,7 +432,7 @@ class ObjectMutationService:
                 item.update(
                     target={"object_type": object_type, "object_id": object_id},
                     expected_revision=observed or None,
-                    desired=_recordable(_publish_content(saved["object"])),
+                    desired={} if object_type == "html_page" else _recordable(_publish_content(saved["object"])),
                 )
                 if object_type in {"dashboard", "wizard_chart", "editor_chart", "html_page"}:
                     item["required_published_revision"] = observed
@@ -409,11 +457,33 @@ class ObjectMutationService:
         return normalize_operation(value)
 
     def reconcile(self, operation_id: str, *, investigate_create: bool = False) -> dict[str, Any]:
+        with self.store.mutation_lease(operation_id) as acquired:
+            if not acquired:
+                record = self.store.get(operation_id) or {"ok": False, "status": "pending", "operation_id": operation_id}
+                if record.get("provider_scope") and record["provider_scope"] != self.provider_scope:
+                    raise DataLensSafetyError("Operation belongs to a different provider scope")
+                return {**normalize_operation(record), "owner_active": True, "write_replayed": False}
+            return self._reconcile(operation_id, investigate_create=investigate_create)
+
+    def _reconcile(self, operation_id: str, *, investigate_create: bool = False) -> dict[str, Any]:
         record = self.store.get(operation_id)
         if record is None:
             return {"ok": False, "status": "not_found", "operation_id": operation_id, "write_replayed": False}
         if record.get("provider_scope") and record["provider_scope"] != self.provider_scope:
             raise DataLensSafetyError("Operation belongs to a different provider scope; use its original configuration")
+        if record.get("sender_contract") == "leased_v1":
+            recovered = False
+            for item in record.get("results", []):
+                if item.get("status") == "pending":
+                    item.update(status="failed", dispatch_state="not_dispatched", effect_outcome="not_applied",
+                                code="interrupted_before_dispatch")
+                    recovered = True
+            if record.get("status") == "pending" and not record.get("results"):
+                record.update(status="failed", ok=False, dispatch_state="not_dispatched", effect_outcome="not_applied",
+                              next_action="Resume the original request through its mutation tool with this operation_id.")
+                self.store.put(record)
+            elif recovered:
+                self._save(record)
         if not any(item.get("status") == "uncertain" for item in record.get("results", [])):
             return {**normalize_operation(record), "write_replayed": False}
         for item in record.get("results", []):
@@ -452,9 +522,14 @@ class ObjectMutationService:
                 # This ACK establishes effect, never historical content correctness.
                 item["effect_outcome"] = "applied"
                 item["effect_evidence"] = "retained_provider_ack"
-            branch = "published" if record.get("effect") == "publish" else "saved"
+            branch = "published" if record.get("effect") == "publish" or item.get("delivery_mode") == "publish" else "saved"
             try:
                 self._verify_readback(item, branch=branch)
+                if record.get("semantic_contract") != "typed_v2":
+                    # Older receipts erased arbitrary credential-like business keys.
+                    # Current subset equality cannot reconstruct that lost intent.
+                    item.update(status="uncertain", write_verified=False,
+                                verification_status="historical_content_unverified")
                 current = item.get("readback") or {}
                 scope_verified = bool(record.get("provider_scope") == self.provider_scope and self.provider_scope)
                 if not record.get("provider_scope"):
@@ -496,11 +571,16 @@ class ObjectMutationService:
                   and isinstance(desired_entry.get("data"), dict) and isinstance(desired_meta, dict)
                   and desired_meta.get("datalens_dev_mcp_create_id") == marker)
         limit = 50 if marked else 10
+        binding = [workbook, intent.get("object_type"), marker]
+        progress = item.get("investigation_progress") or {}
+        if progress.get("binding") != binding or progress.get("completed"):
+            progress = {"binding": binding, "candidates": {}, "checked": {}, "inventory_complete": False}
+        item["investigation_progress"] = progress
         evidence: dict[str, Any] = {
             "observed_at": datetime.now(UTC).isoformat(), "workbook_id": workbook,
             "method": "getWorkbookEntries_then_exact_saved_read", "attribution": "unavailable",
             "effect_outcome": "unknown", "candidate_count": 0, "inventory_complete": False,
-            "coverage": f"At most 10 inventory pages and {limit} candidate reads; absence is not non-application",
+            "coverage": f"At most 10 new inventory pages and {limit} pending candidate reads per call; not an atomic snapshot",
             "limitation": ("Marker lookup requires complete inventory and every candidate read; copies are ambiguous"
                            if marked else "Legacy request has no persisted correlation marker; names cannot prove ownership"),
             "candidates": [], "provider_writes": 0,
@@ -511,14 +591,24 @@ class ObjectMutationService:
             evidence["code"] = "inventory_unavailable"
         else:
             try:
-                inventory = self.reader.workbook_entries(workbook, page_size=100, max_pages=10)
-                evidence.update(inventory_complete=inventory.get("complete") is True and inventory.get("ok") is True,
-                                page_count=inventory.get("page_count"), object_count=inventory.get("object_count"))
+                if not progress["inventory_complete"]:
+                    options = {"continuation": progress["continuation"]} if progress.get("continuation") else {}
+                    inventory = self.reader.workbook_entries(workbook, page_size=100, max_pages=10, **options)
+                    progress.update(inventory_complete=inventory.get("complete") is True and inventory.get("ok") is True,
+                                    continuation=inventory.get("continuation"))
+                    progress["page_count"] = progress.get("page_count", 0) + inventory.get("page_count", 0)
+                else:
+                    inventory = {"objects": []}
+                evidence.update(inventory_complete=progress["inventory_complete"], page_count=progress.get("page_count"))
                 candidates = [entry for entry in inventory.get("objects", [])
                               if entry.get("object_type") == intent.get("object_type")
                               and (marked or str(entry.get("name", "")).rsplit("/", 1)[-1] == intent.get("name"))]
-                evidence.update(candidate_count=len(candidates), candidates_truncated=len(candidates) > limit)
-                for candidate in candidates[:limit]:
+                progress["candidates"].update({entry["id"]: entry for entry in candidates})
+                candidates = list(progress["candidates"].values())
+                pending = [candidate for candidate in candidates
+                           if not progress["checked"].get(candidate["id"], {}).get("identity_verified")]
+                evidence.update(candidate_count=len(candidates), candidates_truncated=len(pending) > limit)
+                for candidate in pending[:limit]:
                     row = {"object_id": candidate["id"], "match": "none" if marked else "name_only", "attributed": False}
                     try:
                         current = self.reader.object_get(candidate["object_type"], candidate["id"], branch="saved")
@@ -536,12 +626,19 @@ class ObjectMutationService:
                         if marked and isinstance(meta, dict) and meta.get("datalens_dev_mcp_create_id") == marker:
                             row["match"] = "persisted_create_marker"
                             if valid:
-                                matches.append(candidate["id"])
+                                row["marker_verified"] = True
                     except (DataLensApiError, ValueError, TypeError) as exc:
                         reads_complete = False
                         row["read_error"] = error_response(exc)["code"]
-                    evidence["candidates"].append(row)
-                evidence["candidate_reads_complete"] = reads_complete and len(candidates) <= limit
+                    progress["checked"][candidate["id"]] = row
+                evidence["candidates"] = list(progress["checked"].values())
+                remaining = [candidate["id"] for candidate in candidates
+                             if not progress["checked"].get(candidate["id"], {}).get("identity_verified")]
+                matches = [row["object_id"] for row in evidence["candidates"] if row.get("marker_verified")]
+                evidence["candidate_reads_complete"] = reads_complete and not remaining
+                progress["completed"] = evidence["inventory_complete"] and evidence["candidate_reads_complete"]
+                evidence.update(completed=progress["completed"], remaining_candidates=len(remaining),
+                                inventory_remaining=not evidence["inventory_complete"])
                 if marked and evidence["inventory_complete"] and evidence["candidate_reads_complete"] and len(matches) == 1:
                     previous = deepcopy(item)
                     previous.pop("history", None)
@@ -596,18 +693,18 @@ class ObjectMutationService:
         item["response_revision_role"] = "precondition" if precondition else "result" if revision else "not_returned"
         item["verification_status"] = "pending"
         if item.get("target", {}).get("object_type") == "connection" and value.get("operation") is not None:
-            item["connection_operation"] = _recordable(value["operation"])
+            item["connection_operation"] = _recordable(value["operation"], "connection")
         self._save(record)
 
     def _verify_readback(self, item: dict[str, Any], *, branch: str) -> None:
         target = item["target"]
         readback = self.reader.object_get(target["object_type"], target["object_id"], branch=branch)
-        item["readback"] = _recordable(readback)
+        item["readback"] = _recordable(readback, target["object_type"])
         item.pop("error", None)
         for field in ERROR_DIAGNOSTIC_FIELDS:
             item.pop(field, None)
         identity = readback.get("identity") or {}
-        allowed_branch = "unbranched" if target["object_type"] in {"dataset", "connection", "workbook"} else branch
+        allowed_branch = "unbranched" if target["object_type"] in {"connection", "workbook"} else branch
         correct_identity = (
             identity.get("object_id") == target["object_id"]
             and identity.get("object_type") == target["object_type"]
@@ -621,14 +718,26 @@ class ObjectMutationService:
         payload_id, _ = object_identity(payload)
         correct_identity = correct_identity and (not payload_id or payload_id == target["object_id"])
         desired = item.get("desired") or {}
-        actual_intent = _readback_intent(target["object_type"], payload)
+        actual_intent = _readback_intent(target["object_type"], _recordable(payload, target["object_type"]))
         desired_intent = _readback_intent(target["object_type"], desired)
+        if target["object_type"] == "html_page":
+            from datalens_dev_mcp.maintenance import html_semantic_content
+
+            authored = desired_intent.get("content")
+            if isinstance(authored, str) and isinstance(actual_intent.get("content"), str):
+                expected_tokens = html_semantic_content(authored)
+                skip_csp = expected_tokens == html_semantic_content(authored, ignore_injected_csp=True)
+                desired_intent["content"] = expected_tokens
+                actual_intent["content"] = html_semantic_content(actual_intent["content"], ignore_injected_csp=skip_csp)
+            item["content_status"] = readback.get("content_status", "unavailable")
+        metadata_publish = target["object_type"] == "html_page" and bool(item.get("required_published_revision"))
+        complete = _usable_full_read(readback) or (metadata_publish and readback.get("metadata_verified") is True)
         content_matches = _readback_contains(actual_intent, desired_intent)
         differences = _readback_diff(_recordable(actual_intent), desired_intent)
         item["readback_diff"] = _compact_readback_diff(differences)
         item["readback_diff_complete"] = len(differences) <= 20
         item["normalizations"] = _dashboard_normalizations(desired) if target["object_type"] == "dashboard" else []
-        item["readback_identity_verified"] = _usable_full_read(readback) and correct_identity
+        item["readback_identity_verified"] = complete and correct_identity
         item["observed_revision"] = identity.get("revision_id")
         content_matches = content_matches and all(_path_absent(payload, path) for path in item.get("absent_paths", []))
         if item.get("exact_dashboard_tabs"):
@@ -648,14 +757,20 @@ class ObjectMutationService:
             identity.get("revision_id"),
             item.get("expected_revision"),
         }
+        if target["object_type"] == "dataset" and item.get("delivery_mode") == "publish":
+            # This adapter receives the actual update response, not an SDK input handle.
+            revision_matches = bool(returned_revision and returned_revision == identity.get("revision_id")
+                                    and returned_revision != item.get("expected_revision"))
         required_revision = item.get("required_published_revision")
         if required_revision and identity.get("revision_id") != required_revision:
             revision_matches = False
+        if metadata_publish and payload.get("publishedId") != required_revision:
+            revision_matches = False
         item["verification_checks"] = {"full_read": _usable_full_read(readback), "identity": correct_identity,
                                        "content": content_matches, "revision": revision_matches}
-        if _usable_full_read(readback) and correct_identity and content_matches and revision_matches:
+        if complete and correct_identity and content_matches and revision_matches:
             item.update(status="completed", code="readback_verified", observed_revision=identity.get("revision_id"))
-            item["evidence"] = f"{allowed_branch}_readback"
+            item["evidence"] = "published_revision_pointer" if metadata_publish else f"{allowed_branch}_readback"
             item["write_verified"] = True
             item["verification_status"] = "verified"
             item["readback_diff"] = []
@@ -720,6 +835,8 @@ class ObjectMutationService:
                                              request.get("changes", request.get("targets", []))
                                              if item.get("object_id")}),
                     "status": "pending",
+                    "sender_contract": "leased_v1",
+                    "semantic_contract": "typed_v2",
                     "next_action": "Inspect the existing receipt; an active or interrupted claim must not be replayed.",
                     "results": [],
                 }
@@ -780,7 +897,7 @@ def _create_intent(draft: dict[str, Any], destination: dict[str, Any]) -> dict[s
     result = {key: draft[key] for key in ("object_type", "name", "client_ref", "variant")
               if isinstance(draft.get(key), str)}
     result["destination"] = {key: destination[key] for key in ("workbook_id", "collection_id", "path") if key in destination}
-    result["content_sha256"] = _digest(_recordable(draft))
+    result["content_sha256"] = _digest(draft)
     result["content_fields"] = sorted(_recordable(draft))
     for kind in ("dataset", "wizard"):
         specification = draft.get(kind)
@@ -793,8 +910,10 @@ def _create_intent(draft: dict[str, Any], destination: dict[str, Any]) -> dict[s
 def _create_desired(draft: dict[str, Any]) -> dict[str, Any]:
     snapshot = draft.get("snapshot") or draft.get("draft")
     if isinstance(snapshot, dict) and snapshot:
-        return _recordable(snapshot)
+        return _recordable(snapshot, draft.get("object_type"))
     desired = {"name": draft["name"]} if draft.get("name") else {}
+    if draft.get("object_type") == "html_page" and "content" in draft:
+        desired["content"] = draft["content"]
     tabs = draft.get("tabs")
     if isinstance(tabs, dict):
         desired["data"] = {_EDITOR_ARTIFACT_TABS[key]: value for key, value in tabs.items() if key in _EDITOR_ARTIFACT_TABS}
@@ -857,24 +976,36 @@ def _resolve_update_change(change: dict[str, Any]) -> dict[str, Any]:
             "replacement requires fresh full state; summary/projection envelopes are not write payloads"
         )
     if "artifact_path" not in change:
+        if "artifact_sha256" in change:
+            raise InputContractError("artifact_sha256 requires artifact_path")
         return deepcopy(change)
-    allowed = {"artifact_path", "object_type", "object_id", "expected_revision"}
+    allowed = {"artifact_path", "artifact_sha256", "object_type", "object_id", "expected_revision"}
     if set(change) - allowed:
         raise InputContractError(
-            "artifact updates allow only artifact_path, object_type, object_id and expected_revision"
+            "artifact updates allow only artifact_path, artifact_sha256, object_type, object_id and expected_revision"
         )
     object_type, object_id = change.get("object_type"), change.get("object_id")
     if not isinstance(object_type, str) or not object_type or not isinstance(object_id, str) or not object_id:
         raise InputContractError("artifact update requires nonempty object_type and object_id")
-    draft = resolve_artifact({"artifact_path": change["artifact_path"]})
-    if (object_type not in _EDITOR_ARTIFACT_TYPES or draft.get("object_type") not in _EDITOR_ARTIFACT_TYPES
-            or not draft.get("recipe_id") or not isinstance(draft.get("bindings"), dict)):
-        raise InputContractError("changes/artifact_path: expected unchanged dl_compile_recipe files.draft.json with "
-                                 "recipe_id, bindings, config and tabs; raw Editor tabs require an explicit "
-                                 "revision-guarded patch, or dl_editor_validate(draft={variant,tabs}) for static validation")
-    from datalens_dev_mcp.authoring.validation import _validate_supported_draft
+    draft = resolve_artifact({key: change[key] for key in ("artifact_path", "artifact_sha256") if key in change})
+    if object_type not in _EDITOR_ARTIFACT_TYPES or draft.get("object_type") not in _EDITOR_ARTIFACT_TYPES:
+        raise InputContractError("changes/artifact_path requires an Editor artifact and target")
+    custom = not draft.get("recipe_id")
+    if custom:
+        from datalens_dev_mcp.editor.validation import validate_editor_draft
 
-    errors, _ = _validate_supported_draft(draft, draft["object_type"])
+        if set(draft) - {"object_type", "object_id", "expected_revision", "variant", "tabs", "name"}:
+            raise InputContractError("custom Editor update artifact allows only target identity/revision, variant, tabs and optional name")
+        if (not change.get("artifact_sha256") or not change.get("expected_revision")
+                or draft.get("object_id") != object_id or draft.get("expected_revision") != change["expected_revision"]
+                or draft.get("object_type") != object_type):
+            raise InputContractError("custom Editor artifact requires reviewed artifact_sha256 and matching "
+                                     "object_type, object_id, expected_revision in the artifact and change")
+        errors = validate_editor_draft({**draft, "validation_scope": "supplied_tabs"})["issues"]
+    else:
+        from datalens_dev_mcp.authoring.validation import _validate_supported_draft
+
+        errors, _ = _validate_supported_draft(draft, draft["object_type"])
     if errors:
         raise InputContractError(f"changes/artifact_path/{errors[0]['path']}: {errors[0]['message']}")
     tabs = draft.get("tabs")
@@ -894,6 +1025,7 @@ def _resolve_update_change(change: dict[str, Any]) -> dict[str, Any]:
         "object_id": object_id,
         "expected_revision": change.get("expected_revision"),
         "patch": patch,
+        **({"artifact_variant": draft["variant"], "artifact_sha256": change["artifact_sha256"]} if custom else {}),
     }
 
 
@@ -903,9 +1035,15 @@ def _digest(value: Any) -> str:
 
 
 def _contains(actual: Any, expected: Any) -> bool:
+    if _is_redacted(expected) or _is_redacted(actual):
+        return False
     if isinstance(expected, dict):
         return isinstance(actual, dict) and all(
             key in actual and _contains(actual[key], value) for key, value in expected.items()
+        )
+    if isinstance(expected, list):
+        return isinstance(actual, list) and len(actual) == len(expected) and all(
+            _contains(a, e) for a, e in zip(actual, expected)
         )
     return _json_equal(actual, expected)
 
@@ -946,8 +1084,8 @@ def _readback_intent(object_type: str, desired: dict[str, Any]) -> dict[str, Any
         # arrays. Apply that same projection to actual state before comparison.
         intent = _recordable(intent)
         # Exact provider-owned preconditions, not recursive business-field filtering.
-        intent.pop("revId", None)
-        intent.pop("rev_id", None)
+        for field in ("revId", "rev_id", "savedId", "saved_id", "publishedId", "published_id"):
+            intent.pop(field, None)
         dataset = intent.get("dataset")
         if isinstance(dataset, dict):
             dataset.pop("revision_id", None)
@@ -977,6 +1115,9 @@ def _dashboard_normalizations(desired: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _readback_diff(actual: Any, expected: Any, path: str = "") -> list[dict[str, Any]]:
+    if _is_redacted(expected) or _is_redacted(actual):
+        return [{"path": path or "/", "expected": expected, "observed": actual,
+                 "classification": "protected_value_unverifiable"}]
     if isinstance(expected, dict) and isinstance(actual, dict):
         differences = []
         for key, value in expected.items():
@@ -1025,18 +1166,32 @@ def _publish_content(snapshot: dict[str, Any]) -> dict[str, Any]:
     return content
 
 
-_SENSITIVE_KEY_PARTS = ("password", "secret", "token", "credential", "authorization", "cookie")
+_CREDENTIAL_KEYS = frozenset({
+    "password", "passwd", "secret", "token", "iam_token", "access_token", "refresh_token",
+    "oauth_token", "api_key", "apikey", "private_key", "client_secret", "credentials",
+    "authorization", "cookie", "cookies", "secure_params",
+})
 
 
-def _recordable(value: Any) -> Any:
+def _is_redacted(value: Any) -> bool:
+    return isinstance(value, dict) and value == {"$protected_value": "unverifiable"}
+
+
+def _recordable(value: Any, object_type: str | None = None) -> Any:
+    """Keep semantic fields; protect credential slots in the connection contract.
+
+    A protected value is explicitly unverifiable, never an omitted requirement.
+    Dashboard parameters and other authored business names are not credentials.
+    """
     if isinstance(value, dict):
         return {
-            key: _recordable(item)
+            key: ({"$protected_value": "unverifiable"}
+                  if object_type == "connection" and str(key).lower() in _CREDENTIAL_KEYS
+                  else _recordable(item, object_type))
             for key, item in value.items()
-            if not any(part in str(key).lower() for part in _SENSITIVE_KEY_PARTS)
         }
     if isinstance(value, list):
-        return [_recordable(item) for item in value]
+        return [_recordable(item, object_type) for item in value]
     return deepcopy(value)
 
 

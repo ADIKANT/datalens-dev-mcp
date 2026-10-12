@@ -7,7 +7,7 @@ import pytest
 from datalens_dev_mcp.api.client import DataLensApiClient
 from datalens_dev_mcp.api.errors import DataLensApiError, UncertainWriteError
 from datalens_dev_mcp.api.schemas import OperationRegistry
-from datalens_dev_mcp.api.sdk_adapter import SDK_VERSION, SdkAdapter
+from datalens_dev_mcp.api.sdk_adapter import SDK_VERSION
 from datalens_dev_mcp.config import DataLensConfig
 from datalens_dev_mcp.server import call_tool, list_tools
 
@@ -108,19 +108,6 @@ def test_operation_registry_records_real_sdk_coverage() -> None:
     assert registry.get("getDatasetData")["backend"] == "official_sdk"
     assert registry.get("getDatasetData")["api_version"] == "3"
     assert registry.get("updateDashboard")["backend"] == "official_sdk"
-
-
-def test_sdk_adapter_exposes_versioned_factories_without_executing_them() -> None:
-    adapter = SdkAdapter()
-    assert adapter.describe_factory("wizard", "flat_table") == {
-        "sdk_version": "3.2.0",
-        "resource": "wizard",
-        "variant": "flat_table",
-        "supported": True,
-        "effect": "mutation_on_build",
-    }
-    assert adapter.describe_factory("editor", "table")["supported"] is True
-    assert adapter.describe_factory("editor", "unknown")["supported"] is False
 
 
 def test_l02_tools_expose_auth_and_versioned_schema_without_generic_rpc() -> None:

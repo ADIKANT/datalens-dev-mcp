@@ -1,4 +1,6 @@
-# Архитектура
+# Архитектура — historical
+
+> Archived pre-1.2 direct-domain replacement design. Task tools, task journals and planner paths below are not the current runtime. See [current instruction ownership](architecture/runtime_instruction_model.md) and the five installed domain skills. Mutation receipts retain write evidence; they are not task journals.
 
 `datalens-dev-mcp` — локальный stdio MCP-сервер с исходящим клиентом DataLens API. MCP-клиент управляет жизненным циклом процесса. Сервер не открывает HTTP-порт.
 

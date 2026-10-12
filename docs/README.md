@@ -1,4 +1,4 @@
-# Документация datalens-dev-mcp 1.0
+# Документация datalens-dev-mcp
 
 **Русский** · [English](README_en.md) · [Главная](../README.md)
 
@@ -7,7 +7,7 @@
 ## Актуальный контракт
 
 - [Установка](installation.md) — wheel, plugin manifest и проверка вне checkout.
-- [26 MCP-инструментов](tools.md) — закрытая поверхность чтения, authoring, записи и maintenance.
+- [MCP-инструменты](tools.md) — закрытая поверхность чтения, authoring, записи и maintenance.
 - [Карта visual consumers](authoring-property-consumers.md) — где именно применяются свойства рецептов и какая проверка ещё нужна.
 - [Поддержанные SDK/API operations](../src/datalens_dev_mcp/schemas/supported-operations.json) — backend, версия и статическая граница каждого метода.
 - [Карта 62 пользовательских результатов](../src/datalens_dev_mcp/schemas/capability-coverage.json) — прямой владелец и честная boundary, не исполняемый router.

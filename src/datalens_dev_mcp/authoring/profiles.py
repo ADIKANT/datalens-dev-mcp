@@ -17,7 +17,6 @@ GENERIC_DEFAULTS: dict[str, Any] = {
     "dashboard": {"hide_dash_title": True},
     "selector": {"title_placement": "left", "show_title": True},
 }
-FORBIDDEN_CONFIG_KEYS = {"workflow", "history", "messages", "memory", "task", "orchestrator"}
 
 
 def get_authoring_defaults(
@@ -117,9 +116,6 @@ def _read_config(path: Path | None) -> dict[str, Any]:
     value = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(value, dict):
         raise TypeError(f"authoring config must contain an object: {path}")
-    forbidden = FORBIDDEN_CONFIG_KEYS.intersection(str(key).lower() for key in value)
-    if forbidden:
-        raise ValueError("authoring config cannot contain workflow, history, task, orchestrator, or memory state")
     return value
 
 
