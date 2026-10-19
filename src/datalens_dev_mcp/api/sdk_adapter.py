@@ -566,6 +566,17 @@ class SdkAdapter:
                     _validate_wizard_snapshot(_chart_entry(snapshot))
                 factory = getattr(client.raw.create, object_type)
                 builder = factory(response_snapshot=snapshot, name=name, location=location)
+                if object_type == "dataset":
+                    from datalens_sdk.converter.dataset import DatasetConverter
+                    from datalens_sdk.domain.specs.raw_resource import RawCreateSpec
+
+                    # The import identity/revisions decode the template only.
+                    # Compare the content actually forwarded by the SDK; the
+                    # provider's new target identity is verified separately.
+                    payload = DatasetConverter.from_raw_create(
+                        RawCreateSpec(response_snapshot=snapshot, name=name, location=location)
+                    ).to_payload()
+                    expected_readback = {"name": name, "dataset": payload["dataset"]}
                 if object_type == "connection":
                     from datalens_sdk.converter.connection import ConnectionConverter
                     from datalens_sdk.domain.specs.raw_resource import RawCreateSpec

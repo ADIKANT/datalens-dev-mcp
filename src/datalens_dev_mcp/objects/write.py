@@ -543,7 +543,9 @@ class ObjectMutationService:
                                          for key in ("tenantId", "workbookId", "entryId"))
                 if item["status"] == "completed":
                     item["code"] = "reconciled_applied"
-                elif (record.get("effect") in {"update", "publish"} and item.get("write_returned")
+                elif ((record.get("effect") in {"update", "publish"}
+                       or (record.get("effect") == "create" and object_type == "dataset"))
+                      and item.get("write_returned")
                       and item.get("readback_identity_verified") and scope_verified
                       and current.get("identity", {}).get("revision_id")):
                     item.update(status="resolved", code="applied_history_unverified", write_verified=False,
