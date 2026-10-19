@@ -130,7 +130,7 @@ must be retained: durable state may be older. Reconcile after the worker unwinds
 
 `dl_operation_reconcile(operation_id=...)` never repeats a provider write. A
 retained provider ACK can establish `effect_outcome=applied` even when later
-content no longer matches. For an ordinary update/publish, a complete exact
+content no longer matches. For an ordinary update/publish or an acknowledged Dataset create, a complete exact
 current read and verified provider/target scope can return `status=resolved`,
 `verification_status=historical_content_unverified`, `write_verified=false`,
 and `write_replayed=false`. This releases the historical hold; it does not

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.35
+
+- Verify raw Dataset creates against the SDK create payload instead of the imported template identity.
+- Resolve acknowledged Dataset creates with exact current identity and provider scope without replaying writes or claiming changed content is verified; continuation still requires fresh CAS.
+
 ## 1.2.34
 
 - Correct the dashboard skill's native connection example to use chart-tab wire IDs and receiver-first ignore direction; distinguish native patches from logical SDK composition.

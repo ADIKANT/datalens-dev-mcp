@@ -1400,3 +1400,50 @@ def test_dashboard_create_recovers_provider_identity_after_lost_ack(install_runt
     assert len(provider.writes) == 1
     again = call_tool('dl_operation_reconcile', {'operation_id': 'recover-create'})
     assert again['status'] == 'completed' and len(provider.writes) == 1
+
+
+def test_raw_dataset_create_checks_payload_not_template_identity(install_runtime):
+    source = dataset_state()
+    provider = Provider(source)
+    def created(p):
+        method, payload = p.writes[-1]
+        if method == 'createDataset':
+            p.state = {'id': 'created-dataset', 'name': payload['name'], 'revId': 'C1',
+                       'dataset': deepcopy(payload['dataset'])}
+    provider.after_write = created
+    install_runtime(provider)
+    result = call_tool('dl_object_create', {
+        'drafts': [{'object_type': 'dataset', 'name': 'Imported Dataset',
+                    'client_ref': 'imported', 'snapshot': source}],
+        'destination': {'workbook_id': 'synthetic-workbook'}, 'operation_id': 'dataset-import'})
+    item = result['results'][0]
+    assert item['status'] == 'completed', item
+    assert item['target']['object_id'] == 'created-dataset'
+    assert item['verification_checks']['identity'] is True
+    assert len(provider.writes) == 1
+
+
+def test_acknowledged_dataset_create_can_resolve_changed_provider_state(install_runtime):
+    source = dataset_state()
+    provider = Provider(source)
+    def created(p):
+        method, payload = p.writes[-1]
+        if method == 'createDataset':
+            p.state = {'id': 'created-dataset', 'name': payload['name'], 'revId': 'C1',
+                       'dataset': deepcopy(payload['dataset'])}
+            p.state['dataset']['description'] = 'Provider normalized content'
+    provider.after_write = created
+    install_runtime(provider)
+    result = call_tool('dl_object_create', {
+        'drafts': [{'object_type': 'dataset', 'name': 'Imported Dataset',
+                    'client_ref': 'imported', 'snapshot': source}],
+        'destination': {'workbook_id': 'synthetic-workbook'}, 'operation_id': 'dataset-normalized'})
+    assert result['results'][0]['status'] == 'uncertain'
+    resolved = call_tool('dl_operation_reconcile', {'operation_id': 'dataset-normalized'})
+    item = resolved['results'][0]
+    assert item['status'] == 'resolved', item
+    assert item['effect_outcome'] == 'applied'
+    assert item['write_verified'] is False
+    assert item['continuation_requires_fresh_cas'] is True
+    assert resolved['write_replayed'] is False
+    assert len(provider.writes) == 1

@@ -429,3 +429,31 @@ def test_marker_reconcile_continues_after_fifty_candidates(tmp_path, duplicate, 
         assert item["target"]["object_id"] == "d-60" and item["effect_outcome"] == "applied"
         assert bool(item.get("write_verified")) is (not drift)
     assert writer.backend.calls == []
+
+
+@pytest.mark.parametrize('blocker', ['none', 'no_ack', 'wrong_id', 'partial', 'missing_revision'])
+def test_dataset_create_reconcile_retains_identity_and_ack_guards(tmp_path, blocker):
+    current = rb('dataset', 'created', 'current', {'id': 'created', 'name': 'Imported',
+        'dataset': {'description': 'Provider normalized', 'component_errors': {'items': []}, 'sources': [{'id': 's', 'valid': False}],
+                    'result_schema': [{'guid': 'g', 'valid': False}]}})
+    if blocker == 'wrong_id':
+        current['object']['id'] = 'another'
+    elif blocker == 'partial':
+        current['complete'] = False
+    elif blocker == 'missing_revision':
+        current['identity']['revision_id'] = None
+    backend = FakeBackend([])
+    writer = service(tmp_path, FakeReader({('dataset', 'created', 'saved'): [current]}), backend)
+    writer.provider_scope = 'scope'
+    writer.store.put({'operation_id': 'import', 'effect': 'create', 'status': 'uncertain',
+        'semantic_contract': 'typed_v2', 'provider_scope': 'scope', 'request_digest': 'retained',
+        'results': [{'key': 'imported', 'status': 'uncertain', 'target': {'object_type': 'dataset', 'object_id': 'created'},
+                     'write_returned': blocker != 'no_ack', 'desired': {'id': 'template',
+                     'dataset': {'description': 'Original'}}, 'code': 'readback_mismatch'}]})
+    result = writer.reconcile('import')
+    item = result['results'][0]
+    assert item['status'] == ('resolved' if blocker == 'none' else 'uncertain')
+    assert item.get('write_verified') is not True
+    assert item['dataset_validation']['status'] == 'invalid'
+    assert result['write_replayed'] is False
+    assert backend.calls == []
