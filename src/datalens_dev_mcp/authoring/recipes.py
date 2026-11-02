@@ -252,7 +252,11 @@ def compile_recipe(
             renderer_contract["hint"]["enabled"] = (
                 bool(contract["hint"].get("enabled")) and contract["hint"].get("owner") == "body"
             )
+        from datalens_dev_mcp.editor.formatting import format_editor_payload, format_editor_source
+
         draft["tabs"] = _editor_tabs(str(variant), renderer_text, renderer_contract, bindings, recipe_id=recipe_id)
+        draft = format_editor_payload(draft, str(variant))
+        renderer_text = format_editor_source(renderer_text)
         draft["name"] = contract["object_name"]["value"] or str(
             (bindings.get("parameter") or {}).get("name") or recipe_id
         )

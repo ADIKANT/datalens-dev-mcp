@@ -400,13 +400,15 @@ def _validate_supported_draft(draft: Mapping[str, Any], object_type: str) -> tup
         editor_draft["validation_scope"] = "complete_draft"
         if draft.get("recipe_id"):
             from datalens_dev_mcp.authoring.recipes import compile_recipe
+            from datalens_dev_mcp.editor.formatting import format_editor_payload
 
             try:
                 expected = compile_recipe(draft["recipe_id"], draft.get("bindings") or {},
                                           presentation={**(draft.get("visual_contract") or {}),
                                                         "technology": draft.get("technology")})["draft"]
+                supplied = format_editor_payload(dict(draft), object_type)
                 for tab, source in expected.get("tabs", {}).items():
-                    if draft.get("tabs", {}).get(tab) != source:
+                    if supplied.get("tabs", {}).get(tab) != source:
                         errors.append(_error("recipe_payload_drift", f"tabs/{tab}",
                                              "compiled recipe source differs from its effective contract; recompile or author an explicit custom draft"))
             except (ValueError, TypeError, KeyError) as exc:

@@ -76,6 +76,12 @@ text(result.structuredContent ?? result);
 ```
 
 Projected tabs, including Controls, Activities and Meta aliases, remain verbatim.
+Create/update formats supplied JavaScript tabs locally with two-space indentation
+and a 100-column wrapping target. Literal contents stay intact. The server rejects
+formatting that changes the syntax tree. Diff and readback use formatted source.
+Unsupplied tabs and Meta remain unchanged. To format an existing tab, submit its
+current source through the usual revision-guarded update. Publish uses the saved
+revision unchanged. Keep local source readable too. Do not minify generated data.
 Validate the exact tabs being written; never remove a supplied tab to make validation
 pass. `validation_scope: "supplied_tabs"` checks only the supplied fragment and
 reports its scope. New complete drafts use the default `complete_draft` contract;

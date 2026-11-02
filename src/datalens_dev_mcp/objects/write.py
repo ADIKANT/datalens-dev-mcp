@@ -19,6 +19,7 @@ from datalens_dev_mcp.api.errors import (
     safe_error_text,
 )
 from datalens_dev_mcp.authoring.artifacts import resolve_artifact
+from datalens_dev_mcp.editor.formatting import format_editor_payload
 from datalens_dev_mcp.editor.validation import TAB_FIELDS as _EDITOR_ARTIFACT_TABS
 from datalens_dev_mcp.objects.relations import object_identity
 from datalens_dev_mcp.operation_store import OperationStore, normalize_operation
@@ -140,7 +141,7 @@ class ObjectMutationService:
                 raise InputContractError("dashboard_patch requires complete full saved state")
             proposed, _ = apply_dashboard_patch(current["object"], dashboard_patch)
         else:
-            proposed = semantic_merge(current["object"], patch)
+            proposed = semantic_merge(current["object"], format_editor_payload(patch, object_type))
         changes = semantic_diff(_recordable(current["object"], object_type), _recordable(proposed, object_type))
         result = {
             "ok": True,
@@ -184,15 +185,16 @@ class ObjectMutationService:
         for index, draft in enumerate(drafts):
             if items[index].get("status") in {"completed", "uncertain"}:
                 continue
-            if any(key in draft for key in ("wizard", "dashboard", "recipe_id")):
-                try:
+            try:
+                draft = drafts[index] = format_editor_payload(draft, str(draft.get("object_type")))
+                if any(key in draft for key in ("wizard", "dashboard", "recipe_id")):
                     errors, _ = _validate_supported_draft(draft, str(draft.get("object_type")))
                     if errors:
                         error = errors[0]
                         raise InputContractError(f"{error['path']}: {error['message']}")
-                except (ValueError, TypeError) as exc:
-                    self._failure(items[index], exc)
-                    invalid = True
+            except (ValueError, TypeError) as exc:
+                self._failure(items[index], exc)
+                invalid = True
         if invalid:
             return self._save(record)
         preflight = getattr(self.backend, "validate_create_batch", None)
@@ -332,7 +334,7 @@ class ObjectMutationService:
                     )
                     self._save(record)
                     continue
-                patch = deepcopy(change.get("patch") or {})
+                patch = format_editor_payload(change.get("patch") or {}, object_type)
                 if (object_type == "dashboard" and "data" in patch
                         and "data" not in current["object"]
                         and isinstance(current["object"].get("entry"), dict)

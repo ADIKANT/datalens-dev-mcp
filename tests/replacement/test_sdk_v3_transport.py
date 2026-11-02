@@ -455,7 +455,7 @@ def test_public_editor_activities_carrier_preserves_subtype_contract(install_run
     if supported:
         assert result["status"] == "completed", result
         data = provider.writes[0][1]["entry"]["data"]
-        assert data["activities"] == "module.exports={};"
+        assert data["activities"] == "module.exports = {};"
         assert data["sources"] == editor_state()["data"]["sources"]
     else:
         assert result["results"][0]["code"] == "input_error", result

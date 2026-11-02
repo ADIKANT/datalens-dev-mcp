@@ -2,6 +2,21 @@
 
 Editor bundles keep DataLens tab payloads as strings.
 
+Recipe compilation and Editor create/update format supplied JavaScript tabs with
+two-space indentation and a 100-column wrapping target. Strings, template text
+and regular expressions retain their contents, so individual literals can exceed
+that width. Formatting runs locally through pinned `jsbeautifier`. No Node.js
+installation or network formatter is required.
+
+The server compares JavaScript syntax trees before and after formatting and
+rejects changed structure before dispatch. Make ambiguous statement boundaries
+explicit if that guard rejects source. Repeated formatting is stable.
+
+For an existing chart, submit the tabs to format in a normal revision-guarded
+update. Unsupplied tabs, Meta, unknown fields and metadata-only edits stay intact.
+Diff and saved readback use the formatted source. Publication uses the saved
+revision without reformatting it. Existing charts are not migrated automatically.
+
 - Advanced Editor uses `meta.json`, `params.js`, `sources.js`, `controls.js`, and `prepare.js`.
 - Editor Table uses `meta.json`, `params.js`, `sources.js`, `prepare.js`, and `config.js`.
 - Markdown uses `meta.json`, `params.js`, `sources.js`, and `prepare.js`.
