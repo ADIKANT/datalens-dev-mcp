@@ -55,6 +55,63 @@ def service(tmp_path: Path, reader: FakeReader, backend: FakeBackend) -> ObjectM
     return ObjectMutationService(reader=reader, backend=backend, store=OperationStore(tmp_path / "operations"))
 
 
+def test_editor_create_and_existing_tab_update_format_source(tmp_path):
+    compact = 'module.exports={head:[{name:"Value"}],rows:[{cells:[42]}]};'
+    formatted = ('module.exports = {\n  head: [{\n    name: "Value"\n  }],\n'
+                 '  rows: [{\n    cells: [42]\n  }]\n};')
+    untouched = 'module.exports={legacy:true};'
+    old = {"data": {"prepare": compact, "params": untouched}}
+    saved = {"data": {"prepare": formatted, "params": untouched}}
+    reader = FakeReader({("editor_chart", "chart-1", "saved"): [
+        rb("editor_chart", "chart-1", "r1", old),
+        rb("editor_chart", "chart-1", "r2", saved),
+    ]})
+    backend = FakeBackend([{"object_id": "chart-1"}])
+    writer = service(tmp_path, reader, backend)
+    changes = [{"object_type": "editor_chart", "object_id": "chart-1", "expected_revision": "r1",
+                "patch": {"data": {"prepare": compact}}}]
+    result = writer.update_objects(changes, operation_id="format-existing")
+    assert result["results"][0].get("write_verified") is True
+    assert backend.calls[0][1]["snapshot"] == saved
+    assert changes[0]["patch"]["data"]["prepare"] == compact
+    writer.update_objects(changes, operation_id="format-existing")
+    assert len(backend.calls) == 1
+
+    reader = FakeReader({("editor_chart", "chart-2", "saved"): [
+        rb("editor_chart", "chart-2", "r1", {"data": {"prepare": formatted}}),
+    ]})
+    backend = FakeBackend([{"object_id": "chart-2"}])
+    result = service(tmp_path, reader, backend).create_objects(
+        [{"object_type": "editor_chart", "client_ref": "new", "tabs": {"prepare.js": compact}}],
+        {"workbook_id": "wb-1"}, operation_id="format-new")
+    assert result["results"][0].get("write_verified") is True
+    assert backend.calls[0][1]["draft"]["tabs"]["prepare.js"] == formatted
+
+    imported = {"entry": {"data": {"prepare": compact, "meta": '{"alias":"unchanged"}'}}}
+    expected = {"entry": {"data": {"prepare": formatted, "meta": '{"alias":"unchanged"}'}}}
+    reader = FakeReader({("editor_chart", "chart-3", "saved"): [
+        rb("editor_chart", "chart-3", "r1", expected),
+    ]})
+    backend = FakeBackend([{"object_id": "chart-3"}])
+    result = service(tmp_path, reader, backend).create_objects(
+        [{"object_type": "editor_chart", "client_ref": "imported", "snapshot": imported}],
+        {"workbook_id": "wb-1"}, operation_id="format-import")
+    assert result["results"][0].get("write_verified") is True
+    assert backend.calls[0][1]["draft"]["snapshot"] == expected
+    assert imported["entry"]["data"]["prepare"] == compact
+
+
+def test_editor_formatting_rejects_unsafe_batch_before_any_create(tmp_path):
+    backend = FakeBackend([])
+    result = service(tmp_path, FakeReader({}), backend).create_objects([
+        {"object_type": "editor_chart", "client_ref": "good", "tabs": {"prepare.js": 'module.exports={value:42};'}},
+        {"object_type": "editor_chart", "client_ref": "unsafe",
+         "tabs": {"prepare.js": 'function value(){return\n{amount:42}}module.exports=value();'}},
+    ], {"workbook_id": "wb-1"})
+    assert result["results"][1]["status"] == "failed"
+    assert backend.calls == []
+
+
 def test_business_security_words_remain_semantic_during_readback(tmp_path):
     from copy import deepcopy
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.36
+
+- Format JavaScript in compiled Editor recipes, new charts and supplied tabs of existing charts with two-space indentation and line wrapping.
+- Verify unchanged JavaScript syntax before saving. Preserve literal contents, untouched tabs, operation replay and exact saved-revision publication.
+
 ## 1.2.35
 
 - Verify raw Dataset creates against the SDK create payload instead of the imported template identity.

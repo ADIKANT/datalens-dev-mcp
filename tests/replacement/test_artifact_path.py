@@ -219,7 +219,7 @@ def test_custom_editor_artifact_preserves_tabs_and_binds_bytes_target_revision(t
     if case == "substitution":
         path.write_text(path.read_text() + " ")
     before = {"type": "control_node", "data": {"controls": "old", "params": "manual"}}
-    after = {"type": "control_node", "data": {"controls": source, "params": "manual"}}
+    after = {"type": "control_node", "data": {"controls": "module.exports = {\n  controls: []\n};", "params": "manual"}}
     current = rb("editor_chart", "selector", "r0" if case == "stale" else "r1", before)
     current["observed_identity"] = {"subtype": "table_node" if case == "wrong_subtype" else "control_node"}
     reader = FakeReader({("editor_chart", "selector", "saved"): ([current] if case == "valid" else []) + [current, rb("editor_chart", "selector", "r2", after)]})
